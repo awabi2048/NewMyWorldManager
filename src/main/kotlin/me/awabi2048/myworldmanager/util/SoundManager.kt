@@ -42,6 +42,11 @@ class SoundManager(private val plugin: MyWorldManager) {
                 ItemTag.TYPE_GUI_CONFIRM -> "confirm"
                 ItemTag.TYPE_GUI_CANCEL -> "cancel"
                 ItemTag.TYPE_GUI_WORLD_ITEM -> "world_item"
+                ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE -> "template"
+                ItemTag.TYPE_GUI_CREATION_TYPE_SEED -> "seed"
+                ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> "random"
+                ItemTag.TYPE_GUI_DISCOVERY_SORT -> "sort"
+                ItemTag.TYPE_GUI_DISCOVERY_TAG -> "tag_filter"
                 // 汎用的なアイテムタイプからアイコンIDへのマッピングが必要な場合はここに追加
                 else -> null
             }
