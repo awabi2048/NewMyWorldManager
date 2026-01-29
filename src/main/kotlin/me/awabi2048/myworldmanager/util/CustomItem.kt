@@ -88,7 +88,7 @@ enum class CustomItem(val id: String) {
         val meta = item.itemMeta ?: return item
         
         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
-        meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.bottled_biome_air.name", biomeName)).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
+        meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.bottled_biome_air.name", mapOf("biome" to biomeName))).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         meta.lore(lang.getMessageList(player, "custom_item.bottled_biome_air.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
         
         meta.setMaxStackSize(1)

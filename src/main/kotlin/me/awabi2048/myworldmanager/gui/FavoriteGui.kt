@@ -94,13 +94,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val item = ItemStack(data.icon)
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
-        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", data.name))
+        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name)))
 
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator"))
         
         if (data.description.isNotEmpty()) {
-            lore.add(lang.getComponent(player, "gui.common.world_desc", data.description))
+            lore.add(lang.getComponent(player, "gui.common.world_desc", mapOf("description" to data.description)))
             lore.add(lang.getComponent(player, "gui.common.separator"))
         }
         
@@ -108,12 +108,12 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val onlineColor = lang.getMessage(player, "publish_level.color.online")
         val offlineColor = lang.getMessage(player, "publish_level.color.offline")
         val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.owner", ownerColor, owner.name ?: lang.getMessage(player, "general.unknown")))
+        lore.add(lang.getComponent(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to ownerColor)))
         
         // 統計情報
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.favorite", data.favorite))
+        lore.add(lang.getComponent(player, "gui.favorite.world_item.favorite", mapOf("count" to data.favorite)))
         val totalRecent = data.recentVisitors.sum()
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.recent_visitors", totalRecent))
+        lore.add(lang.getComponent(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to totalRecent)))
 
         lore.add(lang.getComponent(player, "gui.common.separator"))
         if (!data.isArchived && (data.publishLevel == PublishLevel.PUBLIC || data.publishLevel == PublishLevel.FRIEND)) {

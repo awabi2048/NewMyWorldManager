@@ -152,7 +152,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
         val statusKey = "general.status.${stats.meetStatus.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else stats.meetStatus
-        lore.add(lang.getComponent(viewer, "gui.meet.world_item.status", statusName))
+        lore.add(lang.getComponent(viewer, "gui.meet.world_item.status", mapOf("status" to statusName)))
 
         // 現在のワールド名取得
         val world = target.world

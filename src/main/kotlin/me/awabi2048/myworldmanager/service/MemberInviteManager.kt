@@ -60,10 +60,10 @@ class MemberInviteManager(
 
         worldData.members.add(player.uniqueId)
         worldConfigRepository.save(worldData)
-        player.sendMessage(lang.getMessage(player, "messages.invite_accepted_self", worldData.name))
+        player.sendMessage(lang.getMessage(player, "messages.invite_accepted_self", mapOf("world" to worldData.name)))
         
         val sender = org.bukkit.Bukkit.getPlayer(info.senderUuid)
-        sender?.sendMessage(lang.getMessage(sender, "messages.invite_accepted_sender", player.name, worldData.name))
+        sender?.sendMessage(lang.getMessage(sender, "messages.invite_accepted_sender", mapOf("player" to player.name, "world" to worldData.name)))
 
         // マクロ実行
         macroManager.execute("on_member_add", mapOf(

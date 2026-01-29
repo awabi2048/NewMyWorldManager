@@ -163,7 +163,7 @@ class AdminGuiListener : Listener {
                 }
                 plugin.soundManager.playClickSound(player, currentItem)
                 plugin.worldService.teleportToWorld(player, uuid, runMacro = false)
-                player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", worldData.name))
+                player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
                 plugin.worldService.sendAnnouncementMessage(player, worldData)
                 player.closeInventory()
             } else if (event.isRightClick) {
@@ -200,7 +200,7 @@ class AdminGuiListener : Listener {
                 // ホイールクリック：UUIDコピーメッセージを送信（クリエイティブモードのみ）
                 if (player.gameMode == org.bukkit.GameMode.CREATIVE) {
                     val bar = net.kyori.adventure.text.Component.text("§8§m－－－－－－－－－－－－－－－－－－")
-                    val header = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.internal_data_extracted", worldData.name))
+                    val header = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.internal_data_extracted", mapOf("world" to worldData.name)))
                     
                     val worldUuidText = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid"))
                         .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid_hover"))))

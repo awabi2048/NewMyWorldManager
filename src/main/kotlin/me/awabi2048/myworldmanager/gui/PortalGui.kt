@@ -52,7 +52,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         for (i in 9..17) inventory.setItem(i, greyPane)
 
         val textStatus = if (portal.showText) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
-        inventory.setItem(11, createItem(Material.OAK_SIGN, lang.getMessage(player, "gui.portal.toggle_text.name"), listOf(lang.getMessage(player, "gui.portal.toggle_text.current", textStatus), "", lang.getMessage(player, "gui.portal.toggle_text.click")), ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT))
+        inventory.setItem(11, createItem(Material.OAK_SIGN, lang.getMessage(player, "gui.portal.toggle_text.name"), listOf(lang.getMessage(player, "gui.portal.toggle_text.current", mapOf("status" to textStatus)), "", lang.getMessage(player, "gui.portal.toggle_text.click")), ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT))
 
         // 色アイコン決定処理
         val colorKey = when (portal.particleColor) {
@@ -77,10 +77,10 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
             getWoolColor(portal.particleColor),
             lang.getMessage(player, "gui.portal.color.name"), 
             listOf(
-                lang.getMessage(player, "gui.portal.color.current", colorName),
+                lang.getMessage(player, "gui.portal.color.current", mapOf("color" to colorName)),
                 "", 
-                lang.getMessage(player, "gui.portal.color.click_prev", prevColorName),
-                lang.getMessage(player, "gui.portal.color.click_next", nextColorName)
+                lang.getMessage(player, "gui.portal.color.click_prev", mapOf("color" to prevColorName)),
+                lang.getMessage(player, "gui.portal.color.click_next", mapOf("color" to nextColorName))
             ),
             ItemTag.TYPE_GUI_PORTAL_CYCLE_COLOR
         ))
@@ -90,7 +90,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         // Portal IDの保持
         val metaItem = inventory.getItem(0)!!
         val meta = metaItem.itemMeta ?: return
-        meta.lore(listOf(lang.getComponent(player, "gui.portal.id_format", portal.id)))
+        meta.lore(listOf(lang.getComponent(player, "gui.portal.id_format", mapOf("id" to portal.id))))
         metaItem.itemMeta = meta
 
         // 背景埋め

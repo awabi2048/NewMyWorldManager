@@ -89,8 +89,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.gravity.display")))
         meta.lore(listOf(
-            Component.text(lang.getMessage(player, "gui.environment.gravity.current", currentName)),
-            Component.text(lang.getMessage(player, "gui.environment.gravity.cost", cost)),
+            Component.text(lang.getMessage(player, "gui.environment.gravity.current", mapOf("multiplier" to currentName))),
+            Component.text(lang.getMessage(player, "gui.environment.gravity.cost", mapOf("cost" to cost))),
             Component.empty(),
             Component.text(lang.getMessage(player, "gui.environment.gravity.click_hint"))
         ))
@@ -111,8 +111,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.weather.display")))
         meta.lore(listOf(
-            Component.text(lang.getMessage(player, "gui.environment.weather.current", currentWeather)),
-            Component.text(lang.getMessage(player, "gui.environment.weather.cost", cost)),
+            Component.text(lang.getMessage(player, "gui.environment.weather.current", mapOf("weather" to currentWeather))),
+            Component.text(lang.getMessage(player, "gui.environment.weather.cost", mapOf("cost" to cost))),
             Component.text(lang.getMessage(player, "gui.environment.weather.desc")),
             Component.empty(),
             Component.text(lang.getMessage(player, "gui.environment.weather.click_cycle")),
@@ -134,8 +134,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.biome.display")))
         meta.lore(listOf(
-            Component.text(lang.getMessage(player, "gui.environment.biome.current", currentBiome)),
-            Component.text(lang.getMessage(player, "gui.environment.biome.cost", cost)),
+            Component.text(lang.getMessage(player, "gui.environment.biome.current", mapOf("biome" to currentBiome))),
+            Component.text(lang.getMessage(player, "gui.environment.biome.cost", mapOf("cost" to cost))),
             Component.text(lang.getMessage(player, "gui.environment.biome.desc")),
             Component.empty(),
             Component.text(lang.getMessage(player, "gui.environment.biome.click_hint"))

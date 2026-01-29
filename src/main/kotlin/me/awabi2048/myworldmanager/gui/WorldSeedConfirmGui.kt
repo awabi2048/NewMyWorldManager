@@ -44,7 +44,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.world_seed_confirm.title"))
-        infoMeta.lore(lang.getComponentList(player, "gui.world_seed_confirm.lore", currentSlots.toString(), nextSlots.toString()))
+        infoMeta.lore(lang.getComponentList(player, "gui.world_seed_confirm.lore", mapOf("current" to currentSlots, "next" to nextSlots)))
         infoItem.itemMeta = infoMeta
         inventory.setItem(13, infoItem)
 

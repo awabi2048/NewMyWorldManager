@@ -74,7 +74,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         val target = Bukkit.getPlayerExact(targetName)
 
         if (target == null) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", targetName))
+            player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))
             return true
         }
 
@@ -90,7 +90,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         pendingInvites[target.uniqueId] = InviteInfo(worldUuid, expiry)
 
         // 対象へのメッセージ送信 (Adventure API)
-        val inviteText = lang.getMessage(target, "messages.invite_text", player.name, worldData.name)
+        val inviteText = lang.getMessage(target, "messages.invite_text", mapOf("player" to player.name, "world" to worldData.name))
         val clickText = lang.getMessage(target, "messages.invite_click_text")
         val hoverText = lang.getMessage(target, "messages.invite_hover")
 
@@ -107,7 +107,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         target.sendMessage(inviteMessage)
 
         // 実行者へのメッセージ送信
-        player.sendMessage(lang.getMessage(player, "messages.invite_sent_success", target.name, worldData.name))
+        player.sendMessage(lang.getMessage(player, "messages.invite_sent_success", mapOf("player" to target.name, "world" to worldData.name)))
 
         return true
     }

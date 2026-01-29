@@ -41,7 +41,7 @@ class MeetSettingsGui(private val plugin: MyWorldManager) {
         val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
 
         val lore = mutableListOf<String>()
-        lore.add(lang.getMessage(player, "gui.meet_settings.status_selector.current", statusName))
+        lore.add(lang.getMessage(player, "gui.meet_settings.status_selector.current", mapOf("status" to statusName)))
         lore.add("")
         
         for (status in statusList) {

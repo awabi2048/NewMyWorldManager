@@ -34,7 +34,7 @@ class InviteChatListener(
 
             val target = Bukkit.getPlayerExact(targetName)
             if (target == null) {
-                player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", targetName))
+                player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))
                 plugin.inviteSessionManager.endSession(player.uniqueId)
                 return@Runnable
             }

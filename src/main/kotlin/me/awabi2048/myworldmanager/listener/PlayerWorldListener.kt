@@ -131,7 +131,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     }
 
                     player.teleport(spawnLocation)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", worldData.name))
+                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.worldService.sendAnnouncementMessage(player, worldData)
                     plugin.soundManager.playClickSound(player, currentItem)
 

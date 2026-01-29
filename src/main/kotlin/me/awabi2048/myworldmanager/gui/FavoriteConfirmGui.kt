@@ -32,9 +32,9 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
         // Center: World Info (Context)
         val worldItem = ItemStack(worldData.icon)
         val worldMeta = worldItem.itemMeta
-        worldMeta.displayName(lang.getComponent(player, "gui.common.world_item_name", worldData.name).decoration(TextDecoration.ITALIC, false))
+        worldMeta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("name" to worldData.name)).decoration(TextDecoration.ITALIC, false))
         val lore = mutableListOf<Component>()
-        lore.addAll(lang.getComponentList(player, "gui.favorite.remove_confirm.lore", worldData.name))
+        lore.addAll(lang.getComponentList(player, "gui.favorite.remove_confirm.lore", mapOf("world" to worldData.name)))
         worldMeta.lore(lore)
         worldItem.itemMeta = worldMeta
         ItemTag.tagItem(worldItem, ItemTag.TYPE_GUI_INFO)

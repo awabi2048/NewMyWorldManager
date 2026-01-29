@@ -5,3 +5,5 @@ TASK.md
 my-world-manager.iml
 
 target/
+.idea/
+.vscode/

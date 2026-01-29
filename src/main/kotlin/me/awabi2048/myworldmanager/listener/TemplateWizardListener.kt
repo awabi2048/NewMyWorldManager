@@ -38,7 +38,7 @@ class TemplateWizardListener : Listener {
                 session.inputState = TemplateWizardGui.InputState.NAME
                 player.closeInventory()
                 val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
-                val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", cancelWord)
+                val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
                 player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
             }
             "desc_input" -> {
@@ -46,7 +46,7 @@ class TemplateWizardListener : Listener {
                 session.inputState = TemplateWizardGui.InputState.DESCRIPTION
                 player.closeInventory()
                 val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
-                val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", cancelWord)
+                val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
                 player.sendMessage(lang.getMessage(player, "messages.world_desc_prompt") + " " + cancelInfo)
             }
             "icon_select" -> {

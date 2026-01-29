@@ -120,28 +120,28 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
 
         val lang = plugin.languageManager
-        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", world.name))
+        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to world.name)))
 
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator"))
         
         if (world.description.isNotEmpty()) {
-            lore.add(lang.getComponent(player, "gui.common.world_desc", world.description))
+            lore.add(lang.getComponent(player, "gui.common.world_desc", mapOf("description" to world.description)))
             lore.add(lang.getComponent(player, "gui.common.separator"))
         }
         
         val owner = Bukkit.getOfflinePlayer(world.owner)
-        lore.add(lang.getComponent(player, "gui.player_world.world_item.owner", owner.name ?: lang.getMessage(player, "general.unknown")))
+        lore.add(lang.getComponent(player, "gui.player_world.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")))))
         
         // 公開レベル表示用
         val publishLevelColor = lang.getMessage(player, "publish_level.color.${world.publishLevel.name.lowercase()}")
         val publishLevelName = lang.getMessage(player, "publish_level.${world.publishLevel.name.lowercase()}")
         
-        lore.add(lang.getComponent(player, "gui.player_world.world_item.publish", publishLevelColor, publishLevelName))
+        lore.add(lang.getComponent(player, "gui.player_world.world_item.publish", mapOf("status_color" to publishLevelColor, "level" to publishLevelName)))
 
-        lore.add(lang.getComponent(player, "gui.player_world.world_item.favorite", world.favorite))
+        lore.add(lang.getComponent(player, "gui.player_world.world_item.favorite", mapOf("count" to world.favorite)))
         val totalRecent = world.recentVisitors.sum()
-        lore.add(lang.getComponent(player, "gui.player_world.world_item.recent_visitors", totalRecent))
+        lore.add(lang.getComponent(player, "gui.player_world.world_item.recent_visitors", mapOf("count" to totalRecent)))
         
         lore.add(lang.getComponent(player, "gui.common.separator"))
 
@@ -158,7 +158,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
             }
             val displayDate = displayFormatter.format(expireDate)
             
-            lore.add(lang.getComponent(player, "gui.player_world.world_item.expires_at", daysRemaining, displayDate))
+            lore.add(lang.getComponent(player, "gui.player_world.world_item.expires_at", mapOf("days" to daysRemaining, "date" to displayDate)))
             lore.add(lang.getComponent(player, "gui.common.separator"))
         }
         
@@ -212,7 +212,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
         meta.owningPlayer = player
         
-        meta.displayName(lang.getComponent(player, "gui.player_world.stats_button.display", player.name ?: lang.getMessage(player, "general.unknown")))
+        meta.displayName(lang.getComponent(player, "gui.player_world.stats_button.display", mapOf("player" to (player.name ?: lang.getMessage(player, "general.unknown")))))
         
         val placeholders = mapOf(
             "point" to stats.worldPoint,

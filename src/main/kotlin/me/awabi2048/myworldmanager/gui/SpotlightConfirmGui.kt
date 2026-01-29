@@ -46,7 +46,7 @@ class SpotlightConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.spotlight_confirm.title"))
-        infoMeta.lore(lang.getComponentList(player, "gui.spotlight_confirm.lore", worldData.name))
+        infoMeta.lore(lang.getComponentList(player, "gui.spotlight_confirm.lore", mapOf("world" to worldData.name)))
         infoItem.itemMeta = infoMeta
         inventory.setItem(13, infoItem)
 

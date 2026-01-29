@@ -39,7 +39,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         val meta = displayItem.itemMeta
         val lore = meta.lore() ?: mutableListOf()
         lore.add(Component.empty())
-        lore.add(Component.text(lang.getMessage(player, "gui.settings.expand.cost", cost)))
+        lore.add(Component.text(lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost))))
         meta.lore(lore)
         displayItem.itemMeta = meta
         ItemTag.tagItem(displayItem, ItemTag.TYPE_GUI_INFO)

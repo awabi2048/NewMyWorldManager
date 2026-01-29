@@ -35,7 +35,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
                 val defaultSlots = plugin.config.getInt("creation.max_create_count_default")
                 val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
                 if (defaultSlots + stats.unlockedWorldSlot >= limit) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_limit_reached", limit))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
                     player.closeInventory()
                     return
                 }
@@ -65,7 +65,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
 
                 // Message & Sound
                 val newTotal = defaultSlots + stats.unlockedWorldSlot
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_expanded", newTotal))
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_expanded", mapOf("total" to newTotal)))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f) // Or specific sound
                 
                 player.closeInventory()

@@ -106,13 +106,13 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
         
-        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", data.name).decoration(TextDecoration.ITALIC, false))
+        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name)).decoration(TextDecoration.ITALIC, false))
         
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
         
         if (data.description.isNotEmpty()) {
-            lore.add(lang.getComponent(player, "gui.common.world_desc", data.description).decoration(TextDecoration.ITALIC, false))
+            lore.add(lang.getComponent(player, "gui.common.world_desc", mapOf("description" to data.description)).decoration(TextDecoration.ITALIC, false))
             lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
         }
 
@@ -120,10 +120,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         val onlineColor = lang.getMessage(player, "publish_level.color.online")
         val offlineColor = lang.getMessage(player, "publish_level.color.offline")
         val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.owner", ownerColor, owner.name ?: lang.getMessage(player, "general.unknown")).decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.discovery.world_item.owner", mapOf("status_color" to ownerColor, "owner" to (owner.name ?: lang.getMessage(player, "general.unknown")))).decoration(TextDecoration.ITALIC, false))
         
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.favorite", data.favorite).decoration(TextDecoration.ITALIC, false))
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.recent_visitors", data.recentVisitors.sum()).decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.discovery.world_item.favorite", mapOf("count" to data.favorite)).decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.discovery.world_item.recent_visitors", mapOf("count" to data.recentVisitors.sum())).decoration(TextDecoration.ITALIC, false))
         
         lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
         lore.add(lang.getComponent(player, "gui.discovery.world_item.warp").decoration(TextDecoration.ITALIC, false))
@@ -208,12 +208,12 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         lore.add(lang.getComponent(player, "gui.common.separator"))
         
         val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
-        lore.add(lang.getComponent(player, "gui.discovery.stats.sort", sortName))
+        lore.add(lang.getComponent(player, "gui.discovery.stats.sort", mapOf("sort" to sortName)))
         
         val tagName = tag?.let { lang.getMessage(player, "world_tag.${it.name.lowercase()}") } ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
-        lore.add(lang.getComponent(player, "gui.discovery.stats.tag", tagName))
+        lore.add(lang.getComponent(player, "gui.discovery.stats.tag", mapOf("tag" to tagName)))
         
-        lore.add(lang.getComponent(player, "gui.discovery.stats.count", count))
+        lore.add(lang.getComponent(player, "gui.discovery.stats.count", mapOf("count" to count)))
         lore.add(lang.getComponent(player, "gui.common.separator"))
         
         meta.lore(lore)

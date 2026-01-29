@@ -191,7 +191,7 @@ class AdminCommandListener : Listener {
             
             // プレイヤーデータの更新
             val count = plugin.playerStatsRepository.updateAllData()
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.data_update_success", worlds.size, count))
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.data_update_success", mapOf("world_count" to worlds.size, "player_count" to count)))
         })
     }
 
@@ -226,14 +226,14 @@ class AdminCommandListener : Listener {
     // 再帰的にアーカイブ処理を行うヘルパー
     private fun processArchiveQueue(player: Player, plugin: MyWorldManager, targets: List<me.awabi2048.myworldmanager.model.WorldData>, index: Int) {
         if (index >= targets.size) {
-            player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_complete", targets.size))
+            player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_complete", mapOf("count" to targets.size)))
             return
         }
         
         val worldData = targets[index]
         plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success ->
             if (success) {
-                player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_progress", index + 1, targets.size, worldData.name))
+                player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_progress", mapOf("current" to (index + 1), "total" to targets.size, "world" to worldData.name)))
             }
             Bukkit.getScheduler().runTaskLater(plugin, Runnable {
                 processArchiveQueue(player, plugin, targets, index + 1)
@@ -256,7 +256,7 @@ class AdminCommandListener : Listener {
         }
 
         val estSeconds = archiveTargets.size * 5
-        player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_start", archiveTargets.size, estSeconds))
+        player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_start", mapOf("count" to archiveTargets.size, "seconds" to estSeconds)))
         processArchiveQueue(player, plugin, archiveTargets, 0)
     }
 
@@ -315,7 +315,7 @@ class AdminCommandListener : Listener {
         plugin.worldService.exportWorld(uuid).thenAccept { file ->
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 if (file != null) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_success", file.name))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_success", mapOf("file" to file.name)))
                 } else {
                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_failed"))
                 }

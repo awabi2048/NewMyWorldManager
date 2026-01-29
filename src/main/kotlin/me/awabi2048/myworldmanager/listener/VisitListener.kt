@@ -53,7 +53,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
 
                 plugin.soundManager.playClickSound(player, currentItem)
                 plugin.worldService.teleportToWorld(player, uuid)
-                player.sendMessage(lang.getMessage(player, "messages.warp_success", worldData.name))
+                player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                 plugin.worldService.sendAnnouncementMessage(player, worldData)
                 
                 if (!isMember) {
@@ -81,7 +81,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                     }
                     val maxFav = plugin.config.getInt("favorite.max_count", 1000)
                     if (stats.favoriteWorlds.size >= maxFav) {
-                        player.sendMessage(lang.getMessage(player, "messages.favorite_limit_reached", maxFav))
+                        player.sendMessage(lang.getMessage(player, "messages.favorite_limit_reached", mapOf("max" to maxFav)))
                         return
                     }
 

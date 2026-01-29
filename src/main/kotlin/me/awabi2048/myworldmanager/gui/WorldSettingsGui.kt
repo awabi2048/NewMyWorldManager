@@ -29,7 +29,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             return
         }
 
-        val title = lang.getMessage(player, titleKey, worldData.name)
+        val title = lang.getMessage(player, titleKey, mapOf("world" to worldData.name))
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
@@ -116,7 +116,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
             
             val currentLevel = worldData.borderExpansionLevel
-            
+            val cost = if (config.contains("expansion.costs.${currentLevel + 1}")) {
+                config.getInt("expansion.costs.${currentLevel + 1}")
+            } else {
+                (baseCost * Math.pow(multiplier, currentLevel.toDouble())).toInt()
+            }
             val expansionLore = mutableListOf<String>()
             val separator = lang.getMessage(player, "gui.common.separator")
             
@@ -130,22 +134,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 expansionLore.add(separator)
             } else {
                 val targetLevel = currentLevel + 1
-                val cost = if (config.contains("expansion.costs.$targetLevel")) {
-                    config.getInt("expansion.costs.$targetLevel")
-                } else {
-                    (baseCost * Math.pow(multiplier, currentLevel.toDouble())).toInt()
-                }
-
-                expansionLore.add(lang.getMessage(player, "gui.settings.expand.level", currentLevel, maxLevel))
+                expansionLore.add(lang.getMessage(player, "gui.settings.expand.level", mapOf("current" to currentLevel, "max" to maxLevel)))
                 
             if (currentLevel < maxLevel) {
                 if (stats.worldPoint < cost) {
                     val insufficient = cost - stats.worldPoint
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost_insufficient", cost, currentLevel, targetLevel, insufficient))
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", stats.worldPoint))
+                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost_insufficient", mapOf(
+                        "cost" to cost,
+                        "level_before" to currentLevel,
+                        "level_after" to targetLevel,
+                        "shortage" to insufficient
+                    )))
+                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", mapOf("points" to stats.worldPoint)))
                 } else {
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost", cost, currentLevel, targetLevel))
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", stats.worldPoint))
+                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost", mapOf(
+                        "cost" to cost,
+                        "level_before" to currentLevel,
+                        "level_after" to targetLevel
+                    )))
+                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", mapOf("points" to stats.worldPoint)))
                 }
             } else {
                 expansionLore.add(lang.getMessage(player, "gui.settings.expand.max_level"))
@@ -181,7 +188,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             val inactiveColor = lang.getMessage(player, "publish_level.color.inactive")
             
             val publishLore = mutableListOf<String>()
-            publishLore.add(lang.getMessage(player, "gui.settings.publish.current", currentColor, currentLevelName))
+            publishLore.add(lang.getMessage(player, "gui.settings.publish.current", mapOf("color" to currentColor, "level" to currentLevelName)))
             publishLore.add("") 
             
             levels.forEach { (level, name, color) ->
@@ -213,7 +220,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         if (isOwner) {
             val memberLore = mutableListOf<String>()
             val totalCount = worldData.members.size + worldData.moderators.size + 1
-            memberLore.add(lang.getMessage(player, "gui.settings.member.count", totalCount))
+            memberLore.add(lang.getMessage(player, "gui.settings.member.count", mapOf("count" to totalCount)))
             memberLore.add("")
             memberLore.add(lang.getMessage(player, "gui.settings.member.list_header"))
 
@@ -244,9 +251,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val name = offlinePlayer.name ?: lang.getMessage(player, "general.unknown")
                 
                 if (role == lang.getMessage(player, "gui.settings.member.role_member")) {
-                    memberLore.add(lang.getMessage(player, "gui.settings.member.list_item_member", nameColor, name))
+                    memberLore.add(lang.getMessage(player, "gui.settings.member.list_item_member", mapOf("name_color" to nameColor, "player" to name)))
                 } else {
-                    memberLore.add(lang.getMessage(player, "gui.settings.member.list_item", debugColor, roleColor, role, nameColor, name))
+                    memberLore.add(lang.getMessage(player, "gui.settings.member.list_item", mapOf(
+                        "debug_color" to debugColor,
+                        "role_color" to roleColor,
+                        "role" to role,
+                        "name_color" to nameColor,
+                        "player" to name
+                    )))
                 }
             }
 
@@ -255,7 +268,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val onlineCount = allMemberData.count { d: Triple<UUID, String, String> ->
                     Bukkit.getOfflinePlayer(d.first).isOnline 
                 }
-                memberLore.add(lang.getMessage(player, "gui.settings.member.more_members", remaining, onlineCount))
+                memberLore.add(lang.getMessage(player, "gui.settings.member.more_members", mapOf("remaining" to remaining, "online" to onlineCount)))
             }
 
             memberLore.add("")
@@ -276,7 +289,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             if (worldData.tags.isEmpty()) {
                 tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_empty"))
             } else {
-                worldData.tags.forEach { tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_item", lang.getMessage(player, "gui.discovery.tag_names.${it.name.lowercase()}"))) }
+                worldData.tags.forEach { tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_item", mapOf("tag" to lang.getMessage(player, "gui.discovery.tag_names.${it.name.lowercase()}")))) }
             }
             tagLore.add("")
             tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_footer"))
@@ -321,7 +334,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (worldData.notificationEnabled) Material.BELL else Material.OAK_DOOR,
                 lang.getMessage(player, "gui.settings.notification.display"),
                 listOf(
-                    lang.getMessage(player, "gui.settings.notification.current", statusColor, statusText),
+                    lang.getMessage(player, "gui.settings.notification.current", mapOf("color" to statusColor, "status" to statusText)),
                     ""
                 ) + lang.getMessageList(player, "gui.settings.notification.desc"),
                 ItemTag.TYPE_GUI_SETTING_NOTIFICATION
@@ -398,41 +411,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val createdInfo = if (daysSinceCreation == 0L) {
              lang.getMessage(player, "gui.admin.world_item.created_info_today")
         } else {
-             lang.getMessage(player, "gui.admin.world_item.created_info_days", daysSinceCreation)
+             lang.getMessage(player, "gui.admin.world_item.created_info_days", mapOf("days" to daysSinceCreation))
         }
 
-        val infoLore = mutableListOf<String>()
-        
-        lang.getMessageList(player, "gui.settings.main_info.lore").forEach { line ->
-            if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
-                if (line.contains("{2}") || line.contains("{4}") || line.contains("{5}")) {
-                    return@forEach
-                }
-            }
-            val processedLine = line
-                .replace("{0}", worldData.name)
-                .replace("{description}", worldData.description)
-                .replace("{1}", Bukkit.getOfflinePlayer(worldData.owner).name ?: lang.getMessage(player, "general.unknown"))
-                .replace("{2}", if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) "Special" else currentLevel.toString())
-                .replace("{3}", maxLevel.toString())
-                .replace("{4}", daysRemaining.toString())
-                .replace("{5}", dateStr)
-                .replace("{6}", totalCount.toString())
-                .replace("{7}", onlineCount.toString())
-                .replace("{8}", publishLevelColor)
-                .replace("{9}", publishLevelName)
-                .replace("{10}", worldData.favorite.toString())
-                .replace("{11}", worldData.recentVisitors.sum().toString())
-                .replace("{12}", displayFormatter.format(createdAtDate))
-                .replace("{13}", createdInfo)
-            
-            infoLore.add(processedLine)
-        }
+        val infoLore = lang.getMessageList(player, "gui.settings.main_info.lore", mapOf(
+            "world" to worldData.name,
+            "description" to worldData.description,
+            "owner" to (Bukkit.getOfflinePlayer(worldData.owner).name ?: lang.getMessage(player, "general.unknown")),
+            "level" to (if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) "Special" else currentLevel.toString()),
+            "max_level" to maxLevel.toString(),
+            "days_until_archive" to daysRemaining.toString(),
+            "archive_date" to dateStr,
+            "member_count" to totalCount.toString(),
+            "online_count" to onlineCount.toString(),
+            "publish_color" to publishLevelColor,
+            "publish_level" to publishLevelName,
+            "favorites" to worldData.favorite.toString(),
+            "visitors" to worldData.recentVisitors.sum().toString(),
+            "created_at_date_formatted" to displayFormatter.format(createdAtDate),
+            "created_days_ago" to createdInfo
+        )).toMutableList()
         infoLore.add("${lang.getMessage(player, "publish_level.color.uuid")}UUID: ${worldData.uuid}")
 
         val infoItem = createItem(
             worldData.icon,
-            lang.getMessage(player, "gui.settings.main_info.name", worldData.name),
+            lang.getMessage(player, "gui.settings.main_info.name", mapOf("world" to worldData.name)),
             infoLore,
             ItemTag.TYPE_GUI_INFO
         )
@@ -449,7 +452,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 Material.SPYGLASS,
                 lang.getMessage(player, "gui.settings.visitors.display"),
                 listOf(
-                    lang.getMessage(player, "gui.settings.visitors.count", visitors.size),
+                    lang.getMessage(player, "gui.settings.visitors.count", mapOf("count" to visitors.size)),
                     "",
                     lang.getMessage(player, "gui.settings.visitors.click")
                 ),
@@ -481,7 +484,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
     fun openArchiveConfirmation(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
-        val title = lang.getMessage(player, "gui.archive.title", worldData.name)
+        val title = lang.getMessage(player, "gui.archive.title", mapOf("world" to worldData.name))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         val inventory = Bukkit.createInventory(null, 27, Component.text(title))
         
@@ -616,14 +619,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             else -> "general.direction.unknown"
         }
         val directionName = lang.getMessage(player, directionKey)
-        val methodText = if (direction == null) lang.getMessage(player, "gui.expansion.method_center") else lang.getMessage(player, "gui.expansion.method_direction", directionName)
+        val methodText = if (direction == null) lang.getMessage(player, "gui.expansion.method_center") else lang.getMessage(player, "gui.expansion.method_direction", mapOf("direction" to directionName))
         
         inventory.setItem(22, createItem(
             Material.BOOK,
             lang.getMessage(player, "gui.expansion.confirm_info"),
             listOf(
-                lang.getMessage(player, "gui.expansion.method", methodText),
-                lang.getMessage(player, "gui.expansion.cost", cost),
+                lang.getMessage(player, "gui.expansion.method", mapOf("method" to methodText)),
+                lang.getMessage(player, "gui.expansion.cost", mapOf("cost" to cost)),
                 "",
                 lang.getMessage(player, "gui.expansion.warning")
             ),
@@ -715,7 +718,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
     fun openMemberRemoveConfirmation(player: Player, worldData: WorldData, targetUuid: java.util.UUID) {
         val lang = plugin.languageManager
         val targetName = Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")
-        val title = lang.getMessage(player, "gui.member_management.remove_confirm.title", targetName)
+        val title = lang.getMessage(player, "gui.member_management.remove_confirm.title", mapOf("player" to targetName))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MEMBER_REMOVE_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(player)
@@ -723,11 +726,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         
          val infoItem = createItem(
             Material.PLAYER_HEAD,
-            lang.getMessage(player, "gui.member_management.remove_confirm.title", Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")),
+            lang.getMessage(player, "gui.member_management.remove_confirm.title", mapOf("player" to (Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")))),
             listOf(
                 lang.getMessage(player, "gui.member_management.remove_confirm.question"),
-                lang.getMessage(player, "gui.member_management.remove_confirm.player", Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")),
-                lang.getMessage(player, "gui.member_management.remove_confirm.world", worldData.name),
+                lang.getMessage(player, "gui.member_management.remove_confirm.player", mapOf("player" to (Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")))),
+                lang.getMessage(player, "gui.member_management.remove_confirm.world", mapOf("world" to worldData.name)),
                 "",
                 lang.getMessage(player, "gui.member_management.remove_confirm.warning")
             ),
@@ -750,7 +753,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
     fun openMemberTransferConfirmation(player: Player, worldData: WorldData, targetUuid: java.util.UUID) {
         val lang = plugin.languageManager
         val targetName = Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")
-        val title = lang.getMessage(player, "gui.member_management.transfer_confirm.title", targetName)
+        val title = lang.getMessage(player, "gui.member_management.transfer_confirm.title", mapOf("player" to targetName))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MEMBER_TRANSFER_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(player)
@@ -758,11 +761,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         
         val infoItem = createItem(
             Material.PLAYER_HEAD,
-            lang.getMessage(player, "gui.member_management.transfer_confirm.title", targetName),
+            lang.getMessage(player, "gui.member_management.transfer_confirm.title", mapOf("player" to targetName)),
             listOf(
                 lang.getMessage(player, "gui.member_management.transfer_confirm.question"),
-                lang.getMessage(player, "gui.member_management.transfer_confirm.player", targetName),
-                lang.getMessage(player, "gui.member_management.transfer_confirm.world", worldData.name),
+                lang.getMessage(player, "gui.member_management.transfer_confirm.player", mapOf("player" to targetName)),
+                lang.getMessage(player, "gui.member_management.transfer_confirm.world", mapOf("world" to worldData.name)),
                 "",
                 lang.getMessage(player, "gui.member_management.transfer_confirm.warning")
             ),
@@ -809,9 +812,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
              val lastPlayed = java.time.Instant.ofEpochMilli(player.lastPlayed)
                  .atZone(java.time.ZoneId.systemDefault())
                  .format(java.time.format.DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm"))
-             lore.add(lang.getMessage(viewer, "gui.member_management.item.last_online", lastPlayed))
+             lore.add(lang.getMessage(viewer, "gui.member_management.item.last_online", mapOf("time" to lastPlayed)))
         }
-        lore.add(lang.getMessage(viewer, "gui.member_management.item.role", role))
+        lore.add(lang.getMessage(viewer, "gui.member_management.item.role", mapOf("role" to role)))
         lore.add(separator)
         
         if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
@@ -892,7 +895,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
     fun openVisitorKickConfirmation(player: Player, @Suppress("UNUSED_PARAMETER") worldData: WorldData, targetUuid: java.util.UUID) {
         val lang = plugin.languageManager
         val targetName = Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")
-        val title = lang.getMessage(player, "gui.visitor_management.kick_confirm.title", targetName)
+        val title = lang.getMessage(player, "gui.visitor_management.kick_confirm.title", mapOf("player" to targetName))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VISITOR_KICK_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(player)
@@ -902,7 +905,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             Material.PAPER,
             lang.getMessage(player, "gui.visitor_management.kick_confirm.question"),
             listOf(
-                lang.getMessage(player, "gui.visitor_management.kick_confirm.player", targetName),
+                lang.getMessage(player, "gui.visitor_management.kick_confirm.player", mapOf("player" to targetName)),
                 "",
                 "${lang.getMessage(player, "publish_level.color.uuid")}UUID: $targetUuid"
             ),
@@ -940,7 +943,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         lore.add(separator)
         val statusText = if (isOnline) lang.getMessage(viewer, "status.online") else lang.getMessage(viewer, "status.offline")
         val statusColor = if (isOnline) onlineColor else offlineColor
-        lore.add(lang.getMessage(viewer, "gui.common.status_display", statusColor, statusText))
+        lore.add(lang.getMessage(viewer, "gui.common.status_display", mapOf("color" to statusColor, "status" to statusText)))
         lore.add(separator)
         
         if (canKick) {
@@ -973,7 +976,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
     fun openTagEditor(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
-        val title = lang.getMessage(player, "gui.tag_editor.title", worldData.name)
+        val title = lang.getMessage(player, "gui.tag_editor.title", mapOf("world" to worldData.name))
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
@@ -1007,7 +1010,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             val lore = mutableListOf<String>()
             val statusText = if (hasTag) lang.getMessage(player, "gui.tag_editor.status_active") else lang.getMessage(player, "gui.tag_editor.status_inactive")
             val statusColor = if (hasTag) activeColor else inactiveColor
-            lore.add(lang.getMessage(player, "gui.common.status_display", statusColor, statusText))
+            lore.add(lang.getMessage(player, "gui.common.status_display", mapOf("color" to statusColor, "status" to statusText)))
             lore.add("")
             lore.add(lang.getMessage(player, "gui.tag_editor.click_toggle"))
             
@@ -1047,12 +1050,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         if (worldData.borderExpansionLevel != WorldData.EXPANSION_LEVEL_SPECIAL) {
             val resetLore = mutableListOf<String>()
             val currentLevel = worldData.borderExpansionLevel
-            resetLore.add(lang.getMessage(player, "gui.critical.reset_expansion.current", currentLevel))
+            resetLore.add(lang.getMessage(player, "gui.critical.reset_expansion.current", mapOf("current" to currentLevel)))
             resetLore.add("")
             if (currentLevel > 0) {
                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
                 val refund = (calculateTotalExpansionCost(currentLevel) * refundRate).toInt()
-                resetLore.add(lang.getMessage(player, "gui.critical.reset_expansion.refund", refund))
+                resetLore.add(lang.getMessage(player, "gui.critical.reset_expansion.refund", mapOf("refund" to refund)))
                 resetLore.add("")
                 resetLore.add(lang.getMessage(player, "gui.critical.reset_expansion.click"))
             } else {
@@ -1266,7 +1269,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(displayTitle).decoration(TextDecoration.ITALIC, false))
         
         val lore = mutableListOf<Component>()
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_location", portal.x, portal.y, portal.z))
+        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_location", mapOf("x" to portal.x, "y" to portal.y, "z" to portal.z)))
         lore.add(Component.empty())
         lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_teleport"))
         lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_remove"))

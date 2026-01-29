@@ -29,7 +29,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val totalMax = config.getInt("creation.max_total_world_count", 50)
         val totalCurrent = plugin.worldConfigRepository.findAll().size
         if (totalCurrent >= totalMax) {
-            player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached_total", totalMax))
+            player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached_total", mapOf("max" to totalMax)))
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER)) // エラー音の代わり
             return
         }
@@ -39,7 +39,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val playerMax = defaultMax + stats.unlockedWorldSlot
         val playerCurrent = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
         if (playerCurrent >= playerMax) {
-            player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached", playerCurrent, playerMax))
+            player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached", mapOf("current" to playerCurrent, "max" to playerMax)))
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
             return
         }
@@ -70,8 +70,8 @@ class CreationGui(private val plugin: MyWorldManager) {
         val lore = mutableListOf<String>()
         lore.add(description)
         lore.add("")
-        lore.add(lang.getMessage(player, "gui.creation.type.cost", cost))
-        lore.add(lang.getMessage(player, "gui.creation.type.points", currentPoints))
+        lore.add(lang.getMessage(player, "gui.creation.type.cost", mapOf("cost" to cost)))
+        lore.add(lang.getMessage(player, "gui.creation.type.points", mapOf("points" to currentPoints)))
         
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val defaultMax = plugin.config.getInt("creation.max_create_count_default", 3)
@@ -79,11 +79,11 @@ class CreationGui(private val plugin: MyWorldManager) {
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
         
         if (currentCounts >= maxCounts) {
-            lore.add(lang.getMessage(player, "gui.creation.type.limit_reached", currentCounts, maxCounts))
+            lore.add(lang.getMessage(player, "gui.creation.type.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)))
         } else if (currentPoints >= cost) {
             lore.add(lang.getMessage(player, "gui.creation.type.available"))
         } else {
-            lore.add(lang.getMessage(player, "gui.creation.type.insufficient", cost - currentPoints))
+            lore.add(lang.getMessage(player, "gui.creation.type.insufficient", mapOf("remain" to (cost - currentPoints))))
         }
         
         return createItem(material, name, tag, *lore.toTypedArray())
@@ -170,21 +170,21 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         val infoLore = mutableListOf<String>()
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
-        infoLore.add(lang.getMessage(player, "gui.creation.confirm.world_name", cleanedName))
-        infoLore.add(lang.getMessage(player, "gui.creation.confirm.creation_type", typeName))
+        infoLore.add(lang.getMessage(player, "gui.creation.confirm.world_name", mapOf("name" to cleanedName)))
+        infoLore.add(lang.getMessage(player, "gui.creation.confirm.creation_type", mapOf("type" to typeName)))
         
         when (session.creationType) {
             WorldCreationType.TEMPLATE -> {
                 val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
                 val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
-                infoLore.add(lang.getMessage(player, "gui.creation.confirm.template", displayName))
+                infoLore.add(lang.getMessage(player, "gui.creation.confirm.template", mapOf("template" to displayName)))
             }
-            WorldCreationType.SEED -> infoLore.add(lang.getMessage(player, "gui.creation.confirm.seed", session.inputSeedString ?: ""))
+            WorldCreationType.SEED -> infoLore.add(lang.getMessage(player, "gui.creation.confirm.seed", mapOf("seed" to (session.inputSeedString ?: ""))))
             else -> {}
         }
         
         infoLore.add("")
-        infoLore.add(lang.getMessage(player, "gui.creation.confirm.cost", cost))
+        infoLore.add(lang.getMessage(player, "gui.creation.confirm.cost", mapOf("cost" to cost)))
 
         inventory.setItem(22, createItem(Material.BOOK, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_CONFIRM, *infoLore.toTypedArray()))
         

@@ -49,7 +49,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     player.closeInventory()
                     session.phase = WorldCreationPhase.NAME_INPUT
                     val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
-                    val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", cancelWord)
+                    val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
                     player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
                 }
                 WorldCreationPhase.TEMPLATE_SELECT -> {
@@ -79,7 +79,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 val totalMax = config.getInt("creation.max_total_world_count", 50)
                 val totalCurrent = plugin.worldConfigRepository.findAll().size
                 if (totalCurrent >= totalMax) {
-                    player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached_total", totalMax))
+                    player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached_total", mapOf("max" to totalMax)))
                     plugin.soundManager.playActionSound(player, "creation", "limit_reached")
                     return
                 }
@@ -89,7 +89,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
 
                 if (currentCounts >= maxCounts) {
-                    player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached", currentCounts, maxCounts))
+                    player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)))
                     plugin.soundManager.playActionSound(player, "creation", "limit_reached")
                     return
                 }
@@ -121,7 +121,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         session.phase = WorldCreationPhase.SEED_INPUT
                         player.closeInventory()
                         val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
-                        val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", cancelWord)
+                        val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
                         player.sendMessage("§a生成に使用するシード値をチャットに入力してください。 " + cancelInfo)
                     }
                     ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> {

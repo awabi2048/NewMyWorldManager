@@ -135,13 +135,13 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val item = ItemStack(worldData.icon)
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
-        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", worldData.name).decoration(TextDecoration.ITALIC, false))
+        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldData.name)).decoration(TextDecoration.ITALIC, false))
         
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
         
         if (worldData.description.isNotEmpty()) {
-            lore.add(lang.getComponent(player, "gui.common.world_desc", worldData.description).decoration(TextDecoration.ITALIC, false))
+            lore.add(lang.getComponent(player, "gui.common.world_desc", mapOf("description" to worldData.description)).decoration(TextDecoration.ITALIC, false))
             lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
         }
 
@@ -149,11 +149,11 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val onlineColor = lang.getMessage(player, "publish_level.color.online")
         val offlineColor = lang.getMessage(player, "publish_level.color.offline")
         val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.owner", ownerColor, owner.name ?: lang.getMessage(player, "general.unknown")).decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to ownerColor)).decoration(TextDecoration.ITALIC, false))
         
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.favorite", worldData.favorite).decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite)).decoration(TextDecoration.ITALIC, false))
         val totalRecent = worldData.recentVisitors.sum()
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.recent_visitors", totalRecent).decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to totalRecent)).decoration(TextDecoration.ITALIC, false))
 
         meta.lore(lore)
         item.itemMeta = meta

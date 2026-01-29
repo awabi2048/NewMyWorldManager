@@ -57,9 +57,9 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     
                     me.awabi2048.myworldmanager.command.MeetCommand.pendingRequests[target.uniqueId] = player.uniqueId
                     
-                    player.sendMessage(lang.getMessage(player, "general.meet_request.sent", target.name))
+                    player.sendMessage(lang.getMessage(player, "general.meet_request.sent", mapOf("player" to target.name)))
                     
-                    target.sendMessage(lang.getMessage(target, "general.meet_request.received", player.name))
+                    target.sendMessage(lang.getMessage(target, "general.meet_request.received", mapOf("player" to player.name)))
                     val acceptText = net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.accept_button"))
                         .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/meet accept ${player.uniqueId}"))
                         .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.hover_accept"))))
@@ -85,10 +85,10 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                 if (worldData.publishLevel == PublishLevel.PUBLIC || isMember) {
                     plugin.soundManager.playClickSound(player, currentItem)
                     plugin.worldService.teleportToWorld(player, worldData.uuid)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", worldData.name))
+                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.worldService.sendAnnouncementMessage(player, worldData)
                     
-                    target.sendMessage(lang.getMessage(target, "messages.visitor_notified", player.name, worldData.name))
+                    target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
 
                     if (!isMember) {
                         worldData.recentVisitors[0]++

@@ -52,7 +52,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     // ワープ
                     plugin.soundManager.playClickSound(player, item)
                     plugin.worldService.teleportToWorld(player, uuid)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", worldData.name))
+                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.worldService.sendAnnouncementMessage(player, worldData)
                     
                     val isWorldMember = worldData.owner == player.uniqueId || 
@@ -69,7 +69,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         // Spotlight削除 (Shift + 右クリック)
                         if (session.sort == DiscoverySort.SPOTLIGHT && player.hasPermission("myworldmanager.admin")) {
                             plugin.spotlightRepository.remove(uuid)
-                            player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", worldData.name))
+                            player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
                             plugin.soundManager.playClickSound(player, item)
                             plugin.discoveryGui.open(player)
                             return
@@ -91,7 +91,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         } else {
                             val maxFav = plugin.config.getInt("favorite.max_count", 1000)
                             if (stats.favoriteWorlds.size >= maxFav) {
-                                player.sendMessage(lang.getMessage(player, "messages.favorite_limit_reached", maxFav))
+                                player.sendMessage(lang.getMessage(player, "messages.favorite_limit_reached", mapOf("max" to maxFav)))
                                 return
                             }
                             val now = java.time.LocalDate.now()

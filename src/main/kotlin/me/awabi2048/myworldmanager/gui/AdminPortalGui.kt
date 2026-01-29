@@ -125,9 +125,9 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val lore = mutableListOf<Component>()
         val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: "Unknown"
         
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_owner", ownerName))
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_world", portal.worldName))
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_location", portal.x, portal.y, portal.z))
+        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_owner", mapOf("owner" to ownerName)))
+        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_world", mapOf("world" to portal.worldName)))
+        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_location", mapOf("x" to portal.x, "y" to portal.y, "z" to portal.z)))
         
         lore.add(Component.empty())
         lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_teleport"))
@@ -157,7 +157,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
         meta.lore(listOf(
-            lang.getComponent(null, "gui.admin.info.total_count", totalCount),
+            lang.getComponent(null, "gui.admin.info.total_count", mapOf("count" to totalCount)),
             lang.getComponent(null, "gui.admin.info.page", mapOf("page" to current, "total_pages" to total))
         ))
         item.itemMeta = meta

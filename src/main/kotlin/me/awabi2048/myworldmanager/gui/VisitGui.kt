@@ -45,7 +45,7 @@ class VisitGui(private val plugin: MyWorldManager) {
         val neededDataRows = if (worldCount == 0) 1 else kotlin.math.min(dataRowsPerPage, (worldCount + worldsPerRow - 1) / worldsPerRow)
         val rowCount = neededDataRows + 2
         val targetName = targetPlayer.name ?: "Unknown"
-        val titleComp = Component.text(lang.getMessage(player, titleKey, targetName))
+        val titleComp = Component.text(lang.getMessage(player, titleKey, mapOf("player" to targetName)))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "visit", titleComp)
         val inventory = Bukkit.createInventory(null, rowCount * 9, titleComp)
 
@@ -85,13 +85,13 @@ class VisitGui(private val plugin: MyWorldManager) {
         val item = ItemStack(world.icon)
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
-        meta.displayName(lang.getComponent(viewer, "gui.common.world_item_name", world.name))
+        meta.displayName(lang.getComponent(viewer, "gui.common.world_item_name", mapOf("world" to world.name)))
         
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(viewer, "gui.common.separator"))
         
         if (world.description.isNotEmpty()) {
-            lore.add(lang.getComponent(viewer, "gui.common.world_desc", world.description))
+            lore.add(lang.getComponent(viewer, "gui.common.world_desc", mapOf("description" to world.description)))
             lore.add(lang.getComponent(viewer, "gui.common.separator"))
         }
 
@@ -99,17 +99,17 @@ class VisitGui(private val plugin: MyWorldManager) {
         val onlineColor = lang.getMessage(viewer, "publish_level.color.online")
         val offlineColor = lang.getMessage(viewer, "publish_level.color.offline")
         val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-        lore.add(lang.getComponent(viewer, "gui.visit.world_item.owner", ownerColor, owner.name ?: lang.getMessage(viewer, "general.unknown")))
+        lore.add(lang.getComponent(viewer, "gui.visit.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(viewer, "general.unknown")), "status_color" to ownerColor)))
         
         // タグ表示
         if (world.tags.isNotEmpty()) {
             val tagNames = world.tags.joinToString(", ") { lang.getMessage(viewer, "gui.discovery.tag_names.${it.name.lowercase()}") }
-            lore.add(lang.getComponent(viewer, "gui.visit.world_item.tag", tagNames))
+            lore.add(lang.getComponent(viewer, "gui.visit.world_item.tag", mapOf("tags" to tagNames)))
         }
 
-        lore.add(lang.getComponent(viewer, "gui.visit.world_item.favorite", world.favorite))
+        lore.add(lang.getComponent(viewer, "gui.visit.world_item.favorite", mapOf("count" to world.favorite)))
         val totalRecent = world.recentVisitors.sum()
-        lore.add(lang.getComponent(viewer, "gui.visit.world_item.recent_visitors", totalRecent))
+        lore.add(lang.getComponent(viewer, "gui.visit.world_item.recent_visitors", mapOf("count" to totalRecent)))
 
         lore.add(lang.getComponent(viewer, "gui.common.separator"))
         lore.add(lang.getComponent(viewer, "gui.visit.world_item.warp"))

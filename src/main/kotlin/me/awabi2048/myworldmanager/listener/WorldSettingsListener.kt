@@ -178,7 +178,7 @@ class WorldSettingsListener : Listener {
                     worldData.members.remove(newOwnerId)
 
                     plugin.worldConfigRepository.save(worldData)
-                    player.sendMessage(plugin.languageManager.getMessage("messages.owner_transferred", newOwnerName))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transferred", mapOf("old_owner" to newOwnerName)))
 
                     // マクロ実行
                     plugin.macroManager.execute("on_owner_transfer", mapOf(
@@ -243,8 +243,8 @@ class WorldSettingsListener : Listener {
                         val evacuationLoc = org.bukkit.Location(evacWorld, x, y, z, yaw, pitch)
                         
                         visitor.teleport(evacuationLoc)
-                        visitor.sendMessage(plugin.languageManager.getMessage("messages.kicked"))
-                        player.sendMessage(plugin.languageManager.getMessage("messages.kicked_success", visitor.name))
+                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to visitor.name)))
                     }
                     plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                 }
@@ -364,7 +364,7 @@ class WorldSettingsListener : Listener {
                         val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
                         val typeName = plugin.languageManager.getMessage(player, typeKey)
                         
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", typeName))
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", mapOf("type" to typeName)))
                         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
                         player.closeInventory()
                     }
@@ -398,7 +398,7 @@ class WorldSettingsListener : Listener {
                         }
                         
                         if (stats.worldPoint < cost) {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.expand_insufficient_points", cost))
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.expand_insufficient_points", mapOf("cost" to cost)))
                             return
                         }
     
@@ -555,7 +555,7 @@ class WorldSettingsListener : Listener {
                     } else {
                         val maxTags = plugin.config.getInt("tags.max_count", 4)
                         if (worldData.tags.size >= maxTags) {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.tag_max_reached", maxTags))
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tag_max_reached", mapOf("max" to maxTags)))
                             return
                         }
                         worldData.tags.add(tag)
@@ -672,7 +672,7 @@ class WorldSettingsListener : Listener {
                     plugin.playerStatsRepository.save(stats)
                     plugin.worldConfigRepository.save(worldData)
                     
-                    player.sendMessage(plugin.languageManager.getMessage("messages.expansion_reset_success", refund))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.expansion_reset_success", mapOf("points" to refund)))
                     player.closeInventory()
                     plugin.settingsSessionManager.endSession(player)
                 }
@@ -704,14 +704,14 @@ class WorldSettingsListener : Listener {
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                     
                     player.closeInventory()
-                    player.sendMessage(plugin.languageManager.getMessage("messages.world_delete_start", mapOf("world" to worldData.name)))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_start", mapOf("world" to worldData.name)))
                     
                     plugin.worldService.deleteWorld(worldData.uuid).thenAccept { success ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (success) {
                                 stats.worldPoint += refund
                                 plugin.playerStatsRepository.save(stats)
-                                player.sendMessage(plugin.languageManager.getMessage("messages.world_delete_success", refund))
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_success", mapOf("points" to refund)))
                             } else {
                                 player.sendMessage(plugin.languageManager.getMessage("messages.world_delete_fail"))
                             }
@@ -728,7 +728,7 @@ class WorldSettingsListener : Listener {
                     handleCommandCancel()
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
                     plugin.soundManager.playClickSound(player, item)
-                    player.sendMessage(plugin.languageManager.getMessage("messages.archive_success", mapOf("world" to worldData.name)))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
                     worldData.isArchived = true
                     plugin.worldConfigRepository.save(worldData)
                     plugin.settingsSessionManager.endSession(player)
@@ -790,7 +790,7 @@ class WorldSettingsListener : Listener {
                         adminSession.playerFilterType = me.awabi2048.myworldmanager.session.PlayerFilterType.OWNER
                     }
                     
-                    player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_set", offlinePlayer.name ?: targetName))
+                    player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_set", mapOf("player" to (offlinePlayer.name ?: targetName))))
                     plugin.settingsSessionManager.endSession(player)
                     plugin.worldGui.open(player)
                     return@Runnable
@@ -829,7 +829,7 @@ class WorldSettingsListener : Listener {
                     } else if (target == player) {
                         player.sendMessage(lang.getMessage(player, "messages.invite_self_error"))
                     } else {
-                        val inviteText = lang.getMessage(target, "messages.member_invite_text", player.name, worldData.name)
+                        val inviteText = lang.getMessage(target, "messages.member_invite_text", mapOf("player" to player.name, "world" to worldData.name))
                         val clickText = lang.getMessage(target, "messages.member_invite_click")
                         val hoverText = lang.getMessage(target, "messages.member_invite_hover")
                         
@@ -853,7 +853,7 @@ class WorldSettingsListener : Listener {
                             player.uniqueId,
                             plugin.config.getLong("invite.timeout_seconds", 60)
                         )
-                        player.sendMessage(lang.getMessage(player, "messages.invite_sent_success", target.name, worldData.name))
+                        player.sendMessage(lang.getMessage(player, "messages.invite_sent_success", mapOf("player" to target.name, "world" to worldData.name)))
                     }
                     session.action = SettingsAction.MANAGE_MEMBERS
                     plugin.worldSettingsGui.openMemberManagement(player, worldData)
@@ -877,13 +877,13 @@ class WorldSettingsListener : Listener {
                     
                     blockedStrings.forEach { blocked ->
                         if (input.contains(blocked, ignoreCase = true)) {
-                            player.sendMessage(lang.getMessage(player, "messages.announcement_blocked_string", blocked))
+                            player.sendMessage(lang.getMessage(player, "messages.announcement_blocked_string", mapOf("string" to blocked)))
                             return@Runnable
                         }
                     }
 
                     if (input.length > maxLength) {
-                        player.sendMessage(lang.getMessage(player, "messages.announcement_invalid_length", maxLines, maxLength))
+                        player.sendMessage(lang.getMessage(player, "messages.announcement_invalid_length", mapOf("max_lines" to maxLines, "max_length" to maxLength)))
                         return@Runnable
                     }
                     
@@ -898,7 +898,7 @@ class WorldSettingsListener : Listener {
                     }
                     
                     if (worldData.announcementMessages.size >= maxLines) {
-                        player.sendMessage(lang.getMessage(player, "messages.announcement_invalid_length", maxLines, maxLength))
+                        player.sendMessage(lang.getMessage(player, "messages.announcement_invalid_length", mapOf("max_lines" to maxLines, "max_length" to maxLength)))
                          // メッセージがいっぱいです、exitして完了してください的なメッセージが良いが、
                          // とりあえず無言で追加しないか、エラーを出す
                         return@Runnable
@@ -907,7 +907,7 @@ class WorldSettingsListener : Listener {
                     // 色コード変換 (初期色を白にする)
                     val formatted = "§f" + input.replace("&", "§")
                     worldData.announcementMessages.add(formatted)
-                    player.sendMessage(lang.getMessage(player, "messages.announcement_preview", formatted))
+                    player.sendMessage(lang.getMessage(player, "messages.announcement_preview", mapOf("message" to formatted)))
                     // セッションは維持（exitされるまで）
                     return@Runnable
                 }
@@ -987,7 +987,7 @@ class WorldSettingsListener : Listener {
             stats.worldPoint -= cost
             worldData.cumulativePoints += cost
             plugin.playerStatsRepository.save(stats)
-            player.sendMessage(plugin.languageManager.getMessage("messages.expand_complete", worldData.borderExpansionLevel - 1, worldData.borderExpansionLevel, stats.worldPoint))
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.expand_complete", mapOf("level_before" to (worldData.borderExpansionLevel - 1), "level_after" to worldData.borderExpansionLevel, "remaining" to stats.worldPoint)))
         } else {
             player.sendMessage(plugin.languageManager.getMessage("messages.expand_failed"))
         }
@@ -1028,7 +1028,7 @@ class WorldSettingsListener : Listener {
                     else -> "general.direction.unknown"
                 }
                 val directionName = plugin.languageManager.getMessage(player, directionKey)
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.expand_direction_selected", directionName))
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.expand_direction_selected", mapOf("direction" to directionName)))
                 plugin.worldSettingsGui.openExpansionConfirmation(player, settingsSession.worldUuid, direction, cost)
             }
             return
@@ -1161,7 +1161,7 @@ class WorldSettingsListener : Listener {
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         
         if (stats.worldPoint < cost) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "gui.creation.insufficient", cost))
+            player.sendMessage(plugin.languageManager.getMessage(player, "gui.creation.insufficient", mapOf("shortage" to (cost - stats.worldPoint))))
             plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
             return
         }
@@ -1173,7 +1173,7 @@ class WorldSettingsListener : Listener {
         plugin.playerStatsRepository.save(stats)
         plugin.worldConfigRepository.save(worldData)
         
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.env_cost_paid", cost))
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost)))
         applyWeatherToWorld(worldData)
         plugin.soundManager.playActionSound(player, "environment", "weather_change")
         plugin.environmentGui.open(player, worldData)
@@ -1185,7 +1185,7 @@ class WorldSettingsListener : Listener {
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         
         if (stats.worldPoint < cost) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "gui.creation.insufficient", cost))
+            player.sendMessage(plugin.languageManager.getMessage(player, "gui.creation.insufficient", mapOf("shortage" to (cost - stats.worldPoint))))
             plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
             return
         }
@@ -1198,8 +1198,8 @@ class WorldSettingsListener : Listener {
         
         removeFromInventory(player, confirmItem)
         
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.env_gravity_changed", "Moon", "0.17"))
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.env_cost_paid", cost))
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.env_gravity_changed", mapOf("gravity" to "Moon", "multiplier" to "0.17")))
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost)))
         plugin.soundManager.playActionSound(player, "environment", "gravity_change")
         applyGravityToWorld(worldData)
         plugin.environmentGui.open(player, worldData)
@@ -1213,7 +1213,7 @@ class WorldSettingsListener : Listener {
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
         if (stats.worldPoint < cost) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "gui.creation.insufficient", cost))
+            player.sendMessage(plugin.languageManager.getMessage(player, "gui.creation.insufficient", mapOf("shortage" to (cost - stats.worldPoint))))
             plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
             return
         }
@@ -1230,8 +1230,8 @@ class WorldSettingsListener : Listener {
             removeFromInventory(player, confirmItem)
             
             val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
-            player.sendMessage(lang.getMessage(player, "messages.env_biome_changed", biomeName))
-            player.sendMessage(lang.getMessage(player, "messages.env_cost_paid", cost))
+            player.sendMessage(lang.getMessage(player, "messages.env_biome_changed", mapOf("biome" to biomeName)))
+            player.sendMessage(lang.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost)))
             plugin.soundManager.playActionSound(player, "environment", "biome_change")
             applyBiomeToWorld(worldData)
             plugin.environmentGui.open(player, worldData)

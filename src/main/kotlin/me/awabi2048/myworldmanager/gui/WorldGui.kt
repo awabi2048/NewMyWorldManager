@@ -210,7 +210,7 @@ class WorldGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
 
-        meta.displayName(lang.getComponent(null, "gui.common.world_item_name_simple", data.name))
+        meta.displayName(lang.getComponent(null, "gui.common.world_item_name_simple", mapOf("world" to data.name)))
 
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(null, "gui.common.separator"))
@@ -218,10 +218,10 @@ class WorldGui(private val plugin: MyWorldManager) {
         val owner = Bukkit.getOfflinePlayer(data.owner)
         val ownerName = owner.name ?: lang.getMessage("general.unknown")
         val ownerColor = if (owner.isOnline) lang.getMessage("publish_level.color.online") else lang.getMessage("publish_level.color.offline")
-        lore.add(lang.getComponent(null, "gui.admin.world_item.owner", ownerColor, ownerName))
+        lore.add(lang.getComponent(null, "gui.admin.world_item.owner", mapOf("owner" to ownerName, "status_color" to ownerColor)))
         
         val statusText = if (data.isArchived) lang.getMessage("gui.admin.world_item.status_archived") else lang.getMessage("gui.admin.world_item.status_active")
-        lore.add(lang.getComponent(null, "gui.admin.world_item.status", statusText))
+        lore.add(lang.getComponent(null, "gui.admin.world_item.status", mapOf("status" to statusText)))
         
         // 公開レベル表示
         val publishColor = when (data.publishLevel.name) {
@@ -231,12 +231,12 @@ class WorldGui(private val plugin: MyWorldManager) {
             else -> lang.getMessage("publish_level.color.locked")
         }
         val publishName = lang.getMessage("publish_level.${data.publishLevel.name.lowercase()}")
-        lore.add(lang.getComponent(null, "gui.admin.world_item.publish", publishColor, publishName))
+        lore.add(lang.getComponent(null, "gui.admin.world_item.publish", mapOf("status_color" to publishColor, "level" to publishName)))
         
         // 拡張レベル表示
         if (data.sourceWorld != "CONVERT") {
             val expansionDisplay = if (data.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) "Special" else data.borderExpansionLevel.toString()
-            lore.add(lang.getComponent(null, "gui.admin.world_item.expansion", expansionDisplay))
+            lore.add(lang.getComponent(null, "gui.admin.world_item.expansion", mapOf("level" to expansionDisplay)))
         }
         
 
@@ -251,9 +251,9 @@ class WorldGui(private val plugin: MyWorldManager) {
             val createdInfo = if (daysSince == 0L) {
                 lang.getMessage("gui.admin.world_item.created_info_today")
             } else {
-                lang.getMessage("gui.admin.world_item.created_info_days", daysSince)
+                lang.getMessage("gui.admin.world_item.created_info_days", mapOf("days" to daysSince))
             }
-            lore.add(lang.getComponent(null, "gui.admin.world_item.created_at", createdAtDate.format(displayFormatter), createdInfo))
+            lore.add(lang.getComponent(null, "gui.admin.world_item.created_at", mapOf("date" to createdAtDate.format(displayFormatter), "days" to createdInfo)))
         } catch (e: Exception) {
             // Ignore parsing errors
         }
@@ -267,14 +267,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(today, expireDate)
                 
                 val expireInfo = if (daysBetween >= 0) {
-                    lang.getMessage("gui.admin.world_item.expire_info_remaining", daysBetween)
+                    lang.getMessage("gui.admin.world_item.expire_info_remaining", mapOf("days" to daysBetween))
                 } else {
                     meta.setEnchantmentGlintOverride(true)
-                    lang.getMessage("gui.admin.world_item.expire_info_overdue", java.lang.Math.abs(daysBetween))
+                    lang.getMessage("gui.admin.world_item.expire_info_overdue", mapOf("days" to java.lang.Math.abs(daysBetween)))
                 }
-                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", data.expireDate, expireInfo))
+                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "status" to expireInfo)))
             } catch (e: Exception) {
-                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", data.expireDate, ""))
+                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "status" to "")))
             }
         }
         
@@ -326,7 +326,7 @@ class WorldGui(private val plugin: MyWorldManager) {
         
         meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
         meta.lore(listOf(
-            lang.getComponent(null, "gui.admin.info.total_count", totalCount),
+            lang.getComponent(null, "gui.admin.info.total_count", mapOf("count" to totalCount)),
             lang.getComponent(null, "gui.admin.info.page", mapOf("page" to current, "total_pages" to total))
         ))
         
@@ -397,11 +397,11 @@ class WorldGui(private val plugin: MyWorldManager) {
         
         // 現在の設定
         val filterTypeName = lang.getMessage(player, session.playerFilterType.displayKey)
-        lore.add(lang.getComponent(player, "gui.admin.filter.player.current_type", filterTypeName))
+        lore.add(lang.getComponent(player, "gui.admin.filter.player.current_type", mapOf("type" to filterTypeName)))
         
         if (session.playerFilter != null) {
             val targetName = Bukkit.getOfflinePlayer(session.playerFilter!!).name ?: "Unknown"
-            lore.add(lang.getComponent(player, "gui.admin.filter.player.current_player", targetName))
+            lore.add(lang.getComponent(player, "gui.admin.filter.player.current_player", mapOf("player" to targetName)))
         }
         
         lore.add(Component.empty())

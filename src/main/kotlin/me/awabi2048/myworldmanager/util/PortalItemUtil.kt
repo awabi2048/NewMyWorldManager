@@ -35,7 +35,7 @@ object PortalItemUtil {
         meta.setEnchantmentGlintOverride(true)
         
         val lore = mutableListOf<Component>()
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_dest", worldName)).decoration(TextDecoration.ITALIC, false))
+        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_dest", mapOf("destination" to worldName))).decoration(TextDecoration.ITALIC, false))
         lore.add(Component.text(""))
         lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_place")).decoration(TextDecoration.ITALIC, false))
         lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_unbind")).decoration(TextDecoration.ITALIC, false))
@@ -51,7 +51,7 @@ object PortalItemUtil {
         meta.setEnchantmentGlintOverride(true)
         
         val lore = mutableListOf<Component>()
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_dest", displayName)).decoration(TextDecoration.ITALIC, false))
+        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_dest", mapOf("destination" to displayName))).decoration(TextDecoration.ITALIC, false))
         lore.add(Component.text(""))
         lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_place")).decoration(TextDecoration.ITALIC, false))
         lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_unbind")).decoration(TextDecoration.ITALIC, false))

@@ -56,7 +56,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     }
 
                     PortalItemUtil.bindWorld(item, worldUuid, worldData.name, lang, player)
-                    player.sendMessage(lang.getMessage(player, "messages.portal_bind_success", worldData.name))
+                    player.sendMessage(lang.getMessage(player, "messages.portal_bind_success", mapOf("world" to worldData.name)))
                     event.isCancelled = true
                     return
                 }

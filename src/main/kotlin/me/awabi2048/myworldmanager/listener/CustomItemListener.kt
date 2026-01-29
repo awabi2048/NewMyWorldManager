@@ -70,7 +70,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
 
                  player.playSound(player.location, Sound.ITEM_BOTTLE_FILL, 1.0f, 1.0f)
                  val biomeName = plugin.languageManager.getMessage(player, "biomes.$biomeId")
-                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.bottle_fill", biomeName))
+                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.bottle_fill", mapOf("biome" to biomeName)))
             }
         }
         
@@ -153,7 +153,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                 player.world.spawnParticle(org.bukkit.Particle.CLOUD, player.location, 50, 2.0, 1.0, 2.0, 0.1)
                 
                 val biomeName = plugin.languageManager.getMessage(player, "biomes.${biomeId.lowercase()}")
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.partial_biome_applied", biomeName))
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.partial_biome_applied", mapOf("biome" to biomeName)))
                 
                 // Consume Item
                  item.amount -= 1
@@ -177,7 +177,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
                  
                  if (currentSlots >= limit) {
-                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_limit_reached", limit))
+                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
                      player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f)
                      return
                  }

@@ -65,24 +65,14 @@ class LanguageManager(private val plugin: MyWorldManager) {
     /**
      * メッセージを取得する
      */
-    fun getMessage(player: Player?, key: String, vararg args: Any): String {
-        return getMessageByLang(getLangName(player), key, *args)
-    }
-    
-    fun getMessage(key: String, vararg args: Any): String {
-        return getMessage(null as Player?, key, *args)
+    fun getMessage(player: Player?, key: String): String {
+        val lang = getLangName(player)
+        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return "§cMISSING_LANG_FILE: $lang"
+        return config.getString(key) ?: config.getDefaults()?.getString(key) ?: return "§cMISSING_LANG: $key"
     }
 
-    fun getMessageByLang(lang: String, key: String, vararg args: Any): String {
-        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return "§cMISSING_LANG_FILE: $lang"
-        var message = config.getString(key) ?: config.getDefaults()?.getString(key) ?: return "§cMISSING_LANG: $key"
-        
-        // プレースホルダー {0}, {1}... を args で置換
-        args.forEachIndexed { index, arg ->
-            message = message.replace("{$index}", arg.toString())
-        }
-        
-        return message
+    fun getMessage(key: String): String {
+        return getMessage(null as Player?, key)
     }
 
     /**
@@ -92,12 +82,16 @@ class LanguageManager(private val plugin: MyWorldManager) {
         val lang = getLangName(player)
         val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return "§cMISSING_LANG_FILE: $lang"
         var message = config.getString(key) ?: config.getDefaults()?.getString(key) ?: return "§cMISSING_LANG: $key"
-        
+
         placeholders.forEach { (key, value) ->
             message = message.replace("{$key}", value.toString())
         }
-        
+
         return message
+    }
+
+    fun getMessage(key: String, placeholders: Map<String, Any>): String {
+        return getMessage(null as Player?, key, placeholders)
     }
 
     fun getComponent(player: Player?, key: String, placeholders: Map<String, Any>): Component {
@@ -105,13 +99,17 @@ class LanguageManager(private val plugin: MyWorldManager) {
         return LegacyComponentSerializer.legacySection().deserialize(message).decoration(TextDecoration.ITALIC, false)
     }
 
-    fun getComponent(player: Player?, key: String, vararg args: Any): Component {
-        val message = getMessage(player, key, *args)
+    fun getComponent(key: String, placeholders: Map<String, Any>): Component {
+        return getComponent(null as Player?, key, placeholders)
+    }
+
+    fun getComponent(player: Player?, key: String): Component {
+        val message = getMessage(player, key)
         return LegacyComponentSerializer.legacySection().deserialize(message).decoration(TextDecoration.ITALIC, false)
     }
 
-    fun getComponentList(player: Player?, key: String, vararg args: Any): List<Component> {
-        return getMessageList(player, key, *args).map { 
+    fun getComponentList(player: Player?, key: String): List<Component> {
+        return getMessageList(player, key).map {
             LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false)
         }
     }
@@ -131,10 +129,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
     /**
      * メッセージを厳格に取得する（存在しない場合はnullを返す）
      */
-    fun getMessageStrict(player: Player?, key: String, vararg args: Any): String? {
+    fun getMessageStrict(player: Player?, key: String): String? {
         val lang = getLangName(player)
         if (!hasKey(lang, key)) return null
-        return getMessageByLang(lang, key, *args)
+        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return null
+        return config.getString(key) ?: config.getDefaults()?.getString(key)
     }
 
     /**
@@ -143,35 +142,29 @@ class LanguageManager(private val plugin: MyWorldManager) {
     fun getMessageListStrict(player: Player?, key: String): List<String>? {
         val lang = getLangName(player)
         if (!hasKey(lang, key)) return null
-        return getMessageList(lang, key)
+        return getMessageListDraft(lang, key)
     }
 
     /**
      * リスト形式のメッセージを取得する
      */
-    fun getMessageList(player: Player?, key: String, vararg args: Any): List<String> {
-        return getMessageList(getLangName(player), key, *args)
+    fun getMessageList(player: Player?, key: String): List<String> {
+        return getMessageListDraft(getLangName(player), key)
     }
 
-    fun getMessageList(key: String, vararg args: Any): List<String> {
-        return getMessageList(null as Player?, key, *args)
+    fun getMessageList(key: String): List<String> {
+        return getMessageList(null as Player?, key)
     }
 
-    fun getMessageList(lang: String, key: String, vararg args: Any): List<String> {
+    fun getMessageListDraft(lang: String, key: String): List<String> {
         val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return listOf("§cMISSING_LANG_FILE: $lang")
         val list = config.getStringList(key)
         val resultList = if (list.isNotEmpty()) list else {
-             val defaultList = config.getDefaults()?.getStringList(key)
-             if (defaultList != null && defaultList.isNotEmpty()) defaultList else listOf(config.getString(key) ?: "§cMISSING_LANG: $key")
+            val defaultList = config.getDefaults()?.getStringList(key)
+            if (defaultList != null && defaultList.isNotEmpty()) defaultList else listOf(config.getString(key) ?: "§cMISSING_LANG: $key")
         }
-        
-        return resultList.map { 
-            var line = it
-            args.forEachIndexed { index, arg ->
-                line = line.replace("{$index}", arg.toString())
-            }
-            line
-        }
+
+        return resultList
     }
 
     /**
@@ -185,8 +178,8 @@ class LanguageManager(private val plugin: MyWorldManager) {
             val defaultList = config.getDefaults()?.getStringList(key)
             if (defaultList != null && defaultList.isNotEmpty()) defaultList else listOf(config.getString(key) ?: "§cMISSING_LANG: $key")
         }
-        
-        return resultList.map { 
+
+        return resultList.map {
             var line = it
             placeholders.forEach { (placeholder, value) ->
                 line = line.replace("{$placeholder}", value.toString())
@@ -195,10 +188,19 @@ class LanguageManager(private val plugin: MyWorldManager) {
         }
     }
 
+    fun getMessageList(key: String, placeholders: Map<String, Any>): List<String> {
+        return getMessageList(null as Player?, key, placeholders)
+    }
+
+
     fun getComponentList(player: Player?, key: String, placeholders: Map<String, Any>): List<Component> {
-        return getMessageList(player, key, placeholders).map { 
+        return getMessageList(player, key, placeholders).map {
             LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false)
         }
+    }
+
+    fun getComponentList(key: String, placeholders: Map<String, Any>): List<Component> {
+        return getComponentList(null as Player?, key, placeholders)
     }
 
     fun getSupportedLanguages(): List<String> {
@@ -211,20 +213,15 @@ class LanguageManager(private val plugin: MyWorldManager) {
     fun isKeyMatch(title: String, key: String): Boolean {
         val plainSerializer = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
         val legacySerializer = LegacyComponentSerializer.legacySection()
-        
+
         for (lang in getSupportedLanguages()) {
             val config = langConfigs[lang] ?: continue
             val templateRaw = config.getString(key) ?: config.getDefaults()?.getString(key) ?: continue
             val template = plainSerializer.serialize(legacySerializer.deserialize(templateRaw))
-            
-            val parts = template.split("{0}")
-            if (parts.size >= 2) {
-                val prefix = parts[0]
-                val suffix = parts[1]
-                if (title.startsWith(prefix) && title.endsWith(suffix)) return true
-            } else {
-                if (title == template) return true
-            }
+
+            // プレースホルダー {...} を .* に置換して正規表現を作成
+            val regexString = "^" + Regex.escape(template).replace(Regex("\\\\\\{[^}]+\\\\\\}"), ".*") + "$"
+            if (title.matches(Regex(regexString))) return true
         }
         return false
     }
@@ -240,15 +237,10 @@ class LanguageManager(private val plugin: MyWorldManager) {
             val config = langConfigs[lang] ?: continue
             val templateRaw = config.getString(key) ?: config.getDefaults()?.getString(key) ?: continue
             val template = plainSerializer.serialize(legacySerializer.deserialize(templateRaw))
-            
-            val parts = template.split("{0}")
-            if (parts.size >= 2) {
-                val prefix = parts[0]
-                val suffix = parts[1]
-                if (title.startsWith(prefix) && title.endsWith(suffix)) return true
-            } else {
-                if (title.startsWith(template)) return true
-            }
+
+            // プレースホルダー {...} を .* に置換して正規表現を作成
+            val regexString = "^" + Regex.escape(template).replace(Regex("\\\\\\{[^}]+\\\\\\}"), ".*")
+            if (title.contains(Regex(regexString))) return true
         }
         return false
     }
