@@ -16,12 +16,20 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.environment.title")
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
+        if (currentTitle != title) {
+            plugin.soundManager.playMenuOpenSound(player, "environment")
+        }
         
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_ENVIRONMENT_SETTINGS, isGui = true)
-        plugin.soundManager.playMenuOpenSound(player, "environment")
         scheduleGuiTransitionReset(player)
         
-        val inventory = Bukkit.createInventory(null, 45, Component.text(title))
+        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 45, Component.text(title))
+        }
 
         // 背景アイテム作成
         val blackPane = ItemStack(Material.BLACK_STAINED_GLASS_PANE)

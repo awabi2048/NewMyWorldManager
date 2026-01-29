@@ -39,7 +39,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true)
         scheduleGuiTransitionReset(player)
         
-        val inventory = Bukkit.createInventory(null, 54, Component.text(title))
+        // インベントリの作成または再利用
+        val inventory = if (player.openInventory.topInventory.size == 54 && currentTitle == title) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 54, Component.text(title))
+        }
 
         // 背景 (黒の板ガラス)
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -544,10 +549,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
     fun openExpansionMethodSelection(player: Player, @Suppress("UNUSED_PARAMETER") worldData: WorldData) {
         val lang = plugin.languageManager
+        val title = lang.getMessage(player, "gui.expansion.method_title")
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
         plugin.soundManager.playMenuOpenSound(player, "world_settings")
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.EXPAND_SELECT_METHOD, isGui = true)
         scheduleGuiTransitionReset(player)
-        val inventory = Bukkit.createInventory(null, 45, Component.text(lang.getMessage(player, "gui.expansion.method_title")))
+        
+        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 45, Component.text(title))
+        }
         
         // ヘッダー・フッター
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -626,6 +639,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
     fun openMemberManagement(player: Player, worldData: WorldData, page: Int = 0) {
         val lang = plugin.languageManager
+        val title = lang.getMessage(player, "gui.member_management.title")
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
         plugin.soundManager.playMenuOpenSound(player, "world_settings")
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_MEMBERS, isGui = true)
         scheduleGuiTransitionReset(player)
@@ -642,7 +658,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val contentRows = if (currentPageMembers.isEmpty()) 1 else (currentPageMembers.size - 1) / 7 + 1
         val rowCount = (contentRows + 2).coerceIn(3, 6)
         
-        val inventory = Bukkit.createInventory(null, rowCount * 9, Component.text(lang.getMessage(player, "gui.member_management.title")))
+        val inventory = if (player.openInventory.topInventory.size == rowCount * 9 && currentTitle == title) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, rowCount * 9, Component.text(title))
+        }
         
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         for (i in 0..8) inventory.setItem(i, blackPane)
@@ -945,10 +965,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
     fun openTagEditor(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
+        val title = lang.getMessage(player, "gui.tag_editor.title", worldData.name)
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
         plugin.soundManager.playMenuOpenSound(player, "world_settings")
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
         scheduleGuiTransitionReset(player)
-        val inventory = Bukkit.createInventory(null, 27, Component.text(lang.getMessage(player, "gui.tag_editor.title", worldData.name)))
+        
+        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 27, Component.text(title))
+        }
 
         // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -990,10 +1018,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
     fun openCriticalSettings(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
+        val title = lang.getMessage(player, "gui.critical.title")
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
         plugin.soundManager.playMenuOpenSound(player, "world_settings")
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CRITICAL_SETTINGS, isGui = true)
         scheduleGuiTransitionReset(player)
-        val inventory = Bukkit.createInventory(null, 45, Component.text(lang.getMessage(player, "gui.critical.title")))
+        
+        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 45, Component.text(title))
+        }
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         for (i in 0..8) inventory.setItem(i, blackPane)
@@ -1153,43 +1189,49 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
     fun openPortalManagement(player: Player, worldData: WorldData, page: Int = 0) {
         val lang = plugin.languageManager
+        val title = lang.getMessage(player, "gui.settings.portals.display")
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
         plugin.soundManager.playMenuOpenSound(player, "portal_manage")
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_PORTALS, isGui = true)
         scheduleGuiTransitionReset(player)
         
         val worldName = "my_world.${worldData.uuid}"
-        val worldPortals = plugin.portalRepository.findAll().filter { it.worldName == worldName }
+        val allPortals = plugin.portalRepository.findAll().filter { it.worldName == worldName }
 
-        val itemsPerPage = 36
-        val totalPages = if (worldPortals.isEmpty()) 1 else (worldPortals.size + itemsPerPage - 1) / itemsPerPage
-        val safePage = page.coerceIn(0, totalPages - 1)
-
-        val inventory = Bukkit.createInventory(null, 54, Component.text(lang.getMessage(player, "gui.settings.portals.display")))
+        val itemsPerPage = 21
+        val startIndex = page * itemsPerPage
+        val currentPagePortals = allPortals.drop(startIndex).take(itemsPerPage)
         
+        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 45, Component.text(title))
+        }
+
+        // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 45..53) inventory.setItem(i, blackPane)
-
-        val startIndex = safePage * itemsPerPage
-        val currentPagePortals = worldPortals.drop(startIndex).take(itemsPerPage)
+        for (i in 36..44) inventory.setItem(i, blackPane)
 
         currentPagePortals.forEachIndexed { index, portal ->
-            inventory.setItem(index + 9, createPortalManagementItem(player, portal))
+            val slot = 9 + index
+            inventory.setItem(slot, createPortalManagementItem(player, portal))
         }
 
         // ナビゲーション
-        if (safePage > 0) {
-            inventory.setItem(46, createItem(Material.ARROW, lang.getMessage(player, "gui.common.prev_page"), listOf("PAGE_TARGET: ${safePage - 1}"), ItemTag.TYPE_GUI_NAV_PREV))
+        if (page > 0) {
+            inventory.setItem(40, createItem(Material.ARROW, lang.getMessage(player, "gui.common.prev_page"), listOf("PAGE_TARGET: ${page - 1}"), ItemTag.TYPE_GUI_NAV_PREV))
         }
-        if (startIndex + itemsPerPage < worldPortals.size) {
-            inventory.setItem(53, createItem(Material.ARROW, lang.getMessage(player, "gui.common.next_page"), listOf("PAGE_TARGET: ${safePage + 1}"), ItemTag.TYPE_GUI_NAV_NEXT))
+        if (startIndex + itemsPerPage < allPortals.size) {
+            inventory.setItem(44, createItem(Material.ARROW, lang.getMessage(player, "gui.common.next_page"), listOf("PAGE_TARGET: ${page + 1}"), ItemTag.TYPE_GUI_NAV_NEXT))
         }
 
         // 戻るボタン
-        inventory.setItem(45, createItem(Material.REDSTONE, lang.getMessage(player, "gui.common.back"), listOf(), ItemTag.TYPE_GUI_CANCEL))
+        inventory.setItem(36, createItem(Material.REDSTONE, lang.getMessage(player, "gui.common.back"), listOf(), ItemTag.TYPE_GUI_CANCEL))
 
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-        for (i in 0 until inventory.size) {
+        for (i in 9..35) {
             if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
         }
 

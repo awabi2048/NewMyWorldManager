@@ -1,1 +1,1 @@
-wawatest
+# My World Manager プラグイン
