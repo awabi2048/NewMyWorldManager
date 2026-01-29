@@ -146,7 +146,7 @@ class MyWorldManager : JavaPlugin() {
         val inviteCmd = InviteCommand(this)
  
         // リスナーの登録
-        server.pluginManager.registerEvents(AccessControlListener(worldConfigRepository), this)
+        server.pluginManager.registerEvents(AccessControlListener(this), this)
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
         // 旧 GuiListener を分割して登録
         server.pluginManager.registerEvents(PlayerWorldListener(this), this)

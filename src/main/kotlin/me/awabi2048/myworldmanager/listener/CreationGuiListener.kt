@@ -50,7 +50,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     session.phase = WorldCreationPhase.NAME_INPUT
                     val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
                     val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
-                    player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
+                    player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + "\n" + cancelInfo)
                 }
                 WorldCreationPhase.TEMPLATE_SELECT -> {
                     session.phase = WorldCreationPhase.TYPE_SELECT
@@ -103,7 +103,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 }
                 
                 if (stats.worldPoint < cost) {
-                    player.sendMessage("§cポイントが不足しています。")
+                    player.sendMessage(lang.getMessage(player, "messages.insufficient_points"))
                     plugin.soundManager.playActionSound(player, "creation", "insufficient_points")
                     return
                 }
@@ -122,7 +122,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         player.closeInventory()
                         val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
                         val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
-                        player.sendMessage("§a生成に使用するシード値をチャットに入力してください。 " + cancelInfo)
+                        player.sendMessage(lang.getMessage(player, "messages.creation_seed_prompt") + " " + cancelInfo)
                     }
                     ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> {
                         plugin.soundManager.playClickSound(player, currentItem)
@@ -168,7 +168,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                     
                     if (stats.worldPoint < cost) {
-                         player.sendMessage("§cポイントが不足しています。")
+                         player.sendMessage(lang.getMessage(player, "messages.insufficient_points"))
                          plugin.creationSessionManager.endSession(player.uniqueId)
                          return
                     }
@@ -176,31 +176,32 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     stats.worldPoint -= cost
                     plugin.playerStatsRepository.save(stats)
                     if (cost > 0) {
-                        player.sendMessage("§e§6🛖 §e${cost} §eを消費しました。(残り: §6🛖 §e${stats.worldPoint}§e)")
+                        val remainingInfo = lang.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint))
+                        player.sendMessage(lang.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost, "remaining_info" to remainingInfo)))
                     }
 
-                    player.sendMessage("§aワールドを作成しています...")
+                    player.sendMessage(lang.getMessage(player, "messages.creation_start"))
                     
                     when(session.creationType) {
                         WorldCreationType.TEMPLATE -> {
                             plugin.worldService.createWorld(session.templateName!!, player.uniqueId, session.worldName!!, cost)
                                 .thenAccept { success ->
-                                    if (success) player.sendMessage("§aワールド作成完了！") 
-                                    else player.sendMessage("§c作成に失敗しました。")
+                                    if (success) player.sendMessage(lang.getMessage(player, "messages.creation_success")) 
+                                    else player.sendMessage(lang.getMessage(player, "messages.creation_failed"))
                                 }
                         }
                         WorldCreationType.SEED -> {
                             plugin.worldService.generateWorld(player.uniqueId, session.worldName!!, session.seed, cost)
                                 .thenAccept { success ->
-                                    if (success) player.sendMessage("§aワールド作成完了！") 
-                                    else player.sendMessage("§c作成に失敗しました。")
+                                    if (success) player.sendMessage(lang.getMessage(player, "messages.creation_success")) 
+                                    else player.sendMessage(lang.getMessage(player, "messages.creation_failed"))
                                 }
                         }
                         WorldCreationType.RANDOM -> {
                             plugin.worldService.generateWorld(player.uniqueId, session.worldName!!, null, cost)
                                 .thenAccept { success ->
-                                    if (success) player.sendMessage("§aワールド作成完了！") 
-                                    else player.sendMessage("§c作成に失敗しました。")
+                                    if (success) player.sendMessage(lang.getMessage(player, "messages.creation_success")) 
+                                    else player.sendMessage(lang.getMessage(player, "messages.creation_failed"))
                                 }
                         }
                         null -> {}
@@ -210,7 +211,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 } else if (tag == ItemTag.TYPE_GUI_CANCEL) {
                     plugin.soundManager.playActionSound(player, "creation", "cancel")
                     player.closeInventory()
-                    player.sendMessage("§cワールド作成をキャンセルしました。")
+                    player.sendMessage(lang.getMessage(player, "messages.creation_cancelled"))
                     plugin.creationSessionManager.endSession(player.uniqueId)
                 }
             }

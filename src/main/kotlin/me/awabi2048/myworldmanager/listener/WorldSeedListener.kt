@@ -54,7 +54,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
                 }
 
                 if (!consumed) {
-                    player.sendMessage("§cItem not found in hand.") // Should ideally use message key or be silent if weird state
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.item_not_found_hand"))
                     player.closeInventory()
                     return
                 }

@@ -89,14 +89,14 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                 // Get Biome ID
                 val biomeId = ItemTag.getBiomeId(item)
                 if (biomeId == null) {
-                    player.sendMessage("§cInvalid biome data.")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.invalid_biome_data"))
                     return
                 }
 
                 val targetBiome = try {
                     org.bukkit.block.Biome.valueOf(biomeId.uppercase())
                 } catch (e: IllegalArgumentException) {
-                    player.sendMessage("§cInvalid biome data.")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.invalid_biome_data"))
                     return
                 }
                 

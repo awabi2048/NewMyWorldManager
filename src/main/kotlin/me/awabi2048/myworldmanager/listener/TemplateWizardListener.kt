@@ -39,7 +39,7 @@ class TemplateWizardListener : Listener {
                 player.closeInventory()
                 val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
                 val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
-                player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
+                player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + "\n" + cancelInfo)
             }
             "desc_input" -> {
                 plugin.soundManager.playClickSound(player, currentItem)
@@ -47,7 +47,7 @@ class TemplateWizardListener : Listener {
                 player.closeInventory()
                 val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
                 val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
-                player.sendMessage(lang.getMessage(player, "messages.world_desc_prompt") + " " + cancelInfo)
+                player.sendMessage(lang.getMessage(player, "messages.world_desc_prompt") + "\n" + cancelInfo)
             }
             "icon_select" -> {
                 plugin.soundManager.playClickSound(player, currentItem)
@@ -75,12 +75,12 @@ class TemplateWizardListener : Listener {
                 // 今回はシンプルに: カーソルにアイテムを持った状態でクリックしてください、というメッセージにするか、
                 // あるいはプレイヤインベントリのクリックを許可するか。
                 
-                player.sendMessage("§e[MyWorldManager] アイコンにしたいアイテムを持ってクリックしてください。")
+                player.sendMessage(lang.getMessage(player, "messages.wizard_icon_prompt"))
             }
             "origin_set" -> {
                 plugin.soundManager.playClickSound(player, currentItem)
                 session.originLocation = player.location
-                player.sendMessage("§a現在位置を原点に設定しました。")
+                player.sendMessage(lang.getMessage(player, "messages.wizard_origin_set"))
                 plugin.templateWizardGui.open(player)
             }
             "save_confirm" -> {
@@ -89,7 +89,7 @@ class TemplateWizardListener : Listener {
                 // 保存処理
                 val templateId = session.id
                 if (templateId.isEmpty()) {
-                    player.sendMessage("§cIDが設定されていません。")
+                    player.sendMessage(lang.getMessage(player, "messages.wizard_id_missing"))
                     return
                 }
                 
@@ -99,7 +99,7 @@ class TemplateWizardListener : Listener {
                 
                 // 既に存在するかチェック
                 if (config.contains(key)) {
-                    player.sendMessage("§cそのIDは既に存在します。")
+                    player.sendMessage(lang.getMessage(player, "messages.wizard_id_exists"))
                     return
                 }
                 
@@ -118,7 +118,7 @@ class TemplateWizardListener : Listener {
                 
                 config.save(java.io.File(plugin.dataFolder, "templates.yml"))
                 
-                player.sendMessage("§aテンプレート「$key」を登録しました！")
+                player.sendMessage(lang.getMessage(player, "messages.wizard_registered", mapOf("template" to key)))
                 player.closeInventory()
                 plugin.templateWizardGui.removeSession(player.uniqueId)
                 plugin.templateRepository.loadTemplates()

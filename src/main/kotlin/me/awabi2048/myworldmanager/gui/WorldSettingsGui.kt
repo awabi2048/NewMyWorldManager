@@ -39,10 +39,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         
         // インベントリの作成または再利用
-        val inventory = if (player.openInventory.topInventory.size == 54 && currentTitle == title) {
+        val holder = if (player.openInventory.topInventory.holder is WorldSettingsGuiHolder) {
+            val h = player.openInventory.topInventory.holder as WorldSettingsGuiHolder
+            if (h.guiType == WorldSettingsGuiType.MAIN) h else null
+        } else null
+
+        val inventory = if (holder != null) {
+            holder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 54, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.MAIN, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 54, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         // 背景 (黒の板ガラス)
@@ -488,10 +497,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val title = lang.getMessage(player, "gui.archive_confirm.title")
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.ARCHIVE_CONFIRM) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.ARCHIVE_CONFIRM, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
         val infoItem = createItem(
@@ -521,10 +535,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val title = lang.getMessage(player, "gui.unarchive_confirm.title")
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.UNARCHIVE_CONFIRM) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.UNARCHIVE_CONFIRM, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         // 背景
@@ -577,10 +596,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.EXPAND_SELECT_METHOD, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         
-        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.EXPANSION_SELECTION) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 45, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.EXPANSION_SELECTION, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 45, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
         // ヘッダー・フッター
@@ -620,10 +644,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         plugin.settingsSessionManager.updateSessionAction(player, worldUuid, SettingsAction.EXPAND_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
-        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.EXPANSION_CONFIRM) {
+            currentHolder.worldUuid = worldUuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 45, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.EXPANSION_CONFIRM, worldUuid)
+            val inv = Bukkit.createInventory(newHolder, 45, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
         // ヘッダー・フッター
@@ -685,10 +714,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val contentRows = if (currentPageMembers.isEmpty()) 1 else (currentPageMembers.size - 1) / 7 + 1
         val rowCount = (contentRows + 2).coerceIn(3, 6)
         
-        val inventory = if (player.openInventory.topInventory.size == rowCount * 9 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.MEMBER_MANAGEMENT) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, rowCount * 9, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.MEMBER_MANAGEMENT, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, rowCount * 9, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -743,10 +777,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MEMBER_REMOVE_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.MEMBER_REMOVE_CONFIRM) {
+            currentHolder.worldUuid = worldData.uuid
+            currentHolder.targetUuid = targetUuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.MEMBER_REMOVE_CONFIRM, worldData.uuid, targetUuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
          val infoItem = createItem(
@@ -783,10 +823,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MEMBER_TRANSFER_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.MEMBER_TRANSFER_CONFIRM) {
+            currentHolder.worldUuid = worldData.uuid
+            currentHolder.targetUuid = targetUuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.MEMBER_TRANSFER_CONFIRM, worldData.uuid, targetUuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
         val infoItem = createItem(
@@ -884,11 +930,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val contentRows = if (currentPageVisitors.isEmpty()) 1 else (currentPageVisitors.size - 1) / 7 + 1
         val rowCount = (contentRows + 2).coerceIn(3, 6)
 
-        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        val inventory = if (player.openInventory.topInventory.size == rowCount * 9 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.VISITOR_MANAGEMENT) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, rowCount * 9, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.VISITOR_MANAGEMENT, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, rowCount * 9, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -935,10 +985,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VISITOR_KICK_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.VISITOR_KICK_CONFIRM) {
+            currentHolder.worldUuid = worldData.uuid
+            currentHolder.targetUuid = targetUuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.VISITOR_KICK_CONFIRM, worldData.uuid, targetUuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
         
         inventory.setItem(13, createItem(
@@ -1023,10 +1079,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.TAG_EDITOR) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.TAG_EDITOR, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         // 背景
@@ -1076,10 +1137,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CRITICAL_SETTINGS, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         
-        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.CRITICAL_SETTINGS) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 45, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.CRITICAL_SETTINGS, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 45, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1164,10 +1230,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RESET_EXPANSION_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.RESET_EXPANSION_CONFIRM) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.RESET_EXPANSION_CONFIRM, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         val infoItem = createItem(
@@ -1199,10 +1270,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.DELETE_WORLD_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.DELETE_CONFIRM_1) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.DELETE_CONFIRM_1, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         val infoItem = createItem(
@@ -1234,10 +1310,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.DELETE_WORLD_CONFIRM_FINAL, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.DELETE_CONFIRM_2) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 27, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.DELETE_CONFIRM_2, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 27, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         val infoItem = createItem(
@@ -1278,10 +1359,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val startIndex = page * itemsPerPage
         val currentPagePortals = allPortals.drop(startIndex).take(itemsPerPage)
         
-        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+        val currentHolder = player.openInventory.topInventory.holder as? WorldSettingsGuiHolder
+        val inventory = if (currentHolder?.guiType == WorldSettingsGuiType.PORTAL_MANAGEMENT) {
+            currentHolder.worldUuid = worldData.uuid
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 45, Component.text(title))
+            val newHolder = WorldSettingsGuiHolder(WorldSettingsGuiType.PORTAL_MANAGEMENT, worldData.uuid)
+            val inv = Bukkit.createInventory(newHolder, 45, Component.text(title))
+            newHolder.inv = inv
+            inv
         }
 
         // 背景
@@ -1350,4 +1436,34 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         return item
     }
 
+
+
+    class WorldSettingsGuiHolder(
+        val guiType: WorldSettingsGuiType,
+        var worldUuid: java.util.UUID? = null,
+        var targetUuid: java.util.UUID? = null,
+        var extraData: Any? = null
+    ) : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
+    }
+
+    enum class WorldSettingsGuiType {
+        MAIN,
+        ARCHIVE_CONFIRM,
+        UNARCHIVE_CONFIRM,
+        EXPANSION_SELECTION,
+        EXPANSION_CONFIRM,
+        MEMBER_MANAGEMENT,
+        MEMBER_REMOVE_CONFIRM,
+        MEMBER_TRANSFER_CONFIRM,
+        VISITOR_MANAGEMENT,
+        VISITOR_KICK_CONFIRM,
+        TAG_EDITOR,
+        CRITICAL_SETTINGS,
+        RESET_EXPANSION_CONFIRM,
+        DELETE_CONFIRM_1,
+        DELETE_CONFIRM_2,
+        PORTAL_MANAGEMENT
+    }
 }

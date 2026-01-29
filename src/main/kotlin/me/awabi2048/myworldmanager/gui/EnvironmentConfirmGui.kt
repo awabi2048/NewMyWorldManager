@@ -22,7 +22,9 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         val session = plugin.settingsSessionManager.getSession(player)
         session?.confirmItem = itemToConsume.clone()
         
-        val inventory = Bukkit.createInventory(null, 27, Component.text(title))
+        val holder = EnvironmentConfirmGuiHolder(worldData.uuid, itemToConsume.clone())
+        val inventory = Bukkit.createInventory(holder, 27, Component.text(title))
+        holder.inv = inventory
 
         // 背景
         val grayPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
@@ -63,5 +65,13 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         inventory.setItem(11, cancelItem)
 
         player.openInventory(inventory)
+    }
+
+    class EnvironmentConfirmGuiHolder(
+        val worldUuid: java.util.UUID,
+        val itemToConsume: ItemStack
+    ) : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }

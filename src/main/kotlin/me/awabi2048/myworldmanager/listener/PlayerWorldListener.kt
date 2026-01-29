@@ -83,7 +83,9 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     
                     plugin.inviteSessionManager.startSession(player.uniqueId, worldUuid)
                     player.closeInventory()
-                    player.sendMessage(lang.getMessage(player, "messages.member_invite_input"))
+                    val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+                    val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                    player.sendMessage(lang.getMessage(player, "messages.member_invite_input") + "\n" + cancelInfo)
                 }
                 return
             }
@@ -95,7 +97,9 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 plugin.creationSessionManager.startSession(player.uniqueId)
                 player.closeInventory()
                 player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
-                player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt"))
+                val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+                val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + "\n" + cancelInfo)
                 return
             }
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return

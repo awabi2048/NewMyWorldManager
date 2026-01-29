@@ -27,7 +27,7 @@ class CreationChatListener(private val plugin: MyWorldManager) : Listener {
             event.viewers().clear()
             plugin.creationSessionManager.endSession(player.uniqueId)
             plugin.soundManager.playActionSound(player, "creation", "cancel")
-            player.sendMessage("§eマイワールドの作成をキャンセルしました。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_cancelled"))
             return
         }
 
@@ -35,8 +35,11 @@ class CreationChatListener(private val plugin: MyWorldManager) : Listener {
             event.isCancelled = true
             event.viewers().clear()
             
+            val lang = plugin.languageManager
             val error = plugin.worldValidator.validateName(message)
             if (error != null) {
+                // error自体が言語キーである可能性もあるが、現状は文字列として扱われている。
+                // ひとまずはそのままとするか、将来的にキーにする。
                 player.sendMessage("§c$error")
                 return
             }

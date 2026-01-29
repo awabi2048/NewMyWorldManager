@@ -22,10 +22,21 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_ENVIRONMENT_SETTINGS, isGui = true)
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         
-        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+        // インベントリ作成・取得
+        val holder = if (player.openInventory.topInventory.holder is EnvironmentGuiHolder) {
+            player.openInventory.topInventory.holder as EnvironmentGuiHolder
+        } else {
+            EnvironmentGuiHolder(worldData.uuid)
+        }
+        
+        holder.worldUuid = worldData.uuid // 更新
+
+        val inventory = if (player.openInventory.topInventory.holder is EnvironmentGuiHolder) {
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 45, Component.text(title))
+            val inv = Bukkit.createInventory(holder, 45, Component.text(title))
+            holder.inv = inv
+            inv
         }
 
         // 背景アイテム作成
@@ -146,4 +157,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         return item
     }
 
+    class EnvironmentGuiHolder(var worldUuid: java.util.UUID) : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
+    }
 }

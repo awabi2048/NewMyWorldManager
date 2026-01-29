@@ -11,7 +11,7 @@ import java.util.UUID
 /**
  * プレイヤーのワールド間移動を監視し、入場制限を行うリスナー
  */
-class AccessControlListener(private val repository: WorldConfigRepository) : Listener {
+class AccessControlListener(private val plugin: me.awabi2048.myworldmanager.MyWorldManager) : Listener {
 
     @EventHandler
     fun onTeleport(event: PlayerTeleportEvent) {
@@ -22,12 +22,14 @@ class AccessControlListener(private val repository: WorldConfigRepository) : Lis
         if (toWorld == null || toWorld == fromWorld) return
 
         // 管理対象ワールドかチェック
+        val repository = plugin.worldConfigRepository
         val worldData = repository.findByWorldName(toWorld.name) ?: return
         val player = event.player
         val playerUuid = player.uniqueId
+        val lang = plugin.languageManager
 
         // 管理者は常に許可 (PermissionManager.checkPermission を使用)
-        if (PermissionManager.checkPermission(player, PermissionManager.ADMIN)) return
+        if (me.awabi2048.myworldmanager.util.PermissionManager.checkPermission(player, me.awabi2048.myworldmanager.util.PermissionManager.ADMIN)) return
 
         // 所有者は常に許可
         if (worldData.owner == playerUuid) return
@@ -51,7 +53,7 @@ class AccessControlListener(private val repository: WorldConfigRepository) : Lis
 
         if (!allowed) {
             event.isCancelled = true
-            player.sendMessage("§cこのワールドへの入場権限がありません。")
+            player.sendMessage(lang.getMessage(player, "messages.access_denied_world"))
             return
         }
 
@@ -62,24 +64,13 @@ class AccessControlListener(private val repository: WorldConfigRepository) : Lis
                           worldData.members.contains(playerUuid)
             
             if (!isMember) {
-                val notification = net.kyori.adventure.text.Component.text()
-                    .append(net.kyori.adventure.text.Component.text("[", net.kyori.adventure.text.format.NamedTextColor.GRAY))
-                    .append(net.kyori.adventure.text.Component.text("!", net.kyori.adventure.text.format.NamedTextColor.RED))
-                    .append(net.kyori.adventure.text.Component.text("] ", net.kyori.adventure.text.format.NamedTextColor.GRAY))
-                    .append(net.kyori.adventure.text.Component.text(player.name, net.kyori.adventure.text.format.NamedTextColor.YELLOW))
-                    .append(net.kyori.adventure.text.Component.text(" さんがあなたのワールド「", net.kyori.adventure.text.format.NamedTextColor.WHITE))
-                    .append(net.kyori.adventure.text.Component.text(worldData.name, net.kyori.adventure.text.format.NamedTextColor.GREEN))
-                    .append(net.kyori.adventure.text.Component.text("」に訪問しました。", net.kyori.adventure.text.format.NamedTextColor.WHITE))
-                    .build()
-
                 // オーナー、モデレーター、メンバーに通知
-                val plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(me.awabi2048.myworldmanager.MyWorldManager::class.java)
                 val allMembers = (worldData.members + worldData.moderators + worldData.owner).toSet()
                 allMembers.forEach { memberUuid ->
                     val memberPlayer = org.bukkit.Bukkit.getPlayer(memberUuid) ?: return@forEach
                     val stats = plugin.playerStatsRepository.findByUuid(memberUuid)
                     if (stats.visitorNotificationEnabled) {
-                        memberPlayer.sendMessage(notification)
+                        memberPlayer.sendMessage(lang.getMessage(memberPlayer, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
                     }
                 }
             }

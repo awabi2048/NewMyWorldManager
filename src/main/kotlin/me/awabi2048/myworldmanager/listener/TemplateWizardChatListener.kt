@@ -25,7 +25,7 @@ class TemplateWizardChatListener(private val plugin: MyWorldManager) : Listener 
         val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
         if (message.equals(cancelWord, ignoreCase = true)) {
             session.inputState = me.awabi2048.myworldmanager.gui.TemplateWizardGui.InputState.NONE
-            player.sendMessage("§e入力モードを終了しました。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_input_mode_ended"))
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 plugin.templateWizardGui.open(player)
             })
@@ -40,7 +40,7 @@ class TemplateWizardChatListener(private val plugin: MyWorldManager) : Listener 
                     session.id = "tpl_" + java.util.UUID.randomUUID().toString().substring(0, 8)
                 }
                 
-                player.sendMessage("§aテンプレート名を設定しました: ${session.name} (ID: ${session.id})")
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_name_set", mapOf("name" to session.name!!, "id" to session.id!!)))
                 session.inputState = me.awabi2048.myworldmanager.gui.TemplateWizardGui.InputState.NONE
                 
                 Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -49,7 +49,7 @@ class TemplateWizardChatListener(private val plugin: MyWorldManager) : Listener 
             }
             me.awabi2048.myworldmanager.gui.TemplateWizardGui.InputState.DESCRIPTION -> {
                 session.description = listOf(message)
-                player.sendMessage("§a説明文を設定しました。")
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_desc_set"))
                 session.inputState = me.awabi2048.myworldmanager.gui.TemplateWizardGui.InputState.NONE
                 
                 Bukkit.getScheduler().runTask(plugin, Runnable {

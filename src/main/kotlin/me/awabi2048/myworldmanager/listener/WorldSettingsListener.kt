@@ -1,4 +1,4 @@
-package me.awabi2048.myworldmanager.listener
+﻿package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -31,6 +31,10 @@ import org.bukkit.scheduler.BukkitTask
 import org.bukkit.block.BlockFace
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
+import me.awabi2048.myworldmanager.gui.WorldSettingsGui
+import me.awabi2048.myworldmanager.gui.WorldSettingsGui.WorldSettingsGuiType
+import me.awabi2048.myworldmanager.gui.EnvironmentGui
+import me.awabi2048.myworldmanager.gui.EnvironmentConfirmGui
 
 class WorldSettingsListener : Listener {
 
@@ -47,722 +51,107 @@ class WorldSettingsListener : Listener {
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
-        val session = plugin.settingsSessionManager.getSession(player) ?: return
-        
-        // GUI遷移中のクリックを無視
-        if (session.isGuiTransition) {
-            event.isCancelled = true
-            return
-        }
+        val topInventory = event.view.topInventory
+        val holder = topInventory.holder
 
-        // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)
-        // ただし、clickedInventoryチェックが必要か？
-        // ここでは一旦キャンセルせずに各分岐に委ねる、あるいはトップインベントリならキャンセル？
-        // 既存実装は各ifブロックで event.isCancelled = true していた。
-        
+        when (holder) {
+            is WorldSettingsGui.WorldSettingsGuiHolder -> handleWorldSettingsGui(event, player, holder)
+            is EnvironmentGui.EnvironmentGuiHolder -> handleEnvironmentGui(event, player, holder)
+            is EnvironmentConfirmGui.EnvironmentConfirmGuiHolder -> handleEnvironmentConfirmGui(event, player, holder)
+        }
+    }
+
+    private fun calculateExpansionCost(currentLevel: Int): Int {
+        val config = plugin.config
+        val targetLevel = currentLevel + 1
+        return if (config.contains("expansion.costs.$targetLevel")) {
+            config.getInt("expansion.costs.$targetLevel")
+        } else {
+            val baseCost = config.getInt("expansion.base_cost", 100)
+            val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
+            (baseCost * Math.pow(multiplier, currentLevel.toDouble())).toInt()
+        }
+    }
+
+    private fun calculateTotalExpansionCost(currentLevel: Int): Int {
+        if (currentLevel <= 0) return 0
+        var total = 0
+        for (i in 0 until currentLevel) {
+            total += calculateExpansionCost(i)
+        }
+        return total
+    }
+
+    private fun handleEnvironmentGui(event: InventoryClickEvent, player: Player, holder: EnvironmentGui.EnvironmentGuiHolder) {
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
         val item = event.currentItem ?: return
         val type = ItemTag.getType(item)
-        val lang = plugin.languageManager
         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+        val lang = plugin.languageManager
 
-        // 共通メソッド: キャンセルとクリック音
+        // 蜈ｱ騾壹Γ繧ｽ繝・ラ: 繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺ｨ繧ｯ繝ｪ繝・け髻ｳ
         fun handleCommandCancel() {
             plugin.soundManager.playClickSound(player, item, "world_settings")
             plugin.settingsSessionManager.endSession(player)
             plugin.worldSettingsGui.open(player, worldData)
         }
 
-        when (session.action) {
-            SettingsAction.MANAGE_MEMBERS -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-
-                if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
-                    val lore = item?.itemMeta?.lore() ?: return
-                    lore.forEach { line ->
-                        val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
-                        if (plainLine.startsWith("PAGE_TARGET: ")) {
-                            val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
-                            plugin.soundManager.playClickSound(player, item, "world_settings")
-                            plugin.worldSettingsGui.openMemberManagement(player, worldData, targetPage)
-                        }
-                    }
-                    return
-                }
-
-                if (type == ItemTag.TYPE_GUI_MEMBER_INVITE) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    session.action = SettingsAction.MEMBER_INVITE
-                    player.closeInventory()
-                    player.sendMessage(plugin.languageManager.getMessage("messages.member_invite_input"))
-                    return
-                }
-
-                if (type == ItemTag.TYPE_GUI_CANCEL || type == ItemTag.TYPE_GUI_BACK) {
-                    handleCommandCancel()
-                    return
-                }
-                
-                if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
-                    val memberId = ItemTag.getWorldUuid(item)
-                    if (memberId != null && memberId != player.uniqueId) {
-                        plugin.soundManager.playClickSound(player, item, "world_settings")
-                        if (event.isShiftClick && event.isRightClick) {
-                            val config = plugin.config
-                            val stats = plugin.playerStatsRepository.findByUuid(memberId)
-                            val defaultMax = config.getInt("creation.max_create_count_default", 3)
-                            val maxCounts = defaultMax + stats.unlockedWorldSlot
-                            val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == memberId }
-
-                            if (currentCounts >= maxCounts) {
-                                player.sendMessage(plugin.languageManager.getMessage("messages.owner_transfer_failed_limit"))
-                                plugin.soundManager.playActionSound(player, "creation", "limit_reached")
-                                return
-                            }
-
-                            plugin.worldSettingsGui.openMemberTransferConfirmation(player, worldData, memberId)
-                        } else {
-                            plugin.worldSettingsGui.openMemberRemoveConfirmation(player, worldData, memberId)
-                        }
-                    }
+        event.isCancelled = true
+        
+        // Handle player inventory clicks for biome bottle / Moon stone
+        if (event.clickedInventory != event.view.topInventory) {
+            val clickedItem = event.currentItem ?: return
+            if (ItemTag.isType(clickedItem, ItemTag.TYPE_MOON_STONE)) {
+                plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
+                val cost = plugin.config.getInt("environment.gravity.cost", 100)
+                plugin.environmentConfirmGui.open(player, worldData, clickedItem, cost)
+            } else if (ItemTag.isType(clickedItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
+                plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
+                val cost = plugin.config.getInt("environment.biome.cost", 500)
+                plugin.environmentConfirmGui.open(player, worldData, clickedItem, cost)
+            }
+            return
+        }
+        
+        when (type) {
+            ItemTag.TYPE_GUI_CANCEL -> {
+                handleCommandCancel()
+            }
+            ItemTag.TYPE_GUI_ENV_WEATHER -> {
+                if (event.isLeftClick) {
+                    handleWeatherClickCycle(player, worldData)
+                } else if (event.isRightClick) {
+                    handleWeatherConfirm(player, worldData)
                 }
             }
-            SettingsAction.MEMBER_REMOVE_CONFIRM -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
+            ItemTag.TYPE_GUI_ENV_GRAVITY, ItemTag.TYPE_GUI_ENV_BIOME -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "gui.environment.biome.click_bottle_hint"))
+            }
+        }
+    }
 
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
-                    // Updates session to MANAGE_MEMBERS
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    val infoItem = event.inventory.getItem(13) ?: return
-                    val memberId = ItemTag.getWorldUuid(infoItem)
-                    
-                    if (memberId != null) {
-                        val memberName = Bukkit.getOfflinePlayer(memberId).name ?: "Unknown"
-                        worldData.members.remove(memberId)
-                        worldData.moderators.remove(memberId)
-                        plugin.worldConfigRepository.save(worldData)
-                        player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
+    private fun handleEnvironmentConfirmGui(event: InventoryClickEvent, player: Player, holder: EnvironmentConfirmGui.EnvironmentConfirmGuiHolder) {
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
+        val item = event.currentItem ?: return
+        val type = ItemTag.getType(item)
+        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
 
-                        // マクロ実行
-                        plugin.macroManager.execute("on_member_remove", mapOf(
-                            "world_uuid" to worldData.uuid.toString(),
-                            "member" to memberName
-                        ))
-                    }
-                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
+        event.isCancelled = true
+        if (event.clickedInventory != event.view.topInventory) return
+        
+        when (type) {
+            ItemTag.TYPE_GUI_CONFIRM -> {
+                val confirmItem = session.confirmItem ?: return
+                if (ItemTag.isType(confirmItem, ItemTag.TYPE_MOON_STONE)) {
+                    executeGravityChange(player, worldData, confirmItem)
+                } else if (ItemTag.isType(confirmItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
+                    executeBiomeChange(player, worldData, confirmItem)
                 }
             }
-            SettingsAction.MEMBER_TRANSFER_CONFIRM -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    val infoItem = event.inventory.getItem(13) ?: return
-                    val newOwnerId = ItemTag.getWorldUuid(infoItem) ?: return
-
-                    val oldOwnerId = worldData.owner
-                    val oldOwnerName = Bukkit.getOfflinePlayer(oldOwnerId).name ?: "Unknown"
-                    val newOwnerName = Bukkit.getOfflinePlayer(newOwnerId).name ?: "Unknown"
-
-                    // オーナー権限譲渡の処理
-                    worldData.owner = newOwnerId
-                    
-                    // 旧オーナーをモデレーターへ
-                    if (!worldData.moderators.contains(oldOwnerId)) {
-                        worldData.moderators.add(oldOwnerId)
-                    }
-                    
-                    // 新オーナーをメンバー/モデレーターリストから削除
-                    worldData.moderators.remove(newOwnerId)
-                    worldData.members.remove(newOwnerId)
-
-                    plugin.worldConfigRepository.save(worldData)
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transferred", mapOf("old_owner" to newOwnerName)))
-
-                    // マクロ実行
-                    plugin.macroManager.execute("on_owner_transfer", mapOf(
-                        "old_owner" to oldOwnerName,
-                        "new_owner" to newOwnerName,
-                        "world_uuid" to worldData.uuid.toString()
-                    ))
-
-                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
-                }
+            ItemTag.TYPE_GUI_CANCEL -> {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                plugin.environmentGui.open(player, worldData)
             }
-            SettingsAction.MANAGE_VISITORS -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-                
-                if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
-                     val lore = item?.itemMeta?.lore() ?: return
-                    lore.forEach { line ->
-                        val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
-                        if (plainLine.startsWith("PAGE_TARGET: ")) {
-                            val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
-                            plugin.soundManager.playClickSound(player, item, "world_settings")
-                            plugin.worldSettingsGui.openVisitorManagement(player, worldData, targetPage)
-                        }
-                    }
-                    return
-                }
-                
-                if (type == ItemTag.TYPE_GUI_VISITOR_ITEM) {
-                    if (event.isRightClick) {
-                        val visitorUuid = ItemTag.getWorldUuid(item) ?: return
-                        plugin.soundManager.playClickSound(player, item, "world_settings")
-                        plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, visitorUuid)
-                    }
-                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    handleCommandCancel()
-                }
-            }
-            SettingsAction.VISITOR_KICK_CONFIRM -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openVisitorManagement(player, worldData)
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    val infoItem = event.inventory.getItem(13) ?: return
-                    val visitorUuid = ItemTag.getWorldUuid(infoItem) ?: return
-                    val visitor = Bukkit.getPlayer(visitorUuid)
-                    
-                    val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                    if (visitor != null && visitor.world.name == worldFolderName) {
-                         val config = plugin.config
-                        val worldName = config.getString("evacuation_location.world", "world")
-                        val evacWorld = Bukkit.getWorld(worldName!!) ?: Bukkit.getWorlds()[0]
-                        val x = config.getDouble("evacuation_location.x", evacWorld.spawnLocation.x)
-                        val y = config.getDouble("evacuation_location.y", evacWorld.spawnLocation.y)
-                        val z = config.getDouble("evacuation_location.z", evacWorld.spawnLocation.z)
-                        val yaw = config.getDouble("evacuation_location.yaw", evacWorld.spawnLocation.yaw.toDouble()).toFloat()
-                        val pitch = config.getDouble("evacuation_location.pitch", evacWorld.spawnLocation.pitch.toDouble()).toFloat()
-                        
-                        val evacuationLoc = org.bukkit.Location(evacWorld, x, y, z, yaw, pitch)
-                        
-                        visitor.teleport(evacuationLoc)
-                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to visitor.name)))
-                    }
-                    plugin.worldSettingsGui.openVisitorManagement(player, worldData)
-                }
-            }
-            SettingsAction.EXPAND_SELECT_METHOD -> {
-                 event.isCancelled = true
-                 if (event.clickedInventory != event.view.topInventory) return
-                 
-                 if (type == ItemTag.TYPE_GUI_SETTING_EXPAND) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    session.expansionDirection = null // Reset
-                    val cost = calculateExpansionCost(worldData.borderExpansionLevel)
-                     // Note: openExpansionConfirmation updates session action to EXPAND_CONFIRM
-                    plugin.worldSettingsGui.openExpansionConfirmation(player, worldData.uuid, null, cost)
-                 } else if (type == ItemTag.TYPE_GUI_SETTING_SPAWN) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    session.action = SettingsAction.EXPAND_DIRECTION_WAIT
-                    player.closeInventory()
-                    player.sendMessage(plugin.languageManager.getMessage("messages.expand_direction_prompt"))
-                 } else if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    handleCommandCancel()
-                 }
-            }
-            SettingsAction.EXPAND_CONFIRM -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-                
-                if (type == ItemTag.TYPE_GUI_CANCEL || (item?.type == Material.RED_WOOL && type == null) || (item?.type == Material.RED_WOOL && type == ItemTag.TYPE_GUI_CANCEL)) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM || (item?.type == Material.LIME_WOOL && type == null) || (item?.type == Material.LIME_WOOL && type == ItemTag.TYPE_GUI_CONFIRM)) {
-                     val cost = calculateExpansionCost(worldData.borderExpansionLevel)
-                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                    
-                    if (stats.worldPoint < cost) {
-                        player.sendMessage("§cポイントが不足しています。")
-                        player.closeInventory()
-                        return
-                    }
-                    
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    player.closeInventory()
-
-                    val messageList = plugin.languageManager.getMessageList(player, "messages.oage_ganbaru_messages")
-                    val randomMessage = if (messageList.isNotEmpty()) messageList.random() else plugin.languageManager.getMessage(player, "messages.oage_ganbaru_default")
-                    player.sendMessage(randomMessage)
-                    player.playSound(player.location, Sound.BLOCK_ANVIL_USE, 0.5f, 0.5f)
-
-                    val task = Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                        val pending = pendingExpansions.remove(player.uniqueId) ?: return@Runnable
-                        executeExpansionFinal(player, pending.worldData, pending.cost, pending.direction)
-                    }, 40L)
-
-                    pendingExpansions[player.uniqueId] = PendingExpansion(worldData, cost, session.expansionDirection, task)
-                    plugin.settingsSessionManager.endSession(player)
-                }
-            }
-            SettingsAction.VIEW_SETTINGS, SettingsAction.SELECT_ICON -> {
-                event.isCancelled = true
-                val clickedItem = event.currentItem ?: return
-                
-                // アイコン選択モード
-                if (session.action == SettingsAction.SELECT_ICON) {
-                    // 装飾アイテム以外ならアイコンとしてセット
-                     if (clickedItem.type != Material.AIR && !ItemTag.isType(clickedItem, ItemTag.TYPE_GUI_DECORATION)) {
-                        worldData.icon = clickedItem.type
-                        plugin.worldConfigRepository.save(worldData)
-                        val itemName = clickedItem.displayName().decoration(TextDecoration.ITALIC, false)
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_changed", mapOf("item" to LegacyComponentSerializer.legacySection().serialize(itemName))))
-                        plugin.soundManager.playClickSound(player, null, "world_settings")
-                        
-                        // メニュー再描画（これによりセッションはVIEW_SETTINGSに戻る）
-                        // endSession check? open updates session.
-                        // We used to endSession before open.
-                        plugin.settingsSessionManager.endSession(player)
-                        plugin.worldSettingsGui.open(player, worldData)
-                    }
-                    return
-                }
-
-                // 通常設定操作
-                val itemTag = ItemTag.getType(clickedItem) ?: return
-                
-                // 制限対象のタグ
-                val restrictedTags = setOf(
-                    ItemTag.TYPE_GUI_SETTING_SPAWN,
-                    ItemTag.TYPE_GUI_SETTING_EXPAND,
-                    ItemTag.TYPE_GUI_SETTING_ENVIRONMENT,
-                    ItemTag.TYPE_GUI_SETTING_CRITICAL
-                )
-                
-                if (restrictedTags.contains(itemTag)) {
-                    val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                    if (player.world.name != targetWorldName) {
-                        plugin.soundManager.playClickSound(player, null, "world_settings")
-                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                        return
-                    }
-                }
-                
-                when (itemTag) {
-                    ItemTag.TYPE_GUI_SETTING_INFO -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        if (event.isRightClick) {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.world_desc_prompt"))
-                            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
-                        } else {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.world_name_prompt"))
-                            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
-                        }
-                        player.closeInventory()
-                    }
-                    ItemTag.TYPE_GUI_SETTING_SPAWN -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        val isGuest = event.isLeftClick
-                        val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
-                        val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
-                        val typeName = plugin.languageManager.getMessage(player, typeKey)
-                        
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", mapOf("type" to typeName)))
-                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
-                        player.closeInventory()
-                    }
-                    ItemTag.TYPE_GUI_SETTING_ICON -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SELECT_ICON)
-                        player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
-                    }
-                    ItemTag.TYPE_GUI_SETTING_EXPAND -> {
-                        if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) return
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        
-                        val config = plugin.config
-                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                        val costsSection = config.getConfigurationSection("expansion.costs")
-                        val maxLevel = costsSection?.getKeys(false)?.size ?: 3
-                        val baseCost = config.getInt("expansion.base_cost", 100)
-                        val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
-                        
-                        val currentLevel = worldData.borderExpansionLevel
-                        val targetLevel = currentLevel + 1
-                        
-                        if (currentLevel >= maxLevel) {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.max_expansion_reached"))
-                            return
-                        }
-                        val cost = if (config.contains("expansion.costs.$targetLevel")) {
-                            config.getInt("expansion.costs.$targetLevel")
-                        } else {
-                            (baseCost * Math.pow(multiplier, currentLevel.toDouble())).toInt()
-                        }
-                        
-                        if (stats.worldPoint < cost) {
-                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.expand_insufficient_points", mapOf("cost" to cost)))
-                            return
-                        }
-    
-                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_PUBLISH -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        val nextLevel = GuiHelper.getNextValue(worldData.publishLevel, PublishLevel.values(), event.isRightClick)
-                        worldData.publishLevel = nextLevel
-                        if (worldData.publishLevel == PublishLevel.PUBLIC) {
-                            worldData.publicAt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(java.time.LocalDateTime.now())
-                        }
-                        plugin.worldConfigRepository.save(worldData)
-                        plugin.worldSettingsGui.open(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_MEMBER -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_ARCHIVE -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        plugin.worldSettingsGui.openArchiveConfirmation(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_TAGS -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        plugin.worldSettingsGui.openTagEditor(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_VISITOR -> {
-                         plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                         val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                         val world = Bukkit.getWorld(worldFolderName)
-                         val visitorCount = world?.players?.count { 
-                            it.uniqueId != worldData.owner && !worldData.moderators.contains(it.uniqueId) && !worldData.members.contains(it.uniqueId) 
-                        } ?: 0
-
-                        if (visitorCount == 0) {
-                            player.sendMessage(plugin.languageManager.getMessage(player, "gui.visitor_management.no_visitors"))
-                            return
-                        }
-                        plugin.worldSettingsGui.openVisitorManagement(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_NOTIFICATION -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        worldData.notificationEnabled = !worldData.notificationEnabled
-                        plugin.worldConfigRepository.save(worldData)
-                        plugin.worldSettingsGui.open(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_CRITICAL -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        if (event.isRightClick) {
-                            worldData.announcementMessages.clear()
-                            plugin.worldConfigRepository.save(worldData)
-                            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_reset"))
-                            plugin.worldSettingsGui.open(player, worldData)
-                        } else {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_prompt"))
-                            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
-                            player.closeInventory()
-                        }
-                    }
-                    ItemTag.TYPE_GUI_SETTING_PORTALS -> {
-                        val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                        val hasPortals = plugin.portalRepository.findAll().any { it.worldName == worldName }
-                        
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        if (hasPortals) {
-                            plugin.worldSettingsGui.openPortalManagement(player, worldData)
-                        } else {
-                            // ポータルがない場合は開かない (クリック音だけ鳴る、または何もしない)
-                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.no_portals_found"))
-                        }
-                    }
-                    ItemTag.TYPE_GUI_SETTING_ENVIRONMENT -> {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        plugin.environmentGui.open(player, worldData)
-                    }
-                }
-            }
-            SettingsAction.VIEW_ENVIRONMENT_SETTINGS -> {
-                event.isCancelled = true
-                
-                // Handle player inventory clicks for biome bottle / Moon stone
-                if (event.clickedInventory != event.view.topInventory) {
-                    val clickedItem = event.currentItem ?: return
-                    if (ItemTag.isType(clickedItem, ItemTag.TYPE_MOON_STONE)) {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        val cost = plugin.config.getInt("environment.gravity.cost", 100)
-                        plugin.environmentConfirmGui.open(player, worldData, clickedItem, cost)
-                    } else if (ItemTag.isType(clickedItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
-                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
-                        val cost = plugin.config.getInt("environment.biome.cost", 500)
-                        plugin.environmentConfirmGui.open(player, worldData, clickedItem, cost)
-                    }
-                    return
-                }
-                
-                when (type) {
-                    ItemTag.TYPE_GUI_CANCEL -> {
-                        handleCommandCancel()
-                    }
-                    ItemTag.TYPE_GUI_ENV_WEATHER -> {
-                        if (event.isLeftClick) {
-                            handleWeatherClickCycle(player, worldData)
-                        } else if (event.isRightClick) {
-                            handleWeatherConfirm(player, worldData)
-                        }
-                    }
-                    ItemTag.TYPE_GUI_ENV_GRAVITY, ItemTag.TYPE_GUI_ENV_BIOME -> {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "gui.environment.biome.click_bottle_hint"))
-                    }
-                }
-            }
-            SettingsAction.ENV_CONFIRM -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-                
-                when (type) {
-                    ItemTag.TYPE_GUI_CONFIRM -> {
-                        val confirmItem = session.confirmItem ?: return
-                        if (ItemTag.isType(confirmItem, ItemTag.TYPE_MOON_STONE)) {
-                            executeGravityChange(player, worldData, confirmItem)
-                        } else if (ItemTag.isType(confirmItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
-                            executeBiomeChange(player, worldData, confirmItem)
-                        }
-                    }
-                    ItemTag.TYPE_GUI_CANCEL -> {
-                        plugin.soundManager.playClickSound(player, null, "world_settings")
-                        plugin.environmentGui.open(player, worldData)
-                    }
-                }
-            }
-            SettingsAction.MANAGE_TAGS -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-                
-                if (type != null && type.startsWith("tag_")) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    val tagName = type.substringAfter("tag_")
-                    val tag = WorldTag.valueOf(tagName)
-                    
-                    if (worldData.tags.contains(tag)) {
-                        worldData.tags.remove(tag)
-                    } else {
-                        val maxTags = plugin.config.getInt("tags.max_count", 4)
-                        if (worldData.tags.size >= maxTags) {
-                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tag_max_reached", mapOf("max" to maxTags)))
-                            return
-                        }
-                        worldData.tags.add(tag)
-                    }
-                    plugin.worldConfigRepository.save(worldData)
-                    plugin.worldSettingsGui.openTagEditor(player, worldData)
-                } else if (type == ItemTag.TYPE_GUI_BACK || type == ItemTag.TYPE_GUI_CANCEL) {
-                    handleCommandCancel()
-                }
-            }
-            SettingsAction.MANAGE_PORTALS -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-
-                if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
-                     val lore = item?.itemMeta?.lore() ?: return
-                    lore.forEach { line ->
-                        val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
-                        if (plainLine.startsWith("PAGE_TARGET: ")) {
-                            val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
-                            plugin.soundManager.playClickSound(player, item, "world_settings")
-                            plugin.worldSettingsGui.openPortalManagement(player, worldData, targetPage)
-                        }
-                    }
-                    return
-                }
-
-                if (type == ItemTag.TYPE_PORTAL) {
-                    val portalId = ItemTag.getPortalUuid(item) ?: return
-                    if (event.isRightClick) {
-                        plugin.soundManager.playClickSound(player, item, "world_settings")
-                        val portal = plugin.portalRepository.findAll().find { it.id == portalId }
-                        if (portal != null) {
-                            val world = Bukkit.getWorld(portal.worldName)
-                            val block = world?.getBlockAt(portal.x, portal.y, portal.z)
-                            if (block != null && block.type == Material.END_PORTAL_FRAME) {
-                                block.type = Material.AIR
-                            }
-                            plugin.portalManager.removePortalVisuals(portal.id)
-                            plugin.portalRepository.removePortal(portal.id)
-
-                             val returnItem = me.awabi2048.myworldmanager.util.PortalItemUtil.createBasePortalItem(lang, player)
-                             if (portal.worldUuid != null) {
-                                val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
-                                me.awabi2048.myworldmanager.util.PortalItemUtil.bindWorld(returnItem, portal.worldUuid!!, worldName = destData?.name ?: lang.getMessage(player, "general.unknown"), lang, player)
-                            } else if (portal.targetWorldName != null) {
-                                val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
-                                me.awabi2048.myworldmanager.util.PortalItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
-                            }
-                             player.inventory.addItem(returnItem)
-                            
-                            player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
-                            plugin.worldSettingsGui.openPortalManagement(player, worldData)
-                        }
-                    } else if (event.isLeftClick) {
-                        val portal = plugin.portalRepository.findAll().find { it.id == portalId }
-                        if (portal != null) {
-                            plugin.soundManager.playClickSound(player, item, "world_settings")
-                            plugin.portalManager.addIgnorePlayer(player)
-                            player.teleport(portal.getCenterLocation().add(0.0, 1.0, 0.0))
-                            player.sendMessage(lang.getMessage(player, "messages.warp_generic"))
-                            player.closeInventory()
-                        }
-                    }
-                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    handleCommandCancel()
-                }
-            }
-            SettingsAction.CRITICAL_SETTINGS -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-                
-                when (type) {
-                    ItemTag.TYPE_GUI_CANCEL -> {
-                         handleCommandCancel()
-                    }
-                    ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION -> {
-                        if (worldData.borderExpansionLevel <= 0) return
-                        plugin.soundManager.playClickSound(player, item, "world_settings")
-                        plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
-                    }
-                    ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> {
-                        plugin.soundManager.playClickSound(player, item, "world_settings")
-                        plugin.worldSettingsGui.openDeleteWorldConfirmation1(player, worldData)
-                    }
-                }
-            }
-            SettingsAction.RESET_EXPANSION_CONFIRM -> {
-                 event.isCancelled = true
-                 if (event.clickedInventory != event.view.topInventory) return
-
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    val totalExpCost = calculateTotalExpansionCost(worldData.borderExpansionLevel)
-                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                    
-                    val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                    val world = Bukkit.getWorld(worldName)
-                    if (world != null) {
-                        val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
-                        world.worldBorder.size = initialSize
-                    }
-                    
-                    val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
-                    val refund = (totalExpCost * refundRate).toInt()
-                    
-                    stats.worldPoint += refund
-                    worldData.cumulativePoints -= totalExpCost
-                    worldData.borderExpansionLevel = 0
-                    
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.worldConfigRepository.save(worldData)
-                    
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.expansion_reset_success", mapOf("points" to refund)))
-                    player.closeInventory()
-                    plugin.settingsSessionManager.endSession(player)
-                }
-            }
-            SettingsAction.DELETE_WORLD_CONFIRM -> {
-                event.isCancelled = true
-                 if (event.clickedInventory != event.view.topInventory) return
-
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                } else if (type == ItemTag.TYPE_GUI_SETTING_DELETE_WORLD) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
-                }
-            }
-            SettingsAction.DELETE_WORLD_CONFIRM_FINAL -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-                
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
-                    val refund = (worldData.cumulativePoints * refundRate).toInt()
-                    
-                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                    
-                    player.closeInventory()
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_start", mapOf("world" to worldData.name)))
-                    
-                    plugin.worldService.deleteWorld(worldData.uuid).thenAccept { success ->
-                        Bukkit.getScheduler().runTask(plugin, Runnable {
-                            if (success) {
-                                stats.worldPoint += refund
-                                plugin.playerStatsRepository.save(stats)
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_success", mapOf("points" to refund)))
-                            } else {
-                                player.sendMessage(plugin.languageManager.getMessage("messages.world_delete_fail"))
-                            }
-                        })
-                    }
-                    plugin.settingsSessionManager.endSession(player)
-                }
-            }
-            SettingsAction.ARCHIVE_WORLD -> {
-                event.isCancelled = true
-                 if (event.clickedInventory != event.view.topInventory) return
-
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    handleCommandCancel()
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
-                    worldData.isArchived = true
-                    plugin.worldConfigRepository.save(worldData)
-                    plugin.settingsSessionManager.endSession(player)
-                    player.closeInventory()
-                }
-            }
-            SettingsAction.UNARCHIVE_CONFIRM -> {
-                event.isCancelled = true
-                if (event.clickedInventory != event.view.topInventory) return
-                
-                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    plugin.settingsSessionManager.endSession(player)
-                    plugin.playerWorldGui.open(player)
-                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item, "world_settings")
-                    player.closeInventory()
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
-                    
-                    plugin.worldService.unarchiveWorld(worldData.uuid).thenAccept { success ->
-                        Bukkit.getScheduler().runTask(plugin, Runnable {
-                            if (success) {
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_success"))
-                                plugin.worldService.teleportToWorld(player, worldData.uuid)
-                            } else {
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_failed"))
-                            }
-                        })
-                    }
-                    plugin.settingsSessionManager.endSession(player)
-                }
-            }
-            else -> {}
         }
     }
 
@@ -776,6 +165,22 @@ class WorldSettingsListener : Listener {
         val lang = plugin.languageManager
         val messageText = PlainTextComponentSerializer.plainText().serialize(event.originalMessage())
         
+        val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+        if (messageText.equals(cancelWord, ignoreCase = true)) {
+            event.isCancelled = true
+            event.viewers().clear()
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                plugin.settingsSessionManager.endSession(player)
+                if (worldData != null) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                } else {
+                    plugin.worldGui.open(player)
+                }
+                player.sendMessage(lang.getMessage(player, "messages.operation_cancelled"))
+            })
+            return
+        }
+
         event.isCancelled = true
         event.viewers().clear()
         
@@ -865,13 +270,13 @@ class WorldSettingsListener : Listener {
                     val input = messageText
                     
                     if (input.equals("cancel", ignoreCase = true)) {
-                        player.sendMessage(lang.getMessage(player, "messages.icon_cancelled")) // 再利用、または専用メッセージ
+                        player.sendMessage(lang.getMessage(player, "messages.icon_cancelled")) // 蜀榊茜逕ｨ縲√∪縺溘・蟆ら畑繝｡繝・そ繝ｼ繧ｸ
                         plugin.settingsSessionManager.endSession(player)
                         plugin.worldSettingsGui.open(player, worldData)
                         return@Runnable
                     }
                     
-                    // バリデーション
+                    // 繝舌Μ繝・・繧ｷ繝ｧ繝ｳ
                     val maxLines = plugin.config.getInt("announcement.max_lines", 5)
                     val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
                     val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
@@ -888,8 +293,8 @@ class WorldSettingsListener : Listener {
                         return@Runnable
                     }
                     
-                    // 複数行入力の簡易実装：1行ずつ追加していくスタイルにするか、一度に設定するか。
-                    // プロンプトで "exit" で終了とあるので、追記型にする
+                    // 隍・焚陦悟・蜉帙・邁｡譏灘ｮ溯｣・ｼ・陦後★縺､霑ｽ蜉�縺励※縺・￥繧ｹ繧ｿ繧､繝ｫ縺ｫ縺吶ｋ縺九∽ｸ蠎ｦ縺ｫ險ｭ螳壹☆繧九°縲・
+                    // 繝励Ο繝ｳ繝励ヨ縺ｧ "exit" 縺ｧ邨ゆｺ・→縺ゅｋ縺ｮ縺ｧ縲∬ｿｽ險伜梛縺ｫ縺吶ｋ
                     if (input.equals("exit", ignoreCase = true)) {
                         plugin.worldConfigRepository.save(worldData)
                         player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
@@ -900,16 +305,16 @@ class WorldSettingsListener : Listener {
                     
                     if (worldData.announcementMessages.size >= maxLines) {
                         player.sendMessage(lang.getMessage(player, "messages.announcement_invalid_length", mapOf("max_lines" to maxLines, "max_length" to maxLength)))
-                         // メッセージがいっぱいです、exitして完了してください的なメッセージが良いが、
-                         // とりあえず無言で追加しないか、エラーを出す
+                         // 繝｡繝・そ繝ｼ繧ｸ縺後＞縺｣縺ｱ縺・〒縺吶‘xit縺励※螳御ｺ・＠縺ｦ縺上□縺輔＞逧・↑繝｡繝・そ繝ｼ繧ｸ縺瑚憶縺・′縲・
+                         // 縺ｨ繧翫≠縺医★辟｡險縺ｧ霑ｽ蜉�縺励↑縺・°縲√お繝ｩ繝ｼ繧貞・縺・
                         return@Runnable
                     }
                     
-                    // 色コード変換 (初期色を白にする)
-                    val formatted = "§f" + input.replace("&", "§")
+                    // 濶ｲ繧ｳ繝ｼ繝牙､画鋤 (蛻晄悄濶ｲ繧堤區縺ｫ縺吶ｋ)
+                    val formatted = "ﾂｧf" + input.replace("&", "ﾂｧ")
                     worldData.announcementMessages.add(formatted)
                     player.sendMessage(lang.getMessage(player, "messages.announcement_preview", mapOf("message" to formatted)))
-                    // セッションは維持（exitされるまで）
+                    // 繧ｻ繝・す繝ｧ繝ｳ縺ｯ邯ｭ謖・ｼ・xit縺輔ｌ繧九∪縺ｧ・・
                     return@Runnable
                 }
                 else -> {}
@@ -927,14 +332,14 @@ class WorldSettingsListener : Listener {
         val session = plugin.settingsSessionManager.getSession(player) ?: return
         val lang = plugin.languageManager
 
-        // アイコン選択中にインベントリを閉じた場合はキャンセルメッセージを表示して即終了
+        // 繧｢繧､繧ｳ繝ｳ驕ｸ謚樔ｸｭ縺ｫ繧､繝ｳ繝吶Φ繝医Μ繧帝哩縺倥◆蝣ｴ蜷医・繧ｭ繝｣繝ｳ繧ｻ繝ｫ繝｡繝・そ繝ｼ繧ｸ繧定｡ｨ遉ｺ縺励※蜊ｳ邨ゆｺ・
         if (session.action == SettingsAction.SELECT_ICON) {
             plugin.settingsSessionManager.endSession(player)
             player.sendMessage(lang.getMessage(player, "messages.icon_cancelled"))
             return
         }
 
-        // チャット入力待機中やブロック入力待機中のアクションは、インベントリを閉じてもセッションを維持する
+        // 繝√Ε繝・ヨ蜈･蜉帛ｾ・ｩ滉ｸｭ繧・ヶ繝ｭ繝・け蜈･蜉帛ｾ・ｩ滉ｸｭ縺ｮ繧｢繧ｯ繧ｷ繝ｧ繝ｳ縺ｯ縲√う繝ｳ繝吶Φ繝医Μ繧帝哩縺倥※繧ゅそ繝・す繝ｧ繝ｳ繧堤ｶｭ謖√☆繧・
         val chatInputActions = setOf(
             SettingsAction.RENAME_WORLD,
             SettingsAction.CHANGE_DESCRIPTION,
@@ -952,7 +357,7 @@ class WorldSettingsListener : Listener {
             return
         }
 
-        // GUI遷移（サブメニューへの移動や画面更新）を考慮し、2tick後にまだ設定関連GUIを開いているかチェックする
+        // GUI驕ｷ遘ｻ・医し繝悶Γ繝九Η繝ｼ縺ｸ縺ｮ遘ｻ蜍輔ｄ逕ｻ髱｢譖ｴ譁ｰ・峨ｒ閠・・縺励・tick蠕後↓縺ｾ縺�險ｭ螳夐未騾｣GUI繧帝幕縺・※縺・ｋ縺九メ繧ｧ繝・け縺吶ｋ
         Bukkit.getScheduler().runTaskLater(plugin, Runnable {
             if (!player.isOnline) return@Runnable
             
@@ -961,7 +366,7 @@ class WorldSettingsListener : Listener {
                 return@Runnable
             }
 
-            // 設定GUI以外の画面（またはインベントリなし）になった場合、セッションを終了する
+            // 險ｭ螳哦UI莉･螟悶・逕ｻ髱｢・医∪縺溘・繧､繝ｳ繝吶Φ繝医Μ縺ｪ縺暦ｼ峨↓縺ｪ縺｣縺溷�ｴ蜷医√そ繝・す繝ｧ繝ｳ繧堤ｵゆｺ・☆繧・
             plugin.settingsSessionManager.endSession(player)
         }, 2L)
     }
@@ -1072,35 +477,7 @@ class WorldSettingsListener : Listener {
             return
         }
     }
-    
-    private fun calculateExpansionCost(currentLevel: Int): Int {
-        val config = plugin.config
-        val targetLevel = currentLevel + 1
-        return if (config.contains("expansion.costs.$targetLevel")) {
-            config.getInt("expansion.costs.$targetLevel")
-        } else {
-            val baseCost = config.getInt("expansion.base_cost", 100)
-            val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
-            (baseCost * Math.pow(multiplier, currentLevel.toDouble())).toInt()
-        }
-    }
 
-    private fun calculateTotalExpansionCost(level: Int): Int {
-        var total = 0
-        val config = plugin.config
-        val baseCost = config.getInt("expansion.base_cost", 100)
-        val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
-        
-        for (i in 1..level) {
-            total += if (config.contains("expansion.costs.$i")) {
-                config.getInt("expansion.costs.$i")
-            } else {
-                (baseCost * Math.pow(multiplier, (i - 1).toDouble())).toInt()
-            }
-        }
-        return total
-    }
-    
     private fun performExpansion(worldData: WorldData, direction: BlockFace?): Boolean {
         val worldName = "my_world.${worldData.uuid}"
         val world = Bukkit.getWorld(worldName) ?: return false
@@ -1235,7 +612,7 @@ class WorldSettingsListener : Listener {
             applyBiomeToWorld(worldData)
             plugin.environmentGui.open(player, worldData)
         } catch (e: Exception) {
-            player.sendMessage("§cInvalid biome data.")
+            player.sendMessage(lang.getMessage(player, "messages.invalid_biome_data"))
         }
     }
 
@@ -1332,4 +709,619 @@ class WorldSettingsListener : Listener {
             world.refreshChunk(chunk.x, chunk.z)
         }
     }
+    
+    private fun handleWorldSettingsGui(event: InventoryClickEvent, player: Player, holder: WorldSettingsGui.WorldSettingsGuiHolder) {
+        val session = plugin.settingsSessionManager.getSession(player)
+        if (session != null && session.isGuiTransition) {
+            event.isCancelled = true
+            return
+        }
+
+        event.isCancelled = true
+        val lang = plugin.languageManager
+        
+        val isIconSelect = session?.action == SettingsAction.SELECT_ICON
+        if (isIconSelect) {
+             if (event.clickedInventory != event.view.topInventory) {
+                 val clickedItem = event.currentItem ?: return
+                 if (clickedItem.type != Material.AIR && !ItemTag.isType(clickedItem, ItemTag.TYPE_GUI_DECORATION)) {
+                    val worldData = plugin.worldConfigRepository.findByUuid(holder.worldUuid ?: return) ?: return
+                    worldData.icon = clickedItem.type
+                    plugin.worldConfigRepository.save(worldData)
+                    val itemName = clickedItem.displayName().decoration(TextDecoration.ITALIC, false)
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_changed", mapOf("item" to LegacyComponentSerializer.legacySection().serialize(itemName))))
+                    plugin.soundManager.playClickSound(player, null, "world_settings")
+                    
+                    plugin.settingsSessionManager.endSession(player)
+                    plugin.worldSettingsGui.open(player, worldData)
+                 }
+                 return
+             }
+        } else {
+             if (event.clickedInventory != event.view.topInventory) return
+        }
+
+        val worldData = plugin.worldConfigRepository.findByUuid(holder.worldUuid ?: return) ?: return
+        val item = event.currentItem ?: return
+        val type = ItemTag.getType(item)
+
+        fun handleCommandCancel() {
+            plugin.soundManager.playClickSound(player, item, "world_settings")
+            plugin.settingsSessionManager.endSession(player)
+            plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        when (holder.guiType) {
+            WorldSettingsGuiType.MAIN -> {
+                val restrictedTags = setOf(
+                    ItemTag.TYPE_GUI_SETTING_SPAWN,
+                    ItemTag.TYPE_GUI_SETTING_EXPAND,
+                    ItemTag.TYPE_GUI_SETTING_ENVIRONMENT,
+                    ItemTag.TYPE_GUI_SETTING_CRITICAL
+                )
+                
+                if (type in restrictedTags) {
+                    val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                    if (player.world.name != targetWorldName) {
+                        plugin.soundManager.playClickSound(player, null, "world_settings")
+                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                        return
+                    }
+                }
+                
+                when (type) {
+                     ItemTag.TYPE_GUI_SETTING_INFO -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+                        val cancelInfo = plugin.languageManager.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                        if (event.isRightClick) {
+                            player.sendMessage(plugin.languageManager.getMessage("messages.world_desc_prompt") + "\n" + cancelInfo)
+                            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
+                        } else {
+                            player.sendMessage(plugin.languageManager.getMessage("messages.world_name_prompt") + "\n" + cancelInfo)
+                            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
+                        }
+                        player.closeInventory()
+                    }
+                    ItemTag.TYPE_GUI_SETTING_SPAWN -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        val isGuest = event.isLeftClick
+                        val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
+                        val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
+                        val typeName = plugin.languageManager.getMessage(player, typeKey)
+                        
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", mapOf("type" to typeName)))
+                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
+                        player.closeInventory()
+                    }
+                     ItemTag.TYPE_GUI_SETTING_ICON -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SELECT_ICON)
+                        val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+                        val cancelInfo = plugin.languageManager.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                        player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt") + "\n" + cancelInfo)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_EXPAND -> {
+                        if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) return
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        
+                        val config = plugin.config
+                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                        val costsSection = config.getConfigurationSection("expansion.costs")
+                        val maxLevel = costsSection?.getKeys(false)?.size ?: 3
+                        val baseCost = config.getInt("expansion.base_cost", 100)
+                        val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
+                        
+                        val currentLevel = worldData.borderExpansionLevel
+                        val targetLevel = currentLevel + 1
+                        
+                        if (currentLevel >= maxLevel) {
+                            player.sendMessage(plugin.languageManager.getMessage("messages.max_expansion_reached"))
+                            return
+                        }
+                        val cost = if (config.contains("expansion.costs.$targetLevel")) {
+                            config.getInt("expansion.costs.$targetLevel")
+                        } else {
+                            (baseCost * Math.pow(multiplier, currentLevel.toDouble())).toInt()
+                        }
+                        
+                        if (stats.worldPoint < cost) {
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.expand_insufficient_points", mapOf("cost" to cost)))
+                            return
+                        }
+    
+                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_PUBLISH -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        val nextLevel = GuiHelper.getNextValue(worldData.publishLevel, PublishLevel.values(), event.isRightClick)
+                        worldData.publishLevel = nextLevel
+                        if (worldData.publishLevel == PublishLevel.PUBLIC) {
+                            worldData.publicAt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(java.time.LocalDateTime.now())
+                        }
+                        plugin.worldConfigRepository.save(worldData)
+                        plugin.worldSettingsGui.open(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_MEMBER -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_ARCHIVE -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.worldSettingsGui.openArchiveConfirmation(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_TAGS -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.worldSettingsGui.openTagEditor(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_VISITOR -> {
+                         plugin.soundManager.playClickSound(player, item, "world_settings")
+                         val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                         val world = Bukkit.getWorld(worldFolderName)
+                         val visitorCount = world?.players?.count { 
+                            it.uniqueId != worldData.owner && !worldData.moderators.contains(it.uniqueId) && !worldData.members.contains(it.uniqueId) 
+                        } ?: 0
+
+                        if (visitorCount == 0) {
+                            player.sendMessage(plugin.languageManager.getMessage(player, "gui.visitor_management.no_visitors"))
+                            return
+                        }
+                        plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_NOTIFICATION -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        worldData.notificationEnabled = !worldData.notificationEnabled
+                        plugin.worldConfigRepository.save(worldData)
+                        plugin.worldSettingsGui.open(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_CRITICAL -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        if (event.isRightClick) {
+                            worldData.announcementMessages.clear()
+                            plugin.worldConfigRepository.save(worldData)
+                            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_reset"))
+                            plugin.worldSettingsGui.open(player, worldData)
+                        } else {
+                            val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+                            val cancelInfo = plugin.languageManager.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_prompt") + "\n" + cancelInfo)
+                            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
+                            player.closeInventory()
+                        }
+                    }
+                    ItemTag.TYPE_GUI_SETTING_PORTALS -> {
+                        val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                        val hasPortals = plugin.portalRepository.findAll().any { it.worldName == worldName }
+                        
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        if (hasPortals) {
+                            plugin.worldSettingsGui.openPortalManagement(player, worldData)
+                        } else {
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.no_portals_found"))
+                        }
+                    }
+                    ItemTag.TYPE_GUI_SETTING_ENVIRONMENT -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.environmentGui.open(player, worldData)
+                    }
+                }
+            }
+            WorldSettingsGuiType.MEMBER_MANAGEMENT -> {
+                if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
+                    val lore = item?.itemMeta?.lore() ?: return
+                    lore.forEach { line ->
+                        val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
+                        if (plainLine.startsWith("PAGE_TARGET: ")) {
+                            val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
+                            plugin.worldSettingsGui.openMemberManagement(player, worldData, targetPage)
+                        }
+                    }
+                    return
+                }
+
+                if (type == ItemTag.TYPE_GUI_MEMBER_INVITE) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MEMBER_INVITE)
+                    player.closeInventory()
+                    val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+                    val cancelInfo = plugin.languageManager.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                    player.sendMessage(plugin.languageManager.getMessage("messages.member_invite_input") + "\n" + cancelInfo)
+                    return
+                }
+
+                if (type == ItemTag.TYPE_GUI_CANCEL || type == ItemTag.TYPE_GUI_BACK) {
+                    handleCommandCancel()
+                    return
+                }
+                
+                if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
+                    val memberId = ItemTag.getWorldUuid(item)
+                    if (memberId != null && memberId != player.uniqueId) {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        if (event.isShiftClick && event.isRightClick) {
+                            val config = plugin.config
+                            val stats = plugin.playerStatsRepository.findByUuid(memberId)
+                            val defaultMax = config.getInt("creation.max_create_count_default", 3)
+                            val maxCounts = defaultMax + stats.unlockedWorldSlot
+                            val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == memberId }
+
+                            if (currentCounts >= maxCounts) {
+                                player.sendMessage(plugin.languageManager.getMessage("messages.owner_transfer_failed_limit"))
+                                plugin.soundManager.playActionSound(player, "creation", "limit_reached")
+                                return
+                            }
+
+                            plugin.worldSettingsGui.openMemberTransferConfirmation(player, worldData, memberId)
+                        } else {
+                            plugin.worldSettingsGui.openMemberRemoveConfirmation(player, worldData, memberId)
+                        }
+                    }
+                }
+            }
+            WorldSettingsGuiType.MEMBER_REMOVE_CONFIRM -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    val infoItem = event.inventory.getItem(13) ?: return
+                    val memberId = ItemTag.getWorldUuid(infoItem)
+                    
+                    if (memberId != null) {
+                        val memberName = Bukkit.getOfflinePlayer(memberId).name ?: "Unknown"
+                        worldData.members.remove(memberId)
+                        worldData.moderators.remove(memberId)
+                        plugin.worldConfigRepository.save(worldData)
+                        player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
+
+                        plugin.macroManager.execute("on_member_remove", mapOf(
+                            "world_uuid" to worldData.uuid.toString(),
+                            "member" to memberName
+                        ))
+                    }
+                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                }
+            }
+            WorldSettingsGuiType.MEMBER_TRANSFER_CONFIRM -> {
+                 if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    val infoItem = event.inventory.getItem(13) ?: return
+                    val newOwnerId = ItemTag.getWorldUuid(infoItem) ?: return
+
+                    val oldOwnerId = worldData.owner
+                    val oldOwnerName = Bukkit.getOfflinePlayer(oldOwnerId).name ?: "Unknown"
+                    val newOwnerName = Bukkit.getOfflinePlayer(newOwnerId).name ?: "Unknown"
+
+                    worldData.owner = newOwnerId
+                    
+                    if (!worldData.moderators.contains(oldOwnerId)) {
+                        worldData.moderators.add(oldOwnerId)
+                    }
+                    
+                    worldData.moderators.remove(newOwnerId)
+                    worldData.members.remove(newOwnerId)
+
+                    plugin.worldConfigRepository.save(worldData)
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transferred", mapOf("old_owner" to newOwnerName)))
+
+                    plugin.macroManager.execute("on_owner_transfer", mapOf(
+                        "old_owner" to oldOwnerName,
+                        "new_owner" to newOwnerName,
+                        "world_uuid" to worldData.uuid.toString()
+                    ))
+
+                    plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                }
+            }
+            WorldSettingsGuiType.VISITOR_MANAGEMENT -> {
+                if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
+                     val lore = item?.itemMeta?.lore() ?: return
+                    lore.forEach { line ->
+                        val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
+                        if (plainLine.startsWith("PAGE_TARGET: ")) {
+                            val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
+                            plugin.worldSettingsGui.openVisitorManagement(player, worldData, targetPage)
+                        }
+                    }
+                    return
+                }
+                
+                if (type == ItemTag.TYPE_GUI_VISITOR_ITEM) {
+                    if (event.isRightClick) {
+                        val visitorUuid = ItemTag.getWorldUuid(item) ?: return
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, visitorUuid)
+                    }
+                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    handleCommandCancel()
+                }
+            }
+            WorldSettingsGuiType.VISITOR_KICK_CONFIRM -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    val infoItem = event.inventory.getItem(13) ?: return
+                    val visitorUuid = ItemTag.getWorldUuid(infoItem) ?: return
+                    val visitor = Bukkit.getPlayer(visitorUuid)
+                    
+                    val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                    if (visitor != null && visitor.world.name == worldFolderName) {
+                         val config = plugin.config
+                        val worldName = config.getString("evacuation_location.world", "world")
+                        val evacWorld = Bukkit.getWorld(worldName!!) ?: Bukkit.getWorlds()[0]
+                        val x = config.getDouble("evacuation_location.x", evacWorld.spawnLocation.x)
+                        val y = config.getDouble("evacuation_location.y", evacWorld.spawnLocation.y)
+                        val z = config.getDouble("evacuation_location.z", evacWorld.spawnLocation.z)
+                        val yaw = config.getDouble("evacuation_location.yaw", evacWorld.spawnLocation.yaw.toDouble()).toFloat()
+                        val pitch = config.getDouble("evacuation_location.pitch", evacWorld.spawnLocation.pitch.toDouble()).toFloat()
+                        
+                        val evacuationLoc = org.bukkit.Location(evacWorld, x, y, z, yaw, pitch)
+                        
+                        visitor.teleport(evacuationLoc)
+                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to visitor.name)))
+                    }
+                    plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                }
+            }
+            WorldSettingsGuiType.EXPANSION_SELECTION -> {
+                 if (type == ItemTag.TYPE_GUI_SETTING_EXPAND) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    val cost = calculateExpansionCost(worldData.borderExpansionLevel)
+                    plugin.worldSettingsGui.openExpansionConfirmation(player, worldData.uuid, null, cost)
+                 } else if (type == ItemTag.TYPE_GUI_SETTING_SPAWN) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.EXPAND_DIRECTION_WAIT)
+                    player.closeInventory()
+                    val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+                    val cancelInfo = plugin.languageManager.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                    player.sendMessage(plugin.languageManager.getMessage("messages.expand_direction_prompt") + "\n" + cancelInfo)
+                 } else if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    handleCommandCancel()
+                 }
+            }
+            WorldSettingsGuiType.EXPANSION_CONFIRM -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL || (item?.type == Material.RED_WOOL && type == null) || (item?.type == Material.RED_WOOL && type == ItemTag.TYPE_GUI_CANCEL)) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM || (item?.type == Material.LIME_WOOL && type == null) || (item?.type == Material.LIME_WOOL && type == ItemTag.TYPE_GUI_CONFIRM)) {
+                     val cost = calculateExpansionCost(worldData.borderExpansionLevel)
+                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                    
+                    if (stats.worldPoint < cost) {
+                        player.sendMessage(lang.getMessage(player, "messages.insufficient_points"))
+                        player.closeInventory()
+                        return
+                    }
+                    
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    player.closeInventory()
+
+                    val messageList = plugin.languageManager.getMessageList(player, "messages.oage_ganbaru_messages")
+                    val randomMessage = if (messageList.isNotEmpty()) messageList.random() else plugin.languageManager.getMessage(player, "messages.oage_ganbaru_default")
+                    player.sendMessage(randomMessage)
+                    player.playSound(player.location, Sound.BLOCK_ANVIL_USE, 0.5f, 0.5f)
+                    
+                    val direction = holder.extraData as? BlockFace
+
+                    val task = Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                        val pending = pendingExpansions.remove(player.uniqueId) ?: return@Runnable
+                        executeExpansionFinal(player, pending.worldData, pending.cost, pending.direction)
+                    }, 40L)
+
+                    pendingExpansions[player.uniqueId] = PendingExpansion(worldData, cost, direction, task)
+                    plugin.settingsSessionManager.endSession(player)
+                }
+            }
+            WorldSettingsGuiType.TAG_EDITOR -> {
+                if (type != null && type.startsWith("tag_")) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    val tagName = type.substringAfter("tag_")
+                    val tag = WorldTag.valueOf(tagName)
+                    
+                    if (worldData.tags.contains(tag)) {
+                        worldData.tags.remove(tag)
+                    } else {
+                        val maxTags = plugin.config.getInt("tags.max_count", 4)
+                        if (worldData.tags.size >= maxTags) {
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tag_max_reached", mapOf("max" to maxTags)))
+                            return
+                        }
+                        worldData.tags.add(tag)
+                    }
+                    plugin.worldConfigRepository.save(worldData)
+                    plugin.worldSettingsGui.openTagEditor(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_BACK || type == ItemTag.TYPE_GUI_CANCEL) {
+                    handleCommandCancel()
+                }
+            }
+            WorldSettingsGuiType.PORTAL_MANAGEMENT -> {
+                 if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
+                     val lore = item?.itemMeta?.lore() ?: return
+                    lore.forEach { line ->
+                        val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
+                        if (plainLine.startsWith("PAGE_TARGET: ")) {
+                            val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
+                            plugin.worldSettingsGui.openPortalManagement(player, worldData, targetPage)
+                        }
+                    }
+                    return
+                }
+
+                if (type == ItemTag.TYPE_PORTAL) {
+                    val portalId = ItemTag.getPortalUuid(item) ?: return
+                    val lang = plugin.languageManager
+                    if (event.isRightClick) {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        val portal = plugin.portalRepository.findAll().find { it.id == portalId }
+                        if (portal != null) {
+                            val world = Bukkit.getWorld(portal.worldName)
+                            val block = world?.getBlockAt(portal.x, portal.y, portal.z)
+                            if (block != null && block.type == Material.END_PORTAL_FRAME) {
+                                block.type = Material.AIR
+                            }
+                            plugin.portalManager.removePortalVisuals(portal.id)
+                            plugin.portalRepository.removePortal(portal.id)
+
+                             val returnItem = me.awabi2048.myworldmanager.util.PortalItemUtil.createBasePortalItem(lang, player)
+                             if (portal.worldUuid != null) {
+                                val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
+                                me.awabi2048.myworldmanager.util.PortalItemUtil.bindWorld(returnItem, portal.worldUuid!!, worldName = destData?.name ?: lang.getMessage(player, "general.unknown"), lang, player)
+                            } else if (portal.targetWorldName != null) {
+                                val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
+                                me.awabi2048.myworldmanager.util.PortalItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
+                            }
+                             player.inventory.addItem(returnItem)
+                            
+                            player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
+                            plugin.worldSettingsGui.openPortalManagement(player, worldData)
+                        }
+                    } else if (event.isLeftClick) {
+                        val portal = plugin.portalRepository.findAll().find { it.id == portalId }
+                        if (portal != null) {
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
+                            plugin.portalManager.addIgnorePlayer(player)
+                            player.teleport(portal.getCenterLocation().add(0.0, 1.0, 0.0))
+                            player.sendMessage(lang.getMessage(player, "messages.warp_generic"))
+                            player.closeInventory()
+                        }
+                    }
+                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    handleCommandCancel()
+                }
+            }
+            WorldSettingsGuiType.CRITICAL_SETTINGS -> {
+                when (type) {
+                    ItemTag.TYPE_GUI_CANCEL -> {
+                         handleCommandCancel()
+                    }
+                    ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION -> {
+                        if (worldData.borderExpansionLevel <= 0) return
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
+                    }
+                    ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> {
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        plugin.worldSettingsGui.openDeleteWorldConfirmation1(player, worldData)
+                    }
+                }
+            }
+            WorldSettingsGuiType.RESET_EXPANSION_CONFIRM -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    val totalExpCost = calculateTotalExpansionCost(worldData.borderExpansionLevel)
+                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                    
+                    val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                    val world = Bukkit.getWorld(worldName)
+                    if (world != null) {
+                        val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+                        world.worldBorder.size = initialSize
+                    }
+                    
+                    val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
+                    val refund = (totalExpCost * refundRate).toInt()
+                    
+                    stats.worldPoint += refund
+                    worldData.cumulativePoints -= totalExpCost
+                    worldData.borderExpansionLevel = 0
+                    
+                    plugin.playerStatsRepository.save(stats)
+                    plugin.worldConfigRepository.save(worldData)
+                    
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.expansion_reset_success", mapOf("points" to refund)))
+                    player.closeInventory()
+                    plugin.settingsSessionManager.endSession(player)
+                }
+            }
+            WorldSettingsGuiType.DELETE_CONFIRM_1 -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_SETTING_DELETE_WORLD) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
+                }
+            }
+            WorldSettingsGuiType.DELETE_CONFIRM_2 -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
+                    val refund = (worldData.cumulativePoints * refundRate).toInt()
+                    
+                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                    
+                    player.closeInventory()
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_start", mapOf("world" to worldData.name)))
+                    
+                    plugin.worldService.deleteWorld(worldData.uuid).thenAccept { success ->
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            if (success) {
+                                stats.worldPoint += refund
+                                plugin.playerStatsRepository.save(stats)
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_success", mapOf("points" to refund)))
+                            } else {
+                                player.sendMessage(plugin.languageManager.getMessage("messages.world_delete_fail"))
+                            }
+                        })
+                    }
+                    plugin.settingsSessionManager.endSession(player)
+                }
+            }
+            WorldSettingsGuiType.ARCHIVE_CONFIRM -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    handleCommandCancel()
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
+                    worldData.isArchived = true
+                    plugin.worldConfigRepository.save(worldData)
+                    plugin.settingsSessionManager.endSession(player)
+                    player.closeInventory()
+                }
+            }
+            WorldSettingsGuiType.UNARCHIVE_CONFIRM -> {
+                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    plugin.settingsSessionManager.endSession(player)
+                    plugin.playerWorldGui.open(player)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
+                    player.closeInventory()
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
+                    
+                    plugin.worldService.unarchiveWorld(worldData.uuid).thenAccept { success ->
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            if (success) {
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_success"))
+                                plugin.worldService.teleportToWorld(player, worldData.uuid)
+                            } else {
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_failed"))
+                            }
+                        })
+                    }
+                    plugin.settingsSessionManager.endSession(player)
+                }
+            }
+        }
+    }
 }
+

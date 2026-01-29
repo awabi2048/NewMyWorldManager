@@ -74,7 +74,7 @@ class WorldCommand(
                 val cancelInfo = lang.getMessage(targetPlayer, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
                 
                 targetPlayer.sendMessage(lang.getMessage("messages.wizard_start"))
-                targetPlayer.sendMessage(lang.getMessage("messages.wizard_name_prompt") + " " + cancelInfo)
+                targetPlayer.sendMessage(lang.getMessage("messages.wizard_name_prompt") + "\n" + cancelInfo)
                 sender.sendMessage(lang.getMessage(sender as? Player, "messages.wizard_started_for", mapOf("player" to targetPlayer.name)))
                 return true
             }

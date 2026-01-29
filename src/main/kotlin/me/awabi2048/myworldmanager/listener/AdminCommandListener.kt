@@ -150,7 +150,7 @@ class AdminCommandListener : Listener {
     }
 
     private fun performUpdateData(player: Player, plugin: MyWorldManager) {
-        player.sendMessage("§eUpdating player data...")
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_update_data_start"))
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
             plugin.worldConfigRepository.loadAll()
             val worlds = plugin.worldConfigRepository.findAll()
@@ -190,28 +190,28 @@ class AdminCommandListener : Listener {
         val repo = plugin.templateRepository
         val missing = repo.missingTemplates
         if (missing.isEmpty()) {
-            player.sendMessage("§a欠損しているテンプレートディレクトリはありません。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_repair_template_none_missing"))
             return
         }
 
-        player.sendMessage("§e欠損しているテンプレートの修復を開始します (${missing.size}件)...")
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_repair_template_start", mapOf("count" to missing.size)))
         val config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(java.io.File(plugin.dataFolder, "templates.yml"))
         
         missing.toList().forEach { key ->
             val path = config.getString("$key.path")
             if (path != null) {
-                player.sendMessage("§7- $key を生成中... ($path)")
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_repair_template_progress", mapOf("template" to key, "path" to path)))
                 val creator = org.bukkit.WorldCreator(path)
                 val world = Bukkit.createWorld(creator)
                 if (world != null) {
-                    player.sendMessage("§a  -> $key の生成に成功しました。")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_repair_template_success", mapOf("template" to key)))
                 } else {
-                    player.sendMessage("§c  -> $key の生成に失敗しました。")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_repair_template_failed", mapOf("template" to key)))
                 }
             }
         }
         plugin.templateRepository.loadTemplates()
-        player.sendMessage("§a修復処理が完了しました。")
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_repair_template_complete"))
     }
     
     // 再帰的にアーカイブ処理を行うヘルパー
@@ -242,7 +242,7 @@ class AdminCommandListener : Listener {
         }
 
         if (archiveTargets.isEmpty()) {
-            player.sendMessage("§cアーカイブ対象のワールドは見つかりませんでした。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_archive_none_found"))
             return
         }
 
@@ -257,22 +257,22 @@ class AdminCommandListener : Listener {
         val alreadyRegistered = plugin.worldConfigRepository.findByWorldName(worldName) != null
 
         if (alreadyRegistered) {
-            player.sendMessage("§cこのワールドは既にMyWorldとして登録されています。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_convert_already_registered"))
             return
         }
 
-        player.sendMessage("§eワールドの変換を開始します。しばらくお待ちください...")
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_convert_start"))
         plugin.worldService.convertWorld(currentWorld, player.uniqueId, mode).thenAccept { uuid ->
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 if (uuid != null) {
-                    player.sendMessage("§a現在のワールド '$worldName' をMyWorldとして登録しました。(UUID: $uuid)")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_convert_success", mapOf("world" to worldName, "uuid" to uuid)))
                     if (mode == WorldService.ConversionMode.NORMAL) {
-                        player.sendMessage("§aディレクトリが標準形式にリネームされ、通常のマイワールド管理が適用されます。")
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_convert_success_normal"))
                     } else {
-                        player.sendMessage("§a設定ファイルのみ生成されました。管理用ワールドとして扱われます。")
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_convert_success_admin"))
                     }
                 } else {
-                    player.sendMessage("§cワールドの変換に失敗しました。")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_convert_failed"))
                 }
             })
         }
@@ -285,7 +285,7 @@ class AdminCommandListener : Listener {
         val uuid = worldData?.uuid
 
         if (uuid == null) {
-            player.sendMessage("§c現在のワールドはMyWorld管理下のワールドではありません。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.admin_export_not_myworld"))
             return
         }
 
