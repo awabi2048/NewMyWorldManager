@@ -24,7 +24,10 @@ class MeetSettingsGui(private val plugin: MyWorldManager) {
         
         val title = Component.text(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "user_settings", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
+        
+        val holder = MeetSettingsGuiHolder()
+        val inventory = Bukkit.createInventory(holder, 27, title)
+        holder.inv = inventory
 
         // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -114,5 +117,10 @@ class MeetSettingsGui(private val plugin: MyWorldManager) {
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
+    }
+
+    class MeetSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }

@@ -22,7 +22,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
         val currentItem = event.currentItem ?: return
         val type = ItemTag.getType(currentItem)
 
-        if (lang.isKeyMatch(title, "gui.meet.title") || lang.isKeyMatch(title, "gui.meet.title_list")) {
+        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.MeetGui.MeetGuiHolder) {
             event.isCancelled = true
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
 
@@ -103,7 +103,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
         }
         
         // Settings GUI handling
-        if (lang.isKeyMatch(title, "gui.meet_settings.title")) {
+        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.MeetSettingsGui.MeetSettingsGuiHolder) {
             event.isCancelled = true
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
             

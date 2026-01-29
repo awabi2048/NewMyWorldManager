@@ -79,7 +79,10 @@ class MeetGui(private val plugin: MyWorldManager) {
         val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6
         val title = Component.text(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title)
-        val inventory = Bukkit.createInventory(null, rowCount * 9, title)
+        
+        val holder = MeetGuiHolder()
+        val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
+        holder.inv = inventory
 
         // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -213,6 +216,11 @@ class MeetGui(private val plugin: MyWorldManager) {
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
+    }
+
+    class MeetGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }
 
