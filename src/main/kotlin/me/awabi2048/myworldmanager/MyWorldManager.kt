@@ -205,12 +205,33 @@ class MyWorldManager : JavaPlugin() {
         getCommand("meet")?.setTabCompleter(meetCmd)
 
         getCommand("settings")?.setExecutor(SettingsCommand(this))
+
+        // 起動完了ログ
+        LogUtil.logWithSeparator(logger, listOf(
+            "MyWorldManager v${description.version} has been enabled!",
+            "Developed by ${description.authors.joinToString(", ")}"
+        ))
+
+        // Chiyogamiチェック
+        if (!ChiyogamiUtil.isChiyogamiActive()) {
+            LogUtil.logWarningBox(logger, listOf(
+                "Chiyogami is NOT detected!",
+                "This plugin is optimized for Chiyogami server software.",
+                "Using it on other software may cause performance issues or unexpected behavior.",
+                "It is strongly recommended to use Chiyogami."
+            ))
+        }
     }
 
     override fun onDisable() {
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
         }
+
+        LogUtil.logWithSeparator(logger, listOf(
+            "MyWorldManager v${description.version} has been disabled.",
+            "Goodbye!"
+        ))
     }
 
     /**
