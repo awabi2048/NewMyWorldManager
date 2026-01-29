@@ -21,17 +21,8 @@ class AccessControlListener(private val repository: WorldConfigRepository) : Lis
         // 同一ワールド内の移動は無視
         if (toWorld == null || toWorld == fromWorld) return
 
-        // 管理対象ワールドかチェック (命名規則: my_world.{uuid})
-        if (!toWorld.name.startsWith("my_world.")) return
-
-        val uuidStr = toWorld.name.removePrefix("my_world.")
-        val worldUuid = try {
-            UUID.fromString(uuidStr)
-        } catch (e: IllegalArgumentException) {
-            return // 正当なUUID形式でない場合は無視
-        }
-
-        val worldData = repository.findByUuid(worldUuid) ?: return
+        // 管理対象ワールドかチェック
+        val worldData = repository.findByWorldName(toWorld.name) ?: return
         val player = event.player
         val playerUuid = player.uniqueId
 

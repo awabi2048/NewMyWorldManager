@@ -29,15 +29,8 @@ class WorldExpirationListener(private val repository: WorldConfigRepository) : L
     }
 
     private fun updateWorldExpiration(worldName: String) {
-        if (!worldName.startsWith("my_world.")) return
-
-        try {
-            val uuidString = worldName.substringAfter("my_world.")
-            val uuid = UUID.fromString(uuidString)
-            extendExpirationDate(uuid)
-        } catch (e: Exception) {
-            // UUIDフォーマットでない場合などは無視
-        }
+        val worldData = repository.findByWorldName(worldName) ?: return
+        extendExpirationDate(worldData.uuid)
     }
 
     private fun extendExpirationDate(worldUuid: UUID) {

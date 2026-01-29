@@ -20,15 +20,8 @@ class SpawnListener(private val repository: WorldConfigRepository) : Listener {
     fun onRespawn(event: PlayerRespawnEvent) {
         val world = event.respawnLocation.world ?: return
         
-        // 管理対象ワールドかチェック（命名規則：my_world.{uuid}）
-        if (!world.name.startsWith("my_world.")) return
-
-        val uuidStr = world.name.removePrefix("my_world.")
-        val worldUuid = try {
-            UUID.fromString(uuidStr)
-        } catch (e: Exception) { return }
-
-        val worldData = repository.findByUuid(worldUuid) ?: return
+        // 管理対象ワールドかチェック
+        val worldData = repository.findByWorldName(world.name) ?: return
         val player = event.player
         val playerUuid = player.uniqueId
 

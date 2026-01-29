@@ -230,7 +230,8 @@ class WorldSettingsListener : Listener {
                     val visitorUuid = ItemTag.getWorldUuid(infoItem) ?: return
                     val visitor = Bukkit.getPlayer(visitorUuid)
                     
-                    if (visitor != null && visitor.world.name == "my_world.${worldData.uuid}") {
+                    val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                    if (visitor != null && visitor.world.name == worldFolderName) {
                          val config = plugin.config
                         val worldName = config.getString("evacuation_location.world", "world")
                         val evacWorld = Bukkit.getWorld(worldName!!) ?: Bukkit.getWorlds()[0]
@@ -436,7 +437,8 @@ class WorldSettingsListener : Listener {
                     }
                     ItemTag.TYPE_GUI_SETTING_VISITOR -> {
                          plugin.soundManager.playClickSound(player, clickedItem)
-                         val world = Bukkit.getWorld("my_world.${worldData.uuid}")
+                         val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                         val world = Bukkit.getWorld(worldFolderName)
                          val visitorCount = world?.players?.count { 
                             it.uniqueId != worldData.owner && !worldData.moderators.contains(it.uniqueId) && !worldData.members.contains(it.uniqueId) 
                         } ?: 0
@@ -471,7 +473,7 @@ class WorldSettingsListener : Listener {
                         }
                     }
                     ItemTag.TYPE_GUI_SETTING_PORTALS -> {
-                        val worldName = "my_world.${worldData.uuid}"
+                        val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                         val hasPortals = plugin.portalRepository.findAll().any { it.worldName == worldName }
                         
                         plugin.soundManager.playClickSound(player, clickedItem)
@@ -655,7 +657,7 @@ class WorldSettingsListener : Listener {
                     val totalExpCost = calculateTotalExpansionCost(worldData.borderExpansionLevel)
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                     
-                    val worldName = "my_world.${worldData.uuid}"
+                    val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                     val world = Bukkit.getWorld(worldName)
                     if (world != null) {
                         val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)

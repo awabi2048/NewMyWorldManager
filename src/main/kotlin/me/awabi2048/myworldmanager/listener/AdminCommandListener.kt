@@ -137,17 +137,8 @@ class AdminCommandListener : Listener {
 
     private fun performUnlink(player: Player, plugin: MyWorldManager) {
         val currentWorld = player.world
-        var uuid: UUID? = null
-        if (currentWorld.name.startsWith("my_world.")) {
-             try {
-                 uuid = UUID.fromString(currentWorld.name.removePrefix("my_world."))
-             } catch(e: Exception) {}
-        }
-        
-        if (uuid == null) {
-            val worldData = plugin.worldConfigRepository.findAll().find { it.customWorldName == currentWorld.name }
-            if (worldData != null) uuid = worldData.uuid
-        }
+        val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
+        val uuid = worldData?.uuid
 
         if (uuid == null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.unlink_not_myworld"))
@@ -263,10 +254,7 @@ class AdminCommandListener : Listener {
     private fun performConvert(player: Player, plugin: MyWorldManager, mode: WorldService.ConversionMode) {
         val currentWorld = player.world
         val worldName = currentWorld.name
-        val allWorlds = plugin.worldConfigRepository.findAll()
-        val alreadyRegistered = allWorlds.any { 
-            (it.customWorldName == worldName) || ("my_world.${it.uuid}" == worldName)
-        }
+        val alreadyRegistered = plugin.worldConfigRepository.findByWorldName(worldName) != null
 
         if (alreadyRegistered) {
             player.sendMessage("§cこのワールドは既にMyWorldとして登録されています。")
@@ -293,18 +281,8 @@ class AdminCommandListener : Listener {
     private fun performExport(player: Player, plugin: MyWorldManager) {
         val currentWorld = player.world
         // 現在のワールドがMyWorldかチェック
-        // 名前が my_world.UUID か、またはカスタム名として登録されているか
-        var uuid: UUID? = null
-        if (currentWorld.name.startsWith("my_world.")) {
-             try {
-                 uuid = UUID.fromString(currentWorld.name.removePrefix("my_world."))
-             } catch(e: Exception) {}
-        }
-        
-        if (uuid == null) {
-            val worldData = plugin.worldConfigRepository.findAll().find { it.customWorldName == currentWorld.name }
-            if (worldData != null) uuid = worldData.uuid
-        }
+        val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
+        val uuid = worldData?.uuid
 
         if (uuid == null) {
             player.sendMessage("§c現在のワールドはMyWorld管理下のワールドではありません。")

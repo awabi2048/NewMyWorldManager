@@ -26,15 +26,13 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
 
     private fun applyGravity(player: org.bukkit.entity.Player) {
         val worldName = player.world.name
-        if (!worldName.startsWith("my_world.")) {
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
+        
+        if (worldData == null) {
             // Reset to default if not in MyWorld (optional, but good practice)
             player.getAttribute(Attribute.GRAVITY)?.baseValue = 0.08
             return
         }
-
-        val uuidStr = worldName.removePrefix("my_world.")
-        val worldUuid = try { java.util.UUID.fromString(uuidStr) } catch (e: Exception) { return }
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
         
         player.getAttribute(Attribute.GRAVITY)?.baseValue = 0.08 * worldData.gravityMultiplier
     }
@@ -42,11 +40,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onWeatherChange(event: WeatherChangeEvent) {
         val worldName = event.world.name
-        if (!worldName.startsWith("my_world.")) return
-
-        val uuidStr = worldName.removePrefix("my_world.")
-        val worldUuid = try { java.util.UUID.fromString(uuidStr) } catch (e: Exception) { return }
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
 
         if (worldData.fixedWeather != null) {
             event.isCancelled = true
@@ -56,11 +50,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onChunkLoad(event: ChunkLoadEvent) {
         val worldName = event.world.name
-        if (!worldName.startsWith("my_world.")) return
-
-        val uuidStr = worldName.removePrefix("my_world.")
-        val worldUuid = try { java.util.UUID.fromString(uuidStr) } catch (e: Exception) { return }
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
         
         val biomeStr = worldData.fixedBiome
         var baseBiome: org.bukkit.block.Biome? = null

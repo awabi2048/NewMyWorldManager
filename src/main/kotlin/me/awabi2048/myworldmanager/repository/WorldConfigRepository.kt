@@ -10,6 +10,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
 
     private val worldsFolder = File(plugin.dataFolder, "my_worlds")
     private val cache = mutableMapOf<UUID, WorldData>()
+    private val nameCache = mutableMapOf<String, WorldData>()
 
     init {
         if (!worldsFolder.exists()) {
@@ -23,6 +24,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      */
     fun loadAll() {
         cache.clear()
+        nameCache.clear()
         val files = worldsFolder.listFiles { f -> f.extension == "yml" } ?: return
 
         for (file in files) {
@@ -35,6 +37,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
                 val worldData = config.get("world_data") as? WorldData
                 if (worldData != null) {
                     cache[uuid] = worldData
+                    nameCache[worldData.customWorldName ?: "my_world.${worldData.uuid}"] = worldData
                 } else {
                     // 旧互換用、またはデシリアライズ失敗時のフォールバック
                     plugin.logger.warning("ファイル ${file.name} のワールドデータのデシリアライズに失敗しました。")
@@ -60,7 +63,17 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         } catch (e: Exception) {
             plugin.logger.severe("Could not save world data for ${worldData.uuid}: ${e.message}")
         }
+        
+        // 旧名のキャッシュを削除する必要がある場合があるが、基本的には customWorldName は不変か、
+        // 変更時に save が呼ばれる。
+        // 安全のため一旦全クリアして再構築するか、save 前のデータを取得して削除する。
+        // ここでは簡易的に、現在の cache にある古い名前を削除してから新しい名前を追加する。
+        cache[worldData.uuid]?.let { oldData ->
+            nameCache.remove(oldData.customWorldName ?: "my_world.${oldData.uuid}")
+        }
+
         cache[worldData.uuid] = worldData
+        nameCache[worldData.customWorldName ?: "my_world.${worldData.uuid}"] = worldData
     }
 
     /**
@@ -81,6 +94,9 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      * 指定されたUUIDのワールドデータを削除する
      */
     fun delete(uuid: UUID) {
+        cache[uuid]?.let { data ->
+            nameCache.remove(data.customWorldName ?: "my_world.${data.uuid}")
+        }
         cache.remove(uuid)
         val file = File(worldsFolder, "$uuid.yml")
         if (file.exists()) {
@@ -92,6 +108,6 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      * ディレクトリ名を指定してマイワールドを検索する
      */
     fun findByWorldName(worldName: String): WorldData? {
-        return findAll().find { (it.customWorldName ?: "my_world.${it.uuid}") == worldName }
+        return nameCache[worldName]
     }
 }

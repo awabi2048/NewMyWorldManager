@@ -56,18 +56,18 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             if (type == ItemTag.TYPE_GUI_INVITE) {
                 plugin.soundManager.playClickSound(player, currentItem)
                 val currentWorld = player.world
-                if (!currentWorld.name.startsWith("my_world.")) {
+                val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
+                
+                if (worldData == null) {
                     player.sendMessage(lang.getMessage(player, "messages.no_in_myworld"))
                     player.closeInventory()
                     return
                 }
                 
-                val uuidStr = currentWorld.name.removePrefix("my_world.")
-                val worldUuid = try { UUID.fromString(uuidStr) } catch(e: Exception) { null }
+                val worldUuid = worldData.uuid
                 
                 if (worldUuid != null) {
-                    val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-                    if (worldData?.publishLevel == PublishLevel.LOCKED) {
+                    if (worldData.publishLevel == PublishLevel.LOCKED) {
                         player.sendMessage(lang.getMessage(player, "messages.invite_locked_error"))
                         player.closeInventory()
                         return
