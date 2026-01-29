@@ -416,7 +416,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val infoLoreKey = if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) "gui.settings.main_info.lore_special" else "gui.settings.main_info.lore"
         val infoLore = lang.getMessageList(player, infoLoreKey, mapOf(
             "world" to worldData.name,
-            "description" to worldData.description,
+            "description" to (if (worldData.description.isEmpty()) "__REMOVE_IF_EMPTY__" else worldData.description),
             "owner" to (Bukkit.getOfflinePlayer(worldData.owner).name ?: lang.getMessage(player, "general.unknown")),
             "level" to (if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) "Special" else currentLevel.toString()),
             "max_level" to maxLevel.toString(),
@@ -430,7 +430,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             "visitors" to worldData.recentVisitors.sum().toString(),
             "created_at_date_formatted" to displayFormatter.format(createdAtDate),
             "created_days_ago" to createdInfo
-        )).toMutableList()
+        )).filter { !it.contains("__REMOVE_IF_EMPTY__") }.toMutableList()
         infoLore.add("${lang.getMessage(player, "publish_level.color.uuid")}UUID: ${worldData.uuid}")
 
         val infoItem = createItem(
