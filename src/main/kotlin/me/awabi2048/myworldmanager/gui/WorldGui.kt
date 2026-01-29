@@ -231,7 +231,7 @@ class WorldGui(private val plugin: MyWorldManager) {
             else -> lang.getMessage("publish_level.color.locked")
         }
         val publishName = lang.getMessage("publish_level.${data.publishLevel.name.lowercase()}")
-        lore.add(lang.getComponent(null, "gui.admin.world_item.publish", mapOf("status_color" to publishColor, "level" to publishName)))
+        lore.add(lang.getComponent(null, "gui.admin.world_item.publish", mapOf("color" to publishColor, "level" to publishName)))
         
         // 拡張レベル表示
         if (data.sourceWorld != "CONVERT") {
@@ -253,7 +253,7 @@ class WorldGui(private val plugin: MyWorldManager) {
             } else {
                 lang.getMessage("gui.admin.world_item.created_info_days", mapOf("days" to daysSince))
             }
-            lore.add(lang.getComponent(null, "gui.admin.world_item.created_at", mapOf("date" to createdAtDate.format(displayFormatter), "days" to createdInfo)))
+            lore.add(lang.getComponent(null, "gui.admin.world_item.created_at", mapOf("date" to createdAtDate.format(displayFormatter), "days_ago" to createdInfo)))
         } catch (e: Exception) {
             // Ignore parsing errors
         }
@@ -272,9 +272,9 @@ class WorldGui(private val plugin: MyWorldManager) {
                     meta.setEnchantmentGlintOverride(true)
                     lang.getMessage("gui.admin.world_item.expire_info_overdue", mapOf("days" to java.lang.Math.abs(daysBetween)))
                 }
-                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "status" to expireInfo)))
+                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "days_remain" to expireInfo)))
             } catch (e: Exception) {
-                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "status" to "")))
+                lore.add(lang.getComponent(null, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "days_remain" to "")))
             }
         }
         
