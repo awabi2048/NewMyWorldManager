@@ -20,7 +20,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
     private val itemsPerPage = 36
 
-    fun open(player: Player, page: Int = 0) {
+    fun open(player: Player, page: Int = 0, showBackButton: Boolean = false) {
         val lang = plugin.languageManager
         val session = plugin.discoverySessionManager.getSession(player.uniqueId)
         
@@ -58,33 +58,23 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in 45..53) inventory.setItem(i, blackPane)
 
-        // 特別なレイアウト (上位10位)
-        val topSlots = listOf(21, 22, 23, 28, 29, 30, 31, 32, 33, 34)
-        topSlots.forEachIndexed { index, slot ->
-            if (index < sortedWorlds.size) {
-                inventory.setItem(slot, createWorldItem(player, sortedWorlds[index]))
-            } else {
-                inventory.setItem(slot, whitePane)
-            }
-        }
-
-        // 通常表示 (ページネーション)
-        // ここの仕様（上位10位とページネーションの関係）が不明確だが、
-        // 一般的なページ表示として実装する。
+        // ページ内アイテムの配置
         val startIndex = currentPage * itemsPerPage
         val pageWorlds = sortedWorlds.drop(startIndex).take(itemsPerPage)
         
-        // ページネーション用のスロットを決定する必要があるが、
-        // ユーザー指定の「スロット21-23, 28-34」は中央部分。
-        // FavoriteGuiを参考にしつつ、空いている場所に配置する。
-        // もし「1ページ36アイテム」が全スロット（9-44）を指すなら、
-        // 上位10位の指定スロット以外をページアイテムで埋める。
-        var worldIdx = 0
-        for (slot in 9..44) {
-            if (topSlots.contains(slot)) continue
-            if (worldIdx < pageWorlds.size) {
-                inventory.setItem(slot, createWorldItem(player, pageWorlds[worldIdx]))
-                worldIdx++
+        // レイアウト定義: 上位10枠 (21-23, 28-34) と 通常枠 (それ以外)
+        val topSlots = listOf(21, 22, 23, 28, 29, 30, 31, 32, 33, 34)
+        // 9-44の中でtopSlotsに含まれないものを抽出
+        val normalSlots = (9..44).filter { !topSlots.contains(it) }
+
+        pageWorlds.forEachIndexed { index, worldData ->
+            if (index < topSlots.size) {
+                 inventory.setItem(topSlots[index], createWorldItem(player, worldData))
+            } else {
+                 val normalIndex = index - topSlots.size
+                 if (normalIndex < normalSlots.size) {
+                     inventory.setItem(normalSlots[normalIndex], createWorldItem(player, worldData))
+                 }
             }
         }
 
@@ -101,8 +91,11 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         inventory.setItem(49, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size))
         inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
         
-        // 戻るボタン (通常はメインメニューへ)
-        inventory.setItem(45, createReturnButton(player))
+
+
+        if (showBackButton) {
+            inventory.setItem(45, createReturnButton(player))
+        }
 
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "discovery", title)
         player.openInventory(inventory)
@@ -178,8 +171,22 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         lore.add(lang.getComponent(player, "gui.common.separator"))
         
         val currentTagName = selectedTag?.let { lang.getMessage(player, "world_tag.${it.name.lowercase()}") } ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
-        lore.add(lang.getComponent(player, "gui.discovery.tag_filter.current", currentTagName))
+        lore.add(LegacyComponentSerializer.legacySection().deserialize("§f§l| §7${lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")} $currentTagName").decoration(TextDecoration.ITALIC, false))
         
+        lore.add(lang.getComponent(player, "gui.common.separator"))
+        
+        // "All" option
+        val allSelected = selectedTag == null
+        val allColor = if (allSelected) "§e" else "§7"
+        lore.add(LegacyComponentSerializer.legacySection().deserialize("$allColor- ${lang.getMessage(player, "gui.discovery.tag_filter.all")}").decoration(TextDecoration.ITALIC, false))
+
+        WorldTag.values().forEach { tag ->
+             val isSelected = selectedTag == tag
+             val color = if (isSelected) "§e" else "§7"
+             val tagName = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
+             lore.add(LegacyComponentSerializer.legacySection().deserialize("$color- $tagName").decoration(TextDecoration.ITALIC, false))
+        }
+
         lore.add(lang.getComponent(player, "gui.common.separator"))
         lore.add(lang.getComponent(player, "gui.discovery.tag_filter.click_left"))
         lore.add(lang.getComponent(player, "gui.discovery.tag_filter.click_right"))
@@ -226,6 +233,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         ItemTag.tagItem(item, type)
         return item
     }
+
+
 
     private fun createReturnButton(player: Player): ItemStack {
         val lang = plugin.languageManager

@@ -18,7 +18,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
     private val itemsPerPage = 36 // 2行目から5行目までの4行分
 
-    fun open(player: Player, page: Int = 0, returnToWorld: WorldData? = null) {
+    fun open(player: Player, page: Int = 0, returnToWorld: WorldData? = null, showBackButton: Boolean = false) {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val favWorldUuids = stats.favoriteWorlds.keys
@@ -76,7 +76,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
 
         // 戻るボタン
-        if (returnToWorld != null) {
+        if (returnToWorld != null || showBackButton) {
             inventory.setItem(45, createBackButton(player, returnToWorld))
         }
 
@@ -141,15 +141,17 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    private fun createBackButton(player: Player, returnToWorld: WorldData): ItemStack {
+    private fun createBackButton(player: Player, returnToWorld: WorldData?): ItemStack {
         val lang = plugin.languageManager
         val item = ItemStack(Material.REDSTONE)
         val meta = item.itemMeta ?: return item
         meta.displayName(lang.getComponent(player, "gui.common.return").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
-        meta.lore(listOf(lang.getComponent(player, "gui.common.return_desc")))
+        if(returnToWorld != null){
+             meta.lore(listOf(lang.getComponent(player, "gui.common.return_desc")))
+        }
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
-        ItemTag.setWorldUuid(item, returnToWorld.uuid)
+        if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
         return item
     }
 

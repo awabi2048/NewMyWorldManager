@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack
 
 class UserSettingsGui(private val plugin: MyWorldManager) {
 
-    fun open(player: Player) {
+    fun open(player: Player, showBackButton: Boolean = false) {
         val lang = plugin.languageManager
         val titleKey = "gui.user_settings.title"
         if (!lang.hasKey(player, titleKey)) {
@@ -55,13 +55,15 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
 
 
         // 戻るボタン (Slot 40)
-        val backBtn = ItemStack(Material.ARROW)
-        val backMeta = backBtn.itemMeta ?: return
-        backMeta.displayName(lang.getComponent(player, "gui.common.return"))
-        backMeta.lore(listOf(lang.getComponent(player, "gui.common.return_desc")))
-        backBtn.itemMeta = backMeta
-        ItemTag.tagItem(backBtn, ItemTag.TYPE_GUI_RETURN)
-        inventory.setItem(40, backBtn)
+        if (showBackButton) {
+            val backBtn = ItemStack(Material.ARROW)
+            val backMeta = backBtn.itemMeta ?: return
+            backMeta.displayName(lang.getComponent(player, "gui.common.return"))
+            backMeta.lore(listOf(lang.getComponent(player, "gui.common.return_desc")))
+            backBtn.itemMeta = backMeta
+            ItemTag.tagItem(backBtn, ItemTag.TYPE_GUI_RETURN)
+            inventory.setItem(40, backBtn)
+        }
 
         // 空きスロットを灰色板ガラスで埋める
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)

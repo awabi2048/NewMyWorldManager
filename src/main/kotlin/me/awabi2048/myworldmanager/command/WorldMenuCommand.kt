@@ -41,7 +41,8 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
         }
 
         // GUIを開く
-        plugin.worldSettingsGui.open(player, worldData)
+        val showBackButton = args.contains("-menu")
+        plugin.worldSettingsGui.open(player, worldData, showBackButton)
         return true
     }
 }

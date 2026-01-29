@@ -25,6 +25,11 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
         }
         if (sender !is Player) return true
         
+        if (args.contains("-menu")) {
+            meetGui.open(sender, true)
+            return true
+        }
+
         if (args.isEmpty()) {
             meetGui.open(sender)
             return true

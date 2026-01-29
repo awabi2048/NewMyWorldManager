@@ -23,7 +23,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         37, 38, 39, 40, 41, 42, 43
     )
 
-    fun open(player: Player) {
+    fun open(player: Player, showBackButton: Boolean = false) {
         val lang = plugin.languageManager
         val titleKey = "gui.meet.title_list"
         if (!lang.hasKey(player, titleKey)) {
@@ -115,7 +115,23 @@ class MeetGui(private val plugin: MyWorldManager) {
             ItemTag.TYPE_GUI_MEET_SETTINGS_BUTTON
         ))
 
+        // 戻るボタン
+        if (showBackButton) {
+            val backButtonSlot = (rowCount - 1) * 9
+            inventory.setItem(backButtonSlot, createReturnButton(player))
+        }
+
         player.openInventory(inventory)
+    }
+
+    private fun createReturnButton(player: Player): ItemStack {
+        val lang = plugin.languageManager
+        val item = ItemStack(Material.REDSTONE)
+        val meta = item.itemMeta ?: return item
+        meta.displayName(lang.getComponent(player, "gui.common.return").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+        item.itemMeta = meta
+        ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
+        return item
     }
 
     private fun createTargetHead(target: Player, viewer: Player, plugin: MyWorldManager): ItemStack {

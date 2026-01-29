@@ -659,6 +659,12 @@ gui:
       inactive: "§8- {tag}"
       click_next: "§e§n左クリック§7 次へ"
       click_reset: "§e§n右クリック§7 選択を解除"
+    tag_filter:
+      name: "タグフィルター"
+      current_prefix: "現在の設定"
+      all: "すべて"
+      click_left: "§e§n左クリック§7 フィルターを切り替え"
+      click_right: "§e§n右クリック§7 フィルターを解除"
     sort_names:
       hot: "§cHOT"
       new: "§aNEW"

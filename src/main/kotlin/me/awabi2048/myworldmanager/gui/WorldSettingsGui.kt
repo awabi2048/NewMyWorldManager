@@ -21,7 +21,7 @@ import java.util.UUID
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
 
-    fun open(player: Player, worldData: WorldData) {
+    fun open(player: Player, worldData: WorldData, showBackButton: Boolean = false) {
         val lang = plugin.languageManager
         val titleKey = "gui.settings.title"
         if (!lang.hasKey(player, titleKey)) {
@@ -48,6 +48,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in 45..53) inventory.setItem(i, blackPane)
+
+        // 戻るボタン
+        if (showBackButton) {
+            inventory.setItem(45, createItem(
+                Material.ARROW,
+                lang.getMessage(player, "gui.common.return"),
+                listOf(lang.getMessage(player, "gui.common.return_desc")),
+                ItemTag.TYPE_GUI_RETURN
+            ))
+        }
 
         // 権限判定
         val isOwner = worldData.owner == player.uniqueId
