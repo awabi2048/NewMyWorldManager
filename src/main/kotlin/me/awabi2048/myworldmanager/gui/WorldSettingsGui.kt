@@ -120,45 +120,45 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             val expansionLore = mutableListOf<String>()
             val separator = lang.getMessage(player, "gui.common.separator")
             
-            expansionLore.add(separator)
-            expansionLore.add(lang.getMessage(player, "gui.settings.expand.lore_desc"))
-            expansionLore.add(separator)
-            
             if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
-                expansionLore.add("§7Level: §dSpecial")
-                expansionLore.add("§7Border: §aUnlimited")
+                expansionLore.add(separator)
+                expansionLore.add(lang.getMessage(player, "gui.settings.expand.no_border_desc"))
                 expansionLore.add(separator)
             } else {
+                expansionLore.add(separator)
+                expansionLore.add(lang.getMessage(player, "gui.settings.expand.lore_desc"))
+                expansionLore.add(separator)
+
                 val targetLevel = currentLevel + 1
                 expansionLore.add(lang.getMessage(player, "gui.settings.expand.level", mapOf("current" to currentLevel, "max" to maxLevel)))
                 
-            if (currentLevel < maxLevel) {
-                if (stats.worldPoint < cost) {
-                    val insufficient = cost - stats.worldPoint
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost_insufficient", mapOf(
-                        "cost" to cost,
-                        "level_before" to currentLevel,
-                        "level_after" to targetLevel,
-                        "shortage" to insufficient
-                    )))
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", mapOf("points" to stats.worldPoint)))
+                if (currentLevel < maxLevel) {
+                    if (stats.worldPoint < cost) {
+                        val insufficient = cost - stats.worldPoint
+                        expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost_insufficient", mapOf(
+                            "cost" to cost,
+                            "level_before" to currentLevel,
+                            "level_after" to targetLevel,
+                            "shortage" to insufficient
+                        )))
+                        expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", mapOf("points" to stats.worldPoint)))
+                    } else {
+                        expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost", mapOf(
+                            "cost" to cost,
+                            "level_before" to currentLevel,
+                            "level_after" to targetLevel
+                        )))
+                        expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", mapOf("points" to stats.worldPoint)))
+                    }
                 } else {
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.cost", mapOf(
-                        "cost" to cost,
-                        "level_before" to currentLevel,
-                        "level_after" to targetLevel
-                    )))
-                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.points", mapOf("points" to stats.worldPoint)))
+                    expansionLore.add(lang.getMessage(player, "gui.settings.expand.max_level"))
                 }
-            } else {
-                expansionLore.add(lang.getMessage(player, "gui.settings.expand.max_level"))
-            }
 
-            if (!isInWorld && warningLore != null) {
-                expansionLore.add("")
-                expansionLore.add(warningLore)
-            }
-            expansionLore.add(separator)
+                if (!isInWorld && warningLore != null) {
+                    expansionLore.add("")
+                    expansionLore.add(warningLore)
+                }
+                expansionLore.add(separator)
             }
             
             inventory.setItem(23, createItem(
@@ -413,7 +413,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
              lang.getMessage(player, "gui.admin.world_item.created_info_days", mapOf("days" to daysSinceCreation))
         }
 
-        val infoLore = lang.getMessageList(player, "gui.settings.main_info.lore", mapOf(
+        val infoLoreKey = if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) "gui.settings.main_info.lore_special" else "gui.settings.main_info.lore"
+        val infoLore = lang.getMessageList(player, infoLoreKey, mapOf(
             "world" to worldData.name,
             "description" to worldData.description,
             "owner" to (Bukkit.getOfflinePlayer(worldData.owner).name ?: lang.getMessage(player, "general.unknown")),
