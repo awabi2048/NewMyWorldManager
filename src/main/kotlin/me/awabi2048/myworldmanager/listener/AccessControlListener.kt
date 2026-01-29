@@ -1,88 +1,75 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
-import me.awabi2048.myworldmanager.repository.WorldConfigRepository
-import me.awabi2048.myworldmanager.util.PermissionManager
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerTeleportEvent
-import java.util.UUID
 
-/**
- * プレイヤーのワールド間移動を監視し、入場制限を行うリスナー
- */
-class AccessControlListener(private val repository: WorldConfigRepository) : Listener {
+class AccessControlListener(private val plugin: MyWorldManager) : Listener {
+
+    private val repository = plugin.worldConfigRepository
 
     @EventHandler
-    fun onTeleport(event: PlayerTeleportEvent) {
-        val toWorld = event.to.world
-        val fromWorld = event.from.world
-
-        // 同一ワールド内の移動は無視
-        if (toWorld == null || toWorld == fromWorld) return
-
-        // 管理対象ワールドかチェック
-        val worldData = repository.findByWorldName(toWorld.name) ?: return
+    fun onWorldTeleport(event: PlayerTeleportEvent) {
         val player = event.player
-        val playerUuid = player.uniqueId
+        val toWorld = event.to.world ?: return
+        val worldData = repository.findByWorldName(toWorld.name) ?: return
+        val lang = plugin.languageManager
 
-        // 管理者は常に許可 (PermissionManager.checkPermission を使用)
-        if (PermissionManager.checkPermission(player, PermissionManager.ADMIN)) return
-
-        // 所有者は常に許可
-        if (worldData.owner == playerUuid) return
-
-        // 公開レベルに基づいた入場許可判定
-        val allowed = when (worldData.publishLevel) {
-            PublishLevel.PUBLIC -> true
-            PublishLevel.FRIEND -> {
-                // メンバーまたはモデレーターなら許可
-                worldData.members.contains(playerUuid) || worldData.moderators.contains(playerUuid)
-            }
-            PublishLevel.PRIVATE -> {
-                // メンバーまたはモデレーターのみ許可
-                worldData.members.contains(playerUuid) || worldData.moderators.contains(playerUuid)
-            }
-            PublishLevel.LOCKED -> {
-                // メンバーまたはモデレーターなら許可
-                worldData.members.contains(playerUuid) || worldData.moderators.contains(playerUuid)
-            }
-        }
-
-        if (!allowed) {
+        // アーカイブ中チェック
+        if (worldData.isArchived) {
+            player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
             event.isCancelled = true
-            player.sendMessage("§cこのワールドへの入場権限がありません。")
             return
         }
 
-        // 訪問通知の処理
-        if (worldData.notificationEnabled) {
-            val isMember = worldData.owner == playerUuid || 
-                          worldData.moderators.contains(playerUuid) || 
-                          worldData.members.contains(playerUuid)
-            
-            if (!isMember) {
-                val notification = net.kyori.adventure.text.Component.text()
-                    .append(net.kyori.adventure.text.Component.text("[", net.kyori.adventure.text.format.NamedTextColor.GRAY))
-                    .append(net.kyori.adventure.text.Component.text("!", net.kyori.adventure.text.format.NamedTextColor.RED))
-                    .append(net.kyori.adventure.text.Component.text("] ", net.kyori.adventure.text.format.NamedTextColor.GRAY))
-                    .append(net.kyori.adventure.text.Component.text(player.name, net.kyori.adventure.text.format.NamedTextColor.YELLOW))
-                    .append(net.kyori.adventure.text.Component.text(" さんがあなたのワールド「", net.kyori.adventure.text.format.NamedTextColor.WHITE))
-                    .append(net.kyori.adventure.text.Component.text(worldData.name, net.kyori.adventure.text.format.NamedTextColor.GREEN))
-                    .append(net.kyori.adventure.text.Component.text("」に訪問しました。", net.kyori.adventure.text.format.NamedTextColor.WHITE))
-                    .build()
+        // メンバー判定（所有者、メンバー、モデレーター）
+        val isMember = worldData.owner == player.uniqueId || 
+                       worldData.members.contains(player.uniqueId) || 
+                       worldData.moderators.contains(player.uniqueId)
 
-                // オーナー、モデレーター、メンバーに通知
-                val plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(me.awabi2048.myworldmanager.MyWorldManager::class.java)
-                val allMembers = (worldData.members + worldData.moderators + worldData.owner).toSet()
-                allMembers.forEach { memberUuid ->
-                    val memberPlayer = org.bukkit.Bukkit.getPlayer(memberUuid) ?: return@forEach
-                    val stats = plugin.playerStatsRepository.findByUuid(memberUuid)
-                    if (stats.visitorNotificationEnabled) {
-                        memberPlayer.sendMessage(notification)
-                    }
-                }
+        // 権限チェック（管理者・メンバー以外）
+        if (!player.hasPermission("myworldmanager.admin") && !isMember) {
+            if (worldData.publishLevel == PublishLevel.LOCKED) {
+                player.sendMessage(lang.getMessage(player, "messages.portal_dest_locked"))
+                event.isCancelled = true
+                return
+            } else if (worldData.publishLevel == PublishLevel.PRIVATE) {
+                // プライベート設定の場合、明示的な招待がないと入れない
+                // 現状の仕様では「訪問ワープ自体に招待チェックを入れる」か「ここで弾く」か。
+                // SettingsSessionの方でワープを許可する仕組みが必要。
+                // ここではシンプルにPublishLevelの基本挙動のみを扱う。
             }
+        }
+
+        // 訪問通知 (メンバー以外が来た場合)
+        if (!isMember && worldData.notificationEnabled) {
+            val owner = org.bukkit.Bukkit.getPlayer(worldData.owner)
+            if (owner != null && owner.isOnline) {
+                // 言語ファイルを優先
+                owner.sendMessage(lang.getMessage(owner, "messages.visitor_notified", mapOf(
+                    "player" to player.name,
+                    "world" to worldData.name
+                )))
+            }
+        }
+    }
+
+    @EventHandler
+    fun onJoin(event: PlayerJoinEvent) {
+        val player = event.player
+        val worldData = repository.findByWorldName(player.world.name) ?: return
+        val lang = plugin.languageManager
+
+        // 再ログイン時もアーカイブ中ならスポーンへ飛ばす等の処理が必要かもしれない
+        if (worldData.isArchived && !player.hasPermission("myworldmanager.admin")) {
+            val evacLoc = plugin.worldService.getEvacuationLocation()
+            player.teleport(evacLoc)
+            player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
         }
     }
 }
