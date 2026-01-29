@@ -186,8 +186,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         meta.displayName(lang.getComponent(player, "gui.user_settings.critical_settings_visibility.display"))
         
         val status = if (isEnabled) lang.getMessage(player, "messages.status_visible") else lang.getMessage(player, "messages.status_hidden")
-        val lore = lang.getMessageList(player, "gui.user_settings.critical_settings_visibility.lore").map { 
-            net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(it.replace("{0}", status)).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
+        val lore = lang.getMessageList(player, "gui.user_settings.critical_settings_visibility.lore", mapOf("status" to status)).map { 
+            net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
         }
         meta.lore(lore)
         

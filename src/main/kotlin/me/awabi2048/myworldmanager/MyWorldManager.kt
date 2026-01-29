@@ -53,6 +53,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var adminGuiSessionManager: AdminGuiSessionManager
     lateinit var macroManager: MacroManager
     lateinit var directoryManager: DirectoryManager
+    lateinit var worldUnloadService: WorldUnloadService
 
     override fun onEnable() {
         // Serializationの登録
@@ -94,6 +95,8 @@ class MyWorldManager : JavaPlugin() {
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
         portalManager = PortalManager(this)
         portalManager.startTasks()
+        worldUnloadService = WorldUnloadService(this)
+        worldUnloadService.start()
         
         // GUIの初期化
         worldGui = WorldGui(this)
@@ -204,6 +207,12 @@ class MyWorldManager : JavaPlugin() {
         getCommand("settings")?.setExecutor(SettingsCommand(this))
     }
 
+    override fun onDisable() {
+        if (::worldUnloadService.isInitialized) {
+            worldUnloadService.stop()
+        }
+    }
+
     /**
      * 設定ファイルとリポジトリのデータを再読み込みする（再起動と同等の処理）
      */
@@ -231,6 +240,9 @@ class MyWorldManager : JavaPlugin() {
         
         // SoundManagerの設定再読み込み（config依存のためインスタンス再生成）
         soundManager = SoundManager(this)
+        
+        // WorldUnloadServiceの再起動
+        worldUnloadService.start()
         
         logger.info("全てのシステム設定およびデータを再読み込みしました。")
     }

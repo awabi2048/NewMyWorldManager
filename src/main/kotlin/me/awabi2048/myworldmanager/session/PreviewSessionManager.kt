@@ -111,7 +111,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         session.markerEntity = marker
 
         // メッセージ送信
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", template.name))
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to template.name)))
 
         // テレポートとスペクテイター設定の遅延処理
         // ワールド移動を伴う場合、クライアントの準備ができるまで十分な時間を空ける必要があるため合計20tick程度の遅延を設ける
@@ -217,7 +217,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         session.markerEntity = marker
 
         // メッセージ送信
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", worldData.name))
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to worldData.name)))
 
         // テレポートとスペクテイター設定の遅延処理
         Bukkit.getScheduler().runTaskLater(plugin, Runnable {

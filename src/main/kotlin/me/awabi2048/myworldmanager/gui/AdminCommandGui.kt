@@ -74,18 +74,28 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             ItemTag.TYPE_GUI_ADMIN_ARCHIVE_ALL
         ))
 
-        // Slot 24: ワールド変換 (convert)
-        inventory.setItem(24, createItem(
-            Material.WRITABLE_BOOK,
-            lang.getMessage(player, "gui.admin_menu.convert.display"),
-            lang.getMessageList(player, "gui.admin_menu.convert.lore"),
-            ItemTag.TYPE_GUI_ADMIN_CONVERT
-        ))
-
-        // Slot 25: ワールドエクスポート (export)
+        // Check current world status
         val currentWorld = player.world
         val isMyWorld = currentWorld.name.startsWith("my_world.") || plugin.worldConfigRepository.findAll().any { it.customWorldName == currentWorld.name }
-        
+
+        // Slot 24: ワールド変換 (convert) / 紐づけ解除 (unlink)
+        if (isMyWorld) {
+            inventory.setItem(24, createItem(
+                Material.CHAIN,
+                lang.getMessage(player, "gui.admin_menu.unlink.display"),
+                lang.getMessageList(player, "gui.admin_menu.unlink.lore"),
+                ItemTag.TYPE_GUI_ADMIN_UNLINK
+            ))
+        } else {
+            inventory.setItem(24, createItem(
+                Material.WRITABLE_BOOK,
+                lang.getMessage(player, "gui.admin_menu.convert.display"),
+                lang.getMessageList(player, "gui.admin_menu.convert.lore"),
+                ItemTag.TYPE_GUI_ADMIN_CONVERT
+            ))
+        }
+
+        // Slot 25: ワールドエクスポート (export)
         if (isMyWorld) {
             inventory.setItem(25, createItem(
                 Material.DISPENSER,
@@ -148,6 +158,17 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
+    fun openUnlinkConfirmation(player: Player) {
+        val lang = plugin.languageManager
+        plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_UNLINK_CONFIRM, isGui = true)
+        plugin.soundManager.playMenuOpenSound(player, "admin_manage")
+
+        val title = lang.getMessage(player, "gui.admin_menu.unlink.confirm_title")
+        val inventory = Bukkit.createInventory(null, 27, Component.text(title))
+        setupConfirmationGui(inventory, player, true)
+        player.openInventory(inventory)
+    }
+
     fun openExportConfirmation(player: Player, worldName: String) {
         val lang = plugin.languageManager
         plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_EXPORT_CONFIRM, isGui = true)
@@ -157,7 +178,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(null, 27, Component.text(title))
         
         setupConfirmationGui(inventory, player, true, 
-            extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.export.target_world", worldName)))
+            extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.export.target_world", mapOf("world" to worldName))))
             
         player.openInventory(inventory)
     }

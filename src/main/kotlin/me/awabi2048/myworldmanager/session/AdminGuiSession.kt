@@ -134,9 +134,11 @@ class AdminGuiSessionManager {
         val session = getSession(playerUuid)
         val values = PlayerFilterType.values()
         session.playerFilterType = values[(session.playerFilterType.ordinal + 1) % values.size]
+        /* Preserved for usability
         if (session.playerFilterType == PlayerFilterType.NONE) {
             session.playerFilter = null
         }
+        */
         session.currentPage = 0
     }
 

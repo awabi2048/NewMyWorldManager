@@ -135,7 +135,7 @@ class AdminGuiListener : Listener {
                         player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_prompt"))
                         plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
                         // 専用のセッション状態を設定（チャット入力待ち）
-                        session.playerFilter = null // リセット
+                        // session.playerFilterはリセットしない（キャンセル時などに維持するため）
                     }
                 }
                 return
@@ -188,7 +188,7 @@ class AdminGuiListener : Listener {
                     plugin.worldService.archiveWorld(uuid).thenAccept { success ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (success) {
-                                player.sendMessage(lang.getMessage(player, "messages.archive_success", worldData.name))
+                                player.sendMessage(lang.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
                                 plugin.worldGui.open(player, currentPage) // 同じページに戻る
                             } else {
                                 player.sendMessage(lang.getMessage(player, "messages.archive_failed"))

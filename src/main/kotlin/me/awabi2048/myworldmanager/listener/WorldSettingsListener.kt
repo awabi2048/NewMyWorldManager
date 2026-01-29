@@ -313,10 +313,7 @@ class WorldSettingsListener : Listener {
                         worldData.icon = clickedItem.type
                         plugin.worldConfigRepository.save(worldData)
                         val itemName = clickedItem.displayName().decoration(TextDecoration.ITALIC, false)
-                        val template = plugin.languageManager.getMessage(player, "messages.icon_changed", "{0}")
-                        val message = LegacyComponentSerializer.legacySection().deserialize(template)
-                            .replaceText(TextReplacementConfig.builder().matchLiteral("{0}").replacement(itemName).build())
-                        player.sendMessage(message)
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_changed", mapOf("item" to LegacyComponentSerializer.legacySection().serialize(itemName))))
                         plugin.soundManager.playClickSound(player, null)
                         
                         // メニュー再描画（これによりセッションはVIEW_SETTINGSに戻る）
@@ -707,7 +704,7 @@ class WorldSettingsListener : Listener {
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                     
                     player.closeInventory()
-                    player.sendMessage(plugin.languageManager.getMessage("messages.world_delete_start", worldData.name))
+                    player.sendMessage(plugin.languageManager.getMessage("messages.world_delete_start", mapOf("world" to worldData.name)))
                     
                     plugin.worldService.deleteWorld(worldData.uuid).thenAccept { success ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -731,7 +728,7 @@ class WorldSettingsListener : Listener {
                     handleCommandCancel()
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
                     plugin.soundManager.playClickSound(player, item)
-                    player.sendMessage(plugin.languageManager.getMessage("messages.archive_success", worldData.name))
+                    player.sendMessage(plugin.languageManager.getMessage("messages.archive_success", mapOf("world" to worldData.name)))
                     worldData.isArchived = true
                     plugin.worldConfigRepository.save(worldData)
                     plugin.settingsSessionManager.endSession(player)

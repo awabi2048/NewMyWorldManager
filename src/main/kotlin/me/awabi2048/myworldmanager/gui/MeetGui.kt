@@ -145,7 +145,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             configMap?.getString(worldName) ?: "???"
         }
 
-        lore.add(lang.getComponent(viewer, "gui.meet.world_item.current_world", displayWorldName))
+        lore.add(lang.getComponent(viewer, "gui.meet.world_item.current_world", mapOf("world" to displayWorldName)))
 
         // クリックしてワールドを訪れる/申請の表示判定
         if (worldData != null) {

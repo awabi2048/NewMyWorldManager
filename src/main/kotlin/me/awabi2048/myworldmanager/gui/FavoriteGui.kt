@@ -174,11 +174,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
         meta.owningPlayer = player
         
-        meta.displayName(lang.getComponent(player, "gui.favorite.player_icon.name", player.name ?: lang.getMessage(player, "general.unknown")))
+        meta.displayName(lang.getComponent(player, "gui.favorite.player_icon.name", mapOf("player" to (player.name ?: lang.getMessage(player, "general.unknown")))))
         
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator"))
-        lore.add(lang.getComponent(player, "gui.favorite.player_icon.lore_count", totalCount))
+        lore.add(lang.getComponent(player, "gui.favorite.player_icon.lore_count", mapOf("count" to totalCount)))
         lore.add(lang.getComponent(player, "gui.common.separator"))
         
         meta.lore(lore)
