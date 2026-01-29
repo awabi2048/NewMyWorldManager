@@ -1,0 +1,46 @@
+name: MyWorldManager
+version: '0.1-alpha'
+main: me.awabi2048.myworldmanager.MyWorldManager
+api-version: '1.21'
+authors: [ Antigravity ]
+description: A template-based multi-world management system.
+commands:
+  mwm:
+    description: MyWorldManager main command
+    usage: /<command>
+  myworld:
+    description: List your worlds
+    usage: /<command>
+  worldmenu:
+    description: Open world settings menu
+    usage: /<command>
+  visit:
+    description: Visit another player's public worlds
+    usage: /visit <player>
+  invite:
+    description: Invite a player to your current world
+    usage: /invite <player>
+  inviteaccept_internal:
+    description: Internal command for invite accept
+    usage: /inviteaccept_internal <uuid>
+  favorite:
+    description: お気に入り登録したワールドの一覧を表示します。
+  discovery:
+    description: 公開されているワールドを検索・探索します。
+  memberinviteaccept_internal:
+    description: Internal command for member invite accept
+  meet:
+    description: オンラインプレイヤーの現在のワールド情報を表示・訪問します。
+    usage: /meet <player>
+  settings:
+    description: 個人設定メニューを開きます。
+    usage: /<command>
+permissions:
+  myworldmanager.admin:
+    description: Allows full access to MyWorldManager
+    default: op
+    children:
+      myworldmanager.citizen: true
+  myworldmanager.citizen:
+    description: Allows access to basic player commands
+    default: true

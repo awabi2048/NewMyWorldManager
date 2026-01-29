@@ -1,0 +1,38 @@
+# Admin Manage Menu Configuration
+# 管理者用ワールド管理メニュー
+
+# メニューを開いた時の効果音
+open_sound:
+  sound: "BLOCK_IRON_TRAPDOOR_OPEN"
+  pitch: 1.0
+
+# アイコン設定
+icons:
+  # 戻るボタン
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # 次のページ
+  next_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+
+  # 前のページ
+  prev_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+
+  # 統計情報
+  info:
+    material: PAPER
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # ワールドアイテムクリック時
+  world_item:
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0

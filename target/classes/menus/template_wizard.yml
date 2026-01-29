@@ -1,0 +1,45 @@
+# Template Wizard Menu Configuration
+# テンプレート作成ウィザード設定
+
+# メニューを開いた時の効果音
+open_sound:
+  sound: "BLOCK_ENCHANTMENT_TABLE_USE"
+  pitch: 1.0
+
+# アイコン設定
+icons:
+  # 戻るボタン
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # アイコン選択
+  icon_select:
+    material: ITEM_FRAME
+    sound: "ITEM_ARMOR_EQUIP_GENERIC"
+    pitch: 1.2
+
+  # 名前設定
+  name_input:
+    material: NAME_TAG
+    sound: "ENTITY_VILLAGER_WORK_CARTOGRAPHER"
+    pitch: 1.5
+
+  # 説明文設定
+  desc_input:
+    material: WRITABLE_BOOK
+    sound: "ITEM_BOOK_PAGE_TURN"
+    pitch: 1.0
+
+  # 原点セット
+  origin_set:
+    material: COMPASS
+    sound: "BLOCK_ANVIL_USE"
+    pitch: 2.0
+
+  # 確定保存
+  save_confirm:
+    material: NETHER_STAR
+    sound: "UI_TOAST_CHALLENGE_COMPLETE"
+    pitch: 1.2

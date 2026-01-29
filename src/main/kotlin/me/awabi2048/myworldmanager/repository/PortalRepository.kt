@@ -1,0 +1,167 @@
+package me.awabi2048.myworldmanager.repository
+
+import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.model.PortalData
+import org.bukkit.Bukkit
+import org.bukkit.Color
+import org.bukkit.configuration.file.YamlConfiguration
+import java.io.File
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+
+class PortalRepository(private val plugin: MyWorldManager) {
+    private val file = File(plugin.dataFolder, "portals.yml")
+    private val portals = ConcurrentHashMap<UUID, PortalData>()
+
+    init {
+        loadAll()
+    }
+
+    fun loadAll() {
+        if (!file.exists()) return
+        val config = YamlConfiguration.loadConfiguration(file)
+        val sections = config.getConfigurationSection("portals") ?: return
+        
+        for (key in sections.getKeys(false)) {
+            val section = sections.getConfigurationSection(key) ?: continue
+            val id = UUID.fromString(key)
+            
+            val worldUuidStr = section.getString("world_uuid")
+            val worldUuid = if (worldUuidStr != null && worldUuidStr != "null") UUID.fromString(worldUuidStr) else null
+            val targetWorldName = section.getString("target_world_name")
+            
+            val createdAtRaw = section.get("created_at")
+            val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            val createdAt = if (createdAtRaw is String) {
+                if (createdAtRaw.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                    "$createdAtRaw 00:00:00"
+                } else {
+                    createdAtRaw
+                }
+            } else if (createdAtRaw is Number) {
+                val instant = java.time.Instant.ofEpochMilli(createdAtRaw.toLong())
+                val zone = java.time.ZoneId.systemDefault()
+                java.time.LocalDateTime.ofInstant(instant, zone).format(formatter)
+            } else {
+                java.time.LocalDateTime.now().format(formatter)
+            }
+            
+            val showText = section.getBoolean("show_text", true)
+            val colorInt = section.getInt("color", Color.AQUA.asRGB())
+            val ownerUuid = UUID.fromString(section.getString("owner_uuid") ?: continue)
+
+            var worldName: String? = section.getString("location.world")
+            var lx = section.getInt("location.x")
+            var ly = section.getInt("location.y")
+            var lz = section.getInt("location.z")
+
+            // location.worldで取得できなかった場合、旧形式やオブジェクト形式からの取得を試みる
+            if (worldName == null) {
+                try {
+                    val locObj = section.get("location")
+                    if (locObj is org.bukkit.Location) {
+                        worldName = locObj.world?.name
+                        lx = locObj.blockX
+                        ly = locObj.blockY
+                        lz = locObj.blockZ
+                    } else if (locObj is Map<*, *>) {
+                        worldName = locObj["world"] as? String
+                        lx = (locObj["x"] as? Number)?.toInt() ?: 0
+                        ly = (locObj["y"] as? Number)?.toInt() ?: 0
+                        lz = (locObj["z"] as? Number)?.toInt() ?: 0
+                    } else if (locObj is org.bukkit.configuration.ConfigurationSection) {
+                        worldName = locObj.getString("world")
+                        lx = locObj.getInt("x")
+                        ly = locObj.getInt("y")
+                        lz = locObj.getInt("z")
+                    }
+                } catch (e: Exception) {
+                    plugin.logger.warning("ポータル $key のロケーション情報の読み込みに失敗しました (無視されます): ${e.message}")
+                }
+            }
+
+            if (worldName == null) continue
+
+            // 設置場所がマイワールドの場合、そのワールドが存在するかチェック
+            if (worldName.startsWith("my_world.")) {
+                val worldUuidStr = worldName.removePrefix("my_world.")
+                try {
+                    val worldUuid = UUID.fromString(worldUuidStr)
+                    if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
+                        plugin.logger.info("[Portal] 存在しないワールド($worldName)に設置されたポータルを削除しました。")
+                        continue 
+                    }
+                } catch (e: Exception) {
+                    // UUID形式でない場合は無視（通常ありえない）
+                }
+            }
+
+            // 行き先のマイワールドが存在するかチェック
+            var finalWorldUuid = worldUuid
+            if (worldUuid != null && plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
+                plugin.logger.info("[Portal] 存在しないワールド(UUID: $worldUuid)への行き先設定を解除しました。")
+                finalWorldUuid = null
+            }
+
+            portals[id] = PortalData(
+                id = id,
+                worldName = worldName,
+                x = lx,
+                y = ly,
+                z = lz,
+                worldUuid = finalWorldUuid,
+                targetWorldName = targetWorldName,
+                showText = showText,
+                particleColor = Color.fromRGB(colorInt),
+                ownerUuid = ownerUuid,
+                createdAt = createdAt
+            )
+        }
+        
+        // 読み込み後に保存してクリーンアップ結果を反映
+        saveAll()
+    }
+
+    fun saveAll() {
+        val config = YamlConfiguration()
+        val section = config.createSection("portals")
+        for ((id, data) in portals) {
+            val s = section.createSection(id.toString())
+            // 整数値として保存
+            s.set("location", mapOf(
+                "world" to data.worldName,
+                "x" to data.x,
+                "y" to data.y,
+                "z" to data.z
+            ))
+            s.set("world_uuid", data.worldUuid?.toString())
+            s.set("target_world_name", data.targetWorldName)
+            s.set("show_text", data.showText)
+            s.set("color", data.particleColor.asRGB())
+            s.set("owner_uuid", data.ownerUuid.toString())
+            s.set("created_at", data.createdAt)
+        }
+        config.save(file)
+    }
+
+    fun addPortal(portal: PortalData) {
+        portals[portal.id] = portal
+        saveAll()
+    }
+
+    fun removePortal(id: UUID) {
+        portals.remove(id)
+        saveAll()
+    }
+
+    fun findAll(): Collection<PortalData> = portals.values
+    
+    fun findByLocation(location: org.bukkit.Location): PortalData? {
+        return portals.values.find { 
+            it.worldName == location.world?.name &&
+            it.x == location.blockX &&
+            it.y == location.blockY &&
+            it.z == location.blockZ
+        }
+    }
+}

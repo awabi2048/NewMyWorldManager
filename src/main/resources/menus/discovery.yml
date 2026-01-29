@@ -1,0 +1,59 @@
+# Discovery Menu Configuration
+# ワールドディスカバリーメニュー
+
+# メニューを開いた時の効果音
+open_sound:
+  sound: "UI_TOAST_IN"
+  pitch: 1.0
+
+# アイコン設定
+icons:
+  # 戻るボタン
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # 次のページ
+  next_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+
+  # 前のページ
+  prev_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+
+  # ソート切替
+  sort:
+    material: HOPPER
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # タグフィルター
+  tag_filter:
+    material: NAME_TAG
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # ワールドアイテムクリック時
+  world_item:
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # お気に入り追加
+  favorite_add:
+    sound: "ENTITY_PLAYER_LEVELUP"
+    pitch: 2.0
+
+  # お気に入り解除
+  favorite_remove:
+    sound: "BLOCK_IRON_TRAPDOOR_CLOSE"
+    pitch: 1.5
+
+  # アクセス拒否
+  access_denied:
+    sound: "ENTITY_VILLAGER_NO"
+    pitch: 1.0

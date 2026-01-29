@@ -1,0 +1,20 @@
+# Meet Menu Configuration
+# ミートメニュー設定
+
+# メニューを開いた時の効果音
+open_sound:
+  sound: "BLOCK_CHEST_OPEN"
+  pitch: 1.0
+
+# アイコン設定
+icons:
+  # 戻るボタン
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # アクセス拒否
+  access_denied:
+    sound: "ENTITY_VILLAGER_NO"
+    pitch: 1.0

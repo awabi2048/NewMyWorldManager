@@ -1,0 +1,45 @@
+# Portal Menu Configuration
+# ポータル設定メニュー
+
+# メニューを開いた時の効果音
+open_sound:
+  sound: "BLOCK_ENDER_CHEST_OPEN"
+  pitch: 1.0
+
+# アイコン設定
+icons:
+  # 戻るボタン
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # 確認ボタン
+  confirm:
+    material: LIME_WOOL
+    sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+    pitch: 1.5
+
+  # キャンセルボタン
+  cancel:
+    material: RED_WOOL
+    sound: "BLOCK_NOTE_BLOCK_BASS"
+    pitch: 0.5
+
+  # テキスト表示切替
+  toggle_text:
+    material: OAK_SIGN
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # パーティクル色変更
+  color:
+    material: MAGENTA_DYE
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # ポータル撤去
+  remove:
+    material: BARRIER
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0

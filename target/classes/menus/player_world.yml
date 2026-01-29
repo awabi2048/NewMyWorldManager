@@ -1,0 +1,32 @@
+# Player World Menu Configuration
+# /myworld コマンドで開くメインメニュー
+
+# メニューを開いた時の効果音
+open_sound:
+  sound: "BLOCK_CHEST_OPEN"
+  pitch: 1.0
+
+# アイコン設定
+icons:
+  # 戻るボタン
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+
+  # 次のページ
+  next_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+
+  # 前のページ
+  prev_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+
+  # ワールドアイテムクリック時
+  world_item:
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0

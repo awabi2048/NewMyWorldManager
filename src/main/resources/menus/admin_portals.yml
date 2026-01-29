@@ -1,0 +1,26 @@
+# Admin Portals Menu Configuration
+open_sound:
+  sound: "BLOCK_CHEST_OPEN"
+  pitch: 1.0
+
+icons:
+  portal_item:
+    material: END_PORTAL_FRAME
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.0
+  sort:
+    material: HOPPER
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
+  next_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5
+  prev_page:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 1.5

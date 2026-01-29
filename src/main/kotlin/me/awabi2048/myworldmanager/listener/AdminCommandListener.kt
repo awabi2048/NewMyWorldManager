@@ -1,0 +1,296 @@
+package me.awabi2048.myworldmanager.listener
+
+import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.WorldService
+import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.ItemTag
+import org.bukkit.Bukkit
+import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.plugin.java.JavaPlugin
+import java.util.UUID
+
+class AdminCommandListener : Listener {
+
+    @EventHandler
+    fun onInventoryClick(event: InventoryClickEvent) {
+        val player = event.whoClicked as? Player ?: return
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        
+        // セッションチェック
+        if (!plugin.settingsSessionManager.hasSession(player)) return
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
+
+        // アクションに応じた処理
+        if (session.action == SettingsAction.ADMIN_MENU || session.action == SettingsAction.ADMIN_PORTAL_GUI || session.action == SettingsAction.ADMIN_WORLD_GUI) {
+            handleAdminMenuClick(event, player, plugin, session.action)
+        } else if (isAdminConfirmAction(session.action)) {
+            handleAdminConfirmClick(event, player, plugin, session.action)
+        }
+    }
+
+    private fun isAdminConfirmAction(action: SettingsAction): Boolean {
+        return when (action) {
+            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM,
+            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM,
+            SettingsAction.ADMIN_EXPORT_CONFIRM,
+            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
+            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
+            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> true
+            else -> false
+        }
+    }
+
+    private fun handleAdminMenuClick(event: InventoryClickEvent, player: Player, plugin: MyWorldManager, action: SettingsAction) {
+        event.isCancelled = true
+        if (event.clickedInventory != event.view.topInventory) return
+        val item = event.currentItem ?: return
+
+        val tagType = ItemTag.getType(item) ?: return
+
+        when (tagType) {
+            ItemTag.TYPE_GUI_ADMIN_UPDATE_DATA -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.adminCommandGui.openUpdateDataConfirmation(player)
+            }
+            ItemTag.TYPE_GUI_ADMIN_REPAIR_TEMPLATES -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.adminCommandGui.openRepairTemplatesConfirmation(player)
+            }
+            ItemTag.TYPE_GUI_ADMIN_CREATE_TEMPLATE -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.templateWizardGui.open(player)
+            }
+            ItemTag.TYPE_GUI_ADMIN_ARCHIVE_ALL -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.adminCommandGui.openArchiveAllConfirmation(player)
+            }
+            ItemTag.TYPE_GUI_ADMIN_CONVERT -> {
+                plugin.soundManager.playAdminClickSound(player)
+                if (event.isLeftClick) {
+                    plugin.adminCommandGui.openConvertConfirmation(player, WorldService.ConversionMode.NORMAL)
+                } else if (event.isRightClick) {
+                    plugin.adminCommandGui.openConvertConfirmation(player, WorldService.ConversionMode.ADMIN)
+                }
+            }
+            ItemTag.TYPE_GUI_ADMIN_EXPORT -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.adminCommandGui.openExportConfirmation(player, player.world.name)
+            }
+            ItemTag.TYPE_GUI_ADMIN_INFO -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.worldGui.open(player, fromAdminMenu = true)
+            }
+            ItemTag.TYPE_GUI_ADMIN_PORTALS -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.adminPortalGui.open(player, fromAdminMenu = true)
+            }
+            ItemTag.TYPE_GUI_RETURN -> {
+                plugin.soundManager.playAdminClickSound(player)
+                // Return from sub-menus to the main admin menu
+                if (action == SettingsAction.ADMIN_PORTAL_GUI || action == SettingsAction.ADMIN_WORLD_GUI) {
+                    plugin.adminCommandGui.open(player)
+                }
+            }
+        }
+    }
+
+    private fun handleAdminConfirmClick(event: InventoryClickEvent, player: Player, plugin: MyWorldManager, action: SettingsAction) {
+        event.isCancelled = true
+        if (event.clickedInventory != event.view.topInventory) return
+        val item = event.currentItem ?: return
+        val tagType = ItemTag.getType(item) ?: return
+
+        if (tagType == ItemTag.TYPE_GUI_CANCEL) {
+            plugin.soundManager.playAdminClickSound(player)
+            plugin.adminCommandGui.open(player)
+            return
+        }
+
+        if (tagType == ItemTag.TYPE_GUI_CONFIRM) {
+            plugin.soundManager.playAdminClickSound(player)
+            player.closeInventory()
+            
+            // アクション実行
+            when (action) {
+                SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> performUpdateData(player, plugin)
+                SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> performRepairTemplates(player, plugin)
+                SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> performArchiveAll(player, plugin)
+                SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
+                SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
+                SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
+                else -> {}
+            }
+            // セッション終了（必要なら）またはメニューに戻る?
+            // 処理完了後にどうするかは各メソッド次第だが、基本はチャット通知して終了
+            plugin.settingsSessionManager.endSession(player)
+        }
+    }
+
+    private fun performUpdateData(player: Player, plugin: MyWorldManager) {
+        player.sendMessage("§eUpdating player data...")
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            plugin.worldConfigRepository.loadAll()
+            val worlds = plugin.worldConfigRepository.findAll()
+            worlds.forEach { world ->
+                // 権限データの重複削除などのクリーンアップ
+                world.moderators.remove(world.owner)
+                world.members.remove(world.owner)
+                world.members.removeAll(world.moderators)
+                
+                val duplicateInModerators = world.moderators.distinct()
+                world.moderators.clear()
+                world.moderators.addAll(duplicateInModerators)
+
+                val duplicateInMembers = world.members.distinct()
+                world.members.clear()
+                world.members.addAll(duplicateInMembers)
+                
+                // ポイント補完
+                if (world.cumulativePoints <= 0) {
+                     val worldConfig = plugin.config
+                     var estimatedPoints = worldConfig.getInt("creation_cost.template", 0)
+                     for (i in 1..world.borderExpansionLevel) {
+                         estimatedPoints += worldConfig.getInt("expansion.costs.$i", 100)
+                     }
+                     world.cumulativePoints = estimatedPoints
+                }
+                plugin.worldConfigRepository.save(world)
+            }
+            
+            // プレイヤーデータの更新
+            val count = plugin.playerStatsRepository.updateAllData()
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.data_update_success", worlds.size, count))
+        })
+    }
+
+    private fun performRepairTemplates(player: Player, plugin: MyWorldManager) {
+        val repo = plugin.templateRepository
+        val missing = repo.missingTemplates
+        if (missing.isEmpty()) {
+            player.sendMessage("§a欠損しているテンプレートディレクトリはありません。")
+            return
+        }
+
+        player.sendMessage("§e欠損しているテンプレートの修復を開始します (${missing.size}件)...")
+        val config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(java.io.File(plugin.dataFolder, "templates.yml"))
+        
+        missing.toList().forEach { key ->
+            val path = config.getString("$key.path")
+            if (path != null) {
+                player.sendMessage("§7- $key を生成中... ($path)")
+                val creator = org.bukkit.WorldCreator(path)
+                val world = Bukkit.createWorld(creator)
+                if (world != null) {
+                    player.sendMessage("§a  -> $key の生成に成功しました。")
+                } else {
+                    player.sendMessage("§c  -> $key の生成に失敗しました。")
+                }
+            }
+        }
+        plugin.templateRepository.loadTemplates()
+        player.sendMessage("§a修復処理が完了しました。")
+    }
+    
+    // 再帰的にアーカイブ処理を行うヘルパー
+    private fun processArchiveQueue(player: Player, plugin: MyWorldManager, targets: List<me.awabi2048.myworldmanager.model.WorldData>, index: Int) {
+        if (index >= targets.size) {
+            player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_complete", targets.size))
+            return
+        }
+        
+        val worldData = targets[index]
+        plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success ->
+            if (success) {
+                player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_progress", index + 1, targets.size, worldData.name))
+            }
+            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                processArchiveQueue(player, plugin, targets, index + 1)
+            }, 20L)
+        }
+    }
+
+    private fun performArchiveAll(player: Player, plugin: MyWorldManager) {
+        val today = java.time.LocalDate.now()
+        val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val archiveTargets = plugin.worldConfigRepository.findAll().filter { worldData ->
+            !worldData.isArchived && try {
+                java.time.LocalDate.parse(worldData.expireDate, dateFormatter) < today
+            } catch (e: Exception) { false }
+        }
+
+        if (archiveTargets.isEmpty()) {
+            player.sendMessage("§cアーカイブ対象のワールドは見つかりませんでした。")
+            return
+        }
+
+        val estSeconds = archiveTargets.size * 5
+        player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_start", archiveTargets.size, estSeconds))
+        processArchiveQueue(player, plugin, archiveTargets, 0)
+    }
+
+    private fun performConvert(player: Player, plugin: MyWorldManager, mode: WorldService.ConversionMode) {
+        val currentWorld = player.world
+        val worldName = currentWorld.name
+        val allWorlds = plugin.worldConfigRepository.findAll()
+        val alreadyRegistered = allWorlds.any { 
+            (it.customWorldName == worldName) || ("my_world.${it.uuid}" == worldName)
+        }
+
+        if (alreadyRegistered) {
+            player.sendMessage("§cこのワールドは既にMyWorldとして登録されています。")
+            return
+        }
+
+        player.sendMessage("§eワールドの変換を開始します。しばらくお待ちください...")
+        plugin.worldService.convertWorld(currentWorld, player.uniqueId, mode).thenAccept { uuid ->
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (uuid != null) {
+                    player.sendMessage("§a現在のワールド '$worldName' をMyWorldとして登録しました。(UUID: $uuid)")
+                    if (mode == WorldService.ConversionMode.NORMAL) {
+                        player.sendMessage("§aディレクトリが標準形式にリネームされ、通常のマイワールド管理が適用されます。")
+                    } else {
+                        player.sendMessage("§a設定ファイルのみ生成されました。管理用ワールドとして扱われます。")
+                    }
+                } else {
+                    player.sendMessage("§cワールドの変換に失敗しました。")
+                }
+            })
+        }
+    }
+
+    private fun performExport(player: Player, plugin: MyWorldManager) {
+        val currentWorld = player.world
+        // 現在のワールドがMyWorldかチェック
+        // 名前が my_world.UUID か、またはカスタム名として登録されているか
+        var uuid: UUID? = null
+        if (currentWorld.name.startsWith("my_world.")) {
+             try {
+                 uuid = UUID.fromString(currentWorld.name.removePrefix("my_world."))
+             } catch(e: Exception) {}
+        }
+        
+        if (uuid == null) {
+            val worldData = plugin.worldConfigRepository.findAll().find { it.customWorldName == currentWorld.name }
+            if (worldData != null) uuid = worldData.uuid
+        }
+
+        if (uuid == null) {
+            player.sendMessage("§c現在のワールドはMyWorld管理下のワールドではありません。")
+            return
+        }
+
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_started"))
+        plugin.worldService.exportWorld(uuid).thenAccept { file ->
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (file != null) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_success", file.name))
+                } else {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_failed"))
+                }
+            })
+        }
+    }
+}

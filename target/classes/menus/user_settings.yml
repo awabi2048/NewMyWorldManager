@@ -1,0 +1,15 @@
+# User Settings Menu Configuration
+# プレイヤー設定メニュー設定
+
+# メニューを開いた時の効果音
+open_sound:
+  sound: "BLOCK_CHEST_OPEN"
+  pitch: 1.0
+
+# アイコン設定
+icons:
+  # 戻るボタン
+  back:
+    material: ARROW
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0
