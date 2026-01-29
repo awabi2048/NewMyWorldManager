@@ -23,35 +23,82 @@ class SoundManager(private val plugin: MyWorldManager) {
     /**
      * GUI内の要素をクリックした際の効果音を再生
      */
-    fun playClickSound(player: Player, item: ItemStack?) {
+    /**
+     * GUI内の要素をクリックした際の効果音を再生
+     */
+    fun playClickSound(player: Player, item: ItemStack?, menuId: String? = null) {
         val type = if (item != null) ItemTag.getType(item) else null
         
-        // アイテムタイプに基づくサウンド設定（優先）
-        val soundKey = when (type) {
-            ItemTag.TYPE_GUI_CONFIRM -> "confirm"
-            ItemTag.TYPE_GUI_CANCEL -> "cancel"
-            ItemTag.TYPE_GUI_NAV_NEXT, ItemTag.TYPE_GUI_NAV_PREV -> "navigation"
-            ItemTag.TYPE_GUI_INFO -> "info"
-            null -> "default"
-            else -> "default"
+        // 1. メニュー固有のサウンド設定を取得
+        var specificSoundPlayed = false
+        var specificSound: Sound? = null
+        var specificPitch = 1.0f
+
+        if (menuId != null && item != null) {
+            val iconId = when (type) {
+                ItemTag.TYPE_GUI_NAV_NEXT -> "next_page"
+                ItemTag.TYPE_GUI_NAV_PREV -> "prev_page"
+                ItemTag.TYPE_GUI_RETURN, ItemTag.TYPE_GUI_BACK -> "back"
+                ItemTag.TYPE_GUI_CONFIRM -> "confirm"
+                ItemTag.TYPE_GUI_CANCEL -> "cancel"
+                ItemTag.TYPE_GUI_WORLD_ITEM -> "world_item"
+                // 汎用的なアイテムタイプからアイコンIDへのマッピングが必要な場合はここに追加
+                else -> null
+            }
+
+            if (iconId != null) {
+                specificSound = plugin.menuConfigManager.getIconSound(menuId, iconId)
+                if (specificSound != null) {
+                    specificPitch = plugin.menuConfigManager.getIconSoundPitch(menuId, iconId)
+                    player.playSound(player.location, specificSound, 1.0f, specificPitch)
+                    specificSoundPlayed = true
+                }
+            }
         }
 
-        val soundStr = plugin.config.getString("sounds.clicks.$soundKey.sound") ?: plugin.config.getString("sounds.clicks.default.sound")
-        val pitch = plugin.config.getDouble("sounds.clicks.$soundKey.pitch", 
-                    plugin.config.getDouble("sounds.clicks.default.pitch", 2.0)).toFloat()
-
-        if (soundStr != null) {
-            try {
-                val sound = Sound.valueOf(soundStr.uppercase())
-                player.playSound(player.location, sound, 1.0f, pitch)
-                
-                // 設定された音が UI_BUTTON_CLICK でピッチ 2.0 でない場合、共通クリック音を追加再生
-                if (!(sound == Sound.UI_BUTTON_CLICK && pitch == 2.0f)) {
-                    player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 2.0f)
-                }
-            } catch (e: IllegalArgumentException) {
-                plugin.logger.warning("Invalid click sound effect name in config: $soundStr")
+        // 2. アイテムタイプに基づくデフォルトサウンド設定（メニュー固有設定がない場合）
+        if (!specificSoundPlayed) {
+            val soundKey = when (type) {
+                ItemTag.TYPE_GUI_CONFIRM -> "confirm"
+                ItemTag.TYPE_GUI_CANCEL -> "cancel"
+                ItemTag.TYPE_GUI_NAV_NEXT, ItemTag.TYPE_GUI_NAV_PREV -> "navigation"
+                ItemTag.TYPE_GUI_INFO -> "info"
+                else -> "default"
             }
+
+            val soundStr = plugin.config.getString("sounds.clicks.$soundKey.sound")
+            if (soundStr != null) {
+                try {
+                    val sound = Sound.valueOf(soundStr.uppercase())
+                    val pitch = plugin.config.getDouble("sounds.clicks.$soundKey.pitch", 2.0).toFloat()
+                    player.playSound(player.location, sound, 1.0f, pitch)
+                    specificSound = sound
+                    specificPitch = pitch
+                    specificSoundPlayed = true
+                } catch (e: IllegalArgumentException) {
+                   // ignore
+                }
+            }
+        }
+
+        // 3. グローバルクリック音の再生
+        // 設定された固有音が「グローバル音と完全に一致（音種類・ピッチ）」していない限り、追加で再生する
+        val globalSoundStr = plugin.config.getString("sounds.global_click.sound", "UI_BUTTON_CLICK")
+        val globalPitch = plugin.config.getDouble("sounds.global_click.pitch", 2.0).toFloat()
+        
+        try {
+            val globalSound = Sound.valueOf(globalSoundStr!!.uppercase())
+            
+            // 固有音が再生されていない、または固有音がグローバル音と異なる場合に再生
+            val isSameAsGlobal = specificSoundPlayed && specificSound == globalSound && specificPitch == globalPitch
+            
+            if (!isSameAsGlobal) {
+                player.playSound(player.location, globalSound, 1.0f, globalPitch)
+            }
+        } catch (e: Exception) {
+            plugin.logger.warning("Invalid global click sound configuration: $globalSoundStr")
+            // フォールバック
+             player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 2.0f)
         }
     }
 

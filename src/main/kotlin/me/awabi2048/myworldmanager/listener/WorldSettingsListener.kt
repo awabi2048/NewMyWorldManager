@@ -67,7 +67,7 @@ class WorldSettingsListener : Listener {
 
         // 共通メソッド: キャンセルとクリック音
         fun handleCommandCancel() {
-            plugin.soundManager.playClickSound(player, item)
+            plugin.soundManager.playClickSound(player, item, "world_settings")
             plugin.settingsSessionManager.endSession(player)
             plugin.worldSettingsGui.open(player, worldData)
         }
@@ -83,7 +83,7 @@ class WorldSettingsListener : Listener {
                         val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
                         if (plainLine.startsWith("PAGE_TARGET: ")) {
                             val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
-                            plugin.soundManager.playClickSound(player, item)
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
                             plugin.worldSettingsGui.openMemberManagement(player, worldData, targetPage)
                         }
                     }
@@ -91,7 +91,7 @@ class WorldSettingsListener : Listener {
                 }
 
                 if (type == ItemTag.TYPE_GUI_MEMBER_INVITE) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     session.action = SettingsAction.MEMBER_INVITE
                     player.closeInventory()
                     player.sendMessage(plugin.languageManager.getMessage("messages.member_invite_input"))
@@ -106,7 +106,7 @@ class WorldSettingsListener : Listener {
                 if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
                     val memberId = ItemTag.getWorldUuid(item)
                     if (memberId != null && memberId != player.uniqueId) {
-                        plugin.soundManager.playClickSound(player, item)
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
                         if (event.isShiftClick && event.isRightClick) {
                             val config = plugin.config
                             val stats = plugin.playerStatsRepository.findByUuid(memberId)
@@ -132,11 +132,11 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) return
 
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openMemberManagement(player, worldData)
                     // Updates session to MANAGE_MEMBERS
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     val infoItem = event.inventory.getItem(13) ?: return
                     val memberId = ItemTag.getWorldUuid(infoItem)
                     
@@ -161,10 +161,10 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) return
 
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openMemberManagement(player, worldData)
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     val infoItem = event.inventory.getItem(13) ?: return
                     val newOwnerId = ItemTag.getWorldUuid(infoItem) ?: return
 
@@ -207,7 +207,7 @@ class WorldSettingsListener : Listener {
                         val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
                         if (plainLine.startsWith("PAGE_TARGET: ")) {
                             val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
-                            plugin.soundManager.playClickSound(player, item)
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
                             plugin.worldSettingsGui.openVisitorManagement(player, worldData, targetPage)
                         }
                     }
@@ -217,7 +217,7 @@ class WorldSettingsListener : Listener {
                 if (type == ItemTag.TYPE_GUI_VISITOR_ITEM) {
                     if (event.isRightClick) {
                         val visitorUuid = ItemTag.getWorldUuid(item) ?: return
-                        plugin.soundManager.playClickSound(player, item)
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
                         plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, visitorUuid)
                     }
                 } else if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -229,10 +229,10 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) return
 
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     val infoItem = event.inventory.getItem(13) ?: return
                     val visitorUuid = ItemTag.getWorldUuid(infoItem) ?: return
                     val visitor = Bukkit.getPlayer(visitorUuid)
@@ -262,13 +262,13 @@ class WorldSettingsListener : Listener {
                  if (event.clickedInventory != event.view.topInventory) return
                  
                  if (type == ItemTag.TYPE_GUI_SETTING_EXPAND) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     session.expansionDirection = null // Reset
                     val cost = calculateExpansionCost(worldData.borderExpansionLevel)
                      // Note: openExpansionConfirmation updates session action to EXPAND_CONFIRM
                     plugin.worldSettingsGui.openExpansionConfirmation(player, worldData.uuid, null, cost)
                  } else if (type == ItemTag.TYPE_GUI_SETTING_SPAWN) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     session.action = SettingsAction.EXPAND_DIRECTION_WAIT
                     player.closeInventory()
                     player.sendMessage(plugin.languageManager.getMessage("messages.expand_direction_prompt"))
@@ -281,7 +281,7 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) return
                 
                 if (type == ItemTag.TYPE_GUI_CANCEL || (item?.type == Material.RED_WOOL && type == null) || (item?.type == Material.RED_WOOL && type == ItemTag.TYPE_GUI_CANCEL)) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM || (item?.type == Material.LIME_WOOL && type == null) || (item?.type == Material.LIME_WOOL && type == ItemTag.TYPE_GUI_CONFIRM)) {
                      val cost = calculateExpansionCost(worldData.borderExpansionLevel)
@@ -293,7 +293,7 @@ class WorldSettingsListener : Listener {
                         return
                     }
                     
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     player.closeInventory()
 
                     val messageList = plugin.languageManager.getMessageList(player, "messages.oage_ganbaru_messages")
@@ -322,7 +322,7 @@ class WorldSettingsListener : Listener {
                         plugin.worldConfigRepository.save(worldData)
                         val itemName = clickedItem.displayName().decoration(TextDecoration.ITALIC, false)
                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_changed", mapOf("item" to LegacyComponentSerializer.legacySection().serialize(itemName))))
-                        plugin.soundManager.playClickSound(player, null)
+                        plugin.soundManager.playClickSound(player, null, "world_settings")
                         
                         // メニュー再描画（これによりセッションはVIEW_SETTINGSに戻る）
                         // endSession check? open updates session.
@@ -347,7 +347,7 @@ class WorldSettingsListener : Listener {
                 if (restrictedTags.contains(itemTag)) {
                     val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                     if (player.world.name != targetWorldName) {
-                        plugin.soundManager.playClickSound(player, null)
+                        plugin.soundManager.playClickSound(player, null, "world_settings")
                         player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                         return
                     }
@@ -355,7 +355,7 @@ class WorldSettingsListener : Listener {
                 
                 when (itemTag) {
                     ItemTag.TYPE_GUI_SETTING_INFO -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         if (event.isRightClick) {
                             player.sendMessage(plugin.languageManager.getMessage("messages.world_desc_prompt"))
                             plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
@@ -366,7 +366,7 @@ class WorldSettingsListener : Listener {
                         player.closeInventory()
                     }
                     ItemTag.TYPE_GUI_SETTING_SPAWN -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         val isGuest = event.isLeftClick
                         val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
                         val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
@@ -377,13 +377,13 @@ class WorldSettingsListener : Listener {
                         player.closeInventory()
                     }
                     ItemTag.TYPE_GUI_SETTING_ICON -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SELECT_ICON)
                         player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
                     }
                     ItemTag.TYPE_GUI_SETTING_EXPAND -> {
                         if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) return
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         
                         val config = plugin.config
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
@@ -413,7 +413,7 @@ class WorldSettingsListener : Listener {
                         plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_PUBLISH -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         val nextLevel = GuiHelper.getNextValue(worldData.publishLevel, PublishLevel.values(), event.isRightClick)
                         worldData.publishLevel = nextLevel
                         if (worldData.publishLevel == PublishLevel.PUBLIC) {
@@ -423,19 +423,19 @@ class WorldSettingsListener : Listener {
                         plugin.worldSettingsGui.open(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_MEMBER -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         plugin.worldSettingsGui.openMemberManagement(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_ARCHIVE -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         plugin.worldSettingsGui.openArchiveConfirmation(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_TAGS -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         plugin.worldSettingsGui.openTagEditor(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_VISITOR -> {
-                         plugin.soundManager.playClickSound(player, clickedItem)
+                         plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                          val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                          val world = Bukkit.getWorld(worldFolderName)
                          val visitorCount = world?.players?.count { 
@@ -449,17 +449,17 @@ class WorldSettingsListener : Listener {
                         plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_NOTIFICATION -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         worldData.notificationEnabled = !worldData.notificationEnabled
                         plugin.worldConfigRepository.save(worldData)
                         plugin.worldSettingsGui.open(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_CRITICAL -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         plugin.worldSettingsGui.openCriticalSettings(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         if (event.isRightClick) {
                             worldData.announcementMessages.clear()
                             plugin.worldConfigRepository.save(worldData)
@@ -475,7 +475,7 @@ class WorldSettingsListener : Listener {
                         val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                         val hasPortals = plugin.portalRepository.findAll().any { it.worldName == worldName }
                         
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         if (hasPortals) {
                             plugin.worldSettingsGui.openPortalManagement(player, worldData)
                         } else {
@@ -484,7 +484,7 @@ class WorldSettingsListener : Listener {
                         }
                     }
                     ItemTag.TYPE_GUI_SETTING_ENVIRONMENT -> {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         plugin.environmentGui.open(player, worldData)
                     }
                 }
@@ -496,11 +496,11 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) {
                     val clickedItem = event.currentItem ?: return
                     if (ItemTag.isType(clickedItem, ItemTag.TYPE_MOON_STONE)) {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         val cost = plugin.config.getInt("environment.gravity.cost", 100)
                         plugin.environmentConfirmGui.open(player, worldData, clickedItem, cost)
                     } else if (ItemTag.isType(clickedItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
-                        plugin.soundManager.playClickSound(player, clickedItem)
+                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         val cost = plugin.config.getInt("environment.biome.cost", 500)
                         plugin.environmentConfirmGui.open(player, worldData, clickedItem, cost)
                     }
@@ -537,7 +537,7 @@ class WorldSettingsListener : Listener {
                         }
                     }
                     ItemTag.TYPE_GUI_CANCEL -> {
-                        plugin.soundManager.playClickSound(player, null)
+                        plugin.soundManager.playClickSound(player, null, "world_settings")
                         plugin.environmentGui.open(player, worldData)
                     }
                 }
@@ -547,7 +547,7 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) return
                 
                 if (type != null && type.startsWith("tag_")) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     val tagName = type.substringAfter("tag_")
                     val tag = WorldTag.valueOf(tagName)
                     
@@ -577,7 +577,7 @@ class WorldSettingsListener : Listener {
                         val plainLine = PlainTextComponentSerializer.plainText().serialize(line)
                         if (plainLine.startsWith("PAGE_TARGET: ")) {
                             val targetPage = plainLine.removePrefix("PAGE_TARGET: ").trim().toIntOrNull() ?: return@forEach
-                            plugin.soundManager.playClickSound(player, item)
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
                             plugin.worldSettingsGui.openPortalManagement(player, worldData, targetPage)
                         }
                     }
@@ -587,7 +587,7 @@ class WorldSettingsListener : Listener {
                 if (type == ItemTag.TYPE_PORTAL) {
                     val portalId = ItemTag.getPortalUuid(item) ?: return
                     if (event.isRightClick) {
-                        plugin.soundManager.playClickSound(player, item)
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
                         val portal = plugin.portalRepository.findAll().find { it.id == portalId }
                         if (portal != null) {
                             val world = Bukkit.getWorld(portal.worldName)
@@ -614,7 +614,7 @@ class WorldSettingsListener : Listener {
                     } else if (event.isLeftClick) {
                         val portal = plugin.portalRepository.findAll().find { it.id == portalId }
                         if (portal != null) {
-                            plugin.soundManager.playClickSound(player, item)
+                            plugin.soundManager.playClickSound(player, item, "world_settings")
                             plugin.portalManager.addIgnorePlayer(player)
                             player.teleport(portal.getCenterLocation().add(0.0, 1.0, 0.0))
                             player.sendMessage(lang.getMessage(player, "messages.warp_generic"))
@@ -635,11 +635,11 @@ class WorldSettingsListener : Listener {
                     }
                     ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION -> {
                         if (worldData.borderExpansionLevel <= 0) return
-                        plugin.soundManager.playClickSound(player, item)
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
                         plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
                     }
                     ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> {
-                        plugin.soundManager.playClickSound(player, item)
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
                         plugin.worldSettingsGui.openDeleteWorldConfirmation1(player, worldData)
                     }
                 }
@@ -649,10 +649,10 @@ class WorldSettingsListener : Listener {
                  if (event.clickedInventory != event.view.topInventory) return
 
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openCriticalSettings(player, worldData)
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     val totalExpCost = calculateTotalExpansionCost(worldData.borderExpansionLevel)
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                     
@@ -683,10 +683,10 @@ class WorldSettingsListener : Listener {
                  if (event.clickedInventory != event.view.topInventory) return
 
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openCriticalSettings(player, worldData)
                 } else if (type == ItemTag.TYPE_GUI_SETTING_DELETE_WORLD) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
                 }
             }
@@ -695,10 +695,10 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) return
                 
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.worldSettingsGui.openCriticalSettings(player, worldData)
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
                     val refund = (worldData.cumulativePoints * refundRate).toInt()
                     
@@ -728,7 +728,7 @@ class WorldSettingsListener : Listener {
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
                     handleCommandCancel()
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
                     worldData.isArchived = true
                     plugin.worldConfigRepository.save(worldData)
@@ -741,11 +741,11 @@ class WorldSettingsListener : Listener {
                 if (event.clickedInventory != event.view.topInventory) return
                 
                 if (type == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     plugin.settingsSessionManager.endSession(player)
                     plugin.playerWorldGui.open(player)
                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "world_settings")
                     player.closeInventory()
                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
                     
@@ -1147,7 +1147,7 @@ class WorldSettingsListener : Listener {
         val currentTemp = session.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
         session.tempWeather = GuiHelper.getNextValue(currentTemp, options, true) // Cycle next
         
-        plugin.soundManager.playClickSound(player, null)
+        plugin.soundManager.playClickSound(player, null, "world_settings")
         plugin.environmentGui.open(player, worldData)
     }
 

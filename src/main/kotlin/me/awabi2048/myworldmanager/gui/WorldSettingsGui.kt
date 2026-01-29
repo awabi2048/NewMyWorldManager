@@ -52,12 +52,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         // 戻るボタン
         if (showBackButton) {
-            inventory.setItem(45, createItem(
-                Material.ARROW,
-                lang.getMessage(player, "gui.common.return"),
-                listOf(lang.getMessage(player, "gui.common.return_desc")),
-                ItemTag.TYPE_GUI_RETURN
-            ))
+            inventory.setItem(45, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "world_settings"))
         }
 
         // 権限判定
@@ -68,7 +63,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         // スロット19: ワールド名・説明変更
         if (hasManagePermission) {
             inventory.setItem(19, createItem(
-                Material.NAME_TAG,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "info", Material.NAME_TAG),
                 lang.getMessage(player, "gui.settings.info.display"),
                 lang.getMessageList(player, "gui.settings.info.lore"),
                 ItemTag.TYPE_GUI_SETTING_INFO
@@ -84,7 +79,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         // スロット20: アイコン変更
         if (hasManagePermission) {
             inventory.setItem(20, createItem(
-                Material.ANVIL,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "icon", Material.ANVIL),
                 lang.getMessage(player, "gui.settings.icon.display"),
                 lang.getMessageList(player, "gui.settings.icon.lore"),
                 ItemTag.TYPE_GUI_SETTING_ICON
@@ -100,7 +95,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             }
             
             inventory.setItem(21, createItem(
-                Material.COMPASS,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "spawn", Material.COMPASS),
                 lang.getMessage(player, "gui.settings.spawn.display"),
                 lore,
                 ItemTag.TYPE_GUI_SETTING_SPAWN
@@ -167,7 +162,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             }
             
             inventory.setItem(23, createItem(
-                Material.FILLED_MAP,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "expand", Material.FILLED_MAP),
                 lang.getMessage(player, "gui.settings.expand.display"),
                 expansionLore,
                 ItemTag.TYPE_GUI_SETTING_EXPAND
@@ -210,7 +205,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             publishLore.add(lang.getMessage(player, "gui.settings.publish.click_left"))
             
             inventory.setItem(24, createItem(
-                Material.OAK_DOOR,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "publish", Material.OAK_DOOR),
                 lang.getMessage(player, "gui.settings.publish.display"),
                 publishLore,
                 ItemTag.TYPE_GUI_SETTING_PUBLISH
@@ -276,7 +271,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             memberLore.add(lang.getMessage(player, "gui.settings.member.click"))
 
             inventory.setItem(25, createItem(
-                Material.PLAYER_HEAD,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "member", Material.PLAYER_HEAD),
                 lang.getMessage(player, "gui.settings.member.display"),
                 memberLore,
                 ItemTag.TYPE_GUI_SETTING_MEMBER
@@ -296,7 +291,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_footer"))
             
             inventory.setItem(28, createItem(
-                Material.BOOK,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "tags", Material.BOOK),
                 lang.getMessage(player, "gui.settings.tags.display"),
                 tagLore,
                 ItemTag.TYPE_GUI_SETTING_TAGS
@@ -317,7 +312,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             }
 
             inventory.setItem(29, createItem(
-                Material.OAK_SIGN,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "announcement", Material.OAK_SIGN),
                 lang.getMessage(player, "gui.settings.announcement.display"),
                 adLore,
                 ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT
@@ -332,7 +327,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
             val statusText = if (worldData.notificationEnabled) lang.getMessage(player, "gui.settings.notification.on") else lang.getMessage(player, "gui.settings.notification.off")
             
             inventory.setItem(30, createItem(
-                if (worldData.notificationEnabled) Material.BELL else Material.OAK_DOOR,
+                if (worldData.notificationEnabled) 
+                    plugin.menuConfigManager.getIconMaterial("world_settings", "notification_on", Material.BELL)
+                else 
+                    plugin.menuConfigManager.getIconMaterial("world_settings", "notification_off", Material.OAK_DOOR),
                 lang.getMessage(player, "gui.settings.notification.display"),
                 listOf(
                     lang.getMessage(player, "gui.settings.notification.current", mapOf("color" to statusColor, "status" to statusText)),
@@ -350,7 +348,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 lore.add(warningLore)
             }
             inventory.setItem(32, createItem(
-                Material.GRASS_BLOCK,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "environment", Material.GRASS_BLOCK),
                 lang.getMessage(player, "gui.settings.environment.display"),
                 lore,
                 ItemTag.TYPE_GUI_SETTING_ENVIRONMENT
@@ -366,7 +364,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 lore.add(warningLore)
             }
             inventory.setItem(33, createItem(
-                Material.TNT,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.TNT),
                 lang.getMessage(player, "gui.settings.critical.display"),
                 lore,
                 ItemTag.TYPE_GUI_SETTING_CRITICAL
@@ -450,7 +448,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 it.uniqueId != worldData.owner && !worldData.moderators.contains(it.uniqueId) && !worldData.members.contains(it.uniqueId) 
             } ?: emptyList()
             inventory.setItem(51, createItem(
-                Material.SPYGLASS,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "visitor", Material.SPYGLASS),
                 lang.getMessage(player, "gui.settings.visitors.display"),
                 listOf(
                     lang.getMessage(player, "gui.settings.visitors.count", mapOf("count" to visitors.size)),
@@ -464,7 +462,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         // スロット52: 設置済みポータルの管理
         if (hasManagePermission) {
             inventory.setItem(52, createItem(
-                Material.END_PORTAL_FRAME,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "portals", Material.END_PORTAL_FRAME),
                 lang.getMessage(player, "gui.settings.portals.display"),
                 lang.getMessageList(player, "gui.settings.portals.lore"),
                 ItemTag.TYPE_GUI_SETTING_PORTALS
@@ -605,7 +603,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ))
 
         // 戻るボタン
-        inventory.setItem(40, createItem(Material.ARROW, lang.getMessage(player, "gui.common.back"), listOf(), ItemTag.TYPE_GUI_CANCEL))
+        inventory.setItem(40, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "world_settings"))
         
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
         for (i in 0 until inventory.size) {
@@ -711,14 +709,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         // ナビゲーション
         if (page > 0) {
-            inventory.setItem(footerStart + 1, createItem(Material.ARROW, lang.getMessage(player, "gui.common.prev_page"), listOf("PAGE_TARGET: ${page - 1}"), ItemTag.TYPE_GUI_NAV_PREV))
+            inventory.setItem(footerStart + 1, me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "world_settings", page - 1))
         }
         if (startIndex + itemsPerPage < allMembers.size) {
-            inventory.setItem(footerStart + 8, createItem(Material.ARROW, lang.getMessage(player, "gui.common.next_page"), listOf("PAGE_TARGET: ${page + 1}"), ItemTag.TYPE_GUI_NAV_NEXT))
+            inventory.setItem(footerStart + 8, me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(plugin, player, "world_settings", page + 1))
         }
 
         // 戻るボタン (最終行1スロット目)
-        inventory.setItem(footerStart, createItem(Material.REDSTONE, lang.getMessage(player, "gui.common.back"), listOf(), ItemTag.TYPE_GUI_CANCEL))
+        inventory.setItem(footerStart, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "world_settings"))
         
         // メンバー招待ボタン
         inventory.setItem(footerStart + 4, createItem(

@@ -127,3 +127,9 @@ world_unload:
     - "world"
     - "world_nether"
     - "world_the_end"
+
+# サウンド設定
+sounds:
+  global_click:
+    sound: "UI_BUTTON_CLICK"
+    pitch: 2.0

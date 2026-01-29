@@ -118,7 +118,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         // 戻るボタン
         if (showBackButton) {
             val backButtonSlot = (rowCount - 1) * 9
-            inventory.setItem(backButtonSlot, createReturnButton(player))
+            inventory.setItem(backButtonSlot, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"))
         }
 
         player.openInventory(inventory)

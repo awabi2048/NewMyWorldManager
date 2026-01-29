@@ -102,14 +102,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         inventory.setItem(footerStart + 6, createCriticalSettingsVisibilityButton(player, stats.criticalSettingsEnabled))
 
         if (page > 0) {
-            inventory.setItem(footerStart + 1, createNavigationItem(player, Material.ARROW, lang.getMessage(player, "gui.common.prev_page"), page - 1))
+            inventory.setItem(footerStart + 1, me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "player_world", page - 1))
         }
 
         if (showBackButton) {
-            inventory.setItem(footerStart, createReturnButton(player))
+            inventory.setItem(footerStart, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "player_world"))
         }
         if (startIndex + itemsPerPageNum < playerWorlds.size) {
-            inventory.setItem(footerStart + 8, createNavigationItem(player, Material.ARROW, lang.getMessage(player, "gui.common.next_page"), page + 1))
+            inventory.setItem(footerStart + 8, me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(plugin, player, "player_world", page + 1))
         }
 
         player.openInventory(inventory)
@@ -238,28 +238,5 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    private fun createNavigationItem(player: Player, material: Material, name: String, targetPage: Int): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        
-        // 装飾を指定しない (LegacyComponentSerializerにおまかせする)
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        
-        item.itemMeta = meta
-        ItemTag.setTargetPage(item, targetPage)
-        val lang = plugin.languageManager
-        val type = if (name == lang.getMessage(player, "gui.common.next_page")) ItemTag.TYPE_GUI_NAV_NEXT else ItemTag.TYPE_GUI_NAV_PREV
-        ItemTag.tagItem(item, type)
-        return item
-    }
 
-    private fun createReturnButton(player: Player): ItemStack {
-        val lang = plugin.languageManager
-        val item = ItemStack(Material.REDSTONE)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.common.return").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
-        return item
-    }
 }

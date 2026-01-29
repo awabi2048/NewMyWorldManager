@@ -31,7 +31,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 val page = ItemTag.getTargetPage(currentItem) ?: 0
                 val worldUuid = ItemTag.getWorldUuid(currentItem)
                 val worldData = if (worldUuid != null) plugin.worldConfigRepository.findByUuid(worldUuid) else null
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 plugin.favoriteGui.open(player, page, worldData)
                 return
             }
@@ -39,7 +39,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             if (type == ItemTag.TYPE_GUI_RETURN) {
                 val uuid = ItemTag.getWorldUuid(currentItem) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 plugin.favoriteMenuGui.open(player, worldData)
                 return
             }
@@ -59,7 +59,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                         }
                     } else {
                         // Regular click behavior (if any) or hint message
-                         plugin.soundManager.playClickSound(player, currentItem)
+                         plugin.soundManager.playClickSound(player, currentItem, "favorite")
                     }
                     return
                 }
@@ -70,11 +70,11 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 
                 // 公開・限定公開以外はワープ不可 (メンバーは例外)
                 if (!isMember && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.PUBLIC && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.FRIEND) {
-                    plugin.soundManager.playClickSound(player, currentItem)
+                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
                     return
                 }
                 
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 plugin.worldService.teleportToWorld(player, uuid)
                 player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                 plugin.worldService.sendAnnouncementMessage(player, worldData)
@@ -115,7 +115,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     val uuid = ItemTag.getWorldUuid(currentItem) ?: return
                     val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
                     val owner = Bukkit.getOfflinePlayer(worldData.owner)
-                    plugin.soundManager.playClickSound(player, currentItem)
+                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
                     VisitGui(plugin).open(player, owner, 0, worldData)
                 }
                 ItemTag.TYPE_GUI_FAVORITE_TOGGLE -> {
@@ -150,13 +150,13 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 ItemTag.TYPE_GUI_FAVORITE_LIST -> {
                     val uuid = ItemTag.getWorldUuid(currentItem)
                     val worldData = if (uuid != null) plugin.worldConfigRepository.findByUuid(uuid) else null
-                    plugin.soundManager.playClickSound(player, currentItem)
+                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
                     plugin.favoriteGui.open(player, 0, worldData)
                 }
                 ItemTag.TYPE_GUI_RETURN -> {
                     val uuid = ItemTag.getWorldUuid(currentItem) ?: return
                     val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-                    plugin.soundManager.playClickSound(player, currentItem)
+                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
                     plugin.favoriteMenuGui.open(player, worldData)
                 }
             }
@@ -186,7 +186,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 plugin.favoriteGui.open(player, 0)
             } else if (type == ItemTag.TYPE_GUI_CANCEL) {
                 // キャンセルしてリストに戻る
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 plugin.favoriteGui.open(player, 0)
             }
         }

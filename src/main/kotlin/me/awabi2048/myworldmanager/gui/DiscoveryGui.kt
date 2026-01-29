@@ -92,10 +92,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
         // コントロールボタン
         if (currentPage > 0) {
-            inventory.setItem(46, createNavButton(player, lang.getMessage(player, "gui.common.prev_page"), Material.ARROW, currentPage - 1))
+            inventory.setItem(46, me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "discovery", currentPage - 1))
         }
         if (currentPage < totalPages - 1) {
-            inventory.setItem(53, createNavButton(player, lang.getMessage(player, "gui.common.next_page"), Material.ARROW, currentPage + 1))
+            inventory.setItem(53, me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(plugin, player, "discovery", currentPage + 1))
         }
 
         // ソート & フィルタ
@@ -104,7 +104,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
         
         if (showBackButton) {
-            inventory.setItem(45, createReturnButton(player))
+            inventory.setItem(45, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "discovery"))
         }
 
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "discovery", title)
@@ -152,7 +152,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
     private fun createSortButton(player: Player, currentSort: DiscoverySort): ItemStack {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.HOPPER)
+        val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "sort", Material.HOPPER))
         val meta = item.itemMeta ?: return item
         
         meta.displayName(lang.getComponent(player, "gui.discovery.sort.name").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
@@ -175,7 +175,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
     private fun createTagFilterButton(player: Player, selectedTag: WorldTag?): ItemStack {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.NAME_TAG)
+        val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG))
         val meta = item.itemMeta ?: return item
         
         meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name").color(NamedTextColor.AQUA).decorate(TextDecoration.BOLD))

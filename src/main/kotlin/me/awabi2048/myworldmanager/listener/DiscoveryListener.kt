@@ -51,7 +51,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     }
 
                     // ワープ
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "discovery")
                     plugin.worldService.teleportToWorld(player, uuid)
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.worldService.sendAnnouncementMessage(player, worldData)
@@ -71,7 +71,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         if (session.sort == DiscoverySort.SPOTLIGHT && player.hasPermission("myworldmanager.admin")) {
                             plugin.spotlightRepository.remove(uuid)
                             player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
-                            plugin.soundManager.playClickSound(player, item)
+                            plugin.soundManager.playClickSound(player, item, "discovery")
                             plugin.discoveryGui.open(player)
                             return
                         }
@@ -127,12 +127,12 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     }
                 }
                 
-                plugin.soundManager.playClickSound(player, item)
+                plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.discoveryGui.open(player)
             }
             ItemTag.TYPE_GUI_DISCOVERY_SORT -> {
                 session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), event.isLeftClick)
-                plugin.soundManager.playClickSound(player, item)
+                plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.discoveryGui.open(player)
             }
             "discovery_spotlight_empty" -> {
@@ -152,7 +152,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     }
                     
                     plugin.spotlightConfirmGui.open(player, worldData)
-                    plugin.soundManager.playClickSound(player, item)
+                    plugin.soundManager.playClickSound(player, item, "discovery")
                 }
             }
         }

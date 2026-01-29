@@ -66,18 +66,37 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
 
         if (currentPage > 0) {
-            inventory.setItem(46, createNavButton(player, lang.getMessage(player, "gui.common.prev_page"), Material.ARROW, currentPage - 1, returnToWorld))
+            val item = me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "favorite", currentPage - 1)
+            if (returnToWorld != null) me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, returnToWorld.uuid)
+            inventory.setItem(46, item)
         }
         
         inventory.setItem(49, createPlayerHead(player, allWorlds.size))
 
         if (currentPage < totalPages - 1) {
-            inventory.setItem(53, createNavButton(player, lang.getMessage(player, "gui.common.next_page"), Material.ARROW, currentPage + 1, returnToWorld))
+            val item = me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(plugin, player, "favorite", currentPage + 1)
+            if (returnToWorld != null) me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, returnToWorld.uuid)
+            inventory.setItem(53, item)
         }
 
         // 戻るボタン
         if (returnToWorld != null || showBackButton) {
-            inventory.setItem(45, createBackButton(player, returnToWorld))
+            val item = me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "favorite")
+            if (returnToWorld != null) {
+                // 説明文を追加 (CreateReturnItemはデフォルトのものを使うので、loreを追加する必要があるが、Configurationで管理されるべきかも。
+                // いったんGuiHelperのデフォルトのままにするか、Loreを修正するか。
+                // createBackButtonの実装では "gui.common.return_desc" を追加していた。
+                // GuiHelper.createReturnItem は return_desc を追加してくれるか？ getIconMaterial -> createItem からして怪しい。
+                // Configで設定されたLoreを使うべきだが、GuiHelperはConfigのLoreを使う？
+                // MenuConfigManagerはMaterialのみ。GuiHelperはcreateItemを作る。
+                // GuiHelper.createReturnItemの実装を見ると、Iconsから取得して、名前とLoreを設定しているはず。
+                // しかし、FavoriteGuiのcreateBackButtonは特別にLoreを追加していた。
+                // ここでは、GuiHelperの標準に合わせるか、独自に追加するか。
+                // GuiHelperの実装: "gui.common.return" + "gui.common.return_desc" (always?)
+                // GuiHelperを確認すべきだが、いったん標準を使用。
+                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, returnToWorld.uuid)
+            }
+            inventory.setItem(45, item)
         }
 
         val background = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)

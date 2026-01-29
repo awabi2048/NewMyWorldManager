@@ -47,13 +47,13 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
             if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
                 val targetPage = ItemTag.getTargetPage(currentItem) ?: return
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 gui.open(player, targetPage)
                 return
             }
             
             if (type == ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY) {
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
                 plugin.playerStatsRepository.save(stats)
@@ -62,7 +62,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             }
             
             if (type == ItemTag.TYPE_GUI_INVITE) {
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 val currentWorld = player.world
                 val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
                 
@@ -89,7 +89,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             }
 
             if (type == ItemTag.TYPE_GUI_CREATION_BUTTON) {
-                plugin.soundManager.playClickSound(player, currentItem)
+                plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 
                 // セッションの開始
                 plugin.creationSessionManager.startSession(player.uniqueId)
@@ -141,7 +141,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     player.teleport(spawnLocation)
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.worldService.sendAnnouncementMessage(player, worldData)
-                    plugin.soundManager.playClickSound(player, currentItem)
+                    plugin.soundManager.playClickSound(player, currentItem, "player_world")
 
                     if (!isMember) {
                         worldData.recentVisitors[0]++
@@ -195,7 +195,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 }
 
                 ItemTag.TYPE_GUI_RETURN -> {
-                    plugin.soundManager.playClickSound(player, currentItem)
+                    plugin.soundManager.playClickSound(player, currentItem, "player_world")
                     plugin.playerWorldGui.open(player)
                 }
             }

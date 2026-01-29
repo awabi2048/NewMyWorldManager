@@ -61,4 +61,48 @@ object GuiHelper {
             }
         }, 5L)
     }
+
+    /*
+     * MenuConfigManagerを使用してア イコンMaterialを取得し、アイテムを作成するヘルパーメソッド
+     */
+
+    fun createNextPageItem(plugin: MyWorldManager, player: Player, menuId: String, targetPage: Int): org.bukkit.inventory.ItemStack {
+        val material = plugin.menuConfigManager.getIconMaterial(menuId, "next_page", org.bukkit.Material.ARROW)
+        val name = plugin.languageManager.getMessage(player, "gui.common.next_page")
+        return createNavigationItem(player, material, name, targetPage, true)
+    }
+
+    fun createPrevPageItem(plugin: MyWorldManager, player: Player, menuId: String, targetPage: Int): org.bukkit.inventory.ItemStack {
+        val material = plugin.menuConfigManager.getIconMaterial(menuId, "prev_page", org.bukkit.Material.ARROW)
+        val name = plugin.languageManager.getMessage(player, "gui.common.prev_page")
+        return createNavigationItem(player, material, name, targetPage, false)
+    }
+
+    fun createReturnItem(plugin: MyWorldManager, player: Player, menuId: String): org.bukkit.inventory.ItemStack {
+        val material = plugin.menuConfigManager.getIconMaterial(menuId, "back", org.bukkit.Material.REDSTONE)
+        val item = org.bukkit.inventory.ItemStack(material)
+        val meta = item.itemMeta ?: return item
+        meta.displayName(plugin.languageManager.getComponent(player, "gui.common.return").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW).decorate(net.kyori.adventure.text.format.TextDecoration.BOLD))
+        item.itemMeta = meta
+        ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
+        return item
+    }
+
+    private fun createNavigationItem(player: Player, material: org.bukkit.inventory.ItemStack, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
+        // Overload to accept ItemStack if needed, but below uses Material
+        return createNavigationItem(player, material.type, name, targetPage, isNext)
+    }
+
+    private fun createNavigationItem(player: Player, material: org.bukkit.Material, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
+        val item = org.bukkit.inventory.ItemStack(material)
+        val meta = item.itemMeta ?: return item
+        
+        meta.displayName(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(name).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
+        
+        item.itemMeta = meta
+        ItemTag.setTargetPage(item, targetPage)
+        val type = if (isNext) ItemTag.TYPE_GUI_NAV_NEXT else ItemTag.TYPE_GUI_NAV_PREV
+        ItemTag.tagItem(item, type)
+        return item
+    }
 }
