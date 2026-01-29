@@ -1004,7 +1004,8 @@ biomes:
   end_barrens: "End Barrens"
   custom_item:
     bottle_fill: "§aYou have bottled the biome air! (Biome: {biome})"
-  custom_item:
     biome_world_only: "§cYou can only use this item in MyWorld."
     no_permission: "§cYou do not have permission to change the biome."
     partial_biome_applied: "§aApplied biome {biome} to the surrounding area!"
+    world_seed_expanded: "§aExpanded your MyWorld slots! Current slots: {slots}"
+    world_seed_limit_reached: "§cCannot expand slots further. (Limit: {limit})"
