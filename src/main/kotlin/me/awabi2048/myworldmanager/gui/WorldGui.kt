@@ -53,8 +53,16 @@ class WorldGui(private val plugin: MyWorldManager) {
             return
         }
         val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.DARK_GRAY, TextDecoration.BOLD)
+        val plainTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(title)
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_world", title)
-        val inventory = Bukkit.createInventory(null, 54, title)
+        
+        val inventory = if (player.openInventory.topInventory.size == 54 && currentTitle == plainTitle) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 54, title)
+        }
 
         // 1行目を黒の板ガラスで敷き詰める
         val blackPane = createBlackPaneItem()
@@ -65,6 +73,11 @@ class WorldGui(private val plugin: MyWorldManager) {
         // ワールドアイテムの配置 (スロット9から44まで)
         val startIndex = safePage * itemsPerPage
         val pageWorlds = filteredWorlds.drop(startIndex).take(itemsPerPage)
+
+        // Clear existing world items if reusing
+        for (i in 9..44) {
+            inventory.setItem(i, null)
+        }
 
         pageWorlds.forEachIndexed { index, worldData ->
             inventory.setItem(index + 9, createWorldItem(player, worldData))
@@ -118,7 +131,9 @@ class WorldGui(private val plugin: MyWorldManager) {
             }
         }
 
-        player.openInventory(inventory)
+        if (player.openInventory.topInventory != inventory) {
+            player.openInventory(inventory)
+        }
     }
 
     /**

@@ -16,10 +16,18 @@ class AdminGuiListener : Listener {
 
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
-        val view = event.view
-        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         val player = event.whoClicked as? Player ?: return
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        
+        // GUI遷移中のクリックを無視
+        val session = plugin.settingsSessionManager.getSession(player)
+        if (session != null && session.isGuiTransition) {
+            event.isCancelled = true
+            return
+        }
+
+        val view = event.view
+        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         val lang = plugin.languageManager
         
         // ポータル管理GUIの判定

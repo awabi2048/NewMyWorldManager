@@ -24,9 +24,17 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
+        val player = event.whoClicked as? Player ?: return
+        
+        // GUI遷移中のクリックを無視
+        val session = plugin.settingsSessionManager.getSession(player)
+        if (session != null && session.isGuiTransition) {
+            event.isCancelled = true
+            return
+        }
+
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
-        val player = event.whoClicked as? Player ?: return
         val lang = plugin.languageManager
 
         // プレイヤー用ワールド一覧

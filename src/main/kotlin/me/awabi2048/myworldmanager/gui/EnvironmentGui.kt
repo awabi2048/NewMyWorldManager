@@ -20,7 +20,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_ENVIRONMENT_SETTINGS, isGui = true)
-        scheduleGuiTransitionReset(player)
+        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         
         val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
             player.openInventory.topInventory
@@ -146,12 +146,4 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    private fun scheduleGuiTransitionReset(player: Player) {
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            val session = plugin.settingsSessionManager.getSession(player)
-            if (session != null && session.isGuiTransition) {
-                session.isGuiTransition = false
-            }
-        }, 5L)
-    }
 }
