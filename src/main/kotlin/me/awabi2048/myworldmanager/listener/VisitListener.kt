@@ -18,11 +18,11 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
     fun onInventoryClick(event: InventoryClickEvent) {
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
-        val player = event.whoClicked as? Player ?: return
-        val lang = plugin.languageManager
+        // InventoryHolderによる判定に変更
+        if (view.topInventory.holder is VisitGui.VisitGuiHolder) {
+            val player = event.whoClicked as? Player ?: return
+            val lang = plugin.languageManager
 
-        plugin.logger.info("[Debug] VisitListener onClick: title='$title', match=${lang.isKeyMatch(title, "gui.visit.title")}")
-        if (lang.isKeyMatch(title, "gui.visit.title")) {
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return

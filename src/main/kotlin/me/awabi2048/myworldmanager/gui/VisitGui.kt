@@ -47,7 +47,10 @@ class VisitGui(private val plugin: MyWorldManager) {
         val targetName = targetPlayer.name ?: "Unknown"
         val titleComp = lang.getComponent(player, titleKey, mapOf("player" to targetName))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "visit", titleComp)
-        val inventory = Bukkit.createInventory(null, rowCount * 9, titleComp)
+        
+        val holder = VisitGuiHolder()
+        val inventory = Bukkit.createInventory(holder, rowCount * 9, titleComp)
+        holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)
         val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)
@@ -158,5 +161,10 @@ class VisitGui(private val plugin: MyWorldManager) {
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
         return item
+    }
+
+    class VisitGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }
