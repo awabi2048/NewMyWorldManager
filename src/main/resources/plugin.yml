@@ -2,8 +2,8 @@ name: MyWorldManager
 version: '${project.version}'
 main: me.awabi2048.myworldmanager.MyWorldManager
 api-version: '1.21'
-authors: [ Antigravity ]
-description: A template-based multi-world management system.
+authors: awabi2048
+description: ""
 commands:
   mwm:
     description: MyWorldManager main command
