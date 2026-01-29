@@ -1,5 +1,4 @@
 package me.awabi2048.myworldmanager.gui
-
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -52,7 +51,10 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
         val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite", title)
-        val inventory = Bukkit.createInventory(null, 54, title)
+        
+        val holder = FavoriteGuiHolder()
+        val inventory = Bukkit.createInventory(holder, 54, title)
+        holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)
         for (i in 0..8) inventory.setItem(i, blackPane)
@@ -83,17 +85,6 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         if (returnToWorld != null || showBackButton) {
             val item = me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "favorite")
             if (returnToWorld != null) {
-                // 説明文を追加 (CreateReturnItemはデフォルトのものを使うので、loreを追加する必要があるが、Configurationで管理されるべきかも。
-                // いったんGuiHelperのデフォルトのままにするか、Loreを修正するか。
-                // createBackButtonの実装では "gui.common.return_desc" を追加していた。
-                // GuiHelper.createReturnItem は return_desc を追加してくれるか？ getIconMaterial -> createItem からして怪しい。
-                // Configで設定されたLoreを使うべきだが、GuiHelperはConfigのLoreを使う？
-                // MenuConfigManagerはMaterialのみ。GuiHelperはcreateItemを作る。
-                // GuiHelper.createReturnItemの実装を見ると、Iconsから取得して、名前とLoreを設定しているはず。
-                // しかし、FavoriteGuiのcreateBackButtonは特別にLoreを追加していた。
-                // ここでは、GuiHelperの標準に合わせるか、独自に追加するか。
-                // GuiHelperの実装: "gui.common.return" + "gui.common.return_desc" (always?)
-                // GuiHelperを確認すべきだが、いったん標準を使用。
                 me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, returnToWorld.uuid)
             }
             inventory.setItem(45, item)
@@ -218,5 +209,10 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
         return item
+    }
+
+    class FavoriteGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }

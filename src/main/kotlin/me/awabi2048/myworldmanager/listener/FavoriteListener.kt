@@ -22,7 +22,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
 
         // お気に入り一覧
-        if (lang.isKeyMatch(title, "gui.favorite.title")) {
+        if (view.topInventory.holder is FavoriteGui.FavoriteGuiHolder) {
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
 
@@ -58,7 +58,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     if (event.isShiftClick) {
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId) // Explicitly fetch stats
                         if (stats.favoriteWorlds.containsKey(uuid)) {
-                            plugin.favoriteConfirmGui.open(player, worldData)
+                            me.awabi2048.myworldmanager.gui.FavoriteConfirmGui(plugin).open(player, worldData)
                         }
                     } else {
                         // Regular click behavior (if any) or hint message
@@ -95,7 +95,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                         // オーナー以外なら解除可能
                         if (worldData.owner == player.uniqueId) return
 
-                        plugin.favoriteConfirmGui.open(player, worldData)
+                        me.awabi2048.myworldmanager.gui.FavoriteConfirmGui(plugin).open(player, worldData)
                     }
                 } else {
                     // プレビュー
@@ -107,7 +107,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         }
 
         // お気に入りメニュー
-        if (lang.isKeyMatch(title, "gui.favorite.favorite_menu.title")) {
+        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteMenuGui.FavoriteMenuGuiHolder) {
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
@@ -168,7 +168,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
         
         // お気に入り解除確認メニュー
-        if (lang.isKeyMatch(title, "gui.favorite.remove_confirm.title")) {
+        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteConfirmGui.FavoriteConfirmGuiHolder) {
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)

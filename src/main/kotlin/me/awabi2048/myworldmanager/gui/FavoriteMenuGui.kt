@@ -18,7 +18,10 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val titleKey = "gui.favorite.favorite_menu.title"
         val title = lang.getComponent(player, titleKey).color(NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", title)
-        val inventory = Bukkit.createInventory(null, 45, title)
+        
+        val holder = FavoriteMenuGuiHolder()
+        val inventory = Bukkit.createInventory(holder, 45, title)
+        holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, worldData)
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, worldData)
@@ -170,5 +173,10 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         if (worldData != null) ItemTag.setWorldUuid(item, worldData.uuid)
         return item
+    }
+
+    class FavoriteMenuGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }
