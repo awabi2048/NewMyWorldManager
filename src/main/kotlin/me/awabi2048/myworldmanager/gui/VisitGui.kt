@@ -132,6 +132,7 @@ class VisitGui(private val plugin: MyWorldManager) {
             }
             lore.add(lang.getComponent(viewer, "gui.common.separator"))
         }
+        lore.add(lang.getComponent(viewer, "gui.common.separator"))
         
         meta.lore(lore)
         item.itemMeta = meta

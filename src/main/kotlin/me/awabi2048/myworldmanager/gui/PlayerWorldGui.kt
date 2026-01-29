@@ -170,6 +170,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
             lore.add(lang.getComponent(player, "gui.player_world.world_item.expired"))
             lore.add(lang.getComponent(player, "gui.common.separator"))
         }
+        lore.add(lang.getComponent(player, "gui.common.separator"))
 
         meta.lore(lore)
         item.itemMeta = meta
