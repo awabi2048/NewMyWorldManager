@@ -1,9 +1,0 @@
-RAYOUT_RULES.md
-TASK.md
-*.xml
-!pom.xml
-my-world-manager.iml
-
-target/
-.idea/
-.vscode/
