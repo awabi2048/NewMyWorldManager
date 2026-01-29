@@ -13,7 +13,6 @@ general:
     north_east: "北東"
     south_west: "南西"
     south_east: "南東"
-    south_east: "南東"
     unknown: "不明"
   
   commands:
@@ -603,8 +602,6 @@ gui:
   meet:
     title: "{player}のところに行く"
     title_list: "プレイヤーのところに行く"
-    world_item:
-      current_world: "§f§l| §7現在のワールド §f{world}"
     world_item:
       current_world: "§f§l| §7現在のワールド §f{world}"
       status: "§f§l| §7ステータス §e{status}"

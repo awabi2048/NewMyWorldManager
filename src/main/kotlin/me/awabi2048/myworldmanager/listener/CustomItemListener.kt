@@ -184,7 +184,6 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  
                  // Open Confirmation
                  plugin.worldSeedConfirmGui.open(player, currentSlots, currentSlots + 1)
-                 plugin.soundManager.playMenuOpenSound(player, "world_seed_confirm")
              }
         }
     }

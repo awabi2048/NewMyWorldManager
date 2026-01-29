@@ -68,7 +68,7 @@ enum class CustomItem(val id: String) {
             meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.world_seed.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
             meta.lore(lang.getMessageList(player, "custom_item.world_seed.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
             
-            meta.setMaxStackSize(64)
+            meta.setMaxStackSize(1)
             // No custom item model unless needed, sticking to material.
             // meta.setItemModel(NamespacedKey("my_world_manager", "world_seed")) 
             meta.setTool(null)
