@@ -131,9 +131,9 @@ class AdminGuiListener : Listener {
                 } else if (event.isRightClick) {
                     // タイプが「なし」以外の場合のみプレイヤー名の入力を開始
                     if (session.playerFilterType != me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
+                        plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
                         player.closeInventory()
                         player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_prompt"))
-                        plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
                         // 専用のセッション状態を設定（チャット入力待ち）
                         // session.playerFilterはリセットしない（キャンセル時などに維持するため）
                     }
