@@ -58,13 +58,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         val titleStr = lang.getMessage(player, titleKey)
-        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        
-        if (currentTitle != titleStr) {
-            plugin.soundManager.playMenuOpenSound(player, "player_world")
-        }
-
         val title = Component.text(titleStr)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "player_world", title)
         val inventory = Bukkit.createInventory(null, rowCount * 9, title)
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)

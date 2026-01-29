@@ -23,9 +23,11 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             return
         }
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        plugin.soundManager.playMenuOpenSound(player, "user_settings")
+
         
-        val inventory = Bukkit.createInventory(null, 45, Component.text(lang.getMessage(player, titleKey)))
+        val title = Component.text(lang.getMessage(player, titleKey))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "user_settings", title)
+        val inventory = Bukkit.createInventory(null, 45, title)
 
         // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)

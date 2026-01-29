@@ -28,7 +28,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             return
         }
         
-        plugin.soundManager.playMenuOpenSound(player, "favorite")
+
         val allWorlds = favWorldUuids.mapNotNull { uuid ->
             val data = plugin.worldConfigRepository.findByUuid(uuid)
             if (data == null) {
@@ -51,6 +51,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             return
         }
         val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite", title)
         val inventory = Bukkit.createInventory(null, 54, title)
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)

@@ -44,14 +44,14 @@ class CreationGui(private val plugin: MyWorldManager) {
             return
         }
 
-        plugin.soundManager.playMenuOpenSound(player, "creation")
-        
         val titleKey = "gui.creation.title_type"
         if (!lang.hasKey(player, titleKey)) {
-            player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return
+             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
+             return
         }
-        val inventory = Bukkit.createInventory(null, 45, Component.text(lang.getMessage(player, titleKey)))
+        val title = Component.text(lang.getMessage(player, titleKey))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        val inventory = Bukkit.createInventory(null, 45, title)
 
         setupHeaderFooter(inventory, 5)
 
@@ -96,14 +96,15 @@ class CreationGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
-        plugin.soundManager.playMenuOpenSound(player, "creation")
-        val templates = plugin.templateRepository.findAll()
+        val title = Component.text(lang.getMessage(player, titleKey))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
         
+        val templates = plugin.templateRepository.findAll()
         val worldsPerRow = 7
         val neededDataRows = if (templates.isEmpty()) 1 else (templates.size + worldsPerRow - 1) / worldsPerRow
         val rowCount = (neededDataRows + 2).coerceIn(3, 6)
         
-        val inventory = Bukkit.createInventory(null, rowCount * 9, Component.text(lang.getMessage(player, titleKey)))
+        val inventory = Bukkit.createInventory(null, rowCount * 9, title)
 
         setupHeaderFooter(inventory, rowCount)
 
@@ -145,8 +146,10 @@ class CreationGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
-        plugin.soundManager.playMenuOpenSound(player, "creation")
-        val inventory = Bukkit.createInventory(null, 45, Component.text(lang.getMessage(player, titleKey)))
+        val title = Component.text(lang.getMessage(player, titleKey))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        
+        val inventory = Bukkit.createInventory(null, 45, title)
         val config = plugin.config
         
         setupHeaderFooter(inventory, 5)

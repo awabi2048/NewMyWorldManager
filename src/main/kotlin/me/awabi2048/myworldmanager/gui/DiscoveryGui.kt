@@ -104,7 +104,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         // 戻るボタン (通常はメインメニューへ)
         inventory.setItem(45, createReturnButton(player))
 
-        plugin.soundManager.playMenuOpenSound(player, "discovery")
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "discovery", title)
         player.openInventory(inventory)
     }
 

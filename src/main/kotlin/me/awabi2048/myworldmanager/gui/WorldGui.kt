@@ -29,7 +29,7 @@ class WorldGui(private val plugin: MyWorldManager) {
      * @param page 0から始まるページ番号（省略時はセッションから取得）
      */
     fun open(player: Player, page: Int? = null, fromAdminMenu: Boolean? = null) {
-        plugin.soundManager.playMenuOpenSound(player, "admin_world")
+
         
         val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
         if (fromAdminMenu != null) {
@@ -53,6 +53,7 @@ class WorldGui(private val plugin: MyWorldManager) {
             return
         }
         val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.DARK_GRAY, TextDecoration.BOLD)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_world", title)
         val inventory = Bukkit.createInventory(null, 54, title)
 
         // 1行目を黒の板ガラスで敷き詰める

@@ -49,7 +49,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         // (Previously it returned if empty, but now we have settings button)
         // Actually, if list is empty, user might just see empty list + settings button.
 
-        plugin.soundManager.playMenuOpenSound(player, "meet")
+
         
         // 行数を計算（最大4行 = 28人まで想定 とあったが、設定ボタン含めて計算する）
         // プレイヤー表示枠は items indices.
@@ -77,7 +77,9 @@ class MeetGui(private val plugin: MyWorldManager) {
         // Previous logic: if (targets.size <= 7) 3 else if (targets.size <= 14) 4 etc.
         
         val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6
-        val inventory = Bukkit.createInventory(null, rowCount * 9, Component.text(lang.getMessage(player, titleKey)))
+        val title = Component.text(lang.getMessage(player, titleKey))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title)
+        val inventory = Bukkit.createInventory(null, rowCount * 9, title)
 
         // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
