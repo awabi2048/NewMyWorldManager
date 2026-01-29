@@ -38,6 +38,7 @@ class AdminCommandListener : Listener {
             SettingsAction.ADMIN_EXPORT_CONFIRM,
             SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
             SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
+            SettingsAction.ADMIN_UNLINK_CONFIRM,
             SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> true
             else -> false
         }
@@ -74,6 +75,10 @@ class AdminCommandListener : Listener {
                 } else if (event.isRightClick) {
                     plugin.adminCommandGui.openConvertConfirmation(player, WorldService.ConversionMode.ADMIN)
                 }
+            }
+            ItemTag.TYPE_GUI_ADMIN_UNLINK -> {
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.adminCommandGui.openUnlinkConfirmation(player)
             }
             ItemTag.TYPE_GUI_ADMIN_EXPORT -> {
                 plugin.soundManager.playAdminClickSound(player)
@@ -121,12 +126,36 @@ class AdminCommandListener : Listener {
                 SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
                 SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
                 SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
+                SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin)
                 else -> {}
             }
             // セッション終了（必要なら）またはメニューに戻る?
             // 処理完了後にどうするかは各メソッド次第だが、基本はチャット通知して終了
             plugin.settingsSessionManager.endSession(player)
         }
+    }
+
+    private fun performUnlink(player: Player, plugin: MyWorldManager) {
+        val currentWorld = player.world
+        var uuid: UUID? = null
+        if (currentWorld.name.startsWith("my_world.")) {
+             try {
+                 uuid = UUID.fromString(currentWorld.name.removePrefix("my_world."))
+             } catch(e: Exception) {}
+        }
+        
+        if (uuid == null) {
+            val worldData = plugin.worldConfigRepository.findAll().find { it.customWorldName == currentWorld.name }
+            if (worldData != null) uuid = worldData.uuid
+        }
+
+        if (uuid == null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.unlink_not_myworld"))
+            return
+        }
+
+        plugin.worldConfigRepository.delete(uuid)
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.unlink_success"))
     }
 
     private fun performUpdateData(player: Player, plugin: MyWorldManager) {

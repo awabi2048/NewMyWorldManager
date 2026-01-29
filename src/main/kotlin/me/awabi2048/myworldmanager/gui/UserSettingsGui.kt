@@ -37,7 +37,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         inventory.setItem(20, createItem(
             Material.BELL,
             lang.getMessage(player, "gui.user_settings.notification.display"),
-            lang.getMessageList(player, "gui.user_settings.notification.lore").map { it.replace("{0}", notifyStatus) },
+            lang.getMessageList(player, "gui.user_settings.notification.lore", mapOf("status" to notifyStatus)),
             ItemTag.TYPE_GUI_USER_SETTING_NOTIFICATION
         ))
 
@@ -46,7 +46,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         inventory.setItem(24, createItem(
             Material.WRITABLE_BOOK,
             lang.getMessage(player, "gui.user_settings.language.display"),
-            lang.getMessageList(player, "gui.user_settings.language.lore").map { it.replace("{0}", languageName) },
+            lang.getMessageList(player, "gui.user_settings.language.lore", mapOf("language" to languageName)),
             ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE
         ))
 

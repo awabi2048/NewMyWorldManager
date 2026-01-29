@@ -13,7 +13,6 @@ general:
     north_east: "北東"
     south_west: "南西"
     south_east: "南東"
-    south_east: "南東"
     unknown: "不明"
   
   commands:
@@ -485,6 +484,15 @@ gui:
         - "§7(現在の構成を維持して管理のみ適用)"
       confirm_normal: "変換確認 (Normal)"
       confirm_admin: "変換確認 (Admin)"
+    unlink:
+      display: "§c紐づけ解除"
+      lore:
+        - "§7現在のワールドのマイワールド設定を削除し、"
+        - "§7通常のワールドに戻します。"
+        - "§7(ワールドデータ自体は削除されません)"
+        - ""
+        - "§e§nクリックして確認画面へ"
+      confirm_title: "紐づけ解除の確認"
     export:
       display: "§bワールドのエクスポート"
       lore:
@@ -511,7 +519,7 @@ gui:
     info:
       display: "§f統計情報"
       total_count: "§f§l| §7検索結果 §b{count}件"
-      page: "§7表示中: §a{0}§7/{1} ページ"
+      page: "§7表示中: §a{page}§7/{total_pages} ページ"
     world_item:
       owner: "§f§l| §7オーナー {owner}{status_color}"
       status: "§f§l| §7状態 {status}"
@@ -525,7 +533,7 @@ gui:
       created_info_today: "§7今日"
       expire_info_remaining: "§7残り {days}日"
       expire_info_overdue: "§7アーカイブから §c{days}日 経過"
-      mspt: "§f§l| §7MSPT: §e{0} §7ms"
+      mspt: "§f§l| §7MSPT: §e{mspt} §7ms"
       action_archive: "§e§l| §e§n右クリック§7 アーカイブ状態を切り替え"
       action_warp: "§e§l| §e§n左クリック§7 このワールドへ§bワープ"
       uuid_copy_hint: "§e§l| §8ホイールクリック§7 UUIDをコピー"
@@ -594,8 +602,6 @@ gui:
   meet:
     title: "{player}のところに行く"
     title_list: "プレイヤーのところに行く"
-    world_item:
-      current_world: "§f§l| §7現在のワールド §f{0}"
     world_item:
       current_world: "§f§l| §7現在のワールド §f{world}"
       status: "§f§l| §7ステータス §e{status}"
@@ -690,8 +696,8 @@ gui:
       count: "§7登録中 §f{count}件"
       page: "§7表示中 §a{current}§7/{max}ページ"
     player_icon:
-      name: "§b{0}"
-      lore_count: "§f§l| §7お気に入りしたワールド数 §a{0} §7個"
+      name: "§b{player}"
+      lore_count: "§f§l| §7お気に入りしたワールド数 §a{count} §7個"
     
     favorite_menu:
       title: "お気に入りメニュー"
@@ -808,7 +814,7 @@ gui:
       lore:
         - "§7メニューやメッセージの表示言語を変更します。"
         - ""
-        - "§f§l| §7現在の設定: §f{0}"
+        - "§f§l| §7現在の設定: §f{language}"
         - ""
         - "§e§nクリックで次へ"
     critical_settings_visibility:
@@ -817,10 +823,10 @@ gui:
         - "§7ワールド管理メニュー内の"
         - "§7「重大な設定」アイコンを表示するか設定します。"
         - ""
-        - "§f§l| §7現在の設定 {0}"
+        - "§f§l| §7現在の設定 {status}"
         - ""
         - "§e§nクリックで切り替え"
-        - "§f§l| §7現在の設定 {0}"
+        - "§f§l| §7現在の設定 {status}"
         - ""
         - "§e§nクリックで切り替え"
     button:
@@ -834,7 +840,10 @@ gui:
 messages:
   # 設定操作
   world_name_prompt: "§eワールド名を入力してください"
-  wizard_cancel_word: "§7（{word} と入力してキャンセル）"
+  wizard_cancel_word: "cancel" # チャットでこの単語を入力するとキャンセル
+  unlink_success: "§aワールドの紐づけを解除しました。"
+  unlink_failed: "§c解除に失敗しました。"
+  unlink_not_myworld: "§cこのワールドはマイワールドではありません。"
   world_desc_prompt: "§eワールド説明文を入力してください"
   world_name_change: "§aワールド名を変更しました！"
   world_name_invalid: "§cワールド名は3〜16文字で入力してください"

@@ -117,7 +117,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             configName ?: portal.targetWorldName ?: "Unknown"
         }
 
-        val displayTitle = lang.getMessage(player, "gui.admin_portals.portal_item.name").replace("{0}", destName)
+        val displayTitle = lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destName))
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(displayTitle).decoration(TextDecoration.ITALIC, false))
         
         val lore = mutableListOf<Component>()
@@ -156,7 +156,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
         meta.lore(listOf(
             lang.getComponent(null, "gui.admin.info.total_count", totalCount),
-            lang.getComponent(null, "gui.admin.info.page", current, total)
+            lang.getComponent(null, "gui.admin.info.page", mapOf("page" to current, "total_pages" to total))
         ))
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)

@@ -15,7 +15,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, currentSlots: Int, nextSlots: Int) {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.world_seed_confirm.title").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
-        plugin.soundManager.playMenuOpenSound(player, "world_seed_confirm") // Ensure this sound is configured or defaults gracefully
+        player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
         val inventory = Bukkit.createInventory(null, 27, title)
 
         // 背景

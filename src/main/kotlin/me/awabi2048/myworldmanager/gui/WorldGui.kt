@@ -140,14 +140,20 @@ class WorldGui(private val plugin: MyWorldManager) {
         
         // プレイヤーフィルター
         val targetPlayer = session.playerFilter
-        if (targetPlayer != null) {
-            worlds = when (session.playerFilterType) {
-                PlayerFilterType.NONE -> worlds
-                PlayerFilterType.OWNER -> worlds.filter { it.owner == targetPlayer }
-                PlayerFilterType.MEMBER -> worlds.filter { 
-                    it.owner == targetPlayer || 
-                    it.moderators.contains(targetPlayer) || 
-                    it.members.contains(targetPlayer) 
+        
+        if (session.playerFilterType != PlayerFilterType.NONE) {
+            if (targetPlayer == null) {
+                // フィルター有効だがプレイヤー未選択の場合は何も表示しない（または全非表示）
+                worlds = emptyList()
+            } else {
+                worlds = when (session.playerFilterType) {
+                    PlayerFilterType.NONE -> worlds // ここには来ないはず
+                    PlayerFilterType.OWNER -> worlds.filter { it.owner == targetPlayer }
+                    PlayerFilterType.MEMBER -> worlds.filter { 
+                        it.owner == targetPlayer || 
+                        it.moderators.contains(targetPlayer) || 
+                        it.members.contains(targetPlayer) 
+                    }
                 }
             }
         }
@@ -277,7 +283,7 @@ class WorldGui(private val plugin: MyWorldManager) {
             if (world != null) {
                 val mspt = me.awabi2048.myworldmanager.util.ChiyogamiUtil.getWorldMspt(world)
                 val msptString = String.format("%.1f", mspt)
-                lore.add(lang.getComponent(null, "gui.admin.world_item.mspt", msptString))
+                lore.add(lang.getComponent(null, "gui.admin.world_item.mspt", mapOf("mspt" to msptString)))
             }
         }
         
@@ -320,7 +326,7 @@ class WorldGui(private val plugin: MyWorldManager) {
         meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
         meta.lore(listOf(
             lang.getComponent(null, "gui.admin.info.total_count", totalCount),
-            lang.getComponent(null, "gui.admin.info.page", current, total)
+            lang.getComponent(null, "gui.admin.info.page", mapOf("page" to current, "total_pages" to total))
         ))
         
         item.itemMeta = meta

@@ -434,6 +434,15 @@ gui:
         - "§7(Keep current structure, apply management only)"
       confirm_normal: "Convert Confirmation (Normal)"
       confirm_admin: "Convert Confirmation (Admin)"
+    unlink:
+      display: "§cUnlink World"
+      lore:
+        - "§7Remove MyWorld configuration for this world"
+        - "§7and revert it to a normal world."
+        - "§7(World data is NOT deleted)"
+        - ""
+        - "§e§nClick to Confirm"
+      confirm_title: "Unlink Confirmation"
     export:
       display: "§bExport World"
       lore:
@@ -471,7 +480,7 @@ gui:
       expires_at: "§f§l| §7Multi-Archive §e{date} §8({days_remain})"
       expire_info_remaining: "§7{days} days left"
       expire_info_overdue: "§7{days} days overdue"
-      mspt: "§f§l| §7MSPT: §e{0} §7ms"
+      mspt: "§f§l| §7MSPT: §e{mspt} §7ms"
       action_archive: "§e§l| §e§nRight-Click §7Toggle Archive"
       action_warp: "§e§l| §b§nLeft-Click §7Warp"
       uuid_copy_hint: "§e§l| §8Middle-Click §7Copy UUID"
@@ -600,8 +609,8 @@ gui:
       count: "§7Favorites §f{count}"
       page: "§7Page §a{current}§7/{max}"
     player_icon:
-      name: "§b{0}"
-      lore_count: "§f§l| §7Favorited Worlds: §a{0}"
+      name: "§b{player}"
+      lore_count: "§f§l| §7Favorited Worlds: §a{count}"
     
     favorite_menu:
       title: "Favorite Menu"
@@ -693,7 +702,7 @@ gui:
         - "§7Change the display language"
         - "§7of the plugin."
         - "§8§m-----------------------"
-        - "§f§l|§7Current: §f{0}"
+        - "§f§l|§7Current: §f{language}"
         - "§8§m-----------------------"
         - "§e§nClick to cycle"
     critical_settings_visibility:
@@ -703,7 +712,7 @@ gui:
         - "§7'Critical Settings' icon in the"
         - "§7world management menu."
         - "§8§m-----------------------"
-        - "§f§l| §7Current State {0}"
+        - "§f§l| §7Current State {status}"
         - "§8§m-----------------------"
         - "§e§nClick to Toggle"
     meet_enabled:
@@ -748,7 +757,7 @@ messages:
   owner_transfer_failed_limit: "§cTarget player has no available world slots."
   invite_locked_error: "§cYou cannot invite players to a locked world."
   portal_dest_locked: "§cThe destination of this portal is currently locked."
-  portal_warped: "§aWarped to \"{0}\" via portal."
+  portal_warped: "§aWarped to \"{destination}\" via portal."
   invite_self_error: "§cYou cannot invite yourself."
   invite_expired: "§cInvite not found or expired."
   invite_world_not_found: "§cWorld data not found."
@@ -795,11 +804,11 @@ messages:
   world_delete_success: "§aDeleted world and refunded §6🛖 §e{points} §apoints."
   world_delete_fail: "§cFailed to delete world."
   archive_start: "§eArchiving world..."
-  archive_success: "§cWorld \"{0}\" has been archived."
+  archive_success: "§cWorld \"{world}\" has been archived."
   archive_failed: "§cFailed to archive world."
 
   # Preview
-  preview_start: "§aPreviewing template \"{0}\"..."
+  preview_start: "§aPreviewing template \"{template}\"... §7(Press Shift to cancel)"
   preview_end: "§ePreview ended."
   preview_cancel: "§ePreview cancelled."
   preview_template_not_found: "§cTemplate not found."
@@ -845,6 +854,10 @@ messages:
   status_hidden: "§cHidden"
   wizard_start: "§aStarting creation wizard."
   wizard_name_prompt: "§ePlease type the world name in chat."
+  wizard_cancel_word: "cancel"
+  unlink_success: "§aWorld unlinked successfully."
+  unlink_failed: "§cFailed to unlink world."
+  unlink_not_myworld: "§cThis world is not a MyWorld."
   wizard_started_for: "§aWizard started for {player}."
   creation_timeout: "§cWorld creation session timed out due to inactivity."
   reload_success: "§aReloaded MyWorldManager configuration."

@@ -185,7 +185,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                 // ワープ実行
                 plugin.worldService.teleportToWorld(player, portal.worldUuid!!)
                 warpCooldowns[player.uniqueId] = System.currentTimeMillis()
-                player.sendMessage(lang.getMessage(player, "messages.portal_warped", destData.name))
+                player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to destData.name)))
 
                 // メンバー以外のみ統計加算
                 val isMember = destData.owner == player.uniqueId || 
@@ -204,7 +204,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                 warpCooldowns[player.uniqueId] = System.currentTimeMillis()
                 
                 val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
-                player.sendMessage(lang.getMessage(player, "messages.portal_warped", displayName))
+                player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to displayName)))
             }
         }
     }

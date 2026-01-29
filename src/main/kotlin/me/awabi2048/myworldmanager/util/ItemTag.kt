@@ -92,6 +92,7 @@ object ItemTag {
     const val TYPE_GUI_ADMIN_EXPORT = "gui_admin_export"
     const val TYPE_GUI_ADMIN_INFO = "gui_admin_info"
     const val TYPE_GUI_ADMIN_PORTALS = "gui_admin_portals"
+    const val TYPE_GUI_ADMIN_UNLINK = "gui_admin_unlink"
 
     fun tagItem(item: ItemStack, type: String) {
         val meta = item.itemMeta ?: return
