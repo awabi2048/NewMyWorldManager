@@ -108,6 +108,8 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
         // お気に入りメニュー
         if (lang.isKeyMatch(title, "gui.favorite.favorite_menu.title")) {
+            val item = event.currentItem
+            plugin.logger.info("[Debug] FavoriteListener (Menu): Clicked type=${if (item != null) ItemTag.getType(item) else "null"}")
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)

@@ -21,6 +21,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
         val player = event.whoClicked as? Player ?: return
         val lang = plugin.languageManager
 
+        plugin.logger.info("[Debug] VisitListener onClick: title='$title', match=${lang.isKeyMatch(title, "gui.visit.title")}")
         if (lang.isKeyMatch(title, "gui.visit.title")) {
             event.isCancelled = true
             val currentItem = event.currentItem ?: return

@@ -221,6 +221,9 @@ class LanguageManager(private val plugin: MyWorldManager) {
 
             // プレースホルダー {...} を .* に置換して正規表現を作成
             val regexString = "^" + Regex.escape(template).replace(Regex("\\\\\\{[^}]+\\\\\\}"), ".*") + "$"
+            if (key == "gui.visit.title") {
+                plugin.logger.info("[Debug] isKeyMatch: key=$key, template='$template', regex='$regexString', title='$title', match=${title.matches(Regex(regexString))}")
+            }
             if (title.matches(Regex(regexString))) return true
         }
         return false
