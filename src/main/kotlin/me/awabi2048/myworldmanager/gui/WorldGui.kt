@@ -409,21 +409,25 @@ class WorldGui(private val plugin: MyWorldManager) {
         meta.displayName(lang.getComponent(player, "gui.admin.filter.player.display"))
         
         val lore = mutableListOf<Component>()
+        val separator = lang.getComponent(null, "gui.common.separator")
         
+        lore.add(separator)
+
         // 現在の設定
         val filterTypeName = lang.getMessage(player, session.playerFilterType.displayKey)
         lore.add(lang.getComponent(player, "gui.admin.filter.player.current_type", mapOf("type" to filterTypeName)))
         
-        if (session.playerFilter != null) {
+        if (session.playerFilterType != PlayerFilterType.NONE && session.playerFilter != null) {
             val targetName = Bukkit.getOfflinePlayer(session.playerFilter!!).name ?: "Unknown"
             lore.add(lang.getComponent(player, "gui.admin.filter.player.current_player", mapOf("player" to targetName)))
         }
-        
-        lore.add(Component.empty())
+
+        lore.add(separator)
         lore.add(lang.getComponent(player, "gui.admin.filter.player.click_left"))
         if (session.playerFilterType != PlayerFilterType.NONE) {
             lore.add(lang.getComponent(player, "gui.admin.filter.player.click_right"))
         }
+        lore.add(separator)
         
         meta.lore(lore)
         item.itemMeta = meta
