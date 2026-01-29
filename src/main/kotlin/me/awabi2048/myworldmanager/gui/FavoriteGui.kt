@@ -143,6 +143,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             lore.add(lang.getComponent(player, "gui.favorite.world_item.unfavorite"))
             lore.add(lang.getComponent(player, "gui.common.separator"))
         }
+        lore.add(lang.getComponent(player, "gui.common.separator"))
         
         meta.lore(lore)
         item.itemMeta = meta

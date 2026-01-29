@@ -142,6 +142,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         lore.add(lang.getComponent(player, "gui.discovery.world_item.warp").decoration(TextDecoration.ITALIC, false))
         lore.add(lang.getComponent(player, "gui.discovery.world_item.preview").decoration(TextDecoration.ITALIC, false))
         lore.add(lang.getComponent(player, "gui.discovery.world_item.favorite_toggle").decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
 
         meta.lore(lore)
         item.itemMeta = meta
