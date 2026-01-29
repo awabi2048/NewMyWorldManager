@@ -45,7 +45,7 @@ class VisitGui(private val plugin: MyWorldManager) {
         val neededDataRows = if (worldCount == 0) 1 else kotlin.math.min(dataRowsPerPage, (worldCount + worldsPerRow - 1) / worldsPerRow)
         val rowCount = neededDataRows + 2
         val targetName = targetPlayer.name ?: "Unknown"
-        val titleComp = Component.text(lang.getMessage(player, titleKey, mapOf("player" to targetName)))
+        val titleComp = lang.getComponent(player, titleKey, mapOf("player" to targetName))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "visit", titleComp)
         val inventory = Bukkit.createInventory(null, rowCount * 9, titleComp)
 
