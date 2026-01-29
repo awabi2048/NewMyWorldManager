@@ -793,6 +793,7 @@ messages:
   announcement_invalid_length: "§cMessage is too long. (Max {max_lines} lines, {max_length} chars per line)"
   announcement_blocked_string: "§cMessage contains blocked string: {string}"
   announcement_preview: "§7[Preview] {message}"
+  creation_insufficient_points: "§cInsufficient points."
   oage_ganbaru_messages:
     - "§eOage is expanding the world... §7\"Heave-ho!\""
     - "§eOage is pushing the boundaries!"

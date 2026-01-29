@@ -103,7 +103,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 }
                 
                 if (stats.worldPoint < cost) {
-                    player.sendMessage("§cポイントが不足しています。")
+                    player.sendMessage(lang.getMessage(player, "messages.creation_insufficient_points"))
                     plugin.soundManager.playActionSound(player, "creation", "insufficient_points")
                     return
                 }
@@ -168,7 +168,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                     
                     if (stats.worldPoint < cost) {
-                         player.sendMessage("§cポイントが不足しています。")
+                         player.sendMessage(lang.getMessage(player, "messages.creation_insufficient_points"))
                          plugin.creationSessionManager.endSession(player.uniqueId)
                          return
                     }

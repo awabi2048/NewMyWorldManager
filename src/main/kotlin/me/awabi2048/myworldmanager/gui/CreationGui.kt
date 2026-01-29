@@ -83,7 +83,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         } else if (currentPoints >= cost) {
             lore.add(lang.getMessage(player, "gui.creation.type.available"))
         } else {
-            lore.add(lang.getMessage(player, "gui.creation.type.insufficient", mapOf("remain" to (cost - currentPoints))))
+            lore.add(lang.getMessage(player, "gui.creation.type.insufficient", mapOf("shortage" to (cost - currentPoints))))
         }
         
         return createItem(material, name, tag, *lore.toTypedArray())

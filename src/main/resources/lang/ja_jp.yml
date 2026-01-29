@@ -798,6 +798,8 @@ gui:
     
     creation_button:
       display: "§a§lマイワールドを新規作成"
+
+
       lore:
         - "§7新しいマイワールドを作成します。"
         - "§7テンプレートや公開範囲を自由に設定可能です。"
@@ -1119,6 +1121,9 @@ custom_item:
       - "§8§m－－－－－－－－－－－－－－－－－－"
       - "§e§l| §e右クリックで使用"
       - "§8§m－－－－－－－－－－－－－－－－－－"
+
+messages:
+  creation_insufficient_points: "§cポイントが不足しています。"
 
 biomes:
   plains: "平原"
