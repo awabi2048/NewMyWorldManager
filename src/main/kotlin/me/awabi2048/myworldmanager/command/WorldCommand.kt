@@ -91,8 +91,8 @@ class WorldCommand(
             }
             "update-day" -> {
                 val lang = plugin.languageManager
-                if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
-                    PermissionManager.sendNoPermissionMessage(sender)
+                if (sender !is org.bukkit.command.ConsoleCommandSender) {
+                    sender.sendMessage(lang.getMessage("messages.console_only"))
                     return true
                 }
                 plugin.worldService.updateDailyData()
@@ -277,8 +277,9 @@ class WorldCommand(
 
         when (args.size) {
             1 -> {
-                list.addAll(listOf("create", "reload", "update-day", "stats", "give"))
+                list.addAll(listOf("create", "reload", "stats", "give"))
                 if (sender is org.bukkit.command.ConsoleCommandSender) {
+                    list.add("update-day")
                     list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))
                 }
             }
