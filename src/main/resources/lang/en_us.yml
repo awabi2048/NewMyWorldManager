@@ -24,6 +24,12 @@ general:
     en_us: "English"
 
 # Publish Level
+world_tag:
+  shop: "Shop"
+  minigame: "Minigame"
+  building: "Building"
+  facility: "Facility"
+
 publish_level:
   public: "Public"
   friend: "Limited"
@@ -561,15 +567,19 @@ gui:
       favorite: "§f§l| §7Favorites §c{count}"
       recent_visitors: "§f§l| §7Recent Visitors §a{count}"
       warp: "§e§l| §e§nLeft-Click §7Warp"
+      preview: "§e§l| §b§nRight-Click §7Preview"
+      favorite_toggle: "§e§l| §d§nMiddle-Click §7Toggle Favorite"
       fav_add: "§e§l| §e§nRight-Click §7Favorite"
       fav_remove: "§e§l| §e§nRight-Click §7Unfavorite"
     sort:
-      display: "§aSelect Sort Order"
-      current: "§7| Current: §f{sort}"
-      active: "§a» {sort}"
-      inactive: "§8- {sort}"
-      click_next: "§e§nLeft-Click §7Next"
-      click_prev: "§e§nRight-Click §7Prev"
+      name: "§aSelect Sort Order"
+      click: "§e§nClick to cycle"
+      type:
+        hot: "Popular"
+        new: "New"
+        favorites: "Favorites"
+        spotlight: "Spotlight"
+        random: "Random"
     tag_select:
       display: "§aSelect Tag"
       current: "§f§l| Current Tag §6{tag}"
@@ -584,20 +594,11 @@ gui:
       all: "All"
       click_left: "§e§nLeft Click§7 Toggle Filter"
       click_right: "§e§nRight Click§7 Reset Filter"
-    sort_names:
-      hot: "Popular"
-      new: "New"
-      favorites: "Favorites"
-      spotlight: "Spotlight"
-      random: "Random"
-    tag_names:
-      shop: "Shop"
-      minigame: "Minigame"
-      building: "Building"
-      facility: "Facility"
-    info:
-      display: "§fStatistics"
-      result: "§f§l| §7Results §b{count}"
+    stats:
+      name: "§fStatistics"
+      sort: "§f§l| §7Sort: §b{sort}"
+      tag: "§f§l| §7Tag: §b{tag}"
+      count: "§f§l| §7Results §b{count}"
       desc: "§7Displaying worlds matching criteria."
     no_result: "§7No worlds found matching the criteria"
 

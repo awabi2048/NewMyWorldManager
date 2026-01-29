@@ -41,6 +41,12 @@ general:
     en_us: "English"
 
 # 公開レベル
+world_tag:
+  shop: "ショップ"
+  minigame: "ミニゲーム"
+  building: "建築"
+  facility: "共用施設"
+
 publish_level:
   public: "公開"
   friend: "限定公開"
@@ -645,6 +651,8 @@ gui:
       favorite: "§f§l| §7お気に入り §c{count}"
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
       warp: "§e§l| §e左クリック§7 このワールドにワープ"
+      preview: "§e§l| §b右クリック§7 プレビュー"
+      favorite_toggle: "§e§l| §dホイールクリック§7 お気に入りを切り替え"
       fav_add: "§e§l| §e右クリック§7 お気に入りに追加"
       fav_remove: "§e§l| §e右クリック§7 お気に入りを解除"
       spotlight_remove: "§e§l| §eShift + 右クリック§c SPOTLIGHTから削除"
@@ -658,12 +666,14 @@ gui:
       lore_visitor:
         - "§7現在このスロットにはワールドが登録されていません。"
     sort:
-      display: "§a並び替え方法の選択"
-      current: "§7| 現在の設定: §f{sort}"
-      active: "§a» {sort}"
-      inactive: "§8- {sort}"
-      click_next: "§e§n左クリック§7 次へ"
-      click_prev: "§e§n右クリック§7 前へ"
+      name: "§a並び替え方法の選択"
+      click: "§e§nクリックして切り替え"
+      type:
+        hot: "§cHOT"
+        new: "§aNEW"
+        favorites: "§eFAVORITES"
+        spotlight: "§6SPOTLIGHT"
+        random: "§bRANDOM"
     tag_select:
       display: "§aタグの選択"
       current: "§f§l| 選択中のタグ §6{tag}"
@@ -678,20 +688,11 @@ gui:
       all: "すべて"
       click_left: "§e§n左クリック§7 フィルターを切り替え"
       click_right: "§e§n右クリック§7 フィルターを解除"
-    sort_names:
-      hot: "§cHOT"
-      new: "§aNEW"
-      favorites: "§eFAVORITES"
-      spotlight: "§6SPOTLIGHT"
-      random: "§bRANDOM"
-    tag_names:
-      shop: "ショップ"
-      minigame: "ミニゲーム"
-      building: "建築"
-      facility: "共用施設"
-    info:
-      display: "§f統計情報"
-      result: "§f§l| §7検索結果 §b{count}件"
+    stats:
+      name: "§f統計情報"
+      sort: "§f§l| §7並び順: §b{sort}"
+      tag: "§f§l| §7タグ: §b{tag}"
+      count: "§f§l| §7検索結果 §b{count}件"
       desc: "§7条件に一致するワールドを表示しています"
     sort_info:
       hot: "§7直近の来訪者が多い順"
