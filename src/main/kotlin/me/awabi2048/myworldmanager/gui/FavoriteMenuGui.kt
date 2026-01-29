@@ -17,7 +17,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val titleKey = "gui.favorite.favorite_menu.title"
         val title = lang.getComponent(player, titleKey).color(NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD)
-        plugin.soundManager.playMenuOpenSound(player, "favorite_menu")
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", title)
         val inventory = Bukkit.createInventory(null, 45, title)
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, worldData)

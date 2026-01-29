@@ -23,7 +23,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
     private val itemsPerPage = 36
 
     fun open(player: Player, page: Int? = null, fromAdminMenu: Boolean? = null) {
-        plugin.soundManager.playMenuOpenSound(player, "admin_portals")
+
         
         val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
         if (fromAdminMenu != null) {
@@ -41,7 +41,9 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
 
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.admin_portals.title")
-        val inventory = Bukkit.createInventory(null, 54, Component.text(title, NamedTextColor.DARK_GRAY, TextDecoration.BOLD))
+        val titleComp = Component.text(title, NamedTextColor.DARK_GRAY, TextDecoration.BOLD)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_portals", titleComp)
+        val inventory = Bukkit.createInventory(null, 54, titleComp)
 
         // 1行目を黒の板ガラスで敷き詰める
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)

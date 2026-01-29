@@ -36,7 +36,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }.filter { it.owner == player.uniqueId || !it.isArchived } // メンバーとして参加しているアーカイブ済みは非表示
     }
 
-    fun open(player: Player, page: Int = 0) {
+    fun open(player: Player, page: Int = 0, showBackButton: Boolean = false) {
         val playerWorlds = getPlayerWorlds(player)
         
         if (playerWorlds.isEmpty()) {
@@ -58,13 +58,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         val titleStr = lang.getMessage(player, titleKey)
-        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        
-        if (currentTitle != titleStr) {
-            plugin.soundManager.playMenuOpenSound(player, "player_world")
-        }
-
         val title = Component.text(titleStr)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "player_world", title)
         val inventory = Bukkit.createInventory(null, rowCount * 9, title)
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -107,7 +102,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         inventory.setItem(footerStart + 6, createCriticalSettingsVisibilityButton(player, stats.criticalSettingsEnabled))
 
         if (page > 0) {
-            inventory.setItem(footerStart, createNavigationItem(player, Material.ARROW, lang.getMessage(player, "gui.common.prev_page"), page - 1))
+            inventory.setItem(footerStart + 1, createNavigationItem(player, Material.ARROW, lang.getMessage(player, "gui.common.prev_page"), page - 1))
+        }
+
+        if (showBackButton) {
+            inventory.setItem(footerStart, createReturnButton(player))
         }
         if (startIndex + itemsPerPageNum < playerWorlds.size) {
             inventory.setItem(footerStart + 8, createNavigationItem(player, Material.ARROW, lang.getMessage(player, "gui.common.next_page"), page + 1))
@@ -251,6 +250,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val type = if (name == lang.getMessage(player, "gui.common.next_page")) ItemTag.TYPE_GUI_NAV_NEXT else ItemTag.TYPE_GUI_NAV_PREV
         ItemTag.tagItem(item, type)
+        return item
+    }
+
+    private fun createReturnButton(player: Player): ItemStack {
+        val lang = plugin.languageManager
+        val item = ItemStack(Material.REDSTONE)
+        val meta = item.itemMeta ?: return item
+        meta.displayName(lang.getComponent(player, "gui.common.return").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+        item.itemMeta = meta
+        ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
         return item
     }
 }

@@ -22,7 +22,7 @@ class VisitGui(private val plugin: MyWorldManager) {
     private val itemsPerPage = dataRowsPerPage * worldsPerRow // 28
 
     fun open(player: Player, targetPlayer: OfflinePlayer, page: Int = 0, returnToWorld: WorldData? = null) {
-        plugin.soundManager.playMenuOpenSound(player, "visit")
+
         val allWorlds = repository.findAll()
         val targetWorlds = allWorlds.filter { world ->
             if (world.owner != targetPlayer.uniqueId || world.isArchived) return@filter false
@@ -45,7 +45,9 @@ class VisitGui(private val plugin: MyWorldManager) {
         val neededDataRows = if (worldCount == 0) 1 else kotlin.math.min(dataRowsPerPage, (worldCount + worldsPerRow - 1) / worldsPerRow)
         val rowCount = neededDataRows + 2
         val targetName = targetPlayer.name ?: "Unknown"
-        val inventory = Bukkit.createInventory(null, rowCount * 9, Component.text(lang.getMessage(player, titleKey, targetName)))
+        val titleComp = Component.text(lang.getMessage(player, titleKey, targetName))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "visit", titleComp)
+        val inventory = Bukkit.createInventory(null, rowCount * 9, titleComp)
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)
         val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)

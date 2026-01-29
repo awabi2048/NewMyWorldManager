@@ -578,6 +578,12 @@ gui:
       inactive: "§8- {tag}"
       click_next: "§e§nLeft-Click §7Next"
       click_reset: "§e§nRight-Click §7Reset"
+    tag_filter:
+      name: "Tag Filter"
+      current_prefix: "Current"
+      all: "All"
+      click_left: "§e§nLeft Click§7 Toggle Filter"
+      click_right: "§e§nRight Click§7 Reset Filter"
     sort_names:
       hot: "Popular"
       new: "New"

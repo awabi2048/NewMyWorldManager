@@ -16,11 +16,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.environment.title")
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "environment", Component.text(title))
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        
-        if (currentTitle != title) {
-            plugin.soundManager.playMenuOpenSound(player, "environment")
-        }
         
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_ENVIRONMENT_SETTINGS, isGui = true)
         scheduleGuiTransitionReset(player)

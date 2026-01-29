@@ -19,6 +19,11 @@ class FavoriteCommand(private val plugin: MyWorldManager) : CommandExecutor {
             return true
         }
 
+        if (args.contains("-menu")) {
+            plugin.favoriteGui.open(sender, 0, null, true)
+            return true
+        }
+
         val worldName = sender.world.name
         if (worldName.startsWith("my_world.")) {
             val uuidStr = worldName.removePrefix("my_world.")

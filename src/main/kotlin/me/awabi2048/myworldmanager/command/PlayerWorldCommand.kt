@@ -22,7 +22,8 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor {
             return true
         }
 
-        gui.open(sender)
+        val showBackButton = args.contains("-menu")
+        gui.open(sender, 0, showBackButton)
         return true
     }
 }
