@@ -45,6 +45,9 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             }
             
             if (type == ItemTag.TYPE_GUI_DECORATION || type == ItemTag.TYPE_GUI_INFO) return
+            
+            // ワールドアイテム処理
+            if (type != ItemTag.TYPE_GUI_WORLD_ITEM) return
 
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
