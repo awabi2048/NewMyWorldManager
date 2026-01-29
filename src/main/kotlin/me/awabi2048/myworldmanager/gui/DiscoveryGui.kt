@@ -47,12 +47,24 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
         val titleKey = "gui.discovery.title"
         val title = lang.getComponent(player, titleKey).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
-        val inventory = Bukkit.createInventory(null, 54, title)
+        val plainTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(title)
+        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
+        
+        val inventory = if (player.openInventory.topInventory.size == 54 && currentTitle == plainTitle) {
+            player.openInventory.topInventory
+        } else {
+            Bukkit.createInventory(null, 54, title)
+        }
 
         // 背景
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         val whitePane = createDecorationItem(Material.WHITE_STAINED_GLASS_PANE)
+
+        // Clear content area if reusing
+        if (player.openInventory.topInventory == inventory) {
+            for (i in 0 until 54) inventory.setItem(i, null)
+        }
 
         for (i in 0 until 54) inventory.setItem(i, grayPane)
         for (i in 0..8) inventory.setItem(i, blackPane)
@@ -91,14 +103,15 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         inventory.setItem(49, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size))
         inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
         
-
-
         if (showBackButton) {
             inventory.setItem(45, createReturnButton(player))
         }
 
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "discovery", title)
-        player.openInventory(inventory)
+        
+        if (player.openInventory.topInventory != inventory) {
+            player.openInventory(inventory)
+        }
     }
 
     private fun createWorldItem(player: Player, data: WorldData): ItemStack {

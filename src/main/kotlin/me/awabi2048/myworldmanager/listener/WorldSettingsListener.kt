@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.session.SettingsSession
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
@@ -48,6 +49,12 @@ class WorldSettingsListener : Listener {
         val player = event.whoClicked as? Player ?: return
         val session = plugin.settingsSessionManager.getSession(player) ?: return
         
+        // GUI遷移中のクリックを無視
+        if (session.isGuiTransition) {
+            event.isCancelled = true
+            return
+        }
+
         // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)
         // ただし、clickedInventoryチェックが必要か？
         // ここでは一旦キャンセルせずに各分岐に委ねる、あるいはトップインベントリならキャンセル？
@@ -407,16 +414,8 @@ class WorldSettingsListener : Listener {
                     }
                     ItemTag.TYPE_GUI_SETTING_PUBLISH -> {
                         plugin.soundManager.playClickSound(player, clickedItem)
-                        val levels = PublishLevel.values()
-                        val currentIndex = levels.indexOf(worldData.publishLevel)
-                        
-                        val nextIndex = if (event.isRightClick) {
-                            (currentIndex + 1) % levels.size
-                        } else {
-                            (currentIndex + levels.size - 1) % levels.size
-                        }
-                        
-                        worldData.publishLevel = levels[nextIndex]
+                        val nextLevel = GuiHelper.getNextValue(worldData.publishLevel, PublishLevel.values(), event.isRightClick)
+                        worldData.publishLevel = nextLevel
                         if (worldData.publishLevel == PublishLevel.PUBLIC) {
                             worldData.publicAt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(java.time.LocalDateTime.now())
                         }
@@ -1146,9 +1145,7 @@ class WorldSettingsListener : Listener {
         if (options.isEmpty()) return
 
         val currentTemp = session.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
-        val currentIndex = options.indexOf(currentTemp)
-        val nextIndex = (currentIndex + 1) % options.size
-        session.tempWeather = options[nextIndex]
+        session.tempWeather = GuiHelper.getNextValue(currentTemp, options, true) // Cycle next
         
         plugin.soundManager.playClickSound(player, null)
         plugin.environmentGui.open(player, worldData)

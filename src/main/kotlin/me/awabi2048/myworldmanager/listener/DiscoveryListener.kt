@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.gui.DiscoveryGui
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.session.DiscoverySort
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
@@ -130,14 +131,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 plugin.discoveryGui.open(player)
             }
             ItemTag.TYPE_GUI_DISCOVERY_SORT -> {
-                val sorts = DiscoverySort.values()
-                val currentIndex = sorts.indexOf(session.sort)
-                val nextIndex = if (event.isLeftClick) {
-                    (currentIndex + 1) % sorts.size
-                } else {
-                    (currentIndex + sorts.size - 1) % sorts.size
-                }
-                session.sort = sorts[nextIndex]
+                session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), event.isLeftClick)
                 plugin.soundManager.playClickSound(player, item)
                 plugin.discoveryGui.open(player)
             }

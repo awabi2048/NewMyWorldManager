@@ -18,6 +18,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "environment_confirm", Component.text(title))
         
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.ENV_CONFIRM, isGui = true)
+        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         val session = plugin.settingsSessionManager.getSession(player)
         session?.confirmItem = itemToConsume.clone()
         
