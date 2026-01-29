@@ -31,7 +31,9 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.VIEW_SETTINGS, isGui = true)
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         
-        val inventory = Bukkit.createInventory(null, 45, title)
+        val holder = UserSettingsGuiHolder()
+        val inventory = Bukkit.createInventory(holder, 45, title)
+        holder.inv = inventory
 
         // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -100,5 +102,10 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
+    }
+
+    class UserSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }

@@ -47,13 +47,13 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
         val titleKey = "gui.discovery.title"
         val title = lang.getComponent(player, titleKey).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
-        val plainTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(title)
-        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        
-        val inventory = if (player.openInventory.topInventory.size == 54 && currentTitle == plainTitle) {
+        val inventory = if (player.openInventory.topInventory.holder is DiscoveryGuiHolder) {
             player.openInventory.topInventory
         } else {
-            Bukkit.createInventory(null, 54, title)
+            val holder = DiscoveryGuiHolder()
+            val inv = Bukkit.createInventory(holder, 54, title)
+            holder.inv = inv
+            inv
         }
 
         // 背景
@@ -267,5 +267,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
+    }
+
+    class DiscoveryGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }

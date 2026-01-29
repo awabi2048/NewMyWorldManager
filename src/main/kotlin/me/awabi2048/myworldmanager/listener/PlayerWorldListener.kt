@@ -38,7 +38,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
 
         // プレイヤー用ワールド一覧
-        if (lang.isKeyMatch(title, "gui.player_world.title")) {
+        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder) {
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
@@ -165,7 +165,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         }
 
         // 個人設定
-        if (lang.isKeyMatch(title, "gui.user_settings.title")) {
+        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.UserSettingsGui.UserSettingsGuiHolder) {
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return

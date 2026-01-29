@@ -60,7 +60,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         val titleStr = lang.getMessage(player, titleKey)
         val title = Component.text(titleStr)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "player_world", title)
-        val inventory = Bukkit.createInventory(null, rowCount * 9, title)
+        
+        val holder = PlayerWorldGuiHolder()
+        val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
+        holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
@@ -238,5 +241,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         return item
     }
 
-
+    class PlayerWorldGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
+    }
 }

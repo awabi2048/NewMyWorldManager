@@ -25,7 +25,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
 
         val lang = plugin.languageManager
-        if (!lang.isKeyMatch(title, "gui.discovery.title")) return
+        if (view.topInventory.holder !is me.awabi2048.myworldmanager.gui.DiscoveryGui.DiscoveryGuiHolder) return
         event.isCancelled = true
 
         val item = event.currentItem ?: return
