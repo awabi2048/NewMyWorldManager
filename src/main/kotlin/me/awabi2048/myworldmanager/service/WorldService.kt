@@ -305,7 +305,13 @@ class WorldService(
                             world.spawnLocation
                         }
 
+        // ワールド参照の補完(アーカイブ復帰直後など、参照がnullになっている場合があるため)
+        if (targetLoc.world == null) {
+            targetLoc.world = world
+        }
+
         player.teleport(targetLoc)
+
         plugin.soundManager.playTeleportSound(player)
 
         // マクロ実行

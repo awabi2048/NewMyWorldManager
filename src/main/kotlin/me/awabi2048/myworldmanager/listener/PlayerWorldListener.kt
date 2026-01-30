@@ -111,6 +111,16 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
             if (event.isLeftClick) {
+                // 左クリック：アーカイブ状態のチェック
+                if (worldData.isArchived) {
+                    if (worldData.owner == player.uniqueId) {
+                        plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
+                    } else {
+                        player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
+                    }
+                    return
+                }
+
                 // 通常の左クリック：ワープ処理
                 val folderName = worldData.customWorldName ?: "my_world.$uuid"
                 if (Bukkit.getWorld(folderName) == null) {
@@ -122,21 +132,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 }
 
                 val targetWorld = Bukkit.getWorld(folderName)
-                if (targetWorld != null || worldData.isArchived) {
-                    if (worldData.isArchived) {
-                        if (worldData.owner == player.uniqueId) {
-                            plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
-                        } else {
-                            player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
-                        }
-                        return
-                    }
-
-                    if (targetWorld == null) {
-                        player.sendMessage(lang.getMessage(player, "general.world_not_found"))
-                        return
-                    }
-
+                if (targetWorld != null) {
                     val isMember = worldData.owner == player.uniqueId ||
                             worldData.moderators.contains(player.uniqueId) ||
                             worldData.members.contains(player.uniqueId)
@@ -160,6 +156,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     player.sendMessage(lang.getMessage(player, "general.world_not_found"))
                 }
             } else if (event.isRightClick) {
+
                 // 右クリック：設定を開く
                 val isMember = worldData.owner == player.uniqueId ||
                         worldData.moderators.contains(player.uniqueId) ||

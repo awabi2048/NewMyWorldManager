@@ -909,6 +909,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.ARCHIVE_WORLD,
+                        isGui = true
+                )
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                         plugin,
                         player,
@@ -916,11 +922,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         Component.text(title),
                         WorldSettingsGuiHolder::class.java
                 )
+
                 val inventory =
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, Component.text(title))
+
                         }
 
                 val infoItem =
@@ -969,6 +977,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.UNARCHIVE_CONFIRM,
+                        isGui = true
+                )
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                         plugin,
                         player,
@@ -976,11 +990,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         Component.text(title),
                         WorldSettingsGuiHolder::class.java
                 )
+
                 val inventory =
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, Component.text(title))
+
                         }
 
                 // 背景
