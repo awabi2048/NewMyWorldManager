@@ -36,6 +36,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         .filter {
                                 it.owner == player.uniqueId || !it.isArchived
                         } // メンバーとして参加しているアーカイブ済みは非表示
+                        .sortedWith(compareBy<WorldData> { it.isArchived }.thenByDescending { it.createdAt })
         }
 
         fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
@@ -313,11 +314,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 if (!world.isArchived) {
                         lore.add(lang.getComponent(player, "gui.player_world.world_item.warp"))
+                } else {
+                        meta.setEnchantmentGlintOverride(true)
                 }
+
                 lore.add(lang.getComponent(player, "gui.player_world.world_item.settings"))
                 if (world.isArchived) {
                         lore.add(lang.getComponent(player, "gui.player_world.world_item.expired"))
-                        lore.add(lang.getComponent(player, "gui.common.separator"))
                 }
                 lore.add(lang.getComponent(player, "gui.common.separator"))
 

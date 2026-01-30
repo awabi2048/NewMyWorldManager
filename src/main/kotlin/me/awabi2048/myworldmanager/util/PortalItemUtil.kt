@@ -15,7 +15,7 @@ object PortalItemUtil {
     private val TARGET_WORLD_NAME_KEY = NamespacedKey("myworldmanager", "portal_target_world_name")
 
     fun createBasePortalItem(lang: me.awabi2048.myworldmanager.util.LanguageManager, player: org.bukkit.entity.Player?): ItemStack {
-        val item = ItemStack(Material.END_PORTAL_FRAME)
+        val item = ItemStack(Material.STONE_PICKAXE)
         val meta = item.itemMeta ?: return item
         meta.displayName(Component.text(lang.getMessage(player, "gui.portal_item.name")).decoration(TextDecoration.ITALIC, false))
         meta.lore(listOf(
@@ -23,7 +23,14 @@ object PortalItemUtil {
             Component.text(lang.getMessage(player, "gui.portal_item.lore_unbind"))
         ).map { it.decoration(TextDecoration.ITALIC, false) })
         try { meta.setMaxStackSize(1) } catch (e: Exception) {}
+
+        meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
         item.itemMeta = meta
+        
+        item.setData(io.papermc.paper.datacomponent.DataComponentTypes.TOOL, io.papermc.paper.datacomponent.item.Tool.tool().build())
+        item.setData(io.papermc.paper.datacomponent.DataComponentTypes.ATTRIBUTE_MODIFIERS, io.papermc.paper.datacomponent.item.ItemAttributeModifiers.itemAttributes().build())
+        item.setData(io.papermc.paper.datacomponent.DataComponentTypes.CUSTOM_MODEL_DATA, io.papermc.paper.datacomponent.item.CustomModelData.customModelData().addString("world_portal").build())
+
         ItemTag.tagItem(item, ItemTag.TYPE_PORTAL)
         return item
     }
