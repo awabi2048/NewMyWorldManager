@@ -1695,28 +1695,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 lore.add(
                         lang.getMessage(
                                 viewer,
-                                "gui.member_management.item.role",
+                                "gui.member_management.item.role_display",
                                 mapOf("role" to role)
                         )
                 )
                 lore.add(separator)
 
                 if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
-                        lore.add(separator)
-                        if (role == lang.getMessage(null as Player?, "role.member")) {
-                                lore.add(
-                                        lang.getMessage(
-                                                viewer,
-                                                "gui.member_management.item.promote"
-                                        )
-                                )
-                        } else if (role == lang.getMessage(null as Player?, "role.moderator")) {
-                                lore.add(
-                                        lang.getMessage(viewer, "gui.member_management.item.demote")
-                                )
+                        val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
+                                lang.getMessage(null as Player?, "role.moderator")
+                        } else {
+                                lang.getMessage(null as Player?, "role.member")
                         }
+
+                        lore.add(
+                                lang.getMessage(
+                                        viewer,
+                                        "gui.member_management.item.change_role",
+                                        mapOf("role" to nextRole)
+                                )
+                        )
+                        lore.add(lang.getMessage(viewer, "gui.member_management.item.transfer"))
                         lore.add(lang.getMessage(viewer, "gui.member_management.item.remove"))
-                        lore.add(lang.getMessage(viewer, "gui.settings.member.transfer"))
                         lore.add(separator)
                 }
 

@@ -426,6 +426,10 @@ gui:
       confirm: "§c削除する"
       confirm_desc: "§7このプレイヤーをワールドメンバーから削除します"
     item:
+      role_display: "§f§l| §7現在の権限 {role}"
+      change_role: "§e§l| §e左クリック §7権限を§b{role}§7に変更"
+      remove: "§e§l| §eShift + 右クリック §cワールドメンバーから削除"
+      transfer: "§e§l| §eShift + 左クリック §cオーナー権限を譲渡"
       last_online: "§f§l| §7最終オンライン §f{date}"
       role: "§f§l| §7権限 §f{role}"
     
@@ -660,7 +664,7 @@ gui:
       favorite: "§f§l| §7お気に入り §c{count}"
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
       warp: "§e§l| §e左クリック§7 このワールドにワープ"
-      preview: "§e§l| §b右クリック§7 プレビュー"
+      preview: "§e§l| §e右クリック§7 プレビュー"
       favorite_toggle: "§e§l| §dホイールクリック§7 お気に入りを切り替え"
       fav_add: "§e§l| §e右クリック§7 お気に入りに追加"
       fav_remove: "§e§l| §e右クリック§7 お気に入りを解除"
@@ -800,7 +804,7 @@ gui:
       favorite: "§f§l| §7お気に入り §c{count}"
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
       warp: "§e§l| §e左クリック§7 このワールドへワープ"
-      fav_add: "§e§l| §b右クリック§7 お気に入りに§a追加"
+      fav_add: "§e§l| §e右クリック§7 お気に入りに§a追加"
       fav_remove: "§e§l| §c右クリック§7 お気に入りを§c解除"
 
   player_world:
@@ -811,7 +815,7 @@ gui:
       favorite: "§f§l| §7お気に入り §c{count}"
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
       warp: "§e§l| §e左クリック§7 このワールドへ§bワープ"
-      settings: "§e§l| §b右クリック§7 ワールド設定を開く"
+      settings: "§e§l| §e右クリック§7 ワールド設定を開く"
       expired: "§c§nこのワールドはアーカイブされています"
       expires_at: "§f§l| §7アーカイブまでの日数 §f{days}日 §8({date} にアーカイブ)"
     

@@ -151,53 +151,77 @@ class WorldSettingsListener : Listener {
                                                         item,
                                                         "world_settings"
                                                 )
-                                                if (event.isShiftClick && event.isRightClick) {
-                                                        val config = plugin.config
-                                                        val stats =
-                                                                plugin.playerStatsRepository
-                                                                        .findByUuid(memberId)
-                                                        val defaultMax =
-                                                                config.getInt(
-                                                                        "creation.max_create_count_default",
-                                                                        3
-                                                                )
-                                                        val maxCounts =
-                                                                defaultMax + stats.unlockedWorldSlot
-                                                        val currentCounts =
-                                                                plugin.worldConfigRepository
-                                                                        .findAll()
-                                                                        .count {
-                                                                                it.owner == memberId
-                                                                        }
+                                                if (event.isShiftClick) {
+                                                        if (event.isLeftClick) {
+                                                                // オーナー譲渡
+                                                                val config = plugin.config
+                                                                val stats =
+                                                                        plugin.playerStatsRepository
+                                                                                .findByUuid(memberId)
+                                                                val defaultMax =
+                                                                        config.getInt(
+                                                                                "creation.max_create_count_default",
+                                                                                3
+                                                                        )
+                                                                val maxCounts =
+                                                                        defaultMax + stats.unlockedWorldSlot
+                                                                val currentCounts =
+                                                                        plugin.worldConfigRepository
+                                                                                .findAll()
+                                                                                .count {
+                                                                                        it.owner == memberId
+                                                                                }
 
-                                                        if (currentCounts >= maxCounts) {
-                                                                player.sendMessage(
-                                                                        plugin.languageManager
-                                                                                .getMessage(
-                                                                                        "messages.owner_transfer_failed_limit"
-                                                                                )
-                                                                )
-                                                                plugin.soundManager.playActionSound(
-                                                                        player,
-                                                                        "creation",
-                                                                        "limit_reached"
-                                                                )
-                                                                return
+                                                                if (currentCounts >= maxCounts) {
+                                                                        player.sendMessage(
+                                                                                plugin.languageManager
+                                                                                        .getMessage(
+                                                                                                "messages.owner_transfer_failed_limit"
+                                                                                        )
+                                                                        )
+                                                                        plugin.soundManager.playActionSound(
+                                                                                player,
+                                                                                "creation",
+                                                                                "limit_reached"
+                                                                        )
+                                                                        return
+                                                                }
+
+                                                                plugin.worldSettingsGui
+                                                                        .openMemberTransferConfirmation(
+                                                                                player,
+                                                                                worldData,
+                                                                                memberId
+                                                                        )
+                                                        } else if (event.isRightClick) {
+                                                                // メンバー削除
+                                                                plugin.worldSettingsGui
+                                                                        .openMemberRemoveConfirmation(
+                                                                                player,
+                                                                                worldData,
+                                                                                memberId
+                                                                        )
                                                         }
+                                                } else if (event.isLeftClick) {
+                                                        // 権限変更
+                                                        val isModerator = worldData.moderators.contains(memberId)
+                                                        if (isModerator) {
+                                                                // モデレーター -> メンバー
+                                                                worldData.moderators.remove(memberId)
+                                                                if (!worldData.members.contains(memberId)) {
+                                                                        worldData.members.add(memberId)
+                                                                }
+                                                        } else {
+                                                                // メンバー -> モデレーター
+                                                                worldData.members.remove(memberId)
+                                                                if (!worldData.moderators.contains(memberId)) {
+                                                                        worldData.moderators.add(memberId)
+                                                                }
+                                                        }
+                                                        plugin.worldConfigRepository.save(worldData)
 
-                                                        plugin.worldSettingsGui
-                                                                .openMemberTransferConfirmation(
-                                                                        player,
-                                                                        worldData,
-                                                                        memberId
-                                                                )
-                                                } else {
-                                                        plugin.worldSettingsGui
-                                                                .openMemberRemoveConfirmation(
-                                                                        player,
-                                                                        worldData,
-                                                                        memberId
-                                                                )
+                                                        // GUIリフレッシュ
+                                                        plugin.worldSettingsGui.openMemberManagement(player, worldData, 0, false)
                                                 }
                                         }
                                 }
