@@ -29,6 +29,7 @@ world_tag:
   minigame: "Minigame"
   building: "Building"
   facility: "Facility"
+  streaming: "Allow Streaming/Recording"
 
 publish_level:
   public: "Public"

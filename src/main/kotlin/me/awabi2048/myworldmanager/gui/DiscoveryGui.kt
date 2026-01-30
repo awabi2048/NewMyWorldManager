@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
@@ -14,7 +15,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.util.*
 
 class DiscoveryGui(private val plugin: MyWorldManager) {
 
@@ -23,42 +23,54 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
     fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
         val session = plugin.discoverySessionManager.getSession(player.uniqueId)
-        
+
         if (showBackButton != null) {
             session.showBackButton = showBackButton
         }
-        
+
         // ワールドの取得とフィルタリング
-        val allWorlds = plugin.worldConfigRepository.findAll()
-            .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived }
-            .filter { session.selectedTag == null || it.tags.contains(session.selectedTag) }
+        val allWorlds =
+                plugin.worldConfigRepository
+                        .findAll()
+                        .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived }
+                        .filter {
+                            session.selectedTag == null || it.tags.contains(session.selectedTag)
+                        }
 
         // ソート
-        val sortedWorlds = when (session.sort) {
-            DiscoverySort.HOT -> allWorlds.sortedByDescending { it.recentVisitors.sum() }
-            DiscoverySort.NEW -> allWorlds.sortedByDescending { it.createdAt }
-            DiscoverySort.FAVORITES -> allWorlds.sortedByDescending { it.favorite }
-            DiscoverySort.SPOTLIGHT -> {
-                val spotlightUuids = plugin.spotlightRepository.findAll()
-                allWorlds.filter { spotlightUuids.contains(it.uuid) }
-                    .sortedBy { spotlightUuids.indexOf(it.uuid) }
-            }
-            DiscoverySort.RANDOM -> allWorlds.shuffled()
-        }
+        val sortedWorlds =
+                when (session.sort) {
+                    DiscoverySort.HOT -> allWorlds.sortedByDescending { it.recentVisitors.sum() }
+                    DiscoverySort.NEW -> allWorlds.sortedByDescending { it.createdAt }
+                    DiscoverySort.FAVORITES -> allWorlds.sortedByDescending { it.favorite }
+                    DiscoverySort.SPOTLIGHT -> {
+                        val spotlightUuids = plugin.spotlightRepository.findAll()
+                        allWorlds.filter { spotlightUuids.contains(it.uuid) }.sortedBy {
+                            spotlightUuids.indexOf(it.uuid)
+                        }
+                    }
+                    DiscoverySort.RANDOM -> allWorlds.shuffled()
+                }
 
-        val totalPages = if (sortedWorlds.isEmpty()) 1 else (sortedWorlds.size + itemsPerPage - 1) / itemsPerPage
+        val totalPages =
+                if (sortedWorlds.isEmpty()) 1
+                else (sortedWorlds.size + itemsPerPage - 1) / itemsPerPage
         val currentPage = page.coerceIn(0, totalPages - 1)
 
         val titleKey = "gui.discovery.title"
-        val title = lang.getComponent(player, titleKey).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
-        val inventory = if (player.openInventory.topInventory.holder is DiscoveryGuiHolder) {
-            player.openInventory.topInventory
-        } else {
-            val holder = DiscoveryGuiHolder()
-            val inv = Bukkit.createInventory(holder, 54, title)
-            holder.inv = inv
-            inv
-        }
+        val title =
+                lang.getComponent(player, titleKey)
+                        .color(NamedTextColor.GOLD)
+                        .decorate(TextDecoration.BOLD)
+        val inventory =
+                if (player.openInventory.topInventory.holder is DiscoveryGuiHolder) {
+                    player.openInventory.topInventory
+                } else {
+                    val holder = DiscoveryGuiHolder()
+                    val inv = Bukkit.createInventory(holder, 54, title)
+                    holder.inv = inv
+                    inv
+                }
 
         // 背景
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
@@ -84,7 +96,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         if (sortedWorlds.isEmpty()) {
             val noResultItem = ItemStack(Material.GRAY_DYE)
             val noResultMeta = noResultItem.itemMeta
-            noResultMeta.displayName(lang.getComponent(player, "gui.discovery.no_result").decoration(TextDecoration.ITALIC, false))
+            noResultMeta.displayName(
+                    lang.getComponent(player, "gui.discovery.no_result")
+                            .decoration(TextDecoration.ITALIC, false)
+            )
             noResultItem.itemMeta = noResultMeta
             ItemTag.tagItem(noResultItem, ItemTag.TYPE_GUI_DECORATION)
             inventory.setItem(31, noResultItem)
@@ -103,15 +118,30 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
         // ソート & フィルタ
         inventory.setItem(48, createSortButton(player, session.sort))
-        inventory.setItem(49, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size))
+        inventory.setItem(
+                49,
+                createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size)
+        )
         inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
 
         if (session.showBackButton) {
-            inventory.setItem(45, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "discovery"))
+            inventory.setItem(
+                    45,
+                    me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
+                            plugin,
+                            player,
+                            "discovery"
+                    )
+            )
         }
 
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "discovery", title)
-        
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
+                plugin,
+                player,
+                "discovery",
+                title
+        )
+
         if (player.openInventory.topInventory != inventory) {
             player.openInventory(inventory)
         }
@@ -121,31 +151,91 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         val item = ItemStack(data.icon)
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
-        
-        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name)).decoration(TextDecoration.ITALIC, false))
-        
+
+        meta.displayName(
+                lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name))
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+
         val lore = mutableListOf<Component>()
-        lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
-        
+        lore.add(
+                lang.getComponent(player, "gui.common.separator")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+
         if (data.description.isNotEmpty()) {
-            lore.add(lang.getComponent(player, "gui.common.world_desc", mapOf("description" to data.description)).decoration(TextDecoration.ITALIC, false))
-            lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
+            lore.add(
+                    lang.getComponent(
+                                    player,
+                                    "gui.common.world_desc",
+                                    mapOf("description" to data.description)
+                            )
+                            .decoration(TextDecoration.ITALIC, false)
+            )
+            lore.add(
+                    lang.getComponent(player, "gui.common.separator")
+                            .decoration(TextDecoration.ITALIC, false)
+            )
         }
 
         val owner = Bukkit.getOfflinePlayer(data.owner)
         val onlineColor = lang.getMessage(player, "publish_level.color.online")
         val offlineColor = lang.getMessage(player, "publish_level.color.offline")
         val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.owner", mapOf("status_color" to ownerColor, "owner" to (owner.name ?: lang.getMessage(player, "general.unknown")))).decoration(TextDecoration.ITALIC, false))
-        
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.favorite", mapOf("count" to data.favorite)).decoration(TextDecoration.ITALIC, false))
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.recent_visitors", mapOf("count" to data.recentVisitors.sum())).decoration(TextDecoration.ITALIC, false))
-        
-        lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.warp").decoration(TextDecoration.ITALIC, false))
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.preview").decoration(TextDecoration.ITALIC, false))
-        lore.add(lang.getComponent(player, "gui.discovery.world_item.favorite_toggle").decoration(TextDecoration.ITALIC, false))
-        lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
+        lore.add(
+                lang.getComponent(
+                                player,
+                                "gui.discovery.world_item.owner",
+                                mapOf(
+                                        "status_color" to ownerColor,
+                                        "owner" to
+                                                (owner.name
+                                                        ?: lang.getMessage(
+                                                                player,
+                                                                "general.unknown"
+                                                        ))
+                                )
+                        )
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+
+        lore.add(
+                lang.getComponent(
+                                player,
+                                "gui.discovery.world_item.favorite",
+                                mapOf("count" to data.favorite)
+                        )
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+        lore.add(
+                lang.getComponent(
+                                player,
+                                "gui.discovery.world_item.recent_visitors",
+                                mapOf("count" to data.recentVisitors.sum())
+                        )
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+
+        lore.add(
+                lang.getComponent(player, "gui.common.separator")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+        lore.add(
+                lang.getComponent(player, "gui.discovery.world_item.warp")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+        lore.add(
+                lang.getComponent(player, "gui.discovery.world_item.preview")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+        lore.add(
+                lang.getComponent(player, "gui.discovery.world_item.favorite_toggle")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
+        lore.add(
+                lang.getComponent(player, "gui.common.separator")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
 
         meta.lore(lore)
         item.itemMeta = meta
@@ -156,26 +246,53 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
     private fun createSortButton(player: Player, currentSort: DiscoverySort): ItemStack {
         val lang = plugin.languageManager
-        val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "sort", Material.HOPPER))
+        val item =
+                ItemStack(
+                        plugin.menuConfigManager.getIconMaterial(
+                                "discovery",
+                                "sort",
+                                Material.HOPPER
+                        )
+                )
         val meta = item.itemMeta ?: return item
 
-        meta.displayName(lang.getComponent(player, "gui.discovery.sort.name").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+        meta.displayName(
+                lang.getComponent(player, "gui.discovery.sort.name")
+                        .color(NamedTextColor.YELLOW)
+                        .decorate(TextDecoration.BOLD)
+        )
 
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator"))
 
-        val sortName = lang.getMessage(player, "gui.discovery.sort.type.${currentSort.name.lowercase()}")
-        lore.add(LegacyComponentSerializer.legacySection().deserialize("§f§l| §7${lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")} §f$sortName").decoration(TextDecoration.ITALIC, false))
+        val sortName =
+                lang.getMessage(player, "gui.discovery.sort.type.${currentSort.name.lowercase()}")
+        lore.add(
+                LegacyComponentSerializer.legacySection()
+                        .deserialize(
+                                "§f§l| §7${lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")} §f$sortName"
+                        )
+                        .decoration(TextDecoration.ITALIC, false)
+        )
 
-        val sortDesc = lang.getMessage(player, "gui.discovery.sort_info.${currentSort.name.lowercase()}")
-        lore.add(LegacyComponentSerializer.legacySection().deserialize("  §8$sortDesc").decoration(TextDecoration.ITALIC, false))
+        val sortDesc =
+                lang.getMessage(player, "gui.discovery.sort_info.${currentSort.name.lowercase()}")
+        lore.add(
+                LegacyComponentSerializer.legacySection()
+                        .deserialize("  §8$sortDesc")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
 
         lore.add(lang.getComponent(player, "gui.common.separator"))
         DiscoverySort.values().forEach { sort ->
             val prefix = if (sort == currentSort) "§6» " else "§7  "
             val color = if (sort == currentSort) "§e" else "§7"
             val key = "gui.discovery.sort.type.${sort.name.lowercase()}"
-            lore.add(LegacyComponentSerializer.legacySection().deserialize("$prefix$color${lang.getMessage(player, key)}").decoration(TextDecoration.ITALIC, false))
+            lore.add(
+                    LegacyComponentSerializer.legacySection()
+                            .deserialize("$prefix$color${lang.getMessage(player, key)}")
+                            .decoration(TextDecoration.ITALIC, false)
+            )
         }
         lore.add(lang.getComponent(player, "gui.common.separator"))
         lore.add(lang.getComponent(player, "gui.discovery.sort.click"))
@@ -188,25 +305,48 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
     private fun createTagFilterButton(player: Player, selectedTag: WorldTag?): ItemStack {
         val lang = plugin.languageManager
-        val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG))
+        val item =
+                ItemStack(
+                        plugin.menuConfigManager.getIconMaterial(
+                                "discovery",
+                                "tag_filter",
+                                Material.NAME_TAG
+                        )
+                )
         val meta = item.itemMeta ?: return item
 
-        meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name").color(NamedTextColor.AQUA).decorate(TextDecoration.BOLD))
+        meta.displayName(
+                lang.getComponent(player, "gui.discovery.tag_filter.name")
+                        .color(NamedTextColor.AQUA)
+                        .decorate(TextDecoration.BOLD)
+        )
 
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator"))
 
-        val currentTagName = selectedTag?.let { lang.getMessage(player, "world_tag.${it.name.lowercase()}") } ?: lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
-        lore.add(LegacyComponentSerializer.legacySection().deserialize("§f§l| §7${lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")} §f$currentTagName").decoration(TextDecoration.ITALIC, false))
+        val currentTagName =
+                selectedTag?.let { lang.getMessage(player, "world_tag.${it.name.lowercase()}") }
+                        ?: lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
+        lore.add(
+                LegacyComponentSerializer.legacySection()
+                        .deserialize(
+                                "§f§l| §7${lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")} §f$currentTagName"
+                        )
+                        .decoration(TextDecoration.ITALIC, false)
+        )
 
         lore.add(lang.getComponent(player, "gui.common.separator"))
 
         WorldTag.values().forEach { tag ->
-             val isSelected = selectedTag == tag
-             val prefix = if (isSelected) "§6» " else "§7  "
-             val color = if (isSelected) "§e" else "§7"
-             val tagName = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
-             lore.add(LegacyComponentSerializer.legacySection().deserialize("$prefix$color$tagName").decoration(TextDecoration.ITALIC, false))
+            val isSelected = selectedTag == tag
+            val prefix = if (isSelected) "§6» " else "§7  "
+            val color = if (isSelected) "§e" else "§7"
+            val tagName = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
+            lore.add(
+                    LegacyComponentSerializer.legacySection()
+                            .deserialize("$prefix$color$tagName")
+                            .decoration(TextDecoration.ITALIC, false)
+            )
         }
 
         lore.add(lang.getComponent(player, "gui.common.separator"))
@@ -224,13 +364,17 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         val item = ItemStack(Material.GLASS_PANE)
         val meta = item.itemMeta ?: return item
 
-        meta.displayName(lang.getComponent(player, "gui.discovery.spotlight_empty.name").decoration(TextDecoration.ITALIC, false))
+        meta.displayName(
+                lang.getComponent(player, "gui.discovery.spotlight_empty.name")
+                        .decoration(TextDecoration.ITALIC, false)
+        )
 
-        val loreLines = if (player.hasPermission("myworldmanager.admin")) {
-            lang.getComponentList(player, "gui.discovery.spotlight_empty.lore_admin")
-        } else {
-            lang.getComponentList(player, "gui.discovery.spotlight_empty.lore_visitor")
-        }
+        val loreLines =
+                if (player.hasPermission("myworldmanager.admin")) {
+                    lang.getComponentList(player, "gui.discovery.spotlight_empty.lore_admin")
+                } else {
+                    lang.getComponentList(player, "gui.discovery.spotlight_empty.lore_visitor")
+                }
         meta.lore(loreLines.map { it.decoration(TextDecoration.ITALIC, false) })
 
         item.itemMeta = meta
@@ -238,50 +382,75 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    private fun createStatsItem(player: Player, sort: DiscoverySort, tag: WorldTag?, count: Int): ItemStack {
+    private fun createStatsItem(
+            player: Player,
+            sort: DiscoverySort,
+            tag: WorldTag?,
+            count: Int
+    ): ItemStack {
         val lang = plugin.languageManager
         val item = ItemStack(Material.BOOK)
         val meta = item.itemMeta ?: return item
-        
-        meta.displayName(lang.getComponent(player, "gui.discovery.stats.name").color(NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD))
-        
+
+        meta.displayName(
+                lang.getComponent(player, "gui.discovery.stats.name")
+                        .color(NamedTextColor.LIGHT_PURPLE)
+                        .decorate(TextDecoration.BOLD)
+        )
+
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator"))
-        
+
         val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
         lore.add(lang.getComponent(player, "gui.discovery.stats.sort", mapOf("sort" to sortName)))
-        
-        val tagName = tag?.let { lang.getMessage(player, "world_tag.${it.name.lowercase()}") } ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
+
+        val tagName =
+                tag?.let { lang.getMessage(player, "world_tag.${it.name.lowercase()}") }
+                        ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
         lore.add(lang.getComponent(player, "gui.discovery.stats.tag", mapOf("tag" to tagName)))
-        
+
         lore.add(lang.getComponent(player, "gui.discovery.stats.count", mapOf("count" to count)))
         lore.add(lang.getComponent(player, "gui.common.separator"))
-        
+
         meta.lore(lore)
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         return item
     }
 
-    private fun createNavButton(player: Player, label: String, material: Material, targetPage: Int): ItemStack {
+    private fun createNavButton(
+            player: Player,
+            label: String,
+            material: Material,
+            targetPage: Int
+    ): ItemStack {
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(label).decoration(TextDecoration.ITALIC, false))
+        meta.displayName(
+                LegacyComponentSerializer.legacySection()
+                        .deserialize(label)
+                        .decoration(TextDecoration.ITALIC, false)
+        )
         item.itemMeta = meta
         ItemTag.setTargetPage(item, targetPage)
         val lang = plugin.languageManager
-        val type = if (label == lang.getMessage(player, "gui.common.next_page")) ItemTag.TYPE_GUI_NAV_NEXT else ItemTag.TYPE_GUI_NAV_PREV
+        val type =
+                if (label == lang.getMessage(player, "gui.common.next_page"))
+                        ItemTag.TYPE_GUI_NAV_NEXT
+                else ItemTag.TYPE_GUI_NAV_PREV
         ItemTag.tagItem(item, type)
         return item
     }
-
-
 
     private fun createReturnButton(player: Player): ItemStack {
         val lang = plugin.languageManager
         val item = ItemStack(Material.REDSTONE)
         val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.common.return").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+        meta.displayName(
+                lang.getComponent(player, "gui.common.return")
+                        .color(NamedTextColor.YELLOW)
+                        .decorate(TextDecoration.BOLD)
+        )
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
         return item
