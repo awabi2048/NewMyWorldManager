@@ -879,6 +879,7 @@ messages:
   icon_cancelled: "§cアイコン設定をキャンセルしました"
   operation_cancelled: "§e操作をキャンセルしました。"
   insufficient_points: "§cポイントが不足しています。"
+  creation_insufficient_points: "§cポイントが不足しています。"
   invalid_biome_data: "§cバイオームデータが不適切です。"
   creation_cancelled: "§eマイワールドの作成をキャンセルしました。"
   creation_success: "§aワールド作成完了！"
@@ -1127,8 +1128,6 @@ custom_item:
       - "§e§l| §e右クリックで使用"
       - "§8§m－－－－－－－－－－－－－－－－－－"
 
-messages:
-  creation_insufficient_points: "§cポイントが不足しています。"
 
 biomes:
   plains: "平原"

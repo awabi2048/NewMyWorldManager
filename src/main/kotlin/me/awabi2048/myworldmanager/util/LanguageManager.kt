@@ -48,9 +48,6 @@ class LanguageManager(private val plugin: MyWorldManager) {
                 config.setDefaults(defaultConfig)
             }
             langConfigs[langName] = config
-            
-            // デバッグ: notification関連キーの確認
-
         }
     }
 
