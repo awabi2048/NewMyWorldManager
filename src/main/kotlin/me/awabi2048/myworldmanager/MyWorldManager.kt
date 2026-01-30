@@ -13,7 +13,7 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 
 class MyWorldManager : JavaPlugin() {
- 
+
     lateinit var worldConfigRepository: WorldConfigRepository
     lateinit var worldService: WorldService
     lateinit var worldGui: WorldGui
@@ -21,7 +21,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
     lateinit var spotlightRepository: SpotlightRepository
-    
+
     lateinit var settingsSessionManager: SettingsSessionManager
     lateinit var inviteSessionManager: InviteSessionManager
     lateinit var worldSettingsGui: WorldSettingsGui
@@ -35,7 +35,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var playerWorldSessionManager: PlayerWorldSessionManager
     lateinit var soundManager: SoundManager
     lateinit var menuConfigManager: MenuConfigManager
-    
+
     lateinit var creationGui: CreationGui
     lateinit var discoveryGui: DiscoveryGui
     lateinit var favoriteGui: FavoriteGui
@@ -68,7 +68,7 @@ class MyWorldManager : JavaPlugin() {
             dataFolder.mkdirs()
         }
         saveDefaultConfig()
-        
+
         // langフォルダが存在しなければ作成し、デフォルトの言語ファイルをコピー
         val langFolder = java.io.File(dataFolder, "lang")
         if (!langFolder.exists()) {
@@ -76,32 +76,32 @@ class MyWorldManager : JavaPlugin() {
         }
         saveResourceIfNotExists("lang/ja_jp.yml")
         saveResourceIfNotExists("lang/en_us.yml")
-        
+
         // templates.ymlがなければコピー
         saveResourceIfNotExists("templates.yml")
-        
+
         // 言語設定の初期化
         languageManager = LanguageManager(this)
- 
+
         // リポジトリの初期化
         worldConfigRepository = WorldConfigRepository(this)
         templateRepository = TemplateRepository(this)
-        
+
         directoryManager = DirectoryManager(this, worldConfigRepository, templateRepository)
         // ワールド・テンプレートディレクトリの存在チェック
         directoryManager.checkDirectories()
-        
+
         playerStatsRepository = PlayerStatsRepository(this)
         portalRepository = PortalRepository(this)
         spotlightRepository = SpotlightRepository(this)
-        
+
         // サービスの初期化
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
         portalManager = PortalManager(this)
         portalManager.startTasks()
         worldUnloadService = WorldUnloadService(this)
         worldUnloadService.start()
-        
+
         // GUIの初期化
         worldGui = WorldGui(this)
         creationGui = CreationGui(this)
@@ -121,13 +121,13 @@ class MyWorldManager : JavaPlugin() {
         environmentGui = EnvironmentGui(this)
         environmentConfirmGui = EnvironmentConfirmGui(this)
         worldSeedConfirmGui = WorldSeedConfirmGui(this)
-        
+
         creationSessionManager = CreationSessionManager(this)
         inviteSessionManager = InviteSessionManager()
         macroManager = MacroManager(this)
         // MemberInviteManagerの初期化に依存関係を渡す
         memberInviteManager = MemberInviteManager(this, worldConfigRepository, macroManager)
-        
+
         // 設定機能の初期化
         settingsSessionManager = SettingsSessionManager()
         discoverySessionManager = DiscoverySessionManager()
@@ -136,24 +136,33 @@ class MyWorldManager : JavaPlugin() {
         playerWorldSessionManager = PlayerWorldSessionManager()
         worldValidator = WorldValidator(this)
         soundManager = SoundManager(this)
-        
+
         // メニュー設定ファイルの初期化
         val menusFolder = java.io.`File`(dataFolder, "menus")
         if (!menusFolder.exists()) {
             menusFolder.mkdirs()
         }
-        listOf("player_world", "creation", "world_settings", "visit", "favorite", "discovery", "portal", "admin_manage").forEach { menuId ->
-            saveResourceIfNotExists("menus/$menuId.yml")
-        }
+        listOf(
+                        "player_world",
+                        "creation",
+                        "world_settings",
+                        "visit",
+                        "favorite",
+                        "discovery",
+                        "portal",
+                        "admin_manage"
+                )
+                .forEach { menuId -> saveResourceIfNotExists("menus/$menuId.yml") }
         menuConfigManager = MenuConfigManager(this)
         menuConfigManager.initialize()
-        
+
         previewSessionManager = PreviewSessionManager(this)
         adminGuiSessionManager = AdminGuiSessionManager()
- 
+
         val inviteCmd = InviteCommand(this)
- 
+
         // リスナーの登録
+        server.pluginManager.registerEvents(WorldStatusListener(), this)
         server.pluginManager.registerEvents(AccessControlListener(this), this)
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
         // 旧 GuiListener を分割して登録
@@ -161,7 +170,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(VisitListener(this), this)
         server.pluginManager.registerEvents(FavoriteListener(this), this)
         server.pluginManager.registerEvents(MeetListener(this), this)
-        
+
         server.pluginManager.registerEvents(AdminGuiListener(), this)
         server.pluginManager.registerEvents(AdminCommandListener(), this)
         server.pluginManager.registerEvents(CreationGuiListener(this), this)
@@ -181,7 +190,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(WizardLunaChatListener(this), this)
         server.pluginManager.registerEvents(TemplateWizardListener(), this)
         server.pluginManager.registerEvents(TemplateWizardChatListener(this), this)
-        
+
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
         getCommand("mwm")?.setExecutor(mwmCmd)
@@ -193,7 +202,7 @@ class MyWorldManager : JavaPlugin() {
             it.setExecutor(visitCmd)
             it.setTabCompleter(visitCmd)
         }
-        
+
         getCommand("invite")?.setExecutor(inviteCmd)
         getCommand("invite")?.setTabCompleter(inviteCmd)
         getCommand("inviteaccept_internal")?.setExecutor { sender, _, _, _ ->
@@ -204,33 +213,58 @@ class MyWorldManager : JavaPlugin() {
             if (sender is Player) memberInviteManager.handleMemberInviteAccept(sender)
             true
         }
- 
+
         getCommand("favorite")?.setExecutor(FavoriteCommand(this))
         getCommand("discovery")?.setExecutor(DiscoveryCommand(this))
-        
+
         val meetCmd = MeetCommand(this)
         getCommand("meet")?.setExecutor(meetCmd)
         getCommand("meet")?.setTabCompleter(meetCmd)
 
         getCommand("settings")?.setExecutor(SettingsCommand(this))
+
+        // 起動完了ログ
+        LogUtil.logWithSeparator(
+                logger,
+                listOf(
+                        "MyWorldManager v${description.version} has been enabled!",
+                        "Developed by ${description.authors.joinToString(", ")}"
+                )
+        )
+
+        // Chiyogamiチェック
+        if (!ChiyogamiUtil.isChiyogamiActive()) {
+            LogUtil.logWarningBox(
+                    logger,
+                    listOf(
+                            "Chiyogami is NOT detected!",
+                            "This plugin is optimized for Chiyogami server software.",
+                            "Using it on other software may cause performance issues or unexpected behavior.",
+                            "It is strongly recommended to use Chiyogami."
+                    )
+            )
+        }
     }
 
     override fun onDisable() {
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
         }
+
+        LogUtil.logWithSeparator(
+                logger,
+                listOf("MyWorldManager v${description.version} has been disabled.", "Goodbye!")
+        )
     }
 
-    /**
-     * 設定ファイルとリポジトリのデータを再読み込みする（再起動と同等の処理）
-     */
+    /** 設定ファイルとリポジトリのデータを再読み込みする（再起動と同等の処理） */
     fun reloadSystem() {
         // デフォルト設定の保存（ファイルが存在しない場合のみ作成）
         saveDefaultConfig()
 
         // config.ymlの再読み込み
         reloadConfig()
-        
+
         // 各コンポーネントの再読み込み
         languageManager.loadAllLanguages()
         worldConfigRepository.loadAll()
@@ -239,25 +273,23 @@ class MyWorldManager : JavaPlugin() {
         spotlightRepository.load()
         macroManager.loadConfig()
         menuConfigManager.initialize() // フォルダ作成・デフォルトコピー・全読み込みを一括実行
-        
+
         // ディレクトリの再チェック
         directoryManager.checkDirectories()
 
         // プレイヤーキャッシュのクリア（次回アクセス時に再読み込みされる）
         playerStatsRepository.clearCache()
-        
+
         // SoundManagerの設定再読み込み（config依存のためインスタンス再生成）
         soundManager = SoundManager(this)
-        
+
         // WorldUnloadServiceの再起動
         worldUnloadService.start()
-        
+
         logger.info("全てのシステム設定およびデータを再読み込みしました。")
     }
 
-    /**
-     * リソースファイルが存在しない場合のみ保存する
-     */
+    /** リソースファイルが存在しない場合のみ保存する */
     private fun saveResourceIfNotExists(resourcePath: String) {
         val file = java.io.File(dataFolder, resourcePath)
         if (!file.exists()) {
