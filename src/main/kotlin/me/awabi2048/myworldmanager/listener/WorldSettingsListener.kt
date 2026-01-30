@@ -357,9 +357,9 @@ class WorldSettingsListener : Listener {
                     ItemTag.TYPE_GUI_RETURN -> {
                         plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         val command = plugin.config.getString("menu_command", "mwm") ?: "mwm"
-                        player.performCommand(command)
                         plugin.settingsSessionManager.endSession(player)
                         player.closeInventory()
+                        player.performCommand(command)
                     }
                     ItemTag.TYPE_GUI_SETTING_INFO -> {
                         plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
