@@ -62,8 +62,8 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
             if (event.isLeftClick) {
                 val isMember = worldData.owner == player.uniqueId || 
-                              worldData.moderators.contains(player.uniqueId) ||
-                              worldData.members.contains(player.uniqueId)
+                               worldData.moderators.contains(player.uniqueId) ||
+                               worldData.members.contains(player.uniqueId)
                 
                 // 公開・限定公開以外はワープ不可 (メンバーは例外)
                 if (!isMember && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.PUBLIC && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.FRIEND) {
