@@ -27,10 +27,6 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val favWorldUuids = stats.favoriteWorlds.keys
         
-        if (favWorldUuids.isEmpty()) {
-            player.sendMessage(lang.getMessage(player, "messages.no_favorites_found"))
-            return
-        }
         
 
         val allWorlds = favWorldUuids.mapNotNull { uuid ->
@@ -72,6 +68,16 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             inventory.setItem(index + 9, createWorldItem(player, data, returnToWorld))
         }
 
+        // お気に入りがない場合の特殊表示
+        if (allWorlds.isEmpty()) {
+            val emptyItem = ItemStack(Material.QUARTZ)
+            val emptyMeta = emptyItem.itemMeta
+            emptyMeta?.displayName(Component.text("§7まだお気に入りがありません").decoration(TextDecoration.ITALIC, false))
+            emptyItem.itemMeta = emptyMeta
+            ItemTag.tagItem(emptyItem, ItemTag.TYPE_GUI_INFO)
+            inventory.setItem(31, emptyItem)
+        }
+
         if (currentPage > 0) {
             val item = me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "favorite", currentPage - 1)
             if (returnToWorld != null) me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, returnToWorld.uuid)
@@ -87,13 +93,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
 
         // 戻るボタン
-        if (returnToWorld != null || session.showBackButton) {
-            val item = me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "favorite")
-            if (returnToWorld != null) {
-                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, returnToWorld.uuid)
-            }
-            inventory.setItem(45, item)
+        val returnItem = me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "favorite")
+        if (returnToWorld != null) {
+            me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(returnItem, returnToWorld.uuid)
         }
+        inventory.setItem(45, returnItem)
 
         val background = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)
         for (slot in 0 until inventory.size) {
@@ -109,7 +113,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val item = ItemStack(data.icon)
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
-        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name)))
+        val worldName = lang.getMessageStrict(player, data.name) ?: data.name
+        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName)))
 
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, "gui.common.separator"))
