@@ -344,8 +344,8 @@ gui:
       expire_info_overdue: "§7アーカイブから §c{days}日 経過"
       mspt_unloaded: "§f§l| §7MSPT: §cアンロード中"
       mspt_error: "§f§l| §7MSPT: §cエラー"
-      mspt_low: "§f§l| §7MSPT: §e0.1ms未満"
-      mspt: "§f§l| §7MSPT: §e{mspt} §7ms"
+      mspt_low: "§f§l| §7MSPT: {color}0.1ms未満"
+      mspt: "§f§l| §7MSPT: {color}{mspt} §7ms"
       recent_visitors: "§f§l| §7最近訪れたプレイヤー: §a{count}人"
       tag: "§f§l| §7ワールドタグ §e{tags}"
       action_archive: "§e§l| §e§n右クリック§7 アーカイブ状態を切替"
@@ -746,6 +746,8 @@ messages:
   copy_owner_uuid: "§7- §b§n所有者UUID"
   copy_world_uuid_hover: "クリックしてワールドUUIDをコピー"
   copy_owner_uuid_hover: "クリックして所有者UUIDをコピー"
+  mspt_warning_chat: "§c§l[警告] ワールド \"§f{world}§c\" の負荷が高い状態です: §f{mspt} ms"
+  mspt_warning_subtitle: "§c高負荷検出: §f{world} (§e{mspt}ms§f)"
 
 # 共通状態/役割
 status:
@@ -838,13 +840,6 @@ biomes:
   end_midlands: "エンドの中腹"
   end_highlands: "エンドの高地"
   end_barrens: "エンドの果て"
-  custom_item:
-    bottle_fill: "§aバイオームの空気を採取しました！ (バイオーム: {biome})"
-    biome_world_only: "§cこのアイテムは MyWorld 内でのみ使用可能です。"
-    no_permission: "§cバイオームを変更する権限がありません。"
-    partial_biome_applied: "§a周辺のバイオームを {biome} に変更しました！"
-    world_seed_expanded: "§aMyWorldスロットを拡張しました！ 現在のスロット: {slots}"
-    world_seed_limit_reached: "§cこれ以上スロットを拡張できません。 (上限: {limit})"
   visit:
     title: "{player}のワールド一覧"
     world_item:
@@ -855,3 +850,12 @@ biomes:
       warp: "§e§l| §e§n左クリック §7ワープ"
       fav_add: "§e§l| §e§n右クリック §7お気に入り登録"
       fav_remove: "§e§l| §e§n右クリック §7お気に入り解除"
+
+  custom_item:
+    bottle_fill: "§aバイオームの空気を採取しました！ (バイオーム: {biome})"
+    biome_world_only: "§cこのアイテムは MyWorld 内でのみ使用可能です。"
+    no_permission: "§cバイオームを変更する権限がありません。"
+    partial_biome_applied: "§a周辺のバイオームを {biome} に変更しました！"
+    world_seed_expanded: "§aMyWorldスロットを拡張しました！ 現在のスロット: {slots}"
+    world_seed_limit_reached: "§cこれ以上スロットを拡張できません。 (上限: {limit})"
+    biome_bottle_disabled: "§c[MyWorld] このワールドではバイオームの雰囲気入りの瓶を使用できません。"

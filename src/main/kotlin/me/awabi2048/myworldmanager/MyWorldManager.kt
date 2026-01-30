@@ -102,6 +102,9 @@ class MyWorldManager : JavaPlugin() {
         worldUnloadService = WorldUnloadService(this)
         worldUnloadService.start()
 
+        // MSPT監視タスクの開始
+        me.awabi2048.myworldmanager.task.MsptMonitorTask(this).start()
+
         // GUIの初期化
         worldGui = WorldGui(this)
         creationGui = CreationGui(this)

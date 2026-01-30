@@ -521,19 +521,22 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         )
                                 } else {
                                         if (mspt < 0.1) {
+                                                val color = me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColorCode(mspt)
                                                 lore.add(
                                                         lang.getComponent(
                                                                 null,
-                                                                "gui.admin.world_item.mspt_low"
+                                                                "gui.admin.world_item.mspt_low",
+                                                                mapOf("color" to color)
                                                         )
                                                 )
                                         } else {
                                                 val msptString = String.format("%.1f", mspt)
+                                                val color = me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColorCode(mspt)
                                                 lore.add(
                                                         lang.getComponent(
                                                                 null,
                                                                 "gui.admin.world_item.mspt",
-                                                                mapOf("mspt" to msptString)
+                                                                mapOf("mspt" to msptString, "color" to color)
                                                         )
                                                 )
                                         }

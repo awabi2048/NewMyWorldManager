@@ -137,3 +137,12 @@ sounds:
   global_click:
     sound: "UI_BUTTON_CLICK"
     pitch: 2.0
+  mspt_warning:
+    sound: "BLOCK_NOTE_BLOCK_BASS"
+    pitch: 0.5
+
+# MSPT監視設定
+mspt_monitor:
+  enabled: true
+  interval_seconds: 30
+  threshold: 40.0

@@ -58,6 +58,22 @@ object ChiyogamiUtil {
         }
     }
 
+    /** MSPT値に基づいた装飾色コードを返します。 */
+    fun getMsptColorCode(mspt: Double): String {
+        return when {
+            mspt <= 10.0 -> "§a"
+            mspt <= 30.0 -> "§e"
+            mspt <= 50.0 -> "§c"
+            else -> "§4"
+        }
+    }
+
+    /** MSPT値に基づいたAdventure Componentの色（装飾付き文字列）を返します。 */
+    fun getMsptColoredString(mspt: Double): String {
+        val color = getMsptColorCode(mspt)
+        return String.format("%s%.1f", color, mspt)
+    }
+
     private fun reflectionGetWorldMspt(world: World): Double? {
         val possibleClassNames =
                 listOf(

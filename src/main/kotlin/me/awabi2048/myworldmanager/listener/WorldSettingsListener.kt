@@ -1114,6 +1114,53 @@ class WorldSettingsListener : Listener {
                                                         ItemTag.TYPE_BOTTLED_BIOME_AIR
                                                 )
                                         ) {
+                                                // Permission & Logic Check
+                                                val isMember =
+                                                        player.uniqueId == worldData.owner ||
+                                                                worldData.moderators.contains(
+                                                                        player.uniqueId
+                                                                )
+                                                val isAdmin =
+                                                        player.hasPermission(
+                                                                "my_world_manager.admin"
+                                                        )
+                                                val worldFolderName =
+                                                        worldData.customWorldName
+                                                                ?: "my_world.${worldData.uuid}"
+                                                val isAdminWorld =
+                                                        worldFolderName !=
+                                                                "my_world.${worldData.uuid}"
+
+                                                if (isMember) {
+                                                        // Owner/Mod: OK
+                                                } else if (isAdmin && isAdminWorld) {
+                                                        // Admin in Admin Created World: OK
+                                                } else {
+                                                        // Denied
+                                                        player.playSound(
+                                                                player.location,
+                                                                Sound.ENTITY_VILLAGER_NO,
+                                                                1.0f,
+                                                                1.0f
+                                                        )
+                                                        if (isAdminWorld) {
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "custom_item.biome_bottle_disabled"
+                                                                        )
+                                                                )
+                                                        } else {
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "custom_item.no_permission"
+                                                                        )
+                                                                )
+                                                        }
+                                                        return
+                                                }
+
                                                 plugin.soundManager.playClickSound(
                                                         player,
                                                         clickedItem,
@@ -2607,6 +2654,22 @@ class WorldSettingsListener : Listener {
                 val config = plugin.config
                 val cost = config.getInt("environment.biome.cost", 500)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+
+                // Safety Check: Permission & Logic
+                val isMember =
+                        player.uniqueId == worldData.owner ||
+                                worldData.moderators.contains(player.uniqueId)
+                val isAdmin = player.hasPermission("my_world_manager.admin")
+                val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                val isAdminWorld = worldFolderName != "my_world.${worldData.uuid}"
+
+                if (isMember) {
+                        // OK
+                } else if (isAdmin && isAdminWorld) {
+                        // OK
+                } else {
+                        return
+                }
 
                 if (stats.worldPoint < cost) {
                         player.sendMessage(
