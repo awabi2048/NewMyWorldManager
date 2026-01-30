@@ -491,7 +491,8 @@ gui:
       mspt_unloaded: "§f§l| §7MSPT: §cThis world is unloaded"
       mspt_error: "§f§l| §7MSPT: §cCould not retrieve"
       mspt_low: "§f§l| §7MSPT: §e< 0.1ms"
-      action_archive: "§e§l| §e§nRight-Click §7Toggle Archive"
+      action_archive: "§e§l| §e§nShift + Right-Click §7Toggle Archive"
+      action_settings: "§e§l| §b§nRight-Click§7 Settings"
       action_warp: "§e§l| §b§nLeft-Click §7Warp"
       uuid_copy_hint: "§e§l| §8Middle-Click §7Copy UUID"
     filter:

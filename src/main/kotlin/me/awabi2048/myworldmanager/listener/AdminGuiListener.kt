@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
@@ -175,10 +176,17 @@ class AdminGuiListener : Listener {
                 player.closeInventory()
             } else if (event.isRightClick) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                if (worldData.isArchived) {
-                    plugin.adminCommandGui.openUnarchiveWorldConfirmation(player, worldData.name, uuid)
+                if (event.isShiftClick) {
+                    // Shift + 右クリック: アーカイブ操作
+                    if (worldData.isArchived) {
+                        plugin.adminCommandGui.openUnarchiveWorldConfirmation(player, worldData.name, uuid)
+                    } else {
+                        plugin.adminCommandGui.openArchiveWorldConfirmation(player, worldData.name, uuid)
+                    }
                 } else {
-                    plugin.adminCommandGui.openArchiveWorldConfirmation(player, worldData.name, uuid)
+                    // 右クリック: ワールド設定メニューを開く
+                    plugin.settingsSessionManager.updateSessionAction(player, uuid, SettingsAction.VIEW_SETTINGS, isGui = true, isAdminFlow = true)
+                    plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
                 }
             } else if (event.click == org.bukkit.event.inventory.ClickType.MIDDLE) {
                 // ホイールクリック：UUIDコピーメッセージを送信（クリエイティブモードのみ）

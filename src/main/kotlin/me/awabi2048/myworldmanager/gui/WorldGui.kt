@@ -565,6 +565,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 lore.add(lang.getComponent(null, "gui.common.separator"))
+                lore.add(lang.getComponent(null, "gui.admin.world_item.action_settings"))
                 lore.add(lang.getComponent(null, "gui.admin.world_item.action_archive"))
                 lore.add(lang.getComponent(null, "gui.admin.world_item.action_warp"))
 

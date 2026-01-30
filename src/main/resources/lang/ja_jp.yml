@@ -558,8 +558,11 @@ gui:
       created_info_today: "§7今日"
       expire_info_remaining: "§7残り {days}日"
       expire_info_overdue: "§7アーカイブから §c{days}日 経過"
-      mspt: "§f§l| §7MSPT: §e{mspt} §7ms"
-      action_archive: "§e§l| §e右クリック§7 アーカイブ状態を切り替え"
+      mspt: "§f§l| §7MSPT: §{color}{mspt} §7ms"
+      mspt_low: "§f§l| §7MSPT: §a0.1§7 ms 未満"
+      mspt_unloaded: "§f§l| §7MSPT: §cこのワールドはアンロードされています"
+      action_archive: "§e§l| §eShift + 右クリック§7 アーカイブ状態を切り替え"
+      action_settings: "§e§l| §e右クリック§7 このワールドの設定を開く"
       action_warp: "§e§l| §e左クリック§7 このワールドへ§bワープ"
       uuid_copy_hint: "§e§l| §eホイールクリック§7 チャット欄に出力してUUIDをコピー"
     filter:

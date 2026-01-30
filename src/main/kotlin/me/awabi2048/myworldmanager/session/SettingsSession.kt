@@ -11,5 +11,6 @@ data class SettingsSession(
     var tempWeather: String? = null,
     var confirmItem: org.bukkit.inventory.ItemStack? = null,
     var isGuiTransition: Boolean = false,
-    var showBackButton: Boolean = false
+    var showBackButton: Boolean = false,
+    var isAdminFlow: Boolean = false
 )

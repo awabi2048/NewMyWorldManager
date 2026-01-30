@@ -66,7 +66,6 @@ class WorldSettingsListener : Listener {
                 // 共通メソッド: キャンセルとクリック音
                 fun handleCommandCancel() {
                         plugin.soundManager.playClickSound(player, item, "world_settings")
-                        plugin.settingsSessionManager.endSession(player)
                         plugin.worldSettingsGui.open(player, worldData)
                 }
 
@@ -659,9 +658,6 @@ class WorldSettingsListener : Listener {
                                                 )
 
                                                 // メニュー再描画（これによりセッションはVIEW_SETTINGSに戻る）
-                                                // endSession check? open updates session.
-                                                // We used to endSession before open.
-                                                plugin.settingsSessionManager.endSession(player)
                                                 plugin.worldSettingsGui.open(player, worldData)
                                         }
                                         return
@@ -701,12 +697,17 @@ class WorldSettingsListener : Listener {
 
                                 when (itemTag) {
                                         ItemTag.TYPE_GUI_RETURN -> {
-                                                me.awabi2048.myworldmanager.util.GuiHelper
-                                                        .handleReturnClick(
-                                                                plugin,
-                                                                player,
-                                                                clickedItem
-                                                        )
+                                                if (session.isAdminFlow) {
+                                                        plugin.soundManager.playAdminClickSound(player)
+                                                        plugin.worldGui.open(player, fromAdminMenu = true)
+                                                } else {
+                                                        me.awabi2048.myworldmanager.util.GuiHelper
+                                                                .handleReturnClick(
+                                                                        plugin,
+                                                                        player,
+                                                                        clickedItem
+                                                                )
+                                                }
                                         }
                                         ItemTag.TYPE_GUI_SETTING_INFO -> {
                                                 plugin.soundManager.playClickSound(
@@ -1119,7 +1120,8 @@ class WorldSettingsListener : Listener {
                                                         player.uniqueId == worldData.owner ||
                                                                 worldData.moderators.contains(
                                                                         player.uniqueId
-                                                                )
+                                                                ) ||
+                                                                session.isAdminFlow
                                                 val isAdmin =
                                                         player.hasPermission(
                                                                 "my_world_manager.admin"
@@ -1278,7 +1280,6 @@ class WorldSettingsListener : Listener {
                                                 type == ItemTag.TYPE_GUI_CANCEL
                                 ) {
                                         plugin.soundManager.playGlobalClickSound(player)
-                                        plugin.settingsSessionManager.endSession(player)
                                         plugin.worldSettingsGui.open(player, worldData)
                                 }
                         }
@@ -1767,7 +1768,6 @@ class WorldSettingsListener : Listener {
                                                 )
                                                         ?: "cancel"
                                         if (messageText.equals(cancelWord, ignoreCase = true)) {
-                                                plugin.settingsSessionManager.endSession(player)
                                                 if (worldData != null) {
                                                         plugin.worldSettingsGui.open(
                                                                 player,
@@ -2225,7 +2225,6 @@ class WorldSettingsListener : Listener {
                                                 }
                                                 else -> {}
                                         }
-                                        plugin.settingsSessionManager.endSession(player)
                                         if (worldData != null) {
                                                 plugin.worldSettingsGui.open(player, worldData)
                                         }
@@ -2449,7 +2448,6 @@ class WorldSettingsListener : Listener {
                                         )
                                 }
                                 plugin.worldConfigRepository.save(worldData)
-                                plugin.settingsSessionManager.endSession(player)
                                 plugin.worldSettingsGui.open(player, worldData)
                         }
                         return
@@ -2656,9 +2654,11 @@ class WorldSettingsListener : Listener {
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
                 // Safety Check: Permission & Logic
+                val session = plugin.settingsSessionManager.getSession(player)
                 val isMember =
                         player.uniqueId == worldData.owner ||
-                                worldData.moderators.contains(player.uniqueId)
+                                worldData.moderators.contains(player.uniqueId) ||
+                                session?.isAdminFlow == true
                 val isAdmin = player.hasPermission("my_world_manager.admin")
                 val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 val isAdminWorld = worldFolderName != "my_world.${worldData.uuid}"

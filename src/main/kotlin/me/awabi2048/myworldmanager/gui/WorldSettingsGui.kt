@@ -91,7 +91,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // 権限判定
-                val isOwner = worldData.owner == player.uniqueId
+                val currentSession = plugin.settingsSessionManager.getSession(player)
+                val isOwner = worldData.owner == player.uniqueId || currentSession?.isAdminFlow == true
                 val isModerator = worldData.moderators.contains(player.uniqueId)
                 val hasManagePermission = isOwner || isModerator
 
@@ -1297,7 +1298,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 for (i in 0..8) inventory.setItem(footerStart + i, blackPane)
 
                 // メンバーリストの描画
-                @Suppress("UNUSED_VARIABLE") val isOwner = worldData.owner == player.uniqueId
+                val isAdminFlow = plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
+                @Suppress("UNUSED_VARIABLE") val isOwner = worldData.owner == player.uniqueId || isAdminFlow
                 currentPageMembers.forEachIndexed { index, pair ->
                         val row = index / 7
                         val col = index % 7
@@ -1308,7 +1310,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         player,
                                         pair.first,
                                         pair.second,
-                                        worldData.owner == player.uniqueId
+                                        worldData.owner == player.uniqueId || isAdminFlow
                                 )
                         )
                 }
@@ -1770,9 +1772,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 for (i in 0..8) inventory.setItem(footerStart + i, blackPane)
 
                 // プレイヤーリストの描画
+                val isAdminFlow = plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
                 val canKick =
                         worldData.owner == player.uniqueId ||
-                                worldData.moderators.contains(player.uniqueId)
+                                worldData.moderators.contains(player.uniqueId) ||
+                                isAdminFlow
 
                 currentPageVisitors.forEachIndexed { index, visitor ->
                         val row = index / 7
