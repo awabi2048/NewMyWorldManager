@@ -36,10 +36,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }.filter { it.owner == player.uniqueId || !it.isArchived } // メンバーとして参加しているアーカイブ済みは非表示
     }
 
-    fun open(player: Player, page: Int = 0, showBackButton: Boolean = false) {
+    fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
+        val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+        if (showBackButton != null) {
+            session.showBackButton = showBackButton
+        }
+
         val playerWorlds = getPlayerWorlds(player)
         
-        if (playerWorlds.isEmpty()) {
+        if (playerWorlds.isEmpty() && !session.showBackButton) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.no_registered_worlds"))
             return
         }
@@ -108,7 +113,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
             inventory.setItem(footerStart + 1, me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "player_world", page - 1))
         }
 
-        if (showBackButton) {
+        if (session.showBackButton) {
             inventory.setItem(footerStart, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "player_world"))
         }
         if (startIndex + itemsPerPageNum < playerWorlds.size) {

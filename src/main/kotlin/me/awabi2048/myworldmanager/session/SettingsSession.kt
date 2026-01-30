@@ -10,5 +10,6 @@ data class SettingsSession(
     var expansionDirection: org.bukkit.block.BlockFace? = null,
     var tempWeather: String? = null,
     var confirmItem: org.bukkit.inventory.ItemStack? = null,
-    var isGuiTransition: Boolean = false
+    var isGuiTransition: Boolean = false,
+    var showBackButton: Boolean = false
 )

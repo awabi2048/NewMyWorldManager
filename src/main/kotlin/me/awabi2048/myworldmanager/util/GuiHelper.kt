@@ -88,6 +88,17 @@ object GuiHelper {
         return item
     }
 
+    fun handleReturnClick(plugin: MyWorldManager, player: Player, item: org.bukkit.inventory.ItemStack) {
+        plugin.soundManager.playClickSound(player, item)
+        val command = plugin.config.getString("menu_command", "mwm")?.removePrefix("/") ?: "mwm"
+        
+        // 全てのセッション終了を試みる（安全のため）
+        plugin.settingsSessionManager.endSession(player)
+        
+        player.closeInventory()
+        player.performCommand(command)
+    }
+
     private fun createNavigationItem(player: Player, material: org.bukkit.inventory.ItemStack, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
         // Overload to accept ItemStack if needed, but below uses Material
         return createNavigationItem(player, material.type, name, targetPage, isNext)

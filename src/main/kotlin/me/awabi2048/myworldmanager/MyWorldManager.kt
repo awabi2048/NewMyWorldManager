@@ -30,6 +30,9 @@ class MyWorldManager : JavaPlugin() {
     lateinit var portalManager: PortalManager
     lateinit var memberInviteManager: MemberInviteManager
     lateinit var discoverySessionManager: DiscoverySessionManager
+    lateinit var meetSessionManager: MeetSessionManager
+    lateinit var favoriteSessionManager: FavoriteSessionManager
+    lateinit var playerWorldSessionManager: PlayerWorldSessionManager
     lateinit var soundManager: SoundManager
     lateinit var menuConfigManager: MenuConfigManager
     
@@ -126,6 +129,9 @@ class MyWorldManager : JavaPlugin() {
         // 設定機能の初期化
         settingsSessionManager = SettingsSessionManager()
         discoverySessionManager = DiscoverySessionManager()
+        meetSessionManager = MeetSessionManager()
+        favoriteSessionManager = FavoriteSessionManager()
+        playerWorldSessionManager = PlayerWorldSessionManager()
         worldValidator = WorldValidator(this)
         soundManager = SoundManager(this)
         

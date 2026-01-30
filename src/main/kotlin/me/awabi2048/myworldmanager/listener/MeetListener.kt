@@ -39,8 +39,12 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                 plugin.playerStatsRepository.save(stats)
                 
                 // Refresh
-                val gui = me.awabi2048.myworldmanager.gui.MeetGui(plugin)
-                gui.open(player)
+                plugin.meetGui.open(player)
+                return
+            }
+
+            if (type == ItemTag.TYPE_GUI_RETURN) {
+                me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, currentItem)
                 return
             }
 

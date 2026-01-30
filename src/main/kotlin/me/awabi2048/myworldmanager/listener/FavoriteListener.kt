@@ -37,10 +37,14 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             }
 
             if (type == ItemTag.TYPE_GUI_RETURN) {
-                val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-                plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                plugin.favoriteMenuGui.open(player, worldData)
+                val uuid = ItemTag.getWorldUuid(currentItem)
+                if (uuid != null) {
+                    val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
+                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
+                    plugin.favoriteMenuGui.open(player, worldData)
+                } else {
+                    me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, currentItem)
+                }
                 return
             }
             

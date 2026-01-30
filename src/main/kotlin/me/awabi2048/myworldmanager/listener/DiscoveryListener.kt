@@ -135,6 +135,9 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.discoveryGui.open(player)
             }
+            ItemTag.TYPE_GUI_RETURN -> {
+                me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, item)
+            }
             "discovery_spotlight_empty" -> {
                 if (event.isLeftClick && player.hasPermission("myworldmanager.admin")) {
                     val world = player.world

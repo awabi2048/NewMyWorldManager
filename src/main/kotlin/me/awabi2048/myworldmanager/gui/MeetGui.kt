@@ -23,8 +23,14 @@ class MeetGui(private val plugin: MyWorldManager) {
         37, 38, 39, 40, 41, 42, 43
     )
 
-    fun open(player: Player, showBackButton: Boolean = false) {
+    fun open(player: Player, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
+        val session = plugin.meetSessionManager.getSession(player.uniqueId)
+        
+        if (showBackButton != null) {
+            session.showBackButton = showBackButton
+        }
+        
         val titleKey = "gui.meet.title_list"
         if (!lang.hasKey(player, titleKey)) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
@@ -46,36 +52,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         }.sortedBy { it.name }
 
         // 対象プレイヤーがいない場合でも、設定ボタンを表示するためにメニューは開く
-        // (Previously it returned if empty, but now we have settings button)
-        // Actually, if list is empty, user might just see empty list + settings button.
-
-
-        
-        // 行数を計算（最大4行 = 28人まで想定 とあったが、設定ボタン含めて計算する）
-        // プレイヤー表示枠は items indices.
-        // We have `playerSlots` list defining where players go.
-        // If targets exceed available slots, we might need pages (but for now let's assume it fits or simple truncation).
-        
-        val minRows = 3
-        val maxRows = 6
-        
-        // プレイヤー配置に必要な行数
-        // playerSlots indices are:
-        // Row 2 (index 1): 10..16 (7 slots)
-        // Row 3 (index 2): 19..25 (7 slots)
-        // Row 4 (index 3): 28..34 (7 slots)
-        // Row 5 (index 4): 37..43 (7 slots)
-        
-        // Calculate needed rows based on count
         val userCount = targets.size
-        // 0-7 users -> 3 rows (Row 2 for users, Row 3 for bottom) - wait, layout says:
-        // Row 1 (0-8): Black
-        // Row 2 (9-17): Users (10-16)
-        // Row 3 (18-26): Buttons/Footer? Or more users?
-        
-        // Let's stick to the previous behavior but ensure we have space.
-        // Previous logic: if (targets.size <= 7) 3 else if (targets.size <= 14) 4 etc.
-        
         val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6
         val title = Component.text(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title)
@@ -100,7 +77,6 @@ class MeetGui(private val plugin: MyWorldManager) {
         // プレイヤーの配置
         targets.forEachIndexed { index, target ->
             if (index < playerSlots.size) {
-                // Ensure slot is within current inventory size (unlikely to overflow with current logic but good to accept)
                 val slot = playerSlots[index]
                 if (slot < inventory.size) {
                     inventory.setItem(slot, createTargetHead(target, player, plugin))
@@ -144,7 +120,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         inventory.setItem(statusSlot, statusItem)
 
         // 戻るボタン
-        if (showBackButton) {
+        if (session.showBackButton) {
             val backButtonSlot = (rowCount - 1) * 9
             inventory.setItem(backButtonSlot, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"))
         }

@@ -17,8 +17,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
     private val itemsPerPage = 36 // 2行目から5行目までの4行分
 
-    fun open(player: Player, page: Int = 0, returnToWorld: WorldData? = null, showBackButton: Boolean = false) {
+    fun open(player: Player, page: Int = 0, returnToWorld: WorldData? = null, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
+        val session = plugin.favoriteSessionManager.getSession(player.uniqueId)
+        
+        if (showBackButton != null) {
+            session.showBackButton = showBackButton
+        }
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val favWorldUuids = stats.favoriteWorlds.keys
         
@@ -63,8 +68,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val startIndex = currentPage * itemsPerPage
         val pageWorlds = allWorlds.drop(startIndex).take(itemsPerPage)
 
-        pageWorlds.forEachIndexed { index, worldData ->
-            inventory.setItem(index + 9, createWorldItem(player, worldData, returnToWorld))
+        for ((index, data) in pageWorlds.withIndex()) {
+            inventory.setItem(index + 9, createWorldItem(player, data, returnToWorld))
         }
 
         if (currentPage > 0) {
@@ -82,7 +87,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
 
         // 戻るボタン
-        if (returnToWorld != null || showBackButton) {
+        if (returnToWorld != null || session.showBackButton) {
             val item = me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "favorite")
             if (returnToWorld != null) {
                 me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, returnToWorld.uuid)
