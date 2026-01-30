@@ -17,7 +17,7 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
 
         val lang = plugin.languageManager
-        if (!lang.isKeyMatch(title, "gui.spotlight_confirm.title")) return
+        if (!lang.isKeyMatch(title, "gui.spotlight_confirm.title") && !lang.isKeyMatch(title, "gui.discovery.spotlight_remove_confirm.title")) return
         event.isCancelled = true
 
         val item = event.currentItem ?: return
@@ -42,6 +42,19 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
                 plugin.discoveryGui.open(player)
             }
             "spotlight_confirm_no" -> {
+                plugin.soundManager.playClickSound(player, item)
+                plugin.discoveryGui.open(player)
+            }
+            "spotlight_remove_confirm_yes" -> {
+                val uuid = ItemTag.getWorldUuid(item) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
+
+                plugin.spotlightRepository.remove(uuid)
+                player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
+                plugin.soundManager.playClickSound(player, item)
+                plugin.discoveryGui.open(player)
+            }
+            "spotlight_remove_confirm_no" -> {
                 plugin.soundManager.playClickSound(player, item)
                 plugin.discoveryGui.open(player)
             }

@@ -690,6 +690,7 @@ gui:
     tag_filter:
       name: "タグフィルター"
       current_prefix: "現在の設定"
+      no_selection: "設定なし"
       all: "すべて"
       click_left: "§e§n左クリック§7 フィルターを切り替え"
       click_right: "§e§n右クリック§7 フィルターを解除"
@@ -700,12 +701,18 @@ gui:
       count: "§f§l| §7検索結果 §b{count}件"
       desc: "§7条件に一致するワールドを表示しています"
     sort_info:
-      hot: "§7直近の来訪者が多い順"
-      new: "§7公開日時が新しい順"
-      favorites: "§7お気に入り登録数が多い順"
-      spotlight: "§7運営によるピックアップ"
-      random: "§7ランダムに表示"
+      hot: "直近の来訪者が多い順"
+      new: "公開日時が新しい順"
+      favorites: "お気に入り登録数が多い順"
+      spotlight: "運営によるピックアップ"
+      random: "表示するたびにランダムに入れ替わります"
     no_result: "§7条件に一致するワールドが見つかりませんでした"
+
+    spotlight_remove_confirm:
+      title: "SPOTLIGHTからの削除"
+      lore:
+        - "§fワールド「§a{world}§f」を"
+        - "§6SPOTLIGHT§fから削除しますか？"
 
   favorite:
     title: "お気に入りリスト"
