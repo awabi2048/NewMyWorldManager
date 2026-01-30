@@ -40,22 +40,38 @@ class WorldUnloadService(private val plugin: MyWorldManager) {
         val worlds = Bukkit.getWorlds()
 
         for (world in worlds) {
-            if (excludes.contains(world.name)) {
-                emptySince.remove(world.name)
+            val worldName = world.name
+            if (excludes.contains(worldName)) {
+                emptySince.remove(worldName)
+                continue
+            }
+
+            // マイワールドのデータを確認
+            val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
+            if (worldData == null) {
+                // 非マイワールドは対象外
+                emptySince.remove(worldName)
+                continue
+            }
+
+            // Admin convert ワールドのチェック
+            // sourceWorld == "CONVERT" かつ 名前の形式が my_world.<uuid> でない場合は除外
+            if (worldData.sourceWorld == "CONVERT" && !worldName.startsWith("my_world.")) {
+                emptySince.remove(worldName)
                 continue
             }
 
             if (world.players.isEmpty()) {
-                if (!emptySince.containsKey(world.name)) {
-                    emptySince[world.name] = currentMillis
+                if (!emptySince.containsKey(worldName)) {
+                    emptySince[worldName] = currentMillis
                 } else {
-                    val since = emptySince[world.name]!!
+                    val since = emptySince[worldName]!!
                     if (currentMillis - since >= thresholdMillis) {
                         unloadWorld(world)
                     }
                 }
             } else {
-                emptySince.remove(world.name)
+                emptySince.remove(worldName)
             }
         }
         
