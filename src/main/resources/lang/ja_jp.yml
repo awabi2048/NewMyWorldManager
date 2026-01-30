@@ -17,7 +17,6 @@ command:
   help_list: "§b/mwm list§7 - 作成したワールドの一覧を表示します"
   help_menu: "§b/mwm menu§7 - メインメニューを開きます"
   help_invite: "§b/mwm invite <player> <world>§7 - プレイヤーをワールドに招待します"
-  reload_success: "§a[MyWorldManager] 設定を再読み込みしました。"
   no_permission: "§cこのコマンドを実行する権限がありません。"
 
 # エラーメッセージ
@@ -46,6 +45,7 @@ messages:
   visitor_notified: "§e[通知] §f{player} があなたのワールド {world} を訪問しました。"
   archive_access_denied: "§cこのワールドはアーカイブされているため入室できません。"
   portal_dest_locked: "§c移動先のワールドはロックされています。"
+  reload_success: "§a[MyWorldManager] 設定を再読み込みしました。"
   
 # GUI関連
 gui:
@@ -54,8 +54,10 @@ gui:
     prev_page: "§< 前へ"
     back: "§c戻る"
     close: "§c閉じる"
-    separator: "§8------------------------"
+    separator: "§8――――――――――――――――――――――――――――――――"
+    world_item_name: "§f【§a{world}§f】"
     world_item_name_simple: "§bWorld: §f{world}"
+    world_desc: "§f{description}"
 
   main_menu:
     title: "§1MyWorldManager Menu"
@@ -139,9 +141,58 @@ gui:
       mspt_error: "§f§l| §7MSPT: §c取得できませんでした"
       mspt_low: "§f§l| §7MSPT: §e0.1ms未満"
       mspt: "§f§l| §7MSPT: §e{mspt} §7ms"
+      recent_visitors: "§f§l| §7最近訪れたプレイヤー: §a{count}人"
+      tag: "§f§l| §7ワールドタグ §e{tags}"
       action_archive: "§e§l| §e§n右クリック§7 アーカイブ状態を切り替え"
       action_warp: "§e§l| §e§n左クリック§7 このワールドへ§bワープ"
       uuid_copy_hint: "§e§l| §8ホイールクリック§7 UUIDをコピー"
+
+  discovery:
+    title: "ディスカバリー"
+    world_item:
+      owner: "§f§l| §7所有者 {owner}{status_color}"
+      favorite: "§f§l| §7お気に入り §c{count}"
+      recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
+      tag: "§f§l| §7ワールドタグ §e{tags}"
+      warp: "§e§l| §e§n左クリック §7ワープ"
+      preview: "§e§l| §b§n右クリック §7プレビュー"
+      favorite_toggle: "§e§l| §d§nホイールクリック §7お気に入り登録/解除"
+
+  favorite:
+    title: "お気に入りワールド"
+    world_item:
+      owner: "§f§l| §7所有者 §b{owner}{status_color}"
+      favorite: "§f§l| §7お気に入り §c{count}"
+      recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
+      tag: "§f§l| §7ワールドタグ §e{tags}"
+      unfavorite: "§c右クリックで削除"
+      archived_label: "§c§l[アーカイブ済み]"
+      unfavorite_archived: "§cクリックで削除"
+    player_icon:
+      lore_count: "§f§l| §7お気に入りワールド: §a{count}個"
+
+  visit:
+    title: "{player}のワールド"
+    world_item:
+      owner: "§f§l| §7所有者 §b{owner}{status_color}"
+      favorite: "§f§l| §7お気に入り §c{count}"
+      recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
+      tag: "§f§l| §7ワールドタグ §e{tags}"
+      warp: "§e§l| §e§n左クリック §7ワープ"
+      fav_add: "§e§l| §e§n右クリック §7お気に入り"
+      fav_remove: "§e§l| §e§n右クリック §7お気に入り解除"
+
+  player_world:
+    title: "マイワールド"
+    world_item:
+      owner: "§f§l| §7所有者 §f{owner}"
+      publish: "§f§l| §7公開設定 §b{level}{status_color}"
+      favorite: "§f§l| §7お気に入り §c{count}"
+      recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
+      tag: "§f§l| §7ワールドタグ §e{tags}"
+      warp: "§e§l| §e§n左クリック§7 ワープ"
+      settings: "§e§l| §b§n右クリック§7 設定"
+      expires_at: "§f§l| §7アーカイブまで §f{days}日 §8({date})"
 
 publish_level:
   public: "全体公開"

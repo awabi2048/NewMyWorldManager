@@ -29,7 +29,7 @@ world_tag:
   minigame: "Minigame"
   building: "Building"
   facility: "Facility"
-  streaming: "Allow Streaming/Recording"
+  streaming: "Streaming/Recording Welcome"
 
 publish_level:
   public: "Public"
@@ -573,9 +573,9 @@ gui:
     title: "Discovery"
     world_item:
       owner: "§f§l| §7Owner {owner}{status_color}"
-      tag: "§f§l| §7Tags §b{tags}"
       favorite: "§f§l| §7Favorites §c{count}"
       recent_visitors: "§f§l| §7Recent Visitors §a{count}"
+      tag: "§f§l| §7Tags §e{tags}"
       warp: "§e§l| §e§nLeft-Click §7Warp"
       preview: "§e§l| §b§nRight-Click §7Preview"
       favorite_toggle: "§e§l| §d§nMiddle-Click §7Toggle Favorite"
@@ -625,6 +625,7 @@ gui:
       owner: "§f§l| §7Owner §b{owner}{status_color}"
       favorite: "§f§l| §7Favorites §c{count}"
       recent_visitors: "§f§l| §7Recent Visitors §a{count}"
+      tag: "§f§l| §7Tags §e{tags}"
       unfavorite: "§cRight-Click to remove"
       archived_label: "§c§l[ARCHIVED]"
       unfavorite_archived: "§cClick to remove"
@@ -676,9 +677,9 @@ gui:
     title: "{player}'s Worlds"
     world_item:
       owner: "§f§l| §7Owner §b{owner}{status_color}"
-      tag: "§f§l| §7Tags §b{tags}"
       favorite: "§f§l| §7Favorites §c{count}"
       recent_visitors: "§f§l| §7Recent Visitors §a{count}"
+      tag: "§f§l| §7Tags §e{tags}"
       warp: "§e§l| §e§nLeft-Click §7Warp"
       fav_add: "§e§l| §e§nRight-Click §7Favorite"
       fav_remove: "§e§l| §e§nRight-Click §7Unfavorite"
@@ -690,6 +691,7 @@ gui:
       publish: "§f§l| §7Publish §b{level}{status_color}"
       favorite: "§f§l| §7Favorites §c{count}"
       recent_visitors: "§f§l| §7Recent Visitors §a{count}"
+      tag: "§f§l| §7Tags §e{tags}"
       warp: "§e§l| §e§nLeft-Click§7 Warp"
       settings: "§e§l| §b§nRight-Click§7 Settings"
       expired: "§c§nThis world is ARCHIVED."
