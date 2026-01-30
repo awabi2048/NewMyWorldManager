@@ -137,4 +137,11 @@ class SoundManager(private val plugin: MyWorldManager) {
     fun playAdminClickSound(player: Player) {
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 2.0f)
     }
+
+    /**
+     * テレポート時の効果音を再生 (ENTITY_PLAYER_TELEPORT, pitch 2.0)
+     */
+    fun playTeleportSound(player: Player) {
+        player.playSound(player.location, Sound.ENTITY_PLAYER_TELEPORT, 1.0f, 2.0f)
+    }
 }

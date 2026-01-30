@@ -620,6 +620,7 @@ class WorldSettingsListener : Listener {
                             plugin.soundManager.playClickSound(player, item, "world_settings")
                             plugin.portalManager.addIgnorePlayer(player)
                             player.teleport(portal.getCenterLocation().add(0.0, 1.0, 0.0))
+                            plugin.soundManager.playTeleportSound(player)
                             player.sendMessage(lang.getMessage(player, "messages.warp_generic"))
                             player.closeInventory()
                         }

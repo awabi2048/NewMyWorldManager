@@ -184,7 +184,7 @@ class WorldService(
         if (player != null && player.isOnline) {
             val lang = (plugin as me.awabi2048.myworldmanager.MyWorldManager).languageManager
             player.teleport(world.spawnLocation)
-            player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_TELEPORT, 1.0f, 2.0f)
+            plugin.soundManager.playTeleportSound(player)
             player.sendMessage(lang.getMessage(player, "messages.world_created_warp"))
         }
     }
@@ -346,7 +346,7 @@ class WorldService(
         }
 
         player.teleport(targetLoc)
-        player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_TELEPORT, 1.0f, 2.0f)
+        plugin.soundManager.playTeleportSound(player)
         
         // マクロ実行
         if (runMacro) {
