@@ -66,6 +66,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
 
                 // テンプレートワールドのロード確認
                 if (Bukkit.getWorld(target.path) == null) {
+                    player.closeInventory() // ロード前に閉じる
                     val creator = org.bukkit.WorldCreator(target.path)
                     Bukkit.createWorld(creator) ?: run {
                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
@@ -96,6 +97,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 // ワールドがロードされていない場合はロード
                 folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (Bukkit.getWorld(folderName) == null) {
+                    player.closeInventory() // ロード前に閉じる
                     if (!plugin.worldService.loadWorld(worldData.uuid)) {
                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
                         return false

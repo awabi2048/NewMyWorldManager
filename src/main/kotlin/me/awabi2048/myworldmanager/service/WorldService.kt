@@ -332,7 +332,9 @@ class WorldService(
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
         
+        // ワールドロード前にインベントリを閉じる (ロード中の操作防止)
         if (Bukkit.getWorld(folderName) == null) {
+            player.closeInventory()
             if (!loadWorld(worldUuid)) return
         }
         
