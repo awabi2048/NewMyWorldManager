@@ -1259,8 +1259,10 @@ class WorldSettingsListener : Listener {
         val multiplier = worldData.gravityMultiplier
         val gravityValue = 0.08 * multiplier
         
-        world.players.forEach { p ->
-            p.getAttribute(org.bukkit.attribute.Attribute.GRAVITY)?.baseValue = gravityValue
+        world.entities.forEach { entity ->
+            if (entity is org.bukkit.entity.LivingEntity) {
+                entity.getAttribute(org.bukkit.attribute.Attribute.GRAVITY)?.baseValue = gravityValue
+            }
         }
     }
 

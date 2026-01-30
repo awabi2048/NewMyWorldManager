@@ -142,7 +142,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     // 右クリックでプレビュー
                     if (event.isRightClick) {
                         player.closeInventory()
-                        plugin.previewSessionManager.startPreview(player, template.path)
+                        plugin.previewSessionManager.startPreview(player, template.path, me.awabi2048.myworldmanager.session.PreviewSource.TEMPLATE_SELECTION)
                         return
                     }
                     

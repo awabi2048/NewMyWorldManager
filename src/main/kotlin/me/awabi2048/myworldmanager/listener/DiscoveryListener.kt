@@ -108,7 +108,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     } else {
                         // プレビュー (通常右クリック)
                         player.closeInventory()
-                        plugin.previewSessionManager.startWorldPreview(player, worldData)
+                        plugin.previewSessionManager.startWorldPreview(player, worldData, me.awabi2048.myworldmanager.session.PreviewSource.DISCOVERY_MENU)
                     }
                 }
             }

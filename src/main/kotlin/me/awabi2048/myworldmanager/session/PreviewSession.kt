@@ -16,5 +16,12 @@ data class PreviewSession(
     val templatePath: String,
     var markerEntity: Entity? = null,
     var rotationTask: BukkitTask? = null,
-    var currentYaw: Float = 0f
+    var currentYaw: Float = 0f,
+    val source: PreviewSource = PreviewSource.TEMPLATE_SELECTION
 )
+
+enum class PreviewSource {
+    TEMPLATE_SELECTION,
+    FAVORITE_MENU,
+    DISCOVERY_MENU
+}

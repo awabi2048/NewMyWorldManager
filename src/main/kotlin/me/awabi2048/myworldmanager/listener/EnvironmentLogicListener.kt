@@ -24,17 +24,24 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         applyGravity(event.player)
     }
 
-    private fun applyGravity(player: org.bukkit.entity.Player) {
-        val worldName = player.world.name
-        val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
-        
-        if (worldData == null) {
-            // Reset to default if not in MyWorld (optional, but good practice)
-            player.getAttribute(Attribute.GRAVITY)?.baseValue = 0.08
-            return
+    @EventHandler
+    fun onEntitySpawn(event: org.bukkit.event.entity.EntitySpawnEvent) {
+        applyGravity(event.entity)
+    }
+
+    private fun applyGravity(entity: org.bukkit.entity.Entity) {
+        if (entity is org.bukkit.entity.LivingEntity) {
+            val worldName = entity.world.name
+            val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
+            
+            if (worldData == null) {
+                // Reset to default
+                entity.getAttribute(Attribute.GRAVITY)?.baseValue = 0.08
+                return
+            }
+            
+            entity.getAttribute(Attribute.GRAVITY)?.baseValue = 0.08 * worldData.gravityMultiplier
         }
-        
-        player.getAttribute(Attribute.GRAVITY)?.baseValue = 0.08 * worldData.gravityMultiplier
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
