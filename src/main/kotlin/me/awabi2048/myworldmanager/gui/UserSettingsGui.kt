@@ -15,8 +15,13 @@ import org.bukkit.inventory.ItemStack
 
 class UserSettingsGui(private val plugin: MyWorldManager) {
 
-    fun open(player: Player, showBackButton: Boolean = false) {
+    fun open(player: Player, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
+        val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+        if (showBackButton != null) {
+            session.showBackButton = showBackButton
+        }
+
         val titleKey = "gui.user_settings.title"
         if (!lang.hasKey(player, titleKey)) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
@@ -26,7 +31,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
 
         
         val title = Component.text(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "user_settings", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "user_settings", title, UserSettingsGuiHolder::class.java)
 
         plugin.settingsSessionManager.updateSessionAction(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.VIEW_SETTINGS, isGui = true)
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -61,14 +66,8 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
 
 
         // 戻るボタン (Slot 40)
-        if (showBackButton) {
-            val backBtn = ItemStack(Material.ARROW)
-            val backMeta = backBtn.itemMeta ?: return
-            backMeta.displayName(lang.getComponent(player, "gui.common.return"))
-            backMeta.lore(listOf(lang.getComponent(player, "gui.common.return_desc")))
-            backBtn.itemMeta = backMeta
-            ItemTag.tagItem(backBtn, ItemTag.TYPE_GUI_RETURN)
-            inventory.setItem(40, backBtn)
+        if (session.showBackButton) {
+            inventory.setItem(40, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "user_settings"))
         }
 
         // 空きスロットを灰色板ガラスで埋める

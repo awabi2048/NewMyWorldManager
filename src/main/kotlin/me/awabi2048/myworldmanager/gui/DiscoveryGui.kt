@@ -20,9 +20,13 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
     private val itemsPerPage = 36
 
-    fun open(player: Player, page: Int = 0, showBackButton: Boolean = false) {
+    fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
         val session = plugin.discoverySessionManager.getSession(player.uniqueId)
+        
+        if (showBackButton != null) {
+            session.showBackButton = showBackButton
+        }
         
         // ワールドの取得とフィルタリング
         val allWorlds = plugin.worldConfigRepository.findAll()
@@ -103,7 +107,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         inventory.setItem(49, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size))
         inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
         
-        if (showBackButton) {
+        if (session.showBackButton) {
             inventory.setItem(45, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "discovery"))
         }
 

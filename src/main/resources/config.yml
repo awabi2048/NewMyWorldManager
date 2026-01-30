@@ -12,6 +12,10 @@ validation:
     - "server"
     - "test"
 
+# メニュー設定
+menu_command: "mwm"
+
+
 creation:
   max_create_count_default: 3
   max_total_world_count: 50

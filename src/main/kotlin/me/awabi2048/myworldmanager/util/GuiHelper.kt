@@ -7,10 +7,12 @@ import org.bukkit.entity.Player
 
 object GuiHelper {
     /**
-     * Plays the menu open sound only if the menu title is different from the currently open inventory's title.
+     * Plays the menu open sound only if the menu title is different from the currently open inventory's title,
+     * OR if the inventory holder class is different.
      * This prevents the sound from playing when simply refreshing the menu or navigating pages.
      */
-    fun playMenuSoundIfTitleChanged(plugin: MyWorldManager, player: Player, menuId: String, newTitle: Component) {
+    fun playMenuSoundIfTitleChanged(plugin: MyWorldManager, player: Player, menuId: String, newTitle: Component, targetHolderClass: Class<*>? = null) {
+        val currentInventory = player.openInventory.topInventory
         val currentTitle = player.openInventory.title()
         
         // Serialize to plain text to compare content while ignoring minor formatting differences if any,
@@ -18,10 +20,13 @@ object GuiHelper {
         val currentTitleStr = PlainTextComponentSerializer.plainText().serialize(currentTitle)
         val newTitleStr = PlainTextComponentSerializer.plainText().serialize(newTitle)
 
-        // If the titles are different, it means we are opening a new menu type or context.
+        // Check if the current inventory holder matches the target holder class
+        val isSameHolder = targetHolderClass != null && targetHolderClass.isInstance(currentInventory.holder)
+
+        // If the titles are different AND the holder is also different (or not specified), it means we are opening a new menu type or context.
         // If they are the same, it's likely a page update or refresh, so suppress sound.
-        // Note: This relies on different menus having different titles.
-        if (currentTitleStr != newTitleStr) {
+        // If the holder is the same, it's definitely a refresh of the same menu type.
+        if (currentTitleStr != newTitleStr && !isSameHolder) {
             plugin.soundManager.playMenuOpenSound(player, menuId)
         }
     }
@@ -86,6 +91,17 @@ object GuiHelper {
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
         return item
+    }
+
+    fun handleReturnClick(plugin: MyWorldManager, player: Player, item: org.bukkit.inventory.ItemStack) {
+        plugin.soundManager.playClickSound(player, item)
+        val command = plugin.config.getString("menu_command", "mwm")?.removePrefix("/") ?: "mwm"
+        
+        // 全てのセッション終了を試みる（安全のため）
+        plugin.settingsSessionManager.endSession(player)
+        
+        player.closeInventory()
+        player.performCommand(command)
     }
 
     private fun createNavigationItem(player: Player, material: org.bukkit.inventory.ItemStack, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {

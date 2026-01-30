@@ -40,7 +40,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val session = sessions.getOrPut(player.uniqueId) { WizardSession() }
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.template_wizard.title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, menuId, Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, menuId, Component.text(title), null)
         val inventory = Bukkit.createInventory(player, 54, Component.text(title))
 
         // 装飾用

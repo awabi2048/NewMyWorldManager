@@ -22,28 +22,32 @@ import java.util.UUID
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
 
-    fun open(player: Player, worldData: WorldData, showBackButton: Boolean = false) {
+    fun open(player: Player, worldData: WorldData, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
         val titleKey = "gui.settings.title"
         if (!lang.hasKey(player, titleKey)) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return
         }
-
-        val title = lang.getMessage(player, titleKey, mapOf("world" to worldData.name))
-        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        // セッションの取得と更新
+        val session = plugin.settingsSessionManager.getSession(player)
+        if (showBackButton != null) {
+            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true)
+            plugin.settingsSessionManager.getSession(player)?.showBackButton = showBackButton
+        } else {
+            plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true)
+        }
         
-        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true)
+        val currentShowBack = plugin.settingsSessionManager.getSession(player)?.showBackButton ?: false
+        
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         
-        // インベントリの作成または再利用
-        val inventory = if (player.openInventory.topInventory.size == 54 && currentTitle == title) {
-            player.openInventory.topInventory
-        } else {
-            Bukkit.createInventory(null, 54, Component.text(title))
-        }
+        val title = lang.getComponent(player, "gui.settings.title", mapOf("world" to worldData.name))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", title, WorldSettingsGuiHolder::class.java)
+        
+        val holder = WorldSettingsGuiHolder()
+        val inventory = Bukkit.createInventory(holder, 54, title)
+        holder.inv = inventory
 
         // 背景 (黒の板ガラス)
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -51,7 +55,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         for (i in 45..53) inventory.setItem(i, blackPane)
 
         // 戻るボタン
-        if (showBackButton) {
+        if (currentShowBack) {
             inventory.setItem(45, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "world_settings"))
         }
 
@@ -488,7 +492,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.archive_confirm.title")
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title), WorldSettingsGuiHolder::class.java)
         val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
             player.openInventory.topInventory
         } else {
@@ -521,7 +525,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.unarchive_confirm.title")
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title), WorldSettingsGuiHolder::class.java)
         val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
             player.openInventory.topInventory
         } else {
@@ -574,7 +578,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val title = lang.getMessage(player, "gui.expansion.method_title")
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title), WorldSettingsGuiHolder::class.java)
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.EXPAND_SELECT_METHOD, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         
@@ -618,7 +622,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.expansion.confirm_title")
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title), WorldSettingsGuiHolder::class.java)
         plugin.settingsSessionManager.updateSessionAction(player, worldUuid, SettingsAction.EXPAND_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
@@ -670,7 +674,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val title = lang.getMessage(player, "gui.member_management.title")
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title), WorldSettingsGuiHolder::class.java)
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_MEMBERS, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         val allMembers = mutableListOf<Pair<java.util.UUID, String>>()
@@ -741,7 +745,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val targetName = Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")
         val title = lang.getMessage(player, "gui.member_management.remove_confirm.title", mapOf("player" to targetName))
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title), WorldSettingsGuiHolder::class.java)
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MEMBER_REMOVE_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
@@ -781,7 +785,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         val targetName = Bukkit.getOfflinePlayer(targetUuid).name ?: lang.getMessage(player, "general.unknown")
         val title = lang.getMessage(player, "gui.member_management.transfer_confirm.title", mapOf("player" to targetName))
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title))
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "world_settings", Component.text(title), WorldSettingsGuiHolder::class.java)
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MEMBER_TRANSFER_CONFIRM, isGui = true)
         scheduleGuiTransitionReset(plugin, player)
         val inventory = if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
@@ -1351,4 +1355,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         return item
     }
 
+    class WorldSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {
+        lateinit var inv: org.bukkit.inventory.Inventory
+        override fun getInventory(): org.bukkit.inventory.Inventory = inv
+    }
 }

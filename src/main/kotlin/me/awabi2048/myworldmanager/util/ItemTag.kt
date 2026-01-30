@@ -70,6 +70,7 @@ object ItemTag {
 
     const val TYPE_GUI_MEET_STATUS_SELECTOR = "gui_meet_status_selector"
     const val TYPE_GUI_MEET_SETTINGS_BUTTON = "gui_meet_settings_button"
+    const val TYPE_GUI_MEET_STATUS_TOGGLE = "gui_meet_status_toggle"
     
     // お気に入りメニュー用タグ
     const val TYPE_GUI_FAVORITE_OTHER_WORLDS = "gui_favorite_other_worlds"

@@ -26,10 +26,25 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
             event.isCancelled = true
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
 
-            if (type == ItemTag.TYPE_GUI_MEET_SETTINGS_BUTTON) {
+            if (type == ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE) {
                 plugin.soundManager.playClickSound(player, currentItem, "meet")
-                val gui = me.awabi2048.myworldmanager.gui.MeetSettingsGui(plugin)
-                gui.open(player)
+                // Cycle status: JOIN_ME -> ASK_ME -> BUSY
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                val newStatus = when (stats.meetStatus) {
+                    "JOIN_ME" -> "ASK_ME"
+                    "ASK_ME" -> "BUSY"
+                    else -> "JOIN_ME"
+                }
+                stats.meetStatus = newStatus
+                plugin.playerStatsRepository.save(stats)
+                
+                // Refresh
+                plugin.meetGui.open(player)
+                return
+            }
+
+            if (type == ItemTag.TYPE_GUI_RETURN) {
+                me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, currentItem)
                 return
             }
 
@@ -102,34 +117,5 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
             }
         }
         
-        // Settings GUI handling
-        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.MeetSettingsGui.MeetSettingsGuiHolder) {
-            event.isCancelled = true
-            if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
-            
-            if (type == ItemTag.TYPE_GUI_RETURN) {
-                plugin.soundManager.playClickSound(player, currentItem, "meet")
-                val gui = me.awabi2048.myworldmanager.gui.MeetGui(plugin)
-                gui.open(player)
-                return
-            }
-            
-            if (type == ItemTag.TYPE_GUI_MEET_STATUS_SELECTOR) {
-                plugin.soundManager.playClickSound(player, currentItem, "meet")
-                // Cycle status: JOIN_ME -> ASK_ME -> BUSY
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                val newStatus = when (stats.meetStatus) {
-                    "JOIN_ME" -> "ASK_ME"
-                    "ASK_ME" -> "BUSY"
-                    else -> "JOIN_ME"
-                }
-                stats.meetStatus = newStatus
-                plugin.playerStatsRepository.save(stats)
-                
-                // Refresh
-                val gui = me.awabi2048.myworldmanager.gui.MeetSettingsGui(plugin)
-                gui.open(player)
-            }
         }
-    }
 }

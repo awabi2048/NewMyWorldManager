@@ -558,6 +558,12 @@ gui:
     world_item:
       current_world: "§f§l| §7Current World §f{world}"
       click_visit: "§e§l| §e§nClick to warp"
+    
+    status_button:
+      display: "§aStatus Settings"
+      current: "§f§l| §7Current Status: §e{status}"
+      next: "§f§l| §7Next Status: §7{next_status}"
+      click: "§e§nClick to Toggle"
 
   discovery:
     title: "Discovery"

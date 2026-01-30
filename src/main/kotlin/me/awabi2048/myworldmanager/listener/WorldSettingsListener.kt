@@ -354,6 +354,9 @@ class WorldSettingsListener : Listener {
                 }
                 
                 when (itemTag) {
+                    ItemTag.TYPE_GUI_RETURN -> {
+                        me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, clickedItem)
+                    }
                     ItemTag.TYPE_GUI_SETTING_INFO -> {
                         plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
                         if (event.isRightClick) {

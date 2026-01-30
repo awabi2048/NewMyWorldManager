@@ -626,12 +626,11 @@ gui:
       status: "§f§l| §7ステータス §e{status}"
       click_visit: "§e§l| §eクリックしてワールドにワープ"
       click_request: "§e§l| §eクリックしてワープ申請を送信"
-    settings_button:
-      display: "§6/meet 設定"
-      lore:
-        - "§7自身のステータスや設定を変更します。"
-        - ""
-        - "§e§nクリックして開く"
+    status_button:
+      display: "§aステータス設定"
+      current: "§f§l| §7現在のステータス §e{status}"
+      next: "§f§l| §7次のステータス §7{next_status}"
+      click: "§e§nクリックして切り替え"
 
   meet_settings:
     title: "/meet 設定"

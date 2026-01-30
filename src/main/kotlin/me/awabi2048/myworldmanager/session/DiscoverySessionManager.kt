@@ -10,7 +10,8 @@ enum class DiscoverySort {
 data class DiscoverySession(
     val playerUuid: UUID,
     var sort: DiscoverySort = DiscoverySort.HOT,
-    var selectedTag: WorldTag? = null
+    var selectedTag: WorldTag? = null,
+    var showBackButton: Boolean = false
 )
 
 class DiscoverySessionManager {

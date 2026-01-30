@@ -52,6 +52,10 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 return
             }
             
+            if (type == ItemTag.TYPE_GUI_RETURN) {
+                me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, currentItem)
+                return
+            }
             if (type == ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY) {
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)

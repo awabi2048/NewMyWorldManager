@@ -55,9 +55,9 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         setupHeaderFooter(inventory, 5)
 
-        inventory.setItem(20, createItemWithCost(player, Material.MAP, lang.getMessage("gui.creation.type.template.name"), lang.getMessage("gui.creation.type.template.desc"), config.getInt("creation_cost.template", 0), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
-        inventory.setItem(22, createItemWithCost(player, Material.NAME_TAG, lang.getMessage("gui.creation.type.seed.name"), lang.getMessage("gui.creation.type.seed.desc"), config.getInt("creation_cost.seed", 100), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
-        inventory.setItem(24, createItemWithCost(player, Material.ENDER_EYE, lang.getMessage("gui.creation.type.random.name"), lang.getMessage("gui.creation.type.random.desc"), config.getInt("creation_cost.random", 50), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
+        inventory.setItem(20, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), lang.getMessage("gui.creation.type.template.desc"), config.getInt("creation_cost.template", 0), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
+        inventory.setItem(22, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), lang.getMessage("gui.creation.type.seed.desc"), config.getInt("creation_cost.seed", 100), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
+        inventory.setItem(24, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), lang.getMessage("gui.creation.type.random.desc"), config.getInt("creation_cost.random", 50), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
 
         inventory.setItem(40, createBackButton(player))
 
@@ -209,7 +209,7 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun createBackButton(player: Player): ItemStack {
         val lang = plugin.languageManager
-        return createItem(Material.ARROW, lang.getMessage(player, "gui.common.return"), ItemTag.TYPE_GUI_BACK, lang.getMessage(player, "gui.common.return_desc"))
+        return createItem(plugin.menuConfigManager.getIconMaterial("creation", "back", Material.ARROW), lang.getMessage(player, "gui.common.return"), ItemTag.TYPE_GUI_BACK, lang.getMessage(player, "gui.common.return_desc"))
     }
 
     private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
