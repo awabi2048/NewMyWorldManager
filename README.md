@@ -8,5 +8,5 @@ CrafterCrossing向けに制作された、マイワールドシステムを管�
 このプラグインでは用途により大量のワールドが同時にロードされる場合があるため、Chiyogamiを併用することを強く推奨します。
 
 ## Special Thanks
-- bea4dev 様（Chiyogami開発者 https://github.com/bea4dev/Chiyogami）
+- bea4dev 様（Chiyogami開発者 https://github.com/bea4dev/Chiyogami ）
 - kotarobo_ 様（こたサーバー／CrafterCrossing オーナー）
