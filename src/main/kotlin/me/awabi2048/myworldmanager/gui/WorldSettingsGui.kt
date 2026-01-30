@@ -15,7 +15,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
@@ -1061,7 +1060,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 45, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 // ヘッダー・フッター
@@ -1137,7 +1140,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 45, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 // ヘッダー・フッター
@@ -1272,7 +1279,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         ) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, rowCount * 9, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(
+                                                holder,
+                                                rowCount * 9,
+                                                Component.text(title)
+                                        )
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1391,7 +1406,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val infoItem =
@@ -1523,7 +1542,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val infoItem =
@@ -1729,7 +1752,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         ) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, rowCount * 9, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(
+                                                holder,
+                                                rowCount * 9,
+                                                Component.text(title)
+                                        )
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1833,7 +1864,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 inventory.setItem(
@@ -2012,7 +2047,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 // 背景
@@ -2110,7 +2149,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 45, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -2260,7 +2303,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val infoItem =
@@ -2327,7 +2374,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val infoItem =
@@ -2393,7 +2444,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 27, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 val infoItem =
@@ -2469,7 +2524,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(null, 45, Component.text(title))
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                holder.inv = inventory
+                                inventory
                         }
 
                 // 背景
@@ -2577,10 +2636,5 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
                 return item
-        }
-
-        class WorldSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {
-                lateinit var inv: org.bukkit.inventory.Inventory
-                override fun getInventory(): org.bukkit.inventory.Inventory = inv
         }
 }

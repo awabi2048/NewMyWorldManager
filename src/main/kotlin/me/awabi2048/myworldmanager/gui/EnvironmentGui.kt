@@ -8,7 +8,6 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
 class EnvironmentGui(private val plugin: MyWorldManager) {
@@ -16,17 +15,33 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.environment.title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "environment", Component.text(title))
-        val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
-        
-        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_ENVIRONMENT_SETTINGS, isGui = true)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
+                plugin,
+                player,
+                "environment",
+                Component.text(title)
+        )
+        val currentTitle =
+                net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                        .serialize(player.openInventory.title())
+
+        plugin.settingsSessionManager.updateSessionAction(
+                player,
+                worldData.uuid,
+                SettingsAction.VIEW_ENVIRONMENT_SETTINGS,
+                isGui = true
+        )
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        
-        val inventory = if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
-            player.openInventory.topInventory
-        } else {
-            Bukkit.createInventory(null, 45, Component.text(title))
-        }
+
+        val inventory =
+                if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+                    player.openInventory.topInventory
+                } else {
+                    val holder = WorldSettingsGuiHolder()
+                    val inventory = Bukkit.createInventory(holder, 45, Component.text(title))
+                    holder.inv = inventory
+                    inventory
+                }
 
         // 背景アイテム作成
         val blackPane = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
@@ -47,16 +62,16 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         // ヘッダー・フッター
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in 36..44) inventory.setItem(i, blackPane)
-        
+
         // コンテンツエリア
         for (i in 9..35) inventory.setItem(i, grayPane)
 
         // スロット20: 重力
         inventory.setItem(20, createGravityItem(player, worldData))
-        
+
         // スロット22: 天候
         inventory.setItem(22, createWeatherItem(player, worldData))
-        
+
         // スロット24: バイオーム
         inventory.setItem(24, createBiomeItem(player, worldData))
 
@@ -75,26 +90,43 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.FEATHER)
         val meta = item.itemMeta ?: return item
-        
+
         val currentMultiplier = worldData.gravityMultiplier
-        val gravityKey = when (currentMultiplier) {
-            0.0 -> "zero"
-            0.17 -> "moon"
-            0.38 -> "mars"
-            1.0 -> "earth"
-            else -> "earth"
-        }
+        val gravityKey =
+                when (currentMultiplier) {
+                    0.0 -> "zero"
+                    0.17 -> "moon"
+                    0.38 -> "mars"
+                    1.0 -> "earth"
+                    else -> "earth"
+                }
         val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
         val cost = plugin.config.getInt("environment.gravity.cost", 100)
-        
+
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.gravity.display")))
-        meta.lore(listOf(
-            Component.text(lang.getMessage(player, "gui.environment.gravity.current", mapOf("multiplier" to currentName))),
-            Component.text(lang.getMessage(player, "gui.environment.gravity.cost", mapOf("cost" to cost))),
-            Component.empty(),
-            Component.text(lang.getMessage(player, "gui.environment.gravity.click_hint"))
-        ))
-        
+        meta.lore(
+                listOf(
+                        Component.text(
+                                lang.getMessage(
+                                        player,
+                                        "gui.environment.gravity.current",
+                                        mapOf("multiplier" to currentName)
+                                )
+                        ),
+                        Component.text(
+                                lang.getMessage(
+                                        player,
+                                        "gui.environment.gravity.cost",
+                                        mapOf("cost" to cost)
+                                )
+                        ),
+                        Component.empty(),
+                        Component.text(
+                                lang.getMessage(player, "gui.environment.gravity.click_hint")
+                        )
+                )
+        )
+
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_GRAVITY)
         return item
@@ -104,21 +136,39 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.WHITE_WOOL)
         val meta = item.itemMeta ?: return item
-        
+
         val session = plugin.settingsSessionManager.getSession(player)
         val currentWeather = session?.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
         val cost = plugin.config.getInt("environment.weather.cost", 50)
-        
+
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.weather.display")))
-        meta.lore(listOf(
-            Component.text(lang.getMessage(player, "gui.environment.weather.current", mapOf("weather" to currentWeather))),
-            Component.text(lang.getMessage(player, "gui.environment.weather.cost", mapOf("cost" to cost))),
-            Component.text(lang.getMessage(player, "gui.environment.weather.desc")),
-            Component.empty(),
-            Component.text(lang.getMessage(player, "gui.environment.weather.click_cycle")),
-            Component.text(lang.getMessage(player, "gui.environment.weather.click_confirm"))
-        ))
-        
+        meta.lore(
+                listOf(
+                        Component.text(
+                                lang.getMessage(
+                                        player,
+                                        "gui.environment.weather.current",
+                                        mapOf("weather" to currentWeather)
+                                )
+                        ),
+                        Component.text(
+                                lang.getMessage(
+                                        player,
+                                        "gui.environment.weather.cost",
+                                        mapOf("cost" to cost)
+                                )
+                        ),
+                        Component.text(lang.getMessage(player, "gui.environment.weather.desc")),
+                        Component.empty(),
+                        Component.text(
+                                lang.getMessage(player, "gui.environment.weather.click_cycle")
+                        ),
+                        Component.text(
+                                lang.getMessage(player, "gui.environment.weather.click_confirm")
+                        )
+                )
+        )
+
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_WEATHER)
         return item
@@ -128,22 +178,35 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.GRASS_BLOCK)
         val meta = item.itemMeta ?: return item
-        
+
         val currentBiome = worldData.fixedBiome ?: "DEFAULT"
         val cost = plugin.config.getInt("environment.biome.cost", 500)
-        
+
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.biome.display")))
-        meta.lore(listOf(
-            Component.text(lang.getMessage(player, "gui.environment.biome.current", mapOf("biome" to currentBiome))),
-            Component.text(lang.getMessage(player, "gui.environment.biome.cost", mapOf("cost" to cost))),
-            Component.text(lang.getMessage(player, "gui.environment.biome.desc")),
-            Component.empty(),
-            Component.text(lang.getMessage(player, "gui.environment.biome.click_hint"))
-        ))
-        
+        meta.lore(
+                listOf(
+                        Component.text(
+                                lang.getMessage(
+                                        player,
+                                        "gui.environment.biome.current",
+                                        mapOf("biome" to currentBiome)
+                                )
+                        ),
+                        Component.text(
+                                lang.getMessage(
+                                        player,
+                                        "gui.environment.biome.cost",
+                                        mapOf("cost" to cost)
+                                )
+                        ),
+                        Component.text(lang.getMessage(player, "gui.environment.biome.desc")),
+                        Component.empty(),
+                        Component.text(lang.getMessage(player, "gui.environment.biome.click_hint"))
+                )
+        )
+
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_BIOME)
         return item
     }
-
 }

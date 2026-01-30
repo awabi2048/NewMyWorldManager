@@ -15,14 +15,26 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData, itemToConsume: ItemStack, cost: Int) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.common.confirmation")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "environment_confirm", Component.text(title))
-        
-        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.ENV_CONFIRM, isGui = true)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
+                plugin,
+                player,
+                "environment_confirm",
+                Component.text(title)
+        )
+
+        plugin.settingsSessionManager.updateSessionAction(
+                player,
+                worldData.uuid,
+                SettingsAction.ENV_CONFIRM,
+                isGui = true
+        )
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         val session = plugin.settingsSessionManager.getSession(player)
         session?.confirmItem = itemToConsume.clone()
-        
-        val inventory = Bukkit.createInventory(null, 27, Component.text(title))
+
+        val holder = WorldSettingsGuiHolder()
+        val inventory = Bukkit.createInventory(holder, 27, Component.text(title))
+        holder.inv = inventory
 
         // 背景
         val grayPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
@@ -40,7 +52,11 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         val meta = displayItem.itemMeta
         val lore = meta.lore() ?: mutableListOf()
         lore.add(Component.empty())
-        lore.add(Component.text(lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost))))
+        lore.add(
+                Component.text(
+                        lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost))
+                )
+        )
         meta.lore(lore)
         displayItem.itemMeta = meta
         ItemTag.tagItem(displayItem, ItemTag.TYPE_GUI_INFO)

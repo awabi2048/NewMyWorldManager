@@ -2231,6 +2231,13 @@ class WorldSettingsListener : Listener {
                                                 return@Runnable
                                         }
 
+                                        // 現在開いているインベントリが設定GUIのホルダーを持っている場合は終了しない
+                                        if (player.openInventory.topInventory.holder is
+                                                        me.awabi2048.myworldmanager.gui.WorldSettingsGuiHolder
+                                        ) {
+                                                return@Runnable
+                                        }
+
                                         // 設定GUI以外の画面（またはインベントリなし）になった場合、セッションを終了する
                                         plugin.settingsSessionManager.endSession(player)
                                 },
