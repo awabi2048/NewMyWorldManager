@@ -20,14 +20,17 @@ class CreationChatListener(private val plugin: MyWorldManager) : Listener {
         val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
 
         val message = PlainTextComponentSerializer.plainText().serialize(event.originalMessage())
-        val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+        val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
 
-        if (message == cancelWord) {
+        if (message.equals(cancelWord, ignoreCase = true)) {
             event.isCancelled = true
             event.viewers().clear()
-            plugin.creationSessionManager.endSession(player.uniqueId)
-            plugin.soundManager.playActionSound(player, "creation", "cancel")
-            player.sendMessage("§eマイワールドの作成をキャンセルしました。")
+            
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                plugin.creationSessionManager.endSession(player.uniqueId)
+                player.closeInventory()
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_cancelled"))
+            })
             return
         }
 

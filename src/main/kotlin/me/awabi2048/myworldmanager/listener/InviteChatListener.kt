@@ -22,7 +22,16 @@ class InviteChatListener(
 
         event.isCancelled = true
         event.viewers().clear()
-        val targetName = PlainTextComponentSerializer.plainText().serialize(event.originalMessage()).trim()
+        val message = PlainTextComponentSerializer.plainText().serialize(event.originalMessage()).trim()
+        val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+
+        if (message.equals(cancelWord, ignoreCase = true)) {
+            plugin.inviteSessionManager.endSession(player.uniqueId)
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
+            return
+        }
+
+        val targetName = message
         val lang = plugin.languageManager
 
         // 判定はメインスレッドで実行

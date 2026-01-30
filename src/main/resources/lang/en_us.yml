@@ -757,6 +757,7 @@ gui:
 messages:
   # Settings
   world_name_prompt: "§ePlease type the world name in chat."
+  chat_input_cancel_hint: "§7(Type §e{word} §7in chat to cancel)"
   world_desc_prompt: "§ePlease type the world description in chat."
   world_name_change: "§aWorld name changed."
   world_name_invalid: "§cName must be 3-16 characters."

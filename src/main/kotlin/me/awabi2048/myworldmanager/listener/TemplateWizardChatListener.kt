@@ -22,10 +22,10 @@ class TemplateWizardChatListener(private val plugin: MyWorldManager) : Listener 
         
         val message = PlainTextComponentSerializer.plainText().serialize(event.originalMessage())
 
-        val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
+        val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
         if (message.equals(cancelWord, ignoreCase = true)) {
             session.inputState = me.awabi2048.myworldmanager.gui.TemplateWizardGui.InputState.NONE
-            player.sendMessage("§e入力モードを終了しました。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 plugin.templateWizardGui.open(player)
             })

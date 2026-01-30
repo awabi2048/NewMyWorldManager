@@ -48,8 +48,8 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 WorldCreationPhase.TYPE_SELECT -> {
                     player.closeInventory()
                     session.phase = WorldCreationPhase.NAME_INPUT
-                    val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
-                    val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                    val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
                     player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
                 }
                 WorldCreationPhase.TEMPLATE_SELECT -> {
@@ -120,8 +120,8 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         session.creationType = WorldCreationType.SEED
                         session.phase = WorldCreationPhase.SEED_INPUT
                         player.closeInventory()
-                        val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
-                        val cancelInfo = lang.getMessage(player, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                        val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                        val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
                         player.sendMessage("§a生成に使用するシード値をチャットに入力してください。 " + cancelInfo)
                     }
                     ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> {
@@ -211,7 +211,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 } else if (tag == ItemTag.TYPE_GUI_CANCEL) {
                     plugin.soundManager.playActionSound(player, "creation", "cancel")
                     player.closeInventory()
-                    player.sendMessage("§cワールド作成をキャンセルしました。")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_cancelled"))
                     plugin.creationSessionManager.endSession(player.uniqueId)
                 }
             }
@@ -260,6 +260,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             
             val currentSession = plugin.creationSessionManager.getSession(player.uniqueId)
             if (currentSession != null && currentSession.phase != WorldCreationPhase.SEED_INPUT && currentSession.phase != WorldCreationPhase.NAME_INPUT) {
+                // セッションがまだ残っている（＝他で終了されていない）場合のみ処理
                 plugin.creationSessionManager.endSession(player.uniqueId)
                 player.sendMessage(lang.getMessage(player, "messages.creation_cancelled"))
             }

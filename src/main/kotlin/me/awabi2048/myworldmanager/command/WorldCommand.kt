@@ -70,8 +70,8 @@ class WorldCommand(
                 
                 // ウィザード開始
                 sessionManager.startSession(targetPlayer.uniqueId)
-                val cancelWord = plugin.config.getString("creation.cancel_word", "__cancel__") ?: "__cancel__"
-                val cancelInfo = lang.getMessage(targetPlayer, "messages.wizard_cancel_word", mapOf("word" to cancelWord))
+                val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                val cancelInfo = lang.getMessage(targetPlayer, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
                 
                 targetPlayer.sendMessage(lang.getMessage("messages.wizard_start"))
                 targetPlayer.sendMessage(lang.getMessage("messages.wizard_name_prompt") + " " + cancelInfo)

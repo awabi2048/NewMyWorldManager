@@ -94,7 +94,9 @@ class WorldSettingsListener : Listener {
                     plugin.soundManager.playClickSound(player, item, "world_settings")
                     session.action = SettingsAction.MEMBER_INVITE
                     player.closeInventory()
-                    player.sendMessage(plugin.languageManager.getMessage("messages.member_invite_input"))
+                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                    val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
+                    player.sendMessage(plugin.languageManager.getMessage("messages.member_invite_input") + " " + cancelInfo)
                     return
                 }
 
@@ -359,11 +361,13 @@ class WorldSettingsListener : Listener {
                     }
                     ItemTag.TYPE_GUI_SETTING_INFO -> {
                         plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
+                        val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                        val cancelInfo = plugin.languageManager.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
                         if (event.isRightClick) {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.world_desc_prompt"))
+                            player.sendMessage(plugin.languageManager.getMessage("messages.world_desc_prompt") + " " + cancelInfo)
                             plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
                         } else {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.world_name_prompt"))
+                            player.sendMessage(plugin.languageManager.getMessage("messages.world_name_prompt") + " " + cancelInfo)
                             plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
                         }
                         player.closeInventory()
@@ -469,7 +473,9 @@ class WorldSettingsListener : Listener {
                             player.sendMessage(plugin.languageManager.getMessage("messages.announcement_reset"))
                             plugin.worldSettingsGui.open(player, worldData)
                         } else {
-                            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_prompt"))
+                            val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                            val cancelInfo = plugin.languageManager.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
+                            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_prompt") + " " + cancelInfo)
                             plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
                             player.closeInventory()
                         }
@@ -784,22 +790,34 @@ class WorldSettingsListener : Listener {
         event.viewers().clear()
         
         Bukkit.getScheduler().runTask(plugin, Runnable {
+            val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+            if (messageText.equals(cancelWord, ignoreCase = true)) {
+                plugin.settingsSessionManager.endSession(player)
+                if (worldData != null) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                } else {
+                    plugin.worldGui.open(player)
+                }
+                player.sendMessage(lang.getMessage(player, "messages.operation_cancelled"))
+                return@Runnable
+            }
+
             when (session.action) {
                 SettingsAction.ADMIN_PLAYER_FILTER -> {
-                    val targetName = messageText
-                    val offlinePlayer = Bukkit.getOfflinePlayer(targetName)
-                    
-                    val adminSession = plugin.adminGuiSessionManager.getSession(player.uniqueId)
-                    adminSession.playerFilter = offlinePlayer.uniqueId
-                    if (adminSession.playerFilterType == me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
-                        adminSession.playerFilterType = me.awabi2048.myworldmanager.session.PlayerFilterType.OWNER
-                    }
-                    
-                    player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_set", mapOf("player" to (offlinePlayer.name ?: targetName))))
-                    plugin.settingsSessionManager.endSession(player)
-                    plugin.worldGui.open(player)
-                    return@Runnable
+                val targetName = messageText
+                val offlinePlayer = Bukkit.getOfflinePlayer(targetName)
+                
+                val adminSession = plugin.adminGuiSessionManager.getSession(player.uniqueId)
+                adminSession.playerFilter = offlinePlayer.uniqueId
+                if (adminSession.playerFilterType == me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
+                    adminSession.playerFilterType = me.awabi2048.myworldmanager.session.PlayerFilterType.OWNER
                 }
+                
+                player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_set", mapOf("player" to (offlinePlayer.name ?: targetName))))
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldGui.open(player)
+                return@Runnable
+            }
                 SettingsAction.RENAME_WORLD -> {
                     if (worldData == null) return@Runnable
                     val newName = messageText
@@ -867,13 +885,6 @@ class WorldSettingsListener : Listener {
                 SettingsAction.SET_ANNOUNCEMENT -> {
                     if (worldData == null) return@Runnable
                     val input = messageText
-                    
-                    if (input.equals("cancel", ignoreCase = true)) {
-                        player.sendMessage(lang.getMessage(player, "messages.icon_cancelled")) // 再利用、または専用メッセージ
-                        plugin.settingsSessionManager.endSession(player)
-                        plugin.worldSettingsGui.open(player, worldData)
-                        return@Runnable
-                    }
                     
                     // バリデーション
                     val maxLines = plugin.config.getInt("announcement.max_lines", 5)
