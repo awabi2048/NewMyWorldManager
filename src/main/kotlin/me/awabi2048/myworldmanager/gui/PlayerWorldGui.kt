@@ -45,6 +45,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         session.showBackButton = showBackButton
                 }
 
+                repository.loadAll()
                 val playerWorlds = getPlayerWorlds(player)
 
                 if (playerWorlds.isEmpty() && !session.showBackButton) {

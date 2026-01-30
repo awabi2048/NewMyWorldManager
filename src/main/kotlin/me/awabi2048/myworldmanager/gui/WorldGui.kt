@@ -44,6 +44,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
 
+                repository.loadAll()
+
                 // フィルターとソートを適用してワールドリストを取得
                 val filteredWorlds = getFilteredAndSortedWorlds(session)
 

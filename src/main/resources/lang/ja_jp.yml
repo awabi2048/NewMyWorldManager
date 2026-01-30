@@ -561,6 +561,7 @@ gui:
       mspt: "§f§l| §7MSPT: §{color}{mspt} §7ms"
       mspt_low: "§f§l| §7MSPT: §a0.1§7 ms 未満"
       mspt_unloaded: "§f§l| §7MSPT: §cこのワールドはアンロードされています"
+      mspt_error: "§f§l| §7MSPT: §c§l取得に失敗しました"
       action_archive: "§e§l| §eShift + 右クリック§7 アーカイブ状態を切り替え"
       action_settings: "§e§l| §e右クリック§7 このワールドの設定を開く"
       action_warp: "§e§l| §e左クリック§7 このワールドへ§bワープ"

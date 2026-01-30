@@ -336,6 +336,20 @@ class WorldService(
             future.complete(false)
             return future
         }
+
+        val folderName = getWorldFolderName(worldData)
+        val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
+        val archivedFile = File(archiveFolder, folderName)
+        val targetFile = File(plugin.server.worldContainer, folderName)
+
+        if (archivedFile.exists()) {
+            if (!archivedFile.renameTo(targetFile)) {
+                plugin.logger.severe("Failed to move world directory from archive: $folderName")
+                future.complete(false)
+                return future
+            }
+        }
+
         worldData.isArchived = false
         repository.save(worldData)
         future.complete(true)
@@ -352,7 +366,13 @@ class WorldService(
                 return future
             }
             val folderName = getWorldFolderName(worldData)
-            val folder = File(Bukkit.getWorldContainer(), folderName)
+            val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
+            
+            val folder = if (worldData.isArchived) {
+                File(archiveFolder, folderName)
+            } else {
+                File(Bukkit.getWorldContainer(), folderName)
+            }
 
             if (folder.exists()) {
                 val deleted = folder.deleteRecursively()
@@ -382,6 +402,21 @@ class WorldService(
             return future
         }
         if (unloadWorld(worldUuid, true)) {
+            val folderName = getWorldFolderName(worldData)
+            val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
+            if (!archiveFolder.exists()) archiveFolder.mkdirs()
+
+            val sourceFile = File(plugin.server.worldContainer, folderName)
+            val targetFile = File(archiveFolder, folderName)
+
+            if (sourceFile.exists()) {
+                if (!sourceFile.renameTo(targetFile)) {
+                    plugin.logger.severe("Failed to move world directory to archive: $folderName")
+                    future.complete(false)
+                    return future
+                }
+            }
+
             worldData.isArchived = true
             repository.save(worldData)
             future.complete(true)
