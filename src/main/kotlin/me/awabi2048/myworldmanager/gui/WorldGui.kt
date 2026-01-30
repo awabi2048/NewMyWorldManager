@@ -56,7 +56,7 @@ class WorldGui(private val plugin: MyWorldManager) {
         val plainTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(title)
         val currentTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(player.openInventory.title())
         
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_world", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_world", title, null) // WorldGui uses null holder in Bukkit.createInventory
         
         val inventory = if (player.openInventory.topInventory.size == 54 && currentTitle == plainTitle) {
             player.openInventory.topInventory

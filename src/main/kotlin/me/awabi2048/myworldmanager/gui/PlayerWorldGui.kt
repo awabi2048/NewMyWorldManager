@@ -64,7 +64,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         val titleStr = lang.getMessage(player, titleKey)
         val title = Component.text(titleStr)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "player_world", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "player_world", title, PlayerWorldGuiHolder::class.java)
         
         val holder = PlayerWorldGuiHolder()
         val inventory = Bukkit.createInventory(holder, rowCount * 9, title)

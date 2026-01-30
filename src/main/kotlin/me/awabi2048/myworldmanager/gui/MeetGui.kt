@@ -55,7 +55,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val userCount = targets.size
         val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6
         val title = Component.text(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title, MeetGuiHolder::class.java)
         
         val holder = MeetGuiHolder()
         val inventory = Bukkit.createInventory(holder, rowCount * 9, title)

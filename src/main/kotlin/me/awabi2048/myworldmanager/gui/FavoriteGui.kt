@@ -55,7 +55,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             return
         }
         val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite", title, FavoriteGuiHolder::class.java)
         
         val holder = FavoriteGuiHolder()
         val inventory = Bukkit.createInventory(holder, 54, title)
