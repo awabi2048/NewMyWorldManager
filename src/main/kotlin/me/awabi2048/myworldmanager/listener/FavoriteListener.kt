@@ -77,7 +77,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 
                 // 公開・限定公開以外はワープ不可 (メンバーは例外)
                 if (!isMember && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.PUBLIC && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.FRIEND) {
-                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
                     return
                 }
                 
@@ -104,7 +103,8 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 } else {
                     // プレビュー
                     player.closeInventory()
-                    plugin.previewSessionManager.startWorldPreview(player, worldData)
+// Import needs to be added at top, but tool only supports one chunk? No, I can replace the call line.
+                    plugin.previewSessionManager.startWorldPreview(player, worldData, me.awabi2048.myworldmanager.session.PreviewSource.FAVORITE_MENU)
                 }
             }
             return

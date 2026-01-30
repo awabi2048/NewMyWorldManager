@@ -132,12 +132,11 @@ class SoundManager(private val plugin: MyWorldManager) {
     fun playTeleportSound(player: Player) {
         player.playSound(player.location, Sound.ENTITY_PLAYER_TELEPORT, 1.0f, 2.0f)
     }
-    
     /**
      * グローバルクリック音を再生する
      * 設定が無効またはエラーの場合はデフォルト (UI_BUTTON_CLICK, 2.0) を再生
      */
-    private fun playGlobalClickSound(player: Player) {
+    fun playGlobalClickSound(player: Player) {
         val (sound, pitch) = getGlobalClickSoundInfo()
         if (sound != null) {
             player.playSound(player.location, sound, 1.0f, pitch)
@@ -157,7 +156,6 @@ class SoundManager(private val plugin: MyWorldManager) {
             Pair(globalSound, globalPitch)
         } catch (e: Exception) {
             // エラー時はデフォルトを返す
-             // plugin.logger.warning("Invalid global click sound configuration: $globalSoundStr") // ログ出しすぎ防止のためコメントアウトまたは一度だけにすべきだが今回は簡易化
             Pair(Sound.UI_BUTTON_CLICK, 2.0f)
         }
     }
