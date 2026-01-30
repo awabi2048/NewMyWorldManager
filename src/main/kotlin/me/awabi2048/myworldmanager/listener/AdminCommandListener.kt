@@ -431,7 +431,11 @@ class AdminCommandListener : Listener {
                                                     mapOf("world" to worldData.name)
                                             )
                                     )
-                                    plugin.worldGui.open(player, fromAdminMenu = true)
+                                    plugin.worldGui.open(
+                                            player,
+                                            fromAdminMenu = true,
+                                            suppressSound = true
+                                    )
                                 } else {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
@@ -463,7 +467,11 @@ class AdminCommandListener : Listener {
                                                     "messages.unarchive_success"
                                             )
                                     )
-                                    plugin.worldGui.open(player, fromAdminMenu = true)
+                                    plugin.worldGui.open(
+                                            player,
+                                            fromAdminMenu = true,
+                                            suppressSound = true
+                                    )
                                 } else {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(

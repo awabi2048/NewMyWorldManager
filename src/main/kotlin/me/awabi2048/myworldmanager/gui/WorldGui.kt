@@ -5,7 +5,6 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -23,8 +22,15 @@ class WorldGui(private val plugin: MyWorldManager) {
          * 指定されたページのGUIを開く
          * @param player プレイヤー
          * @param page 0から始まるページ番号（省略時はセッションから取得）
+         * @param fromAdminMenu 管理者メニューから開かれたかどうか (省略時はそのまま)
+         * @param suppressSound 開封時の音を抑制するかどうか
          */
-        fun open(player: Player, page: Int? = null, fromAdminMenu: Boolean? = null) {
+        fun open(
+                player: Player,
+                page: Int? = null,
+                fromAdminMenu: Boolean? = null,
+                suppressSound: Boolean = false
+        ) {
                 val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
                 if (fromAdminMenu != null) {
                         session.fromAdminMenu = fromAdminMenu
@@ -55,19 +61,17 @@ class WorldGui(private val plugin: MyWorldManager) {
                         )
                         return
                 }
-                val title =
-                        Component.text(
-                                lang.getMessage(player, titleKey),
-                                NamedTextColor.DARK_GRAY,
-                                TextDecoration.BOLD
+                val title = lang.getComponent(player, titleKey)
+
+                if (!suppressSound) {
+                        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
+                                plugin,
+                                player,
+                                "admin_world",
+                                title,
+                                null
                         )
-                me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "admin_world",
-                        title,
-                        null
-                )
+                }
                 val inventory = Bukkit.createInventory(null, 54, title)
 
                 // 1行目を黒の板ガラスで敷き詰める
