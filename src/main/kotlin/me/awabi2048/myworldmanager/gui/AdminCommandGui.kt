@@ -207,6 +207,32 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
+    fun openArchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
+        val lang = plugin.languageManager
+        plugin.settingsSessionManager.updateSessionAction(player, worldUuid, SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM, isGui = true)
+        val title = lang.getMessage(player, "gui.admin_menu.archive_world.confirm_title")
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", Component.text(title))
+        val inventory = Bukkit.createInventory(null, 27, Component.text(title))
+
+        setupConfirmationGui(inventory, player, true,
+            extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.archive_world.target_world", mapOf("world" to worldName))))
+
+        player.openInventory(inventory)
+    }
+
+    fun openUnarchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
+        val lang = plugin.languageManager
+        plugin.settingsSessionManager.updateSessionAction(player, worldUuid, SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM, isGui = true)
+        val title = lang.getMessage(player, "gui.admin_menu.unarchive_world.confirm_title")
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", Component.text(title))
+        val inventory = Bukkit.createInventory(null, 27, Component.text(title))
+
+        setupConfirmationGui(inventory, player, true,
+            extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.unarchive_world.target_world", mapOf("world" to worldName))))
+
+        player.openInventory(inventory)
+    }
+
     private fun setupConfirmationGui(inventory: Inventory, player: Player, isDanger: Boolean, extraInfo: List<String> = emptyList()) {
         val lang = plugin.languageManager
         

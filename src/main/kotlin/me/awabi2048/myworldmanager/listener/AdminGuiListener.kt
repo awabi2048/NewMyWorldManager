@@ -175,34 +175,11 @@ class AdminGuiListener : Listener {
                 plugin.worldService.sendAnnouncementMessage(player, worldData)
                 player.closeInventory()
             } else if (event.isRightClick) {
+                plugin.soundManager.playClickSound(player, currentItem)
                 if (worldData.isArchived) {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    player.closeInventory()
-                    player.sendMessage(lang.getMessage(player, "messages.unarchive_start"))
-                    plugin.worldService.unarchiveWorld(uuid).thenAccept { success ->
-                        Bukkit.getScheduler().runTask(plugin, Runnable {
-                            if (success) {
-                                player.sendMessage(lang.getMessage(player, "messages.unarchive_success"))
-                                plugin.worldGui.open(player, currentPage) // 同じページに戻る
-                            } else {
-                                player.sendMessage(lang.getMessage(player, "messages.unarchive_failed"))
-                            }
-                        })
-                    }
+                    plugin.adminCommandGui.openUnarchiveWorldConfirmation(player, worldData.name, uuid)
                 } else {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    player.closeInventory()
-                    player.sendMessage(lang.getMessage(player, "messages.archive_start"))
-                    plugin.worldService.archiveWorld(uuid).thenAccept { success ->
-                        Bukkit.getScheduler().runTask(plugin, Runnable {
-                            if (success) {
-                                player.sendMessage(lang.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
-                                plugin.worldGui.open(player, currentPage) // 同じページに戻る
-                            } else {
-                                player.sendMessage(lang.getMessage(player, "messages.archive_failed"))
-                            }
-                        })
-                    }
+                    plugin.adminCommandGui.openArchiveWorldConfirmation(player, worldData.name, uuid)
                 }
             } else if (event.click == org.bukkit.event.inventory.ClickType.MIDDLE) {
                 // ホイールクリック：UUIDコピーメッセージを送信（クリエイティブモードのみ）

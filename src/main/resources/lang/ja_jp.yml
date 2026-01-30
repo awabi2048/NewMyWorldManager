@@ -520,6 +520,12 @@ gui:
         - "§e§nクリックして確認画面へ"
       confirm_title: "エクスポート確認"
       target_world: "§f§l| §7対象ワールド §b{world}"
+    archive_world:
+      confirm_title: "アーカイブの確認"
+      target_world: "§f§l| §7対象ワールド §b{world}"
+    unarchive_world:
+      confirm_title: "アーカイブ解除の確認"
+      target_world: "§f§l| §7対象ワールド §b{world}"
     info:
       display: "§aワールド一覧"
       lore:

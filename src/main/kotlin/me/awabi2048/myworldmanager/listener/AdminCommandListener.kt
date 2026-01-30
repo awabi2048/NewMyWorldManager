@@ -39,7 +39,11 @@ class AdminCommandListener : Listener {
             SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
             SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
             SettingsAction.ADMIN_UNLINK_CONFIRM,
-            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> true
+            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
+            SettingsAction.ADMIN_UNLINK_CONFIRM,
+            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM,
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM,
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> true
             else -> false
         }
     }
@@ -126,7 +130,10 @@ class AdminCommandListener : Listener {
                 SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
                 SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
                 SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
+
                 SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin)
+                SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> performArchiveWorld(player, plugin)
+                SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> performUnarchiveWorld(player, plugin)
                 else -> {}
             }
             // セッション終了（必要なら）またはメニューに戻る?
@@ -296,6 +303,42 @@ class AdminCommandListener : Listener {
                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_success", mapOf("file" to file.name)))
                 } else {
                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_failed"))
+                }
+            })
+        }
+    }
+
+    private fun performArchiveWorld(player: Player, plugin: MyWorldManager) {
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
+        val uuid = session.worldUuid
+        val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
+
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+        plugin.worldService.archiveWorld(uuid).thenAccept { success ->
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (success) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
+                    plugin.worldGui.open(player, fromAdminMenu = true)
+                } else {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_failed"))
+                }
+            })
+        }
+    }
+
+    private fun performUnarchiveWorld(player: Player, plugin: MyWorldManager) {
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
+        val uuid = session.worldUuid
+        val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
+
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
+        plugin.worldService.unarchiveWorld(uuid).thenAccept { success ->
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (success) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_success"))
+                    plugin.worldGui.open(player, fromAdminMenu = true)
+                } else {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_failed"))
                 }
             })
         }
