@@ -108,15 +108,40 @@ class MeetGui(private val plugin: MyWorldManager) {
             }
         }
         
-        // 設定ボタン (最下段 7スロット目 -> index: (rowCount-1)*9 + 6)
-        // 0-indexed column 6 is the 7th slot.
-        val settingsSlot = (rowCount - 1) * 9 + 6
-        inventory.setItem(settingsSlot, createItem(
-            Material.COMMAND_BLOCK, // Or some other icon for settings
-            lang.getMessage(player, "gui.meet.settings_button.display"),
-            lang.getMessageList(player, "gui.meet.settings_button.lore"),
-            ItemTag.TYPE_GUI_MEET_SETTINGS_BUTTON
-        ))
+        // ステータス変更ボタン (最下段 5スロット目 -> index: (rowCount-1)*9 + 4)
+        val statusSlot = (rowCount - 1) * 9 + 4
+        
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val currentStatus = stats.meetStatus
+        val statusNameKey = "general.status.${currentStatus.lowercase()}"
+        val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
+        
+        // Next status for display
+        val nextStatus = when (currentStatus) {
+            "JOIN_ME" -> "ASK_ME"
+            "ASK_ME" -> "BUSY"
+            else -> "JOIN_ME"
+        }
+        val nextStatusNameKey = "general.status.${nextStatus.lowercase()}"
+        val nextStatusName = if (lang.hasKey(player, nextStatusNameKey)) lang.getMessage(player, nextStatusNameKey) else nextStatus
+
+        val statusLore = mutableListOf<String>()
+        statusLore.add(lang.getMessage(player, "gui.meet.status_button.current", mapOf("status" to statusName)))
+        statusLore.add(lang.getMessage(player, "gui.meet.status_button.next", mapOf("next_status" to nextStatusName)))
+        statusLore.add("")
+        statusLore.add(lang.getMessage(player, "gui.meet.status_button.click"))
+
+        val statusItem = ItemStack(Material.PLAYER_HEAD)
+        val statusMeta = statusItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta
+        if (statusMeta != null) {
+            statusMeta.owningPlayer = player
+            statusMeta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.meet.status_button.display")).decoration(TextDecoration.ITALIC, false))
+            statusMeta.lore(statusLore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
+            statusItem.itemMeta = statusMeta
+        }
+        ItemTag.tagItem(statusItem, ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE)
+        
+        inventory.setItem(statusSlot, statusItem)
 
         // 戻るボタン
         if (showBackButton) {
