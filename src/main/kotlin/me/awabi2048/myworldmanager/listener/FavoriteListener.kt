@@ -73,7 +73,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 plugin.worldService.teleportToWorld(player, uuid)
                 player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                plugin.worldService.sendAnnouncementMessage(player, worldData)
                 
                 if (!isMember) {
                     worldData.recentVisitors[0]++

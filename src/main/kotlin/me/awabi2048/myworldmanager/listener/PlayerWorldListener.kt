@@ -149,7 +149,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
                     plugin.worldService.teleportToWorld(player, uuid, spawnLocation)
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                    plugin.worldService.sendAnnouncementMessage(player, worldData)
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
 
                     if (!isMember) {

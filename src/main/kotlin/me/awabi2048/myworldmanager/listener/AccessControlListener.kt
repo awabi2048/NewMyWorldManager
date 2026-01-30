@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerTeleportEvent
+import org.bukkit.event.player.PlayerChangedWorldEvent
 
 class AccessControlListener(private val plugin: MyWorldManager) : Listener {
 
@@ -60,6 +61,22 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
     }
 
     @EventHandler
+    fun onWorldChange(event: PlayerChangedWorldEvent) {
+        val player = event.player
+        val worldData = repository.findByWorldName(player.world.name) ?: return
+        
+        // メンバー判定
+        val isMember = worldData.owner == player.uniqueId || 
+                       worldData.members.contains(player.uniqueId) || 
+                       worldData.moderators.contains(player.uniqueId)
+        
+        // メンバー以外にのみアナウンスメッセージ送信
+        if (!isMember) {
+            plugin.worldService.sendAnnouncementMessage(player, worldData)
+        }
+    }
+
+    @EventHandler
     fun onJoin(event: PlayerJoinEvent) {
         val player = event.player
         val worldData = repository.findByWorldName(player.world.name) ?: return
@@ -70,6 +87,16 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
             val evacLoc = plugin.worldService.getEvacuationLocation()
             player.teleport(evacLoc)
             player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
+        } else {
+            // メンバー判定
+            val isMember = worldData.owner == player.uniqueId || 
+                           worldData.members.contains(player.uniqueId) || 
+                           worldData.moderators.contains(player.uniqueId)
+            
+            // メンバー以外にのみアナウンスメッセージ送信
+            if (!isMember) {
+                plugin.worldService.sendAnnouncementMessage(player, worldData)
+            }
         }
     }
 }
