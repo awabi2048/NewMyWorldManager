@@ -597,16 +597,23 @@ gui:
     tag_filter:
       name: "Tag Filter"
       current_prefix: "Current"
+      no_selection: "No selection"
       all: "All"
       click_left: "§e§nLeft Click§7 Toggle Filter"
       click_right: "§e§nRight Click§7 Reset Filter"
-    stats:
-      name: "§fStatistics"
-      sort: "§f§l| §7Sort: §b{sort}"
-      tag: "§f§l| §7Tag: §b{tag}"
-      count: "§f§l| §7Results §b{count}"
-      desc: "§7Displaying worlds matching criteria."
+    sort_info:
+      hot: "Sorted by recent visitors"
+      new: "Sorted by publication date"
+      favorites: "Sorted by number of favorites"
+      spotlight: "Hand-picked worlds by staff"
+      random: "Worlds are shuffled every time you see them"
     no_result: "§7No worlds found matching the criteria"
+
+    spotlight_remove_confirm:
+      title: "Remove from SPOTLIGHT"
+      lore:
+        - "§fDo you want to remove"
+        - "§fworld \"§a{world}§f\" from §6SPOTLIGHT§f?"
 
   favorite:
     title: "Favorite Worlds"

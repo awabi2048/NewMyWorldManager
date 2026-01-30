@@ -69,10 +69,8 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     if (event.isShiftClick) {
                         // Spotlight削除 (Shift + 右クリック)
                         if (session.sort == DiscoverySort.SPOTLIGHT && player.hasPermission("myworldmanager.admin")) {
-                            plugin.spotlightRepository.remove(uuid)
-                            player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
+                            plugin.spotlightRemoveConfirmGui.open(player, worldData)
                             plugin.soundManager.playClickSound(player, item, "discovery")
-                            plugin.discoveryGui.open(player)
                             return
                         }
 
