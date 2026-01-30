@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.FavoriteGui
 import me.awabi2048.myworldmanager.gui.VisitGui
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -56,21 +57,10 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
-            if (event.isLeftClick) {
-                if (worldData.isArchived) {
-                    // アーカイブ済みの場合はクリックで削除（お気に入り解除）
-                    if (event.isShiftClick) {
-                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId) // Explicitly fetch stats
-                        if (stats.favoriteWorlds.containsKey(uuid)) {
-                            me.awabi2048.myworldmanager.gui.FavoriteConfirmGui(plugin).open(player, worldData)
-                        }
-                    } else {
-                        // Regular click behavior (if any) or hint message
-                         plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    }
-                    return
-                }
+            // アーカイブ済みの場合は無反応とする
+            if (worldData.isArchived) return
 
+            if (event.isLeftClick) {
                 val isMember = worldData.owner == player.uniqueId || 
                               worldData.moderators.contains(player.uniqueId) ||
                               worldData.members.contains(player.uniqueId)
@@ -103,8 +93,8 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 } else {
                     // プレビュー
                     player.closeInventory()
-// Import needs to be added at top, but tool only supports one chunk? No, I can replace the call line.
-                    plugin.previewSessionManager.startWorldPreview(player, worldData, me.awabi2048.myworldmanager.session.PreviewSource.FAVORITE_MENU)
+                    val target = PreviewSessionManager.PreviewTarget.World(worldData)
+                    plugin.previewSessionManager.startPreview(player, target, me.awabi2048.myworldmanager.session.PreviewSource.FAVORITE_MENU)
                 }
             }
             return

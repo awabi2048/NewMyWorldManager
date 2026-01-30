@@ -835,6 +835,7 @@ messages:
   preview_template_not_found: "§cTemplate not found."
   preview_world_load_failed: "§cFailed to load preview world."
   preview_restored: "§eYou were restored to your original position after disconnecting during preview."
+  preview_archived: "§cThis world is currently archived and cannot be previewed."
 
   unarchive_start: "§eRestoring world from archive..."
   unarchive_success: "§aWorld restored from archive."

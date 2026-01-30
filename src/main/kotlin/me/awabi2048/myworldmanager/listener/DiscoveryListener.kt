@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.gui.DiscoveryGui
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.session.DiscoverySort
+import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -106,7 +107,8 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     } else {
                         // プレビュー (通常右クリック)
                         player.closeInventory()
-                        plugin.previewSessionManager.startWorldPreview(player, worldData, me.awabi2048.myworldmanager.session.PreviewSource.DISCOVERY_MENU)
+                        val target = PreviewSessionManager.PreviewTarget.World(worldData)
+                        plugin.previewSessionManager.startPreview(player, target, me.awabi2048.myworldmanager.session.PreviewSource.DISCOVERY_MENU)
                     }
                 }
             }

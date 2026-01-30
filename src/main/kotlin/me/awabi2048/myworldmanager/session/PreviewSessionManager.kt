@@ -25,6 +25,14 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
     }
 
     /**
+     * プレビュー対象
+     */
+    sealed class PreviewTarget {
+        data class Template(val path: String) : PreviewTarget()
+        data class World(val worldData: me.awabi2048.myworldmanager.model.WorldData) : PreviewTarget()
+    }
+
+    /**
      * プレビュー中かどうかを確認
      */
     fun isInPreview(player: Player): Boolean = sessions.containsKey(player.uniqueId)
@@ -35,67 +43,83 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
     fun getSession(player: Player): PreviewSession? = sessions[player.uniqueId]
 
     /**
-     * プレビューを開始する
+     * プレビューを開始する（共通処理）
      */
-    fun startPreview(player: Player, templatePath: String, source: PreviewSource = PreviewSource.TEMPLATE_SELECTION): Boolean {
+    fun startPreview(player: Player, target: PreviewTarget, source: PreviewSource): Boolean {
         if (isInPreview(player)) return false
 
         // プレビュー開始音（グローバルクリック音）
         plugin.soundManager.playGlobalClickSound(player)
 
-        val template = plugin.templateRepository.findAll().find { it.path == templatePath }
-        if (template == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_template_not_found"))
-            return false
-        }
+        val world: org.bukkit.World
+        val templateName: String
+        val originLoc: Location
+        val folderName: String
 
-        // テンプレートワールドのロード確認
-        val templateWorld = Bukkit.getWorld(templatePath)
-        if (templateWorld == null) {
-            // ワールドをロード
-            val creator = org.bukkit.WorldCreator(templatePath)
-            val world = Bukkit.createWorld(creator)
-            if (world == null) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
-                return false
+        when (target) {
+            is PreviewTarget.Template -> {
+                val template = plugin.templateRepository.findAll().find { it.path == target.path }
+                if (template == null) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_template_not_found"))
+                    return false
+                }
+
+                // テンプレートワールドのロード確認
+                if (Bukkit.getWorld(target.path) == null) {
+                    val creator = org.bukkit.WorldCreator(target.path)
+                    Bukkit.createWorld(creator) ?: run {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
+                        return false
+                    }
+                }
+
+                world = Bukkit.getWorld(target.path) ?: return false
+                folderName = target.path
+                templateName = template.name
+                originLoc = template.originLocation?.clone() ?: Location(world, 0.5, 64.0, 0.5)
+
+                // プレビュー時の天気・時間を設定
+                template.previewTime?.let { world.fullTime = it }
+                template.previewWeather?.let { weather ->
+                    setWorldWeather(world, weather)
+                }
+            }
+            is PreviewTarget.World -> {
+                val worldData = target.worldData
+                // アーカイブ済みチェック
+                if (worldData.isArchived) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_archived"))
+                    plugin.soundManager.playActionSound(player, "discovery", "access_denied")
+                    return false
+                }
+
+                // ワールドがロードされていない場合はロード
+                folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                if (Bukkit.getWorld(folderName) == null) {
+                    if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
+                        return false
+                    }
+                }
+
+                world = Bukkit.getWorld(folderName) ?: return false
+                templateName = worldData.name
+                originLoc = worldData.spawnPosGuest?.clone() ?: world.spawnLocation.clone()
             }
         }
 
-        val world = Bukkit.getWorld(templatePath) ?: return false
-
-        // プレビュー時の天気・時間を設定
-        template.previewTime?.let { world.fullTime = it }
-        template.previewWeather?.let { weather ->
-            when (weather.lowercase()) {
-                "clear", "sun" -> {
-                    world.setStorm(false)
-                    world.isThundering = false
-                }
-                "rain" -> {
-                    world.setStorm(true)
-                    world.isThundering = false
-                }
-                "storm", "thunder" -> {
-                    world.setStorm(true)
-                    world.isThundering = true
-                }
-            }
-        }
+        if (originLoc.world == null) originLoc.world = world
 
         // 既存セッションの保存
         val session = PreviewSession(
             playerUuid = player.uniqueId,
             originalLocation = player.location.clone(),
             originalGameMode = player.gameMode,
-            templatePath = templatePath,
+            templatePath = folderName,
             source = source,
         )
         sessions[player.uniqueId] = session
 
-        // プレビュー座標の決定
-        val originLoc = template.originLocation?.clone() ?: Location(world, 0.0, 64.0, 0.0)
-        originLoc.world = world
-
         // config設定を取得
         val config = plugin.config
         val durationSeconds = config.getDouble("template_preview.duration_seconds", 6.0)
@@ -106,207 +130,64 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         val viewLocation = originLoc.clone().add(0.0, height, 0.0)
         viewLocation.pitch = pitch
         viewLocation.yaw = 0f
-
-        // マーカーエンティティの作成（ItemDisplayは不可視でスペクテイターからも見えない）
-        val marker = world.spawnEntity(viewLocation, EntityType.ITEM_DISPLAY) as ItemDisplay
-        marker.setGravity(false)
-        marker.isInvulnerable = true
-        marker.isSilent = true
-        session.markerEntity = marker
+        session.previewLocation = viewLocation
 
         // メッセージ送信
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to template.name)))
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to templateName)))
 
-        // テレポートとスペクテイター設定の遅延処理
-        // ワールド移動を伴う場合、クライアントの準備ができるまで十分な時間を空ける必要があるため合計20tick程度の遅延を設ける
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            if (!player.isOnline || !sessions.containsKey(player.uniqueId)) {
-                handlePlayerQuit(player.uniqueId)
-                return@Runnable
-            }
-            
-            // プレイヤーをテレポート（ゲームモード変更含む）
-            player.gameMode = GameMode.SPECTATOR
-            player.teleport(viewLocation)
-            
-            // さらに10tick遅延させてspectatorTargetを設定（テレポート完了を待つ）
-            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                if (!player.isOnline || !sessions.containsKey(player.uniqueId)) {
-                    return@Runnable
-                }
-                val currentMarker = sessions[player.uniqueId]?.markerEntity
-                if (currentMarker != null && currentMarker.isValid) {
-                    player.spectatorTarget = currentMarker
-                }
-            }, 10L)
-        }, 10L)
+        // 即座にテレポートとスペクテイター設定
+        viewLocation.chunk.load()
+        player.teleport(viewLocation)
+        player.gameMode = GameMode.SPECTATOR
 
-        // 回転アニメーションの開始（テレポートとspectate設定の完了（合計20tick+α）を待ってから開始）
-        val ticksTotal = (durationSeconds * 20).toInt()
-        val yawPerTick = 360f / ticksTotal
-        var ticksElapsed = 0
-
-        session.rotationTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
-            if (ticksElapsed >= ticksTotal) {
-                endPreview(player, false)
-                return@Runnable
-            }
-
-            val currentSession = sessions[player.uniqueId]
-            if (currentSession == null) {
-                return@Runnable
-            }
-
-            val markerEntity = currentSession.markerEntity
-            if (markerEntity != null && markerEntity.isValid) {
-                val newYaw = ticksElapsed * yawPerTick
-                val loc = markerEntity.location.clone()
-                loc.yaw = newYaw
-                markerEntity.teleport(loc)
-                currentSession.currentYaw = newYaw
-            }
-
-            ticksElapsed++
-        }, 25L, 1L) // 25tick後から開始
+        // 回転アニメーションの開始 (遅延なし)
+        startRotationTask(player, durationSeconds)
 
         return true
     }
 
-    /**
-     * ワールドのプレビューを開始する
-     */
-    fun startWorldPreview(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, source: PreviewSource): Boolean {
-        if (isInPreview(player)) return false
-
-        // プレビュー開始音（グローバルクリック音）
-        plugin.soundManager.playGlobalClickSound(player)
-
-        // アーカイブ済みチェック
-        if (worldData.isArchived) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_archived")) // TODO: message key check
-            // TODO: Sound check. Using existing sound for now or generic failure sound
-            // "access_denied" sound for discovery seems appropriate if available, or just standard failure sound.
-            // Looking at DiscoveryListener, it uses "access_denied" for "discovery" category.
-            // Let's safe-bet use playActionSound if available or just not play specific failing sound if not standardized.
-            // Wait, the request said "error message" and "sound".
-            // Implementation plan said: "警告メッセージを表示", "効果音を再生"
-            // I'll assume "messages.preview_archived" exists or I might need to add it.
-            // For now I will use a generic error message if key doesn't exist or just hardcode for safety if I can't check lang file right now.
-            // Actually I'll use the key and if it's missing it will show the key, which is better than nothing.
-            // I will check lang file later or adds it.
-            
-            // For sound
-            plugin.soundManager.playActionSound(player, "discovery", "access_denied")
-            
-            return false
-        }
-
-        // ワールドがロードされていない場合はロード
-        val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-        if (Bukkit.getWorld(folderName) == null) {
-            if (!plugin.worldService.loadWorld(worldData.uuid)) {
-                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
-                 return false
+    private fun setWorldWeather(world: org.bukkit.World, weather: String) {
+        when (weather.lowercase()) {
+            "clear", "sun" -> {
+                world.setStorm(false)
+                world.isThundering = false
+            }
+            "rain" -> {
+                world.setStorm(true)
+                world.isThundering = false
+            }
+            "storm", "thunder" -> {
+                world.setStorm(true)
+                world.isThundering = true
             }
         }
-        
-        val world = Bukkit.getWorld(folderName) ?: return false
+    }
 
-        // 既存セッションの保存
-        val session = PreviewSession(
-            playerUuid = player.uniqueId,
-            originalLocation = player.location.clone(),
-            originalGameMode = player.gameMode,
-            templatePath = folderName, // テンプレートパスとしてワールドフォルダ名を使用
-            source = source
-        )
-        sessions[player.uniqueId] = session
-
-        // プレビュー座標の決定 (ゲストスポーン -> ワールドスポーン)
-        val originLoc = worldData.spawnPosGuest?.clone() ?: world.spawnLocation.clone()
-        if (originLoc.world == null) originLoc.world = world
-
-        // config設定を取得
-        val config = plugin.config
-        val durationSeconds = config.getDouble("template_preview.duration_seconds", 6.0)
-        val pitch = config.getDouble("template_preview.pitch", -30.0).toFloat()
-        val height = config.getDouble("template_preview.height", 10.0)
-
-        // 少し上空からの視点
-        val viewLocation = originLoc.clone().add(0.0, height, 0.0)
-        viewLocation.pitch = pitch
-        viewLocation.yaw = 0f
-
-        // マーカーエンティティの作成
-        val marker = world.spawnEntity(viewLocation, EntityType.ITEM_DISPLAY) as ItemDisplay
-        marker.setGravity(false)
-        marker.isInvulnerable = true
-        marker.isSilent = true
-        session.markerEntity = marker
-
-        // メッセージ送信
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to worldData.name)))
-
-        // テレポートとスペクテイター設定の遅延処理
-        // ワールド移動を伴う場合、クライアントの準備ができるまで十分な時間を空ける必要があるため合計30tick程度の遅延を設ける
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            if (!player.isOnline || !sessions.containsKey(player.uniqueId)) {
-                handlePlayerQuit(player.uniqueId)
-                return@Runnable
-            }
-            
-            // チャンク読み込み（同期）
-            viewLocation.chunk.load()
-            
-            // さらに遅延させてからテレポートとGM変更
-            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                if (!player.isOnline || !sessions.containsKey(player.uniqueId)) return@Runnable
-                
-                player.gameMode = GameMode.SPECTATOR
-                player.teleport(viewLocation)
-                
-                 // spectate設定
-                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                    if (!player.isOnline || !sessions.containsKey(player.uniqueId)) {
-                        return@Runnable
-                    }
-                    val currentMarker = sessions[player.uniqueId]?.markerEntity
-                    if (currentMarker != null && currentMarker.isValid) {
-                        player.spectatorTarget = currentMarker
-                    }
-                }, 10L)
-            }, 10L)
-        }, 10L)
-
-        // 回転アニメーション
+    private fun startRotationTask(player: Player, durationSeconds: Double) {
         val ticksTotal = (durationSeconds * 20).toInt()
         val yawPerTick = 360f / ticksTotal
         var ticksElapsed = 0
 
-        session.rotationTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+        sessions[player.uniqueId]?.rotationTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             if (ticksElapsed >= ticksTotal) {
                 endPreview(player, false)
                 return@Runnable
             }
 
-            val currentSession = sessions[player.uniqueId]
-            if (currentSession == null) {
-                return@Runnable
-            }
-
-            val markerEntity = currentSession.markerEntity
-            if (markerEntity != null && markerEntity.isValid) {
-                val newYaw = ticksElapsed * yawPerTick
-                val loc = markerEntity.location.clone()
+            val currentSession = sessions[player.uniqueId] ?: return@Runnable
+            val viewLocation = currentSession.previewLocation
+            if (viewLocation != null) {
+                val newYaw = (ticksElapsed * yawPerTick) % 360f
+                val loc = viewLocation.clone()
                 loc.yaw = newYaw
-                markerEntity.teleport(loc)
+                
+                // プレイヤーを直接テレポートさせて位置と視点を固定
+                player.teleport(loc)
                 currentSession.currentYaw = newYaw
             }
 
             ticksElapsed++
-        }, 25L, 1L)
-
-        return true
+        }, 0L, 1L)
     }
 
     /**
@@ -317,9 +198,6 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
 
         // 回転タスクをキャンセル
         session.rotationTask?.cancel()
-
-        // マーカーエンティティを削除
-        session.markerEntity?.remove()
 
         // 復元情報をファイルに保存（サーバー再起動対応）
         savePendingRestore(playerUuid, session.originalLocation, session.originalGameMode)
@@ -333,9 +211,6 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
 
         // 回転タスクをキャンセル
         session.rotationTask?.cancel()
-
-        // マーカーエンティティを削除
-        session.markerEntity?.remove()
 
         // スペクテイターターゲットを解除
         player.spectatorTarget = null

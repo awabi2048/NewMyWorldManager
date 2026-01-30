@@ -976,6 +976,7 @@ messages:
   preview_template_not_found: "§cテンプレートが見つかりませんでした。"
   preview_world_load_failed: "§cプレビュー用ワールドの読み込みに失敗しました。"
   preview_restored: "§eプレビュー中に遊離したため、元の位置に復帰しました。"
+  preview_archived: "§cこのワールドは現在アーカイブされているため、プレビューできません。"
 
   unarchive_start: "§eワールドをアーカイブから復旧しています..."
   unarchive_success: "§aワールドを復旧しました。"

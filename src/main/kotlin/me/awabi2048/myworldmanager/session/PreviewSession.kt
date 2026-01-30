@@ -14,7 +14,7 @@ data class PreviewSession(
     val originalLocation: Location,
     val originalGameMode: GameMode,
     val templatePath: String,
-    var markerEntity: Entity? = null,
+    var previewLocation: Location? = null,
     var rotationTask: BukkitTask? = null,
     var currentYaw: Float = 0f,
     val source: PreviewSource = PreviewSource.TEMPLATE_SELECTION
