@@ -101,7 +101,6 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     plugin.soundManager.playClickSound(player, currentItem, "meet")
                     plugin.worldService.teleportToWorld(player, worldData.uuid)
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                    plugin.worldService.sendAnnouncementMessage(player, worldData)
                     
                     target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
 

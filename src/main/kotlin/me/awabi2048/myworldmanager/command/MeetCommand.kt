@@ -58,9 +58,6 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
                         sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.meet.request_accepted", mapOf("player" to requester.name)))
                         requester.sendMessage(plugin.languageManager.getMessage(requester, "messages.meet.request_accepted_by_target", mapOf("player" to sender.name)))
                         
-                        // Notify others? Not needed per spec, just existing logic.
-                        plugin.worldService.sendAnnouncementMessage(requester, targetWorldData)
-                        
                         // Visitor count? If not owner/member
                          val isMember = targetWorldData.owner == requester.uniqueId || 
                                        targetWorldData.moderators.contains(requester.uniqueId) || 

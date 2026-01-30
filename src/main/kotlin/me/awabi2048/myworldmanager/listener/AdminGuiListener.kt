@@ -172,7 +172,6 @@ class AdminGuiListener : Listener {
                 plugin.soundManager.playClickSound(player, currentItem)
                 plugin.worldService.teleportToWorld(player, uuid, runMacro = false)
                 player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
-                plugin.worldService.sendAnnouncementMessage(player, worldData)
                 player.closeInventory()
             } else if (event.isRightClick) {
                 plugin.soundManager.playClickSound(player, currentItem)

@@ -55,7 +55,6 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     plugin.soundManager.playClickSound(player, item, "discovery")
                     plugin.worldService.teleportToWorld(player, uuid)
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                    plugin.worldService.sendAnnouncementMessage(player, worldData)
                     
                     val isWorldMember = worldData.owner == player.uniqueId || 
                                   worldData.moderators.contains(player.uniqueId) ||

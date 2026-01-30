@@ -56,7 +56,6 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                         plugin.soundManager.playClickSound(player, currentItem)
                         plugin.worldService.teleportToWorld(player, uuid)
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                        plugin.worldService.sendAnnouncementMessage(player, worldData)
                         
                         if (!isMember) {
                             worldData.recentVisitors[0]++
