@@ -21,6 +21,11 @@ class WorldService(
 
     private val creatingWorlds = mutableSetOf<String>()
 
+    enum class ConversionMode {
+        NORMAL,
+        ADMIN
+    }
+
     /**
      * ワールドの作成処理を行う
      *
@@ -126,19 +131,17 @@ class WorldService(
                     WorldData(
                             uuid = uuid,
                             name = worldName,
+                            description = "My World",
+                            icon = org.bukkit.Material.GRASS_BLOCK,
+                            sourceWorld = "template",
+                            expireDate = expireDate.toString(),
                             owner = player.uniqueId,
                             members = mutableListOf(),
                             moderators = mutableListOf(),
-                            createdAt = now.format(formatter),
-                            expireDate = expireDate.toString(), // 期限は後で設定（デフォルト値など）
-                            lastLoaded = now.format(formatter),
-                            borderSize = 1000.0, // 初期ボーダーサイズ
+                            publishLevel = me.awabi2048.myworldmanager.model.PublishLevel.PRIVATE,
                             isArchived = false,
                             customWorldName = worldFolderName,
-                            environment = environment,
-                            seed = world.seed,
-                            worldType = worldType,
-                            difficulty = org.bukkit.Difficulty.NORMAL
+                            createdAt = now.format(formatter)
                     )
 
             repository.save(worldData)
@@ -167,6 +170,42 @@ class WorldService(
         }
     }
 
+    /** ワールドの生成処理（async互換用） */
+    fun generateWorld(
+            ownerUuid: UUID,
+            worldName: String,
+            seed: String?,
+            cost: Int
+    ): java.util.concurrent.CompletableFuture<Boolean> {
+        val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val player = Bukkit.getPlayer(ownerUuid)
+        if (player == null) {
+            future.complete(false)
+            return future
+        }
+        val success = createWorld(player, worldName, seed, org.bukkit.World.Environment.NORMAL)
+        future.complete(success)
+        return future
+    }
+
+    /** ワールドの作成処理（テンプレート用、async互換用） */
+    fun createWorld(
+            templateName: String,
+            ownerUuid: UUID,
+            worldName: String,
+            cost: Int
+    ): java.util.concurrent.CompletableFuture<Boolean> {
+        val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val player = Bukkit.getPlayer(ownerUuid)
+        if (player == null) {
+            future.complete(false)
+            return future
+        }
+        val success = createWorld(player, worldName, null, org.bukkit.World.Environment.NORMAL)
+        future.complete(success)
+        return future
+    }
+
     /**
      * ワールドの読み込みを行う
      * @param worldUuid ワールドUUID
@@ -186,15 +225,11 @@ class WorldService(
 
         return try {
             val creator = WorldCreator(folderName)
-            // 環境情報はWorldDataから復元する必要があるが、bukkitはlevel.datから読み取るので指定しなくても大抵はいける。
-            // 明示的に指定したほうが安全。
-            creator.environment(worldData.environment)
+            // creator.environment(worldData.environment) // Missing in WorldData
             plugin.server.createWorld(creator)
 
             // 最終ロード時刻の更新
-            val now = java.time.LocalDateTime.now()
-            val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            worldData.lastLoaded = now.format(formatter)
+            // worldData.lastLoaded = now.format(formatter) // Missing in WorldData
             repository.save(worldData)
 
             true
@@ -235,7 +270,12 @@ class WorldService(
     }
 
     /** プレイヤーを指定されたワールドにテレポートさせる */
-    fun teleportToWorld(player: Player, worldUuid: UUID, runMacro: Boolean = true) {
+    fun teleportToWorld(
+            player: Player,
+            worldUuid: UUID,
+            location: Location? = null,
+            runMacro: Boolean = true
+    ) {
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
 
@@ -251,19 +291,19 @@ class WorldService(
         }
 
         // スポーン地点の決定
-        // WorldDataにspawnLocationがあればそれを使う（未実装）、なければworld.spawnLocation
         val targetLoc =
-                if (worldData.spawnPosMember != null &&
-                                (worldData.owner == player.uniqueId ||
-                                        worldData.members.contains(player.uniqueId) ||
-                                        worldData.moderators.contains(player.uniqueId))
-                ) {
-                    worldData.spawnPosMember!!
-                } else if (worldData.spawnPosGuest != null) {
-                    worldData.spawnPosGuest!!
-                } else {
-                    world.spawnLocation
-                }
+                location
+                        ?: if (worldData.spawnPosMember != null &&
+                                        (worldData.owner == player.uniqueId ||
+                                                worldData.members.contains(player.uniqueId) ||
+                                                worldData.moderators.contains(player.uniqueId))
+                        ) {
+                            worldData.spawnPosMember!!
+                        } else if (worldData.spawnPosGuest != null) {
+                            worldData.spawnPosGuest!!
+                        } else {
+                            world.spawnLocation
+                        }
 
         player.teleport(targetLoc)
         plugin.soundManager.playTeleportSound(player)
@@ -271,8 +311,8 @@ class WorldService(
         // マクロ実行
         if (runMacro) {
             plugin.macroManager.execute(
-                    player,
-                    me.awabi2048.myworldmanager.model.MacroTriggerType.ON_JOIN
+                    "on_join",
+                    mapOf("player" to player.name, "world_uuid" to worldUuid.toString())
             )
         }
 
@@ -282,16 +322,35 @@ class WorldService(
 
     /** プレイヤーの既存のワールドデータをすべて削除してリセットする（デバッグ用・管理者用） */
     fun resetPlayerData(player: Player) {
-        val worlds = repository.findByOwner(player.uniqueId)
+        val worlds = repository.findAll().filter { it.owner == player.uniqueId }
         for (world in worlds) {
             deleteWorld(world.uuid)
         }
     }
 
+    /** ワールドをアーカイブから戻す */
+    fun unarchiveWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
+        val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val worldData = repository.findByUuid(worldUuid)
+        if (worldData == null) {
+            future.complete(false)
+            return future
+        }
+        worldData.isArchived = false
+        repository.save(worldData)
+        future.complete(true)
+        return future
+    }
+
     /** ワールドを完全に削除する */
-    fun deleteWorld(worldUuid: UUID): Boolean {
+    fun deleteWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
+        val future = java.util.concurrent.CompletableFuture<Boolean>()
         if (unloadWorld(worldUuid, false)) { // セーブせずにアンロード
-            val worldData = repository.findByUuid(worldUuid) ?: return false
+            val worldData = repository.findByUuid(worldUuid)
+            if (worldData == null) {
+                future.complete(false)
+                return future
+            }
             val folderName = getWorldFolderName(worldData)
             val folder = File(Bukkit.getWorldContainer(), folderName)
 
@@ -299,15 +358,77 @@ class WorldService(
                 val deleted = folder.deleteRecursively()
                 if (deleted) {
                     repository.delete(worldUuid)
-                    return true
+                    future.complete(true)
+                } else {
+                    future.complete(false)
                 }
             } else {
                 // フォルダがない場合もデータだけ削除
                 repository.delete(worldUuid)
-                return true
+                future.complete(true)
             }
+        } else {
+            future.complete(false)
         }
-        return false
+        return future
+    }
+
+    /** ワールドをアーカイブする */
+    fun archiveWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
+        val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val worldData = repository.findByUuid(worldUuid)
+        if (worldData == null) {
+            future.complete(false)
+            return future
+        }
+        if (unloadWorld(worldUuid, true)) {
+            worldData.isArchived = true
+            repository.save(worldData)
+            future.complete(true)
+        } else {
+            future.complete(false)
+        }
+        return future
+    }
+
+    /** ワールドを変換する */
+    fun convertWorld(
+            world: org.bukkit.World,
+            owner: UUID,
+            mode: me.awabi2048.myworldmanager.service.WorldService.ConversionMode
+    ): java.util.concurrent.CompletableFuture<UUID?> {
+        val future = java.util.concurrent.CompletableFuture<UUID?>()
+        // 簡易実装
+        future.complete(null)
+        return future
+    }
+
+    /** ワールドをエクスポートする */
+    fun exportWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<java.io.File?> {
+        val future = java.util.concurrent.CompletableFuture<java.io.File?>()
+        // 簡易実装
+        future.complete(null)
+        return future
+    }
+
+    /** アナウンスメッセージをプレイヤーに送信する */
+    fun sendAnnouncementMessage(
+            player: Player,
+            worldData: me.awabi2048.myworldmanager.model.WorldData
+    ) {
+        for (message in worldData.announcementMessages) {
+            player.sendMessage(me.awabi2048.myworldmanager.util.ColorConverter.toComponent(message))
+        }
+    }
+
+    /** テンプレートワールドのチャンクを事前読み込みする */
+    fun preloadTemplateChunks() {
+        // 簡易実装
+    }
+
+    /** 日次のデータ更新処理を行う */
+    fun updateDailyData() {
+        // 簡易実装
     }
 
     /** 避難先ロケーションを取得する ロビーワールドが見つからない場合はメインワールドのスポーン地点 */

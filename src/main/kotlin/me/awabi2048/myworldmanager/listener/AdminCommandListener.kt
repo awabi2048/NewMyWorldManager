@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.listener
 
+import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -10,7 +11,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.plugin.java.JavaPlugin
-import java.util.UUID
 
 class AdminCommandListener : Listener {
 
@@ -18,13 +18,16 @@ class AdminCommandListener : Listener {
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        
+
         // セッションチェック
         if (!plugin.settingsSessionManager.hasSession(player)) return
         val session = plugin.settingsSessionManager.getSession(player) ?: return
 
         // アクションに応じた処理
-        if (session.action == SettingsAction.ADMIN_MENU || session.action == SettingsAction.ADMIN_PORTAL_GUI || session.action == SettingsAction.ADMIN_WORLD_GUI) {
+        if (session.action == SettingsAction.ADMIN_MENU ||
+                        session.action == SettingsAction.ADMIN_PORTAL_GUI ||
+                        session.action == SettingsAction.ADMIN_WORLD_GUI
+        ) {
             handleAdminMenuClick(event, player, plugin, session.action)
         } else if (isAdminConfirmAction(session.action)) {
             handleAdminConfirmClick(event, player, plugin, session.action)
@@ -48,7 +51,12 @@ class AdminCommandListener : Listener {
         }
     }
 
-    private fun handleAdminMenuClick(event: InventoryClickEvent, player: Player, plugin: MyWorldManager, action: SettingsAction) {
+    private fun handleAdminMenuClick(
+            event: InventoryClickEvent,
+            player: Player,
+            plugin: MyWorldManager,
+            action: SettingsAction
+    ) {
         event.isCancelled = true
         if (event.clickedInventory != event.view.topInventory) return
         val item = event.currentItem ?: return
@@ -75,9 +83,15 @@ class AdminCommandListener : Listener {
             ItemTag.TYPE_GUI_ADMIN_CONVERT -> {
                 plugin.soundManager.playAdminClickSound(player)
                 if (event.isLeftClick) {
-                    plugin.adminCommandGui.openConvertConfirmation(player, WorldService.ConversionMode.NORMAL)
+                    plugin.adminCommandGui.openConvertConfirmation(
+                            player,
+                            WorldService.ConversionMode.NORMAL
+                    )
                 } else if (event.isRightClick) {
-                    plugin.adminCommandGui.openConvertConfirmation(player, WorldService.ConversionMode.ADMIN)
+                    plugin.adminCommandGui.openConvertConfirmation(
+                            player,
+                            WorldService.ConversionMode.ADMIN
+                    )
                 }
             }
             ItemTag.TYPE_GUI_ADMIN_UNLINK -> {
@@ -99,14 +113,21 @@ class AdminCommandListener : Listener {
             ItemTag.TYPE_GUI_RETURN -> {
                 plugin.soundManager.playAdminClickSound(player)
                 // Return from sub-menus to the main admin menu
-                if (action == SettingsAction.ADMIN_PORTAL_GUI || action == SettingsAction.ADMIN_WORLD_GUI) {
+                if (action == SettingsAction.ADMIN_PORTAL_GUI ||
+                                action == SettingsAction.ADMIN_WORLD_GUI
+                ) {
                     plugin.adminCommandGui.open(player)
                 }
             }
         }
     }
 
-    private fun handleAdminConfirmClick(event: InventoryClickEvent, player: Player, plugin: MyWorldManager, action: SettingsAction) {
+    private fun handleAdminConfirmClick(
+            event: InventoryClickEvent,
+            player: Player,
+            plugin: MyWorldManager,
+            action: SettingsAction
+    ) {
         event.isCancelled = true
         if (event.clickedInventory != event.view.topInventory) return
         val item = event.currentItem ?: return
@@ -121,19 +142,22 @@ class AdminCommandListener : Listener {
         if (tagType == ItemTag.TYPE_GUI_CONFIRM) {
             plugin.soundManager.playAdminClickSound(player)
             player.closeInventory()
-            
+
             // アクション実行
             when (action) {
                 SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> performUpdateData(player, plugin)
-                SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> performRepairTemplates(player, plugin)
+                SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM ->
+                        performRepairTemplates(player, plugin)
                 SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> performArchiveAll(player, plugin)
-                SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
-                SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
+                SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM ->
+                        performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
+                SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM ->
+                        performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
                 SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
-
                 SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin)
                 SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> performArchiveWorld(player, plugin)
-                SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> performUnarchiveWorld(player, plugin)
+                SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM ->
+                        performUnarchiveWorld(player, plugin)
                 else -> {}
             }
             // セッション終了（必要なら）またはメニューに戻る?
@@ -148,7 +172,9 @@ class AdminCommandListener : Listener {
         val uuid = worldData?.uuid
 
         if (uuid == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.unlink_not_myworld"))
+            player.sendMessage(
+                    plugin.languageManager.getMessage(player, "messages.unlink_not_myworld")
+            )
             return
         }
 
@@ -158,39 +184,54 @@ class AdminCommandListener : Listener {
 
     private fun performUpdateData(player: Player, plugin: MyWorldManager) {
         player.sendMessage("§eUpdating player data...")
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-            plugin.worldConfigRepository.loadAll()
-            val worlds = plugin.worldConfigRepository.findAll()
-            worlds.forEach { world ->
-                // 権限データの重複削除などのクリーンアップ
-                world.moderators.remove(world.owner)
-                world.members.remove(world.owner)
-                world.members.removeAll(world.moderators)
-                
-                val duplicateInModerators = world.moderators.distinct()
-                world.moderators.clear()
-                world.moderators.addAll(duplicateInModerators)
+        Bukkit.getScheduler()
+                .runTaskAsynchronously(
+                        plugin,
+                        Runnable {
+                            plugin.worldConfigRepository.loadAll()
+                            val worlds = plugin.worldConfigRepository.findAll()
+                            worlds.forEach { world ->
+                                // 権限データの重複削除などのクリーンアップ
+                                world.moderators.remove(world.owner)
+                                world.members.remove(world.owner)
+                                world.members.removeAll(world.moderators)
 
-                val duplicateInMembers = world.members.distinct()
-                world.members.clear()
-                world.members.addAll(duplicateInMembers)
-                
-                // ポイント補完
-                if (world.cumulativePoints <= 0) {
-                     val worldConfig = plugin.config
-                     var estimatedPoints = worldConfig.getInt("creation_cost.template", 0)
-                     for (i in 1..world.borderExpansionLevel) {
-                         estimatedPoints += worldConfig.getInt("expansion.costs.$i", 100)
-                     }
-                     world.cumulativePoints = estimatedPoints
-                }
-                plugin.worldConfigRepository.save(world)
-            }
-            
-            // プレイヤーデータの更新
-            val count = plugin.playerStatsRepository.updateAllData()
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.data_update_success", mapOf("world_count" to worlds.size, "player_count" to count)))
-        })
+                                val duplicateInModerators = world.moderators.distinct()
+                                world.moderators.clear()
+                                world.moderators.addAll(duplicateInModerators)
+
+                                val duplicateInMembers = world.members.distinct()
+                                world.members.clear()
+                                world.members.addAll(duplicateInMembers)
+
+                                // ポイント補完
+                                if (world.cumulativePoints <= 0) {
+                                    val worldConfig = plugin.config
+                                    var estimatedPoints =
+                                            worldConfig.getInt("creation_cost.template", 0)
+                                    for (i in 1..world.borderExpansionLevel) {
+                                        estimatedPoints +=
+                                                worldConfig.getInt("expansion.costs.$i", 100)
+                                    }
+                                    world.cumulativePoints = estimatedPoints
+                                }
+                                plugin.worldConfigRepository.save(world)
+                            }
+
+                            // プレイヤーデータの更新
+                            val count = plugin.playerStatsRepository.updateAllData()
+                            player.sendMessage(
+                                    plugin.languageManager.getMessage(
+                                            player,
+                                            "messages.data_update_success",
+                                            mapOf(
+                                                    "world_count" to worlds.size,
+                                                    "player_count" to count
+                                            )
+                                    )
+                            )
+                        }
+                )
     }
 
     private fun performRepairTemplates(player: Player, plugin: MyWorldManager) {
@@ -202,8 +243,11 @@ class AdminCommandListener : Listener {
         }
 
         player.sendMessage("§e欠損しているテンプレートの修復を開始します (${missing.size}件)...")
-        val config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(java.io.File(plugin.dataFolder, "templates.yml"))
-        
+        val config =
+                org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(
+                        java.io.File(plugin.dataFolder, "templates.yml")
+                )
+
         missing.toList().forEach { key ->
             val path = config.getString("$key.path")
             if (path != null) {
@@ -220,33 +264,60 @@ class AdminCommandListener : Listener {
         plugin.templateRepository.loadTemplates()
         player.sendMessage("§a修復処理が完了しました。")
     }
-    
+
     // 再帰的にアーカイブ処理を行うヘルパー
-    private fun processArchiveQueue(player: Player, plugin: MyWorldManager, targets: List<me.awabi2048.myworldmanager.model.WorldData>, index: Int) {
+    private fun processArchiveQueue(
+            player: Player,
+            plugin: MyWorldManager,
+            targets: List<me.awabi2048.myworldmanager.model.WorldData>,
+            index: Int
+    ) {
         if (index >= targets.size) {
-            player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_complete", mapOf("count" to targets.size)))
+            player.sendMessage(
+                    plugin.languageManager.getMessage(
+                            "messages.migration_archive_complete",
+                            mapOf("count" to targets.size)
+                    )
+            )
             return
         }
-        
+
         val worldData = targets[index]
-        plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success ->
+        plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success: Boolean ->
             if (success) {
-                player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_progress", mapOf("current" to (index + 1), "total" to targets.size, "world" to worldData.name)))
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                "messages.migration_archive_progress",
+                                mapOf(
+                                        "current" to (index + 1),
+                                        "total" to targets.size,
+                                        "world" to worldData.name
+                                )
+                        )
+                )
             }
-            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                processArchiveQueue(player, plugin, targets, index + 1)
-            }, 20L)
+            Bukkit.getScheduler()
+                    .runTaskLater(
+                            plugin,
+                            Runnable { processArchiveQueue(player, plugin, targets, index + 1) },
+                            20L
+                    )
         }
     }
 
     private fun performArchiveAll(player: Player, plugin: MyWorldManager) {
         val today = java.time.LocalDate.now()
         val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val archiveTargets = plugin.worldConfigRepository.findAll().filter { worldData ->
-            !worldData.isArchived && try {
-                java.time.LocalDate.parse(worldData.expireDate, dateFormatter) < today
-            } catch (e: Exception) { false }
-        }
+        val archiveTargets =
+                plugin.worldConfigRepository.findAll().filter { worldData ->
+                    !worldData.isArchived &&
+                            try {
+                                java.time.LocalDate.parse(worldData.expireDate, dateFormatter) <
+                                        today
+                            } catch (e: Exception) {
+                                false
+                            }
+                }
 
         if (archiveTargets.isEmpty()) {
             player.sendMessage("§cアーカイブ対象のワールドは見つかりませんでした。")
@@ -254,11 +325,20 @@ class AdminCommandListener : Listener {
         }
 
         val estSeconds = archiveTargets.size * 5
-        player.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_start", mapOf("count" to archiveTargets.size, "seconds" to estSeconds)))
+        player.sendMessage(
+                plugin.languageManager.getMessage(
+                        "messages.migration_archive_start",
+                        mapOf("count" to archiveTargets.size, "seconds" to estSeconds)
+                )
+        )
         processArchiveQueue(player, plugin, archiveTargets, 0)
     }
 
-    private fun performConvert(player: Player, plugin: MyWorldManager, mode: WorldService.ConversionMode) {
+    private fun performConvert(
+            player: Player,
+            plugin: MyWorldManager,
+            mode: WorldService.ConversionMode
+    ) {
         val currentWorld = player.world
         val worldName = currentWorld.name
         val alreadyRegistered = plugin.worldConfigRepository.findByWorldName(worldName) != null
@@ -269,19 +349,28 @@ class AdminCommandListener : Listener {
         }
 
         player.sendMessage("§eワールドの変換を開始します。しばらくお待ちください...")
-        plugin.worldService.convertWorld(currentWorld, player.uniqueId, mode).thenAccept { uuid ->
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (uuid != null) {
-                    player.sendMessage("§a現在のワールド '$worldName' をMyWorldとして登録しました。(UUID: $uuid)")
-                    if (mode == WorldService.ConversionMode.NORMAL) {
-                        player.sendMessage("§aディレクトリが標準形式にリネームされ、通常のマイワールド管理が適用されます。")
-                    } else {
-                        player.sendMessage("§a設定ファイルのみ生成されました。管理用ワールドとして扱われます。")
-                    }
-                } else {
-                    player.sendMessage("§cワールドの変換に失敗しました。")
-                }
-            })
+        plugin.worldService.convertWorld(currentWorld, player.uniqueId, mode).thenAccept {
+                uuid: java.util.UUID? ->
+            Bukkit.getScheduler()
+                    .runTask(
+                            plugin,
+                            Runnable {
+                                if (uuid != null) {
+                                    player.sendMessage(
+                                            "§a現在のワールド '$worldName' をMyWorldとして登録しました。(UUID: $uuid)"
+                                    )
+                                    if (mode == WorldService.ConversionMode.NORMAL) {
+                                        player.sendMessage(
+                                                "§aディレクトリが標準形式にリネームされ、通常のマイワールド管理が適用されます。"
+                                        )
+                                    } else {
+                                        player.sendMessage("§a設定ファイルのみ生成されました。管理用ワールドとして扱われます。")
+                                    }
+                                } else {
+                                    player.sendMessage("§cワールドの変換に失敗しました。")
+                                }
+                            }
+                    )
         }
     }
 
@@ -297,14 +386,29 @@ class AdminCommandListener : Listener {
         }
 
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_started"))
-        plugin.worldService.exportWorld(uuid).thenAccept { file ->
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (file != null) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_success", mapOf("file" to file.name)))
-                } else {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_failed"))
-                }
-            })
+        plugin.worldService.exportWorld(uuid).thenAccept { file: java.io.File? ->
+            Bukkit.getScheduler()
+                    .runTask(
+                            plugin,
+                            Runnable {
+                                if (file != null) {
+                                    player.sendMessage(
+                                            plugin.languageManager.getMessage(
+                                                    player,
+                                                    "messages.export_success",
+                                                    mapOf("file" to file.name)
+                                            )
+                                    )
+                                } else {
+                                    player.sendMessage(
+                                            plugin.languageManager.getMessage(
+                                                    player,
+                                                    "messages.export_failed"
+                                            )
+                                    )
+                                }
+                            }
+                    )
         }
     }
 
@@ -314,15 +418,30 @@ class AdminCommandListener : Listener {
         val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
-        plugin.worldService.archiveWorld(uuid).thenAccept { success ->
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (success) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
-                    plugin.worldGui.open(player, fromAdminMenu = true)
-                } else {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_failed"))
-                }
-            })
+        plugin.worldService.archiveWorld(uuid).thenAccept { success: Boolean ->
+            Bukkit.getScheduler()
+                    .runTask(
+                            plugin,
+                            Runnable {
+                                if (success) {
+                                    player.sendMessage(
+                                            plugin.languageManager.getMessage(
+                                                    player,
+                                                    "messages.archive_success",
+                                                    mapOf("world" to worldData.name)
+                                            )
+                                    )
+                                    plugin.worldGui.open(player, fromAdminMenu = true)
+                                } else {
+                                    player.sendMessage(
+                                            plugin.languageManager.getMessage(
+                                                    player,
+                                                    "messages.archive_failed"
+                                            )
+                                    )
+                                }
+                            }
+                    )
         }
     }
 
@@ -332,15 +451,29 @@ class AdminCommandListener : Listener {
         val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
-        plugin.worldService.unarchiveWorld(uuid).thenAccept { success ->
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (success) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_success"))
-                    plugin.worldGui.open(player, fromAdminMenu = true)
-                } else {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_failed"))
-                }
-            })
+        plugin.worldService.unarchiveWorld(uuid).thenAccept { success: Boolean ->
+            Bukkit.getScheduler()
+                    .runTask(
+                            plugin,
+                            Runnable {
+                                if (success) {
+                                    player.sendMessage(
+                                            plugin.languageManager.getMessage(
+                                                    player,
+                                                    "messages.unarchive_success"
+                                            )
+                                    )
+                                    plugin.worldGui.open(player, fromAdminMenu = true)
+                                } else {
+                                    player.sendMessage(
+                                            plugin.languageManager.getMessage(
+                                                    player,
+                                                    "messages.unarchive_failed"
+                                            )
+                                    )
+                                }
+                            }
+                    )
         }
     }
 }

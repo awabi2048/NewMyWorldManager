@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.command
 
+import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -7,8 +8,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.CreationSessionManager
 import me.awabi2048.myworldmanager.util.CustomItem
-import me.awabi2048.myworldmanager.util.ItemTag
-import me.awabi2048.myworldmanager.util.PortalItemUtil
+import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.command.Command
@@ -17,18 +17,19 @@ import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
-import me.awabi2048.myworldmanager.util.PermissionManager
-import java.util.UUID
 
-/**
- * MyWorldManagerの主要なコマンドを受け付けるクラス
- */
+/** MyWorldManagerの主要なコマンドを受け付けるクラス */
 class WorldCommand(
-    private val worldService: WorldService,
-    private val sessionManager: CreationSessionManager
+        private val worldService: WorldService,
+        private val sessionManager: CreationSessionManager
 ) : CommandExecutor, TabCompleter {
 
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
+    override fun onCommand(
+            sender: CommandSender,
+            command: Command,
+            label: String,
+            args: Array<out String>
+    ): Boolean {
         if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
             PermissionManager.sendNoPermissionMessage(sender)
             return true
@@ -36,8 +37,8 @@ class WorldCommand(
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
 
         if (args.isEmpty()) {
-             plugin.adminCommandGui.open(sender as Player)
-             return true
+            plugin.adminCommandGui.open(sender as Player)
+            return true
         }
 
         when (args[0].lowercase()) {
@@ -67,18 +68,31 @@ class WorldCommand(
 
                 // テンプレートワールドのチャンクを事前読み込み
                 plugin.worldService.preloadTemplateChunks()
-                
+
                 // ウィザード開始
                 sessionManager.startSession(targetPlayer.uniqueId)
-                val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                val cancelInfo = lang.getMessage(targetPlayer, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
-                
+                val cancelWord =
+                        plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                val cancelInfo =
+                        lang.getMessage(
+                                targetPlayer,
+                                "messages.chat_input_cancel_hint",
+                                mapOf("word" to cancelWord)
+                        )
+
                 targetPlayer.sendMessage(lang.getMessage("messages.wizard_start"))
-                targetPlayer.sendMessage(lang.getMessage("messages.wizard_name_prompt") + " " + cancelInfo)
-                sender.sendMessage(lang.getMessage(sender as? Player, "messages.wizard_started_for", mapOf("player" to targetPlayer.name)))
+                targetPlayer.sendMessage(
+                        lang.getMessage("messages.wizard_name_prompt") + " " + cancelInfo
+                )
+                sender.sendMessage(
+                        lang.getMessage(
+                                sender as? Player,
+                                "messages.wizard_started_for",
+                                mapOf("player" to targetPlayer.name)
+                        )
+                )
                 return true
             }
-
             "reload" -> {
                 val lang = plugin.languageManager
                 if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
@@ -96,18 +110,24 @@ class WorldCommand(
                     return true
                 }
                 plugin.worldService.updateDailyData()
-                sender.sendMessage(lang.getMessage(sender as? Player, "messages.daily_update_success"))
+                sender.sendMessage(
+                        lang.getMessage(sender as? Player, "messages.daily_update_success")
+                )
                 return true
             }
             "stats" -> {
                 val lang = plugin.languageManager
-                if (sender !is org.bukkit.command.ConsoleCommandSender && !PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+                if (sender !is org.bukkit.command.ConsoleCommandSender &&
+                                !PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
+                ) {
                     PermissionManager.sendNoPermissionMessage(sender)
                     return true
                 }
                 if (args.size < 4) {
                     sender.sendMessage(lang.getMessage(sender as? Player, "messages.usage_stats"))
-                    sender.sendMessage(lang.getMessage(sender as? Player, "messages.usage_stats_fields"))
+                    sender.sendMessage(
+                            lang.getMessage(sender as? Player, "messages.usage_stats_fields")
+                    )
                     return true
                 }
 
@@ -117,56 +137,138 @@ class WorldCommand(
                 val value = if (args.size >= 5) args[4].toIntOrNull() else null
 
                 val stats = plugin.playerStatsRepository.findByUuid(targetOffline.uniqueId)
-                
+
                 when (action) {
                     "get" -> {
-                        val current = when (field) {
-                            "points" -> stats.worldPoint
-                            // warp-slots removed
-                            "world-slots" -> stats.unlockedWorldSlot
-                            else -> {
-                                sender.sendMessage(lang.getMessage(sender as? Player, "messages.invalid_field"))
-                                return true
-                            }
-                        }
-                        val displayValue = if (field == "points") "§6🛖 §e$current" else "§f$current"
-                        sender.sendMessage(lang.getMessage(sender as? Player, "messages.stats_get", mapOf("player" to (targetOffline.name ?: "不明"), "key" to field, "value" to displayValue)))
+                        val current =
+                                when (field) {
+                                    "points" -> stats.worldPoint
+                                    // warp-slots removed
+                                    "world-slots" -> stats.unlockedWorldSlot
+                                    else -> {
+                                        sender.sendMessage(
+                                                lang.getMessage(
+                                                        sender as? Player,
+                                                        "messages.invalid_field"
+                                                )
+                                        )
+                                        return true
+                                    }
+                                }
+                        val displayValue =
+                                if (field == "points") "§6🛖 §e$current" else "§f$current"
+                        sender.sendMessage(
+                                lang.getMessage(
+                                        sender as? Player,
+                                        "messages.stats_get",
+                                        mapOf(
+                                                "player" to (targetOffline.name ?: "不明"),
+                                                "key" to field,
+                                                "value" to displayValue
+                                        )
+                                )
+                        )
                     }
                     "set" -> {
-                        if (value == null) { sender.sendMessage(lang.getMessage(sender as? Player, "messages.value_required")); return true }
-                        if (value < 0) { sender.sendMessage(lang.getMessage(sender as? Player, "messages.value_negative")); return true }
+                        if (value == null) {
+                            sender.sendMessage(
+                                    lang.getMessage(sender as? Player, "messages.value_required")
+                            )
+                            return true
+                        }
+                        if (value < 0) {
+                            sender.sendMessage(
+                                    lang.getMessage(sender as? Player, "messages.value_negative")
+                            )
+                            return true
+                        }
                         when (field) {
                             "points" -> stats.worldPoint = value
                             // warp-slots removed
                             "world-slots" -> stats.unlockedWorldSlot = value
-                            else -> { sender.sendMessage(lang.getMessage(sender as? Player, "messages.invalid_field")); return true }
+                            else -> {
+                                sender.sendMessage(
+                                        lang.getMessage(sender as? Player, "messages.invalid_field")
+                                )
+                                return true
+                            }
                         }
                         plugin.playerStatsRepository.save(stats)
                         val displayValue = if (field == "points") "§6🛖 §e$value" else "§f$value"
-                        sender.sendMessage(lang.getMessage(sender as? Player, "messages.stats_set", mapOf("player" to (targetOffline.name ?: "不明"), "key" to field, "value" to displayValue)))
+                        sender.sendMessage(
+                                lang.getMessage(
+                                        sender as? Player,
+                                        "messages.stats_set",
+                                        mapOf(
+                                                "player" to (targetOffline.name ?: "不明"),
+                                                "key" to field,
+                                                "value" to displayValue
+                                        )
+                                )
+                        )
                     }
                     "add" -> {
-                        if (value == null) { sender.sendMessage(lang.getMessage(sender as? Player, "messages.value_required")); return true }
+                        if (value == null) {
+                            sender.sendMessage(
+                                    lang.getMessage(sender as? Player, "messages.value_required")
+                            )
+                            return true
+                        }
                         when (field) {
                             "points" -> stats.worldPoint += value
                             // warp-slots removed
                             "world-slots" -> stats.unlockedWorldSlot += value
-                            else -> { sender.sendMessage(lang.getMessage(sender as? Player, "messages.invalid_field")); return true }
+                            else -> {
+                                sender.sendMessage(
+                                        lang.getMessage(sender as? Player, "messages.invalid_field")
+                                )
+                                return true
+                            }
                         }
                         plugin.playerStatsRepository.save(stats)
                         val displayValue = if (field == "points") "§6🛖 §e$value" else "§f$value"
-                        sender.sendMessage(lang.getMessage(sender as? Player, "messages.stats_add", mapOf("player" to (targetOffline.name ?: "不明"), "key" to field, "value" to displayValue)))
+                        sender.sendMessage(
+                                lang.getMessage(
+                                        sender as? Player,
+                                        "messages.stats_add",
+                                        mapOf(
+                                                "player" to (targetOffline.name ?: "不明"),
+                                                "key" to field,
+                                                "value" to displayValue
+                                        )
+                                )
+                        )
                     }
                     "remove" -> {
-                        if (value == null) { sender.sendMessage(lang.getMessage(sender as? Player, "messages.value_required")); return true }
-                        val current = when (field) {
-                            "points" -> stats.worldPoint
-                            // warp-slots removed
-                            "world-slots" -> stats.unlockedWorldSlot
-                            else -> { sender.sendMessage(lang.getMessage(sender as? Player, "messages.invalid_field")); return true }
+                        if (value == null) {
+                            sender.sendMessage(
+                                    lang.getMessage(sender as? Player, "messages.value_required")
+                            )
+                            return true
                         }
+                        val current =
+                                when (field) {
+                                    "points" -> stats.worldPoint
+                                    // warp-slots removed
+                                    "world-slots" -> stats.unlockedWorldSlot
+                                    else -> {
+                                        sender.sendMessage(
+                                                lang.getMessage(
+                                                        sender as? Player,
+                                                        "messages.invalid_field"
+                                                )
+                                        )
+                                        return true
+                                    }
+                                }
                         if (current < value) {
-                            sender.sendMessage(lang.getMessage(sender as? Player, "messages.stats_remove_error", mapOf("value" to current)))
+                            sender.sendMessage(
+                                    lang.getMessage(
+                                            sender as? Player,
+                                            "messages.stats_remove_error",
+                                            mapOf("value" to current)
+                                    )
+                            )
                             return true
                         }
                         when (field) {
@@ -176,15 +278,30 @@ class WorldCommand(
                         }
                         plugin.playerStatsRepository.save(stats)
                         val displayValue = if (field == "points") "§6🛖 §e$value" else "§f$value"
-                        sender.sendMessage(lang.getMessage(sender as? Player, "messages.stats_remove", mapOf("player" to (targetOffline.name ?: "不明"), "key" to field, "value" to displayValue)))
+                        sender.sendMessage(
+                                lang.getMessage(
+                                        sender as? Player,
+                                        "messages.stats_remove",
+                                        mapOf(
+                                                "player" to (targetOffline.name ?: "不明"),
+                                                "key" to field,
+                                                "value" to displayValue
+                                        )
+                                )
+                        )
                     }
-                    else -> sender.sendMessage(lang.getMessage(sender as? Player, "messages.invalid_action"))
+                    else ->
+                            sender.sendMessage(
+                                    lang.getMessage(sender as? Player, "messages.invalid_action")
+                            )
                 }
                 return true
             }
             "give" -> {
                 val lang = plugin.languageManager
-                if (sender !is org.bukkit.command.ConsoleCommandSender && !PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+                if (sender !is org.bukkit.command.ConsoleCommandSender &&
+                                !PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
+                ) {
                     PermissionManager.sendNoPermissionMessage(sender)
                     return true
                 }
@@ -194,28 +311,43 @@ class WorldCommand(
                 }
                 val targetPlayer = Bukkit.getPlayer(args[1])
                 if (targetPlayer == null || !targetPlayer.isOnline) {
-                    sender.sendMessage(lang.getMessage(sender as? Player, "general.player_not_found"))
+                    sender.sendMessage(
+                            lang.getMessage(sender as? Player, "general.player_not_found")
+                    )
                     return true
                 }
                 val customItemId = args[2]
                 val customItem = CustomItem.fromId(customItemId)
                 if (customItem == null) {
-                    sender.sendMessage(lang.getMessage(sender as? Player, "messages.invalid_item_id"))
+                    sender.sendMessage(
+                            lang.getMessage(sender as? Player, "messages.invalid_item_id")
+                    )
                     return true
                 }
                 val amount = if (args.size >= 4) args[3].toIntOrNull() ?: 1 else 1
-                
+
                 // Handle biome for bottled_biome_air
-                val item = if (customItem == CustomItem.BOTTLED_BIOME_AIR && args.size >= 5) {
-                    customItem.createWithBiome(lang, targetPlayer, args[4])
-                } else {
-                    customItem.create(lang, targetPlayer)
-                }
+                val item =
+                        if (customItem == CustomItem.BOTTLED_BIOME_AIR && args.size >= 5) {
+                            customItem.createWithBiome(lang, targetPlayer, args[4])
+                        } else {
+                            customItem.create(lang, targetPlayer)
+                        }
                 item.amount = amount
-                
+
                 targetPlayer.inventory.addItem(item)
                 val displayName = item.itemMeta?.displayName ?: customItem.id
-                sender.sendMessage(lang.getMessage(sender as? Player, "messages.give_success", mapOf("player" to targetPlayer.name, "item" to displayName, "amount" to amount)))
+                sender.sendMessage(
+                        lang.getMessage(
+                                sender as? Player,
+                                "messages.give_success",
+                                mapOf(
+                                        "player" to targetPlayer.name,
+                                        "item" to displayName,
+                                        "amount" to amount
+                                )
+                        )
+                )
                 return true
             }
             "migrate-worlds" -> {
@@ -225,7 +357,12 @@ class WorldCommand(
                     return true
                 }
                 if (!plugin.config.getBoolean("migration.enable_world_migration", false)) {
-                    sender.sendMessage(lang.getMessage("messages.migration_disabled", mapOf("config_key" to "migration.enable_world_migration")))
+                    sender.sendMessage(
+                            lang.getMessage(
+                                    "messages.migration_disabled",
+                                    mapOf("config_key" to "migration.enable_world_migration")
+                            )
+                    )
                     return true
                 }
                 performMigration(sender)
@@ -240,7 +377,12 @@ class WorldCommand(
                     return true
                 }
                 if (!plugin.config.getBoolean("migration.enable_player_migration", false)) {
-                    sender.sendMessage(lang.getMessage("messages.migration_disabled", mapOf("config_key" to "migration.enable_player_migration")))
+                    sender.sendMessage(
+                            lang.getMessage(
+                                    "messages.migration_disabled",
+                                    mapOf("config_key" to "migration.enable_player_migration")
+                            )
+                    )
                     return true
                 }
                 performPlayerMigration(sender)
@@ -255,7 +397,12 @@ class WorldCommand(
                     return true
                 }
                 if (!plugin.config.getBoolean("migration.enable_portal_migration", false)) {
-                    sender.sendMessage(lang.getMessage("messages.migration_disabled", mapOf("config_key" to "migration.enable_portal_migration")))
+                    sender.sendMessage(
+                            lang.getMessage(
+                                    "messages.migration_disabled",
+                                    mapOf("config_key" to "migration.enable_portal_migration")
+                            )
+                    )
                     return true
                 }
                 performPortalMigration(sender)
@@ -270,7 +417,12 @@ class WorldCommand(
         }
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
+    override fun onTabComplete(
+            sender: CommandSender,
+            command: Command,
+            alias: String,
+            args: Array<out String>
+    ): List<String> {
         val list = mutableListOf<String>()
         if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) return emptyList()
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
@@ -301,7 +453,9 @@ class WorldCommand(
                 } else if (sub == "give") {
                     list.addAll(CustomItem.values().map { it.id })
                 } else if (sub == "portals" && args[1].lowercase() == "bind") {
-                    val targets = plugin.config.getConfigurationSection("portal_targets")?.getKeys(false) ?: emptySet()
+                    val targets =
+                            plugin.config.getConfigurationSection("portal_targets")?.getKeys(false)
+                                    ?: emptySet()
                     list.addAll(targets)
                 }
             }
@@ -319,7 +473,12 @@ class WorldCommand(
         val lang = plugin.languageManager
         val file = java.io.File(plugin.dataFolder, "world_data.yml")
         if (!file.exists()) {
-            sender.sendMessage(lang.getMessage("messages.migration_file_not_found", mapOf("file" to "world_data.yml")))
+            sender.sendMessage(
+                    lang.getMessage(
+                            "messages.migration_file_not_found",
+                            mapOf("file" to "world_data.yml")
+                    )
+            )
             return
         }
 
@@ -336,39 +495,48 @@ class WorldCommand(
                 val name = section.getString("name", "Unknown")!!
                 val description = section.getString("description", "")!!
                 val iconStr = section.getString("icon", "GRASS_BLOCK")!!
-                val icon = org.bukkit.Material.matchMaterial(iconStr) ?: org.bukkit.Material.GRASS_BLOCK
+                val icon =
+                        org.bukkit.Material.matchMaterial(iconStr)
+                                ?: org.bukkit.Material.GRASS_BLOCK
                 val sourceWorld = section.getString("source_world", "default")!!
-                
+
                 val isArchived = section.getString("activity_state") == "ARCHIVED"
                 val worldName = "my_world.$uuid"
-                
+
                 // フォルダ存在確認
-                val archiveFolder = java.io.File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
-                val worldFolder = if (isArchived) {
-                    java.io.File(archiveFolder, worldName)
-                } else {
-                    java.io.File(Bukkit.getWorldContainer(), worldName)
-                }
+                val archiveFolder =
+                        java.io.File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
+                val worldFolder =
+                        if (isArchived) {
+                            java.io.File(archiveFolder, worldName)
+                        } else {
+                            java.io.File(Bukkit.getWorldContainer(), worldName)
+                        }
 
                 if (!worldFolder.exists() || !worldFolder.isDirectory) {
-                    val errorMsg = lang.getMessage("messages.migration_folder_not_found", mapOf("path" to worldName, "id" to key))
+                    val errorMsg =
+                            lang.getMessage(
+                                    "messages.migration_folder_not_found",
+                                    mapOf("path" to worldName, "id" to key)
+                            )
                     sender.sendMessage(errorMsg)
                     plugin.logger.severe(errorMsg)
                     continue
                 }
-                
+
                 // 期限計算
                 val lastUpdatedStr = section.getString("last_updated", "2026-01-12")!!
-                val lastUpdated = try {
-                    java.time.LocalDate.parse(lastUpdatedStr.replace("'", ""))
-                } catch (e: Exception) {
-                    java.time.LocalDate.now()
-                }
+                val lastUpdated =
+                        try {
+                            java.time.LocalDate.parse(lastUpdatedStr.replace("'", ""))
+                        } catch (e: Exception) {
+                            java.time.LocalDate.now()
+                        }
                 val expireDate = lastUpdated.plusDays(initialDays.toLong()).format(dateFormatter)
 
                 val ownerStr = section.getString("owner") ?: continue
                 val owner = UUID.fromString(ownerStr)
-                
+
                 val members = mutableListOf<UUID>()
                 val moderators = mutableListOf<UUID>()
                 val memberSection = section.getConfigurationSection("member")
@@ -387,13 +555,13 @@ class WorldCommand(
                     }
                 }
 
-                val publishLevel = when (section.getString("publish_level", "CLOSE")?.uppercase()) {
-                    "OPEN" -> PublishLevel.FRIEND
-                    "PUBLIC" -> PublishLevel.PUBLIC
-                    else -> PublishLevel.PRIVATE
-                }
+                val publishLevel =
+                        when (section.getString("publish_level", "CLOSE")?.uppercase()) {
+                            "OPEN" -> PublishLevel.FRIEND
+                            "PUBLIC" -> PublishLevel.PUBLIC
+                            else -> PublishLevel.PRIVATE
+                        }
 
-                
                 fun parseLoc(str: String?): org.bukkit.Location? {
                     if (str == null) return null
                     val clean = str.replace("(", "").replace(")", "")
@@ -408,7 +576,7 @@ class WorldCommand(
                 val spawnPosGuest = parseLoc(section.getString("spawn_pos_guest"))
                 val spawnPosMember = parseLoc(section.getString("spawn_pos_member"))
                 val borderCenterPos = parseLoc(section.getString("border_center_pos"))
-                
+
                 val expansionLevel = section.getInt("border_expansion_level", 0)
 
                 // 累積ポイント計算
@@ -419,66 +587,87 @@ class WorldCommand(
 
                 val createdAtRaw = section.getString("created_at")
                 val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                val createdAt = if (createdAtRaw != null) {
-                    if (createdAtRaw.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
-                        "$createdAtRaw 00:00:00"
-                    } else {
-                        createdAtRaw
-                    }
-                } else {
-                    java.time.LocalDateTime.now().format(formatter)
-                }
+                val createdAt =
+                        if (createdAtRaw != null) {
+                            if (createdAtRaw.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                                "$createdAtRaw 00:00:00"
+                            } else {
+                                createdAtRaw
+                            }
+                        } else {
+                            java.time.LocalDateTime.now().format(formatter)
+                        }
 
-                val worldData = WorldData(
-                    uuid = uuid,
-                    name = name,
-                    description = description,
-                    icon = icon,
-                    sourceWorld = sourceWorld,
-                    expireDate = expireDate,
-                    owner = owner,
-                    members = members,
-                    moderators = moderators,
-                    publishLevel = publishLevel,
-                    spawnPosGuest = spawnPosGuest,
-                    spawnPosMember = spawnPosMember,
-                    borderCenterPos = borderCenterPos,
-                    borderExpansionLevel = expansionLevel,
-                    isArchived = isArchived,
-                    cumulativePoints = points,
-                    createdAt = createdAt
-                )
+                val worldData =
+                        WorldData(
+                                uuid = uuid,
+                                name = name,
+                                description = description,
+                                icon = icon,
+                                sourceWorld = sourceWorld,
+                                expireDate = expireDate,
+                                owner = owner,
+                                members = members,
+                                moderators = moderators,
+                                publishLevel = publishLevel,
+                                spawnPosGuest = spawnPosGuest,
+                                spawnPosMember = spawnPosMember,
+                                borderCenterPos = borderCenterPos,
+                                borderExpansionLevel = expansionLevel,
+                                isArchived = isArchived,
+                                cumulativePoints = points,
+                                createdAt = createdAt
+                        )
 
                 plugin.worldConfigRepository.save(worldData)
                 count++
             } catch (e: Exception) {
-                sender.sendMessage(lang.getMessage("messages.migration_error", mapOf("error" to key)))
+                sender.sendMessage(
+                        lang.getMessage("messages.migration_error", mapOf("error" to key))
+                )
                 e.printStackTrace()
             }
         }
         sender.sendMessage(lang.getMessage("messages.migration_success", mapOf("count" to count)))
         plugin.worldConfigRepository.loadAll()
     }
-    
+
     private fun processArchiveQueue(sender: CommandSender, targets: List<WorldData>, index: Int) {
         if (index >= targets.size) {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-            sender.sendMessage(plugin.languageManager.getMessage("messages.migration_archive_complete", mapOf("count" to targets.size)))
+            sender.sendMessage(
+                    plugin.languageManager.getMessage(
+                            "messages.migration_archive_complete",
+                            mapOf("count" to targets.size)
+                    )
+            )
             return
         }
-        
+
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val lang = plugin.languageManager
         val worldData = targets[index]
-        
-        plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success ->
+
+        plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success: Boolean ->
             if (success) {
-                sender.sendMessage(lang.getMessage("messages.migration_archive_progress", mapOf("current" to (index + 1), "total" to targets.size, "world" to worldData.name)))
+                sender.sendMessage(
+                        lang.getMessage(
+                                "messages.migration_archive_progress",
+                                mapOf(
+                                        "current" to (index + 1),
+                                        "total" to targets.size,
+                                        "world" to worldData.name
+                                )
+                        )
+                )
             }
             // 次のワールドを処理
-            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                processArchiveQueue(sender, targets, index + 1)
-            }, 20L) // 1秒後に次を処理
+            Bukkit.getScheduler()
+                    .runTaskLater(
+                            plugin,
+                            Runnable { processArchiveQueue(sender, targets, index + 1) },
+                            20L
+                    ) // 1秒後に次を処理
         }
     }
 
@@ -487,7 +676,12 @@ class WorldCommand(
         val lang = plugin.languageManager
         val file = java.io.File(plugin.dataFolder, "player_data.yml")
         if (!file.exists()) {
-            sender.sendMessage(lang.getMessage("messages.migration_file_not_found", mapOf("file" to "player_data.yml")))
+            sender.sendMessage(
+                    lang.getMessage(
+                            "messages.migration_file_not_found",
+                            mapOf("file" to "player_data.yml")
+                    )
+            )
             return
         }
 
@@ -510,7 +704,7 @@ class WorldCommand(
                 stats.worldPoint = worldPoint
                 // unlockedWarpSlot removed
                 stats.unlockedWorldSlot = unlockedWorldSlot
-                
+
                 warpShortcuts.forEach { wUuidStr: String ->
                     try {
                         val wUuid = UUID.fromString(wUuidStr)
@@ -523,7 +717,9 @@ class WorldCommand(
                 plugin.playerStatsRepository.save(stats)
                 count++
             } catch (e: Exception) {
-                sender.sendMessage(lang.getMessage("messages.migration_error", mapOf("error" to key)))
+                sender.sendMessage(
+                        lang.getMessage("messages.migration_error", mapOf("error" to key))
+                )
                 e.printStackTrace()
             }
         }
@@ -535,7 +731,12 @@ class WorldCommand(
         val lang = plugin.languageManager
         val file = java.io.File(plugin.dataFolder, "portal_data.yml")
         if (!file.exists()) {
-            sender.sendMessage(lang.getMessage("messages.migration_file_not_found", mapOf("file" to "portal_data.yml")))
+            sender.sendMessage(
+                    lang.getMessage(
+                            "messages.migration_file_not_found",
+                            mapOf("file" to "portal_data.yml")
+                    )
+            )
             return
         }
 
@@ -545,13 +746,20 @@ class WorldCommand(
         for (key in config.getKeys(false)) {
             try {
                 val section = config.getConfigurationSection(key) ?: continue
-                val id = try { UUID.fromString(key) } catch (e: Exception) { continue }
+                val id =
+                        try {
+                            UUID.fromString(key)
+                        } catch (e: Exception) {
+                            continue
+                        }
 
                 val locSection = section.getConfigurationSection("location") ?: continue
                 val worldName = locSection.getString("world") ?: continue
                 val world = Bukkit.getWorld(worldName)
                 if (world == null) {
-                    plugin.logger.warning("Migration warning: World '$worldName' not found for portal $id.")
+                    plugin.logger.warning(
+                            "Migration warning: World '$worldName' not found for portal $id."
+                    )
                     continue
                 }
                 val x = locSection.getDouble("x")
@@ -566,7 +774,7 @@ class WorldCommand(
                 val worldUuid = UUID.fromString(destStr)
 
                 val showText = section.getBoolean("display_text", true)
-                
+
                 // 色のパース
                 val colorStr = section.getString("color", "AQUA")!!
                 var color: org.bukkit.Color = org.bukkit.Color.AQUA
@@ -583,22 +791,25 @@ class WorldCommand(
                     }
                 }
 
-                val portalData = PortalData(
-                    id = id,
-                    worldName = worldName,
-                    x = x.toInt(),
-                    y = y.toInt(),
-                    z = z.toInt(),
-                    worldUuid = worldUuid,
-                    showText = showText,
-                    particleColor = color,
-                    ownerUuid = ownerUuid
-                )
+                val portalData =
+                        PortalData(
+                                id = id,
+                                worldName = worldName,
+                                x = x.toInt(),
+                                y = y.toInt(),
+                                z = z.toInt(),
+                                worldUuid = worldUuid,
+                                showText = showText,
+                                particleColor = color,
+                                ownerUuid = ownerUuid
+                        )
 
                 plugin.portalRepository.addPortal(portalData)
                 count++
             } catch (e: Exception) {
-                sender.sendMessage(lang.getMessage("messages.migration_error", mapOf("error" to key)))
+                sender.sendMessage(
+                        lang.getMessage("messages.migration_error", mapOf("error" to key))
+                )
                 e.printStackTrace()
             }
         }
