@@ -68,15 +68,19 @@ class SettingsSessionManager {
         return sessions.containsKey(player.uniqueId)
     }
 
-    fun updateSessionAction(player: Player, worldUuid: UUID, action: SettingsAction, isGui: Boolean = false, isAdminFlow: Boolean? = null) {
+    fun updateSessionAction(player: Player, worldUuid: UUID, action: SettingsAction, isGui: Boolean = false, isAdminFlow: Boolean? = null, isPlayerWorldFlow: Boolean? = null, parentShowBackButton: Boolean? = null) {
         val currentSession = sessions[player.uniqueId]
         if (currentSession != null && currentSession.worldUuid == worldUuid) {
             currentSession.action = action
             if (isGui) currentSession.isGuiTransition = true
             if (isAdminFlow != null) currentSession.isAdminFlow = isAdminFlow
+            if (isPlayerWorldFlow != null) currentSession.isPlayerWorldFlow = isPlayerWorldFlow
+            if (parentShowBackButton != null) currentSession.parentShowBackButton = parentShowBackButton
         } else {
             val session = SettingsSession(player.uniqueId, worldUuid, action)
             if (isAdminFlow != null) session.isAdminFlow = isAdminFlow
+            if (isPlayerWorldFlow != null) session.isPlayerWorldFlow = isPlayerWorldFlow
+            if (parentShowBackButton != null) session.parentShowBackButton = parentShowBackButton
             if (isGui) session.isGuiTransition = true
             sessions[player.uniqueId] = session
         }

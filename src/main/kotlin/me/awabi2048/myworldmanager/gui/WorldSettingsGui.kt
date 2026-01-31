@@ -19,7 +19,7 @@ import org.bukkit.inventory.ItemStack
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
 
-        fun open(player: Player, worldData: WorldData, showBackButton: Boolean? = null) {
+        fun open(player: Player, worldData: WorldData, showBackButton: Boolean? = null, isPlayerWorldFlow: Boolean? = null, parentShowBackButton: Boolean? = null) {
                 val lang = plugin.languageManager
                 val titleKey = "gui.settings.title"
                 if (!lang.hasKey(player, titleKey)) {
@@ -29,15 +29,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // セッションの更新
-                if (showBackButton != null) {
+                if (showBackButton != null || isPlayerWorldFlow != null || parentShowBackButton != null) {
                         plugin.settingsSessionManager.updateSessionAction(
                                 player,
                                 worldData.uuid,
                                 SettingsAction.VIEW_SETTINGS,
-                                isGui = true
+                                isGui = true,
+                                isPlayerWorldFlow = isPlayerWorldFlow,
+                                parentShowBackButton = parentShowBackButton
                         )
-                        plugin.settingsSessionManager.getSession(player)?.showBackButton =
+                        if (showBackButton != null) {
+                            plugin.settingsSessionManager.getSession(player)?.showBackButton =
                                 showBackButton
+                        }
                 } else {
                         plugin.settingsSessionManager.updateSessionAction(
                                 player,

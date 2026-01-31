@@ -724,6 +724,9 @@ class WorldSettingsListener : Listener {
                                                 if (session.isAdminFlow) {
                                                         plugin.soundManager.playAdminClickSound(player)
                                                         plugin.worldGui.open(player, fromAdminMenu = true)
+                                                } else if (session.isPlayerWorldFlow) {
+                                                        plugin.soundManager.playClickSound(player, clickedItem, "world_settings")
+                                                        plugin.playerWorldGui.open(player, 0, showBackButton = session.parentShowBackButton)
                                                 } else {
                                                         me.awabi2048.myworldmanager.util.GuiHelper
                                                                 .handleReturnClick(

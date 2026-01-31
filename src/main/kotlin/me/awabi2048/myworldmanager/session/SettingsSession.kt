@@ -12,5 +12,7 @@ data class SettingsSession(
     var confirmItem: org.bukkit.inventory.ItemStack? = null,
     var isGuiTransition: Boolean = false,
     var showBackButton: Boolean = false,
-    var isAdminFlow: Boolean = false
+    var isAdminFlow: Boolean = false,
+    var isPlayerWorldFlow: Boolean = false,
+    var parentShowBackButton: Boolean = false
 )

@@ -163,7 +163,8 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                         worldData.members.contains(player.uniqueId)
 
                 if (isMember) {
-                    plugin.worldSettingsGui.open(player, worldData)
+                    val currentShowBack = plugin.playerWorldSessionManager.getSession(player.uniqueId).showBackButton
+                    plugin.worldSettingsGui.open(player, worldData, showBackButton = true, isPlayerWorldFlow = true, parentShowBackButton = currentShowBack)
                 }
             }
             return
