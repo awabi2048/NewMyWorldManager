@@ -104,6 +104,55 @@ object GuiHelper {
         player.performCommand(command)
     }
 
+    /**
+     * Deduplicates consecutive separators and removes leading/trailing separators in lore.
+     */
+    fun cleanupLore(lore: List<Component>, separator: Component): List<Component> {
+        val plain = PlainTextComponentSerializer.plainText()
+        val separatorText = plain.serialize(separator).trim()
+        
+        val result = mutableListOf<Component>()
+        var lastWasSeparator = false
+        
+        // Regex to identify various separator-like strings (sequences of hyphens or full-width dashes)
+        val separatorRegex = Regex("^[\\-－＝—_]+$")
+        
+        for (comp in lore) {
+            val text = plain.serialize(comp).trim()
+            if (text.isBlank()) continue
+            
+            // Check if it's a separator by:
+            // 1. Direct match with current language's separator
+            // 2. Matching a sequence of common separator characters
+            val isSeparator = text == separatorText || separatorRegex.matches(text)
+            
+            if (isSeparator) {
+                if (!lastWasSeparator) {
+                    result.add(comp)
+                }
+                lastWasSeparator = true
+            } else {
+                result.add(comp)
+                lastWasSeparator = false
+            }
+        }
+        
+        // Remove leading/trailing separators
+        while (result.isNotEmpty()) {
+            val text = plain.serialize(result.first()).trim()
+            if (text == separatorText || separatorRegex.matches(text)) {
+                result.removeAt(0)
+            } else break
+        }
+        while (result.isNotEmpty()) {
+            val text = plain.serialize(result.last()).trim()
+            if (text == separatorText || separatorRegex.matches(text)) {
+                result.removeAt(result.size - 1)
+            } else break
+        }
+        return result
+    }
+
     private fun createNavigationItem(player: Player, material: org.bukkit.inventory.ItemStack, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
         // Overload to accept ItemStack if needed, but below uses Material
         return createNavigationItem(player, material.type, name, targetPage, isNext)

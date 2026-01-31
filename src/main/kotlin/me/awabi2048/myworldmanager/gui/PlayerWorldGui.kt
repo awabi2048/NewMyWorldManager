@@ -190,8 +190,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         ): ItemStack {
                 val item = ItemStack(world.icon)
                 val meta = item.itemMeta ?: return item
-
                 val lang = plugin.languageManager
+
                 meta.displayName(
                         lang.getComponent(
                                 player,
@@ -200,132 +200,78 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val lore = mutableListOf<Component>()
-                lore.add(lang.getComponent(player, "gui.common.separator"))
+                val formattedDesc = if (world.description.isNotEmpty()) {
+                        lang.getMessage(player, "gui.common.world_desc", mapOf("description" to world.description))
+                } else ""
 
-                if (world.description.isNotEmpty()) {
-                        lore.add(
-                                lang.getComponent(
-                                        player,
-                                        "gui.common.world_desc",
-                                        mapOf("description" to world.description)
-                                )
-                        )
-                        lore.add(lang.getComponent(player, "gui.common.separator"))
-                }
+                val ownerRef = Bukkit.getOfflinePlayer(world.owner)
+                val ownerName = ownerRef.name ?: lang.getMessage(player, "general.unknown")
+                val ownerLine = lang.getMessage(player, "gui.player_world.world_item.owner", mapOf("owner" to ownerName))
 
-                val owner = Bukkit.getOfflinePlayer(world.owner)
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.player_world.world_item.owner",
-                                mapOf(
-                                        "owner" to
-                                                (owner.name
-                                                        ?: lang.getMessage(
-                                                                player,
-                                                                "general.unknown"
-                                                        ))
-                                )
-                        )
-                )
+                val publishLevelColor = lang.getMessage(player, "publish_level.color.${world.publishLevel.name.lowercase()}")
+                val publishLevelName = lang.getMessage(player, "publish_level.${world.publishLevel.name.lowercase()}")
+                val publishLine = lang.getMessage(player, "gui.player_world.world_item.publish", mapOf("level" to publishLevelName, "status_color" to publishLevelColor))
 
-                // 公開レベル表示用
-                val publishLevelColor =
-                        lang.getMessage(
-                                player,
-                                "publish_level.color.${world.publishLevel.name.lowercase()}"
-                        )
-                val publishLevelName =
-                        lang.getMessage(
-                                player,
-                                "publish_level.${world.publishLevel.name.lowercase()}"
-                        )
+                val favorites = world.favorite
+                val favoriteLine = lang.getMessage(player, "gui.player_world.world_item.favorite", mapOf("count" to favorites))
 
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.player_world.world_item.publish",
-                                mapOf(
-                                        "status_color" to publishLevelColor,
-                                        "level" to publishLevelName
-                                )
-                        )
-                )
+                val visitors = world.recentVisitors.sum()
+                val visitorLine = lang.getMessage(player, "gui.player_world.world_item.recent_visitors", mapOf("count" to visitors))
 
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.player_world.world_item.favorite",
-                                mapOf("count" to world.favorite)
-                        )
-                )
-                val totalRecent = world.recentVisitors.sum()
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.player_world.world_item.recent_visitors",
-                                mapOf("count" to totalRecent)
-                        )
-                )
-
-                if (world.tags.isNotEmpty()) {
-                        val tagNames =
-                                world.tags.joinToString(", ") {
-                                        lang.getMessage(player, "world_tag.${it.name.lowercase()}")
-                                }
-                        lore.add(
-                                lang.getComponent(
-                                        player,
-                                        "gui.player_world.world_item.tag",
-                                        mapOf("tags" to tagNames)
-                                )
-                        )
-                }
-
-                lore.add(lang.getComponent(player, "gui.common.separator"))
+                val tagLine = if (world.tags.isNotEmpty()) {
+                        val tagNames = world.tags.joinToString(", ") {
+                                lang.getMessage(player, "world_tag.${it.name.lowercase()}")
+                        }
+                        lang.getMessage(player, "gui.player_world.world_item.tag", mapOf("tags" to tagNames))
+                } else ""
 
                 val now = LocalDate.now()
                 val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 val displayFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
-                val expireDate =
-                        try {
-                                LocalDate.parse(world.expireDate, inputFormatter)
-                        } catch (e: Exception) {
-                                LocalDate.now().plusYears(1)
-                        }
+                val expireDate = try {
+                        LocalDate.parse(world.expireDate, inputFormatter)
+                } catch (e: Exception) {
+                        LocalDate.now().plusYears(1)
+                }
                 val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
 
-                // 2900年以降は無期限として表示しない（ADMINモードなど）
-                if (expireDate.year < 2900) {
-                        if (daysRemaining < 0) {
-                                meta.setEnchantmentGlintOverride(true)
-                        }
-                        val displayDate = displayFormatter.format(expireDate)
+                val expiresAtLine = if (expireDate.year < 2900) {
+                        if (daysRemaining < 0) meta.setEnchantmentGlintOverride(true)
+                        lang.getMessage(player, "gui.player_world.world_item.expires_at", mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate)))
+                } else ""
 
-                        lore.add(
-                                lang.getComponent(
+                val expiredLine = if (world.isArchived) {
+                    meta.setEnchantmentGlintOverride(true)
+                    lang.getMessage(player, "gui.player_world.world_item.expired")
+                } else ""
+                
+                val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
+                val settingsAction = lang.getMessage(player, "gui.player_world.world_item.settings")
+
+                val separator = lang.getComponent(player, "gui.common.separator")
+
+                meta.lore(
+                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
+                                lang.getComponentList(
                                         player,
-                                        "gui.player_world.world_item.expires_at",
-                                        mapOf("days" to daysRemaining, "date" to displayDate)
-                                )
+                                        "gui.player_world.world_item.lore",
+                                        mapOf(
+                                                "description" to formattedDesc,
+                                                "owner_line" to ownerLine,
+                                                "publish_line" to publishLine,
+                                                "favorite_line" to favoriteLine,
+                                                "visitor_line" to visitorLine,
+                                                "tag_line" to tagLine,
+                                                "expires_at_line" to expiresAtLine,
+                                                "expired_line" to expiredLine,
+                                                "warp_action" to warpAction,
+                                                "settings_action" to settingsAction
+                                        )
+                                ),
+                                separator
                         )
-                        lore.add(lang.getComponent(player, "gui.common.separator"))
-                }
+                )
 
-                if (!world.isArchived) {
-                        lore.add(lang.getComponent(player, "gui.player_world.world_item.warp"))
-                } else {
-                        meta.setEnchantmentGlintOverride(true)
-                }
-
-                lore.add(lang.getComponent(player, "gui.player_world.world_item.settings"))
-                if (world.isArchived) {
-                        lore.add(lang.getComponent(player, "gui.player_world.world_item.expired"))
-                }
-                lore.add(lang.getComponent(player, "gui.common.separator"))
-
-                meta.lore(lore)
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
                 ItemTag.setWorldUuid(item, world.uuid)
@@ -346,26 +292,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val status =
-                        if (isEnabled) lang.getMessage(player, "messages.status_visible")
-                        else lang.getMessage(player, "messages.status_hidden")
-                val lore =
-                        lang.getMessageList(
-                                        player,
-                                        "gui.user_settings.critical_settings_visibility.lore",
-                                        mapOf("status" to status)
-                                )
-                                .map {
-                                        net.kyori.adventure.text.serializer.legacy
-                                                .LegacyComponentSerializer.legacySection()
-                                                .deserialize(it)
-                                                .decoration(
-                                                        net.kyori.adventure.text.format
-                                                                .TextDecoration.ITALIC,
-                                                        false
-                                                )
-                                }
-                meta.lore(lore)
+                val status = if (isEnabled) lang.getMessage(player, "messages.status_visible")
+                else lang.getMessage(player, "messages.status_hidden")
+
+                meta.lore(
+                        lang.getComponentList(
+                                player,
+                                "gui.user_settings.critical_settings_visibility.lore",
+                                mapOf("status" to status)
+                        )
+                )
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY)
@@ -400,30 +336,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         lang.getComponent(
                                 player,
                                 "gui.player_world.stats_button.display",
-                                mapOf(
-                                        "player" to
-                                                (player.name
-                                                        ?: lang.getMessage(
-                                                                player,
-                                                                "general.unknown"
-                                                        ))
-                                )
+                                mapOf("player" to (player.name ?: lang.getMessage(player, "general.unknown")))
                         )
                 )
-
-                val placeholders =
-                        mapOf(
-                                "point" to stats.worldPoint,
-                                "current_occupied" to currentCreateCount,
-                                "unlocked" to maxSlot,
-                                "icon" to "🛖" // 必要に応じて調整
-                        )
 
                 meta.lore(
                         lang.getComponentList(
                                 player,
                                 "gui.player_world.stats_button.lore",
-                                placeholders
+                                mapOf(
+                                        "point" to stats.worldPoint,
+                                        "current_occupied" to currentCreateCount,
+                                        "unlocked" to maxSlot,
+                                        "icon" to "🛖"
+                                )
                         )
                 )
 

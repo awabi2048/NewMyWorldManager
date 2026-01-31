@@ -140,25 +140,40 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldData.name)).decoration(TextDecoration.ITALIC, false))
         
-        val lore = mutableListOf<Component>()
-        lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
-        
-        if (worldData.description.isNotEmpty()) {
-            lore.add(lang.getComponent(player, "gui.common.world_desc", mapOf("description" to worldData.description)).decoration(TextDecoration.ITALIC, false))
-            lore.add(lang.getComponent(player, "gui.common.separator").decoration(TextDecoration.ITALIC, false))
-        }
+                val formattedDesc = if (worldData.description.isNotEmpty()) {
+                        lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description))
+                } else ""
 
-        val owner = Bukkit.getOfflinePlayer(worldData.owner)
-        val onlineColor = lang.getMessage(player, "publish_level.color.online")
-        val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-        val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to ownerColor)).decoration(TextDecoration.ITALIC, false))
-        
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite)).decoration(TextDecoration.ITALIC, false))
-        val totalRecent = worldData.recentVisitors.sum()
-        lore.add(lang.getComponent(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to totalRecent)).decoration(TextDecoration.ITALIC, false))
+                val owner = Bukkit.getOfflinePlayer(worldData.owner)
+                val onlineColor = lang.getMessage(player, "publish_level.color.online")
+                val offlineColor = lang.getMessage(player, "publish_level.color.offline")
+                val statusColor = if (owner.isOnline) onlineColor else offlineColor
+                val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
+                
+                val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite))
+                val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
 
-        meta.lore(lore)
+                val separator = lang.getComponent(player, "gui.common.separator")
+
+                meta.lore(
+                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
+                                lang.getComponentList(
+                                        player,
+                                        "gui.favorite.world_item.lore",
+                                        mapOf(
+                                                "description" to formattedDesc,
+                                                "owner_line" to ownerLine,
+                                                "favorite_line" to favoriteLine,
+                                                "visitor_line" to visitorLine,
+                                                "tag_line" to "", 
+                                                "warp_line" to "",
+                                                "archived_line" to "",
+                                                "unfavorite_line" to ""
+                                        )
+                                ),
+                                separator
+                        )
+                )
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         return item

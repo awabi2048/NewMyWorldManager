@@ -349,235 +349,134 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 meta.displayName(
                         lang.getComponent(
-                                null,
+                                player,
                                 "gui.common.world_item_name_simple",
                                 mapOf("world" to data.name)
                         )
                 )
 
-                val lore = mutableListOf<Component>()
-                lore.add(lang.getComponent(null, "gui.common.separator"))
-
+                // Owner Line
                 val owner = Bukkit.getOfflinePlayer(data.owner)
-                val ownerName = owner.name ?: lang.getMessage("general.unknown")
-                val ownerColor =
-                        if (owner.isOnline) lang.getMessage("publish_level.color.online")
-                        else lang.getMessage("publish_level.color.offline")
-                lore.add(
-                        lang.getComponent(
-                                null,
-                                "gui.admin.world_item.owner",
-                                mapOf("owner" to ownerName, "status_color" to ownerColor)
-                        )
-                )
+                val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
+                val ownerColor = if (owner.isOnline) lang.getMessage(player, "publish_level.color.online") else lang.getMessage(player, "publish_level.color.offline")
+                val ownerLine = lang.getMessage(player, "gui.admin.world_item.owner", mapOf("owner" to ownerName, "status_color" to ownerColor))
 
-                val statusText =
-                        if (data.isArchived) lang.getMessage("gui.admin.world_item.status_archived")
-                        else lang.getMessage("gui.admin.world_item.status_active")
-                lore.add(
-                        lang.getComponent(
-                                null,
-                                "gui.admin.world_item.status",
-                                mapOf("status" to statusText)
-                        )
-                )
+                // Status Line
+                val statusVal = if (data.isArchived) lang.getMessage(player, "gui.admin.world_item.status_archived") else lang.getMessage(player, "gui.admin.world_item.status_active")
+                val statusLine = lang.getMessage(player, "gui.admin.world_item.status", mapOf("status" to statusVal))
 
-                // 公開レベル表示
-                val publishColor =
-                        when (data.publishLevel.name) {
-                                "PUBLIC" -> lang.getMessage("publish_level.color.public")
-                                "FRIEND" -> lang.getMessage("publish_level.color.friend")
-                                "PRIVATE" -> lang.getMessage("publish_level.color.private")
-                                else -> lang.getMessage("publish_level.color.locked")
-                        }
-                val publishName =
-                        lang.getMessage("publish_level.${data.publishLevel.name.lowercase()}")
-                lore.add(
-                        lang.getComponent(
-                                null,
-                                "gui.admin.world_item.publish",
-                                mapOf("status_color" to publishColor, "level" to publishName)
-                        )
-                )
-
-                // 拡張レベル表示
-                if (data.sourceWorld != "CONVERT") {
-                        val expansionDisplay =
-                                if (data.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL)
-                                        "Special"
-                                else data.borderExpansionLevel.toString()
-                        lore.add(
-                                lang.getComponent(
-                                        null,
-                                        "gui.admin.world_item.expansion",
-                                        mapOf("level" to expansionDisplay)
-                                )
-                        )
+                // Publish Line
+                val publishColor = when (data.publishLevel.name) {
+                        "PUBLIC" -> lang.getMessage(player, "publish_level.color.public")
+                        "FRIEND" -> lang.getMessage(player, "publish_level.color.friend")
+                        "PRIVATE" -> lang.getMessage(player, "publish_level.color.private")
+                        else -> lang.getMessage(player, "publish_level.color.locked")
                 }
+                val publishName = lang.getMessage(player, "publish_level.${data.publishLevel.name.lowercase()}")
+                val publishLine = lang.getMessage(player, "gui.admin.world_item.publish", mapOf("color" to publishColor, "level" to publishName))
 
-                // 作成日の表示
+                // Expansion Line
+                val expansionLine = if (data.sourceWorld != "CONVERT") {
+                        val expansionDisplay = if (data.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) "Special" else data.borderExpansionLevel.toString()
+                        lang.getMessage(player, "gui.admin.world_item.expansion", mapOf("level" to expansionDisplay))
+                } else ""
+
+                // Created Line
+                var createdLine = ""
                 try {
-                        val dateTimeFormatter =
-                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                        val displayFormatter =
-                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                        val createdAtDate =
-                                java.time.LocalDateTime.parse(data.createdAt, dateTimeFormatter)
-                                        .toLocalDate()
-                        val today = java.time.LocalDate.now()
-                        val daysSince =
-                                java.time.temporal.ChronoUnit.DAYS.between(createdAtDate, today)
+                        val dateTimeFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        val displayFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                        val createdAtDate = java.time.LocalDateTime.parse(data.createdAt, dateTimeFormatter).toLocalDate()
+                        val createdAtDateStr = createdAtDate.format(displayFormatter)
+                        val daysSince = java.time.temporal.ChronoUnit.DAYS.between(createdAtDate, java.time.LocalDate.now())
+                        val createdInfoStr = if (daysSince == 0L) lang.getMessage(player, "gui.admin.world_item.created_info_today") else lang.getMessage(player, "gui.admin.world_item.created_info_days", mapOf("days" to daysSince))
+                        createdLine = lang.getMessage(player, "gui.admin.world_item.created_at", mapOf("date" to createdAtDateStr, "days_ago" to createdInfoStr))
+                } catch (e: Exception) {}
 
-                        val createdInfo =
-                                if (daysSince == 0L) {
-                                        lang.getMessage("gui.admin.world_item.created_info_today")
-                                } else {
-                                        lang.getMessage(
-                                                "gui.admin.world_item.created_info_days",
-                                                mapOf("days" to daysSince)
-                                        )
-                                }
-                        lore.add(
-                                lang.getComponent(
-                                        null,
-                                        "gui.admin.world_item.created_at",
-                                        mapOf(
-                                                "date" to createdAtDate.format(displayFormatter),
-                                                "days" to createdInfo
-                                        )
-                                )
-                        )
-                } catch (e: Exception) {
-                        // Ignore parsing errors
-                }
-
-                // 期限表示の計算
+                // Expiry Line
+                var expireLine = ""
                 if (data.sourceWorld != "CONVERT") {
                         try {
-                                val formatter =
-                                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                                val expireDate =
-                                        java.time.LocalDate.parse(data.expireDate, formatter)
-                                val today = java.time.LocalDate.now()
-                                val daysBetween =
-                                        java.time.temporal.ChronoUnit.DAYS.between(
-                                                today,
-                                                expireDate
-                                        )
-
-                                val expireInfo =
-                                        if (daysBetween >= 0) {
-                                                lang.getMessage(
-                                                        "gui.admin.world_item.expire_info_remaining",
-                                                        mapOf("days" to daysBetween)
-                                                )
-                                        } else {
-                                                meta.setEnchantmentGlintOverride(true)
-                                                lang.getMessage(
-                                                        "gui.admin.world_item.expire_info_overdue",
-                                                        mapOf(
-                                                                "days" to
-                                                                        java.lang.Math.abs(
-                                                                                daysBetween
-                                                                        )
-                                                        )
-                                                )
-                                        }
-                                lore.add(
-                                        lang.getComponent(
-                                                null,
-                                                "gui.admin.world_item.expires_at",
-                                                mapOf(
-                                                        "date" to data.expireDate,
-                                                        "status" to expireInfo
-                                                )
-                                        )
-                                )
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                val expireDate = java.time.LocalDate.parse(data.expireDate, formatter)
+                                val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), expireDate)
+                                val expireInfo = if (daysBetween >= 0) {
+                                        lang.getMessage(player, "gui.admin.world_item.expire_info_remaining", mapOf("days" to daysBetween))
+                                } else {
+                                        meta.setEnchantmentGlintOverride(true)
+                                        lang.getMessage(player, "gui.admin.world_item.expire_info_overdue", mapOf("days" to java.lang.Math.abs(daysBetween)))
+                                }
+                                expireLine = lang.getMessage(player, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "days_remain" to expireInfo))
                         } catch (e: Exception) {
-                                lore.add(
-                                        lang.getComponent(
-                                                null,
-                                                "gui.admin.world_item.expires_at",
-                                                mapOf("date" to data.expireDate, "status" to "")
-                                        )
-                                )
+                                // If parsing fails or date invalid, maybe show empty? Or partial?
+                                // Original code showed empty status.
+                                expireLine = lang.getMessage(player, "gui.admin.world_item.expires_at", mapOf("date" to data.expireDate, "days_remain" to ""))
                         }
                 }
 
-                // MSPT表示 (Chiyogamiが有効な場合のみ)
+                // MSPT Line
+                var msptLine = ""
                 if (me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
                         val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
                         val world = Bukkit.getWorld(worldFolderName)
-
                         if (world != null) {
-                                val mspt =
-                                        me.awabi2048.myworldmanager.util.ChiyogamiUtil.getWorldMspt(
-                                                world
-                                        )
-                                if (mspt == null) {
-                                        lore.add(
-                                                lang.getComponent(
-                                                        null,
-                                                        "gui.admin.world_item.mspt_error"
-                                                )
-                                        )
+                                val mspt = me.awabi2048.myworldmanager.util.ChiyogamiUtil.getWorldMspt(world)
+                                msptLine = if (mspt == null) {
+                                        lang.getMessage(player, "gui.admin.world_item.mspt_error")
+                                } else if (mspt < 0.1) {
+                                        lang.getMessage(player, "gui.admin.world_item.mspt_low", mapOf("color" to me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColorCode(mspt)))
                                 } else {
-                                        if (mspt < 0.1) {
-                                                val color = me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColorCode(mspt)
-                                                lore.add(
-                                                        lang.getComponent(
-                                                                null,
-                                                                "gui.admin.world_item.mspt_low",
-                                                                mapOf("color" to color)
-                                                        )
-                                                )
-                                        } else {
-                                                val msptString = String.format("%.1f", mspt)
-                                                val color = me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColorCode(mspt)
-                                                lore.add(
-                                                        lang.getComponent(
-                                                                null,
-                                                                "gui.admin.world_item.mspt",
-                                                                mapOf("mspt" to msptString, "color" to color)
-                                                        )
-                                                )
-                                        }
+                                        lang.getMessage(player, "gui.admin.world_item.mspt", mapOf("mspt" to String.format("%.1f", mspt), "color" to me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColorCode(mspt)))
                                 }
                         } else {
-                                val worldFolder =
-                                        java.io.File(Bukkit.getWorldContainer(), worldFolderName)
-                                if (me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
-                                                .isUnloaded(worldFolderName) || worldFolder.exists()
-                                ) {
-                                        lore.add(
-                                                lang.getComponent(
-                                                        null,
-                                                        "gui.admin.world_item.mspt_unloaded"
-                                                )
-                                        )
+                                val worldFolder = java.io.File(Bukkit.getWorldContainer(), worldFolderName)
+                                msptLine = if (me.awabi2048.myworldmanager.service.UnloadedWorldRegistry.isUnloaded(worldFolderName) || worldFolder.exists()) {
+                                        lang.getMessage(player, "gui.admin.world_item.mspt_unloaded")
                                 } else {
-                                        lore.add(
-                                                lang.getComponent(
-                                                        null,
-                                                        "gui.admin.world_item.mspt_error"
-                                                )
-                                        )
+                                        lang.getMessage(player, "gui.admin.world_item.mspt_error")
                                 }
                         }
                 }
 
-                lore.add(lang.getComponent(null, "gui.common.separator"))
-                lore.add(lang.getComponent(null, "gui.admin.world_item.action_settings"))
-                lore.add(lang.getComponent(null, "gui.admin.world_item.action_archive"))
-                lore.add(lang.getComponent(null, "gui.admin.world_item.action_warp"))
-
-                if (player.gameMode == org.bukkit.GameMode.CREATIVE) {
-                        lore.add(lang.getComponent(player, "gui.admin.world_item.uuid_copy_hint"))
+                val tagNames = data.tags.joinToString(", ") {
+                        lang.getMessage(player, "world_tag.${it.name.lowercase()}")
                 }
+                val tagLine = if (data.tags.isNotEmpty()) {
+                        lang.getMessage(player, "gui.admin.world_item.tag", mapOf("tags" to tagNames))
+                } else ""
 
-                lore.add(lang.getComponent(null, "gui.common.separator"))
+                // Actions
+                val actionWarp = lang.getMessage(player, "gui.admin.world_item.action_warp")
+                val actionSettings = lang.getMessage(player, "gui.admin.world_item.action_settings")
+                val actionArchive = lang.getMessage(player, "gui.admin.world_item.action_archive")
+                val uuidCopyHint = lang.getMessage(player, "gui.admin.world_item.uuid_copy_hint")
 
-                meta.lore(lore)
+                val separator = lang.getComponent(player, "gui.common.separator")
+
+                meta.lore(
+                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
+                                lang.getComponentList(
+                                        player,
+                                        "gui.admin.world_item.lore",
+                                        mapOf(
+                                                "owner_line" to ownerLine,
+                                                "status_line" to statusLine,
+                                                "publish_line" to publishLine,
+                                                "expansion_line" to expansionLine,
+                                                "created_line" to createdLine,
+                                                "expire_line" to expireLine,
+                                                "mspt_line" to msptLine,
+                                                "tag_line" to tagLine,
+                                                "action_warp" to actionWarp,
+                                                "action_settings" to actionSettings,
+                                                "action_archive" to actionArchive,
+                                                "uuid_copy_hint" to uuidCopyHint
+                                        )
+                                ),
+                                separator
+                        )
+                )
+
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
                 ItemTag.setWorldUuid(item, data.uuid)

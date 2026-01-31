@@ -184,98 +184,75 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         (baseCost * Math.pow(multiplier, currentLevel.toDouble()))
                                                 .toInt()
                                 }
-                        val expansionLore = mutableListOf<String>()
+                        val expansionLore = mutableListOf<net.kyori.adventure.text.Component>()
                         val separator = lang.getMessage(player, "gui.common.separator")
 
                         if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
-                                expansionLore.add(separator)
-                                expansionLore.add(
-                                        lang.getMessage(
+                                expansionLore.addAll(
+                                        lang.getComponentList(
                                                 player,
-                                                "gui.settings.expand.no_border_desc"
+                                                "gui.settings.expand.lore_no_border",
+                                                mapOf()
                                         )
                                 )
-                                expansionLore.add(separator)
                         } else {
-                                expansionLore.add(separator)
-                                expansionLore.add(
-                                        lang.getMessage(player, "gui.settings.expand.lore_desc")
-                                )
-                                expansionLore.add(separator)
-
                                 val targetLevel = currentLevel + 1
-                                expansionLore.add(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.settings.expand.level",
-                                                mapOf("current" to currentLevel, "max" to maxLevel)
-                                        )
-                                )
-
                                 if (currentLevel < maxLevel) {
                                         if (stats.worldPoint < cost) {
+                                                // Insufficient points
                                                 val insufficient = cost - stats.worldPoint
-                                                expansionLore.add(
-                                                        lang.getMessage(
+                                                expansionLore.addAll(
+                                                        lang.getComponentList(
                                                                 player,
-                                                                "gui.settings.expand.cost_insufficient",
+                                                                "gui.settings.expand.lore_insufficient",
                                                                 mapOf(
+                                                                        "current" to currentLevel,
+                                                                        "max" to maxLevel,
                                                                         "cost" to cost,
-                                                                        "level_before" to
-                                                                                currentLevel,
-                                                                        "level_after" to
-                                                                                targetLevel,
-                                                                        "shortage" to insufficient
+                                                                        "level_before" to currentLevel,
+                                                                        "level_after" to targetLevel,
+                                                                        "shortage" to insufficient,
+                                                                        "points" to stats.worldPoint
                                                                 )
-                                                        )
-                                                )
-                                                expansionLore.add(
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.settings.expand.points",
-                                                                mapOf("points" to stats.worldPoint)
                                                         )
                                                 )
                                         } else {
-                                                expansionLore.add(
-                                                        lang.getMessage(
+                                                // Able to upgrade
+                                                expansionLore.addAll(
+                                                        lang.getComponentList(
                                                                 player,
-                                                                "gui.settings.expand.cost",
+                                                                "gui.settings.expand.lore_upgrade",
                                                                 mapOf(
+                                                                        "current" to currentLevel,
+                                                                        "max" to maxLevel,
                                                                         "cost" to cost,
-                                                                        "level_before" to
-                                                                                currentLevel,
-                                                                        "level_after" to targetLevel
+                                                                        "level_before" to currentLevel,
+                                                                        "level_after" to targetLevel,
+                                                                        "points" to stats.worldPoint
                                                                 )
-                                                        )
-                                                )
-                                                expansionLore.add(
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.settings.expand.points",
-                                                                mapOf("points" to stats.worldPoint)
                                                         )
                                                 )
                                         }
                                 } else {
-                                        expansionLore.add(
-                                                lang.getMessage(
+                                        // Max level
+                                        expansionLore.addAll(
+                                                lang.getComponentList(
                                                         player,
-                                                        "gui.settings.expand.max_level"
+                                                        "gui.settings.expand.lore_max",
+                                                        mapOf("current" to currentLevel, "max" to maxLevel)
                                                 )
                                         )
                                 }
 
                                 if (!isInWorld && warningLore != null) {
-                                        expansionLore.add("")
-                                        expansionLore.add(warningLore)
+                                        expansionLore.add(Component.empty())
+                                        expansionLore.add(LegacyComponentSerializer.legacySection().deserialize(warningLore).decoration(TextDecoration.ITALIC, false))
                                 }
-                                expansionLore.add(separator)
                         }
 
                         inventory.setItem(
                                 23,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "expand",
@@ -332,47 +309,32 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val currentColor = current?.third ?: "§f"
                         val inactiveColor = lang.getMessage(player, "publish_level.color.inactive")
 
-                        val publishLore = mutableListOf<String>()
-                        publishLore.add(
-                                lang.getMessage(
-                                        player,
-                                        "gui.settings.publish.current",
-                                        mapOf("color" to currentColor, "level" to currentLevelName)
-                                )
-                        )
-                        publishLore.add("")
-
-                        levels.forEach { (level, name, color) ->
+                        // Build level_list
+                        val levelList = levels.joinToString("\n") { (level, name, color) ->
                                 val isActive = worldData.publishLevel == level
-                                val prefix =
-                                        if (isActive)
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.publish.active_prefix"
-                                                )
-                                        else
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.publish.inactive_prefix"
-                                                )
+                                val prefix = if (isActive) lang.getMessage(player, "gui.settings.publish.active_prefix") else lang.getMessage(player, "gui.settings.publish.inactive_prefix")
                                 val style = if (isActive) color else inactiveColor
-                                publishLore.add("$prefix$style$name")
+                                "$prefix$style$name"
                         }
 
-                        publishLore.add("")
-                        publishLore.add(lang.getMessage(player, "gui.settings.publish.desc_header"))
+                        // Description
                         val configKey = worldData.publishLevel.name.lowercase()
-                        val description =
-                                lang.getMessage(player, "publish_level.description.$configKey")
-                        publishLore.add(description)
+                        val description = lang.getMessage(player, "publish_level.description.$configKey")
 
-                        publishLore.add("")
-                        publishLore.add(lang.getMessage(player, "gui.settings.publish.click_right"))
-                        publishLore.add(lang.getMessage(player, "gui.settings.publish.click_left"))
+                        val publishLore = lang.getComponentList(
+                                player,
+                                "gui.settings.publish.lore",
+                                mapOf(
+                                        "current_color" to currentColor,
+                                        "current_level" to currentLevelName,
+                                        "level_list" to levelList,
+                                        "description" to description
+                                )
+                        ).toMutableList()
 
                         inventory.setItem(
                                 24,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "publish",
@@ -387,17 +349,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // スロット25: メンバー管理 (オーナーのみ)
                 if (isOwner) {
-                        val memberLore = mutableListOf<String>()
+
                         val totalCount = worldData.members.size + worldData.moderators.size + 1
-                        memberLore.add(
-                                lang.getMessage(
-                                        player,
-                                        "gui.settings.member.count",
-                                        mapOf("count" to totalCount)
-                                )
-                        )
-                        memberLore.add("")
-                        memberLore.add(lang.getMessage(player, "gui.settings.member.list_header"))
 
                         // メンバーリストの作成 (Owner > Moderator > Member)
                         val allMemberData = mutableListOf<Triple<UUID, String, String>>()
@@ -438,88 +391,44 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 )
                         }
 
-                        val displayLimit = 7
-                        val displayMembers: List<Triple<UUID, String, String>> =
-                                allMemberData.take(displayLimit)
+                        val maxDisplay = 10
+                        val displayList = allMemberData.take(maxDisplay).joinToString("\n") { (uuid, role, color) ->
+                                val playerName = Bukkit.getOfflinePlayer(uuid).name
+                                        ?: lang.getMessage(player, "general.unknown")
+                                val isOnline = Bukkit.getOfflinePlayer(uuid).isOnline
+                                val nameColor = if (isOnline) "§a" else "§7"
+                                val debugColor = "§8"
 
-                        displayMembers.forEach { data: Triple<UUID, String, String> ->
-                                val uuid: UUID = data.first
-                                val role: String = data.second
-                                val roleColor: String = data.third
-
-                                val offlinePlayer = Bukkit.getOfflinePlayer(uuid)
-                                val isOnline = offlinePlayer.isOnline
-                                val onlineColor =
-                                        lang.getMessage(player, "publish_level.color.online")
-                                val offlineColor =
-                                        lang.getMessage(player, "publish_level.color.offline")
-                                val debugColor =
-                                        lang.getMessage(player, "publish_level.color.debug")
-                                val nameColor = if (isOnline) onlineColor else offlineColor
-                                val name =
-                                        offlinePlayer.name
-                                                ?: lang.getMessage(player, "general.unknown")
-
-                                if (role ==
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.member.role_member"
-                                                )
-                                ) {
-                                        memberLore.add(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.member.list_item_member",
-                                                        mapOf(
-                                                                "name_color" to nameColor,
-                                                                "player" to name
-                                                        )
-                                                )
-                                        )
+                                if (role == lang.getMessage(player, "gui.settings.member.role_member")) {
+                                    lang.getMessage(player, "gui.settings.member.list_item_member", mapOf("name_color" to nameColor, "player" to playerName))
                                 } else {
-                                        memberLore.add(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.member.list_item",
-                                                        mapOf(
-                                                                "debug_color" to debugColor,
-                                                                "role_color" to roleColor,
-                                                                "role" to role,
-                                                                "name_color" to nameColor,
-                                                                "player" to name
-                                                        )
-                                                )
-                                        )
+                                    lang.getMessage(player, "gui.settings.member.list_item", mapOf("debug_color" to debugColor, "role_color" to color, "role" to role, "name_color" to nameColor, "player" to playerName))
                                 }
                         }
 
-                        if (allMemberData.size > displayLimit) {
-                                val remaining = allMemberData.size - displayLimit
-                                val onlineCount =
-                                        allMemberData.count { d: Triple<UUID, String, String> ->
-                                                Bukkit.getOfflinePlayer(d.first).isOnline
-                                        }
-                                memberLore.add(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.settings.member.more_members",
-                                                mapOf(
-                                                        "remaining" to remaining,
-                                                        "online" to onlineCount
-                                                )
-                                        )
-                                )
+                        val memberListString = if (allMemberData.size > maxDisplay) {
+                                val remaining = allMemberData.size - maxDisplay
+                                val onlineCount = allMemberData.drop(maxDisplay).count { Bukkit.getOfflinePlayer(it.first).isOnline }
+                                displayList + "\n" + lang.getMessage(player, "gui.settings.member.more_members", mapOf("remaining" to remaining, "online" to onlineCount))
+                        } else {
+                                displayList
                         }
 
-                        memberLore.add("")
-                        memberLore.add(lang.getMessage(player, "gui.settings.member.click"))
+                        val memberLore = lang.getComponentList(
+                                player,
+                                "gui.settings.member.lore",
+                                mapOf(
+                                        "count" to totalCount,
+                                        "member_list" to memberListString
+                                )
+                        )
 
                         inventory.setItem(
                                 25,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
-                                                "member",
+                                                "members",
                                                 Material.PLAYER_HEAD
                                         ),
                                         lang.getMessage(player, "gui.settings.member.display"),
@@ -531,33 +440,33 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // スロット28: タグ設定
                 if (hasManagePermission) {
-                        val tagLore = mutableListOf<String>()
-                        tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_header"))
-                        if (worldData.tags.isEmpty()) {
-                                tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_empty"))
+                        val tagsList = if (worldData.tags.isEmpty()) {
+                                lang.getMessage(player, "gui.settings.tags.lore_empty")
                         } else {
-                                worldData.tags.forEach {
-                                        tagLore.add(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.tags.lore_item",
-                                                        mapOf(
-                                                                "tag" to
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "world_tag.${it.name.lowercase()}"
-                                                                        )
-                                                        )
+                                worldData.tags.joinToString("\n") {
+                                        lang.getMessage(
+                                                player,
+                                                "gui.settings.tags.lore_item",
+                                                mapOf(
+                                                        "tag" to
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "world_tag.${it.name.lowercase()}"
+                                                                )
                                                 )
                                         )
                                 }
                         }
-                        tagLore.add("")
-                        tagLore.add(lang.getMessage(player, "gui.settings.tags.lore_footer"))
+
+                        val tagLore = lang.getComponentList(
+                                player,
+                                "gui.settings.tags.lore",
+                                mapOf("tags_list" to tagsList)
+                        )
 
                         inventory.setItem(
                                 28,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "tags",
@@ -571,26 +480,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット29: 案内設定
+                // スロット29: 案内設定
                 if (hasManagePermission) {
-                        val adLore = mutableListOf<String>()
-                        adLore.addAll(lang.getMessageList(player, "gui.settings.announcement.lore"))
-
-                        if (worldData.announcementMessages.isNotEmpty()) {
-                                adLore.add("")
-                                adLore.add(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.settings.announcement.preview_header"
-                                        )
-                                )
-                                worldData.announcementMessages.forEach { msg ->
-                                        adLore.add("  $msg")
-                                }
+                        val messagePreview = if (worldData.announcementMessages.isNotEmpty()) {
+                                mutableListOf<String>().apply {
+                                    add("")
+                                    add(lang.getMessage(player, "gui.settings.announcement.preview_header"))
+                                    addAll(worldData.announcementMessages.map { "  $it" })
+                                    add(lang.getMessage(player, "gui.settings.announcement.preview_footer"))
+                                }.joinToString("\n")
+                        } else {
+                                ""
                         }
+
+                        val adLore = lang.getComponentList(
+                                player,
+                                "gui.settings.announcement.lore",
+                                mapOf("message_preview" to messagePreview)
+                        )
 
                         inventory.setItem(
                                 29,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "announcement",
@@ -607,6 +518,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット30: 通知設定
+                // スロット30: 通知設定
                 if (hasManagePermission) {
                         val onlineColor = lang.getMessage(player, "publish_level.color.online")
                         val offlineColor = lang.getMessage(player, "publish_level.color.offline")
@@ -617,9 +529,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         lang.getMessage(player, "gui.settings.notification.on")
                                 else lang.getMessage(player, "gui.settings.notification.off")
 
+                        val notificationLore = lang.getComponentList(
+                                player,
+                                "gui.settings.notification.lore",
+                                mapOf(
+                                        "color" to statusColor,
+                                        "status" to statusText
+                                )
+                        )
+
                         inventory.setItem(
                                 30,
-                                createItem(
+                                createItemComponent(
                                         if (worldData.notificationEnabled)
                                                 plugin.menuConfigManager.getIconMaterial(
                                                         "world_settings",
@@ -636,21 +557,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 player,
                                                 "gui.settings.notification.display"
                                         ),
-                                        listOf(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.notification.current",
-                                                        mapOf(
-                                                                "color" to statusColor,
-                                                                "status" to statusText
-                                                        )
-                                                ),
-                                                ""
-                                        ) +
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.notification.desc"
-                                                ),
+                                        notificationLore,
                                         ItemTag.TYPE_GUI_SETTING_NOTIFICATION
                                 )
                         )
@@ -681,18 +588,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット33: 重大な設定 (オーナーのみ)
+                // スロット33: 重大な設定 (オーナーのみ)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 if (isOwner && stats.criticalSettingsEnabled) {
                         val lore =
-                                lang.getMessageList(player, "gui.settings.critical.lore")
+                                lang.getComponentList(player, "gui.settings.critical.lore")
                                         .toMutableList()
                         if (!isInWorld && warningLore != null) {
-                                lore.add("")
-                                lore.add(warningLore)
+                                lore.add(net.kyori.adventure.text.Component.empty())
+                                lore.add(LegacyComponentSerializer.legacySection().deserialize(warningLore))
                         }
                         inventory.setItem(
                                 33,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "critical",
@@ -849,44 +757,42 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 !worldData.members.contains(it.uniqueId)
                                 }
                                         ?: emptyList()
+                        
+                        val visitorLore = lang.getComponentList(
+                                player,
+                                "gui.settings.visitors.lore",
+                                mapOf("count" to visitors.size)
+                        )
+
                         inventory.setItem(
                                 51,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "visitor",
                                                 Material.SPYGLASS
                                         ),
                                         lang.getMessage(player, "gui.settings.visitors.display"),
-                                        listOf(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.visitors.count",
-                                                        mapOf("count" to visitors.size)
-                                                ),
-                                                "",
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.visitors.click"
-                                                )
-                                        ),
+                                        visitorLore,
                                         ItemTag.TYPE_GUI_SETTING_VISITOR
                                 )
                         )
                 }
 
                 // スロット52: 設置済みポータルの管理
+                // スロット52: 設置済みポータルの管理
                 if (hasManagePermission) {
+                        val portalLore = lang.getComponentList(player, "gui.settings.portals.lore")
                         inventory.setItem(
                                 52,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "portals",
                                                 Material.END_PORTAL_FRAME
                                         ),
                                         lang.getMessage(player, "gui.settings.portals.display"),
-                                        lang.getMessageList(player, "gui.settings.portals.lore"),
+                                        portalLore,
                                         ItemTag.TYPE_GUI_SETTING_PORTALS
                                 )
                         )
@@ -1025,7 +931,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.LIME_CONCRETE,
                                 lang.getMessage(player, "gui.common.confirm"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
@@ -1036,7 +942,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.RED_CONCRETE,
                                 lang.getMessage(player, "gui.common.cancel"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -1435,8 +1341,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 inventory
                         }
 
+                val lore = lang.getComponentList(
+                        player,
+                        "gui.member_management.remove_confirm.lore",
+                        mapOf(
+                                "player" to (Bukkit.getOfflinePlayer(targetUuid).name
+                                        ?: lang.getMessage(player, "general.unknown")),
+                                "world" to worldData.name
+                        )
+                )
+
                 val infoItem =
-                        createItem(
+                        createItemComponent(
                                 Material.PLAYER_HEAD,
                                 lang.getMessage(
                                         player,
@@ -1450,35 +1366,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 ))
                                         )
                                 ),
-                                listOf(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.remove_confirm.question"
-                                        ),
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.remove_confirm.player",
-                                                mapOf(
-                                                        "player" to
-                                                                (Bukkit.getOfflinePlayer(targetUuid)
-                                                                        .name
-                                                                        ?: lang.getMessage(
-                                                                                player,
-                                                                                "general.unknown"
-                                                                        ))
-                                                )
-                                        ),
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.remove_confirm.world",
-                                                mapOf("world" to worldData.name)
-                                        ),
-                                        "",
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.remove_confirm.warning"
-                                        )
-                                ),
+                                lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, targetUuid) // 削除対象のUUIDを保存
@@ -1571,35 +1459,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 inventory
                         }
 
+                val lore = lang.getComponentList(
+                        player,
+                        "gui.member_management.transfer_confirm.lore",
+                        mapOf(
+                                "player" to targetName,
+                                "world" to worldData.name
+                        )
+                )
+
                 val infoItem =
-                        createItem(
+                        createItemComponent(
                                 Material.PLAYER_HEAD,
                                 lang.getMessage(
                                         player,
                                         "gui.member_management.transfer_confirm.title",
                                         mapOf("player" to targetName)
                                 ),
-                                listOf(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.transfer_confirm.question"
-                                        ),
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.transfer_confirm.player",
-                                                mapOf("player" to targetName)
-                                        ),
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.transfer_confirm.world",
-                                                mapOf("world" to worldData.name)
-                                        ),
-                                        "",
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.transfer_confirm.warning"
-                                        )
-                                ),
+                                lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, targetUuid)
@@ -1674,36 +1551,34 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .decoration(TextDecoration.ITALIC, false)
                 )
 
-                val lore = mutableListOf<String>()
-                val separator = lang.getMessage(viewer, "gui.common.separator")
-
-                lore.add(separator)
-                if (!isOnline) {
+                val itemLore = mutableListOf<Component>()
+                
+                // Info section
+                val lastOnlineVal = if (!isOnline) {
                         @Suppress("DEPRECATION")
-                        val lastPlayed =
-                                java.time.Instant.ofEpochMilli(player.lastPlayed)
-                                        .atZone(java.time.ZoneId.systemDefault())
-                                        .format(
-                                                java.time.format.DateTimeFormatter.ofPattern(
-                                                        "yyyy年MM月dd日 HH:mm"
-                                                )
-                                        )
-                        lore.add(
-                                lang.getMessage(
-                                        viewer,
-                                        "gui.member_management.item.last_online",
-                                        mapOf("time" to lastPlayed)
-                                )
-                        )
+                        val date = java.time.Instant.ofEpochMilli(player.lastPlayed)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                        val onlineLabel = lang.getMessage(viewer, "gui.member_management.item.last_online_label")
+                        "§f§l| §7$onlineLabel §f$date"
+                } else {
+                        ""
                 }
-                lore.add(
-                        lang.getMessage(
-                                viewer,
-                                "gui.member_management.item.role_display",
-                                mapOf("role" to role)
+
+                itemLore.addAll(
+                    lang.getComponentList(
+                        viewer, 
+                        "gui.member_management.item.lore_info",
+                        mapOf(
+                            "last_online" to lastOnlineVal,
+                            "role" to role
                         )
+                    ).filter { 
+                        // Filter out empty lines that result from empty last_online
+                        val text = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(it)
+                        text.isNotBlank() 
+                    }
                 )
-                lore.add(separator)
 
                 if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
                         val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
@@ -1712,21 +1587,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 lang.getMessage(null as Player?, "role.member")
                         }
 
-                        lore.add(
-                                lang.getMessage(
-                                        viewer,
-                                        "gui.member_management.item.change_role",
-                                        mapOf("role" to nextRole)
-                                )
+                        itemLore.addAll(
+                            lang.getComponentList(
+                                viewer,
+                                "gui.member_management.item.lore_actions",
+                                mapOf("next_role" to nextRole)
+                            )
                         )
-                        lore.add(lang.getMessage(viewer, "gui.member_management.item.transfer"))
-                        lore.add(lang.getMessage(viewer, "gui.member_management.item.remove"))
-                        lore.add(separator)
                 }
 
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
-                ItemTag.setWorldUuid(item, uuid)
+                me.awabi2048.myworldmanager.util.ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
+                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, uuid)
+                
+                // Helper to add lore to item meta which expects List<String> or List<Component>?
+                // createItemComponent handles this, but here we return ItemStack manually.
+                // I need to set lore on meta.
+                meta.lore(itemLore)
+                item.itemMeta = meta
+                
                 return item
         }
 
@@ -1838,7 +1717,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2037,6 +1916,30 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, tag)
+                item.itemMeta = meta
+                ItemTag.tagItem(item, tag)
+                return item
+        }
+
+        private fun createItemComponent(
+                material: Material,
+                name: String,
+                loreComponents: List<Component>,
+                tag: String
+        ): ItemStack {
+                val item = ItemStack(material)
+                val meta = item.itemMeta ?: return item
+
+                meta.displayName(
+                        LegacyComponentSerializer.legacySection()
+                                .deserialize(name)
+                                .decoration(TextDecoration.ITALIC, false)
+                )
+
+                meta.lore(loreComponents.map { it.decoration(TextDecoration.ITALIC, false) })
+
+                item.itemMeta = meta
+                ItemTag.tagItem(item, tag)
                 return item
         }
 
@@ -2139,7 +2042,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.ARROW,
                                 lang.getMessage(player, "gui.common.back"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2185,17 +2088,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 for (i in 36..44) inventory.setItem(i, blackPane)
 
                 // 拡張段階の初期化
+                // 拡張段階の初期化
                 if (worldData.borderExpansionLevel != WorldData.EXPANSION_LEVEL_SPECIAL) {
-                        val resetLore = mutableListOf<String>()
                         val currentLevel = worldData.borderExpansionLevel
-                        resetLore.add(
-                                lang.getMessage(
-                                        player,
-                                        "gui.critical.reset_expansion.current",
-                                        mapOf("current" to currentLevel)
-                                )
-                        )
-                        resetLore.add("")
+                        val resetLore: List<Component>
+                        
                         if (currentLevel > 0) {
                                 val refundRate =
                                         plugin.config.getDouble(
@@ -2205,32 +2102,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 val refund =
                                         (calculateTotalExpansionCost(currentLevel) * refundRate)
                                                 .toInt()
-                                resetLore.add(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.critical.reset_expansion.refund",
-                                                mapOf("refund" to refund)
-                                        )
-                                )
-                                resetLore.add("")
-                                resetLore.add(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.critical.reset_expansion.click"
+                                resetLore = lang.getComponentList(
+                                        player,
+                                        "gui.critical.reset_expansion.lore",
+                                        mapOf(
+                                                "level" to currentLevel,
+                                                "points" to refund
                                         )
                                 )
                         } else {
-                                resetLore.add(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.critical.reset_expansion.unavailable"
-                                        )
+                                resetLore = lang.getComponentList(
+                                        player,
+                                        "gui.critical.reset_expansion.lore_unavailable"
                                 )
                         }
 
                         inventory.setItem(
                                 20,
-                                createItem(
+                                createItemComponent(
                                         Material.BARRIER,
                                         lang.getMessage(
                                                 player,
@@ -2243,25 +2132,29 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // ワールドの削除
-                val deleteLore = mutableListOf<String>()
 
+
+                // 払い戻し額の計算
                 // 払い戻し額の計算
                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
                 val refund = (worldData.cumulativePoints * refundRate).toInt()
+                val percent = (refundRate * 100).toInt()
 
-                lang.getMessageList(player, "gui.critical.delete_world.lore").forEach { line ->
-                        val processedLine =
-                                line.replace("{0}", refund.toString())
-                                        .replace("{1}", (refundRate * 100).toInt().toString())
-                        deleteLore.add(processedLine)
-                }
+                val deleteLore = lang.getComponentList(
+                        player,
+                        "gui.critical.delete_world.lore",
+                        mapOf(
+                                "points" to refund,
+                                "percent" to percent
+                        )
+                )
 
                 val deleteSlot =
                         if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) 22
                         else 24
                 inventory.setItem(
                         deleteSlot,
-                        createItem(
+                        createItemComponent(
                                 Material.LAVA_BUCKET,
                                 lang.getMessage(player, "gui.critical.delete_world.display"),
                                 deleteLore,
@@ -2275,7 +2168,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.ARROW,
                                 lang.getMessage(player, "gui.common.back"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2334,12 +2227,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 inventory
                         }
 
+                val lore = lang.getComponentList(player, "gui.confirm.reset_expansion.lore")
                 val infoItem =
-                        createItem(
+                        createItemComponent(
                                 Material.PAPER,
-                                lang.getMessageList(player, "gui.confirm.reset_expansion.lore")[0],
-                                lang.getMessageList(player, "gui.confirm.reset_expansion.lore")
-                                        .drop(1),
+                                LegacyComponentSerializer.legacySection().serialize(lore[0]),
+                                lore.drop(1),
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
@@ -2359,7 +2252,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(player, "gui.common.confirm"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
@@ -2405,11 +2298,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 inventory
                         }
 
+                val lore = lang.getComponentList(player, "gui.confirm.delete_1.lore")
                 val infoItem =
-                        createItem(
+                        createItemComponent(
                                 Material.PAPER,
-                                lang.getMessageList(player, "gui.confirm.delete_1.lore")[0],
-                                lang.getMessageList(player, "gui.confirm.delete_1.lore").drop(1),
+                                LegacyComponentSerializer.legacySection().serialize(lore[0]),
+                                lore.drop(1),
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
@@ -2420,7 +2314,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.common.cancel"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2429,7 +2323,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(player, "gui.confirm.delete_1.next"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_SETTING_DELETE_WORLD
                         )
                 )
@@ -2475,11 +2369,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 inventory
                         }
 
+                val lore = lang.getComponentList(player, "gui.confirm.delete_2.lore")
                 val infoItem =
-                        createItem(
+                        createItemComponent(
                                 Material.LAVA_BUCKET,
-                                lang.getMessageList(player, "gui.confirm.delete_2.lore")[0],
-                                lang.getMessageList(player, "gui.confirm.delete_2.lore").drop(1),
+                                LegacyComponentSerializer.legacySection().serialize(lore[0]),
+                                lore.drop(1),
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
@@ -2490,7 +2385,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.common.cancel"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2499,7 +2394,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(player, "gui.confirm.delete_2.confirm_btn"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
@@ -2595,7 +2490,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
-                                listOf(),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2632,17 +2527,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .decoration(TextDecoration.ITALIC, false)
                 )
 
-                val lore = mutableListOf<Component>()
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.admin_portals.portal_item.lore_location",
-                                mapOf("x" to portal.x, "y" to portal.y, "z" to portal.z)
-                        )
+                val lore = lang.getComponentList(
+                        player,
+                        "gui.admin_portals.portal_item.lore_management",
+                        mapOf("x" to portal.x, "y" to portal.y, "z" to portal.z)
                 )
-                lore.add(Component.empty())
-                lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_teleport"))
-                lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_remove"))
 
                 meta.lore(lore)
                 item.itemMeta = meta

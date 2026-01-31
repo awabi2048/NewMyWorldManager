@@ -191,7 +191,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
 
 
     fun getComponentList(player: Player?, key: String, placeholders: Map<String, Any>): List<Component> {
-        return getMessageList(player, key, placeholders).map {
+        return getMessageList(player, key, placeholders).flatMap { it.split("\n") }.map {
             LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false)
         }
     }

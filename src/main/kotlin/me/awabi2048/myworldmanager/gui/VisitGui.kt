@@ -113,6 +113,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val item = ItemStack(world.icon)
                 val meta = item.itemMeta ?: return item
                 val lang = plugin.languageManager
+
                 meta.displayName(
                         lang.getComponent(
                                 viewer,
@@ -121,94 +122,63 @@ class VisitGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val lore = mutableListOf<Component>()
-                lore.add(lang.getComponent(viewer, "gui.common.separator"))
+                val formattedDesc = if (world.description.isNotEmpty()) {
+                        lang.getMessage(viewer, "gui.common.world_desc", mapOf("description" to world.description))
+                } else ""
 
-                if (world.description.isNotEmpty()) {
-                        lore.add(
-                                lang.getComponent(
-                                        viewer,
-                                        "gui.common.world_desc",
-                                        mapOf("description" to world.description)
-                                )
-                        )
-                        lore.add(lang.getComponent(viewer, "gui.common.separator"))
-                }
-
-                val owner = Bukkit.getOfflinePlayer(world.owner)
+                val ownerRef = Bukkit.getOfflinePlayer(world.owner)
                 val onlineColor = lang.getMessage(viewer, "publish_level.color.online")
                 val offlineColor = lang.getMessage(viewer, "publish_level.color.offline")
-                val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-                lore.add(
-                        lang.getComponent(
-                                viewer,
-                                "gui.visit.world_item.owner",
-                                mapOf(
-                                        "owner" to
-                                                (owner.name
-                                                        ?: lang.getMessage(
-                                                                viewer,
-                                                                "general.unknown"
-                                                        )),
-                                        "status_color" to ownerColor
-                                )
-                        )
-                )
+                val statusColor = if (ownerRef.isOnline) onlineColor else offlineColor
+                val ownerLine = lang.getMessage(viewer, "gui.visit.world_item.owner", mapOf("owner" to (ownerRef.name ?: lang.getMessage(viewer, "general.unknown")), "status_color" to statusColor))
 
-                lore.add(
-                        lang.getComponent(
-                                viewer,
-                                "gui.visit.world_item.favorite",
-                                mapOf("count" to world.favorite)
-                        )
-                )
-                val totalRecent = world.recentVisitors.sum()
-                lore.add(
-                        lang.getComponent(
-                                viewer,
-                                "gui.visit.world_item.recent_visitors",
-                                mapOf("count" to totalRecent)
-                        )
-                )
+                val favoriteLine = lang.getMessage(viewer, "gui.visit.world_item.favorite", mapOf("count" to world.favorite))
+                val visitorLine = lang.getMessage(viewer, "gui.visit.world_item.recent_visitors", mapOf("count" to world.recentVisitors.sum()))
 
-                if (world.tags.isNotEmpty()) {
-                        val tagNames =
-                                world.tags.joinToString(", ") {
-                                        lang.getMessage(viewer, "world_tag.${it.name.lowercase()}")
-                                }
-                        lore.add(
-                                lang.getComponent(
-                                        viewer,
-                                        "gui.visit.world_item.tag",
-                                        mapOf("tags" to tagNames)
-                                )
-                        )
-                }
+                val tagLine = if (world.tags.isNotEmpty()) {
+                        val tagNames = world.tags.joinToString(", ") {
+                                lang.getMessage(viewer, "world_tag.${it.name.lowercase()}")
+                        }
+                        lang.getMessage(viewer, "gui.visit.world_item.tag", mapOf("tags" to tagNames))
+                } else ""
 
-                lore.add(lang.getComponent(viewer, "gui.common.separator"))
-                lore.add(lang.getComponent(viewer, "gui.visit.world_item.warp"))
-
+                val warpLine = lang.getMessage(viewer, "gui.visit.world_item.warp")
+                
                 val stats = plugin.playerStatsRepository.findByUuid(viewer.uniqueId)
-
                 val viewerPlayerUuid = viewer.uniqueId
-                val isMember =
-                        world.owner == viewerPlayerUuid ||
+                val isMember = world.owner == viewerPlayerUuid ||
                                 world.moderators.contains(viewerPlayerUuid) ||
                                 world.members.contains(viewerPlayerUuid)
 
-                if (!isMember) {
+                val favActionLine = if (!isMember) {
                         if (stats.favoriteWorlds.containsKey(world.uuid)) {
-                                lore.add(
-                                        lang.getComponent(viewer, "gui.visit.world_item.fav_remove")
-                                )
+                                lang.getMessage(viewer, "gui.visit.world_item.fav_remove")
                         } else {
-                                lore.add(lang.getComponent(viewer, "gui.visit.world_item.fav_add"))
+                                lang.getMessage(viewer, "gui.visit.world_item.fav_add")
                         }
-                        lore.add(lang.getComponent(viewer, "gui.common.separator"))
-                }
-                lore.add(lang.getComponent(viewer, "gui.common.separator"))
+                } else ""
 
-                meta.lore(lore)
+                val separator = lang.getComponent(viewer, "gui.common.separator")
+
+                meta.lore(
+                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
+                                lang.getComponentList(
+                                        viewer,
+                                        "gui.visit.world_item.lore",
+                                        mapOf(
+                                                "description" to formattedDesc,
+                                                "owner_line" to ownerLine,
+                                                "favorite_line" to favoriteLine,
+                                                "visitor_line" to visitorLine,
+                                                "tag_line" to tagLine,
+                                                "warp_line" to warpLine,
+                                                "fav_action_line" to favActionLine
+                                        )
+                                ),
+                                separator
+                        )
+                )
+
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
                 ItemTag.setWorldUuid(item, world.uuid)

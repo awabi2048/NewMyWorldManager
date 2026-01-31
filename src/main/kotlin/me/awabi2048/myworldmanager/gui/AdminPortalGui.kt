@@ -122,16 +122,19 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val displayTitle = lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destName))
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(displayTitle).decoration(TextDecoration.ITALIC, false))
         
-        val lore = mutableListOf<Component>()
         val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: "Unknown"
         
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_owner", mapOf("owner" to ownerName)))
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_world", mapOf("world" to portal.worldName)))
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_location", mapOf("x" to portal.x, "y" to portal.y, "z" to portal.z)))
-        
-        lore.add(Component.empty())
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_teleport"))
-        lore.add(lang.getComponent(player, "gui.admin_portals.portal_item.lore_remove"))
+        val lore = lang.getComponentList(
+            player,
+            "gui.admin_portals.portal_item.lore",
+            mapOf(
+                "owner" to ownerName,
+                "world" to portal.worldName,
+                "x" to portal.x,
+                "y" to portal.y,
+                "z" to portal.z
+            )
+        )
         
         meta.lore(lore)
         item.itemMeta = meta

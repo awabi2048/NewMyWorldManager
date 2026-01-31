@@ -178,103 +178,62 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val lore = mutableListOf<Component>()
-                lore.add(lang.getComponent(player, "gui.common.separator"))
+                val formattedDesc = if (data.description.isNotEmpty()) {
+                        lang.getMessage(player, "gui.common.world_desc", mapOf("description" to data.description))
+                } else ""
 
-                if (data.description.isNotEmpty()) {
-                        lore.add(
-                                lang.getComponent(
-                                        player,
-                                        "gui.common.world_desc",
-                                        mapOf("description" to data.description)
-                                )
-                        )
-                        lore.add(lang.getComponent(player, "gui.common.separator"))
-                }
-
-                val owner = Bukkit.getOfflinePlayer(data.owner)
+                val ownerRef = Bukkit.getOfflinePlayer(data.owner)
                 val onlineColor = lang.getMessage(player, "publish_level.color.online")
                 val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-                val ownerColor = if (owner.isOnline) onlineColor else offlineColor
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.favorite.world_item.owner",
-                                mapOf(
-                                        "owner" to
-                                                (owner.name
-                                                        ?: lang.getMessage(
-                                                                player,
-                                                                "general.unknown"
-                                                        )),
-                                        "status_color" to ownerColor
-                                )
-                        )
-                )
+                val statusColor = if (ownerRef.isOnline) onlineColor else offlineColor
+                val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to (ownerRef.name ?: lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
 
-                // 統計情報
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.favorite.world_item.favorite",
-                                mapOf("count" to data.favorite)
-                        )
-                )
-                val totalRecent = data.recentVisitors.sum()
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.favorite.world_item.recent_visitors",
-                                mapOf("count" to totalRecent)
-                        )
-                )
+                val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to data.favorite))
+                val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to data.recentVisitors.sum()))
 
-                if (data.tags.isNotEmpty()) {
-                        val tagNames =
-                                data.tags.joinToString(", ") {
-                                        lang.getMessage(player, "world_tag.${it.name.lowercase()}")
-                                }
-                        lore.add(
-                                lang.getComponent(
-                                        player,
-                                        "gui.favorite.world_item.tag",
-                                        mapOf("tags" to tagNames)
-                                )
-                        )
-                }
+                val tagLine = if (data.tags.isNotEmpty()) {
+                        val tagNames = data.tags.joinToString(", ") {
+                                lang.getMessage(player, "world_tag.${it.name.lowercase()}")
+                        }
+                        lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to tagNames))
+                } else ""
 
-                lore.add(lang.getComponent(player, "gui.common.separator"))
-                if (!data.isArchived &&
-                                (data.publishLevel == PublishLevel.PUBLIC ||
-                                        data.publishLevel == PublishLevel.FRIEND)
-                ) {
-                        lore.add(lang.getComponent(player, "gui.visit.world_item.warp"))
-                }
+                val warpLine = if (!data.isArchived && (data.publishLevel == PublishLevel.PUBLIC || data.publishLevel == PublishLevel.FRIEND)) {
+                        lang.getMessage(player, "gui.favorite.world_item.warp")
+                } else ""
 
                 val viewerUuid = player.uniqueId
-                val isMember =
-                        data.owner == viewerUuid ||
-                                data.moderators.contains(viewerUuid) ||
-                                data.members.contains(viewerUuid)
+                val isMember = data.owner == viewerUuid || data.moderators.contains(viewerUuid) || data.members.contains(viewerUuid)
 
-                if (data.isArchived) {
-                        lore.add(
-                                lang.getComponent(player, "gui.favorite.world_item.archived_label")
-                        )
-                        lore.add(
-                                lang.getComponent(
-                                        player,
-                                        "gui.favorite.world_item.unfavorite_archived"
-                                )
-                        )
-                        lore.add(lang.getComponent(player, "gui.common.separator"))
+                val archivedLine = if (data.isArchived) lang.getMessage(player, "gui.favorite.world_item.archived_label") else ""
+                val unfavoriteLine = if (data.isArchived) {
+                        lang.getMessage(player, "gui.favorite.world_item.unfavorite_archived")
                 } else if (!isMember) {
-                        lore.add(lang.getComponent(player, "gui.favorite.world_item.unfavorite"))
-                        lore.add(lang.getComponent(player, "gui.common.separator"))
-                }
-                lore.add(lang.getComponent(player, "gui.common.separator"))
+                        lang.getMessage(player, "gui.favorite.world_item.unfavorite")
+                } else ""
 
-                meta.lore(lore)
+                val separator = lang.getComponent(player, "gui.common.separator")
+
+                meta.lore(
+                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
+                                lang.getComponentList(
+                                        player,
+                                        "gui.favorite.world_item.lore",
+                                        mapOf(
+                                                "description" to formattedDesc,
+                                                "owner_line" to ownerLine,
+                                                "favorite_line" to favoriteLine,
+                                                "visitor_line" to visitorLine,
+                                                "tag_line" to tagLine,
+                                                "warp_line" to warpLine,
+                                                "archived_line" to archivedLine,
+                                                "unfavorite_line" to unfavoriteLine
+                                        )
+                                ),
+                                separator
+                        )
+                )
+
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
                 ItemTag.setWorldUuid(item, data.uuid)

@@ -55,9 +55,9 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         setupHeaderFooter(inventory, 5)
 
-        inventory.setItem(20, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), lang.getMessage("gui.creation.type.template.desc"), config.getInt("creation_cost.template", 0), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
-        inventory.setItem(22, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), lang.getMessage("gui.creation.type.seed.desc"), config.getInt("creation_cost.seed", 100), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
-        inventory.setItem(24, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), lang.getMessage("gui.creation.type.random.desc"), config.getInt("creation_cost.random", 50), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
+        inventory.setItem(20, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", config.getInt("creation_cost.template", 0), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
+        inventory.setItem(22, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", config.getInt("creation_cost.seed", 100), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
+        inventory.setItem(24, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", config.getInt("creation_cost.random", 50), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
 
         inventory.setItem(40, createBackButton(player))
 
@@ -65,13 +65,12 @@ class CreationGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
-    private fun createItemWithCost(player: Player, material: Material, name: String, description: String, cost: Int, currentPoints: Int, tag: String): ItemStack {
+    private fun createItemWithCost(player: Player, material: Material, name: String, baseLoreKey: String, cost: Int, currentPoints: Int, tag: String): ItemStack {
         val lang = plugin.languageManager
-        val lore = mutableListOf<String>()
-        lore.add(description)
-        lore.add("")
-        lore.add(lang.getMessage(player, "gui.creation.type.cost", mapOf("cost" to cost)))
-        lore.add(lang.getMessage(player, "gui.creation.type.points", mapOf("points" to currentPoints)))
+        val lore = lang.getComponentList(player, baseLoreKey).toMutableList()
+        lore.add(Component.empty())
+        lore.add(lang.getComponent(player, "gui.creation.type.cost", mapOf("cost" to cost)).decoration(TextDecoration.ITALIC, false))
+        lore.add(lang.getComponent(player, "gui.creation.type.points", mapOf("points" to currentPoints)).decoration(TextDecoration.ITALIC, false))
         
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val defaultMax = plugin.config.getInt("creation.max_create_count_default", 3)
@@ -79,14 +78,14 @@ class CreationGui(private val plugin: MyWorldManager) {
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
         
         if (currentCounts >= maxCounts) {
-            lore.add(lang.getMessage(player, "gui.creation.type.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)))
+            lore.add(lang.getComponent(player, "gui.creation.type.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).decoration(TextDecoration.ITALIC, false))
         } else if (currentPoints >= cost) {
-            lore.add(lang.getMessage(player, "gui.creation.type.available"))
+            lore.add(lang.getComponent(player, "gui.creation.type.available").decoration(TextDecoration.ITALIC, false))
         } else {
-            lore.add(lang.getMessage(player, "gui.creation.type.insufficient", mapOf("shortage" to (cost - currentPoints))))
+            lore.add(lang.getComponent(player, "gui.creation.type.insufficient", mapOf("shortage" to (cost - currentPoints))).decoration(TextDecoration.ITALIC, false))
         }
         
-        return createItem(material, name, tag, *lore.toTypedArray())
+        return createItem(material, name, tag, lore)
     }
 
     fun openTemplateSelection(player: Player) {
@@ -115,12 +114,15 @@ class CreationGui(private val plugin: MyWorldManager) {
             val slot = (row + 1) * 9 + 1 + col
             val previewHint = lang.getMessage(player, "gui.creation.template_item.preview_hint")
             
-            val lore = mutableListOf<String>()
-            lore.addAll(template.description)
-            lore.add("")
-            lore.add(previewHint)
+            val lore = mutableListOf<Component>()
+            val desc = template.description // formatted in repo? assuming list of strings
+            desc.forEach { line ->
+                 lore.add(LegacyComponentSerializer.legacySection().deserialize(line).decoration(TextDecoration.ITALIC, false))
+            }
+            lore.add(Component.empty())
+            lore.add(lang.getComponent(player, "gui.creation.template_item.preview_hint").decoration(TextDecoration.ITALIC, false))
             
-            inventory.setItem(slot, createItem(template.icon, template.name, ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM, *lore.toTypedArray()))
+            inventory.setItem(slot, createItem(template.icon, template.name, ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM, lore))
         }
 
         inventory.setItem((rowCount - 1) * 9 + 4, createBackButton(player))
@@ -168,25 +170,31 @@ class CreationGui(private val plugin: MyWorldManager) {
             else -> 0
         }
 
-        val infoLore = mutableListOf<String>()
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
-        infoLore.add(lang.getMessage(player, "gui.creation.confirm.world_name", mapOf("name" to cleanedName)))
-        infoLore.add(lang.getMessage(player, "gui.creation.confirm.creation_type", mapOf("type" to typeName)))
         
-        when (session.creationType) {
-            WorldCreationType.TEMPLATE -> {
-                val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
-                val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
-                infoLore.add(lang.getMessage(player, "gui.creation.confirm.template", mapOf("template" to displayName)))
-            }
-            WorldCreationType.SEED -> infoLore.add(lang.getMessage(player, "gui.creation.confirm.seed", mapOf("seed" to (session.inputSeedString ?: ""))))
-            else -> {}
-        }
-        
-        infoLore.add("")
-        infoLore.add(lang.getMessage(player, "gui.creation.confirm.cost", mapOf("cost" to cost)))
+        val templateLine = if (session.creationType == WorldCreationType.TEMPLATE) {
+            val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
+            val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
+            lang.getMessage(player, "gui.creation.confirm.template_line", mapOf("template" to displayName))
+        } else ""
 
-        inventory.setItem(22, createItem(Material.BOOK, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_CONFIRM, *infoLore.toTypedArray()))
+        val seedLine = if (session.creationType == WorldCreationType.SEED) {
+            lang.getMessage(player, "gui.creation.confirm.seed_line", mapOf("seed" to (session.inputSeedString ?: "")))
+        } else ""
+
+        val infoLore = lang.getComponentList(
+            player,
+            "gui.creation.confirm.lore",
+            mapOf(
+                "name" to cleanedName,
+                "type" to typeName,
+                "cost" to cost,
+                "template" to templateLine,
+                "seed" to seedLine
+            )
+        )
+
+        inventory.setItem(22, createItem(Material.BOOK, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_CONFIRM, infoLore))
         
         inventory.setItem(40, createBackButton(player))
 
@@ -209,7 +217,8 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun createBackButton(player: Player): ItemStack {
         val lang = plugin.languageManager
-        return createItem(plugin.menuConfigManager.getIconMaterial("creation", "back", Material.ARROW), lang.getMessage(player, "gui.common.return"), ItemTag.TYPE_GUI_BACK, lang.getMessage(player, "gui.common.return_desc"))
+        val lore = listOf(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.common.return_desc")).decoration(TextDecoration.ITALIC, false))
+        return createItem(plugin.menuConfigManager.getIconMaterial("creation", "back", Material.ARROW), lang.getMessage(player, "gui.common.return"), ItemTag.TYPE_GUI_BACK, lore)
     }
 
     private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
@@ -222,12 +231,12 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
     }
 
-    private fun createItem(material: Material, name: String, tag: String, vararg lore: String): ItemStack {
+    private fun createItem(material: Material, name: String, tag: String, lore: List<Component>): ItemStack {
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
         
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
+        meta.lore(lore)
         
         item.itemMeta = meta
         ItemTag.tagItem(item, tag)

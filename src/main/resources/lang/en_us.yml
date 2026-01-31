@@ -251,26 +251,33 @@ gui:
         - "§8§m-----------------------"
     visitors:
       display: "§aVisitor Management"
-      count: "§f§l| §7Current visitors §e{count}"
-      click: "§e§nClick to view/manage"
+      # Placeholder: {count}
+      lore:
+        - "§f§l| §7Current visitors §e{count}"
+        - ""
+        - "§e§nClick to view/manage"
     notification:
       display: "§aToggle Notifications"
-      current: "§f§l| §7Current: {color}{status}"
       "on": "ON"
       "off": "OFF"
-      desc:
+      # Placeholder: {color}, {status}
+      lore:
+        - "§f§l| §7Current: {color}{status}"
+        - ""
         - "§7When ON, members will be notified"
         - "§7when a guest visits the world."
         - ""
         - "§e§nClick to toggle"
     announcement:
       display: "§aPlayer Announcement"
+      # Placeholder: {message_preview}
       lore:
         - "§7Set a message to display"
         - "§7to visitors upon arrival."
         - ""
         - "§e§nLeft-Click§7 Set Message"
         - "§e§nRight-Click§7 Reset Message"
+        - "{message_preview}"
       preview_header: "§f§l| §e§nCurrent Message"
       preview_footer: "§e§nClick to edit/reset"
     critical:
@@ -280,24 +287,38 @@ gui:
         - "§clike deleting the world."
         - ""
         - "§e§nClick to view"
+    portals:
+      display: "§bManage Placed Portals"
+      lore:
+        - "§7Manage and check portals"
+        - "§7placed within the world."
+        - ""
+        - "§e§nClick to view"
+
 
   critical:
     title: "Critical Settings"
     reset_expansion:
       display: "§c§nReset Expansion"
-      current: "§f§l| §7Current level §e§l{level}"
-      refund: "§f§l| §7Refund points §6🛖 §e{points}"
-      click: "§e§nClick to reset (Irreversible)"
-      unavailable: "§cCannot reset (not expanded)"
+      # Placeholder: {level}, {points}
+      lore:
+        - "§f§l| §7Current level §e§l{level}"
+        - ""
+        - "§f§l| §7Refund points §6🛖 §e{points}"
+        - ""
+        - "§e§nClick to reset (Irreversible)"
+      lore_unavailable:
+        - "§cCannot reset (not expanded)"
     delete_world:
       display: "§4§l§nDelete World"
+      # Placeholder: {points}, {percent}
       lore:
         - "§7Deletes the world permanently."
         - "§7This action is irreversible."
         - ""
         - "§8§m-----------------------"
         - "§f§l| §7Refund points: §6🛖 §e{points}"
-        - "§8(Expansion {points} + {percent}% of Creation {cost})"
+        - "§8({percent}% of total spent points returned)"
         - "§8§m-----------------------"
         - ""
         - "§4§lClick to DELETE (Irreversible)"
@@ -366,17 +387,46 @@ gui:
       desc: "§eClick and type name in chat"
     remove_confirm:
       title: "Confirm Removal"
-      question: "§cReally remove?"
-      player: "§f§l| §7Player §f{player}"
-      world: "§f§l| §7World §f{world}"
-      warning: "§c※ They will lose access to this world."
+      # Placeholder: {player}, {world}
+      lore:
+        - "§cReally remove?"
+        - "§f§l| §7Player §f{player}"
+        - "§f§l| §7World §f{world}"
+        - ""
+        - "§c※ They will lose access to this world."
       cancel: "§aCancel"
       cancel_desc: "§7Back to list"
       confirm: "§cRemove"
       confirm_desc: "§7Revoke membership"
     item:
-      last_online: "§f§l| §7Last Online §f{date}"
-      role: "§f§l| §7Rank §f{role}"
+      last_online_label: "Last Online"
+      # Placeholder: {last_online}, {role}
+      # {last_online} should be empty if online or hidden logic in code
+      lore_info:
+        - "§8§m-----------------------"
+        - "{last_online}"
+        - "§f§l| §7Rank §f{role}"
+        - "§8§m-----------------------"
+      # Placeholder: {next_role}
+      lore_actions:
+        - "§e§l| §eLeft-Click §7Change to §b{next_role}"
+        - "§e§l| §eShift+Left §cTransfer Ownership"
+        - "§e§l| §eShift+Right §cRemove Member"
+        - "§8§m-----------------------"
+
+    transfer_confirm:
+      title: "Transfer Ownership"
+      # Placeholder: {player}, {world}
+      lore:
+        - "§cReally transfer ownership?"
+        - "§f§l| §7New Owner §f{player}"
+        - "§f§l| §7Target World §f{world}"
+        - ""
+        - "§c※ You will lose ownership of this world."
+      cancel: "§aCancel"
+      cancel_desc: "§7Back to list"
+      confirm: "§cTransfer"
+      confirm_desc: "§dTransfer ownership to this player"
 
   visitor_management:
     title: "Manage Visitors"
@@ -478,19 +528,42 @@ gui:
       total_count: "§7Results: §f{count}"
       page: "§7Page: §f{current} / {max}"
     world_item:
+      # Placeholder: {owner_line}, {status_line}, {publish_line}, {expansion_line}, {created_line}, {expire_line}, {mspt_line}, {action_warp}...
+      lore:
+        - "{owner_line}"
+        - "{status_line}"
+        - "{publish_line}"
+        - "{expansion_line}"
+        - "{created_line}"
+        - "{expire_line}"
+        - "{mspt_line}"
+        - "{tag_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{action_warp}"
+        - "{action_settings}"
+        - "{action_archive}"
+        - "{uuid_copy_hint}"
+
       owner: "§f§l| §7Owner {owner}{status_color}"
       status: "§f§l| §7Status {status}"
       status_archived: "§cArchived"
       status_active: "§bActive"
       publish: "§f§l| §7Publish {color}{level}"
       expansion: "§f§l| §7Expansion §e{level}"
+      
       expires_at: "§f§l| §7Multi-Archive §e{date} §8({days_remain})"
+      created_at: "§f§l| §7Created §e{date} §8({days_ago})"
+      
+      created_info_days: "§7{days} days ago"
+      created_info_today: "§7Today"
       expire_info_remaining: "§7{days} days left"
       expire_info_overdue: "§7{days} days overdue"
+      
       mspt: "§f§l| §7MSPT: §e{mspt} §7ms"
       mspt_unloaded: "§f§l| §7MSPT: §cThis world is unloaded"
       mspt_error: "§f§l| §7MSPT: §cCould not retrieve"
       mspt_low: "§f§l| §7MSPT: §e< 0.1ms"
+      
       action_archive: "§e§l| §e§nShift + Right-Click §7Toggle Archive"
       action_settings: "§e§l| §b§nRight-Click§7 Settings"
       action_warp: "§e§l| §b§nLeft-Click §7Warp"
@@ -677,6 +750,19 @@ gui:
   visit:
     title: "{player}'s Worlds"
     world_item:
+      # Placeholder: {description}, {owner_line}, {favorite_line}, {visitor_line}, {tag_line}, {warp_line}, {archived_line}, {unfavorite_line}
+      lore:
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{owner_line}"
+        - "{favorite_line}"
+        - "{visitor_line}"
+        - "{tag_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{warp_line}"
+        - "{archived_line}"
+        - "{unfavorite_line}"
+
       owner: "§f§l| §7Owner §b{owner}{status_color}"
       favorite: "§f§l| §7Favorites §c{count}"
       recent_visitors: "§f§l| §7Recent Visitors §a{count}"
@@ -684,10 +770,29 @@ gui:
       warp: "§e§l| §e§nLeft-Click §7Warp"
       fav_add: "§e§l| §e§nRight-Click §7Favorite"
       fav_remove: "§e§l| §e§nRight-Click §7Unfavorite"
+      unfavorite: "§e§l| §cShift + Right-Click§7 Unfavorite"
+      archived_label: "§c[ ARCHIVED ]"
+      unfavorite_archived: "§cClick to remove from favorites"
 
   player_world:
     title: "My Worlds"
     world_item:
+      # Placeholder: {description}, {owner_line}, {publish_line}, {favorite_line}, {visitor_line}, {tag_line}, {expires_at_line}, {expired_line}, {warp_action}, {settings_action}
+      lore:
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{owner_line}"
+        - "{publish_line}"
+        - "{favorite_line}"
+        - "{visitor_line}"
+        - "{tag_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{expires_at_line}"
+        - "{expired_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{warp_action}"
+        - "{settings_action}"
+
       owner: "§f§l| §7Owner §f{owner}"
       publish: "§f§l| §7Publish §b{level}{status_color}"
       favorite: "§f§l| §7Favorites §c{count}"

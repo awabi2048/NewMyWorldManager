@@ -61,11 +61,13 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val nameItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "name_input", Material.NAME_TAG),
             lang.getMessage(player, "gui.template_wizard.name_input.display"),
-            listOf(
-                "§f§l| §7設定値: §f${if (session.name.isEmpty()) "未設定" else session.name}",
-                "§f§l| §7ID: §f${if (session.id.isEmpty()) "未設定" else session.id}",
-                "",
-                "§e▷ クリックして設定 (チャット入力)"
+            lang.getComponentList(
+                player,
+                "gui.template_wizard.name_input.lore",
+                mapOf(
+                    "name" to (if (session.name.isEmpty()) "未設定" else session.name),
+                    "id" to (if (session.id.isEmpty()) "未設定" else session.id)
+                )
             ),
             "name_input"
         )
@@ -75,11 +77,10 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val descItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "desc_input", Material.WRITABLE_BOOK),
             lang.getMessage(player, "gui.template_wizard.desc_input.display"),
-            listOf(
-                "§f§l| §7設定値:",
-                *session.description.map { "§f  - $it" }.toTypedArray(),
-                "",
-                "§e▷ クリックして設定 (チャット入力)"
+            lang.getComponentList(
+                player,
+                "gui.template_wizard.desc_input.lore",
+                mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" })
             ),
             "desc_input"
         )
@@ -89,7 +90,11 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val iconItem = createSettingItem(
             session.icon,
             lang.getMessage(player, "gui.template_wizard.icon_select.display"),
-            listOf("§f§l| §7現在のアイコン: §f${session.icon.name}", "", "§e▷ クリックして変更"),
+            lang.getComponentList(
+                player,
+                "gui.template_wizard.icon_select.lore",
+                mapOf("icon" to session.icon.name)
+            ),
             "icon_select"
         )
         inventory.setItem(24, iconItem)
@@ -98,10 +103,10 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val originItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "origin_set", Material.COMPASS),
             lang.getMessage(player, "gui.template_wizard.origin_set.display"),
-            listOf(
-                "§f§l| §7設定値: §f${if (session.originLocation == null) "未設定" else "${session.originLocation!!.blockX}, ${session.originLocation!!.blockY}, ${session.originLocation!!.blockZ}"}",
-                "",
-                "§e▷ 現在位置を原点に設定"
+            lang.getComponentList(
+                player,
+                "gui.template_wizard.origin_set.lore",
+                mapOf("origin" to (if (session.originLocation == null) "未設定" else "${session.originLocation!!.blockX}, ${session.originLocation!!.blockY}, ${session.originLocation!!.blockZ}"))
             ),
             "origin_set"
         )
@@ -112,7 +117,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             val saveItem = createSettingItem(
                 plugin.menuConfigManager.getIconMaterial(menuId, "save_confirm", Material.NETHER_STAR),
                 lang.getMessage(player, "gui.template_wizard.save_confirm.display"),
-                listOf("§a▷ 全ての内容を確認してテンプレートを登録"),
+                lang.getComponentList(player, "gui.template_wizard.save_confirm.lore"),
                 "save_confirm"
             )
             inventory.setItem(40, saveItem)
@@ -124,11 +129,11 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
     }
 
-    private fun createSettingItem(material: Material, display: String, lore: List<String>, id: String): ItemStack {
+    private fun createSettingItem(material: Material, display: String, lore: List<Component>, id: String): ItemStack {
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(display).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
+        meta.lore(lore)
         item.itemMeta = meta
         ItemTag.tagItem(item, id)
         return item

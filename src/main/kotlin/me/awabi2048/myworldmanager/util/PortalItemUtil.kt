@@ -18,10 +18,7 @@ object PortalItemUtil {
         val item = ItemStack(Material.STONE_PICKAXE)
         val meta = item.itemMeta ?: return item
         meta.displayName(Component.text(lang.getMessage(player, "gui.portal_item.name")).decoration(TextDecoration.ITALIC, false))
-        meta.lore(listOf(
-            Component.text(lang.getMessage(player, "gui.portal_item.lore_bind")),
-            Component.text(lang.getMessage(player, "gui.portal_item.lore_unbind"))
-        ).map { it.decoration(TextDecoration.ITALIC, false) })
+        meta.lore(lang.getComponentList(player, "gui.portal_item.lore_unbound"))
         try { meta.setMaxStackSize(1) } catch (e: Exception) {}
 
         meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
@@ -41,11 +38,7 @@ object PortalItemUtil {
         meta.persistentDataContainer.remove(TARGET_WORLD_NAME_KEY)
         meta.setEnchantmentGlintOverride(true)
         
-        val lore = mutableListOf<Component>()
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_dest", mapOf("destination" to worldName))).decoration(TextDecoration.ITALIC, false))
-        lore.add(Component.text(""))
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_place")).decoration(TextDecoration.ITALIC, false))
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_unbind")).decoration(TextDecoration.ITALIC, false))
+        val lore = lang.getComponentList(player, "gui.portal_item.lore_bound", mapOf("destination" to worldName))
         meta.lore(lore)
         
         item.itemMeta = meta
@@ -57,11 +50,7 @@ object PortalItemUtil {
         meta.persistentDataContainer.remove(WORLD_UUID_KEY)
         meta.setEnchantmentGlintOverride(true)
         
-        val lore = mutableListOf<Component>()
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_dest", mapOf("destination" to displayName))).decoration(TextDecoration.ITALIC, false))
-        lore.add(Component.text(""))
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_place")).decoration(TextDecoration.ITALIC, false))
-        lore.add(Component.text(lang.getMessage(player, "gui.portal_item.lore_unbind")).decoration(TextDecoration.ITALIC, false))
+        val lore = lang.getComponentList(player, "gui.portal_item.lore_bound", mapOf("destination" to displayName))
         meta.lore(lore)
         
         item.itemMeta = meta

@@ -1,6 +1,25 @@
 # MyWorldManager 言語ファイル (日本語)
 
 # 全般
+colors:
+  white: "白色"
+  silver: "薄灰色"
+  gray: "灰色"
+  black: "黒"
+  red: "赤"
+  maroon: "濃い赤色"
+  yellow: "黄色"
+  olive: "濃い黄色"
+  lime: "黄緑色"
+  green: "緑色"
+  aqua: "空色"
+  teal: "水色"
+  blue: "青"
+  navy: "紺色"
+  fuchsia: "赤紫色"
+  purple: "紫色"
+  orange: "オレンジ色"
+
 general:
   prefix: "§7[§aMyWorldManager§7] "
   no_permission: "§c権限がありません。"
@@ -46,6 +65,7 @@ world_tag:
   minigame: "ミニゲーム"
   building: "建築"
   facility: "共用施設"
+  streaming: "配信・撮影歓迎"
 
 publish_level:
   public: "公開"
@@ -100,13 +120,16 @@ gui:
     type:
       template:
         name: "テンプレートから作成"
-        desc: "用意されたテンプレートからワールドを作成します。"
+        lore:
+          - "用意されたテンプレートからワールドを作成します。"
       seed:
         name: "シード値を指定"
-        desc: "シード値を指定してワールドを生成します。"
+        lore:
+          - "シード値を指定してワールドを生成します。"
       random:
         name: "ランダム生成"
-        desc: "ワールドをランダムに生成します。"
+        lore:
+          - "ワールドをランダムに生成します。"
       cost: "§f§l| §7必要ポイント §6🛖 §e{cost}"
       points: "§f§l| §7所持ポイント §6🛖 §e{points}"
       available: "§a作成可能です！"
@@ -118,74 +141,124 @@ gui:
       preview_hint: "§7右クリックでプレビュー"
     confirm:
       name: "この内容で確定して作成"
-      world_name: "§f§l| §7ワールド名 §f{name}"
-      creation_type: "§f§l| §7作成方法 §f{type}"
-      template: "§f§l| §7テンプレート §f{template}"
-      seed: "§f§l| §7シード値 §f{seed}"
-      cost: "§f§l| §7消費ポイント §6🛖 §e{cost}"
+      # プレースホルダー: {name}, {type}, {template}, {seed}, {cost}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7ワールド名 §a{name}"
+        - "§f§l| §7作成方法 §e{type}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{template}"
+        - "{seed}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7消費ポイント §6🛖 §e{cost}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      template_line: "§f§l| §7テンプレート §f{template}"
+      seed_line: "§f§l| §7シード値 §f{seed}"
 
   portal:
     title: "ポータルの設定"
     id_format: "§8PORTAL_ID: {id}"
     toggle_text:
       name: "§a浮遊テキストの表示"
-      current: "§f現在の設定: {status}"
-      click: "§eクリックで切り替え"
+      lore:
+        - "§f現在の設定: {status}"
+        - ""
+        - "§eクリックで切り替え"
     destination_label: "§7行き先 "
     color:
       name: "§eパーティクルの色"
-      current: "§f§l| §7現在の色 {color}"
-      click: "§eクリックして変更"
-      click_prev: "§7« {color}"
-      click_next: "§7{color} »"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在の色 {color}"
+        - ""
+        - "§7« {prev_color}"
+        - "§7{next_color} »"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§eクリックして変更"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     remove:
       name: "§cポータルを撤去する"
-      desc: "§7設置されたポータルを撤去します。"
-      click: "§eクリックして実行"
-    colors:
-      white: "白色"
-      silver: "薄灰色"
-      gray: "灰色"
-      black: "黒"
-      red: "赤"
-      maroon: "濃い赤色"
-      yellow: "黄色"
-      olive: "濃い黄色"
-      lime: "黄緑色"
-      green: "緑色"
-      aqua: "空色"
-      teal: "水色"
-      blue: "青"
-      navy: "紺色"
-      fuchsia: "赤紫色"
-      purple: "紫色"
-      orange: "オレンジ色"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7設置されたポータルを撤去します。"
+        - "§eクリックして実行"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
 
   portal_item:
+  portal_item:
     name: "§bワールドポータル"
-    lore_bind: "§e§l| §e右クリック§7 現在のマイワールドを§bリンク§7する"
-    lore_unbind: "§e§l| §eShift + 右クリック§7 リンクを§c解除§7する"
-    lore_dest: "§f§l| §bリンク先 §f§n{destination}"
-    lore_place: "§f右クリックで設置して§dワールドポータル§f作成します！"
-
+    lore_unbound:
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§e§l| §e右クリック§7 現在のマイワールドを§bリンク§7する"
+      - "§e§l| §eShift + 右クリック§7 リンクを§c解除§7する"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+    lore_bound:
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§f§l| §bリンク先 §f§n{destination}"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§f右クリックで設置して§dワールドポータル§f作成します！"
+      - "§e§l| §eShift + 右クリック§7 リンクを§c解除§7する"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      
   template_wizard:
     title: "テンプレート作成ウィザード"
     name_input:
       display: "§eテンプレート名・IDの設定"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7テンプレートの表示名とIDを設定します。"
+        - " §f名前 {name}"
+        - " §fID {id}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§eクリックして設定"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     desc_input:
       display: "§eテンプレート説明文の設定"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7テンプレートの説明文を設定します。"
+        - "§7現在の設定"
+        - "{desc}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§eクリックして設定"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     icon_select:
       display: "§eテンプレートアイコンの選択"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7テンプレートのアイコンを設定します。"
+        - "§7現在の設定 {icon}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§eクリックして設定"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     origin_set:
       display: "§e原点座標の設定"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7スポーン地点やオフセットの基準となる原点を設定します。"
+        - "§7現在の設定 {origin}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§eクリックして設定"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     save_confirm:
       display: "§6テンプレートを保存・登録"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7現在の設定でテンプレートを保存します。"
+        - "§c※既存のファイルは上書きされます。"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§eクリックして実行"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
 
   unarchive_confirm:
     title: "§6アーカイブ解除の確認"
     lore:
+      - "§8§m－－－－－－－－－－－－－－－－－－"
       - "§fこのワールドは現在アーカイブされています。"
       - "§f解除してワープしますか？"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§eクリックして解除・ワープ"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
 
 
 
@@ -193,11 +266,22 @@ gui:
     title: "ポータルの遠隔管理"
     portal_item:
       name: "§bポータル: §f{id}"
-      lore_owner: "§f§l| §7所有者: §f{owner}"
-      lore_world: "§f§l| §7設置ワールド: §f{world}"
-      lore_location: "§f§l| §7座標: §f{x}, {y}, {z}"
-      lore_teleport: "§b▷ 左クリック§7でテレポート"
-      lore_remove: "§c▷ 右クリック§7で撤去"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7所有者: §f{owner}"
+        - "§f§l| §7設置ワールド: §f{world}"
+        - "§f§l| §7座標: §f{x}, {y}, {z}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §e左クリック §7ポータルの位置にテレポート"
+        - "§e§l| §e右クリック§7 ポータルを撤去"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_management:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7座標: §f{x}, {y}, {z}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §e左クリック §7ポータルの位置にテレポート"
+        - "§e§l| §e右クリック§7 ポータルを撤去"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     sort:
       display: "§e並び替え方法"
       created_desc: "設置日（新しい順）"
@@ -208,74 +292,124 @@ gui:
     info:
       display: "§aワールド情報の設定"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§l| §e左クリック§a ワールド名§fを変更"
         - "§e§l| §e右クリック§a ワールド説明§fを変更"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7クリック後、チャット欄に入力して設定します"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     spawn:
       display: "§aスポーン地点の設定"
       type:
         guest: "ゲスト用"
         member: "メンバー用"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§l| §e左クリック§b ゲスト用スポーン地点§fを設定"
         - "§e§l| §e右クリック§b メンバー用スポーン地点§fを設定"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7クリック後、設定したい地点のブロックを"
         - "§7クリックして決定します。"
         - "§e※設定時のプレイヤーの向きが保存されます"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     error:
       must_be_in_world_lore: "§c※この設定を変更するにはワールド内にいる必要があります"
     icon:
       display: "§aワールドアイコンの変更"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7クリックした後、インベントリ内のアイテムを"
         - "§7クリックしてアイコンを設定します"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     tags:
       display: "§aワールドタグの設定"
-      lore_header: "§f§l| §7設定中のタグ"
+      # プレースホルダー: {tags_list}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7設定中のタグ"
+        - "{tags_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックしてタグを編集"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       lore_empty: "  §fなし"
       lore_item: "  §6・{tag}"
-      lore_footer: "§e§nクリックしてタグを編集"
     expand:
       display: "§6ワールドの拡張"
-      lore_desc: "§7クリックして§bワールドのボーダーを拡張§7します"
-      level: "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
-      cost: "§f§l| §7コスト §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)"
-      cost_insufficient: "§f§l| §7コスト §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}ポイント§c不足しています。"
-      points: "§f§l| §7あなたの所有ポイント §6🛖 §e{points}"
-      max_level: "§f§l| §cこれ以上拡張できません！"
-      no_border_desc: "§aこのワールドにボーダーはありません。"
+      # プレースホルダー: {current}, {max}, {cost}, {level_before}, {level_after}, {points}
+      lore_upgrade:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7クリックして§bワールドのボーダーを拡張§7します"
+        - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7コスト §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)"
+        - "§f§l| §7あなたの所有ポイント §6🛖 §e{points}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      # プレースホルダー: {current}, {max}, {cost}, {level_before}, {level_after}, {points}, {shortage}
+      lore_insufficient:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7クリックして§bワールドのボーダーを拡張§7します"
+        - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7コスト §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}ポイント§c不足しています。"
+        - "§f§l| §7あなたの所有ポイント §6🛖 §e{points}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      # プレースホルダー: {current}, {max}
+      lore_max:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7クリックして§bワールドのボーダーを拡張§7します"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
+        - "§f§l| §cこれ以上拡張できません！"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_no_border:
+        - "§aこのワールドにボーダーはありません。"
     environment:
       display: "§aワールド環境の設定"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7ワールドのバイオーム、天気、重力を"
         - "§7変更することができます。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックで表示"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     publish:
       display: "§6公開レベルの変更"
-      current: "§f§l| §7現在の設定 {color}{level}"
+      # プレースホルダー: {current_color}, {current_level}, {level_list}, {description}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在の設定 {current_color}{current_level}"
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{level_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §e左クリック§7 前へ"
+        - "§e§l| §e右クリック§7 次へ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       active_prefix: "§6» "
       inactive_prefix: "  "
-      desc_header: "§f§l| §f説明 "
-      click_left: "§e§l| §e左クリック§7 前へ"
-      click_right: "§e§l| §e右クリック§7 次へ"
     member:
       display: "§6メンバーの管理"
-      count: "§f§l| §7現在のメンバー数 §b{count}人"
-      list_header: "§f§l| §bメンバーの一覧"
+      # プレースホルダー: {count}, {member_list}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在のメンバー数 §b{count}人"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §bメンバーの一覧"
+        - "{member_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックして一覧を表示"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       role_owner: "オーナー"
       role_moderator: "モデレーター"
       role_member: "メンバー"
       list_item: "  {debug_color}[{role_color}{role}{debug_color}] {name_color}{player}"
       list_item_member: "  {name_color}{player}"
       more_members: "  §7+{remaining}人 (§a{online}人オンライン§7)"
-      click: "§e§nクリックして一覧を表示"
-      promote: "§e§l| §e左クリック§7 モデレーターに変更"
-      demote: "§e§l| §e右クリック§7 メンバーに変更"
-      remove: "§e§l| §eShift + 左クリック§c メンバーから削除"
-      transfer: "§e§l| §eShift + 右クリック§c オーナー権限を移譲"
+      actions:
+        promote: "§e§l| §e左クリック§7 モデレーターに変更"
+        demote: "§e§l| §e右クリック§7 メンバーに変更"
+        remove: "§e§l| §eShift + 左クリック§c メンバーから削除"
+        transfer: "§e§l| §eShift + 右クリック§c オーナー権限を移譲"
     main_info:
       name: "§f【§a{world}§f】"
       lore:
@@ -306,84 +440,114 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
     visitors:
       display: "§a訪問中のプレイヤー一覧"
-      count: "§f§l| §7現在ワールドを訪れているプレイヤー §e{count}人"
-      click: "§e§nクリックして一覧を表示します"
+      # プレースホルダー: {count}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在ワールドを訪れているプレイヤー §e{count}人"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックして一覧を表示します"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     notification:
       display: "§a訪問通知の切り替え"
-      current: "§f§l| §7現在の設定 {color}{status}"
       "on": "オン"
       "off": "オフ"
-      desc:
+      # プレースホルダー: {color}, {status}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在の設定 {color}{status}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7オンの場合、メンバー以外の訪問者が"
         - "§7来た際にメンバー全員に通知します"
         - "§7個人設定からオフにすることもできます"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして切り替え"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     announcement:
       display: "§aプレイヤー案内の設定"
+      # プレースホルダー: {message_preview}
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7訪問者に向けて表示する"
         - "§7案内メッセージを設定します。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§n左クリック§7 メッセージを設定"
         - "§e§n右クリック§7 設定をリセット"
-      preview_header: "§f§l| §e§n現在の案内メッセージ"
+        - "{message_preview}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      preview_header: "§f§l| §7現在の案内メッセージ"
       preview_footer: "§e§nクリックして編集・リセット"
     critical:
       display: "§c§n重大な設定"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§cワールドの削除や、拡張の初期化など"
         - "§c取り返しのつかない操作を行います。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして表示"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     portals:
       display: "§b設置済みポータルの管理"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7ワールド内に設置されているポータルを"
         - "§7一括で管理・確認します。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして表示"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
 
   critical:
     title: "重大な設定"
     reset_expansion:
       display: "§c§nワールド拡張を初期化"
-      current: "§f§l| §7現在の拡張レベル §e§l{level}"
-      refund: "§f§l| §7返還されるポイント §6🛖 §e{points}"
-      click: "§e§nクリックして初期化を実行（この操作は取り消せません）"
-      unavailable: "§cまた拡張されていないため、初期化できません"
+      # Placeholder: {level}, {points}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在の拡張レベル §e§l{level}"
+        - "§f§l| §7返還されるポイント §6🛖 §e{points}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックして初期化を実行（この操作は取り消せません）"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_unavailable:
+        - "§cまた拡張されていないため、初期化できません"
     delete_world:
       display: "§4§l§nワールドを削除"
+      # Placeholder: {points}, {percent}
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7ワールドを完全に削除します。"
         - "§7この操作は取り消せません。"
-        - ""
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7返還されるポイント: §6🛖 §e{points}"
         - "§8(消費したポイントのうち、{percent}%が返還されます)"
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - ""
         - "§4§lクリックして削除を実行（この操作は取り消せません）"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
 
   confirm:
     reset_expansion:
       title: "確認"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§c本当に拡張を初期化しますか？"
-        - "§7ワールド拡張がリセットされ、使用したポイントが返還されます"
+        - "§7ワールド拡張がリセットされ、使用したポイントの一部が返還されます"
         - "§7ワールドボーダーも初期サイズに戻ります"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     delete_1:
       title: "確認"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§c§n本当にワールドを削除しますか？"
         - "§7ワールドの全データが失われ、復旧できなくなります！"
         - "§c※次の画面でもう一度確認があります！"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       next: "§c次へ進む"
     delete_2:
       title: "§n最終確認"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§4§l本当に本当に削除しますか？"
         - "§c§l【警告】クリックすることでワールドを完全に削除します！"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       confirm_btn: "§4§l【実行する】"
 
   expansion:
@@ -417,28 +581,47 @@ gui:
       desc: "§7クリックした後、名前を入力して招待します"
     remove_confirm:
       title: "確認"
-      question: "§c本当に削除しますか？"
-      player: "§f§l| §7プレイヤー §f{player}"
-      world: "§f§l| §7ワールド §f{world}"
-      warning: "§c※メンバーから削除すると、このワールドへのアクセス権限が失われます"
+      # Placeholder: {player}, {world}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§c本当に削除しますか？"
+        - "§f§l| §7プレイヤー §f{player}"
+        - "§f§l| §7ワールド §f{world}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§c※§c§nメンバーから削除すると、このワールドへのアクセス権限が失われます"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       cancel: "§aキャンセル"
       cancel_desc: "§7メンバー一覧に戻る"
       confirm: "§c削除する"
       confirm_desc: "§7このプレイヤーをワールドメンバーから削除します"
     item:
-      role_display: "§f§l| §7現在の権限 {role}"
-      change_role: "§e§l| §e左クリック §7権限を§b{role}§7に変更"
-      remove: "§e§l| §eShift + 右クリック §cワールドメンバーから削除"
-      transfer: "§e§l| §eShift + 左クリック §cオーナー権限を譲渡"
-      last_online: "§f§l| §7最終オンライン §f{date}"
-      role: "§f§l| §7権限 §f{role}"
+      last_online_label: "最終オンライン"
+      # Placeholder: {last_online}, {role}
+      # {last_online} should be empty if online or hidden logic in code
+      lore_info:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{last_online}"
+        - "§f§l| §7権限 §f{role}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      # Placeholder: {next_role}
+      lore_actions:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §e左クリック §7権限を§b{next_role}§7に変更"
+        - "§e§l| §eShift + 左クリック §cオーナー権限を譲渡"
+        - "§e§l| §eShift + 右クリック §cワールドメンバーから削除"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     
     transfer_confirm:
       title: "オーナー権限の譲渡"
-      question: "§c本当にオーナー権限を譲渡しますか？"
-      player: "§f§l| §7新しいオーナー §f{player}"
-      world: "§f§l| §7対象ワールド §f{world}"
-      warning: "§c※譲渡すると、あなたはこのワールドのオーナーではなくなります"
+      # Placeholder: {player}, {world}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§c本当にオーナー権限を譲渡しますか？"
+        - "§f§l| §7新しいオーナー §f{player}"
+        - "§f§l| §7対象ワールド §f{world}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§c※§c§n譲渡すると、あなたはこのワールドのオーナーではなくなります"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       cancel: "§aキャンセル"
       cancel_desc: "§7メンバー一覧に戻る"
       confirm: "§c譲渡する"
@@ -469,59 +652,72 @@ gui:
     update_data:
       display: "§eデータ更新"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7全ワールド・プレイヤーデータの整合性を確認し、"
         - "§7修復・更新を行います。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして確認画面へ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       confirm_title: "データ更新の確認"
     repair_templates:
       display: "§eテンプレート修復"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7欠損しているテンプレートワールドを検出し、"
         - "§7再生成を試みます。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして確認画面へ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       confirm_title: "テンプレート修復の確認"
     create_template:
       display: "§aテンプレート作成"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7テンプレート作成ウィザードを開きます。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして開始"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     archive:
       display: "§cアーカイブ実行"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7期限切れのワールドを一括アーカイブします。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして確認画面へ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       confirm_title: "一括アーカイブの確認"
     convert:
       display: "§6ワールド変換"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7現在のワールドをMyWorld管理下に登録します。"
-        - ""
-        - "§e§n左クリック§7 Normalモードで変換"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l §e左クリック§7 Normalモードで変換"
         - "§7(ディレクトリをリネームして標準管理)"
-        - ""
-        - "§e§n右クリック§7 Adminモードで変換"
+        - "§e§l §e右クリック§7 Adminモードで変換"
         - "§7(現在の構成を維持して管理のみ適用)"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       confirm_normal: "変換確認 (Normal)"
       confirm_admin: "変換確認 (Admin)"
     unlink:
       display: "§c紐づけ解除"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7現在のワールドのマイワールド設定を削除し、"
         - "§7通常のワールドに戻します。"
         - "§7(ワールドデータ自体は削除されません)"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして確認画面へ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       confirm_title: "紐づけ解除の確認"
     export:
       display: "§bワールドのエクスポート"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7現在のワールドをZIP形式でエクスポートします。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして確認画面へ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       confirm_title: "エクスポート確認"
       target_world: "§f§l| §7対象ワールド §b{world}"
     archive_world:
@@ -533,15 +729,19 @@ gui:
     info:
       display: "§aワールド一覧"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7全ワールドの一覧を表示・管理します。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして開く"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     portals:
       display: "§bポータル管理"
       lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7設置済みポータルの一覧を表示します。"
-        - ""
+        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして開く"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
 
   admin:
     title: "マイワールドの管理"
@@ -550,22 +750,45 @@ gui:
       total_count: "§f§l| §7検索結果 §b{count}件"
       page: "§7表示中: §a{page}§7/{total_pages} ページ"
     world_item:
+      # Placeholder: {owner_line}, {status_line}, {publish_line}, {expansion_line}, {created_line}, {expire_line}, {mspt_line}, {action_warp}...
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{owner_line}"
+        - "{status_line}"
+        - "{publish_line}"
+        - "{expansion_line}"
+        - "{created_line}"
+        - "{expire_line}"
+        - "{mspt_line}"
+        - "{tag_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{action_warp}"
+        - "{action_settings}"
+        - "{action_archive}"
+        - "{uuid_copy_hint}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+
+      # Line Formats used by code to construct lines above
       owner: "§f§l| §7オーナー {owner}{status_color}"
       status: "§f§l| §7状態 {status}"
       status_archived: "§cアーカイブ済み"
       status_active: "§bアクティブ"
       publish: "§f§l| §7公開レベル {color}{level}"
       expansion: "§f§l| §7拡張レベル §e{level}"
+      
       expires_at: "§f§l| §7自動アーカイブ予定 §e{date} §8({days_remain})"
       created_at: "§f§l| §7作成日 §e{date} §8({days_ago})"
+      
       created_info_days: "§7{days}日前"
       created_info_today: "§7今日"
       expire_info_remaining: "§7残り {days}日"
       expire_info_overdue: "§7アーカイブから §c{days}日 経過"
+      
       mspt: "§f§l| §7MSPT: §{color}{mspt} §7ms"
       mspt_low: "§f§l| §7MSPT: §a0.1§7 ms 未満"
       mspt_unloaded: "§f§l| §7MSPT: §cこのワールドはアンロードされています"
       mspt_error: "§f§l| §7MSPT: §c§l取得に失敗しました"
+      
       action_archive: "§e§l| §eShift + 右クリック§7 アーカイブ状態を切り替え"
       action_settings: "§e§l| §e右クリック§7 このワールドの設定を開く"
       action_warp: "§e§l| §e左クリック§7 このワールドへ§bワープ"
@@ -585,6 +808,15 @@ gui:
         locked: "封鎖中のみ"
       player:
         display: "§eプレイヤーフィルター"
+        # プレースホルダー: {type}, {player}
+        lore:
+          - "§8§m－－－－－－－－－－－－－－－－－－"
+          - "§f§l| §7フィルタータイプ §f{type}"
+          - "§f§l| §7対象プレイヤー §b{player}"
+          - "§8§m－－－－－－－－－－－－－－－－－－"
+          - "§e§n左クリック§7 タイプを変更"
+          - "§e§n右クリック§7 プレイヤーを設定"
+          - "§8§m－－－－－－－－－－－－－－－－－－"
         none: "フィルターなし"
         owner: "オーナーのワールド"
         member: "メンバーのワールド"
@@ -603,6 +835,7 @@ gui:
       expansion_desc: "§a拡張レベル（高い順）"
       expansion_asc: "§a拡張レベル（低い順）"
       mspt_desc: "§aMSPT（高い順）"
+
 
   environment:
     title: "環境設定"
@@ -659,6 +892,20 @@ gui:
   discovery:
     title: "ワールドディスカバリー"
     world_item:
+      # プレースホルダー: {description}, {owner}, {status_color}, {favorites}, {visitors}, {tags}, {preview_hint}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7オーナー {owner}{status_color}"
+        - "§f§l| §7お気に入り §c{favorites}"
+        - "§f§l| §7最近の来訪者 §a{visitors}"
+        - "§f§l| §7タグ §e{tags}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §e左クリック §7ワープ"
+        - "{preview_hint}"
+        - "§e§l| §eホイールクリック §7お気に入り登録/解除"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       owner: "§f§l| §7オーナー {owner}{status_color}"
       tag: "§f§l| §7タグ §b{tags}"
       favorite: "§f§l| §7お気に入り §c{count}"
@@ -681,6 +928,16 @@ gui:
         - "§7現在このスロットにはワールドが登録されていません。"
         - "§8§m－－－－－－－－－－－－－－－－－－"
     sort:
+      display: "§a並び替え方法の選択"
+      # プレースホルダー: {current_prefix}, {sort_name}, {sort_desc}, {sort_list}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7{current_prefix} §f{sort_name}"
+        - "  §8{sort_desc}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{sort_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックして切り替え"
       name: "§a並び替え方法の選択"
       click: "§e§nクリックして切り替え"
       type:
@@ -691,6 +948,16 @@ gui:
         random: "§bRANDOM"
     tag_select:
       display: "§aタグの選択"
+      # プレースホルダー: {tag}, {tag_list}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| 選択中のタグ §6{tag}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{tag_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§n左クリック§7 次へ"
+        - "§e§n右クリック§7 選択を解除"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       current: "§f§l| 選択中のタグ §6{tag}"
       none: "§fなし"
       active: "§a» {tag}"
@@ -699,6 +966,14 @@ gui:
       click_reset: "§e§n右クリック§7 選択を解除"
     tag_filter:
       name: "タグフィルター"
+      # プレースホルダー: {prefix}, {tag}, {click_left}, {click_right}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| {prefix} §f{tag}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{click_left}"
+        - "{click_right}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       current_prefix: "現在の設定"
       no_selection: "設定なし"
       all: "すべて"
@@ -706,6 +981,15 @@ gui:
       click_right: "§e§n右クリック§7 フィルターを解除"
     stats:
       name: "§f統計情報"
+      # プレースホルダー: {sort}, {tag}, {count}, {desc}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7並び順: §b{sort}"
+        - "§f§l| §7タグ: §b{tag}"
+        - "§f§l| §7検索結果 §b{count}件"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7{desc}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       sort: "§f§l| §7並び順: §b{sort}"
       tag: "§f§l| §7タグ: §b{tag}"
       count: "§f§l| §7検索結果 §b{count}件"
@@ -727,14 +1011,37 @@ gui:
   favorite:
     title: "お気に入りリスト"
     world_item:
+      # Placeholder: {description}, {owner_line}, {favorite_line}, {visitor_line}, {tag_line}, {warp_line}, {archived_line}, {unfavorite_line}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{owner_line}"
+        - "{favorite_line}"
+        - "{visitor_line}"
+        - "{tag_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{warp_line}"
+        - "{archived_line}"
+        - "{unfavorite_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+
       owner: "§f§l| §7オーナー §b{owner}{status_color}"
-      favorite: "§f§l| §7お気に入りされた数 §c{count}"
-      recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
+      favorite: "§f§l| §7お気に入り §c{count}"
+      recent_visitors: "§f§l| §7最近の来訪者 §a{count}"
+      tag: "§f§l| §7タグ §e{tags}"
+      warp: "§e§l| §e左クリック§7 ワープ"
       unfavorite: "§cShift + 右クリックでお気に入りを解除"
       archived_label: "§c【アーカイブされています】"
       unfavorite_archived: "§cクリックしてお気に入りから削除"
     info:
       display: "§f統計情報"
+      # プレースホルダー: {count}, {current_page}, {max_page}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7登録中 §f{count}件"
+        - "§7表示中 §a{current_page}§7/{max_page}ページ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       count: "§7登録中 §f{count}件"
       page: "§7表示中 §a{current}§7/{max}ページ"
     player_icon:
@@ -799,21 +1106,53 @@ gui:
   visit:
     title: "{player}のワールド"
     world_item:
+      # Placeholder: {description}, {owner_line}, {favorite_line}, {visitor_line}, {tag_line}, {warp_line}, {fav_action_line}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{owner_line}"
+        - "{favorite_line}"
+        - "{visitor_line}"
+        - "{tag_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{warp_line}"
+        - "{fav_action_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+
       owner: "§f§l| §7オーナー §b{owner}{status_color}"
       tag: "§f§l| §7タグ §b{tags}"
       favorite: "§f§l| §7お気に入り §c{count}"
-      recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
-      warp: "§e§l| §e左クリック§7 このワールドへワープ"
+      recent_visitors: "§f§l| §7最近の来訪者 §a{count}"
+      warp: "§e§l| §e左クリック§7 ワープ"
       fav_add: "§e§l| §e右クリック§7 お気に入りに§a追加"
       fav_remove: "§e§l| §c右クリック§7 お気に入りを§c解除"
 
   player_world:
     title: "マイワールドの一覧"
     world_item:
+      # Placeholder: {description}, {owner_line}, {publish_line}, {favorite_line}, {visitor_line}, {tag_line}, {expires_at_line}, {expired_line}, {warp_action}, {settings_action}
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{owner_line}"
+        - "{publish_line}"
+        - "{favorite_line}"
+        - "{visitor_line}"
+        - "{tag_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{expires_at_line}"
+        - "{expired_line}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{warp_action}"
+        - "{settings_action}"
+
       owner: "§f§l| §7オーナー §f{owner}"
       publish: "§f§l| §7公開設定 §b{level}{status_color}"
       favorite: "§f§l| §7お気に入り §c{count}"
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
+      tag: "§f§l| §7タグ §e{tags}"
       warp: "§e§l| §e左クリック§7 このワールドへ§bワープ"
       settings: "§e§l| §e右クリック§7 ワールド設定を開く"
       expired: "§c§nこのワールドはアーカイブされています"

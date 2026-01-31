@@ -52,7 +52,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         for (i in 9..17) inventory.setItem(i, greyPane)
 
         val textStatus = if (portal.showText) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
-        inventory.setItem(11, createItem(Material.OAK_SIGN, lang.getMessage(player, "gui.portal.toggle_text.name"), listOf(lang.getMessage(player, "gui.portal.toggle_text.current", mapOf("status" to textStatus)), "", lang.getMessage(player, "gui.portal.toggle_text.click")), ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT))
+        inventory.setItem(11, createItem(Material.OAK_SIGN, lang.getMessage(player, "gui.portal.toggle_text.name"), lang.getComponentList(player, "gui.portal.toggle_text.lore", mapOf("status" to textStatus)), ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT))
 
         // 色アイコン決定処理
         val colorKey = when (portal.particleColor) {
@@ -67,25 +67,28 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         val nextIndex = (currentIndex + 1) % colors.size
         val prevIndex = (currentIndex + colors.size - 1) % colors.size
         
-        val colorName = lang.getMessage(player, "gui.portal.colors.$colorKey")
+        val colorName = lang.getMessage(player, "colors.$colorKey")
         val nextColorKey = getColorKey(colors[nextIndex])
         val prevColorKey = getColorKey(colors[prevIndex])
-        val nextColorName = lang.getMessage(player, "gui.portal.colors.$nextColorKey")
-        val prevColorName = lang.getMessage(player, "gui.portal.colors.$prevColorKey")
+        val nextColorName = lang.getMessage(player, "colors.$nextColorKey")
+        val prevColorName = lang.getMessage(player, "colors.$prevColorKey")
 
         inventory.setItem(13, createItem(
             getWoolColor(portal.particleColor),
             lang.getMessage(player, "gui.portal.color.name"), 
-            listOf(
-                lang.getMessage(player, "gui.portal.color.current", mapOf("color" to colorName)),
-                "", 
-                lang.getMessage(player, "gui.portal.color.click_prev", mapOf("color" to prevColorName)),
-                lang.getMessage(player, "gui.portal.color.click_next", mapOf("color" to nextColorName))
+            lang.getComponentList(
+                player,
+                "gui.portal.color.lore",
+                mapOf(
+                    "color" to colorName,
+                    "prev_color" to prevColorName,
+                    "next_color" to nextColorName
+                )
             ),
             ItemTag.TYPE_GUI_PORTAL_CYCLE_COLOR
         ))
         
-        inventory.setItem(15, createItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.portal.remove.name"), listOf(lang.getMessage(player, "gui.portal.remove.desc"), "", lang.getMessage(player, "gui.portal.remove.click")), ItemTag.TYPE_GUI_PORTAL_REMOVE))
+        inventory.setItem(15, createItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.portal.remove.name"), lang.getComponentList(player, "gui.portal.remove.lore"), ItemTag.TYPE_GUI_PORTAL_REMOVE))
 
         // Portal IDの保持
         val metaItem = inventory.getItem(0)!!
@@ -166,12 +169,12 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    private fun createItem(material: Material, name: String, loreLines: List<String>, type: String): ItemStack {
+    private fun createItem(material: Material, name: String, lore: List<Component>, type: String): ItemStack {
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
         
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(loreLines.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
+        meta.lore(lore)
         
         item.itemMeta = meta
         ItemTag.tagItem(item, type)
