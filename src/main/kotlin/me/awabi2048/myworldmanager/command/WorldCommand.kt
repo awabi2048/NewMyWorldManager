@@ -370,7 +370,8 @@ class WorldCommand(
                     )
                     return true
                 }
-                performMigration(sender)
+                val dataOnly = args.contains("-data")
+                performMigration(sender, dataOnly)
                 plugin.config.set("migration.enable_world_migration", false)
                 plugin.saveConfig()
                 return true
@@ -449,6 +450,8 @@ class WorldCommand(
                 } else if (sub == "export") {
                     val worlds: List<WorldData> = plugin.worldConfigRepository.findAll()
                     list.addAll(worlds.map { it.uuid.toString() })
+                } else if (sub == "migrate-worlds") {
+                    list.add("-data")
                 }
             }
             3 -> {
@@ -473,7 +476,7 @@ class WorldCommand(
         return list.filter { it.lowercase().startsWith(args.last().lowercase()) }
     }
 
-    private fun performMigration(sender: CommandSender) {
+    private fun performMigration(sender: CommandSender, dataOnly: Boolean = false) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val lang = plugin.languageManager
         val file = java.io.File(plugin.dataFolder, "world_data.yml")
@@ -518,7 +521,7 @@ class WorldCommand(
                             java.io.File(Bukkit.getWorldContainer(), worldName)
                         }
 
-                if (!worldFolder.exists() || !worldFolder.isDirectory) {
+                if (!dataOnly && (!worldFolder.exists() || !worldFolder.isDirectory)) {
                     val errorMsg =
                             lang.getMessage(
                                     "messages.migration_folder_not_found",
@@ -549,12 +552,13 @@ class WorldCommand(
                     for (mUuidStr in memberSection.getKeys(false)) {
                         try {
                             val mUuid = UUID.fromString(mUuidStr)
+                            // オーナーは権限リストに含めない (重複防止)
+                            if (mUuid == owner) continue
+
                             val role = memberSection.getString(mUuidStr)?.uppercase() ?: "MEMBER"
                             when (role) {
                                 "OWNER", "MODERATOR" -> moderators.add(mUuid)
-                                "MEMBER" -> {
-                                    if (mUuid != owner) members.add(mUuid)
-                                }
+                                "MEMBER" -> members.add(mUuid)
                             }
                         } catch (e: Exception) {}
                     }
@@ -760,17 +764,9 @@ class WorldCommand(
 
                 val locSection = section.getConfigurationSection("location") ?: continue
                 val worldName = locSection.getString("world") ?: continue
-                val world = Bukkit.getWorld(worldName)
-                if (world == null) {
-                    plugin.logger.warning(
-                            "Migration warning: World '$worldName' not found for portal $id."
-                    )
-                    continue
-                }
                 val x = locSection.getDouble("x")
                 val y = locSection.getDouble("y")
                 val z = locSection.getDouble("z")
-                val location = org.bukkit.Location(world, x, y, z)
 
                 val ownerStr = section.getString("owner") ?: continue
                 val ownerUuid = UUID.fromString(ownerStr)
