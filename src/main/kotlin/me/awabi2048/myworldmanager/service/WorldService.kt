@@ -115,63 +115,7 @@ class WorldService(
                 return false
             }
 
-            // ワールドデータの保存
-            val now = java.time.LocalDateTime.now()
-            val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            val expireDate =
-                    java.time.LocalDate.now()
-                            .plusDays(
-                                    plugin.config.getLong(
-                                            "world_settings.default_expiration_days",
-                                            30
-                                    )
-                            )
-            
-            // 初期ワールドボーダーの設定
-            val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
-            val initialCenter = world.spawnLocation
-            
-            val border = world.worldBorder
-            border.center = initialCenter
-            border.size = initialSize
-
-            val worldData =
-                    WorldData(
-                            uuid = uuid,
-                            name = worldName,
-                            description = "My World",
-                            icon = org.bukkit.Material.GRASS_BLOCK,
-                            sourceWorld = "template",
-                            expireDate = expireDate.toString(),
-                            owner = player.uniqueId,
-                            members = mutableListOf(),
-                            moderators = mutableListOf(),
-                            publishLevel = me.awabi2048.myworldmanager.model.PublishLevel.PRIVATE,
-                            spawnPosMember = initialCenter, // 初期スポーン地点も設定しておく
-                            borderCenterPos = initialCenter, // ボーダー中心も設定
-                            borderExpansionLevel = 0, // 初期化
-                            isArchived = false,
-                            customWorldName = worldFolderName,
-                            createdAt = now.format(formatter)
-                    )
-
-            repository.save(worldData)
-
-            // プレイヤーの統計情報を更新（作成ワールド数をインクリメントなど）
-            // 実装予定
-
-            player.sendMessage(
-                    plugin.languageManager.getMessage(
-                            player,
-                            "messages.world_creation_success",
-                            mapOf("world" to worldName)
-                    )
-            )
-
-            // 作成完了後、テレポートするか尋ねる、あるいは自動でテレポート
-            teleportToWorld(player, uuid)
-
-            creatingWorlds.remove(player.uniqueId.toString())
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -179,6 +123,66 @@ class WorldService(
             creatingWorlds.remove(player.uniqueId.toString())
             return false
         }
+    }
+
+    private fun finalizeWorldCreation(
+            player: Player,
+            uuid: UUID,
+            worldName: String,
+            worldFolderName: String,
+            world: org.bukkit.World
+    ) {
+        val now = java.time.LocalDateTime.now()
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val expireDate =
+                java.time.LocalDate.now()
+                        .plusDays(
+                                plugin.config.getLong(
+                                        "world_settings.default_expiration_days",
+                                        30
+                                )
+                        )
+
+        // 初期ワールドボーダーの設定
+        val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+        val initialCenter = world.spawnLocation
+
+        val border = world.worldBorder
+        border.center = initialCenter
+        border.size = initialSize
+
+        val worldData =
+                WorldData(
+                        uuid = uuid,
+                        name = worldName,
+                        description = "My World",
+                        icon = org.bukkit.Material.GRASS_BLOCK,
+                        sourceWorld = "template",
+                        expireDate = expireDate.toString(),
+                        owner = player.uniqueId,
+                        members = mutableListOf(),
+                        moderators = mutableListOf(),
+                        publishLevel = me.awabi2048.myworldmanager.model.PublishLevel.PRIVATE,
+                        spawnPosMember = initialCenter,
+                        borderCenterPos = initialCenter,
+                        borderExpansionLevel = 0,
+                        isArchived = false,
+                        customWorldName = worldFolderName,
+                        createdAt = now.format(formatter)
+                )
+
+        repository.save(worldData)
+
+        player.sendMessage(
+                plugin.languageManager.getMessage(
+                        player,
+                        "messages.world_creation_success",
+                        mapOf("world" to worldName)
+                )
+        )
+
+        teleportToWorld(player, uuid)
+        creatingWorlds.remove(player.uniqueId.toString())
     }
 
     /** ワールドの生成処理（async互換用） */
@@ -212,8 +216,97 @@ class WorldService(
             future.complete(false)
             return future
         }
-        val success = createWorld(player, worldName, null, org.bukkit.World.Environment.NORMAL)
-        future.complete(success)
+
+        val uuid = UUID.randomUUID()
+        val worldFolderName = "my_world.${uuid}"
+
+        if (Bukkit.getWorld(worldFolderName) != null ||
+                        File(Bukkit.getWorldContainer(), worldFolderName).exists()
+        ) {
+            player.sendMessage(
+                    plugin.languageManager.getMessage(player, "error.world_already_exists")
+            )
+            future.complete(false)
+            return future
+        }
+
+        if (creatingWorlds.contains(player.uniqueId.toString())) {
+            player.sendMessage(
+                    plugin.languageManager.getMessage(player, "error.world_creation_in_progress")
+            )
+            future.complete(false)
+            return future
+        }
+        creatingWorlds.add(player.uniqueId.toString())
+
+        player.sendMessage(
+                plugin.languageManager.getMessage(
+                        player,
+                        "messages.world_creation_started",
+                        mapOf("world" to worldName)
+                )
+        )
+
+        val templateFolder = File(Bukkit.getWorldContainer(), templateName)
+        if (!templateFolder.exists() || !templateFolder.isDirectory) {
+            player.sendMessage("§cテンプレートが見つかりません: $templateName")
+            creatingWorlds.remove(player.uniqueId.toString())
+            future.complete(false)
+            return future
+        }
+
+        val targetFolder = File(Bukkit.getWorldContainer(), worldFolderName)
+
+        // フォルダのコピー (非同期スレッドで実行)
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            try {
+                // 手動での再帰的コピー (session.lock 等を避けるため)
+                templateFolder.walkTopDown().forEach { file ->
+                    val relativePath = file.relativeTo(templateFolder).path
+                    val targetFile = File(targetFolder, relativePath)
+
+                    // スキップするファイル/ディレクトリ
+                    if (file.name == "session.lock" || file.name == "uid.dat") return@forEach
+
+                    if (file.isDirectory) {
+                        targetFile.mkdirs()
+                    } else {
+                        file.copyTo(targetFile, overwrite = true)
+                    }
+                }
+
+                // ワールドの読み込みはメインスレッドで行う
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    try {
+                        val creator = WorldCreator(worldFolderName)
+                        val world = plugin.server.createWorld(creator)
+
+                        if (world == null) {
+                            player.sendMessage(plugin.languageManager.getMessage(player, "error.world_creation_failed"))
+                            creatingWorlds.remove(player.uniqueId.toString())
+                            future.complete(false)
+                            return@Runnable
+                        }
+
+                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world)
+                        future.complete(true)
+                    } catch (e: Exception) {
+                        plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
+                        player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+                        creatingWorlds.remove(player.uniqueId.toString())
+                        future.complete(false)
+                    }
+                })
+            } catch (e: Exception) {
+                plugin.logger.log(Level.SEVERE, "Failed to copy template: $templateName", e)
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    player.sendMessage("§cテンプレートのコピーに失敗しました。")
+                    creatingWorlds.remove(player.uniqueId.toString())
+                    future.complete(false)
+                })
+            }
+        })
+
         return future
     }
 

@@ -14,5 +14,14 @@ data class SettingsSession(
     var showBackButton: Boolean = false,
     var isAdminFlow: Boolean = false,
     var isPlayerWorldFlow: Boolean = false,
-    var parentShowBackButton: Boolean = false
-)
+    var parentShowBackButton: Boolean = false,
+    private val metadata: MutableMap<String, Any> = mutableMapOf()
+) {
+    fun setMetadata(key: String, value: Any) {
+        metadata[key] = value
+    }
+
+    fun getMetadata(key: String): Any? {
+        return metadata[key]
+    }
+}
