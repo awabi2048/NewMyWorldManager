@@ -1,4 +1,4 @@
-package me.awabi2048.myworldmanager.listener
+﻿package me.awabi2048.myworldmanager.listener
 
 import io.papermc.paper.event.player.AsyncChatEvent
 import java.util.UUID
@@ -26,6 +26,7 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.player.PlayerChangedWorldEvent
+import org.bukkit.event.player.PlayerCommandPreprocessEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
@@ -48,23 +49,23 @@ class WorldSettingsListener : Listener {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
 
-                // GUI遷移中のクリックを無視
+                // GUI驕ｷ遘ｻ荳ｭ縺ｮ繧ｯ繝ｪ繝・け繧堤┌隕・
                 if (session.isGuiTransition) {
                         event.isCancelled = true
                         return
                 }
 
-                // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)
-                // ただし、clickedInventoryチェックが必要か？
-                // ここでは一旦キャンセルせずに各分岐に委ねる、あるいはトップインベントリならキャンセル？
-                // 既存実装は各ifブロックで event.isCancelled = true していた。
+                // 繧ｻ繝・す繝ｧ繝ｳ縺梧怏蜉ｹ縺ｪ蝣ｴ蜷医∝渕譛ｬ繧ｭ繝｣繝ｳ繧ｻ繝ｫ (蜷・ase縺ｧ隗｣髯､繧ょ庄閭ｽ縺縺悟渕譛ｬ縺ｯGUI)
+                // 縺溘□縺励…lickedInventory繝√ぉ繝・け縺悟ｿ・ｦ√°・・
+                // 縺薙％縺ｧ縺ｯ荳譌ｦ繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺帙★縺ｫ蜷・・蟯舌↓蟋斐・繧九√≠繧九＞縺ｯ繝医ャ繝励う繝ｳ繝吶Φ繝医Μ縺ｪ繧峨く繝｣繝ｳ繧ｻ繝ｫ・・
+                // 譌｢蟄伜ｮ溯｣・・蜷・f繝悶Ο繝・け縺ｧ event.isCancelled = true 縺励※縺・◆縲・
 
                 val item = event.currentItem ?: return
                 val type = ItemTag.getType(item)
                 val lang = plugin.languageManager
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
 
-                // 共通メソッド: キャンセルとクリック音
+                // 蜈ｱ騾壹Γ繧ｽ繝・ラ: 繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺ｨ繧ｯ繝ｪ繝・け髻ｳ
                 fun handleCommandCancel() {
                         plugin.soundManager.playClickSound(player, item, "world_settings")
                         plugin.worldSettingsGui.open(player, worldData)
@@ -154,7 +155,7 @@ class WorldSettingsListener : Listener {
                                                 )
                                                 if (event.isShiftClick) {
                                                         if (event.isLeftClick) {
-                                                                // オーナー譲渡
+                                                                // 繧ｪ繝ｼ繝翫・隴ｲ貂｡
                                                                 val config = plugin.config
                                                                 val stats =
                                                                         plugin.playerStatsRepository
@@ -195,7 +196,7 @@ class WorldSettingsListener : Listener {
                                                                                 memberId
                                                                         )
                                                         } else if (event.isRightClick) {
-                                                                // メンバー削除
+                                                                // 繝｡繝ｳ繝舌・蜑企勁
                                                                 plugin.worldSettingsGui
                                                                         .openMemberRemoveConfirmation(
                                                                                 player,
@@ -204,16 +205,16 @@ class WorldSettingsListener : Listener {
                                                                         )
                                                         }
                                                 } else if (event.isLeftClick) {
-                                                        // 権限変更
+                                                        // 讓ｩ髯仙､画峩
                                                         val isModerator = worldData.moderators.contains(memberId)
                                                         if (isModerator) {
-                                                                // モデレーター -> メンバー
+                                                                // 繝｢繝・Ξ繝ｼ繧ｿ繝ｼ -> 繝｡繝ｳ繝舌・
                                                                 worldData.moderators.remove(memberId)
                                                                 if (!worldData.members.contains(memberId)) {
                                                                         worldData.members.add(memberId)
                                                                 }
                                                         } else {
-                                                                // メンバー -> モデレーター
+                                                                // 繝｡繝ｳ繝舌・ -> 繝｢繝・Ξ繝ｼ繧ｿ繝ｼ
                                                                 worldData.members.remove(memberId)
                                                                 if (!worldData.moderators.contains(memberId)) {
                                                                         worldData.moderators.add(memberId)
@@ -221,7 +222,7 @@ class WorldSettingsListener : Listener {
                                                         }
                                                         plugin.worldConfigRepository.save(worldData)
 
-                                                        // GUIリフレッシュ
+                                                        // GUI繝ｪ繝輔Ξ繝・す繝･
                                                         plugin.worldSettingsGui.openMemberManagement(player, worldData, 0, false)
                                                 }
                                         }
@@ -263,7 +264,7 @@ class WorldSettingsListener : Listener {
                                                         )
                                                 )
 
-                                                // マクロ実行
+                                                // 繝槭け繝ｭ螳溯｡・
                                                 plugin.macroManager.execute(
                                                         "on_member_remove",
                                                         mapOf(
@@ -307,15 +308,15 @@ class WorldSettingsListener : Listener {
                                         val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
 
 
-                                        // オーナー権限譲渡の処理
+                                        // 繧ｪ繝ｼ繝翫・讓ｩ髯占ｭｲ貂｡縺ｮ蜃ｦ逅・
                                         worldData.owner = newOwnerId
 
-                                        // 旧オーナーをモデレーターへ
+                                        // 譌ｧ繧ｪ繝ｼ繝翫・繧偵Δ繝・Ξ繝ｼ繧ｿ繝ｼ縺ｸ
                                         if (!worldData.moderators.contains(oldOwnerId)) {
                                                 worldData.moderators.add(oldOwnerId)
                                         }
 
-                                        // 新オーナーをメンバー/モデレーターリストから削除
+                                        // 譁ｰ繧ｪ繝ｼ繝翫・繧偵Γ繝ｳ繝舌・/繝｢繝・Ξ繝ｼ繧ｿ繝ｼ繝ｪ繧ｹ繝医°繧牙炎髯､
                                         worldData.moderators.remove(newOwnerId)
                                         worldData.members.remove(newOwnerId)
 
@@ -328,7 +329,7 @@ class WorldSettingsListener : Listener {
                                                 )
                                         )
 
-                                        // マクロ実行
+                                        // 繝槭け繝ｭ螳溯｡・
                                         plugin.macroManager.execute(
                                                 "on_owner_transfer",
                                                 mapOf(
@@ -522,7 +523,7 @@ class WorldSettingsListener : Listener {
                                                 null,
                                                 cost
                                         )
-                                } else if (type == ItemTag.TYPE_GUI_SETTING_SPAWN) {
+                                } else if (type == ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION) {
                                         plugin.soundManager.playClickSound(
                                                 player,
                                                 item,
@@ -532,6 +533,7 @@ class WorldSettingsListener : Listener {
                                         player.closeInventory()
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
+                                                        player,
                                                         "messages.expand_direction_prompt"
                                                 )
                                         )
@@ -573,7 +575,7 @@ class WorldSettingsListener : Listener {
                                                 )
 
                                         if (stats.worldPoint < cost) {
-                                                player.sendMessage("§cポイントが不足しています。")
+                                                 player.sendMessage("§cポイントが不足しています。")
                                                 player.closeInventory()
                                                 return
                                         }
@@ -640,9 +642,9 @@ class WorldSettingsListener : Listener {
                                 event.isCancelled = true
                                 val clickedItem = event.currentItem ?: return
 
-                                // アイコン選択モード
+                                // 繧｢繧､繧ｳ繝ｳ驕ｸ謚槭Δ繝ｼ繝・
                                 if (session.action == SettingsAction.SELECT_ICON) {
-                                        // 装飾アイテム以外ならアイコンとしてセット
+                                        // 陬・｣ｾ繧｢繧､繝・Β莉･螟悶↑繧峨い繧､繧ｳ繝ｳ縺ｨ縺励※繧ｻ繝・ヨ
                                         if (clickedItem.type != Material.AIR &&
                                                         !ItemTag.isType(
                                                                 clickedItem,
@@ -691,6 +693,7 @@ class WorldSettingsListener : Listener {
                                 val restrictedTags =
                                         setOf(
                                                 ItemTag.TYPE_GUI_SETTING_SPAWN,
+                                                ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION,
                                                 ItemTag.TYPE_GUI_SETTING_EXPAND,
                                                 ItemTag.TYPE_GUI_SETTING_ENVIRONMENT,
                                                 ItemTag.TYPE_GUI_SETTING_CRITICAL
@@ -1092,7 +1095,7 @@ class WorldSettingsListener : Listener {
                                                                         worldData
                                                                 )
                                                 } else {
-                                                        // ポータルがない場合は開かない (クリック音だけ鳴る、または何もしない)
+                                                        // 繝昴・繧ｿ繝ｫ縺後↑縺・ｴ蜷医・髢九°縺ｪ縺・(繧ｯ繝ｪ繝・け髻ｳ縺縺鷹ｳｴ繧九√∪縺溘・菴輔ｂ縺励↑縺・
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,
@@ -1145,45 +1148,41 @@ class WorldSettingsListener : Listener {
                                                                 worldData.moderators.contains(
                                                                         player.uniqueId
                                                                 ) ||
+                                                                worldData.members.contains(
+                                                                        player.uniqueId
+                                                                ) ||
                                                                 session.isAdminFlow
-                                                val isAdmin =
-                                                        player.hasPermission(
-                                                                "my_world_manager.admin"
-                                                        )
-                                                val worldFolderName =
-                                                        worldData.customWorldName
-                                                                ?: "my_world.${worldData.uuid}"
-                                                val isAdminWorld =
-                                                        worldFolderName !=
-                                                                "my_world.${worldData.uuid}"
+                                                val isAdminWorld = worldData.customWorldName != null
 
-                                                if (isMember) {
-                                                        // Owner/Mod: OK
-                                                } else if (isAdmin && isAdminWorld) {
-                                                        // Admin in Admin Created World: OK
-                                                } else {
-                                                        // Denied
+                                                if (isAdminWorld) {
                                                         player.playSound(
                                                                 player.location,
                                                                 Sound.ENTITY_VILLAGER_NO,
                                                                 1.0f,
                                                                 1.0f
                                                         )
-                                                        if (isAdminWorld) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "custom_item.biome_bottle_disabled"
-                                                                        )
+                                                        player.sendMessage(
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "messages.custom_item.biome_bottle_disabled"
                                                                 )
-                                                        } else {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "custom_item.no_permission"
-                                                                        )
+                                                        )
+                                                        return
+                                                }
+
+                                                if (!isMember) {
+                                                        player.playSound(
+                                                                player.location,
+                                                                Sound.ENTITY_VILLAGER_NO,
+                                                                1.0f,
+                                                                1.0f
+                                                        )
+                                                        player.sendMessage(
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "messages.custom_item.no_permission"
                                                                 )
-                                                        }
+                                                        )
                                                         return
                                                 }
 
@@ -2134,7 +2133,7 @@ class WorldSettingsListener : Listener {
                                                         if (worldData == null) return@Runnable
                                                         val input = messageText
 
-                                                        // バリデーション
+                                                        // 繝舌Μ繝・・繧ｷ繝ｧ繝ｳ
                                                         val maxLines =
                                                                 plugin.config.getInt(
                                                                         "announcement.max_lines",
@@ -2186,8 +2185,8 @@ class WorldSettingsListener : Listener {
                                                                 return@Runnable
                                                         }
 
-                                                        // 複数行入力の簡易実装：1行ずつ追加していくスタイルにするか、一度に設定するか。
-                                                        // プロンプトで "exit" で終了とあるので、追記型にする
+                                                        // 隍・焚陦悟・蜉帙・邁｡譏灘ｮ溯｣・ｼ・陦後★縺､霑ｽ蜉縺励※縺・￥繧ｹ繧ｿ繧､繝ｫ縺ｫ縺吶ｋ縺九∽ｸ蠎ｦ縺ｫ險ｭ螳壹☆繧九°縲・
+                                                        // 繝励Ο繝ｳ繝励ヨ縺ｧ "exit" 縺ｧ邨ゆｺ・→縺ゅｋ縺ｮ縺ｧ縲∬ｿｽ險伜梛縺ｫ縺吶ｋ
                                                         if (input.equals("exit", ignoreCase = true)
                                                         ) {
                                                                 plugin.worldConfigRepository.save(
@@ -2223,14 +2222,14 @@ class WorldSettingsListener : Listener {
                                                                                 )
                                                                         )
                                                                 )
-                                                                // メッセージがいっぱいです、exitして完了してください的なメッセージが良いが、
-                                                                // とりあえず無言で追加しないか、エラーを出す
+                                                                // 繝｡繝・そ繝ｼ繧ｸ縺後＞縺｣縺ｱ縺・〒縺吶‘xit縺励※螳御ｺ・＠縺ｦ縺上□縺輔＞逧・↑繝｡繝・そ繝ｼ繧ｸ縺瑚憶縺・′縲・
+                                                                // 縺ｨ繧翫≠縺医★辟｡險縺ｧ霑ｽ蜉縺励↑縺・°縲√お繝ｩ繝ｼ繧貞・縺・
                                                                 return@Runnable
                                                         }
 
-                                                        // 色コード変換 (初期色を白にする)
+                                                        // 濶ｲ繧ｳ繝ｼ繝牙､画鋤 (蛻晄悄濶ｲ繧堤區縺ｫ縺吶ｋ)
                                                         val formatted =
-                                                                "§f" + input.replace("&", "§")
+                                                                "ﾂｧf" + input.replace("&", "ﾂｧ")
                                                         worldData.announcementMessages.add(
                                                                 formatted
                                                         )
@@ -2244,7 +2243,11 @@ class WorldSettingsListener : Listener {
                                                                         )
                                                                 )
                                                         )
-                                                        // セッションは維持（exitされるまで）
+                                                        // 繧ｻ繝・す繝ｧ繝ｳ縺ｯ邯ｭ謖・ｼ・xit縺輔ｌ繧九∪縺ｧ・・
+                                                        return@Runnable
+                                                }
+                                                SettingsAction.EXPAND_DIRECTION_CONFIRM -> {
+                                                        // Handled by onCommandPreprocess
                                                         return@Runnable
                                                 }
                                                 else -> {}
@@ -2262,14 +2265,14 @@ class WorldSettingsListener : Listener {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val lang = plugin.languageManager
 
-                // アイコン選択中にインベントリを閉じた場合はキャンセルメッセージを表示して即終了
+                // 繧｢繧､繧ｳ繝ｳ驕ｸ謚樔ｸｭ縺ｫ繧､繝ｳ繝吶Φ繝医Μ繧帝哩縺倥◆蝣ｴ蜷医・繧ｭ繝｣繝ｳ繧ｻ繝ｫ繝｡繝・そ繝ｼ繧ｸ繧定｡ｨ遉ｺ縺励※蜊ｳ邨ゆｺ・
                 if (session.action == SettingsAction.SELECT_ICON) {
                         plugin.settingsSessionManager.endSession(player)
                         player.sendMessage(lang.getMessage(player, "messages.icon_cancelled"))
                         return
                 }
 
-                // チャット入力待機中やブロック入力待機中のアクションは、インベントリを閉じてもセッションを維持する
+                // 繝√Ε繝・ヨ蜈･蜉帛ｾ・ｩ滉ｸｭ繧・ヶ繝ｭ繝・け蜈･蜉帛ｾ・ｩ滉ｸｭ縺ｮ繧｢繧ｯ繧ｷ繝ｧ繝ｳ縺ｯ縲√う繝ｳ繝吶Φ繝医Μ繧帝哩縺倥※繧ゅそ繝・す繝ｧ繝ｳ繧堤ｶｭ謖√☆繧・
                 val chatInputActions =
                         setOf(
                                 SettingsAction.RENAME_WORLD,
@@ -2282,33 +2285,43 @@ class WorldSettingsListener : Listener {
                         setOf(
                                 SettingsAction.SET_SPAWN_GUEST,
                                 SettingsAction.SET_SPAWN_MEMBER,
-                                SettingsAction.EXPAND_DIRECTION_WAIT
+                                SettingsAction.EXPAND_DIRECTION_WAIT,
+                                SettingsAction.EXPAND_DIRECTION_CONFIRM
                         )
 
                 if (session.action in chatInputActions || session.action in blockInputActions) {
                         return
                 }
 
-                // GUI遷移（サブメニューへの移動や画面更新）を考慮し、2tick後にまだ設定関連GUIを開いているかチェックする
+                // GUI驕ｷ遘ｻ・医し繝悶Γ繝九Η繝ｼ縺ｸ縺ｮ遘ｻ蜍輔ｄ逕ｻ髱｢譖ｴ譁ｰ・峨ｒ閠・・縺励・tick蠕後↓縺ｾ縺險ｭ螳夐未騾｣GUI繧帝幕縺・※縺・ｋ縺九メ繧ｧ繝・け縺吶ｋ
                 Bukkit.getScheduler()
                         .runTaskLater(
                                 plugin,
                                 Runnable {
-                                        if (!player.isOnline) return@Runnable
+                                        if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
+                                                // 諡｡蠑ｵ譁ｹ蜷醍｢ｺ隱堺ｸｭ縺ｮ蝣ｴ蜷医・繝懊・繝繝ｼ繝励Ξ繝薙Η繝ｼ繧呈ｶ医＆縺ｪ縺・
+                                                return@Runnable
+                                        }
 
+                                        if (!player.isOnline) {
+                                                clearBorderPreview(player)
+                                                return@Runnable
+                                        }
+                                        
                                         if (session.isGuiTransition) {
                                                 session.isGuiTransition = false
                                                 return@Runnable
                                         }
 
-                                        // 現在開いているインベントリが設定GUIのホルダーを持っている場合は終了しない
+                                        // 迴ｾ蝨ｨ髢九＞縺ｦ縺・ｋ繧､繝ｳ繝吶Φ繝医Μ縺瑚ｨｭ螳哦UI縺ｮ繝帙Ν繝繝ｼ繧呈戟縺｣縺ｦ縺・ｋ蝣ｴ蜷医・邨ゆｺ・＠縺ｪ縺・
                                         if (player.openInventory.topInventory.holder is
                                                         me.awabi2048.myworldmanager.gui.WorldSettingsGuiHolder
                                         ) {
                                                 return@Runnable
                                         }
 
-                                        // 設定GUI以外の画面（またはインベントリなし）になった場合、セッションを終了する
+                                        // 險ｭ螳哦UI莉･螟悶・逕ｻ髱｢・医∪縺溘・繧､繝ｳ繝吶Φ繝医Μ縺ｪ縺暦ｼ峨↓縺ｪ縺｣縺溷ｴ蜷医√そ繝・す繝ｧ繝ｳ繧堤ｵゆｺ・☆繧・
+                                        clearBorderPreview(player)
                                         plugin.settingsSessionManager.endSession(player)
                                 },
                                 2L
@@ -2317,11 +2330,13 @@ class WorldSettingsListener : Listener {
 
         @EventHandler
         fun onWorldChange(event: PlayerChangedWorldEvent) {
+                clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
         }
 
         @EventHandler
         fun onQuit(event: PlayerQuitEvent) {
+                clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
         }
 
@@ -2386,14 +2401,16 @@ class WorldSettingsListener : Listener {
                                         }
 
                                 settingsSession.expansionDirection = direction
-                                settingsSession.action = SettingsAction.EXPAND_CONFIRM
+                                settingsSession.action = SettingsAction.EXPAND_DIRECTION_CONFIRM
 
                                 val worldData =
                                         plugin.worldConfigRepository.findByUuid(
                                                 settingsSession.worldUuid
-                                        )
+                                        ) ?: return
                                 val cost =
-                                        calculateExpansionCost(worldData?.borderExpansionLevel ?: 0)
+                                        calculateExpansionCost(worldData.borderExpansionLevel)
+                                
+                                settingsSession.setMetadata("expand_cost", cost)
 
                                 val directionKey =
                                         when (direction) {
@@ -2416,12 +2433,9 @@ class WorldSettingsListener : Listener {
                                                 mapOf("direction" to directionName)
                                         )
                                 )
-                                plugin.worldSettingsGui.openExpansionConfirmation(
-                                        player,
-                                        settingsSession.worldUuid,
-                                        direction,
-                                        cost
-                                )
+                                
+                                showBorderPreview(player, worldData, direction)
+                                sendExpansionConfirmMessage(player)
                         }
                         return
                 }
@@ -2682,16 +2696,21 @@ class WorldSettingsListener : Listener {
                 val isMember =
                         player.uniqueId == worldData.owner ||
                                 worldData.moderators.contains(player.uniqueId) ||
+                                worldData.members.contains(player.uniqueId) ||
                                 session?.isAdminFlow == true
-                val isAdmin = player.hasPermission("my_world_manager.admin")
+                val isAdmin = player.hasPermission("myworldmanager.admin")
                 val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                val isAdminWorld = worldFolderName != "my_world.${worldData.uuid}"
+                val isAdminWorld = worldData.customWorldName != null
 
-                if (isMember) {
-                        // OK
-                } else if (isAdmin && isAdminWorld) {
-                        // OK
-                } else {
+                if (isAdminWorld) {
+                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                        player.sendMessage(lang.getMessage(player, "messages.custom_item.biome_bottle_disabled"))
+                        return
+                }
+
+                if (!isMember) {
+                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                        player.sendMessage(lang.getMessage(player, "messages.custom_item.no_permission"))
                         return
                 }
 
@@ -2741,7 +2760,7 @@ class WorldSettingsListener : Listener {
                         applyBiomeToWorld(worldData)
                         plugin.environmentGui.open(player, worldData)
                 } catch (e: Exception) {
-                        player.sendMessage("§cInvalid biome data.")
+                        player.sendMessage("ﾂｧcInvalid biome data.")
                 }
         }
 
@@ -2862,6 +2881,122 @@ class WorldSettingsListener : Listener {
                         }
                         // Update chunk for clients
                         world.refreshChunk(chunk.x, chunk.z)
+                }
+        }
+
+        private fun showBorderPreview(player: Player, worldData: WorldData, direction: BlockFace) {
+                var world = Bukkit.getWorld(worldData.uuid)
+                
+                if (world == null) {
+                    val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                    world = Bukkit.getWorld(folderName)
+                }
+
+                if (world == null) {
+                    return
+                }
+
+                val currentSize = world.worldBorder.size
+                val nextSize = currentSize * 2 // performExpansionと同じロジック
+
+                val currentCenter = world.worldBorder.center
+                val radius = currentSize / 2.0 // performExpansionと同じロジック
+                var shiftX = 0.0
+                var shiftZ = 0.0
+
+                when (direction) {
+                        BlockFace.NORTH_WEST -> {
+                                shiftX = -radius
+                                shiftZ = -radius
+                        }
+                        BlockFace.NORTH_EAST -> {
+                                shiftX = radius
+                                shiftZ = -radius
+                        }
+                        BlockFace.SOUTH_WEST -> {
+                                shiftX = -radius
+                                shiftZ = radius
+                        }
+                        BlockFace.SOUTH_EAST -> {
+                                shiftX = radius
+                                shiftZ = radius
+                        }
+                        else -> {}
+                }
+                val newCenter = currentCenter.clone().add(shiftX, 0.0, shiftZ)
+                newCenter.x = Math.round(newCenter.x).toDouble()
+                newCenter.z = Math.round(newCenter.z).toDouble()
+
+                val border = Bukkit.createWorldBorder()
+                border.center = newCenter
+                border.size = nextSize
+                player.worldBorder = border
+
+                player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
+        }
+
+        private fun clearBorderPreview(player: Player) {
+                player.worldBorder = null
+        }
+
+        private fun sendExpansionConfirmMessage(player: Player) {
+                val lang = plugin.languageManager
+                val confirmText = lang.getMessage(player, "messages.expand_confirm_chat")
+                val confirmBtn = lang.getMessage(player, "messages.expand_confirm_button")
+                val confirmHover = lang.getMessage(player, "messages.expand_confirm_hover")
+                val retryBtn = lang.getMessage(player, "messages.expand_retry_button")
+                val retryHover = lang.getMessage(player, "messages.expand_retry_hover")
+
+                val message = net.kyori.adventure.text.Component.text()
+                        .append(net.kyori.adventure.text.Component.newline())
+                        .append(net.kyori.adventure.text.Component.text(confirmText))
+                        .append(net.kyori.adventure.text.Component.newline())
+                        .append(net.kyori.adventure.text.Component.newline())
+                        .append(net.kyori.adventure.text.Component.text(confirmBtn)
+                                .hoverEvent(net.kyori.adventure.text.Component.text(confirmHover))
+                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal expand_confirm")))
+                        .append(net.kyori.adventure.text.Component.text("   "))
+                        .append(net.kyori.adventure.text.Component.text(retryBtn)
+                                .hoverEvent(net.kyori.adventure.text.Component.text(retryHover))
+                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal expand_retry")))
+                        .append(net.kyori.adventure.text.Component.newline())
+                        .build()
+
+                player.sendMessage(message)
+        }
+
+        @EventHandler
+        fun onCommandPreprocess(event: PlayerCommandPreprocessEvent) {
+                val player = event.player
+                val message = event.message
+                if (!message.startsWith("/mwm_internal ")) return
+
+                val args = message.substring("/mwm_internal ".length).split(" ")
+                if (args.isEmpty()) return
+
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val lang = plugin.languageManager
+
+                if (args[0] == "expand_confirm") {
+                        if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
+                                event.isCancelled = true
+                                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                                val direction = session.expansionDirection
+                                val cost = session.getMetadata("expand_cost") as? Int ?: 0
+                                plugin.worldSettingsGui.openExpansionConfirmation(
+                                        player,
+                                        worldData.uuid,
+                                        direction,
+                                        cost
+                                )
+                        }
+                } else if (args[0] == "expand_retry") {
+                        if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
+                                event.isCancelled = true
+                                clearBorderPreview(player)
+                                session.action = SettingsAction.EXPAND_DIRECTION_WAIT
+                                player.sendMessage(lang.getMessage(player, "messages.expand_direction_prompt"))
+                        }
                 }
         }
 }

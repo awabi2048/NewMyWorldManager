@@ -126,6 +126,14 @@ class WorldService(
                                             30
                                     )
                             )
+            
+            // 初期ワールドボーダーの設定
+            val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+            val initialCenter = world.spawnLocation
+            
+            val border = world.worldBorder
+            border.center = initialCenter
+            border.size = initialSize
 
             val worldData =
                     WorldData(
@@ -139,6 +147,9 @@ class WorldService(
                             members = mutableListOf(),
                             moderators = mutableListOf(),
                             publishLevel = me.awabi2048.myworldmanager.model.PublishLevel.PRIVATE,
+                            spawnPosMember = initialCenter, // 初期スポーン地点も設定しておく
+                            borderCenterPos = initialCenter, // ボーダー中心も設定
+                            borderExpansionLevel = 0, // 初期化
                             isArchived = false,
                             customWorldName = worldFolderName,
                             createdAt = now.format(formatter)
