@@ -67,14 +67,14 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
                              plugin.worldConfigRepository.save(targetWorldData)
                          }
                     } else {
-                        sender.sendMessage("§cError: You are not in a valid world.")
+                        sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.meet.not_in_valid_world"))
                     }
                 } else {
-                    sender.sendMessage("§cRequester is no longer online.")
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.meet.requester_offline"))
                 }
                 pendingRequests.remove(sender.uniqueId)
             } else {
-                sender.sendMessage("§cNo pending request found.")
+                sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.meet.no_pending_request"))
             }
             return true
         }

@@ -313,7 +313,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                                         } else {
                                                                 null
                                                         }
-                                                mspt ?: Double.MAX_VALUE
+                                                mspt ?: -1.0
                                         }
                         }
 

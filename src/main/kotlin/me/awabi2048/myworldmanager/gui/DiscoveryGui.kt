@@ -188,12 +188,13 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 } else ""
 
                 val tagNames = if (data.tags.isNotEmpty()) {
-                        data.tags.joinToString(", ") {
-                                lang.getMessage(player, "world_tag.${it.name.lowercase()}")
-                        }
-                } else {
-                        lang.getMessage(player, "general.none")
+                val tagsStr = data.tags.joinToString(", ") {
+                        lang.getMessage(player, "world_tag.${it.name.lowercase()}")
                 }
+                lang.getMessage(player, "gui.discovery.world_item.tag", mapOf("tags" to tagsStr))
+        } else {
+                ""
+        }
 
                 val previewHint = lang.getMessage(player, "gui.discovery.world_item.preview_hint")
 
@@ -266,23 +267,31 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val meta = item.itemMeta ?: return item
 
                 val tagName = if (selectedTag != null) lang.getMessage(player, "world_tag.${selectedTag.name.lowercase()}") else lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
-                val prefix = if (selectedTag != null) lang.getMessage(player, "gui.discovery.tag_filter.current_prefix") else ""
-                val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
-                val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
+        val prefix = if (selectedTag != null) lang.getMessage(player, "gui.discovery.tag_filter.current_prefix") else ""
+        val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
+        val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
 
-                meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
-                meta.lore(
-                        lang.getComponentList(
-                                player,
-                                "gui.discovery.tag_filter.lore",
-                                mapOf(
-                                        "prefix" to prefix,
-                                        "tag" to tagName,
-                                        "click_left" to clickLeft,
-                                        "click_right" to clickRight
-                                )
-                        ).filter { it !is net.kyori.adventure.text.TextComponent || it.content().isNotEmpty() }
+        val tagList = WorldTag.values().joinToString("\n") { tag ->
+                val tagPrefix = if (tag == selectedTag) lang.getMessage(player, "gui.discovery.tag_filter.active") else lang.getMessage(player, "gui.discovery.tag_filter.inactive")
+                val tagColor = if (tag == selectedTag) "§e" else "§7"
+                val name = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
+                "$tagPrefix$tagColor$name"
+        }
+
+        meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
+        meta.lore(
+                lang.getComponentList(
+                        player,
+                        "gui.discovery.tag_filter.lore",
+                        mapOf(
+                                "prefix" to prefix,
+                                "tag" to tagName,
+                                "tag_list" to tagList,
+                                "click_left" to clickLeft,
+                                "click_right" to clickRight
+                        )
                 )
+        )
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_TAG)

@@ -43,17 +43,17 @@ general:
     ask_me: "Ask Me"
     busy: "取り込み中"
     description:
-      join_me: "§f誰でもあなたの場所にワープできます。"
-      ask_me: "§f承認したプレイヤーのみワープできます。"
-      busy: "§f/meetメニューに表示されず、誰もワープできません。"
+      join_me: "§f誰でもあなたのいるワールドにワープできます。"
+      ask_me: "§f許可を出したプレイヤーのみワープできます。"
+      busy: "§f/meetメニューに表示されず、ワープもできません。"
       
   meet_request:
-    sent: "§a{target}にワープ申請を送信しました。"
-    received: "§e{player}があなたへの訪問を希望しています。"
-    accept_button: "§a§l【承認する】"
-    hover_accept: "§7クリックしてワープを承認"
-    accepted: "§a申請を承認しました。"
-    accepted_by_target: "§a{target}が訪問を承認しました！"
+    sent: "§a{player}にワープ申請を送りました！"
+    received: "§e{player}さんがあなたのいるワールドに訪れたいそうです！"
+    accept_button: "§a§l【ワープを許可する】"
+    hover_accept: "§7クリックしてワープを許可"
+    accepted: "§aワープを許可しました"
+    accepted_by_target: "§a{target}さんがワープを許可しました！"
   
   language:
     ja_jp: "日本語"
@@ -605,7 +605,6 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
       # Placeholder: {next_role}
       lore_actions:
-        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§l| §e左クリック §7権限を§b{next_role}§7に変更"
         - "§e§l| §eShift + 左クリック §cオーナー権限を譲渡"
         - "§e§l| §eShift + 右クリック §cワールドメンバーから削除"
@@ -615,7 +614,6 @@ gui:
       title: "オーナー権限の譲渡"
       # Placeholder: {player}, {world}
       lore:
-        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§c本当にオーナー権限を譲渡しますか？"
         - "§f§l| §7新しいオーナー §f{player}"
         - "§f§l| §7対象ワールド §f{world}"
@@ -900,18 +898,19 @@ gui:
         - "§f§l| §7オーナー {owner}{status_color}"
         - "§f§l| §7お気に入り §c{favorites}"
         - "§f§l| §7最近の来訪者 §a{visitors}"
-        - "§f§l| §7タグ §e{tags}"
+        - "{tags}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§l| §e左クリック §7ワープ"
         - "{preview_hint}"
         - "§e§l| §eホイールクリック §7お気に入り登録/解除"
         - "§8§m－－－－－－－－－－－－－－－－－－"
       owner: "§f§l| §7オーナー {owner}{status_color}"
-      tag: "§f§l| §7タグ §b{tags}"
+      tag: "§f§l| §7タグ §e{tags}"
       favorite: "§f§l| §7お気に入り §c{count}"
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
       warp: "§e§l| §e左クリック§7 このワールドにワープ"
       preview: "§e§l| §e右クリック§7 プレビュー"
+      preview_hint: "§e§l| §e右クリック §7プレビュー"
       favorite_toggle: "§e§l| §dホイールクリック§7 お気に入りを切り替え"
       fav_add: "§e§l| §e右クリック§7 お気に入りに追加"
       fav_remove: "§e§l| §e右クリック§7 お気に入りを解除"
@@ -966,15 +965,19 @@ gui:
       click_reset: "§e§n右クリック§7 選択を解除"
     tag_filter:
       name: "タグフィルター"
-      # プレースホルダー: {prefix}, {tag}, {click_left}, {click_right}
+      # プレースホルダー: {prefix}, {tag}, {tag_list}, {click_left}, {click_right}
       lore:
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§f§l| {prefix} §f{tag}"
+        - "§f§l| {prefix} §6{tag}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{tag_list}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "{click_left}"
         - "{click_right}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
-      current_prefix: "現在の設定"
+      current_prefix: "選択中"
+      active: "§e» "
+      inactive: "§7  "
       no_selection: "設定なし"
       all: "すべて"
       click_left: "§e§n左クリック§7 フィルターを切り替え"
@@ -1399,6 +1402,19 @@ messages:
   spotlight_limit_reached: "§cSPOTLIGHTの登録枠が上限に達しています。"
   spotlight_not_in_myworld: "§cSPOTLIGHTに登録するには、対象のマイワールドにいる必要があります。"
   spotlight_not_owner: "§cあなたがオーナーであるマイワールドのみ登録可能です。"
+  world_creation_started: "§eワールド「§a{world}§e」の作成を開始しました..."
+  world_creation_success: "§aワールド「§a{world}§a」の作成に成功しました！"
+  world_unloading_evacuation: "§cワールドがアンロードされたため、スポーン地点へ移動します。"
+  mspt_warning_chat: "§e[MyWorldManager] §c警告: §fワールド「§a{world}§f」のMSPTが§e{mspt}ms§fに達しています。§7(負荷が高い可能性があります)"
+  
+  # /meet 関連
+  meet:
+    busy: "§c対象のプレイヤーは現在取り込み中です。"
+    request_accepted: "§e{player}§aのワープ申請を許可しました"
+    request_accepted_by_target: "§e{player}§aにワープ申請が許可されました！"
+    not_in_valid_world: "§c有効なワールド内にいません。"
+    requester_offline: "§c申請したプレイヤーがオフラインになりました。"
+    no_pending_request: "§c保留中の申請が見つかりませんでした。"
 
   # コマンドエラー・管理者操作
   invalid_field: "§c無効な項目名です。"

@@ -18,6 +18,21 @@ general:
   commands:
     settings:
       description: "Opens the user settings menu."
+      
+  status:
+    join_me: "Join Me"
+    ask_me: "Ask Me"
+    busy: "Busy"
+    description:
+      join_me: "§fAnyone can warp to your location."
+      ask_me: "§fOnly players you approve can warp."
+      busy: "§fNot shown in /meet menu, and no one can warp."
+      
+  meet_request:
+    sent: "§aWarp request sent to {player}."
+    received: "§e{player} wants to visit you."
+    accept_button: "§a§l【Accept】"
+    hover_accept: "§7Click to accept the warp"
 
   language:
     ja_jp: "日本語"
@@ -674,7 +689,19 @@ gui:
       click_reset: "§e§nRight-Click §7Reset"
     tag_filter:
       name: "Tag Filter"
-      current_prefix: "Current"
+      # Placeholder: {prefix}, {tag}, {tag_list}, {click_left}, {click_right}
+      lore:
+        - "§8§m-----------------------"
+        - "§f§l| {prefix} §6{tag}"
+        - "§8§m-----------------------"
+        - "{tag_list}"
+        - "§8§m-----------------------"
+        - "{click_left}"
+        - "{click_right}"
+        - "§8§m-----------------------"
+      current_prefix: "Selected"
+      active: "§e» "
+      inactive: "§7  "
       no_selection: "No selection"
       all: "All"
       click_left: "§e§nLeft Click§7 Toggle Filter"
@@ -998,6 +1025,15 @@ messages:
   reload_success: "§aReloaded MyWorldManager configuration."
   daily_update_success: "§aCompleted daily world updates."
   data_update_success: "§aUpdated all world ({world_count}) and player ({player_count}) data."
+  
+  # /meet
+  meet:
+    busy: "§cThe target player is currently busy."
+    request_accepted: "§aAccepted warp request from §e{player}§a."
+    request_accepted_by_target: "§aWarp request was accepted by §e{player}§a!"
+    not_in_valid_world: "§cYou are not in a valid world."
+    requester_offline: "§cRequester is no longer online."
+    no_pending_request: "§cNo pending request found."
   spotlight_added: "§aRegistered world \"{world}\" to SPOTLIGHT!"
   spotlight_removed: "§cRemoved world \"{world}\" from SPOTLIGHT."
   spotlight_already_registered: "§cThis world is already registered to SPOTLIGHT."
