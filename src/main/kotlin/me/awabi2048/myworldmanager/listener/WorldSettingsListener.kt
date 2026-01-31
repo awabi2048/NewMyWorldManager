@@ -2237,9 +2237,9 @@ class WorldSettingsListener : Listener {
                                                                 return@Runnable
                                                         }
 
-                                                        // 濶ｲ繧ｳ繝ｼ繝牙､画鋤 (蛻晄悄濶ｲ繧堤區縺ｫ縺吶ｋ)
+                                                        // 色コード変換 (初期色を白にする)
                                                         val formatted =
-                                                                "ﾂｧf" + input.replace("&", "ﾂｧ")
+                                                                "§f" + input.replace("&", "§")
                                                         worldData.announcementMessages.add(
                                                                 formatted
                                                         )
