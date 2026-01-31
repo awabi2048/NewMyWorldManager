@@ -1,7 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
 import org.bukkit.NamespacedKey
+import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
 
 object ItemTag {
@@ -98,7 +100,22 @@ object ItemTag {
     fun tagItem(item: ItemStack, type: String) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(ITEM_TYPE, PersistentDataType.STRING, type)
+        applyIconSettings(meta)
         item.itemMeta = meta
+    }
+
+    private fun applyIconSettings(meta: ItemMeta) {
+        // Hide attributes, enchantments, etc. while keeping Name and Lore
+        meta.addItemFlags(
+            ItemFlag.HIDE_ATTRIBUTES,
+            ItemFlag.HIDE_ENCHANTS,
+            ItemFlag.HIDE_DESTROYS,
+            ItemFlag.HIDE_PLACED_ON,
+            ItemFlag.HIDE_ADDITIONAL_TOOLTIP,
+            ItemFlag.HIDE_DYE,
+            ItemFlag.HIDE_ARMOR_TRIM,
+            ItemFlag.HIDE_STORED_ENCHANTS
+        )
     }
 
     fun getType(item: ItemStack): String? {
@@ -113,6 +130,7 @@ object ItemTag {
     fun setWorldUuid(item: ItemStack, uuid: java.util.UUID) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(WORLD_UUID, PersistentDataType.STRING, uuid.toString())
+        applyIconSettings(meta)
         item.itemMeta = meta
     }
 

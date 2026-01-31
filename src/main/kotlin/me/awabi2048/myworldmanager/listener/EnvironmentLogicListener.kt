@@ -6,6 +6,8 @@ import org.bukkit.attribute.Attribute
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
+import org.bukkit.GameRule
+import org.bukkit.Difficulty
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.weather.WeatherChangeEvent
@@ -17,11 +19,13 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onPlayerChangedWorld(event: PlayerChangedWorldEvent) {
         applyGravity(event.player)
+        applyWorldSettings(event.player.world)
     }
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         applyGravity(event.player)
+        applyWorldSettings(event.player.world)
     }
 
     @EventHandler
@@ -42,6 +46,20 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
             
             entity.getAttribute(Attribute.GRAVITY)?.baseValue = 0.08 * worldData.gravityMultiplier
         }
+    }
+
+    private fun applyWorldSettings(world: org.bukkit.World) {
+        val worldName = world.name
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
+
+        // Admin convert ワールドのチェック (WorldUnloadService と同様の基準)
+        if (worldData.sourceWorld == "CONVERT" && !worldName.startsWith("my_world.")) {
+            return
+        }
+
+        // 難易度を EASY に、モブスポーンを false に設定
+        world.difficulty = Difficulty.EASY
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
