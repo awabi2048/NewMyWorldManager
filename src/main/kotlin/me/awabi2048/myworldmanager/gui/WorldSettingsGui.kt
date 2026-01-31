@@ -1587,14 +1587,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 item.itemMeta = meta
-                me.awabi2048.myworldmanager.util.ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
-                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, uuid)
                 
                 // Helper to add lore to item meta which expects List<String> or List<Component>?
                 // createItemComponent handles this, but here we return ItemStack manually.
                 // I need to set lore on meta.
                 meta.lore(itemLore)
                 item.itemMeta = meta
+
+                me.awabi2048.myworldmanager.util.ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
+                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, uuid)
                 
                 return item
         }

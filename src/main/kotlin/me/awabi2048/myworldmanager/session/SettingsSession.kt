@@ -15,4 +15,14 @@ data class SettingsSession(
     var isAdminFlow: Boolean = false,
     var isPlayerWorldFlow: Boolean = false,
     var parentShowBackButton: Boolean = false
-)
+) {
+    val metadata = mutableMapOf<String, Any?>()
+
+    fun setMetadata(key: String, value: Any?) {
+        metadata[key] = value
+    }
+
+    fun getMetadata(key: String): Any? {
+        return metadata[key]
+    }
+}

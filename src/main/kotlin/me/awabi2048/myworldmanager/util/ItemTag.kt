@@ -33,6 +33,7 @@ object ItemTag {
     const val TYPE_GUI_SETTING_SPAWN = "gui_setting_spawn"
     const val TYPE_GUI_SETTING_ICON = "gui_setting_icon"
     const val TYPE_GUI_SETTING_EXPAND = "gui_setting_expand"
+    const val TYPE_GUI_SETTING_EXPAND_DIRECTION = "gui_setting_expand_direction"
     const val TYPE_GUI_SETTING_PUBLISH = "gui_setting_publish"
     const val TYPE_GUI_SETTING_MEMBER = "gui_setting_member"
     const val TYPE_GUI_SETTING_ARCHIVE = "gui_setting_archive"
