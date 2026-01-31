@@ -14,7 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin
 
 class TemplateWizardListener : Listener {
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val view = event.view
@@ -127,7 +127,7 @@ class TemplateWizardListener : Listener {
     }
     
     // プレイヤーインベントリのクリック（アイコン選択用）
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onPlayerInventoryClick(event: InventoryClickEvent) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val player = event.whoClicked as? Player ?: return

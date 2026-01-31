@@ -10,7 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 
 class SpotlightListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val view = event.view

@@ -104,7 +104,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         player.openInventory(inventory)
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onClick(event: InventoryClickEvent) {
         val lang = plugin.languageManager
         val view = event.view

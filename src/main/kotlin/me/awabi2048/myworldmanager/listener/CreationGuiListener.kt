@@ -16,7 +16,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent
 
 class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())

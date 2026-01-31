@@ -193,6 +193,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(WizardLunaChatListener(this), this)
         server.pluginManager.registerEvents(TemplateWizardListener(), this)
         server.pluginManager.registerEvents(TemplateWizardChatListener(this), this)
+        server.pluginManager.registerEvents(GlobalMenuListener(this), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)

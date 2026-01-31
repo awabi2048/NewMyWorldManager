@@ -44,7 +44,7 @@ class WorldSettingsListener : Listener {
                 val task: BukkitTask
         )
 
-        @EventHandler
+        @EventHandler(ignoreCancelled = true)
         fun onInventoryClick(event: InventoryClickEvent) {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
@@ -148,14 +148,14 @@ class WorldSettingsListener : Listener {
                                 if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
                                         val memberId = ItemTag.getWorldUuid(item)
                                         if (memberId != null && memberId != player.uniqueId) {
-                                                plugin.soundManager.playClickSound(
-                                                        player,
-                                                        item,
-                                                        "world_settings"
-                                                )
                                                 if (event.isShiftClick) {
                                                         if (event.isLeftClick) {
-                                                                // 繧ｪ繝ｼ繝翫・隴ｲ貂｡
+                                                                plugin.soundManager.playClickSound(
+                                                                        player,
+                                                                        item,
+                                                                        "world_settings"
+                                                                )
+                                                                // オーナー権限の移譲
                                                                 val config = plugin.config
                                                                 val stats =
                                                                         plugin.playerStatsRepository
@@ -196,7 +196,12 @@ class WorldSettingsListener : Listener {
                                                                                 memberId
                                                                         )
                                                         } else if (event.isRightClick) {
-                                                                // 繝｡繝ｳ繝舌・蜑企勁
+                                                                plugin.soundManager.playClickSound(
+                                                                        player,
+                                                                        item,
+                                                                        "world_settings"
+                                                                )
+                                                                // メンバー削除
                                                                 plugin.worldSettingsGui
                                                                         .openMemberRemoveConfirmation(
                                                                                 player,
@@ -205,16 +210,21 @@ class WorldSettingsListener : Listener {
                                                                         )
                                                         }
                                                 } else if (event.isLeftClick) {
-                                                        // 讓ｩ髯仙､画峩
+                                                        plugin.soundManager.playClickSound(
+                                                                player,
+                                                                item,
+                                                                "world_settings"
+                                                        )
+                                                        // 権限変更
                                                         val isModerator = worldData.moderators.contains(memberId)
                                                         if (isModerator) {
-                                                                // 繝｢繝・Ξ繝ｼ繧ｿ繝ｼ -> 繝｡繝ｳ繝舌・
+                                                                // モデレーター -> メンバー
                                                                 worldData.moderators.remove(memberId)
                                                                 if (!worldData.members.contains(memberId)) {
                                                                         worldData.members.add(memberId)
                                                                 }
                                                         } else {
-                                                                // 繝｡繝ｳ繝舌・ -> 繝｢繝・Ξ繝ｼ繧ｿ繝ｼ
+                                                                // メンバー -> モデレーター
                                                                 worldData.members.remove(memberId)
                                                                 if (!worldData.moderators.contains(memberId)) {
                                                                         worldData.moderators.add(memberId)
@@ -222,7 +232,7 @@ class WorldSettingsListener : Listener {
                                                         }
                                                         plugin.worldConfigRepository.save(worldData)
 
-                                                        // GUI繝ｪ繝輔Ξ繝・す繝･
+                                                        // GUI再描画
                                                         plugin.worldSettingsGui.openMemberManagement(player, worldData, 0, false)
                                                 }
                                         }

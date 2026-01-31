@@ -13,7 +13,7 @@ import java.util.UUID
 
 class MeetListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())

@@ -14,7 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin
 
 class AdminCommandListener : Listener {
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
