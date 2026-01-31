@@ -8,8 +8,6 @@ import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemFlag
 import com.google.common.collect.ArrayListMultimap
 import io.papermc.paper.datacomponent.DataComponentTypes
-import io.papermc.paper.datacomponent.item.Tool
-import io.papermc.paper.datacomponent.item.ItemAttributeModifiers
 import io.papermc.paper.datacomponent.item.CustomModelData
 
 enum class CustomItem(val id: String) {
@@ -19,7 +17,7 @@ enum class CustomItem(val id: String) {
     
     EMPTY_BIOME_BOTTLE("empty_biome_bottle") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
-            val item = ItemStack(Material.STONE_PICKAXE)
+            val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
             
             meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.empty_biome_bottle.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
@@ -29,8 +27,7 @@ enum class CustomItem(val id: String) {
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
             item.itemMeta = meta
             
-            item.setData(DataComponentTypes.TOOL, Tool.tool().build())
-            item.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.itemAttributes().build())
+            item.unsetData(DataComponentTypes.CONSUMABLE)
             item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("empty_biome_bottle").build())
             
             ItemTag.tagItem(item, ItemTag.TYPE_EMPTY_BIOME_BOTTLE)
@@ -47,7 +44,7 @@ enum class CustomItem(val id: String) {
     
     MOON_STONE("moon_stone") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
-            val item = ItemStack(Material.STONE_PICKAXE)
+            val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
             
             meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.moon_stone.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
@@ -57,8 +54,7 @@ enum class CustomItem(val id: String) {
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
             item.itemMeta = meta
             
-            item.setData(DataComponentTypes.TOOL, Tool.tool().build())
-            item.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.itemAttributes().build())
+            item.unsetData(DataComponentTypes.CONSUMABLE)
             item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("moon_stone").build())
             
             ItemTag.tagItem(item, ItemTag.TYPE_MOON_STONE)
@@ -68,7 +64,7 @@ enum class CustomItem(val id: String) {
     
     WORLD_SEED("world_seed") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
-            val item = ItemStack(Material.STONE_PICKAXE)
+            val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
             
             meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.world_seed.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
@@ -78,8 +74,7 @@ enum class CustomItem(val id: String) {
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
             item.itemMeta = meta
             
-            item.setData(DataComponentTypes.TOOL, Tool.tool().build())
-            item.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.itemAttributes().build())
+            item.unsetData(DataComponentTypes.CONSUMABLE)
             item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("world_seed").build())
             
             ItemTag.tagItem(item, ItemTag.TYPE_WORLD_SEED)
@@ -90,7 +85,7 @@ enum class CustomItem(val id: String) {
     abstract fun create(lang: LanguageManager, player: Player?): ItemStack
     
     fun createWithBiome(lang: LanguageManager, player: Player?, biomeId: String): ItemStack {
-        val item = ItemStack(Material.STONE_PICKAXE)
+        val item = ItemStack(Material.POISONOUS_POTATO)
         val meta = item.itemMeta ?: return item
         
         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
@@ -101,8 +96,7 @@ enum class CustomItem(val id: String) {
         meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
         item.itemMeta = meta
         
-        item.setData(DataComponentTypes.TOOL, Tool.tool().build())
-        item.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.itemAttributes().build())
+        item.unsetData(DataComponentTypes.CONSUMABLE)
         item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("bottled_biome_air").build())
         
         ItemTag.tagItem(item, ItemTag.TYPE_BOTTLED_BIOME_AIR)
