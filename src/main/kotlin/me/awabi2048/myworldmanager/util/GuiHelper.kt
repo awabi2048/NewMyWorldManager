@@ -137,19 +137,6 @@ object GuiHelper {
             }
         }
         
-        // Remove leading/trailing separators
-        while (result.isNotEmpty()) {
-            val text = plain.serialize(result.first()).trim()
-            if (text == separatorText || separatorRegex.matches(text)) {
-                result.removeAt(0)
-            } else break
-        }
-        while (result.isNotEmpty()) {
-            val text = plain.serialize(result.last()).trim()
-            if (text == separatorText || separatorRegex.matches(text)) {
-                result.removeAt(result.size - 1)
-            } else break
-        }
         return result
     }
 

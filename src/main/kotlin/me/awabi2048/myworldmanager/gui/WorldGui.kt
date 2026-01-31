@@ -438,12 +438,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         }
                 }
 
-                val tagNames = data.tags.joinToString(", ") {
-                        lang.getMessage(player, "world_tag.${it.name.lowercase()}")
-                }
-                val tagLine = if (data.tags.isNotEmpty()) {
-                        lang.getMessage(player, "gui.admin.world_item.tag", mapOf("tags" to tagNames))
-                } else ""
+                val tagLine = ""
 
                 // Actions
                 val actionWarp = lang.getMessage(player, "gui.admin.world_item.action_warp")
