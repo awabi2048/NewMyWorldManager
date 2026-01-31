@@ -1651,23 +1651,28 @@ class WorldSettingsListener : Listener {
                                                                         plugin,
                                                                         Runnable {
                                                                                 if (success) {
-                                                                                        stats.worldPoint +=
-                                                                                                refund
-                                                                                        plugin.playerStatsRepository
-                                                                                                .save(
-                                                                                                        stats
-                                                                                                )
-                                                                                        player.sendMessage(
-                                                                                                plugin.languageManager
-                                                                                                        .getMessage(
-                                                                                                                player,
-                                                                                                                "messages.world_delete_success",
-                                                                                                                mapOf(
-                                                                                                                        "points" to
-                                                                                                                                refund
-                                                                                                                )
-                                                                                                        )
-                                                                                        )
+                                                                                         // 設定に応じてスロットを削減
+                                                                                         if (plugin.config.getBoolean("deletion.reduce_owner_slot", false)) {
+                                                                                                 if (stats.unlockedWorldSlot > 0) {
+                                                                                                         stats.unlockedWorldSlot--
+                                                                                                 }
+                                                                                         }
+
+                                                                                         plugin.playerStatsRepository
+                                                                                                 .save(
+                                                                                                         stats
+                                                                                                 )
+                                                                                         player.sendMessage(
+                                                                                                 plugin.languageManager
+                                                                                                         .getMessage(
+                                                                                                                 player,
+                                                                                                                 "messages.world_delete_success",
+                                                                                                                 mapOf(
+                                                                                                                         "points" to
+                                                                                                                                 refund
+                                                                                                                 )
+                                                                                                         )
+                                                                                         )
                                                                                 } else {
                                                                                         player.sendMessage(
                                                                                                 plugin.languageManager
