@@ -1011,7 +1011,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.COMPASS,
                                 lang.getMessage(player, "gui.expansion.direction_expand.name"),
                                 lang.getMessageList(player, "gui.expansion.direction_expand.lore"),
-                                ItemTag.TYPE_GUI_SETTING_SPAWN
+                                ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION
                         )
                 )
 

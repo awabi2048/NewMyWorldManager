@@ -667,7 +667,7 @@ gui:
       tag: "§f§l| §7Tags §e{tags}"
       warp: "§e§l| §e§nLeft-Click §7Warp"
       preview: "§e§l| §b§nRight-Click §7Preview"
-      favorite_toggle: "§e§l| §d§nMiddle-Click §7Toggle Favorite"
+      favorite_toggle: "§e§l| §d§nShift + Right-Click §7Toggle Favorite"
       fav_add: "§e§l| §e§nRight-Click §7Favorite"
       fav_remove: "§e§l| §e§nRight-Click §7Unfavorite"
     sort:
@@ -956,6 +956,11 @@ messages:
   # Expansion / Delete / Archive
   expand_direction_prompt: "§aLeft-click while facing the direction (NW, NE, SW, SE) you want to expand."
   expand_direction_selected: "§aDirection selected: {direction}"
+  expand_confirm_chat: "§aPreviewing world border. Confirm expansion with these details?"
+  expand_confirm_button: "§a§l[Confirm Expansion]"
+  expand_confirm_hover: "§7Click to spend points and execute expansion"
+  expand_retry_button: "§c§l[Retry Selection]"
+  expand_retry_hover: "§7Click to clear the preview and pick a direction again"
   expand_complete: "§aExpansion complete! §7{level_before} §f→ §e§l{level_after} §7(Remaining: §6🛖 §e{remaining}§7)"
   expand_failed: "§cExpansion failed (World might not be loaded)."
   max_expansion_reached: "§cWorld is already at max level."

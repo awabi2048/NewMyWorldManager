@@ -115,7 +115,7 @@ class WorldService(
                 return false
             }
 
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world)
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -130,7 +130,8 @@ class WorldService(
             uuid: UUID,
             worldName: String,
             worldFolderName: String,
-            world: org.bukkit.World
+            world: org.bukkit.World,
+            cost: Int
     ) {
         val now = java.time.LocalDateTime.now()
         val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -166,6 +167,7 @@ class WorldService(
                         spawnPosMember = initialCenter,
                         borderCenterPos = initialCenter,
                         borderExpansionLevel = 0,
+                        cumulativePoints = cost,
                         isArchived = false,
                         customWorldName = worldFolderName,
                         createdAt = now.format(formatter)
@@ -199,6 +201,8 @@ class WorldService(
             return future
         }
         val success = createWorld(player, worldName, seed, org.bukkit.World.Environment.NORMAL)
+        // Note: Currently createWorld(player, ...) doesn't take cost. 
+        // If it's used elsewhere, it might need update. For now, matching the call.
         future.complete(success)
         return future
     }
@@ -288,7 +292,7 @@ class WorldService(
                             return@Runnable
                         }
 
-                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world)
+                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost)
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
@@ -475,6 +479,17 @@ class WorldService(
                 future.complete(false)
                 return future
             }
+
+            // ポイント返還処理
+            val stats = playerStatsRepository.findByUuid(worldData.owner)
+            val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
+            val refund = (worldData.cumulativePoints * refundRate).toInt()
+
+            if (refund > 0) {
+                stats.worldPoint += refund
+                playerStatsRepository.save(stats)
+            }
+
             val folderName = getWorldFolderName(worldData)
             val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
             

@@ -547,7 +547,10 @@ class WorldSettingsListener : Listener {
                                                         "messages.expand_direction_prompt"
                                                 )
                                         )
-                                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
+                                } else if (type == ItemTag.TYPE_GUI_CANCEL ||
+                                                type == ItemTag.TYPE_GUI_BACK ||
+                                                type == ItemTag.TYPE_GUI_RETURN
+                                ) {
                                         handleCommandCancel()
                                 }
                         }
@@ -1120,7 +1123,9 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                plugin.environmentGui.open(player, worldData)
+                                                if (player.hasPermission("myworldmanager.admin")) {
+                                                        plugin.environmentGui.open(player, worldData)
+                                                }
                                         }
                                 }
                         }
@@ -1300,7 +1305,7 @@ class WorldSettingsListener : Listener {
                                                                 plugin.languageManager.getMessage(
                                                                         player,
                                                                         "messages.tag_max_reached",
-                                                                        mapOf("max" to maxTags)
+                                                                        mapOf("limit" to maxTags)
                                                                 )
                                                         )
                                                         return
@@ -2372,6 +2377,7 @@ class WorldSettingsListener : Listener {
                         stats.worldPoint -= cost
                         worldData.cumulativePoints += cost
                         plugin.playerStatsRepository.save(stats)
+                        plugin.worldConfigRepository.save(worldData)
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
@@ -2626,6 +2632,7 @@ class WorldSettingsListener : Listener {
 
                 stats.worldPoint -= cost
                 worldData.fixedWeather = if (nextWeather == "DEFAULT") null else nextWeather
+                worldData.cumulativePoints += cost
                 session.tempWeather = null // Reset temp
 
                 plugin.playerStatsRepository.save(stats)
@@ -2670,6 +2677,7 @@ class WorldSettingsListener : Listener {
 
                 worldData.gravityMultiplier = 0.17
                 stats.worldPoint -= cost
+                worldData.cumulativePoints += cost
 
                 plugin.playerStatsRepository.save(stats)
                 plugin.worldConfigRepository.save(worldData)
@@ -2750,6 +2758,7 @@ class WorldSettingsListener : Listener {
                         worldData.fixedBiome = biomeId.uppercase()
                         worldData.partialBiomes.clear()
                         stats.worldPoint -= cost
+                        worldData.cumulativePoints += cost
 
                         plugin.playerStatsRepository.save(stats)
                         plugin.worldConfigRepository.save(worldData)

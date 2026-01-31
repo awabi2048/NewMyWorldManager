@@ -33,7 +33,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val allWorlds =
                         plugin.worldConfigRepository
                                 .findAll()
-                                .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived }
+                                .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived && it.sourceWorld != "CONVERT" }
                                 .filter {
                                         session.selectedTag == null ||
                                                 it.tags.contains(session.selectedTag)
