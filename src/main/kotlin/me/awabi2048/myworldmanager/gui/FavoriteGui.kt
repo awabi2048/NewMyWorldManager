@@ -9,6 +9,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -182,11 +183,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.common.world_desc", mapOf("description" to data.description))
                 } else ""
 
-                val ownerRef = Bukkit.getOfflinePlayer(data.owner)
                 val onlineColor = lang.getMessage(player, "publish_level.color.online")
                 val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-                val statusColor = if (ownerRef.isOnline) onlineColor else offlineColor
-                val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to (ownerRef.name ?: lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
+                val statusColor = if (Bukkit.getOfflinePlayer(data.owner).isOnline) onlineColor else offlineColor
+                val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
+
 
                 val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to data.favorite))
                 val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to data.recentVisitors.sum()))
@@ -228,7 +229,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                                 "warp_line" to warpLine,
                                                 "archived_line" to archivedLine,
                                                 "unfavorite_line" to unfavoriteLine
-                                        )
+                               )
                                 ),
                                 separator
                         )
@@ -297,14 +298,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         lang.getComponent(
                                 player,
                                 "gui.favorite.player_icon.name",
-                                mapOf(
-                                        "player" to
-                                                (player.name
-                                                        ?: lang.getMessage(
-                                                                player,
-                                                                "general.unknown"
-                                                        ))
-                                )
+                                mapOf("player" to PlayerNameUtil.getNameOrDefault(player.uniqueId, lang.getMessage(player, "general.unknown")))
                         )
                 )
 

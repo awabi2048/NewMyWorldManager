@@ -10,6 +10,7 @@ import me.awabi2048.myworldmanager.session.CreationSessionManager
 import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -162,7 +163,8 @@ class WorldCommand(
                                         sender as? Player,
                                         "messages.stats_get",
                                         mapOf(
-                                                "player" to (targetOffline.name ?: "不明"),
+                                                "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
+
                                                 "key" to field,
                                                 "value" to displayValue
                                         )
@@ -200,7 +202,8 @@ class WorldCommand(
                                         sender as? Player,
                                         "messages.stats_set",
                                         mapOf(
-                                                "player" to (targetOffline.name ?: "不明"),
+                                                "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
+
                                                 "key" to field,
                                                 "value" to displayValue
                                         )
@@ -232,7 +235,8 @@ class WorldCommand(
                                         sender as? Player,
                                         "messages.stats_add",
                                         mapOf(
-                                                "player" to (targetOffline.name ?: "不明"),
+                                                "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
+
                                                 "key" to field,
                                                 "value" to displayValue
                                         )
@@ -283,7 +287,8 @@ class WorldCommand(
                                         sender as? Player,
                                         "messages.stats_remove",
                                         mapOf(
-                                                "player" to (targetOffline.name ?: "不明"),
+                                                "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
+
                                                 "key" to field,
                                                 "value" to displayValue
                                         )

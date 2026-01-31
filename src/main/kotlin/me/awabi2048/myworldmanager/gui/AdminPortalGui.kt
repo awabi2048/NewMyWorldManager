@@ -12,6 +12,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -122,7 +123,8 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val displayTitle = lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destName))
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(displayTitle).decoration(TextDecoration.ITALIC, false))
         
-        val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: "Unknown"
+        val ownerName = PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown")
+
         
         val lore = lang.getComponentList(
             player,

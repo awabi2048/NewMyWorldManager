@@ -10,6 +10,7 @@ import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -393,8 +394,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                         val maxDisplay = 10
                         val displayList = allMemberData.take(maxDisplay).joinToString("\n") { (uuid, role, color) ->
-                                val playerName = Bukkit.getOfflinePlayer(uuid).name
-                                        ?: lang.getMessage(player, "general.unknown")
+                                val playerName = PlayerNameUtil.getNameOrDefault(uuid, lang.getMessage(player, "general.unknown"))
+
                                 val isOnline = Bukkit.getOfflinePlayer(uuid).isOnline
                                 val nameColor = if (isOnline) "§a" else "§7"
                                 val debugColor = "§8"
@@ -699,13 +700,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         (if (worldData.description.isEmpty())
                                                                 "__REMOVE_IF_EMPTY__"
                                                         else worldData.description),
-                                                "owner" to
-                                                        (Bukkit.getOfflinePlayer(worldData.owner)
-                                                                .name
-                                                                ?: lang.getMessage(
-                                                                        player,
-                                                                        "general.unknown"
-                                                                )),
+                                                "owner" to PlayerNameUtil.getNameOrDefault(worldData.owner, lang.getMessage(player, "general.unknown")),
+
                                                 "level" to
                                                         (if (currentLevel ==
                                                                         WorldData
@@ -1303,9 +1299,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: java.util.UUID
         ) {
                 val lang = plugin.languageManager
-                val targetName =
-                        Bukkit.getOfflinePlayer(targetUuid).name
-                                ?: lang.getMessage(player, "general.unknown")
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+
                 val title =
                         lang.getMessage(
                                 player,
@@ -1345,8 +1340,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         player,
                         "gui.member_management.remove_confirm.lore",
                         mapOf(
-                                "player" to (Bukkit.getOfflinePlayer(targetUuid).name
-                                        ?: lang.getMessage(player, "general.unknown")),
+                                "player" to PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown")),
+
                                 "world" to worldData.name
                         )
                 )
@@ -1358,12 +1353,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         player,
                                         "gui.member_management.remove_confirm.title",
                                         mapOf(
-                                                "player" to
-                                                        (Bukkit.getOfflinePlayer(targetUuid).name
-                                                                ?: lang.getMessage(
-                                                                        player,
-                                                                        "general.unknown"
-                                                                ))
+                                                "player" to PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+
                                         )
                                 ),
                                 lore,
@@ -1421,9 +1412,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: java.util.UUID
         ) {
                 val lang = plugin.languageManager
-                val targetName =
-                        Bukkit.getOfflinePlayer(targetUuid).name
-                                ?: lang.getMessage(player, "general.unknown")
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+
                 val title =
                         lang.getMessage(
                                 player,
@@ -1737,9 +1727,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: java.util.UUID
         ) {
                 val lang = plugin.languageManager
-                val targetName =
-                        Bukkit.getOfflinePlayer(targetUuid).name
-                                ?: lang.getMessage(player, "general.unknown")
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+
                 val title =
                         lang.getMessage(
                                 player,

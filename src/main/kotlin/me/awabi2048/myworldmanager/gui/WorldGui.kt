@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -356,9 +357,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                 )
 
                 // Owner Line
-                val owner = Bukkit.getOfflinePlayer(data.owner)
-                val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
-                val ownerColor = if (owner.isOnline) lang.getMessage(player, "publish_level.color.online") else lang.getMessage(player, "publish_level.color.offline")
+                val ownerName = PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown"))
+                val ownerColor = if (Bukkit.getOfflinePlayer(data.owner).isOnline) lang.getMessage(player, "publish_level.color.online") else lang.getMessage(player, "publish_level.color.offline")
                 val ownerLine = lang.getMessage(player, "gui.admin.world_item.owner", mapOf("owner" to ownerName, "status_color" to ownerColor))
 
                 // Status Line
@@ -605,8 +605,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                 )
 
                 if (session.playerFilter != null) {
-                        val targetName =
-                                Bukkit.getOfflinePlayer(session.playerFilter!!).name ?: "Unknown"
+                        val targetName = PlayerNameUtil.getNameOrDefault(session.playerFilter!!, "Unknown")
+
                         lore.add(
                                 lang.getComponent(
                                         player,

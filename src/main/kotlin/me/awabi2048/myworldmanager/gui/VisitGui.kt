@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
@@ -59,8 +60,9 @@ class VisitGui(private val plugin: MyWorldManager) {
                                         (worldCount + worldsPerRow - 1) / worldsPerRow
                                 )
                 val rowCount = neededDataRows + 2
-                val targetName = targetPlayer.name ?: "Unknown"
+                val targetName = PlayerNameUtil.getNameOrDefault(targetPlayer.uniqueId, "Unknown")
                 val titleComp = lang.getComponent(player, titleKey, mapOf("player" to targetName))
+
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                         plugin,
                         player,
@@ -130,7 +132,8 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val onlineColor = lang.getMessage(viewer, "publish_level.color.online")
                 val offlineColor = lang.getMessage(viewer, "publish_level.color.offline")
                 val statusColor = if (ownerRef.isOnline) onlineColor else offlineColor
-                val ownerLine = lang.getMessage(viewer, "gui.visit.world_item.owner", mapOf("owner" to (ownerRef.name ?: lang.getMessage(viewer, "general.unknown")), "status_color" to statusColor))
+                val ownerLine = lang.getMessage(viewer, "gui.visit.world_item.owner", mapOf("owner" to PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(viewer, "general.unknown")), "status_color" to statusColor))
+
 
                 val favoriteLine = lang.getMessage(viewer, "gui.visit.world_item.favorite", mapOf("count" to world.favorite))
                 val visitorLine = lang.getMessage(viewer, "gui.visit.world_item.recent_visitors", mapOf("count" to world.recentVisitors.sum()))

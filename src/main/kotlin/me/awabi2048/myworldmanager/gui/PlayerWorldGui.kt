@@ -12,6 +12,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -204,8 +205,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.common.world_desc", mapOf("description" to world.description))
                 } else ""
 
-                val ownerRef = Bukkit.getOfflinePlayer(world.owner)
-                val ownerName = ownerRef.name ?: lang.getMessage(player, "general.unknown")
+                val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(player, "general.unknown"))
+
                 val ownerLine = lang.getMessage(player, "gui.player_world.world_item.owner", mapOf("owner" to ownerName))
 
                 val publishLevelColor = lang.getMessage(player, "publish_level.color.${world.publishLevel.name.lowercase()}")
@@ -336,7 +337,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         lang.getComponent(
                                 player,
                                 "gui.player_world.stats_button.display",
-                                mapOf("player" to (player.name ?: lang.getMessage(player, "general.unknown")))
+                                mapOf("player" to PlayerNameUtil.getNameOrDefault(player.uniqueId, lang.getMessage(player, "general.unknown")))
+
                         )
                 )
 

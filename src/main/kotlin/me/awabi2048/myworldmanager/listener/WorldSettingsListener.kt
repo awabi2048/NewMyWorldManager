@@ -14,6 +14,7 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.block.BlockFace
@@ -251,9 +252,8 @@ class WorldSettingsListener : Listener {
                                         val memberId = ItemTag.getWorldUuid(infoItem)
 
                                         if (memberId != null) {
-                                                val memberName =
-                                                        Bukkit.getOfflinePlayer(memberId).name
-                                                                ?: "Unknown"
+                                                val memberName = PlayerNameUtil.getNameOrDefault(memberId, "Unknown")
+
                                                 worldData.members.remove(memberId)
                                                 worldData.moderators.remove(memberId)
                                                 plugin.worldConfigRepository.save(worldData)
@@ -303,12 +303,9 @@ class WorldSettingsListener : Listener {
                                         val newOwnerId = ItemTag.getWorldUuid(infoItem) ?: return
 
                                         val oldOwnerId = worldData.owner
-                                        val oldOwnerName =
-                                                Bukkit.getOfflinePlayer(oldOwnerId).name
-                                                        ?: "Unknown"
-                                        val newOwnerName =
-                                                Bukkit.getOfflinePlayer(newOwnerId).name
-                                                        ?: "Unknown"
+                                        val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
+                                        val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
+
 
                                         // オーナー権限譲渡の処理
                                         worldData.owner = newOwnerId

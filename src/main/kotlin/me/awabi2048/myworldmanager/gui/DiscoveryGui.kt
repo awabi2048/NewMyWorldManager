@@ -12,6 +12,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -205,7 +206,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         "gui.discovery.world_item.lore",
                                         mapOf(
                                                 "description" to formattedDesc,
-                                                "owner" to (ownerRef.name ?: lang.getMessage(player, "general.unknown")),
+                                                "owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")),
+
                                                 "status_color" to ownerColor,
                                                 "favorites" to favorites,
                                                 "visitors" to visitors,
