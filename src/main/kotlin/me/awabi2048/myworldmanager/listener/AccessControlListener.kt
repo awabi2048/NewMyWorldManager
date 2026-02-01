@@ -9,6 +9,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.event.player.PlayerChangedWorldEvent
+import me.awabi2048.myworldmanager.util.PlayerTag
 
 class AccessControlListener(private val plugin: MyWorldManager) : Listener {
 
@@ -59,9 +60,11 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
                        worldData.moderators.contains(player.uniqueId)
 
         if (!isMember) {
-            // 訪問者統計の更新
-            worldData.recentVisitors[0]++
-            plugin.worldConfigRepository.save(worldData)
+            // 訪問者統計の更新 (同日の重複カウント防止)
+            if (PlayerTag.shouldCountVisit(player, worldData.uuid)) {
+                worldData.recentVisitors[0]++
+                plugin.worldConfigRepository.save(worldData)
+            }
 
             // アナウンスメッセージ送信
             plugin.worldService.sendAnnouncementMessage(player, worldData)

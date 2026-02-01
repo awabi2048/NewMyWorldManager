@@ -610,7 +610,17 @@ class WorldService(
 
     /** 日次のデータ更新処理を行う */
     fun updateDailyData() {
-        // 簡易実装
+        val worlds = repository.findAll()
+        for (worldData in worlds) {
+            val visitors = worldData.recentVisitors
+            // 6 -> 破棄, 5 -> 6, ..., 0 -> 1
+            for (i in 6 downTo 1) {
+                visitors[i] = visitors[i - 1]
+            }
+            // 今日のカウントをリセット
+            visitors[0] = 0
+            repository.save(worldData)
+        }
     }
 
     /** 避難先ロケーションを取得する ロビーワールドが見つからない場合はメインワールドのスポーン地点 */

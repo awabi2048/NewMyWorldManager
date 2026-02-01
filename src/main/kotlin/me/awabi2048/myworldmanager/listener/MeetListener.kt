@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PlayerTag
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -105,8 +106,10 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
 
                     if (!isMember) {
-                        worldData.recentVisitors[0]++
-                        plugin.worldConfigRepository.save(worldData)
+                        if (PlayerTag.shouldCountVisit(player, worldData.uuid)) {
+                            worldData.recentVisitors[0]++
+                            plugin.worldConfigRepository.save(worldData)
+                        }
                     }
                     player.closeInventory()
                 } else {
