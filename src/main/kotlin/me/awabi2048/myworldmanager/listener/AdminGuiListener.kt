@@ -15,14 +15,17 @@ import java.util.*
 
 class AdminGuiListener : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        // Debug: リスナー呼び出し確認
+        // player.sendMessage("§d[Debug-System] AdminGuiListener called. Cancelled: ${event.isCancelled}, Title: ${event.view.title}")
         
         // GUI遷移中のクリックを無視
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
+            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             event.isCancelled = true
             return
         }
@@ -105,7 +108,7 @@ class AdminGuiListener : Listener {
 
             val type = ItemTag.getType(currentItem)
             val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
-            
+
             // ページナビゲーション
             if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
                 val targetPage = ItemTag.getTargetPage(currentItem) ?: return
@@ -134,17 +137,13 @@ class AdminGuiListener : Listener {
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER) {
                 plugin.soundManager.playClickSound(player, currentItem)
                 if (event.isLeftClick) {
-                    // タイプを切り替え
                     plugin.adminGuiSessionManager.cyclePlayerFilterType(player.uniqueId)
                     plugin.worldGui.open(player)
                 } else if (event.isRightClick) {
-                    // タイプが「なし」以外の場合のみプレイヤー名の入力を開始
                     if (session.playerFilterType != me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
                         plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
                         player.closeInventory()
                         player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_prompt"))
-                        // 専用のセッション状態を設定（チャット入力待ち）
-                        // session.playerFilterはリセットしない（キャンセル時などに維持するため）
                     }
                 }
                 return

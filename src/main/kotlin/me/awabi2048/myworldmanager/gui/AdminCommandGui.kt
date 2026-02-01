@@ -138,6 +138,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         ))
 
         player.openInventory(inventory)
+        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
     }
 
     // --- 確認画面 ---
@@ -152,6 +153,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(null, 27, title)
         setupConfirmationGui(inventory, player, mode == WorldService.ConversionMode.NORMAL)
         player.openInventory(inventory)
+        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
     }
 
     fun openUnlinkConfirmation(player: Player) {
@@ -162,6 +164,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(null, 27, title)
         setupConfirmationGui(inventory, player, true)
         player.openInventory(inventory)
+        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
     }
 
     fun openExportConfirmation(player: Player, worldName: String) {

@@ -23,6 +23,13 @@ class AdminCommandListener : Listener {
         if (!plugin.settingsSessionManager.hasSession(player)) return
         val session = plugin.settingsSessionManager.getSession(player) ?: return
 
+        // GUI遷移中のクリックを無視
+        if (session.isGuiTransition) {
+            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
+            event.isCancelled = true
+            return
+        }
+
         // アクションに応じた処理
         if (session.action == SettingsAction.ADMIN_MENU ||
                         session.action == SettingsAction.ADMIN_PORTAL_GUI ||

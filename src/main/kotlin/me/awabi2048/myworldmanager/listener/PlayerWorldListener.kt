@@ -29,6 +29,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         // GUI遷移中のクリックを無視
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
+            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             event.isCancelled = true
             return
         }

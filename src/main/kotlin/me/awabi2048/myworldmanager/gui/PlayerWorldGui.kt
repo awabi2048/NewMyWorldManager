@@ -90,6 +90,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
                 holder.inv = inventory
 
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        player.uniqueId,
+                        me.awabi2048.myworldmanager.session.SettingsAction.PLAYER_WORLD_GUI,
+                        isGui = true
+                )
+
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
 
@@ -182,6 +189,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
 
                 player.openInventory(inventory)
+                me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         }
 
         private fun createWorldItem(

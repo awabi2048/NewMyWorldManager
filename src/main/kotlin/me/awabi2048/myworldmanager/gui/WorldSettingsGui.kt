@@ -873,6 +873,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
+                        scheduleGuiTransitionReset(plugin, player)
                 }
         }
 

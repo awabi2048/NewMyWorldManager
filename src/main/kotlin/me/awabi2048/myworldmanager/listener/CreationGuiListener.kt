@@ -37,6 +37,14 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         val tag = ItemTag.getType(currentItem)
         if (currentItem.type == Material.AIR || tag == ItemTag.TYPE_GUI_DECORATION) return
 
+        // GUI遷移中のクリックを無視
+        val settingsSession = plugin.settingsSessionManager.getSession(player)
+        if (settingsSession != null && settingsSession.isGuiTransition) {
+            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
+            event.isCancelled = true
+            return
+        }
+
         val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
 
         if (tag == ItemTag.TYPE_GUI_BACK) {

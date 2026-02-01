@@ -49,16 +49,16 @@ class WorldSettingsListener : Listener {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
 
-                // GUI驕ｷ遘ｻ荳ｭ縺ｮ繧ｯ繝ｪ繝・け繧堤┌隕・
+                // GUI遷移中のクリックを無視
                 if (session.isGuiTransition) {
                         event.isCancelled = true
                         return
                 }
 
-                // 繧ｻ繝・す繝ｧ繝ｳ縺梧怏蜉ｹ縺ｪ蝣ｴ蜷医∝渕譛ｬ繧ｭ繝｣繝ｳ繧ｻ繝ｫ (蜷・ase縺ｧ隗｣髯､繧ょ庄閭ｽ縺縺悟渕譛ｬ縺ｯGUI)
-                // 縺溘□縺励…lickedInventory繝√ぉ繝・け縺悟ｿ・ｦ√°・・
-                // 縺薙％縺ｧ縺ｯ荳譌ｦ繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺帙★縺ｫ蜷・・蟯舌↓蟋斐・繧九√≠繧九＞縺ｯ繝医ャ繝励う繝ｳ繝吶Φ繝医Μ縺ｪ繧峨く繝｣繝ｳ繧ｻ繝ｫ・・
-                // 譌｢蟄伜ｮ溯｣・・蜷・f繝悶Ο繝・け縺ｧ event.isCancelled = true 縺励※縺・◆縲・
+                // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)
+                // ただし、clickedInventoryチェックが必要か？
+                // ここでは一旦キャンセルせずに各分岐に委ねる、あるいはトップインベントリならキャンセル？
+                // 既存実装：各ifブロックで event.isCancelled = true していた。
 
                 val item = event.currentItem ?: return
                 val type = ItemTag.getType(item)

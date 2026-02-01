@@ -22,6 +22,14 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         val player = event.whoClicked as? Player ?: return
         val lang = plugin.languageManager
 
+        // GUI遷移中のクリックを無視
+        val session = plugin.settingsSessionManager.getSession(player)
+        if (session != null && session.isGuiTransition) {
+            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
+            event.isCancelled = true
+            return
+        }
+
         // お気に入り一覧
         if (view.topInventory.holder is FavoriteGui.FavoriteGuiHolder) {
             event.isCancelled = true

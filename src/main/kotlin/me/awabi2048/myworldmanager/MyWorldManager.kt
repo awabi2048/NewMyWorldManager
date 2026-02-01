@@ -232,8 +232,8 @@ class MyWorldManager : JavaPlugin() {
         LogUtil.logWithSeparator(
                 logger,
                 listOf(
-                        "MyWorldManager v${description.version} has been enabled!",
-                        "Developed by ${description.authors.joinToString(", ")}"
+                        "MyWorldManager ${description.version} has been enabled!",
+                        "Developed by awabi2048"
                 )
         )
 
@@ -258,7 +258,7 @@ class MyWorldManager : JavaPlugin() {
 
         LogUtil.logWithSeparator(
                 logger,
-                listOf("MyWorldManager v${description.version} has been disabled.", "Goodbye!")
+                listOf("MyWorldManager ${description.version} has been disabled.", "Goodbye!")
         )
     }
 

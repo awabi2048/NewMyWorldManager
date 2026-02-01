@@ -28,6 +28,13 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
         if (view.topInventory.holder !is me.awabi2048.myworldmanager.gui.DiscoveryGui.DiscoveryGuiHolder) return
         event.isCancelled = true
+        
+        // GUI遷移中のクリックを無視
+        val settingsSession = plugin.settingsSessionManager.getSession(player)
+        if (settingsSession != null && settingsSession.isGuiTransition) {
+            player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
+            return
+        }
 
         val item = event.currentItem ?: return
         val tag = ItemTag.getType(item) ?: return

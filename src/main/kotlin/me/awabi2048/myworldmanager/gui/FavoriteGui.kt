@@ -77,6 +77,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val inventory = Bukkit.createInventory(holder, 54, title)
                 holder.inv = inventory
 
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        player.uniqueId,
+                        me.awabi2048.myworldmanager.session.SettingsAction.FAVORITE_GUI,
+                        isGui = true
+                )
+
                 val blackPane =
                         createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)
                 for (i in 0..8) inventory.setItem(i, blackPane)
@@ -160,6 +167,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 }
 
                 player.openInventory(inventory)
+                me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         }
 
         private fun createWorldItem(

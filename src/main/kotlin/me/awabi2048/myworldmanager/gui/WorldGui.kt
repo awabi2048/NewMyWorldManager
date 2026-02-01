@@ -166,8 +166,8 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
-                        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
                 }
+                me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
 
                 // 自動更新タスク
                 object : org.bukkit.scheduler.BukkitRunnable() {

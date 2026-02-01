@@ -10,7 +10,7 @@ import java.util.UUID
 class GlobalMenuListener(private val plugin: MyWorldManager) : Listener {
 
     private val lastClickTime = mutableMapOf<UUID, Long>()
-    private val COOLDOWN_MS = 200L // 4 ticks = 200ms
+    private val COOLDOWN_MS = 150L // 3 ticks = 150ms (reduced from 200ms)
 
     @EventHandler(priority = EventPriority.LOWEST)
     fun onInventoryClick(event: InventoryClickEvent) {
@@ -43,11 +43,25 @@ class GlobalMenuListener(private val plugin: MyWorldManager) : Listener {
         
         if (!isPluginGui) return
 
-        val uuid = player.uniqueId
+        val p = player as? org.bukkit.entity.Player ?: return
+        val uuid = p.uniqueId
+        val session = plugin.settingsSessionManager.getSession(p)
+        
+        // 詳細なデバッグログ除去
+        // val titleStr = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(event.view.title())
+        // p.sendMessage("§d[Debug-Click] Title: $titleStr")
+        // p.sendMessage("§d[Debug-Click] Session: ${session?.action ?: "None"}, Transition: ${session?.isGuiTransition ?: "N/A"}")
+
+        // GUI遷移中のクリックは、個別のリスナーでキャンセルされるためクールダウンとしてはカウントしない
+        if (session != null && session.isGuiTransition) {
+            return
+        }
+
         val currentTime = System.currentTimeMillis()
         val lastTime = lastClickTime[uuid] ?: 0L
 
         if (currentTime - lastTime < COOLDOWN_MS) {
+            // player.sendMessage("§7[Debug] Click cancelled (Cooldown: ${COOLDOWN_MS}ms)")
             event.isCancelled = true
             return
         }
