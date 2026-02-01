@@ -35,6 +35,12 @@ commands:
   settings:
     description: 個人設定メニューを開きます。
     usage: /<command>
+  test-wizard:
+    description: Test wizard for world creation
+    usage: /test-wizard
+  dialog_test:
+    description: Test dialog input for world cloning
+    usage: /dialog_test
 permissions:
   myworldmanager.admin:
     description: Allows full access to MyWorldManager

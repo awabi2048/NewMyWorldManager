@@ -195,6 +195,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(TemplateWizardChatListener(this), this)
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
+        server.pluginManager.registerEvents(DialogTestListener(), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
@@ -227,6 +228,8 @@ class MyWorldManager : JavaPlugin() {
         getCommand("meet")?.setTabCompleter(meetCmd)
 
         getCommand("settings")?.setExecutor(SettingsCommand(this))
+        getCommand("test-wizard")?.setExecutor(TestWizardCommand())
+        getCommand("dialog_test")?.setExecutor(DialogTestCommand(this))
 
         // 起動完了ログ
         LogUtil.logWithSeparator(

@@ -122,6 +122,12 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     ItemTag.TYPE_GUI_CREATION_TYPE_SEED -> {
                         plugin.soundManager.playClickSound(player, currentItem)
                         session.creationType = WorldCreationType.SEED
+                        
+                        if (session.isDialogMode) {
+                            me.awabi2048.myworldmanager.listener.DialogTestListener.showSeedInputDialog(player, session)
+                            return
+                        }
+                        
                         session.phase = WorldCreationPhase.SEED_INPUT
                         player.closeInventory()
                         val cancelWord =
@@ -138,6 +144,12 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> {
                         plugin.soundManager.playClickSound(player, currentItem)
                         session.creationType = WorldCreationType.RANDOM
+                        
+                        if (session.isDialogMode) {
+                            me.awabi2048.myworldmanager.listener.DialogTestListener.showConfirmationDialog(player, session)
+                            return
+                        }
+                        
                         session.phase = WorldCreationPhase.CONFIRM
                         plugin.creationGui.openConfirmation(player, session)
                     }
@@ -167,6 +179,12 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     // 左クリックで選択確定
                     plugin.soundManager.playClickSound(player, currentItem)
                     session.templateName = template.path
+                    
+                    if (session.isDialogMode) {
+                        me.awabi2048.myworldmanager.listener.DialogTestListener.showConfirmationDialog(player, session)
+                        return
+                    }
+                    
                     session.phase = WorldCreationPhase.CONFIRM
                     plugin.creationGui.openConfirmation(player, session)
                 }

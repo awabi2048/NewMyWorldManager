@@ -27,12 +27,25 @@ object ItemConverter {
         
         // デバッグ用ログ: 対象のマテリアルを持つアイテム、またはPDCタグを持つアイテムのみログ出力
         if (item.type == Material.END_PORTAL_FRAME || item.type == Material.MAGMA_CREAM || legacyId != null) {
-            plugin.logger.info("[ItemConverter Debug] Item: ${item.type}, PlainName: '$plainName', LegacyID: '$legacyId'")
+            plugin.logger.info("[ItemConverter Debug] Checking Item: ${item.type}, PlainName: '$plainName'")
+            if (pdc.keys.isEmpty()) {
+                plugin.logger.info("  > No PDC keys found.")
+            } else {
+                plugin.logger.info("  > PDC Keys:")
+                pdc.keys.forEach { key ->
+                    val strVal = pdc.get(key, org.bukkit.persistence.PersistentDataType.STRING)
+                    val intVal = try { pdc.get(key, org.bukkit.persistence.PersistentDataType.INTEGER) } catch(e: Exception) { null }
+                    val doubleVal = try { pdc.get(key, org.bukkit.persistence.PersistentDataType.DOUBLE) } catch(e: Exception) { null }
+                    
+                    val dispVal = strVal ?: intVal ?: doubleVal ?: "Unknown Type"
+                    plugin.logger.info("    - $key: $dispVal")
+                }
+            }
         }
 
         // 1. ワールドポータル
         // 旧仕様: PDC["myworldmanager:item_id"] == "WORLD_PORTAL" OR (Material.END_PORTAL_FRAME AND Name: ワールドポータル)
-        if (legacyId == "WORLD_PORTAL" || (item.type == Material.END_PORTAL_FRAME && (plainName == "ワールドポータル" || plainName.contains("ワールドポータル")))) {
+        if (item.type == Material.END_PORTAL_FRAME && (plainName == "§bワールドポータル")) {
             val newItem = CustomItem.WORLD_PORTAL.create(plugin.languageManager, null)
             newItem.amount = item.amount
             return newItem

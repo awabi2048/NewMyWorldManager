@@ -1,0 +1,40 @@
+{
+    "name": "awabi Sandbox",
+    "image": "mcr.microsoft.com/devcontainers/java:1-21-bullseye",
+
+    "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+            "installMaven": "true",
+            "version": "latest",
+            "jdkDistro": "ms"
+        }
+    },
+
+    "mounts": [
+        // 例: ホストの「C:/MyAssets」を、コンテナの「/assets」に見せる
+        // source=ホスト側のパス, target=コンテナ側のパス, type=bind
+        "source=C:/MyAssets,target=/assets,type=bind,consistency=cached"
+    ],
+    
+    // Antigravityの拡張機能やSandbox用ツールを自動インストール
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "vscjava.vscode-java-pack",
+                "antigravity-dev-tools"
+            ],
+            "settings": {
+                // コンテナ内でのサンドボックス動作を安定させる設定
+                "antigravity.terminal.sandboxing": true,
+                "antigravity.sandbox.networkAccess": "allowed"
+            }
+        }
+    },
+    
+
+    // ポート開放（サーバーテスト用）
+    "forwardPorts": [25565],
+
+    // コンテナ作成後に実行するコマンド
+    "postCreateCommand": "java -version"
+}

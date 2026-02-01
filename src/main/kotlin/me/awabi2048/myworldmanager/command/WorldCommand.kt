@@ -1,5 +1,13 @@
 package me.awabi2048.myworldmanager.command
 
+import io.papermc.paper.dialog.Dialog
+import io.papermc.paper.registry.data.dialog.ActionButton
+import io.papermc.paper.registry.data.dialog.DialogBase
+import io.papermc.paper.registry.data.dialog.action.DialogAction
+import io.papermc.paper.registry.data.dialog.body.DialogBody
+import io.papermc.paper.registry.data.dialog.input.DialogInput
+import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
+import io.papermc.paper.registry.data.dialog.type.DialogType
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
@@ -11,6 +19,10 @@ import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Material
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -449,6 +461,72 @@ class WorldCommand(
                 performPortalMigration(sender)
                 plugin.config.set("migration.enable_portal_migration", false)
                 plugin.saveConfig()
+                return true
+            }
+            "test-dialog" -> {
+                me.awabi2048.myworldmanager.command.TestDialogCommand().onCommand(sender, command, label, args)
+                return true
+            }
+            "test-wizard" -> {
+                val friendType = listOf(
+                    SingleOptionDialogInput.OptionEntry.create("allow", Component.text("許可", NamedTextColor.GREEN), false),
+                    SingleOptionDialogInput.OptionEntry.create("deny", Component.text("禁止", NamedTextColor.RED), false)
+                )
+
+                val dialog: Dialog = Dialog.create { builder -> builder.empty()
+                    .base(
+                        DialogBase.builder(Component.text("[例]SkyBlockワールド", NamedTextColor.LIGHT_PURPLE))
+                        .canCloseWithEscape(false)
+                        .body(
+                            listOf(
+                                DialogBody.plainMessage(Component.text("ワールド設定")),
+                                DialogBody.plainMessage(
+                                    Component.text("規約: ").append(
+                                        Component.text("https://example.com", NamedTextColor.AQUA)
+                                            .clickEvent(ClickEvent.copyToClipboard("https://example.com"))
+                                    )
+                                )
+                            )
+                        )
+                        .inputs(
+                            listOf(
+                                DialogInput.text("skyblock_world_name", Component.text("ワール名を入力(20文字まで)"))
+                                    .maxLength(20)
+                                    .initial("${sender.name}のSkyBlock")
+                                    .build(),
+
+                                DialogInput.singleOption(
+                                    "skyblock_friend",
+                                    Component.text("フレンドの参加", NamedTextColor.AQUA),
+                                    friendType
+                                ).build(),
+
+                                DialogInput.bool(
+                                    "skyblock_tutorial",
+                                    Component.text("チュートリアル")
+                                ).initial(true).build()
+                            )
+                        )
+                        .build()
+                    )
+                    .type(
+                        DialogType.confirmation(
+                        ActionButton.create(
+                            Component.text("送信", NamedTextColor.GREEN),
+                            null,
+                            150,
+                            DialogAction.customClick(Key.key("skyblock:user_input/send"), null)
+                        ),
+                        ActionButton.create(
+                            Component.text("キャンセル", NamedTextColor.RED),
+                            null,
+                            150,
+                            DialogAction.customClick(Key.key("skyblock:user_input/cancel"), null)
+                        )
+                    ))
+                }
+
+                sender.showDialog(dialog)
                 return true
             }
             else -> {
