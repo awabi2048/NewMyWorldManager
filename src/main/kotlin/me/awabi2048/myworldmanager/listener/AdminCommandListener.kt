@@ -14,7 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin
 
 class AdminCommandListener : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
@@ -40,8 +40,6 @@ class AdminCommandListener : Listener {
             SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM,
             SettingsAction.ADMIN_EXPORT_CONFIRM,
             SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
-            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
-            SettingsAction.ADMIN_UNLINK_CONFIRM,
             SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
             SettingsAction.ADMIN_UNLINK_CONFIRM,
             SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM,
@@ -172,7 +170,7 @@ class AdminCommandListener : Listener {
         val uuid = worldData?.uuid
 
         if (uuid == null) {
-player.sendMessage(
+            player.sendMessage(
                     plugin.languageManager.getMessage(player, "error.unlink_not_myworld")
             )
             return
@@ -438,7 +436,7 @@ player.sendMessage(
                                     )
                                 } else {
                                     player.sendMessage(
-plugin.languageManager.getMessage(
+                                            plugin.languageManager.getMessage(
                                                     player,
                                                     "error.archive_failed"
                                             )
@@ -474,7 +472,7 @@ plugin.languageManager.getMessage(
                                     )
                                 } else {
                                     player.sendMessage(
-plugin.languageManager.getMessage(
+                                            plugin.languageManager.getMessage(
                                                     player,
                                                     "error.unarchive_failed"
                                             )

@@ -41,8 +41,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         session.portalPage = safePage
 
         val lang = plugin.languageManager
-        val title = lang.getMessage(player, "gui.admin_portals.title")
-        val titleComp = Component.text(title, NamedTextColor.DARK_GRAY, TextDecoration.BOLD)
+        val titleComp = lang.getComponent(player, "gui.admin_portals.title").color(NamedTextColor.DARK_GRAY).decorate(TextDecoration.BOLD)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_portals", titleComp)
         val inventory = Bukkit.createInventory(null, 54, titleComp)
 
@@ -96,6 +95,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         }
 
         player.openInventory(inventory)
+        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
     }
 
     private fun getSortedPortals(session: AdminGuiSession): List<PortalData> {

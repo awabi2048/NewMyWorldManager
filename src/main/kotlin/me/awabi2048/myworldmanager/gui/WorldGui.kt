@@ -64,7 +64,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         )
                         return
                 }
-                val title = lang.getComponent(player, titleKey)
+                val title = lang.getComponent(player, titleKey).color(net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY).decorate(net.kyori.adventure.text.format.TextDecoration.BOLD)
 
                 if (!suppressSound) {
                         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
@@ -166,6 +166,7 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
+                        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
                 }
 
                 // 自動更新タスク
