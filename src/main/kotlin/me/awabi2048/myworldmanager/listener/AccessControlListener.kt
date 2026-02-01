@@ -20,6 +20,10 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
         val toWorld = event.to.world ?: return
         val worldData = repository.findByWorldName(toWorld.name) ?: return
         val lang = plugin.languageManager
+        val previewSessionManager = plugin.previewSessionManager
+
+        // プレビュー中の場合は通知・アナウンスをスキップ
+        if (previewSessionManager.isInPreview(player)) return
 
         // アーカイブ中チェック
         if (worldData.isArchived) {
@@ -63,6 +67,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onWorldChange(event: PlayerChangedWorldEvent) {
         val player = event.player
+        if (plugin.previewSessionManager.isInPreview(player)) return
         val worldData = repository.findByWorldName(player.world.name) ?: return
         
         // メンバー判定
@@ -79,6 +84,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onJoin(event: PlayerJoinEvent) {
         val player = event.player
+        if (plugin.previewSessionManager.isInPreview(player)) return
         val worldData = repository.findByWorldName(player.world.name) ?: return
         val lang = plugin.languageManager
 
