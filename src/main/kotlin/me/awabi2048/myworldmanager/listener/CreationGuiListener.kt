@@ -90,37 +90,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 val config = plugin.config
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-                // 上限チェック
-                val totalMax = config.getInt("creation.max_total_world_count", 50)
-                val totalCurrent = plugin.worldConfigRepository.findAll().size
-                if (totalCurrent >= totalMax) {
-                    player.sendMessage(
-                            lang.getMessage(
-                                    player,
-                                    "gui.creation.type.limit_reached_total",
-                                    mapOf("max" to totalMax)
-                            )
-                    )
-                    plugin.soundManager.playActionSound(player, "creation", "limit_reached")
-                    return
-                }
-
-                val defaultMax = config.getInt("creation.max_create_count_default", 3)
-                val maxCounts = defaultMax + stats.unlockedWorldSlot
-                val currentCounts =
-                        plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
-
-                if (currentCounts >= maxCounts) {
-                    player.sendMessage(
-                            lang.getMessage(
-                                    player,
-                                    "gui.creation.type.limit_reached",
-                                    mapOf("current" to currentCounts, "max" to maxCounts)
-                            )
-                    )
-                    plugin.soundManager.playActionSound(player, "creation", "limit_reached")
-                    return
-                }
+                // 上限チェック (WorldCommandへ移動済み)
 
                 // コスト判定
                 val cost =

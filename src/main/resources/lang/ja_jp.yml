@@ -136,7 +136,9 @@ gui:
       insufficient: "§cポイントが足りません。(§6🛖 §e{shortage}不足)"
     insufficient: "§cポイントが足りません。(§6🛖 §e{shortage}不足)"
     limit_reached: "§cワールド作成数の上限に達しています。(現在: {current}/{max})"
-    limit_reached_total: "§cサーバー全体のワールド作成数が上限（{limit}）に達しています。"
+    limit_reached_total: "§cサーバー全体のワールド作成数が上限（{max}）に達しています。"
+    command_limit_reached_total: "§c[Warning] サーバー全体のワールド作成数が上限（{max}）に達しているため、作成できません。"
+    command_limit_reached: "§c[Warning] 対象プレイヤー（{player}）のワールド作成数が上限に達しているため、作成できません。(現在: {current}/{max})"
     template_item:
       preview_hint: "§7右クリックでプレビュー"
     confirm:
@@ -1376,12 +1378,12 @@ messages:
   reload_success: "§aMyWorldManager の設定を再読み込みしました。"
   daily_update_success: "§aワールドの日付更新処理（統計シフト等）を完了しました。"
   data_update_success: "§a全てのワールドデータ ({world_count}件) とプレイヤーデータ ({player_count}件) を最新の状態に更新しました。"
-  spotlight_added: "§aワールド「{world}」をSPOTLIGHTに登録しました！"
-  spotlight_removed: "§cワールド「{world}」をSPOTLIGHTから削除しました。"
-  world_creation_started: "§eワールド「§a{world}§e」の作成を開始しました..."
-  world_creation_success: "§aワールド「§a{world}§a」の作成に成功しました！"
+  spotlight_added: "§aマイワールド「{world}」をSPOTLIGHTに登録しました！"
+  spotlight_removed: "§cマイワールド「{world}」をSPOTLIGHTから削除しました。"
+  world_creation_started: "§eマイワールド「{world}」の作成を開始しました..."
+  world_creation_success: "§aマイワールド「§a{world}§a」の作成に成功しました！"
   world_unloading_evacuation: "§cワールドがアンロードされたため、スポーン地点へ移動します。"
-  mspt_warning_chat: "§e[MyWorldManager] §c警告: §fワールド「§a{world}§f」のMSPTが§e{mspt}ms§fに達しています。§7(負荷が高い可能性があります)"
+  mspt_warning_chat: "§c【WARNING】 §fワールド「§a{world}§f」のMSPTが§e{mspt}ms§fに達しています。§7(負荷が高い可能性があります)"
   
   # /meet 関連
   meet:

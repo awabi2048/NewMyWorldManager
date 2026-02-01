@@ -70,6 +70,42 @@ class WorldCommand(
                 // テンプレートワールドのチャンクを事前読み込み
                 plugin.worldService.preloadTemplateChunks()
 
+                // ----- 上限チェック (Moved from CreationGuiListener) -----
+                val stats = plugin.playerStatsRepository.findByUuid(targetPlayer.uniqueId)
+                val maxTotal = plugin.config.getInt("creation.max_total_world_count", 50)
+                val currentTotal = plugin.worldConfigRepository.findAll().size
+
+                if (currentTotal >= maxTotal) {
+                    sender.sendMessage(
+                        lang.getMessage(
+                            sender as? Player,
+                            "gui.creation.command_limit_reached_total",
+                            mapOf("max" to maxTotal)
+                        )
+                    )
+                    return true
+                }
+
+                val defaultMax = plugin.config.getInt("creation.max_create_count_default", 3)
+                val maxPlayer = defaultMax + stats.unlockedWorldSlot
+                val currentPlayer = plugin.worldConfigRepository.findAll().count { it.owner == targetPlayer.uniqueId }
+
+                if (currentPlayer >= maxPlayer) {
+                    sender.sendMessage(
+                        lang.getMessage(
+                            sender as? Player,
+                            "gui.creation.command_limit_reached",
+                            mapOf(
+                                "current" to currentPlayer,
+                                "max" to maxPlayer,
+                                "player" to targetPlayer.name
+                            )
+                        )
+                    )
+                    return true
+                }
+                // -------------------------------------------------------
+
                 // ウィザード開始
                 sessionManager.startSession(targetPlayer.uniqueId)
                 val cancelWord =
