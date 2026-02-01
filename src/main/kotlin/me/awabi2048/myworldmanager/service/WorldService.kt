@@ -140,7 +140,7 @@ class WorldService(
                 java.time.LocalDate.now()
                         .plusDays(
                                 plugin.config.getLong(
-                                        "world_settings.default_expiration_days",
+                                        "default_expiration.initial_days",
                                         30
                                 )
                         )
@@ -477,6 +477,10 @@ class WorldService(
         }
 
         worldData.isArchived = false
+        // 期限をリセット
+        val initialDays = plugin.config.getLong("default_expiration.initial_days", 90)
+        worldData.expireDate = java.time.LocalDate.now().plusDays(initialDays).toString()
+        
         repository.save(worldData)
         future.complete(true)
         return future
