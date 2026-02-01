@@ -60,7 +60,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
 
         // 封鎖中チェック
         if (worldData.publishLevel == PublishLevel.LOCKED) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_locked_error"))
+            player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
             return true
         }
 
@@ -132,7 +132,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         
         if (info == null || System.currentTimeMillis() > info.expiry) {
             pendingInvites.remove(player.uniqueId)
-            player.sendMessage(lang.getMessage(player, "messages.invite_expired"))
+            player.sendMessage(lang.getMessage(player, "error.invite_expired"))
             return
         }
 

@@ -51,7 +51,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
             if (type == "gui_meet_target_head") {
                 val skullMeta = currentItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return
                 val target = skullMeta.owningPlayer?.player ?: run {
-                    player.sendMessage(lang.getMessage(player, "messages.target_offline"))
+                    player.sendMessage(lang.getMessage(player, "error.target_offline"))
                     player.closeInventory()
                     return
                 }
@@ -88,7 +88,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
 
                 // ワールド名からワールドデータを取得（変換されたワールドも考慮）
                 val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: run {
-                    player.sendMessage(lang.getMessage(player, "messages.target_not_in_myworld"))
+                    player.sendMessage(lang.getMessage(player, "error.target_not_in_myworld"))
                     plugin.soundManager.playActionSound(player, "meet", "access_denied")
                     return
                 }
@@ -110,7 +110,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     }
                     player.closeInventory()
                 } else {
-                    player.sendMessage(lang.getMessage(player, "messages.world_not_public"))
+                    player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                     plugin.soundManager.playActionSound(player, "meet", "access_denied")
                 }
             }

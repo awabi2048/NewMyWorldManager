@@ -42,7 +42,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     // check if managed
                     val managedWorld = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
                     if (managedWorld == null) {
-                         player.sendMessage(lang.getMessage(player, "messages.portal_bind_myworld_only"))
+                         player.sendMessage(lang.getMessage(player, "error.portal_bind_myworld_only"))
                          return
                     }
 
@@ -51,7 +51,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
                     val isMember = worldData.owner == player.uniqueId || worldData.moderators.contains(player.uniqueId)
                     if (!isMember && worldData.publishLevel != PublishLevel.PUBLIC && worldData.publishLevel != PublishLevel.FRIEND) {
-                        player.sendMessage(lang.getMessage(player, "messages.portal_bind_invalid_publish"))
+                        player.sendMessage(lang.getMessage(player, "error.portal_bind_invalid_publish"))
                         return
                     }
 
@@ -89,7 +89,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
         if (worldUuid == null && targetWorldName == null) {
             event.isCancelled = true
-            event.player.sendMessage(lang.getMessage(event.player, "messages.portal_not_bound"))
+            event.player.sendMessage(lang.getMessage(event.player, "error.portal_not_bound"))
             return
         }
         

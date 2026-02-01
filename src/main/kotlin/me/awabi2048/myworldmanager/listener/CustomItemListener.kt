@@ -82,7 +82,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                 // Correct World Check
                 val worldName = player.world.name
                 if (!worldName.startsWith("my_world.")) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.biome_world_only"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.biome_world_only"))
                     return
                 }
                 
@@ -107,7 +107,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                 
                 // Permission Check (Owner or Moderator)
                 if (worldData.owner != player.uniqueId && !worldData.moderators.contains(player.uniqueId) && !player.hasPermission("myworldmanager.admin")) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.no_permission"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.no_permission"))
                     return
                 }
                 
@@ -177,7 +177,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
                  
                  if (currentSlots >= limit) {
-                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
+                     player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
                      player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f)
                      return
                  }

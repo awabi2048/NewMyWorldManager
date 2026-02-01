@@ -80,7 +80,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 
                 if (worldUuid != null) {
                     if (worldData.publishLevel == PublishLevel.LOCKED) {
-                        player.sendMessage(lang.getMessage(player, "messages.invite_locked_error"))
+                        player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
                         player.closeInventory()
                         return
                     }
@@ -126,7 +126,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 if (Bukkit.getWorld(folderName) == null) {
                     player.sendMessage(lang.getMessage(player, "messages.world_loading"))
                     if (!plugin.worldService.loadWorld(uuid)) {
-                        player.sendMessage(lang.getMessage(player, "messages.load_failed"))
+                        player.sendMessage(lang.getMessage(player, "error.load_failed"))
                         return
                     }
                 }

@@ -178,7 +178,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                 val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!) ?: continue
                 
                 if (destData.publishLevel == PublishLevel.LOCKED) {
-                    player.sendMessage(lang.getMessage(player, "messages.portal_dest_locked"))
+                    player.sendMessage(lang.getMessage(player, "error.portal_dest_locked"))
                     continue
                 }
 

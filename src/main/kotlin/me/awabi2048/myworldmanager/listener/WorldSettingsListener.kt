@@ -1,4 +1,4 @@
-﻿package me.awabi2048.myworldmanager.listener
+package me.awabi2048.myworldmanager.listener
 
 import io.papermc.paper.event.player.AsyncChatEvent
 import java.util.UUID
@@ -881,7 +881,7 @@ class WorldSettingsListener : Listener {
                                                 if (currentLevel >= maxLevel) {
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
-                                                                        "messages.max_expansion_reached"
+                                                                        "error.max_expansion_reached"
                                                                 )
                                                         )
                                                         return
@@ -908,7 +908,7 @@ class WorldSettingsListener : Listener {
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,
-                                                                        "messages.expand_insufficient_points",
+                                                                        "error.expand_insufficient_points",
                                                                         mapOf("cost" to cost)
                                                                 )
                                                         )
@@ -1112,7 +1112,7 @@ class WorldSettingsListener : Listener {
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,
-                                                                        "messages.no_portals_found"
+                                                                        "error.no_portals_found"
                                                                 )
                                                         )
                                                 }
@@ -1195,7 +1195,7 @@ class WorldSettingsListener : Listener {
                                                         player.sendMessage(
                                                                 lang.getMessage(
                                                                         player,
-                                                                        "messages.custom_item.no_permission"
+                                                                        "error.custom_item.no_permission"
                                                                 )
                                                         )
                                                         return
@@ -1766,10 +1766,10 @@ class WorldSettingsListener : Listener {
                                                                                                 )
                                                                                 } else {
                                                                                         player.sendMessage(
-                                                                                                plugin.languageManager
+plugin.languageManager
                                                                                                         .getMessage(
                                                                                                                 player,
-                                                                                                                "messages.unarchive_failed"
+                                                                                                                "error.unarchive_failed"
                                                                                                         )
                                                                                         )
                                                                                 }
@@ -2391,8 +2391,8 @@ class WorldSettingsListener : Listener {
                                 )
                         )
                 } else {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage("messages.expand_failed")
+player.sendMessage(
+                                plugin.languageManager.getMessage("error.expand_failed")
                         )
                 }
         }
@@ -2733,7 +2733,7 @@ class WorldSettingsListener : Listener {
 
                 if (!isMember) {
                         player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                        player.sendMessage(lang.getMessage(player, "messages.custom_item.no_permission"))
+                        player.sendMessage(lang.getMessage(player, "error.custom_item.no_permission"))
                         return
                 }
 

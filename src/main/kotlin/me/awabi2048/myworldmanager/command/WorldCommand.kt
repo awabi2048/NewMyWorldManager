@@ -107,7 +107,7 @@ class WorldCommand(
             "update-day" -> {
                 val lang = plugin.languageManager
                 if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("messages.console_only"))
+                    sender.sendMessage(lang.getMessage("error.console_only"))
                     return true
                 }
                 plugin.worldService.updateDailyData()
@@ -325,7 +325,7 @@ class WorldCommand(
                 val customItem = CustomItem.fromId(customItemId)
                 if (customItem == null) {
                     sender.sendMessage(
-                            lang.getMessage(sender as? Player, "messages.invalid_item_id")
+                            lang.getMessage(sender as? Player, "error.invalid_item_id")
                     )
                     return true
                 }
@@ -358,13 +358,13 @@ class WorldCommand(
             "migrate-worlds" -> {
                 val lang = plugin.languageManager
                 if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("messages.console_only"))
+                    sender.sendMessage(lang.getMessage("error.console_only"))
                     return true
                 }
                 if (!plugin.config.getBoolean("migration.enable_world_migration", false)) {
                     sender.sendMessage(
                             lang.getMessage(
-                                    "messages.migration_disabled",
+                                    "error.migration_disabled",
                                     mapOf("config_key" to "migration.enable_world_migration")
                             )
                     )
@@ -379,13 +379,13 @@ class WorldCommand(
             "migrate-players" -> {
                 val lang = plugin.languageManager
                 if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("messages.console_only"))
+                    sender.sendMessage(lang.getMessage("error.console_only"))
                     return true
                 }
                 if (!plugin.config.getBoolean("migration.enable_player_migration", false)) {
                     sender.sendMessage(
                             lang.getMessage(
-                                    "messages.migration_disabled",
+                                    "error.migration_disabled",
                                     mapOf("config_key" to "migration.enable_player_migration")
                             )
                     )
@@ -399,13 +399,13 @@ class WorldCommand(
             "migrate-portals" -> {
                 val lang = plugin.languageManager
                 if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("messages.console_only"))
+                    sender.sendMessage(lang.getMessage("error.console_only"))
                     return true
                 }
                 if (!plugin.config.getBoolean("migration.enable_portal_migration", false)) {
                     sender.sendMessage(
                             lang.getMessage(
-                                    "messages.migration_disabled",
+                                    "error.migration_disabled",
                                     mapOf("config_key" to "migration.enable_portal_migration")
                             )
                     )
@@ -417,7 +417,7 @@ class WorldCommand(
                 return true
             }
             else -> {
-                sender.sendMessage(plugin.languageManager.getMessage("messages.unknown_subcommand"))
+                sender.sendMessage(plugin.languageManager.getMessage("error.unknown_subcommand"))
                 return true
             }
         }

@@ -53,7 +53,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.no_registered_worlds"
+                                        "error.no_registered_worlds"
                                 )
                         )
                         return

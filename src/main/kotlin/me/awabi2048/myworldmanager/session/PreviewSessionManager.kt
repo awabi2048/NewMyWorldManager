@@ -60,7 +60,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             is PreviewTarget.Template -> {
                 val template = plugin.templateRepository.findAll().find { it.path == target.path }
                 if (template == null) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_template_not_found"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_not_found"))
                     return false
                 }
 
@@ -68,8 +68,8 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 if (Bukkit.getWorld(target.path) == null) {
                     player.closeInventory() // ロード前に閉じる
                     val creator = org.bukkit.WorldCreator(target.path)
-                    Bukkit.createWorld(creator) ?: run {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
+Bukkit.createWorld(creator) ?: run {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
                         return false
                     }
                 }
@@ -98,8 +98,8 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (Bukkit.getWorld(folderName) == null) {
                     player.closeInventory() // ロード前に閉じる
-                    if (!plugin.worldService.loadWorld(worldData.uuid)) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_world_load_failed"))
+if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
                         return false
                     }
                 }

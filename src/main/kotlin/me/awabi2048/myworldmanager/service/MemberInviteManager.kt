@@ -42,19 +42,19 @@ class MemberInviteManager(
         val lang = languageManager
         val info = getInvite(player.uniqueId)
         if (info == null) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_expired"))
+            player.sendMessage(lang.getMessage(player, "error.invite_expired"))
             return
         }
         removeInvite(player.uniqueId)
 
         val worldData = worldConfigRepository.findByUuid(info.worldUuid)
         if (worldData == null) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_world_not_found"))
+            player.sendMessage(lang.getMessage(player, "error.invite_world_not_found"))
             return
         }
 
         if (worldData.members.contains(player.uniqueId) || worldData.moderators.contains(player.uniqueId) || worldData.owner == player.uniqueId) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_already_member"))
+            player.sendMessage(lang.getMessage(player, "error.invite_already_member"))
             return
         }
 

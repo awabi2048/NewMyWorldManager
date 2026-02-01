@@ -131,7 +131,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     } else {
                         val maxFav = plugin.config.getInt("favorite.max_count", 1000)
                         if (stats.favoriteWorlds.size >= maxFav) {
-                            player.sendMessage(lang.getMessage(player, "messages.favorite_limit_reached", mapOf("max" to maxFav)))
+                            player.sendMessage(lang.getMessage(player, "error.favorite_limit_reached", mapOf("max" to maxFav)))
                             return
                         }
                         stats.favoriteWorlds[uuid] = java.time.LocalDate.now().toString()

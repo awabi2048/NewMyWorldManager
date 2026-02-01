@@ -172,8 +172,8 @@ class AdminCommandListener : Listener {
         val uuid = worldData?.uuid
 
         if (uuid == null) {
-            player.sendMessage(
-                    plugin.languageManager.getMessage(player, "messages.unlink_not_myworld")
+player.sendMessage(
+                    plugin.languageManager.getMessage(player, "error.unlink_not_myworld")
             )
             return
         }
@@ -438,9 +438,9 @@ class AdminCommandListener : Listener {
                                     )
                                 } else {
                                     player.sendMessage(
-                                            plugin.languageManager.getMessage(
+plugin.languageManager.getMessage(
                                                     player,
-                                                    "messages.archive_failed"
+                                                    "error.archive_failed"
                                             )
                                     )
                                 }
@@ -474,9 +474,9 @@ class AdminCommandListener : Listener {
                                     )
                                 } else {
                                     player.sendMessage(
-                                            plugin.languageManager.getMessage(
+plugin.languageManager.getMessage(
                                                     player,
-                                                    "messages.unarchive_failed"
+                                                    "error.unarchive_failed"
                                             )
                                     )
                                 }

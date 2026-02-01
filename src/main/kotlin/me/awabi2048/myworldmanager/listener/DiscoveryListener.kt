@@ -45,7 +45,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 if (event.isLeftClick) {
                     // アクセス判定
                     if (worldData.publishLevel != PublishLevel.PUBLIC && !isMember) {
-                        player.sendMessage(lang.getMessage(player, "messages.world_not_public"))
+                        player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                         plugin.soundManager.playActionSound(player, "discovery", "access_denied")
                         player.closeInventory()
                         return
@@ -90,7 +90,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         } else {
                             val maxFav = plugin.config.getInt("favorite.max_count", 1000)
                             if (stats.favoriteWorlds.size >= maxFav) {
-                                player.sendMessage(lang.getMessage(player, "messages.favorite_limit_reached", mapOf("max" to maxFav)))
+                                player.sendMessage(lang.getMessage(player, "error.favorite_limit_reached", mapOf("max" to maxFav)))
                                 return
                             }
                             val now = java.time.LocalDate.now()
@@ -142,14 +142,14 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     val world = player.world
                     val worldData = plugin.worldConfigRepository.findByWorldName(world.name)
                     if (worldData == null) {
-                        player.sendMessage(lang.getMessage(player, "messages.spotlight_not_in_myworld"))
+                        player.sendMessage(lang.getMessage(player, "error.spotlight_not_in_myworld"))
                         return
                     }
                     
                     // オーナーチェック (管理者なら他人のワールドも可とする)
                     val isAdmin = player.hasPermission("myworldmanager.admin")
                     if (!isAdmin && worldData.owner != player.uniqueId && !player.isOp) {
-                        player.sendMessage(lang.getMessage(player, "messages.spotlight_not_owner"))
+                        player.sendMessage(lang.getMessage(player, "error.spotlight_not_owner"))
                         return
                     }
                     

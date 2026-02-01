@@ -47,7 +47,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                                       worldData.members.contains(player.uniqueId))
 
                         if (worldData == null || (worldData.publishLevel != PublishLevel.PUBLIC && !isMember)) {
-                            player.sendMessage(lang.getMessage(player, "messages.world_not_public"))
+                            player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                             plugin.soundManager.playActionSound(player, "visit", "access_denied")
                             player.closeInventory()
                             return
@@ -82,7 +82,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                             }
                             val maxFav = plugin.config.getInt("favorite.max_count", 1000)
                             if (stats.favoriteWorlds.size >= maxFav) {
-                                player.sendMessage(lang.getMessage(player, "messages.favorite_limit_reached", mapOf("max" to maxFav)))
+                                player.sendMessage(lang.getMessage(player, "error.favorite_limit_reached", mapOf("max" to maxFav)))
                                 return
                             }
 

@@ -36,7 +36,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
         // 権限チェック（管理者・メンバー以外）
         if (!player.hasPermission("myworldmanager.admin") && !isMember) {
             if (worldData.publishLevel == PublishLevel.LOCKED) {
-                player.sendMessage(lang.getMessage(player, "messages.portal_dest_locked"))
+                player.sendMessage(lang.getMessage(player, "error.portal_dest_locked"))
                 event.isCancelled = true
                 return
             } else if (worldData.publishLevel == PublishLevel.PRIVATE) {
