@@ -51,15 +51,31 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
             }
         }
 
-        // 訪問通知 (メンバー以外が来た場合)
-        if (!isMember && worldData.notificationEnabled) {
-            val owner = org.bukkit.Bukkit.getPlayer(worldData.owner)
-            if (owner != null && owner.isOnline) {
-                // 言語ファイルを優先
-                owner.sendMessage(lang.getMessage(owner, "messages.visitor_notified", mapOf(
-                    "player" to player.name,
-                    "world" to worldData.name
-                )))
+    }
+
+    private fun handleWorldEntry(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
+        val isMember = worldData.owner == player.uniqueId || 
+                       worldData.members.contains(player.uniqueId) || 
+                       worldData.moderators.contains(player.uniqueId)
+
+        if (!isMember) {
+            // 訪問者統計の更新
+            worldData.recentVisitors[0]++
+            plugin.worldConfigRepository.save(worldData)
+
+            // アナウンスメッセージ送信
+            plugin.worldService.sendAnnouncementMessage(player, worldData)
+
+            // 所有者への通知
+            if (worldData.notificationEnabled) {
+                val owner = org.bukkit.Bukkit.getPlayer(worldData.owner)
+                if (owner != null && owner.isOnline) {
+                    val lang = plugin.languageManager
+                    owner.sendMessage(lang.getMessage(owner, "messages.visitor_notified", mapOf(
+                        "player" to player.name,
+                        "world" to worldData.name
+                    )))
+                }
             }
         }
     }
@@ -70,15 +86,8 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
         if (plugin.previewSessionManager.isInPreview(player)) return
         val worldData = repository.findByWorldName(player.world.name) ?: return
         
-        // メンバー判定
-        val isMember = worldData.owner == player.uniqueId || 
-                       worldData.members.contains(player.uniqueId) || 
-                       worldData.moderators.contains(player.uniqueId)
-        
-        // メンバー以外にのみアナウンスメッセージ送信
-        if (!isMember) {
-            plugin.worldService.sendAnnouncementMessage(player, worldData)
-        }
+        // 共通処理呼び出し
+        handleWorldEntry(player, worldData)
     }
 
     @EventHandler
@@ -94,15 +103,8 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
             player.teleport(evacLoc)
             player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
         } else {
-            // メンバー判定
-            val isMember = worldData.owner == player.uniqueId || 
-                           worldData.members.contains(player.uniqueId) || 
-                           worldData.moderators.contains(player.uniqueId)
-            
-            // メンバー以外にのみアナウンスメッセージ送信
-            if (!isMember) {
-                plugin.worldService.sendAnnouncementMessage(player, worldData)
-            }
+            // 共通処理呼び出し
+            handleWorldEntry(player, worldData)
         }
     }
 }

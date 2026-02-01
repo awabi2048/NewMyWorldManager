@@ -63,14 +63,6 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     plugin.worldService.teleportToWorld(player, uuid)
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     
-                    val isWorldMember = worldData.owner == player.uniqueId || 
-                                  worldData.moderators.contains(player.uniqueId) ||
-                                  worldData.members.contains(player.uniqueId)
-                    if (!isWorldMember) {
-                        worldData.recentVisitors[0]++
-                        plugin.worldConfigRepository.save(worldData)
-                    }
-                    
                     player.closeInventory()
                 } else if (event.isRightClick) {
                     if (event.isShiftClick) {

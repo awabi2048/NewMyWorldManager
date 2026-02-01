@@ -148,10 +148,8 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
 
-                    if (!isMember) {
-                        worldData.recentVisitors[0]++
-                        plugin.worldConfigRepository.save(worldData)
-                    }
+                    plugin.soundManager.playClickSound(player, currentItem, "player_world")
+
                     player.closeInventory()
                 } else {
                     player.sendMessage(lang.getMessage(player, "general.world_not_found"))

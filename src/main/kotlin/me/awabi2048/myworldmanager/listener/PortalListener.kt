@@ -14,6 +14,7 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.ItemStack
+import org.bukkit.event.player.PlayerMoveEvent
 import java.util.UUID
 
 class PortalListener(private val plugin: MyWorldManager) : Listener {
@@ -117,5 +118,16 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             plugin.portalRepository.removePortal(portal.id)
             event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_broken"))
         }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    fun onPlayerMove(event: PlayerMoveEvent) {
+        val from = event.from
+        val to = event.to
+        
+        // ブロックごとの移動のみ検知（軽量化）
+        if (from.blockX == to.blockX && from.blockY == to.blockY && from.blockZ == to.blockZ) return
+        
+        plugin.portalManager.handlePlayerMove(event.player)
     }
 }

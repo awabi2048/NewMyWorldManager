@@ -57,11 +57,6 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                         plugin.worldService.teleportToWorld(player, uuid)
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                         
-                        if (!isMember) {
-                            worldData.recentVisitors[0]++
-                            plugin.worldConfigRepository.save(worldData)
-                        }
-                        
                         player.closeInventory()
                     } else if (event.isRightClick) {
                         // お気に入り処理
