@@ -49,16 +49,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 repository.loadAll()
                 val playerWorlds = getPlayerWorlds(player)
 
-                if (playerWorlds.isEmpty() && !session.showBackButton) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        "error.no_registered_worlds"
-                                )
-                        )
-                        return
-                }
-
                 val startIndex = page * itemsPerPageNum
                 val currentPageWorlds = playerWorlds.drop(startIndex).take(itemsPerPageNum)
 

@@ -68,7 +68,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 if (Bukkit.getWorld(target.path) == null) {
                     player.closeInventory() // ロード前に閉じる
                     val creator = org.bukkit.WorldCreator(target.path)
-Bukkit.createWorld(creator) ?: run {
+                    Bukkit.createWorld(creator) ?: run {
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
                         return false
                     }
@@ -98,7 +98,7 @@ Bukkit.createWorld(creator) ?: run {
                 folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (Bukkit.getWorld(folderName) == null) {
                     player.closeInventory() // ロード前に閉じる
-if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                    if (!plugin.worldService.loadWorld(worldData.uuid)) {
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
                         return false
                     }
@@ -125,13 +125,19 @@ if (!plugin.worldService.loadWorld(worldData.uuid)) {
         // config設定を取得
         val config = plugin.config
         val durationSeconds = config.getDouble("template_preview.duration_seconds", 6.0)
-        val pitch = config.getDouble("template_preview.pitch", -30.0).toFloat()
-        val height = config.getDouble("template_preview.height", 10.0)
+        
+        // --- プレビュー視点の計算 ---
+        val worldData = (target as? PreviewTarget.World)?.worldData
+        val isGuestSpawnSet = worldData?.spawnPosGuest != null
 
-        // 少し上空からの視点
-        val viewLocation = originLoc.clone().add(0.0, height, 0.0)
-        viewLocation.pitch = pitch
-        viewLocation.yaw = 0f
+        val initialYaw = if (isGuestSpawnSet) originLoc.yaw else 0f
+        val initialPitch = if (isGuestSpawnSet) originLoc.pitch else config.getDouble("template_preview.pitch", -30.0).toFloat()
+        val heightOffset = if (isGuestSpawnSet) 0.0 else config.getDouble("template_preview.height", 10.0)
+
+        // 指定位置（または少し上空）からの視点
+        val viewLocation = originLoc.clone().add(0.0, heightOffset, 0.0)
+        viewLocation.pitch = initialPitch
+        viewLocation.yaw = initialYaw
         session.previewLocation = viewLocation
 
         // メッセージ送信
@@ -166,11 +172,14 @@ if (!plugin.worldService.loadWorld(worldData.uuid)) {
     }
 
     private fun startRotationTask(player: Player, durationSeconds: Double) {
+        val session = sessions[player.uniqueId] ?: return
+        val initialYaw = session.previewLocation?.yaw ?: 0f
+        
         val ticksTotal = (durationSeconds * 20).toInt()
         val yawPerTick = 360f / ticksTotal
         var ticksElapsed = 0
 
-        sessions[player.uniqueId]?.rotationTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+        session.rotationTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             if (ticksElapsed >= ticksTotal) {
                 endPreview(player, false)
                 return@Runnable
@@ -179,7 +188,7 @@ if (!plugin.worldService.loadWorld(worldData.uuid)) {
             val currentSession = sessions[player.uniqueId] ?: return@Runnable
             val viewLocation = currentSession.previewLocation
             if (viewLocation != null) {
-                val newYaw = (ticksElapsed * yawPerTick) % 360f
+                val newYaw = (initialYaw + ticksElapsed * yawPerTick) % 360f
                 val loc = viewLocation.clone()
                 loc.yaw = newYaw
                 
