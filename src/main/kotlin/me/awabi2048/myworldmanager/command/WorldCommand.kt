@@ -428,7 +428,6 @@ class WorldCommand(
                     return true
                 }
                 performPlayerMigration(sender)
-                plugin.config.set("migration.enable_player_migration", false)
                 plugin.saveConfig()
                 return true
             }
@@ -486,7 +485,7 @@ class WorldCommand(
                 } else if (sub == "export") {
                     val worlds: List<WorldData> = plugin.worldConfigRepository.findAll()
                     list.addAll(worlds.map { it.uuid.toString() })
-                } else if (sub == "migrate-worlds") {
+                } else if (sub.equals("migrate-worlds", ignoreCase = true)) {
                     list.add("-data")
                 }
             }

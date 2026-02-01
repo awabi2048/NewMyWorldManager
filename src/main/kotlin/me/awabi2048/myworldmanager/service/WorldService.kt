@@ -115,7 +115,7 @@ class WorldService(
                 return false
             }
 
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0)
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None")
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -131,7 +131,8 @@ class WorldService(
             worldName: String,
             worldFolderName: String,
             world: org.bukkit.World,
-            cost: Int
+            cost: Int,
+            templateName: String
     ) {
         val now = java.time.LocalDateTime.now()
         val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -185,6 +186,17 @@ class WorldService(
 
         teleportToWorld(player, uuid)
         creatingWorlds.remove(player.uniqueId.toString())
+
+        // マクロ実行
+        plugin.macroManager.execute(
+                "on_world_create",
+                mapOf(
+                        "owner" to player.name,
+                        "world_uuid" to uuid.toString(),
+                        "world_name" to worldName,
+                        "template_name" to templateName
+                )
+        )
     }
 
     /** ワールドの生成処理（async互換用） */
@@ -292,7 +304,7 @@ class WorldService(
                             return@Runnable
                         }
 
-                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost)
+                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, templateName)
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
@@ -503,6 +515,12 @@ class WorldService(
                 val deleted = folder.deleteRecursively()
                 if (deleted) {
                     repository.delete(worldUuid)
+
+                    // マクロ実行
+                    plugin.macroManager.execute(
+                            "on_world_delete",
+                            mapOf("world_uuid" to worldUuid.toString())
+                    )
                     future.complete(true)
                 } else {
                     future.complete(false)

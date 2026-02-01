@@ -33,21 +33,51 @@ class MacroManager(private val plugin: JavaPlugin) {
         val macros = config.getStringList("macros.$trigger")
         if (macros.isEmpty()) return
 
+        var accumulatedDelay = 0L
+        val delayRegex = Regex("""^\[delay:\s*(\d+)([ts]?)\]\s*(.*)$""")
+
         for (macro in macros) {
-            var command = macro
+            var rawCommand = macro
+            var delayTicks = 0L
+
+            // 遅延の解析
+            val match = delayRegex.find(rawCommand)
+            if (match != null) {
+                val value = match.groupValues[1].toLong()
+                val unit = match.groupValues[2]
+                val commandPart = match.groupValues[3]
+
+                delayTicks = if (unit == "s") value * 20 else value
+                rawCommand = commandPart
+            }
+
+            accumulatedDelay += delayTicks
+
+            var command = rawCommand
             // プレースホルダーの置換
             params.forEach { (key, value) ->
                 command = command.replace("%$key%", value)
             }
-            
-            // コンソールチャットから実行（非同期の場合はメインスレッドへ）
-            if (Bukkit.isPrimaryThread()) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
+
+            if (accumulatedDelay == 0L) {
+                // 即時実行
+                dispatch(command)
             } else {
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
-                })
+                // 遅延実行
+                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                    dispatch(command)
+                }, accumulatedDelay)
             }
+        }
+    }
+
+    private fun dispatch(command: String) {
+        if (Bukkit.isPrimaryThread()) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
+        } else {
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
+            })
         }
     }
 }
