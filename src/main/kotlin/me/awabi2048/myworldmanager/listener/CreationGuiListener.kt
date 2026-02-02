@@ -124,7 +124,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         session.creationType = WorldCreationType.SEED
                         
                         if (session.isDialogMode) {
-                            me.awabi2048.myworldmanager.listener.DialogTestListener.showSeedInputDialog(player, session)
+                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showSeedInputDialog(player, session)
                             return
                         }
                         
@@ -146,7 +146,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         session.creationType = WorldCreationType.RANDOM
                         
                         if (session.isDialogMode) {
-                            me.awabi2048.myworldmanager.listener.DialogTestListener.showConfirmationDialog(player, session)
+                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showConfirmationDialog(player, session)
                             return
                         }
                         
@@ -181,7 +181,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     session.templateName = template.path
                     
                     if (session.isDialogMode) {
-                        me.awabi2048.myworldmanager.listener.DialogTestListener.showConfirmationDialog(player, session)
+                        me.awabi2048.myworldmanager.gui.CreationDialogManager.showConfirmationDialog(player, session)
                         return
                     }
                     

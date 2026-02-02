@@ -6,7 +6,7 @@
 
     <groupId>jp.minecraft</groupId>
     <artifactId>my-world-manager</artifactId>
-    <version>v1.1.0-beta</version>
+    <version>v1.1.0</version>
     <packaging>jar</packaging>
 
     <name>MyWorldManager</name>

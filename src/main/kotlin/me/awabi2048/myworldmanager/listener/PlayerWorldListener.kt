@@ -100,12 +100,25 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 
                 // セッションの開始
                 plugin.creationSessionManager.startSession(player.uniqueId)
-                player.closeInventory()
-                player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
                 
-                val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
-                player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
+                // ベータ機能が有効ならダイアログを使用
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                if (stats.betaFeaturesEnabled) {
+                    val session = plugin.creationSessionManager.getSession(player.uniqueId)
+                    if (session != null) {
+                        session.isDialogMode = true
+                        player.closeInventory()
+                        player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
+                        me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
+                    }
+                } else {
+                    player.closeInventory()
+                    player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
+                    
+                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                    val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
+                    player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
+                }
                 return
             }
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return

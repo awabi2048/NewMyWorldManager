@@ -117,6 +117,9 @@ gui:
     title_type: "ワールドタイプを選択"
     title_template: "テンプレートを選択"
     title_confirm: "最終確認"
+    dialog:
+      name_title: "ワールド名の入力"
+      seed_title: "シード値の入力"
     type:
       template:
         name: "テンプレートから作成"
@@ -156,6 +159,16 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
       template_line: "§f§l| §7テンプレート §f{template}"
       seed_line: "§f§l| §7シード値 §f{seed}"
+      name_label: "ワールド名"
+      type_label: "作成方法"
+      cost_label: "消費ポイント"
+      select_action: "アクションを選択"
+      action_create: "作成する"
+      action_preview: "テンプレートをプレビュー"
+      action_back: "戻る"
+      action_cancel: "中断する"
+      proceed_button: "実行"
+      cancel_button: "閉じる"
 
   portal:
     title: "ポータルの設定"
@@ -1222,6 +1235,8 @@ gui:
         - "§7開発中の機能を有効化します。"
         - "§7現在は、従来のチャット入力の代わりに"
         - "§7新しいダイアログ入力を使用します。"
+        - "§c※ 1.21.8より古いクライアントでは動作しないため、"
+        - "§c将来的にサポート終了予定です！"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7現在の状態 {status}"
         - "§8§m－－－－－－－－－－－－－－－－－－"

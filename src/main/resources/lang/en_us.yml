@@ -96,6 +96,9 @@ gui:
     title_type: "Create World: Select Type"
     title_template: "Create World: Select Template"
     title_confirm: "Create World: Confirmation"
+    dialog:
+      name_title: "Enter World Name"
+      seed_title: "Enter Seed Value"
     type:
       template:
         name: "From Template"
@@ -122,6 +125,16 @@ gui:
       template: "§f§l| §7Template: §f{template}"
       seed: "§f§l| §7Seed: §f{seed}"
       cost: "§f§l| §7Cost: §6🛖 §e{cost}"
+      name_label: "World Name"
+      type_label: "Creation Type"
+      cost_label: "Cost"
+      select_action: "Select Action"
+      action_create: "Create World"
+      action_preview: "Preview Template"
+      action_back: "Back"
+      action_cancel: "Cancel"
+      proceed_button: "Proceed"
+      cancel_button: "Close"
 
   portal:
     title: "Portal Settings"

@@ -983,6 +983,7 @@ class WorldSettingsListener : Listener {
                                                 )
                                         }
                                         ItemTag.TYPE_GUI_SETTING_TAGS -> {
+                                                plugin.logger.info("[MWM-Debug] Tag settings button clicked by ${player.name}")
                                                 plugin.soundManager.playClickSound(
                                                         player,
                                                         clickedItem,
@@ -990,13 +991,13 @@ class WorldSettingsListener : Listener {
                                                 )
                                                 // Check Beta Features
                                                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                plugin.logger.info("[MWM-Debug] Beta features enabled: ${stats.betaFeaturesEnabled}")
                                                 if (stats.betaFeaturesEnabled) {
                                                     // Dialog Flow
-                                                    // Set session action to MANAGE_TAGS (so we know context if needed, though Dialog is separate)
-                                                    // plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS) 
-                                                    // Actually we might not need session action for Dialog as it's self-contained, 
-                                                    // but keeping it consistent is good.
-                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = false)
+                                                    plugin.logger.info("[MWM-Debug] Opening Dialog flow for tag editing")
+                                                    // Dialog uses custom GUI transition flag to prevent session cleanup
+                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
+                                                    plugin.logger.info("[MWM-Debug] Session updated for world ${worldData.uuid}")
 
                                                     player.closeInventory()
                                                     Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -1004,6 +1005,7 @@ class WorldSettingsListener : Listener {
                                                     })
                                                 } else {
                                                     // Legacy GUI Flow
+                                                    plugin.logger.info("[MWM-Debug] Opening Legacy GUI flow for tag editing")
                                                     plugin.worldSettingsGui.openTagEditor(
                                                             player,
                                                             worldData
@@ -3175,97 +3177,141 @@ player.sendMessage(
         }
 
         private fun showTagEditorDialog(player: Player, worldData: WorldData) {
-             val lang = plugin.languageManager
-             val currentTags = worldData.tags
-             val allTags = WorldTag.values()
-             
-             // Build Options
-             // Format: [x] TagName  or [ ] TagName
-             val options = allTags.map { tag ->
-                 val isSelected = currentTags.contains(tag)
-                 val checkMark = if (isSelected) "[✔]" else "[ ]"
-                 val textColor = if (isSelected) NamedTextColor.GREEN else NamedTextColor.GRAY
-                 
-                 val tagName = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
-                 val displayText = Component.text("$checkMark $tagName", textColor)
-                 
-                 SingleOptionDialogInput.OptionEntry.create("tag:${tag.name}", displayText, false)
-             }
-             
-             // Add Done/Back options
-             val navOptions = mutableListOf<SingleOptionDialogInput.OptionEntry>()
-             navOptions.addAll(options)
-             navOptions.add(SingleOptionDialogInput.OptionEntry.create("action:close", Component.text("完了 / 戻る", NamedTextColor.YELLOW), false))
-
-             val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(DialogBase.builder(Component.text("タグ設定", NamedTextColor.YELLOW))
-                        .body(listOf(
-                            DialogBody.plainMessage(Component.text("ワールドのタグを設定します。\n項目を選択してオン/オフを切り替えてください。")),
-                        ))
-                        .inputs(listOf(
-                            DialogInput.singleOption("tag_select", Component.text("Select Tag"), navOptions)
-                                .build()
-                        ))
-                        .build()
-                    )
-                    .type(DialogType.confirmation(
-                        ActionButton.create(Component.text("Select", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/tags/select"), null)),
-                        ActionButton.create(Component.text("Close", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/tags/close"), null))
-                    ))
-            }
-            player.showDialog(dialog)
-        }
-        
-    @EventHandler
-    fun onTagDialogInteraction(event: PlayerCustomClickEvent) {
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-        val identifier = event.identifier
-        
-        if (identifier == Key.key("mwm:settings/tags/select")) {
-            val view = event.getDialogResponseView() ?: return
-            val inputAny = view.getText("tag_select") ?: return
-            val input = inputAny.toString()
-            
-            val session = plugin.settingsSessionManager.getSession(player) ?: return
-            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-            
-            if (input.startsWith("tag:")) {
-                // Toggle Tag
-                val tagName = input.removePrefix("tag:")
-                val tag = try { WorldTag.valueOf(tagName) } catch (e: Exception) { null }
+                plugin.logger.info("[MWM-Debug] showTagEditorDialog called for player ${player.name}, world ${worldData.customWorldName}")
                 
-                if (tag != null) {
-                    if (worldData.tags.contains(tag)) {
-                        worldData.tags.remove(tag)
-                    } else {
-                        val maxTags = plugin.config.getInt("tags.max_count", 4)
-                        if (worldData.tags.size >= maxTags) {
-                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tag_max_reached", mapOf("limit" to maxTags)))
-                        } else {
-                            worldData.tags.add(tag)
-                        }
-                    }
-                    plugin.worldConfigRepository.save(worldData)
-                    
-                    // Re-open dialog (Loop)
-                    Bukkit.getScheduler().runTask(plugin, Runnable {
-                        showTagEditorDialog(player, worldData)
-                    })
+                val lang = plugin.languageManager
+                val currentTags = worldData.tags
+                val allTags = WorldTag.values()
+                
+                plugin.logger.info("[MWM-Debug] Current tags: ${currentTags.map { it.name }}")
+                
+                // Build Inputs
+                // Create a boolean input for each tag
+                val inputs = allTags.map { tag ->
+                        val tagName = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
+                        val isSelected = currentTags.contains(tag)
+                        
+                        plugin.logger.info("[MWM-Debug] Creating input for tag ${tag.name}: key=tag_${tag.name}, initial=$isSelected")
+                        
+                        DialogInput.bool("tag_${tag.name}", Component.text(tagName))
+                                .initial(isSelected)
+                                .build()
                 }
-            } else if (input == "action:close") {
-                // Return to settings
-                plugin.worldSettingsGui.open(player, worldData)
-            }
-            return
+
+                plugin.logger.info("[MWM-Debug] Creating dialog with ${inputs.size} inputs")
+                
+                val dialog = Dialog.create { builder ->
+                        builder.empty()
+                                .base(DialogBase.builder(Component.text("タグ設定", NamedTextColor.YELLOW))
+                                        .body(listOf(
+                                                DialogBody.plainMessage(Component.text("ワールドのタグを設定します。\n有効にするタグのスイッチをオンにしてください。")),
+                                        ))
+                                        .inputs(inputs)
+                                        .build()
+                                )
+                                .type(DialogType.confirmation(
+                                        ActionButton.create(Component.text("Submit", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/tags/submit"), null)),
+                                        ActionButton.create(Component.text("Close", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/tags/close"), null))
+                                ))
+                }
+                player.showDialog(dialog)
+                plugin.logger.info("[MWM-Debug] Dialog shown to player ${player.name}")
         }
         
-        if (identifier == Key.key("mwm:settings/tags/close")) {
-             val session = plugin.settingsSessionManager.getSession(player) ?: return
-             val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-             plugin.worldSettingsGui.open(player, worldData)
-             return
+        @EventHandler
+        fun onTagDialogInteraction(event: PlayerCustomClickEvent) {
+                plugin.logger.info("[MWM-Debug] onTagDialogInteraction called! identifier=${event.identifier}")
+                
+                val identifier = event.identifier
+                
+                val conn = event.commonConnection as? PlayerGameConnection ?: run {
+                        plugin.logger.warning("[MWM-Debug] commonConnection is not PlayerGameConnection")
+                        return
+                }
+                val player = conn.player
+                plugin.logger.info("[MWM-Debug] Player: ${player.name}")
+                
+                if (identifier == Key.key("mwm:settings/tags/submit")) {
+                        plugin.logger.info("[MWM-Debug] Submit button clicked")
+                        
+                        val view = event.getDialogResponseView() ?: run {
+                                plugin.logger.warning("[MWM-Debug] DialogResponseView is null")
+                                return
+                        }
+                        plugin.logger.info("[MWM-Debug] DialogResponseView obtained")
+                        
+                        val session = plugin.settingsSessionManager.getSession(player) ?: run {
+                                plugin.logger.warning("[MWM-Debug] Session not found for player ${player.name}")
+                                return
+                        }
+                        plugin.logger.info("[MWM-Debug] Session found: worldUuid=${session.worldUuid}")
+                        
+                        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
+                                plugin.logger.warning("[MWM-Debug] WorldData not found for uuid ${session.worldUuid}")
+                                return
+                        }
+                        plugin.logger.info("[MWM-Debug] WorldData found: ${worldData.customWorldName}")
+                        
+                        // Collect all tags from input
+                        val allTags = WorldTag.values()
+                        val newTags = mutableSetOf<WorldTag>()
+                        plugin.logger.info("[MWM-Debug] Processing ${allTags.size} tags")
+                        
+                        for (tag in allTags) {
+                                val inputKey = "tag_${tag.name}"
+                                val isSelected = view.getBoolean(inputKey) ?: false
+                                plugin.logger.info("[MWM-Debug] Tag ${tag.name}: inputKey=$inputKey, isSelected=$isSelected")
+                                if (isSelected) {
+                                        newTags.add(tag)
+                                }
+                        }
+                        
+                        plugin.logger.info("[MWM-Debug] Selected tags: ${newTags.map { it.name }}")
+                        
+                        // Validate Max Count
+                        val maxTags = plugin.config.getInt("tags.max_count", 4)
+                        plugin.logger.info("[MWM-Debug] Max tags: $maxTags, Selected: ${newTags.size}")
+                        
+                        if (newTags.size > maxTags) {
+                                plugin.logger.warning("[MWM-Debug] Tag limit exceeded")
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tag_max_reached", mapOf("limit" to maxTags)))
+                                Bukkit.getScheduler().runTask(plugin, Runnable {
+                                        showTagEditorDialog(player, worldData) 
+                                })
+                                return
+                        }
+                        
+                        // Save Changes
+                        plugin.logger.info("[MWM-Debug] Clearing old tags: ${worldData.tags.map { it.name }}")
+                        worldData.tags.clear()
+                        worldData.tags.addAll(newTags)
+                        plugin.logger.info("[MWM-Debug] New tags set: ${worldData.tags.map { it.name }}")
+                        
+                        plugin.worldConfigRepository.save(worldData)
+                        plugin.logger.info("[MWM-Debug] WorldData saved successfully")
+                        
+                        // Return to settings
+                        plugin.logger.info("[MWM-Debug] Opening settings GUI")
+                        plugin.worldSettingsGui.open(player, worldData)
+                        plugin.logger.info("[MWM-Debug] Done!")
+                        return
+                }
+                
+                if (identifier == Key.key("mwm:settings/tags/close")) {
+                        plugin.logger.info("[MWM-Debug] Close button clicked")
+                        val session = plugin.settingsSessionManager.getSession(player) ?: run {
+                                plugin.logger.warning("[MWM-Debug] Session not found for close action")
+                                return
+                        }
+                        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
+                                plugin.logger.warning("[MWM-Debug] WorldData not found for close action")
+                                return
+                        }
+                        plugin.worldSettingsGui.open(player, worldData)
+                        plugin.logger.info("[MWM-Debug] Returned to settings after close")
+                        return
+                }
+                
+                plugin.logger.info("[MWM-Debug] Unhandled identifier: $identifier")
         }
-    }
 }

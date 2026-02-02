@@ -85,7 +85,8 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
                 config.getString("meet_status", "JOIN_ME")!!
             } else {
                 if (config.getBoolean("meet_enabled", true)) "JOIN_ME" else "BUSY"
-            }
+            },
+            betaFeaturesEnabled = config.getBoolean("beta_features_enabled", false)
         )
 
         // 変更があった場合は保存する
@@ -116,6 +117,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         config.set("visitor_notification_enabled", stats.visitorNotificationEnabled)
         config.set("critical_settings_enabled", stats.criticalSettingsEnabled)
         config.set("meet_status", stats.meetStatus)
+        config.set("beta_features_enabled", stats.betaFeaturesEnabled)
 
         try {
             config.save(file)
