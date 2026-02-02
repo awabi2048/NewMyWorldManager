@@ -198,6 +198,12 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     plugin.playerStatsRepository.save(stats)
                     plugin.userSettingsGui.open(player)
                 }
+                ItemTag.TYPE_GUI_USER_SETTING_BETA_FEATURES -> {
+                    plugin.soundManager.playClickSound(player, currentItem)
+                    stats.betaFeaturesEnabled = !stats.betaFeaturesEnabled
+                    plugin.playerStatsRepository.save(stats)
+                    plugin.userSettingsGui.open(player)
+                }
 
                 ItemTag.TYPE_GUI_RETURN -> {
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")

@@ -17,5 +17,6 @@ data class PlayerStats(
     var language: String = "ja_jp",
     var visitorNotificationEnabled: Boolean = true,
     var criticalSettingsEnabled: Boolean = true,
-    var meetStatus: String = "JOIN_ME"
+    var meetStatus: String = "JOIN_ME",
+    var betaFeaturesEnabled: Boolean = false
 )

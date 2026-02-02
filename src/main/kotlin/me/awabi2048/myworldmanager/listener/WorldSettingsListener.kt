@@ -31,6 +31,16 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
+import io.papermc.paper.dialog.Dialog
+import io.papermc.paper.registry.data.dialog.ActionButton
+import io.papermc.paper.registry.data.dialog.DialogBase
+import io.papermc.paper.registry.data.dialog.action.DialogAction
+import io.papermc.paper.registry.data.dialog.body.DialogBody
+import io.papermc.paper.registry.data.dialog.input.DialogInput
+import io.papermc.paper.registry.data.dialog.type.DialogType
+import io.papermc.paper.event.player.PlayerCustomClickEvent
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.text.format.NamedTextColor
 
 class WorldSettingsListener : Listener {
 
@@ -755,45 +765,44 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                val cancelWord =
-                                                        plugin.config.getString(
-                                                                "creation.cancel_word",
-                                                                "cancel"
-                                                        )
-                                                                ?: "cancel"
-                                                val cancelInfo =
-                                                        plugin.languageManager.getMessage(
-                                                                player,
-                                                                "messages.chat_input_cancel_hint",
-                                                                mapOf("word" to cancelWord)
-                                                        )
-                                                if (event.isRightClick) {
-                                                        player.sendMessage(
-                                                                plugin.languageManager.getMessage(
-                                                                        "messages.world_desc_prompt"
-                                                                ) + " " + cancelInfo
-                                                        )
-                                                        plugin.settingsSessionManager
-                                                                .updateSessionAction(
-                                                                        player,
-                                                                        worldData.uuid,
-                                                                        SettingsAction
-                                                                                .CHANGE_DESCRIPTION
-                                                                )
+                                                
+                                                // Beta Features Check
+                                                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                val useDialog = stats.betaFeaturesEnabled
+                                                
+                                                if (useDialog) {
+                                                    // Dialog Flow
+                                                    if (event.isRightClick) {
+                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
+                                                    } else {
+                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
+                                                    }
+                                                    
+                                                    player.closeInventory()
+                                                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                        if (event.isRightClick) {
+                                                            showDescriptionDialog(player, worldData)
+                                                        } else {
+                                                            showRenameDialog(player, worldData)
+                                                        }
+                                                    })
                                                 } else {
-                                                        player.sendMessage(
-                                                                plugin.languageManager.getMessage(
-                                                                        "messages.world_name_prompt"
-                                                                ) + " " + cancelInfo
-                                                        )
-                                                        plugin.settingsSessionManager
-                                                                .updateSessionAction(
-                                                                        player,
-                                                                        worldData.uuid,
-                                                                        SettingsAction.RENAME_WORLD
-                                                                )
+                                                    // Chat Flow
+                                                    val lang = plugin.languageManager
+                                                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                                                    val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
+                                                    
+                                                    if (event.isRightClick) {
+                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
+                                                        // Fallback hardcoded or valid key
+                                                        player.sendMessage("§e新しい説明文を入力してください。 $cancelInfo")
+                                                    } else {
+                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
+                                                        player.sendMessage("§e新しいワールド名を入力してください。 $cancelInfo")
+                                                    }
+                                                    player.closeInventory()
                                                 }
-                                                player.closeInventory()
+
                                         }
                                         ItemTag.TYPE_GUI_SETTING_SPAWN -> {
                                                 plugin.soundManager.playClickSound(
@@ -3022,5 +3031,127 @@ player.sendMessage(
                                 player.sendMessage(lang.getMessage(player, "messages.expand_direction_prompt"))
                         }
                 }
+        }
+
+
+        @EventHandler
+        fun onDialogResponse(event: PlayerCustomClickEvent) {
+            val identifier = event.identifier
+
+
+            val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
+            val player = conn.player
+            
+            // Rename World
+            if (identifier == Key.key("mwm:settings/rename_submit")) {
+
+                val view = event.getDialogResponseView() ?: return
+                val newNameAny = view.getText("world_name") ?: return
+                val newName = newNameAny.toString()
+
+                
+                // Validate Name
+                // Logic copied from DialogTestListener/WorldValidator
+                val error = plugin.worldValidator.validateName(newName)
+                if (error != null) {
+                    player.sendMessage("§c$error")
+                    // Ideally re-open dialog, but for now close
+                    return
+                }
+                
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                
+                worldData.name = newName
+                plugin.worldConfigRepository.save(worldData)
+                player.sendMessage(
+                    plugin.languageManager.getMessage(
+                        player,
+                        "messages.world_name_change"
+                    )
+                )
+                plugin.worldSettingsGui.open(player, worldData)
+                return
+            }
+            
+            // Change Description
+            if (identifier == Key.key("mwm:settings/desc_submit")) {
+                val view = event.getDialogResponseView() ?: return
+                val newDescAny = view.getText("world_desc") ?: ""
+                val newDesc = newDescAny.toString()
+                
+                // Description validation? usually loosely allowed, max length maybe
+                 if (newDesc.length > 100) {
+                     player.sendMessage("§cDescription too long (max 100 chars)")
+                     return
+                 }
+
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                
+                worldData.description = newDesc
+                plugin.worldConfigRepository.save(worldData)
+                 player.sendMessage(
+                    plugin.languageManager.getMessage(
+                        player,
+                        "messages.world_desc_changed" // Assuming this key exists, or use generic
+                    )
+                )
+                plugin.worldSettingsGui.open(player, worldData)
+                return
+            }
+            
+            // Cancel
+            if (identifier == Key.key("mwm:settings/cancel")) {
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                plugin.worldSettingsGui.open(player, worldData)
+            }
+        }
+        
+
+        
+        private fun showRenameDialog(player: Player, worldData: WorldData) {
+             val dialog = Dialog.create { builder ->
+                builder.empty()
+                    .base(DialogBase.builder(Component.text("ワールド名の変更", NamedTextColor.YELLOW))
+                        .body(listOf(
+                            DialogBody.plainMessage(Component.text("新しいワールド名を入力してください。")),
+                        ))
+                        .inputs(listOf(
+                            DialogInput.text("world_name", Component.text("New World Name"))
+                                .initial(worldData.name)
+                                .build()
+                        ))
+                        .build()
+                    )
+                    .type(DialogType.confirmation(
+                        ActionButton.create(Component.text("Submit", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/rename_submit"), null)),
+                        ActionButton.create(Component.text("Cancel", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/cancel"), null))
+                    ))
+            }
+            player.showDialog(dialog)
+        }
+        
+        private fun showDescriptionDialog(player: Player, worldData: WorldData) {
+             val dialog = Dialog.create { builder ->
+                builder.empty()
+                    .base(DialogBase.builder(Component.text("説明文の変更", NamedTextColor.YELLOW))
+                        .body(listOf(
+                            DialogBody.plainMessage(Component.text("新しい説明文を入力してください。")),
+                        ))
+                        .inputs(listOf(
+                            DialogInput.text("world_desc", Component.text("New Description"))
+                                .initial(worldData.description)
+                                .build()
+                        ))
+                        .build()
+                    )
+                    .type(DialogType.confirmation(
+                        ActionButton.create(Component.text("Submit", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/desc_submit"), null)),
+                        ActionButton.create(Component.text("Cancel", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/cancel"), null))
+                    ))
+            }
+            player.showDialog(dialog)
         }
 }

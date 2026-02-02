@@ -36,46 +36,76 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.VIEW_SETTINGS, isGui = true)
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         
-        val holder = UserSettingsGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 45, title)
-        holder.inv = inventory
+        // Prepare Items
+        val items = mutableListOf<ItemStack>()
 
-        // 背景
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 36..44) inventory.setItem(i, blackPane)
-
-        // 通知設定 (Slot 20)
+        // 1. Notification
         val notifyStatus = if (stats.visitorNotificationEnabled) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
-        inventory.setItem(20, createItem(
+        items.add(createItem(
             Material.BELL,
             lang.getMessage(player, "gui.user_settings.notification.display"),
             lang.getMessageList(player, "gui.user_settings.notification.lore", mapOf("status" to notifyStatus)),
             ItemTag.TYPE_GUI_USER_SETTING_NOTIFICATION
         ))
 
-        // 言語設定 (Slot 24)
+        // 2. Language
         val languageName = lang.getMessage(player, "general.language.${stats.language}")
-        inventory.setItem(24, createItem(
+        items.add(createItem(
             Material.WRITABLE_BOOK,
             lang.getMessage(player, "gui.user_settings.language.display"),
             lang.getMessageList(player, "gui.user_settings.language.lore", mapOf("language" to languageName)),
             ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE
         ))
+        
+        // 3. Beta Features
+        val betaStatus = if (stats.betaFeaturesEnabled) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
+        val betaLore = lang.getMessageList(player, "gui.user_settings.beta_features.lore", mapOf("status" to betaStatus))
+            .ifEmpty { listOf("§7实验的な機能の使用:", "§7・ダイアログ入力", "", "§7現在の状態: $betaStatus") } // Fallback if key missing
 
+        items.add(createItem(
+            Material.EXPERIENCE_BOTTLE,
+            lang.getMessage(player, "gui.user_settings.beta_features.display").ifEmpty { "§eベータ機能" },
+            betaLore,
+            ItemTag.TYPE_GUI_USER_SETTING_BETA_FEATURES
+        ))
+        
+        // Calculate Size
+        val itemsPerRow = 7
+        val contentRows = (items.size + itemsPerRow - 1) / itemsPerRow
+        val totalRows = (contentRows + 2).coerceAtLeast(3) // Min 3 rows
+        
+        val holder = UserSettingsGuiHolder()
+        val inventory = Bukkit.createInventory(holder, totalRows * 9, title)
+        holder.inv = inventory
 
-
-        // 戻るボタン (Slot 40)
-        if (session.showBackButton) {
-            inventory.setItem(40, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "user_settings"))
+        // Fill Background
+        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
+        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        
+        // Top and Bottom Rows (Black)
+        for (i in 0 until 9) inventory.setItem(i, blackPane)
+        for (i in (totalRows - 1) * 9 until totalRows * 9) inventory.setItem(i, blackPane)
+        
+        // Middle Rows (Gray)
+        for (row in 1 until totalRows - 1) {
+             for (col in 0 until 9) {
+                 inventory.setItem(row * 9 + col, grayPane)
+             }
+        }
+        
+        // Place Items
+        items.forEachIndexed { index, item ->
+            val rowOffset = index / itemsPerRow
+            val colOffset = index % itemsPerRow
+            // Start at 2nd slot (index 1) of the content row
+            val slot = (rowOffset + 1) * 9 + 1 + colOffset
+            inventory.setItem(slot, item)
         }
 
-        // 空きスロットを灰色板ガラスで埋める
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-        for (i in 0 until 45) {
-            if (inventory.getItem(i) == null) {
-                inventory.setItem(i, grayPane)
-            }
+        // Back Button (Center of last row)
+        if (session.showBackButton) {
+            val backSlot = (totalRows - 1) * 9 + 4
+            inventory.setItem(backSlot, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "user_settings"))
         }
 
         player.openInventory(inventory)

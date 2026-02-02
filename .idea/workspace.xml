@@ -5,14 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8be06de2-d032-4652-99fb-c2469e59bfd5" name="変更" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/listener/DialogTestListener.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/MyWorldManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/MyWorldManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/command/WorldCommand.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/command/WorldCommand.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/listener/CreationGuiListener.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/listener/CreationGuiListener.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/session/WorldCreationSession.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/session/WorldCreationSession.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/util/ItemConverter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/util/ItemConverter.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/plugin.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/plugin.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/MyWorldManager-v1.0.3-beta.jar" beforeDir="false" afterPath="$PROJECT_DIR$/target/MyWorldManager-v1.0.3-beta.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/me/awabi2048/myworldmanager/listener/WorldSettingsListener$PendingExpansion.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/me/awabi2048/myworldmanager/listener/WorldSettingsListener$PendingExpansion.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/me/awabi2048/myworldmanager/listener/WorldSettingsListener.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/me/awabi2048/myworldmanager/listener/WorldSettingsListener.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/original-MyWorldManager-v1.0.3-beta.jar" beforeDir="false" afterPath="$PROJECT_DIR$/target/original-MyWorldManager-v1.0.3-beta.jar" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,18 +27,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "awabi2048"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;awabi2048&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/awabi2048/NewMyWorldManager.git",
-    "accountId": "1d5a8ac7-a903-4592-b86c-9c6ddd6a8d2a"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/awabi2048/NewMyWorldManager.git&quot;,
+    &quot;accountId&quot;: &quot;1d5a8ac7-a903-4592-b86c-9c6ddd6a8d2a&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -57,23 +55,11 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/dialog-and-wizard-api",
-    "last_opened_file_path": "D:/こた鯖/dev/my_world_manager_plugin"
+    "git-widget-placeholder": "feature/dialog-settings",
+    "last_opened_file_path": "D:/こた鯖/dev/my_world_manager_plugin",
+    "settings.editor.selected.configurable": "preferences.lookFeel"
   }
 }]]></component>
-  <component name="RunManager">
-    <configuration default="true" type="JetRunConfigurationType">
-      <module name="my-world-manager" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
-      <module name="my-world-manager" />
-      <option name="filePath" />
-      <method v="2" />
-    </configuration>
-  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="デフォルトタスク">
       <changelist id="8be06de2-d032-4652-99fb-c2469e59bfd5" name="変更" comment="" />
