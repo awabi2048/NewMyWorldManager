@@ -40,6 +40,8 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import net.kyori.adventure.key.Key
+import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
+import io.papermc.paper.connection.PlayerGameConnection
 import net.kyori.adventure.text.format.NamedTextColor
 
 class WorldSettingsListener : Listener {
@@ -986,10 +988,27 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                plugin.worldSettingsGui.openTagEditor(
-                                                        player,
-                                                        worldData
-                                                )
+                                                // Check Beta Features
+                                                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                if (stats.betaFeaturesEnabled) {
+                                                    // Dialog Flow
+                                                    // Set session action to MANAGE_TAGS (so we know context if needed, though Dialog is separate)
+                                                    // plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS) 
+                                                    // Actually we might not need session action for Dialog as it's self-contained, 
+                                                    // but keeping it consistent is good.
+                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = false)
+
+                                                    player.closeInventory()
+                                                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                        showTagEditorDialog(player, worldData)
+                                                    })
+                                                } else {
+                                                    // Legacy GUI Flow
+                                                    plugin.worldSettingsGui.openTagEditor(
+                                                            player,
+                                                            worldData
+                                                    )
+                                                }
                                         }
                                         ItemTag.TYPE_GUI_SETTING_VISITOR -> {
                                                 plugin.soundManager.playClickSound(
@@ -3154,4 +3173,99 @@ player.sendMessage(
             }
             player.showDialog(dialog)
         }
+
+        private fun showTagEditorDialog(player: Player, worldData: WorldData) {
+             val lang = plugin.languageManager
+             val currentTags = worldData.tags
+             val allTags = WorldTag.values()
+             
+             // Build Options
+             // Format: [x] TagName  or [ ] TagName
+             val options = allTags.map { tag ->
+                 val isSelected = currentTags.contains(tag)
+                 val checkMark = if (isSelected) "[✔]" else "[ ]"
+                 val textColor = if (isSelected) NamedTextColor.GREEN else NamedTextColor.GRAY
+                 
+                 val tagName = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
+                 val displayText = Component.text("$checkMark $tagName", textColor)
+                 
+                 SingleOptionDialogInput.OptionEntry.create("tag:${tag.name}", displayText, false)
+             }
+             
+             // Add Done/Back options
+             val navOptions = mutableListOf<SingleOptionDialogInput.OptionEntry>()
+             navOptions.addAll(options)
+             navOptions.add(SingleOptionDialogInput.OptionEntry.create("action:close", Component.text("完了 / 戻る", NamedTextColor.YELLOW), false))
+
+             val dialog = Dialog.create { builder ->
+                builder.empty()
+                    .base(DialogBase.builder(Component.text("タグ設定", NamedTextColor.YELLOW))
+                        .body(listOf(
+                            DialogBody.plainMessage(Component.text("ワールドのタグを設定します。\n項目を選択してオン/オフを切り替えてください。")),
+                        ))
+                        .inputs(listOf(
+                            DialogInput.singleOption("tag_select", Component.text("Select Tag"), navOptions)
+                                .build()
+                        ))
+                        .build()
+                    )
+                    .type(DialogType.confirmation(
+                        ActionButton.create(Component.text("Select", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/tags/select"), null)),
+                        ActionButton.create(Component.text("Close", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/tags/close"), null))
+                    ))
+            }
+            player.showDialog(dialog)
+        }
+        
+    @EventHandler
+    fun onTagDialogInteraction(event: PlayerCustomClickEvent) {
+        val conn = event.commonConnection as? PlayerGameConnection ?: return
+        val player = conn.player
+        val identifier = event.identifier
+        
+        if (identifier == Key.key("mwm:settings/tags/select")) {
+            val view = event.getDialogResponseView() ?: return
+            val inputAny = view.getText("tag_select") ?: return
+            val input = inputAny.toString()
+            
+            val session = plugin.settingsSessionManager.getSession(player) ?: return
+            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+            
+            if (input.startsWith("tag:")) {
+                // Toggle Tag
+                val tagName = input.removePrefix("tag:")
+                val tag = try { WorldTag.valueOf(tagName) } catch (e: Exception) { null }
+                
+                if (tag != null) {
+                    if (worldData.tags.contains(tag)) {
+                        worldData.tags.remove(tag)
+                    } else {
+                        val maxTags = plugin.config.getInt("tags.max_count", 4)
+                        if (worldData.tags.size >= maxTags) {
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tag_max_reached", mapOf("limit" to maxTags)))
+                        } else {
+                            worldData.tags.add(tag)
+                        }
+                    }
+                    plugin.worldConfigRepository.save(worldData)
+                    
+                    // Re-open dialog (Loop)
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        showTagEditorDialog(player, worldData)
+                    })
+                }
+            } else if (input == "action:close") {
+                // Return to settings
+                plugin.worldSettingsGui.open(player, worldData)
+            }
+            return
+        }
+        
+        if (identifier == Key.key("mwm:settings/tags/close")) {
+             val session = plugin.settingsSessionManager.getSession(player) ?: return
+             val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+             plugin.worldSettingsGui.open(player, worldData)
+             return
+        }
+    }
 }

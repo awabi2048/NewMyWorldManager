@@ -1,0 +1,10 @@
+*.md
+!README.md
+target/
+.idea/
+.vscode/
+.devcontainer/
+*.xml
+!pom.xml
+cp.txt
+*.iml
