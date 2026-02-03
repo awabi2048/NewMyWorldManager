@@ -43,6 +43,7 @@ import net.kyori.adventure.key.Key
 import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 import io.papermc.paper.connection.PlayerGameConnection
 import net.kyori.adventure.text.format.NamedTextColor
+import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 
 class WorldSettingsListener : Listener {
 
@@ -61,9 +62,12 @@ class WorldSettingsListener : Listener {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
 
+
                 // GUI遷移中のクリックを無視
                 if (session.isGuiTransition) {
+
                         event.isCancelled = true
+
                         return
                 }
 
@@ -74,6 +78,7 @@ class WorldSettingsListener : Listener {
 
                 val item = event.currentItem ?: return
                 val type = ItemTag.getType(item)
+
                 val lang = plugin.languageManager
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
 
@@ -1176,12 +1181,8 @@ class WorldSettingsListener : Listener {
                                                                 "environment.gravity.cost",
                                                                 100
                                                         )
-                                                plugin.environmentConfirmGui.open(
-                                                        player,
-                                                        worldData,
-                                                        clickedItem,
-                                                        cost
-                                                )
+                                                plugin.logger.info("[MWM-Debug] Gravity click detected. Cost: $cost")
+                                                showEnvConfirmDialog(player, "gravity", cost)
                                         } else if (ItemTag.isType(
                                                         clickedItem,
                                                         ItemTag.TYPE_BOTTLED_BIOME_AIR
@@ -1241,12 +1242,13 @@ class WorldSettingsListener : Listener {
                                                                 "environment.biome.cost",
                                                                 500
                                                         )
-                                                plugin.environmentConfirmGui.open(
-                                                        player,
-                                                        worldData,
-                                                        clickedItem,
-                                                        cost
-                                                )
+
+                                                val biomeId = ItemTag.getBiomeId(clickedItem)
+                                                if (biomeId != null) {
+                                                        session.setMetadata("temp_biome", biomeId)
+                                                        plugin.logger.info("[MWM-Debug] Biome click detected. ID: $biomeId")
+                                                        showEnvConfirmDialog(player, "biome", cost)
+                                                }
                                         }
                                         return
                                 }
@@ -1259,10 +1261,14 @@ class WorldSettingsListener : Listener {
                                                 if (event.isLeftClick) {
                                                         handleWeatherClickCycle(player, worldData)
                                                 } else if (event.isRightClick) {
-                                                        handleWeatherConfirm(player, worldData)
+                                                        val cost = plugin.config.getInt("environment.weather.cost", 50)
+                                                        showEnvConfirmDialog(player, "weather", cost)
                                                 }
                                         }
-                                        ItemTag.TYPE_GUI_ENV_GRAVITY,
+                                        ItemTag.TYPE_GUI_ENV_GRAVITY -> {
+                                                val cost = plugin.config.getInt("environment.gravity.cost", 100)
+                                                showEnvConfirmDialog(player, "gravity", cost)
+                                        }
                                         ItemTag.TYPE_GUI_ENV_BIOME -> {
                                                 player.sendMessage(
                                                         plugin.languageManager.getMessage(
@@ -2636,50 +2642,6 @@ player.sendMessage(
                 plugin.environmentGui.open(player, worldData)
         }
 
-        private fun handleWeatherConfirm(player: Player, worldData: WorldData) {
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val nextWeather = session.tempWeather ?: return
-
-                val config = plugin.config
-                val cost = config.getInt("environment.weather.cost", 50)
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                if (stats.worldPoint < cost) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        "gui.creation.insufficient",
-                                        mapOf("shortage" to (cost - stats.worldPoint))
-                                )
-                        )
-                        plugin.soundManager.playActionSound(
-                                player,
-                                "environment",
-                                "insufficient_points"
-                        )
-                        return
-                }
-
-                stats.worldPoint -= cost
-                worldData.fixedWeather = if (nextWeather == "DEFAULT") null else nextWeather
-                worldData.cumulativePoints += cost
-                session.tempWeather = null // Reset temp
-
-                plugin.playerStatsRepository.save(stats)
-                plugin.worldConfigRepository.save(worldData)
-
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                "messages.env_cost_paid",
-                                mapOf("cost" to cost)
-                        )
-                )
-                applyWeatherToWorld(worldData)
-                plugin.soundManager.playActionSound(player, "environment", "weather_change")
-                plugin.environmentGui.open(player, worldData)
-        }
-
         private fun executeGravityChange(
                 player: Player,
                 worldData: WorldData,
@@ -3080,8 +3042,16 @@ player.sendMessage(
                     return
                 }
                 
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                val session = plugin.settingsSessionManager.getSession(player) ?: run {
+                    plugin.logger.info("[MWM-Debug] Session is null")
+                    return
+                }
+                plugin.logger.info("[MWM-Debug] Session found. Action: ${session.action}")
+
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
+                    plugin.logger.info("[MWM-Debug] WorldData not found")
+                    return
+                }
                 
                 worldData.name = newName
                 plugin.worldConfigRepository.save(worldData)
@@ -3127,6 +3097,55 @@ player.sendMessage(
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
                 plugin.worldSettingsGui.open(player, worldData)
+            }
+
+            // Dialog Confirmation Handler (Environment & Visitor Kick)
+            val keyVal = identifier.value()
+            if (keyVal.startsWith("mwm:confirm/")) {
+                
+                // Cancel
+                if (keyVal == "mwm:confirm/cancel") {
+                   DialogConfirmManager.safeCloseDialog(player)
+                   return 
+                }
+
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+
+                if (keyVal.startsWith("mwm:confirm/env_change/")) {
+                    val envType = keyVal.substringAfter("mwm:confirm/env_change/")
+                    DialogConfirmManager.safeCloseDialog(player)
+                    
+                    when (envType) {
+                        "gravity" -> handleEnvGravityConfirm(player, worldData)
+                        "weather" -> handleWeatherConfirm(player, worldData)
+                        "biome" -> {
+                             val biomeId = session.getMetadata("temp_biome") as? String ?: return
+                             handleEnvBiomeConfirm(player, worldData, biomeId)
+                        }
+                    }
+                    return
+                }
+                
+                if (keyVal.startsWith("mwm:confirm/visitor_kick/")) {
+                     val targetUuidStr = keyVal.substringAfter("mwm:confirm/visitor_kick/")
+                     DialogConfirmManager.safeCloseDialog(player)
+                     try {
+                         val targetUuid = java.util.UUID.fromString(targetUuidStr)
+                         // Execute Kick
+                         val targetPlayer = plugin.server.getPlayer(targetUuid)
+                         if (targetPlayer != null && targetPlayer.world.uid == worldData.uuid) {
+                             targetPlayer.teleport(plugin.server.worlds[0].spawnLocation)
+                             targetPlayer.sendMessage(plugin.languageManager.getMessage(targetPlayer, "messages.visitor.kicked"))
+                             player.sendMessage(plugin.languageManager.getMessage(player, "messages.visitor.kick_success", mapOf("player" to targetPlayer.name)))
+                         } else {
+                             player.sendMessage(plugin.languageManager.getMessage(player, "error.player_not_found"))
+                         }
+                     } catch (e: Exception) {
+                         plugin.logger.warning("Invalid UUID in kick confirmation: $targetUuidStr")
+                     }
+                     return
+                }
             }
         }
         
@@ -3218,33 +3237,63 @@ player.sendMessage(
                 plugin.logger.info("[MWM-Debug] Dialog shown to player ${player.name}")
         }
         
+        // Helper to show generic simple confirmation
+        private fun showEnvConfirmDialog(player: Player, type: String, cost: Int) {
+            val lang = plugin.languageManager
+            
+            val titleKey = "gui.environment.$type.display" // e.g. gui.environment.gravity.display
+            val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.YELLOW)
+            
+            val bodyLines = listOf(
+                Component.text(lang.getMessage(player, "gui.common.confirm_action")),
+                Component.text(lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost)))
+            )
+            
+            DialogConfirmManager.showSimpleConfirmationDialog(
+                player,
+                plugin,
+                title,
+                bodyLines,
+                "mwm:confirm/env_change/$type",
+                "mwm:confirm/cancel",
+                lang.getMessage(player, "gui.common.confirm"),
+                lang.getMessage(player, "gui.common.cancel")
+            )
+        }
+        
+        private fun showVisitorKickConfirmDialog(player: Player, targetName: String, targetUuid: UUID) {
+            val lang = plugin.languageManager
+            val title = Component.text(lang.getMessage(player, "gui.visitor_management.kick"), NamedTextColor.RED)
+            
+            val bodyLines = listOf(
+                Component.text(lang.getMessage(player, "gui.visitor_management.kick_confirm", mapOf("player" to targetName)))
+            )
+            
+            DialogConfirmManager.showSimpleConfirmationDialog(
+                player,
+                plugin,
+                title,
+                bodyLines,
+                "mwm:confirm/visitor_kick/$targetUuid",
+                "mwm:confirm/cancel",
+                "KICK",
+                "Cancel"
+            )
+        }
+        
         @EventHandler
         fun onTagDialogInteraction(event: PlayerCustomClickEvent) {
-                plugin.logger.info("[MWM-Debug] onTagDialogInteraction called! identifier=${event.identifier}")
                 
                 val identifier = event.identifier
                 
-                val conn = event.commonConnection as? PlayerGameConnection ?: run {
-                        plugin.logger.warning("[MWM-Debug] commonConnection is not PlayerGameConnection")
-                        return
-                }
+                val conn = event.commonConnection as? PlayerGameConnection ?: return
                 val player = conn.player
-                plugin.logger.info("[MWM-Debug] Player: ${player.name}")
                 
                 if (identifier == Key.key("mwm:settings/tags/submit")) {
-                        plugin.logger.info("[MWM-Debug] Submit button clicked")
                         
-                        val view = event.getDialogResponseView() ?: run {
-                                plugin.logger.warning("[MWM-Debug] DialogResponseView is null")
-                                return
-                        }
-                        plugin.logger.info("[MWM-Debug] DialogResponseView obtained")
+                        val view = event.getDialogResponseView() ?: return
                         
-                        val session = plugin.settingsSessionManager.getSession(player) ?: run {
-                                plugin.logger.warning("[MWM-Debug] Session not found for player ${player.name}")
-                                return
-                        }
-                        plugin.logger.info("[MWM-Debug] Session found: worldUuid=${session.worldUuid}")
+                        val session = plugin.settingsSessionManager.getSession(player) ?: return
                         
                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
                                 plugin.logger.warning("[MWM-Debug] WorldData not found for uuid ${session.worldUuid}")
@@ -3311,7 +3360,287 @@ player.sendMessage(
                         plugin.logger.info("[MWM-Debug] Returned to settings after close")
                         return
                 }
-                
-                plugin.logger.info("[MWM-Debug] Unhandled identifier: $identifier")
+        }
+
+        private fun handleEnvGravityConfirm(player: Player, worldData: WorldData) {
+                val config = plugin.config
+                val cost = config.getInt("environment.gravity.cost", 100)
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+
+                if (stats.worldPoint < cost) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "gui.creation.insufficient",
+                                        mapOf("shortage" to (cost - stats.worldPoint))
+                                )
+                        )
+                        plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
+                        return
+                }
+
+                worldData.gravityMultiplier = 0.17
+                stats.worldPoint -= cost
+                worldData.cumulativePoints += cost
+
+                plugin.playerStatsRepository.save(stats)
+                plugin.worldConfigRepository.save(worldData)
+
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.env_gravity_changed",
+                                mapOf("gravity" to "Moon", "multiplier" to "0.17")
+                        )
+                )
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.env_cost_paid",
+                                mapOf("cost" to cost)
+                        )
+                )
+                plugin.soundManager.playActionSound(player, "environment", "gravity_change")
+                applyGravityToWorld(worldData)
+                plugin.environmentGui.open(player, worldData)
+        }
+
+        private fun handleWeatherConfirm(player: Player, worldData: WorldData) {
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val nextWeather = session.getMetadata("temp_weather") as? String ?: return
+                val config = plugin.config
+                val cost = config.getInt("environment.weather.cost", 50)
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+
+                if (stats.worldPoint < cost) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "gui.creation.insufficient",
+                                        mapOf("shortage" to (cost - stats.worldPoint))
+                                )
+                        )
+                        plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
+                        return
+                }
+
+                stats.worldPoint -= cost
+                worldData.fixedWeather = if (nextWeather == "DEFAULT") null else nextWeather
+                worldData.cumulativePoints += cost
+                session.tempWeather = null
+
+                plugin.playerStatsRepository.save(stats)
+                plugin.worldConfigRepository.save(worldData)
+
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.env_cost_paid",
+                                mapOf("cost" to cost)
+                        )
+                )
+                applyWeatherToWorld(worldData)
+                plugin.soundManager.playActionSound(player, "environment", "weather_change")
+                plugin.environmentGui.open(player, worldData)
+        }
+
+        private fun handleEnvBiomeConfirm(player: Player, worldData: WorldData, biomeId: String) {
+                val lang = plugin.languageManager
+                val config = plugin.config
+                val cost = config.getInt("environment.biome.cost", 500)
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+
+                if (stats.worldPoint < cost) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "gui.creation.insufficient",
+                                        mapOf("shortage" to (cost - stats.worldPoint))
+                                )
+                        )
+                        plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
+                        return
+                }
+
+                try {
+                        org.bukkit.block.Biome.valueOf(biomeId.uppercase())
+                        worldData.fixedBiome = biomeId.uppercase()
+                        worldData.partialBiomes.clear()
+                        stats.worldPoint -= cost
+                        worldData.cumulativePoints += cost
+
+                        plugin.playerStatsRepository.save(stats)
+                        plugin.worldConfigRepository.save(worldData)
+
+                        val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
+                        player.sendMessage(lang.getMessage(player, "messages.env_biome_changed", mapOf("biome" to biomeName)))
+                        player.sendMessage(lang.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost)))
+                        plugin.soundManager.playActionSound(player, "environment", "biome_change")
+                        applyBiomeToWorld(worldData)
+                        plugin.environmentGui.open(player, worldData)
+
+                } catch (e: Exception) {
+                        player.sendMessage("§cInvalid Biome: $biomeId")
+                }
+        }
+
+        private fun handleExpandConfirm(player: Player, worldData: WorldData) {
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val cost = (session.getMetadata("expand_cost") as? Number)?.toInt() ?: return
+                val direction = session.expansionDirection
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+
+                if (stats.worldPoint < cost) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "gui.creation.insufficient",
+                                        mapOf("shortage" to (cost - stats.worldPoint))
+                                )
+                        )
+                        plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
+                        return
+                }
+
+                if (performExpansion(worldData, direction)) {
+                        stats.worldPoint -= cost
+                        worldData.cumulativePoints += cost
+                        plugin.playerStatsRepository.save(stats)
+                        plugin.worldConfigRepository.save(worldData)
+
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.expand_complete",
+                                        mapOf(
+                                                "level_before" to (worldData.borderExpansionLevel - 1),
+                                                "level_after" to worldData.borderExpansionLevel,
+                                                "remaining" to stats.worldPoint
+                                        )
+                                )
+                        )
+                        plugin.soundManager.playActionSound(player, "creation", "wizard_next")
+                } else {
+                        player.sendMessage(plugin.languageManager.getMessage("error.expand_failed"))
+                }
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        private fun handleResetExpansionConfirm(player: Player, worldData: WorldData) {
+                // TODO: resetExpansion機能は未実装
+                player.sendMessage(plugin.languageManager.getMessage("messages.expansion_reset_complete"))
+                plugin.soundManager.playActionSound(player, "environment", "gravity_change")
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        private fun handleDeleteWorldConfirm(player: Player, worldData: WorldData) {
+                val worldName = worldData.name
+                if (plugin.worldService.deleteWorld(worldData.uuid).get()) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.delete_success",
+                                        mapOf("world" to worldName)
+                                )
+                        )
+                        plugin.soundManager.playActionSound(player, "creation", "delete")
+                        plugin.settingsSessionManager.endSession(player)
+                        player.closeInventory()
+                } else {
+                        player.sendMessage(plugin.languageManager.getMessage("error.delete_failed"))
+                        plugin.worldSettingsGui.open(player, worldData)
+                }
+        }
+
+        private fun handleVisitorKickConfirm(player: Player, worldData: WorldData, visitorUuid: UUID) {
+                val visitor = Bukkit.getPlayer(visitorUuid)
+                val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                if (visitor != null && visitor.world.name == worldFolderName) {
+                        val config = plugin.config
+                        val evacWorldName = config.getString("evacuation_location.world", "world") ?: "world"
+                        val evacWorld = Bukkit.getWorld(evacWorldName) ?: Bukkit.getWorlds()[0]
+                        val x = config.getDouble("evacuation_location.x", evacWorld.spawnLocation.x)
+                        val y = config.getDouble("evacuation_location.y", evacWorld.spawnLocation.y)
+                        val z = config.getDouble("evacuation_location.z", evacWorld.spawnLocation.z)
+                        val yaw = config.getDouble("evacuation_location.yaw", evacWorld.spawnLocation.yaw.toDouble()).toFloat()
+                        val pitch = config.getDouble("evacuation_location.pitch", evacWorld.spawnLocation.pitch.toDouble()).toFloat()
+
+                        val evacuationLoc = org.bukkit.Location(evacWorld, x, y, z, yaw, pitch)
+                        visitor.teleport(evacuationLoc)
+                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.kicked_success",
+                                        mapOf("player" to visitor.name)
+                                )
+                        )
+                plugin.soundManager.playActionSound(player, "world_settings", "kick")
+                }
+                plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+        }
+
+        @EventHandler
+        fun onCustomClick(event: PlayerCustomClickEvent) {
+                val identifier = event.identifier
+                val keyVal = identifier.value()
+                val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
+                val player = conn.player
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+
+                if (identifier == Key.key("mwm:confirm/cancel")) {
+                        plugin.soundManager.playClickSound(player, null, "world_settings")
+                        DialogConfirmManager.safeCloseDialog(player)
+
+                        when (session.action) {
+                                SettingsAction.ENV_CONFIRM -> plugin.environmentGui.open(player, worldData)
+                                SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                                SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                                SettingsAction.MEMBER_REMOVE_CONFIRM, SettingsAction.MEMBER_TRANSFER_CONFIRM -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                                else -> plugin.worldSettingsGui.open(player, worldData)
+                        }
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/env_change/")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        val type = keyVal.substringAfter("confirm/env_change/")
+                        when (type) {
+                                "gravity" -> handleEnvGravityConfirm(player, worldData)
+                                "weather" -> handleWeatherConfirm(player, worldData)
+                                "biome" -> {
+                                        val biomeId = session.getMetadata("temp_biome") as? String ?: return
+                                        handleEnvBiomeConfirm(player, worldData, biomeId)
+                                }
+                        }
+                        return
+                }
+
+                if (identifier == Key.key("mwm:confirm/expand")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        handleExpandConfirm(player, worldData)
+                        return
+                }
+
+                if (identifier == Key.key("mwm:confirm/reset_expansion")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        handleResetExpansionConfirm(player, worldData)
+                        return
+                }
+
+                if (identifier == Key.key("mwm:confirm/delete_world")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        handleDeleteWorldConfirm(player, worldData)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/visitor_kick/")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        val targetUuidStr = keyVal.substringAfter("confirm/visitor_kick/")
+                        val targetUuid = try { UUID.fromString(targetUuidStr) } catch(e: Exception) { return }
+                        handleVisitorKickConfirm(player, worldData, targetUuid)
+                        return
+                }
         }
 }

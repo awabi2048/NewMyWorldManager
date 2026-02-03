@@ -99,6 +99,7 @@ gui:
     back: "§7設定へ戻る"
     next_page: "§a次のページへ"
     prev_page: "§a前のページへ"
+    confirm_action: "§e操作の確認"
     confirm: "§a実行する"
     confirm_desc: "§7クリックして決定します"
     cancel: "§cキャンセル"
@@ -349,6 +350,7 @@ gui:
       lore_item: "  §6・{tag}"
     expand:
       display: "§6ワールドの拡張"
+      cost: "§f§l| §7必要ポイント §6🛖 §e{cost}"
       # プレースホルダー: {current}, {max}, {cost}, {level_before}, {level_after}, {points}
       lore_upgrade:
         - "§8§m－－－－－－－－－－－－－－－－－－"
