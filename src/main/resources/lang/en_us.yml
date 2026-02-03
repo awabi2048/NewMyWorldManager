@@ -822,6 +822,47 @@ gui:
 error:
   member_request_owner_offline: "§cCannot send request because the owner is offline."
   member_request_already_member: "§cYou are already a member of this world."
+  console_only: "§cThis command can only be executed from console."
+  custom_item:
+    item_not_found_hand: "§cItem not found in hand."
+    no_permission: "§cYou do not have permission to change the biome."
+    world_seed_limit_reached: "§cCannot expand slots further. (Limit: {limit})"
+  delete_failed: "§cFailed to delete world."
+  expand_failed: "§cExpansion failed (World might not be loaded)."
+  expand_insufficient_points: "§cInsufficient points. (Required: §6🛖 §e{cost}§c)"
+  favorite_limit_reached: "§cYou have reached the favorite limit ({limit})."
+  internal_error: "§cInternal error occurred."
+  invalid_item_id: "§cInvalid Item ID."
+  invite_already_member: "§cAlready a member of this world."
+  invite_expired: "§cInvite not found or expired."
+  invite_locked_error: "§cYou cannot invite players to a locked world."
+  invite_world_not_found: "§cWorld data not found."
+  load_failed: "§cFailed to load world."
+  max_expansion_reached: "§cWorld is already at max level."
+  migration_disabled: "§cMigration command is disabled. Set '{config_key}' to true in config.yml."
+  no_portals_found: "§cNo portals found."
+  player_not_found: "§cPlayer not found."
+  portal_bind_invalid_publish: "§cOnly Public or Limited worlds can be bound."
+  portal_bind_myworld_only: "§cPortals can only be bound inside a MyWorld."
+  portal_dest_locked: "§cThe destination of this portal is currently locked."
+  portal_not_bound: "§cThis portal is not yet bound to a world."
+  preview_template_not_found: "§cTemplate not found."
+  preview_world_load_failed: "§cFailed to load preview world."
+  spotlight_already_registered: "§cThis world is already registered to SPOTLIGHT."
+  spotlight_limit_reached: "§cSPOTLIGHT slots are full."
+  spotlight_not_in_myworld: "§cYou must be in the target MyWorld to register it."
+  spotlight_not_owner: "§cYou can only register worlds you own."
+  target_not_in_myworld: "§cTarget player is not in a MyWorld."
+  target_offline: "§cTarget player is offline."
+  unarchive_failed: "§cFailed to restore world."
+  unknown_subcommand: "§cUnknown subcommand."
+  unlink_not_myworld: "§cThis world is not a MyWorld."
+  world_already_exists: "§cWorld already exists."
+  world_creation_failed: "§cWorld creation failed."
+  world_creation_in_progress: "§cWorld creation is in progress."
+  world_load_failed: "§cWorld load failed."
+  world_not_public: "§cThis world is not currently public."
+
 
 messages:
   member_request_sent: "§aMember request sent."
@@ -953,8 +994,8 @@ messages:
         - ""
         - "§e§nClick to open"
 
-# Messages
-messages:
+
+
   # Settings
   world_name_prompt: "§ePlease type the world name in chat."
   chat_input_cancel_hint: "§7(Type §e{word} §7in chat to cancel)"
