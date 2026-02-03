@@ -609,18 +609,56 @@ class WorldService(
     }
 
     /** 日次のデータ更新処理を行う */
-    fun updateDailyData() {
+    fun updateDailyData(): Map<String, Int> {
         val worlds = repository.findAll()
+        var updatedCount = 0
+        var archivedCount = 0
+        
+        val today = java.time.LocalDate.now()
+        val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
         for (worldData in worlds) {
+            // 訪問者統計の更新
             val visitors = worldData.recentVisitors
+            // サイズ調整（足りない場合は0で埋める、多すぎる場合は切り詰める）
+            while (visitors.size < 7) visitors.add(0, 0)
+            if (visitors.size > 7) {
+                val sub = visitors.subList(visitors.size - 7, visitors.size)
+                visitors.clear()
+                visitors.addAll(sub)
+            }
+
             // 6 -> 破棄, 5 -> 6, ..., 0 -> 1
             for (i in 6 downTo 1) {
                 visitors[i] = visitors[i - 1]
             }
             // 今日のカウントをリセット
             visitors[0] = 0
+            
             repository.save(worldData)
+            updatedCount++
+
+            // 期限切れワールドのアーカイブ
+            if (!worldData.isArchived) {
+                try {
+                    val expireDate = java.time.LocalDate.parse(worldData.expireDate, dateFormatter)
+                    if (expireDate.isBefore(today)) {
+                        archiveWorld(worldData.uuid)
+                        archivedCount++
+                    }
+                } catch (e: Exception) {
+                    plugin.logger.warning("Failed to parse expireDate for world ${worldData.uuid}: ${worldData.expireDate}")
+                }
+            }
         }
+
+        // マクロ実行
+        plugin.macroManager.execute("on_daily_maintenance", emptyMap())
+
+        return mapOf(
+            "updated" to updatedCount,
+            "archived" to archivedCount
+        )
     }
 
     /** 避難先ロケーションを取得する ロビーワールドが見つからない場合はメインワールドのスポーン地点 */

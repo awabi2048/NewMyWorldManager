@@ -1403,7 +1403,7 @@ messages:
   creation_timeout: "§c長時間操作がなかったため、ワールド作成セッションがタイムアウトしました。"
   wizard_started_for: "§a{player} に対してワールド作成ウィザードを開始しました。"
   reload_success: "§aMyWorldManager の設定を再読み込みしました。"
-  daily_update_success: "§aワールドの日付更新処理（統計シフト等）を完了しました。"
+  daily_update_success: "§aデイリーメンテナンスを完了しました。（統計更新: {updated}件, アーカイブ: {archived}件）"
   data_update_success: "§a全てのワールドデータ ({world_count}件) とプレイヤーデータ ({player_count}件) を最新の状態に更新しました。"
   spotlight_added: "§aマイワールド「{world}」をSPOTLIGHTに登録しました！"
   spotlight_removed: "§cマイワールド「{world}」をSPOTLIGHTから削除しました。"

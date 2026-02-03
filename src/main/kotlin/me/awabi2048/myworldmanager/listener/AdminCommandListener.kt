@@ -311,32 +311,18 @@ class AdminCommandListener : Listener {
     }
 
     private fun performArchiveAll(player: Player, plugin: MyWorldManager) {
-        val today = java.time.LocalDate.now()
-        val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val archiveTargets =
-                plugin.worldConfigRepository.findAll().filter { worldData ->
-                    !worldData.isArchived &&
-                            try {
-                                java.time.LocalDate.parse(worldData.expireDate, dateFormatter) <
-                                        today
-                            } catch (e: Exception) {
-                                false
-                            }
-                }
-
-        if (archiveTargets.isEmpty()) {
-            player.sendMessage("§cアーカイブ対象のワールドは見つかりませんでした。")
-            return
-        }
-
-        val estSeconds = archiveTargets.size * 5
+        player.sendMessage("§eデイリーメンテナンス（期限切れアーカイブ処理）を開始します...")
+        val results = plugin.worldService.updateDailyData()
+        val updatedCount = results["updated"] ?: 0
+        val archivedCount = results["archived"] ?: 0
+        
         player.sendMessage(
                 plugin.languageManager.getMessage(
-                        "messages.migration_archive_start",
-                        mapOf("count" to archiveTargets.size, "seconds" to estSeconds)
+                        player,
+                        "messages.daily_update_success",
+                        mapOf("updated" to updatedCount, "archived" to archivedCount)
                 )
         )
-        processArchiveQueue(player, plugin, archiveTargets, 0)
     }
 
     private fun performConvert(

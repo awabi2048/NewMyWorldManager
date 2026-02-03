@@ -155,9 +155,9 @@ class WorldCommand(
                     sender.sendMessage(lang.getMessage("error.console_only"))
                     return true
                 }
-                plugin.worldService.updateDailyData()
+                val results = plugin.worldService.updateDailyData(); val updatedCount = results["updated"] ?: 0; val archivedCount = results["archived"] ?: 0
                 sender.sendMessage(
-                        lang.getMessage(sender as? Player, "messages.daily_update_success")
+                        lang.getMessage(sender as? Player, "messages.daily_update_success", mapOf("updated" to updatedCount, "archived" to archivedCount))
                 )
                 return true
             }

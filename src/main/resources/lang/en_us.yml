@@ -1041,7 +1041,7 @@ messages:
   wizard_started_for: "§aWizard started for {player}."
   creation_timeout: "§cWorld creation session timed out due to inactivity."
   reload_success: "§aReloaded MyWorldManager configuration."
-  daily_update_success: "§aCompleted daily world updates."
+  daily_update_success: "§aCompleted daily maintenance. (Updated: {updated}, Archived: {archived})"
   data_update_success: "§aUpdated all world ({world_count}) and player ({player_count}) data."
   
   # /meet
