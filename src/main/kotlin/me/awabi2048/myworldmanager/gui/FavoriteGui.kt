@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -42,6 +43,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 } else {
                                         data
                                 }
+                        }.filter { worldData ->
+                                session.selectedTag == null || worldData.tags.contains(session.selectedTag)
                         }
                 if (allWorlds.size != favWorldUuids.size) {
                         plugin.playerStatsRepository.save(stats)
@@ -73,8 +76,12 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         FavoriteGuiHolder::class.java
                 )
 
+                // お気に入りがない場合は5行、ある場合は6行
+                val inventorySize = if (allWorlds.isEmpty()) 45 else 54
+                val footerStart = if (allWorlds.isEmpty()) 36 else 45
+
                 val holder = FavoriteGuiHolder()
-                val inventory = Bukkit.createInventory(holder, 54, title)
+                val inventory = Bukkit.createInventory(holder, inventorySize, title)
                 holder.inv = inventory
 
                 plugin.settingsSessionManager.updateSessionAction(
@@ -87,7 +94,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val blackPane =
                         createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)
                 for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 45..53) inventory.setItem(i, blackPane)
+                for (i in footerStart until inventorySize) inventory.setItem(i, blackPane)
 
                 val startIndex = currentPage * itemsPerPage
                 val pageWorlds = allWorlds.drop(startIndex).take(itemsPerPage)
@@ -106,7 +113,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         )
                         emptyItem.itemMeta = emptyMeta
                         ItemTag.tagItem(emptyItem, ItemTag.TYPE_GUI_INFO)
-                        inventory.setItem(31, emptyItem)
+                        inventory.setItem(22, emptyItem) // 5行GUIの中央
                 }
 
                 if (currentPage > 0) {
@@ -122,10 +129,10 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                         item,
                                         returnToWorld.uuid
                                 )
-                        inventory.setItem(46, item)
+                        inventory.setItem(footerStart + 1, item)
                 }
 
-                inventory.setItem(49, createPlayerHead(player, allWorlds.size))
+                inventory.setItem(footerStart + 4, createPlayerHead(player, allWorlds.size))
 
                 if (currentPage < totalPages - 1) {
                         val item =
@@ -140,8 +147,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                         item,
                                         returnToWorld.uuid
                                 )
-                        inventory.setItem(53, item)
+                        inventory.setItem(footerStart + 8, item)
                 }
+
+                // タグフィルターボタン
+                inventory.setItem(footerStart + 7, createTagFilterButton(player, session.selectedTag))
 
                 // 戻るボタン
                 val returnItem =
@@ -156,7 +166,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 returnToWorld.uuid
                         )
                 }
-                inventory.setItem(45, returnItem)
+                inventory.setItem(footerStart, returnItem)
 
                 val background =
                         createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)
@@ -338,6 +348,53 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
                 if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
+                return item
+        }
+
+        private fun createTagFilterButton(player: Player, selectedTag: WorldTag?): ItemStack {
+                val lang = plugin.languageManager
+                val item = ItemStack(plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG))
+                val meta = item.itemMeta ?: return item
+
+                val tagName = if (selectedTag != null)
+                        lang.getMessage(player, "world_tag.${selectedTag.name.lowercase()}")
+                else
+                        lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
+
+                val prefix = if (selectedTag != null)
+                        lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")
+                else ""
+
+                val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
+                val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
+
+                val tagList = WorldTag.values().joinToString("\n") { tag ->
+                        val tagPrefix = if (tag == selectedTag)
+                                lang.getMessage(player, "gui.discovery.tag_filter.active")
+                        else
+                                lang.getMessage(player, "gui.discovery.tag_filter.inactive")
+                        val tagColor = if (tag == selectedTag) "§e" else "§7"
+                        val name = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
+                        "$tagPrefix$tagColor$name"
+                }
+
+                meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
+                meta.lore(
+                        lang.getComponentList(
+                                player,
+                                "gui.discovery.tag_filter.lore",
+                                mapOf(
+                                        "prefix" to prefix,
+                                        "tag" to tagName,
+                                        "tag_list" to tagList,
+                                        "click_left" to clickLeft,
+                                        "click_right" to clickRight
+                                )
+                        )
+                )
+
+                item.itemMeta = meta
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_TAG)
                 return item
         }
 

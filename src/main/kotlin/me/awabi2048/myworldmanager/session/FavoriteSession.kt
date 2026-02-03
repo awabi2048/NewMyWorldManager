@@ -1,10 +1,12 @@
 package me.awabi2048.myworldmanager.session
 
+import me.awabi2048.myworldmanager.model.WorldTag
 import java.util.*
 
 data class FavoriteSession(
     val playerUuid: UUID,
-    var showBackButton: Boolean = false
+    var showBackButton: Boolean = false,
+    var selectedTag: WorldTag? = null
 )
 
 class FavoriteSessionManager {

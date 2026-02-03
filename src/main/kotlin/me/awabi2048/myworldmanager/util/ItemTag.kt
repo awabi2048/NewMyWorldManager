@@ -80,6 +80,7 @@ object ItemTag {
     const val TYPE_GUI_FAVORITE_OTHER_WORLDS = "gui_favorite_other_worlds"
     const val TYPE_GUI_FAVORITE_TOGGLE = "gui_favorite_toggle"
     const val TYPE_GUI_FAVORITE_LIST = "gui_favorite_list"
+    const val TYPE_GUI_FAVORITE_TAG = "gui_favorite_tag"
     
     // 管理者GUIフィルター/ソート用タグ
     const val TYPE_GUI_ADMIN_FILTER_ARCHIVE = "gui_admin_filter_archive"

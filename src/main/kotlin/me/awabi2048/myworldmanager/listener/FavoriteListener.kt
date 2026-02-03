@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.FavoriteGui
 import me.awabi2048.myworldmanager.gui.VisitGui
+import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -58,7 +59,30 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             }
             
             if (type == ItemTag.TYPE_GUI_DECORATION || type == ItemTag.TYPE_GUI_INFO) return
-            
+
+            // タグフィルター処理
+            if (type == ItemTag.TYPE_GUI_FAVORITE_TAG) {
+                val favSession = plugin.favoriteSessionManager.getSession(player.uniqueId)
+                val allTags = WorldTag.values()
+
+                if (event.isRightClick) {
+                    favSession.selectedTag = null
+                } else if (event.isLeftClick) {
+                    val currentIndex = if (favSession.selectedTag == null) -1 else allTags.indexOf(favSession.selectedTag)
+                    val nextIndex = (currentIndex + 1) % (allTags.size + 1)
+
+                    favSession.selectedTag = if (nextIndex == allTags.size) {
+                        null
+                    } else {
+                        allTags[nextIndex]
+                    }
+                }
+
+                plugin.soundManager.playClickSound(player, currentItem, "favorite")
+                plugin.favoriteGui.open(player, 0)
+                return
+            }
+
             // ワールドアイテム処理
             if (type != ItemTag.TYPE_GUI_WORLD_ITEM) return
 
