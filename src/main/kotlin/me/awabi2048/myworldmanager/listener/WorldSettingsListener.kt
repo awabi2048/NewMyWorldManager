@@ -1076,52 +1076,70 @@ class WorldSettingsListener : Listener {
                                                         worldData
                                                 )
                                         }
-                                        ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
-                                                plugin.soundManager.playClickSound(
-                                                        player,
-                                                        clickedItem,
-                                                        "world_settings"
-                                                )
-                                                if (event.isRightClick) {
-                                                        worldData.announcementMessages.clear()
-                                                        plugin.worldConfigRepository.save(worldData)
-                                                        player.sendMessage(
-                                                                plugin.languageManager.getMessage(
-                                                                        "messages.announcement_reset"
-                                                                )
-                                                        )
-                                                        plugin.worldSettingsGui.open(
-                                                                player,
-                                                                worldData
-                                                        )
-                                                } else {
-                                                        val cancelWord =
-                                                                plugin.config.getString(
-                                                                        "creation.cancel_word",
-                                                                        "cancel"
-                                                                )
-                                                                        ?: "cancel"
-                                                        val cancelInfo =
-                                                                plugin.languageManager.getMessage(
-                                                                        player,
-                                                                        "messages.chat_input_cancel_hint",
-                                                                        mapOf("word" to cancelWord)
-                                                                )
-                                                        player.sendMessage(
-                                                                plugin.languageManager.getMessage(
-                                                                        "messages.announcement_prompt"
-                                                                ) + " " + cancelInfo
-                                                        )
-                                                        plugin.settingsSessionManager
-                                                                .updateSessionAction(
-                                                                        player,
-                                                                        worldData.uuid,
-                                                                        SettingsAction
-                                                                                .SET_ANNOUNCEMENT
-                                                                )
-                                                        player.closeInventory()
-                                                }
-                                        }
+						ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
+												plugin.soundManager.playClickSound(
+														player,
+														clickedItem,
+														"world_settings"
+												)
+												if (event.isRightClick) {
+														worldData.announcementMessages.clear()
+														plugin.worldConfigRepository.save(worldData)
+														player.sendMessage(
+																plugin.languageManager.getMessage(
+																		"messages.announcement_reset"
+																)
+														)
+														plugin.worldSettingsGui.open(
+																player,
+																worldData
+														)
+												} else {
+														// ベータ機能の確認
+														val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+														val betaEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || stats.betaFeaturesEnabled
+
+												if (betaEnabled) {
+														// ベータ機能有効時：ダイアログを開く
+														player.closeInventory()
+														me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
+														plugin.settingsSessionManager
+																.updateSessionAction(
+																		player,
+																		worldData.uuid,
+																		SettingsAction
+																				.SET_ANNOUNCEMENT
+																)
+														} else {
+																// ベータ機能無効時：従来のチャット入力方式
+																val cancelWord =
+																		plugin.config.getString(
+																				"creation.cancel_word",
+																				"cancel"
+																		)
+																		?: "cancel"
+																val cancelInfo =
+																		plugin.languageManager.getMessage(
+																				player,
+																				"messages.chat_input_cancel_hint",
+																				mapOf("word" to cancelWord)
+																		)
+																player.sendMessage(
+																		plugin.languageManager.getMessage(
+																				"messages.announcement_prompt"
+																		) + " " + cancelInfo
+																)
+																plugin.settingsSessionManager
+																		.updateSessionAction(
+																				player,
+																				worldData.uuid,
+																				SettingsAction
+																						.SET_ANNOUNCEMENT
+																		)
+																player.closeInventory()
+														}
+												}
+										}
                                         ItemTag.TYPE_GUI_SETTING_PORTALS -> {
                                                 val worldName =
                                                         worldData.customWorldName

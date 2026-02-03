@@ -408,6 +408,16 @@ gui:
     cancel: "§cCancel"
     cancel_desc: "§7Back to selection"
 
+  announcement_dialog:
+    title: "Edit Welcome Message"
+    line_label: "Line {number}"
+    help: "Enter the welcome message to be displayed to visitors"
+    max_lines: "You can set up to {max} lines"
+    max_length: "You can enter up to {max} characters per line"
+    save: "Save"
+    cancel: "Cancel"
+    reset: "Reset"
+
   member_management:
     title: "Member Management"
     invite:

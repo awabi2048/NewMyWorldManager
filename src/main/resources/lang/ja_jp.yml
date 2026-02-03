@@ -590,6 +590,16 @@ gui:
     cancel: "§cキャンセル"
     cancel_desc: "§7選択画面に戻ります"
 
+  announcement_dialog:
+    title: "案内メッセージの編集"
+    line_label: "行{number}"
+    help: "訪問者に表示する案内メッセージを入力してください"
+    max_lines: "最大{max}行まで設定できます"
+    max_length: "1行あたり最大{max}文字まで入力できます"
+    save: "保存"
+    cancel: "キャンセル"
+    reset: "リセット"
+
   member_management:
     title: "ワールドメンバーの管理"
     invite:
