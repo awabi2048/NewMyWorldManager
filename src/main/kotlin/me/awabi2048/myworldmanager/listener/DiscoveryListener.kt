@@ -68,7 +68,25 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     if (event.isShiftClick) {
                         // Spotlight削除 (Shift + 右クリック)
                         if (session.sort == DiscoverySort.SPOTLIGHT && player.hasPermission("myworldmanager.admin")) {
-                            plugin.spotlightRemoveConfirmGui.open(player, worldData)
+                            val betaFeaturesEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || 
+                                                      plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
+                            
+                            if (betaFeaturesEnabled) {
+                                val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.discovery.spotlight_remove_confirm.title"))
+                                val bodyLines = lang.getMessageList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name))
+                                    .map { net.kyori.adventure.text.Component.text(it) }
+
+                                me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
+                                    player,
+                                    plugin,
+                                    title,
+                                    bodyLines,
+                                    "mwm:confirm/spotlight_remove/" + worldData.uuid.toString(),
+                                    "mwm:confirm/cancel"
+                                )
+                            } else {
+                                plugin.spotlightRemoveConfirmGui.open(player, worldData)
+                            }
                             plugin.soundManager.playClickSound(player, item, "discovery")
                             return
                         }
@@ -139,7 +157,24 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
             "discovery_spotlight_empty" -> {
                 if (event.isLeftClick && player.hasPermission("myworldmanager.admin")) {
                     val world = player.world
-                    val worldData = plugin.worldConfigRepository.findByWorldName(world.name)
+                    
+                    // Try getting by UUID first (standard MyWorld folder name format: my_world.<UUID>)
+                    var worldData: me.awabi2048.myworldmanager.model.WorldData? = null
+                    if (world.name.startsWith("my_world.")) {
+                        try {
+                            val uuidStr = world.name.substring("my_world.".length)
+                            val uuid = UUID.fromString(uuidStr)
+                            worldData = plugin.worldConfigRepository.findByUuid(uuid)
+                        } catch (e: Exception) {
+                            // ignore
+                        }
+                    }
+                    
+                    // Fallback to name search if not found by UUID
+                    if (worldData == null) {
+                        worldData = plugin.worldConfigRepository.findByWorldName(world.name)
+                    }
+
                     if (worldData == null) {
                         player.sendMessage(lang.getMessage(player, "error.spotlight_not_in_myworld"))
                         return
@@ -152,7 +187,25 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         return
                     }
                     
-                    plugin.spotlightConfirmGui.open(player, worldData)
+                    val betaFeaturesEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || 
+                                              plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
+                    
+                    if (betaFeaturesEnabled) {
+                        val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.spotlight_confirm.title"))
+                        val bodyLines = lang.getMessageList(player, "gui.spotlight_confirm.lore", mapOf("world" to worldData.name))
+                            .map { net.kyori.adventure.text.Component.text(it) }
+
+                        me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
+                            player,
+                            plugin,
+                            title,
+                            bodyLines,
+                            "mwm:confirm/spotlight_add/" + worldData.uuid.toString(),
+                            "mwm:confirm/cancel"
+                        )
+                    } else {
+                        plugin.spotlightConfirmGui.open(player, worldData)
+                    }
                     plugin.soundManager.playClickSound(player, item, "discovery")
                 }
             }

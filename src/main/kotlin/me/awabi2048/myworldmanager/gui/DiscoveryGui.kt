@@ -49,9 +49,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         allWorlds.sortedByDescending { it.favorite }
                                 DiscoverySort.SPOTLIGHT -> {
                                         val spotlightUuids = plugin.spotlightRepository.findAll()
-                                        allWorlds
-                                                .filter { spotlightUuids.contains(it.uuid) }
-                                                .sortedBy { spotlightUuids.indexOf(it.uuid) }
+                                        // Spotlight登録ワールドは公開設定に関わらず表示する
+                                        spotlightUuids.mapNotNull { uuid ->
+                                                plugin.worldConfigRepository.findByUuid(uuid)
+                                        }.filter { it.sourceWorld != "CONVERT" }
                                 }
                                 DiscoverySort.RANDOM -> allWorlds.shuffled()
                         }
@@ -98,15 +99,25 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val pageWorlds = sortedWorlds.take(itemsPerPage)
 
                 if (sortedWorlds.isEmpty()) {
-                        val noResultItem = ItemStack(Material.GRAY_DYE)
-                        val noResultMeta = noResultItem.itemMeta
-                        noResultMeta.displayName(
-                                lang.getComponent(player, "gui.discovery.no_result")
-                                        .decoration(TextDecoration.ITALIC, false)
-                        )
-                        noResultItem.itemMeta = noResultMeta
-                        ItemTag.tagItem(noResultItem, ItemTag.TYPE_GUI_DECORATION)
-                        inventory.setItem(31, noResultItem)
+                        // SPOTLIGHT ソート時は空枠を表示
+                        if (session.sort == DiscoverySort.SPOTLIGHT) {
+                                for (i in 0 until worldItemSlots.size) {
+                                        inventory.setItem(
+                                                worldItemSlots[i],
+                                                createSpotlightEmptyItem(player)
+                                        )
+                                }
+                        } else {
+                                val noResultItem = ItemStack(Material.GRAY_DYE)
+                                val noResultMeta = noResultItem.itemMeta
+                                noResultMeta.displayName(
+                                        lang.getComponent(player, "gui.discovery.no_result")
+                                                .decoration(TextDecoration.ITALIC, false)
+                                )
+                                noResultItem.itemMeta = noResultMeta
+                                ItemTag.tagItem(noResultItem, ItemTag.TYPE_GUI_DECORATION)
+                                inventory.setItem(31, noResultItem)
+                        }
                 } else {
                         pageWorlds.forEachIndexed { index, worldData ->
                                 inventory.setItem(
@@ -320,7 +331,11 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         "gui.discovery.spotlight_empty.lore_visitor"
                                 )
                         }
-                meta.lore(loreLines.map { it.decoration(TextDecoration.ITALIC, false) })
+                
+                // Temporary Debug
+                val debugLore = loreLines.map { it.decoration(TextDecoration.ITALIC, false) }.toMutableList()
+                debugLore.add(Component.text("§8[Debug] Admin: ${player.hasPermission("myworldmanager.admin")}, OP: ${player.isOp}"))
+                meta.lore(debugLore)
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, "discovery_spotlight_empty")

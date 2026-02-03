@@ -1021,11 +1021,30 @@ gui:
       random: "表示するたびにランダムに入れ替わります"
     no_result: "§7条件に一致するワールドが見つかりませんでした"
 
+    spotlight_empty:
+      name: "§7[空きスロット]"
+      lore_admin:
+        - "§7現在このスロットは空いています。"
+        - "§7クリックして、現在滞在中のワールドを"
+        - "§6SPOTLIGHT§7に登録します。"
+        - ""
+        - "§e§nクリックで登録"
+      lore_visitor:
+        - "§7現在このスロットは空いています。"
+        - "§7運営による新しいおすすめワールドの"
+        - "§7登場をお待ちください！"
+
     spotlight_remove_confirm:
       title: "SPOTLIGHTからの削除"
       lore:
         - "§fワールド「§a{world}§f」を"
         - "§6SPOTLIGHT§fから削除しますか？"
+
+  spotlight_confirm:
+    title: "SPOTLIGHTへの登録"
+    lore:
+      - "§fワールド「§a{world}§f」を"
+      - "§6SPOTLIGHT§fに登録しますか？"
 
   favorite:
     title: "お気に入りリスト"
@@ -1114,9 +1133,6 @@ gui:
   world_seed_confirm:
     title: "ワールドの種の使用"
     lore:
-      0: "§dワールドの種§fを使用しますか？"
-      2: "§7現在のマイワールドスロット: §a{current}"
-      3: "§7使用後のマイワールドスロット: §a{next}"
       - "§dワールドの種§fを使用しますか？"
       - ""
       - "§7現在のマイワールドスロット: §a{current}"
@@ -1564,3 +1580,13 @@ biomes:
   end_midlands: "エンドの中地"
   end_highlands: "エンドの高地"
   end_barrens: "エンドの痩せた地"
+
+error:
+  spotlight_not_in_myworld: "§cMyWorldワールド内にいる必要があります。"
+  spotlight_not_owner: "§cあなたはこのワールドの所有者ではありません。"
+  spotlight_already_registered: "§cこのワールドは既にSPOTLIGHTに登録されています。"
+  spotlight_limit_reached: "§cこれ以上SPOTLIGHTに登録できません。"
+
+messages:
+  spotlight_added: "§aワールド「{world}」をSPOTLIGHTに登録しました！"
+  spotlight_removed: "§aワールド「{world}」をSPOTLIGHTから削除しました。"
