@@ -455,6 +455,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         player,
                                         "gui.admin.world_item.lore",
                                         mapOf(
+                                                "uuid_line" to lang.getMessage(player, "gui.admin.world_item.uuid", mapOf("uuid" to data.uuid)),
                                                 "owner_line" to ownerLine,
                                                 "status_line" to statusLine,
                                                 "publish_line" to publishLine,

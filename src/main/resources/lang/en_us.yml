@@ -568,6 +568,7 @@ gui:
     world_item:
       # Placeholder: {owner_line}, {status_line}, {publish_line}, {expansion_line}, {created_line}, {expire_line}, {mspt_line}, {action_warp}...
       lore:
+        - "{uuid_line}"
         - "{owner_line}"
         - "{status_line}"
         - "{publish_line}"
@@ -582,6 +583,7 @@ gui:
         - "{action_archive}"
         - "{uuid_copy_hint}"
 
+      uuid: "§f§l| §7UUID §8{uuid}"
       owner: "§f§l| §7Owner {owner}{status_color}"
       status: "§f§l| §7Status {status}"
       status_archived: "§cArchived"

@@ -777,6 +777,7 @@ gui:
       # Placeholder: {owner_line}, {status_line}, {publish_line}, {expansion_line}, {created_line}, {expire_line}, {mspt_line}, {action_warp}...
       lore:
         - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{uuid_line}"
         - "{owner_line}"
         - "{status_line}"
         - "{publish_line}"
@@ -792,6 +793,7 @@ gui:
         - "{uuid_copy_hint}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
 
+      uuid: "§f§l| §7UUID §8{uuid}"
       # Line Formats used by code to construct lines above
       owner: "§f§l| §7オーナー {owner}{status_color}"
       status: "§f§l| §7状態 {status}"
