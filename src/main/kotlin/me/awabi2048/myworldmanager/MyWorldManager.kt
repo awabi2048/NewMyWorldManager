@@ -29,6 +29,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var portalRepository: PortalRepository
     lateinit var portalManager: PortalManager
     lateinit var memberInviteManager: MemberInviteManager
+    lateinit var memberRequestManager: MemberRequestManager
     lateinit var discoverySessionManager: DiscoverySessionManager
     lateinit var meetSessionManager: MeetSessionManager
     lateinit var favoriteSessionManager: FavoriteSessionManager
@@ -51,6 +52,8 @@ class MyWorldManager : JavaPlugin() {
     lateinit var spotlightRemoveConfirmGui: SpotlightRemoveConfirmGui
     lateinit var environmentGui: EnvironmentGui
     lateinit var environmentConfirmGui: EnvironmentConfirmGui
+    lateinit var memberRequestConfirmGui: MemberRequestConfirmGui
+    lateinit var memberRequestOwnerConfirmGui: MemberRequestOwnerConfirmGui
     lateinit var worldSeedConfirmGui: WorldSeedConfirmGui
     lateinit var languageManager: LanguageManager
     lateinit var previewSessionManager: PreviewSessionManager
@@ -123,6 +126,8 @@ class MyWorldManager : JavaPlugin() {
         spotlightRemoveConfirmGui = SpotlightRemoveConfirmGui(this)
         environmentGui = EnvironmentGui(this)
         environmentConfirmGui = EnvironmentConfirmGui(this)
+        memberRequestConfirmGui = MemberRequestConfirmGui(this)
+        memberRequestOwnerConfirmGui = MemberRequestOwnerConfirmGui(this)
         worldSeedConfirmGui = WorldSeedConfirmGui(this)
 
         creationSessionManager = CreationSessionManager(this)
@@ -130,6 +135,7 @@ class MyWorldManager : JavaPlugin() {
         macroManager = MacroManager(this)
         // MemberInviteManagerの初期化に依存関係を渡す
         memberInviteManager = MemberInviteManager(this, worldConfigRepository, macroManager)
+        memberRequestManager = MemberRequestManager(this)
 
         // 設定機能の初期化
         settingsSessionManager = SettingsSessionManager()
@@ -189,6 +195,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(TemplatePreviewListener(), this)
         server.pluginManager.registerEvents(EnvironmentLogicListener(this), this)
         server.pluginManager.registerEvents(CustomItemListener(this), this)
+        server.pluginManager.registerEvents(MemberRequestConfirmListener(this), this)
+        server.pluginManager.registerEvents(MemberRequestOwnerConfirmListener(this), this)
         server.pluginManager.registerEvents(WorldSeedListener(this), this)
         server.pluginManager.registerEvents(WizardLunaChatListener(this), this)
         server.pluginManager.registerEvents(TemplateWizardListener(), this)
@@ -217,6 +225,12 @@ class MyWorldManager : JavaPlugin() {
         }
         getCommand("memberinviteaccept_internal")?.setExecutor { sender, _, _, _ ->
             if (sender is Player) memberInviteManager.handleMemberInviteAccept(sender)
+            true
+        }
+        getCommand("memberrequest_internal")?.setExecutor { sender, _, _, args ->
+            if (sender is Player && args.size >= 2) {
+                memberRequestManager.handleInternalCommand(sender, args[0], args[1])
+            }
             true
         }
 

@@ -81,6 +81,7 @@ object ItemTag {
     const val TYPE_GUI_FAVORITE_TOGGLE = "gui_favorite_toggle"
     const val TYPE_GUI_FAVORITE_LIST = "gui_favorite_list"
     const val TYPE_GUI_FAVORITE_TAG = "gui_favorite_tag"
+    const val TYPE_GUI_MEMBER_REQUEST_CONFIRM = "gui_member_request_confirm"
     
     // 管理者GUIフィルター/ソート用タグ
     const val TYPE_GUI_ADMIN_FILTER_ARCHIVE = "gui_admin_filter_archive"
@@ -175,5 +176,18 @@ object ItemTag {
     fun getBiomeId(item: ItemStack): String? {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(BIOME_ID, PersistentDataType.STRING)
+    }
+
+    fun setString(item: ItemStack, keyStr: String, value: String) {
+        val meta = item.itemMeta ?: return
+        val key = NamespacedKey("myworldmanager", keyStr)
+        meta.persistentDataContainer.set(key, PersistentDataType.STRING, value)
+        item.itemMeta = meta
+    }
+
+    fun getString(item: ItemStack, keyStr: String): String? {
+        val meta = item.itemMeta ?: return null
+        val key = NamespacedKey("myworldmanager", keyStr)
+        return meta.persistentDataContainer.get(key, PersistentDataType.STRING)
     }
 }

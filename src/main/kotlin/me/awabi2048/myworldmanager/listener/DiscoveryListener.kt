@@ -58,6 +58,36 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         return
                     }
 
+                    if (event.isShiftClick) {
+                        // Member Request (Shift + Left Click)
+                        if (isMember) {
+                            player.sendMessage(lang.getMessage(player, "messages.member_request_already_member"))
+                            return
+                        }
+
+                        val betaFeaturesEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || 
+                                                  plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
+
+                        if (betaFeaturesEnabled) {
+                            val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.member_request_confirm.title"))
+                            val bodyLines = lang.getMessageList(player, "gui.member_request_confirm.lore", mapOf("world" to worldData.name))
+                                .map { net.kyori.adventure.text.Component.text(it) }
+
+                            me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
+                                player,
+                                plugin,
+                                title,
+                                bodyLines,
+                                "mwm:confirm/member_request_send/" + worldData.uuid.toString(),
+                                "mwm:confirm/cancel"
+                            )
+                        } else {
+                            plugin.memberRequestConfirmGui.open(player, worldData)
+                        }
+                        plugin.soundManager.playClickSound(player, item, "discovery")
+                        return
+                    }
+
                     // ワープ
                     plugin.soundManager.playClickSound(player, item, "discovery")
                     plugin.worldService.teleportToWorld(player, uuid)

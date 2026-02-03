@@ -208,6 +208,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         }
 
                 val previewHint = lang.getMessage(player, "gui.discovery.world_item.preview_hint")
+                val memberRequestHint = lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
 
                 val separator = lang.getComponent(player, "gui.common.separator")
 
@@ -224,7 +225,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 "favorites" to favorites,
                                                 "visitors" to visitors,
                                                 "tags" to tagNames,
-                                                "preview_hint" to previewHint
+                                                "preview_hint" to previewHint,
+                                                "member_request_hint" to memberRequestHint
                                         )
                                 ),
                                 separator

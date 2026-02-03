@@ -918,6 +918,7 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§l| §e左クリック §7ワープ"
         - "{preview_hint}"
+        - "{member_request_hint}"
         - "§e§l| §eShift + 右クリック §7お気に入り登録/解除"
         - "§8§m－－－－－－－－－－－－－－－－－－"
       owner: "§f§l| §7オーナー {owner}{status_color}"
@@ -927,6 +928,7 @@ gui:
       warp: "§e§l| §e左クリック§7 このワールドにワープ"
       preview: "§e§l| §e右クリック§7 プレビュー"
       preview_hint: "§e§l| §e右クリック §7プレビュー"
+      member_request_hint: "§e§l| §dShift + 左クリック §7参加申請を表示"
       favorite_toggle: "§e§l| §dShift + 右クリック§7 お気に入りを切り替え"
       fav_add: "§e§l| §e右クリック§7 お気に入りに追加"
       fav_remove: "§e§l| §e右クリック§7 お気に入りを解除"
@@ -1120,7 +1122,27 @@ gui:
         - "§cお気に入りから解除§fしますか？"
         - ""
         - "§7解除すると、お気に入りリストから削除されます。"
+
+  member_request_confirm:
+    title: "メンバー参加申請の確認"
+    confirm: "§a申請を送信"
+    cancel: "§cキャンセル"
+    lore:
+      - "§fワールド「§a{world}§f」のオーナーに"
+      - "§dメンバー参加申請§fを送信しますか？"
+      - ""
+      - "§7オーナーが承認すると、メンバーとして参加できます。"
     
+  member_request_owner_confirm:
+    title: "メンバー参加申請の承認"
+    confirm: "§a承認する"
+    reject: "§c却下する"
+    lore:
+      - "§fプレイヤー「§a{player}§f」からの"
+      - "§dメンバー参加申請§fを承認しますか？"
+      - ""
+      - "§7承認すると、このプレイヤーはワールドのメンバーになります。"
+
   spotlight_confirm:
     title: "SPOTLIGHTへの登録"
     lore:
@@ -1323,6 +1345,15 @@ messages:
   member_invite_text: "{player}さんがあなたを「{world}」のメンバーに招待しました。"
   member_invite_click: "§e§n§lクリックして承諾"
   member_invite_hover: "クリックしてメンバー招待を承諾します"
+  member_request_sent: "§aワールドメンバー参加の申請を送信しました"
+  member_request_received: "§d{player}さんがワールドメンバーの参加を希望しています"
+  member_request_click_approve: "§a【承認】"
+  member_request_click_reject: "§c【却下】"
+  member_request_hover_approve: "クリックして承認"
+  member_request_hover_reject: "クリックして却下"
+  member_request_approved: "§aワールドメンバー参加の申請が承認されました"
+  member_request_rejected: "§cワールドメンバー参加の申請が却下されました"
+  member_request_expired: "§c申請の有効期限が切れました"
   visitor_notified: "§a{player} §fさんが【§a{world}§f】を訪れました"
   kicked: "§cこのワールドからキックされました"
   kicked_success: "§c{player}さんをキックしました"
@@ -1586,6 +1617,21 @@ error:
   spotlight_not_owner: "§cあなたはこのワールドの所有者ではありません。"
   spotlight_already_registered: "§cこのワールドは既にSPOTLIGHTに登録されています。"
   spotlight_limit_reached: "§cこれ以上SPOTLIGHTに登録できません。"
+  member_request_owner_offline: "§cワールドオーナーがオフラインのため、申請できません"
+  member_request_already_member: "§c既にこのワールドのメンバーです"
+
+messages:
+  member_request_sent: "§aメンバー参加申請を送信しました"
+  member_request_received: "§eプレイヤー「§a{player}§e」からメンバー参加申請が届きました"
+  member_request_click_approve: "§a§l【承認画面を開く】"
+  member_request_click_reject: "§c§l【却下画面を開く】"
+  member_request_hover_approve: "§7クリックして承認/却下の確認画面を開きます"
+  member_request_hover_reject: "§7クリックして承認/却下の確認画面を開きます"
+  member_request_expired: "§c申請の有効期限が切れています"
+  member_request_approved: "§aメンバー参加申請が承認されました！"
+  member_request_rejected: "§cメンバー参加申請が却下されました"
+  member_request_already_member: "§cすでにこのワールドのメンバーです"
+  member_request_is_owner: "§c自分のワールドには申請できません"
 
 messages:
   spotlight_added: "§aワールド「{world}」をSPOTLIGHTに登録しました！"

@@ -674,13 +674,26 @@ gui:
   discovery:
     title: "Discovery"
     world_item:
+      lore:
+        - "§8§m-----------------------"
+        - "{owner}"
+        - "{favorite}"
+        - "{recent_visitors}"
+        - "{tag}"
+        - "§8§m-----------------------"
+        - "§e§l| §eLeft-Click §7Warp"
+        - "{preview_hint}"
+        - "{member_request_hint}"
+        - "§e§l| §eShift + Right-Click §7Add/Remove Favorite"
+        - "§8§m-----------------------"
       owner: "§f§l| §7Owner {owner}{status_color}"
       favorite: "§f§l| §7Favorites §c{count}"
       recent_visitors: "§f§l| §7Recent Visitors §a{count}"
       tag: "§f§l| §7Tags §e{tags}"
       warp: "§e§l| §e§nLeft-Click §7Warp"
-      preview: "§e§l| §b§nRight-Click §7Preview"
-      favorite_toggle: "§e§l| §d§nShift + Right-Click §7Toggle Favorite"
+      preview_hint: "§e§l| §eRight-Click §7Preview"
+      member_request_hint: "§e§l| §dShift + Left-Click §7Request Membership"
+      favorite_toggle: "§e§l| §dShift + Right-Click§7 Toggle Favorite"
       fav_add: "§e§l| §e§nRight-Click §7Favorite"
       fav_remove: "§e§l| §e§nRight-Click §7Unfavorite"
     sort:
@@ -777,7 +790,27 @@ gui:
           - "§7have added to your favorites."
           - ""
           - "§e§nClick to View"
+
+  member_request_confirm:
+    title: "Member Request Confirmation"
+    confirm: "§aSend Request"
+    cancel: "§cCancel"
+    lore:
+      - "§fSend a §dmember request§f to"
+      - "§fthe owner of \"§a{world}§f\"?"
+      - ""
+      - "§7If the owner approves, you will become a member."
     
+  member_request_owner_confirm:
+    title: "Member Request Approval"
+    confirm: "§aApprove"
+    reject: "§cReject"
+    lore:
+      - "§fApprove the §dmember request§f from"
+      - "§fplayer \"§a{player}§f\"?"
+      - ""
+      - "§7If approved, they will become a member of this world."
+
   spotlight_confirm:
     title: "Register to SPOTLIGHT"
     lore:
@@ -785,6 +818,21 @@ gui:
       - "§fworld \"§a{world}§f\" to §6SPOTLIGHT§f?"
       - ""
       - "§7Registered worlds will be displayed"
+    
+error:
+  member_request_owner_offline: "§cCannot send request because the owner is offline."
+  member_request_already_member: "§cYou are already a member of this world."
+
+messages:
+  member_request_sent: "§aMember request sent."
+  member_request_received: "§eReceived a member request from §a{player}§e."
+  member_request_click_approve: "§a§l【Open Approval】"
+  member_request_click_reject: "§c§l【Open Rejection】"
+  member_request_hover_approve: "§7Click to open approval/rejection confirmation."
+  member_request_hover_reject: "§7Click to open approval/rejection confirmation."
+  member_request_expired: "§cThe request has expired."
+  member_request_approved: "§aYour member request has been approved!"
+  member_request_rejected: "§cYour member request has been rejected."
       - "§7at the top of the discovery menu."
 
   visit:
@@ -946,6 +994,15 @@ messages:
   member_invite_text: "{player} invited you to join \"{world}\" as a member."
   member_invite_click: "«Click to accept»"
   member_invite_hover: "Click to accept the member invitation"
+  member_request_sent: "§aMember request sent successfully"
+  member_request_received: "§d{player} wants to join your world as a member"
+  member_request_click_approve: "§a[Approve]"
+  member_request_click_reject: "§c[Reject]"
+  member_request_hover_approve: "Click to approve"
+  member_request_hover_reject: "Click to reject"
+  member_request_approved: "§aYour member request has been approved"
+  member_request_rejected: "§cYour member request has been rejected"
+  member_request_expired: "§cThe request has expired"
   visitor_notified: "§e{player} §fvisited your world!"
   kicked: "§cYou have been kicked from this world."
   kicked_success: "§aKicked {player}."
@@ -1058,6 +1115,9 @@ messages:
   spotlight_limit_reached: "§cSPOTLIGHT slots are full."
   spotlight_not_in_myworld: "§cYou must be in the target MyWorld to register it."
   spotlight_not_owner: "§cYou can only register worlds you own."
+  member_request_owner_offline: "§cThe world owner is offline. Cannot send request."
+  member_request_already_member: "§cYou are already a member of this world"
+  member_request_is_owner: "§cYou cannot request membership to your own world"
 
   # Command Errors / Admin actions
   invalid_field: "§cInvalid field name."
