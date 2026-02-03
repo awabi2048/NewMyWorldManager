@@ -76,4 +76,67 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
             }
         }
     }
+
+
+    @EventHandler
+    fun onDialogResponse(event: io.papermc.paper.event.player.PlayerCustomClickEvent) {
+        val identifier = event.identifier
+        if (identifier == net.kyori.adventure.key.Key.key("mwm:confirm/world_seed")) {
+            val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
+            val player = conn.player
+            
+            me.awabi2048.myworldmanager.gui.DialogConfirmManager.safeCloseDialog(player)
+
+            // Execute Expansion
+            val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+            
+            // Double check limit just in case
+            val defaultSlots = plugin.config.getInt("creation.max_create_count_default")
+            val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
+            if (defaultSlots + stats.unlockedWorldSlot >= limit) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
+                return
+            }
+
+            // Consume Item (Check inventory mainly)
+            var consumed = false
+            // Check hands first
+            val mainHand = player.inventory.itemInMainHand
+            val offHand = player.inventory.itemInOffHand
+
+            if (ItemTag.isType(mainHand, ItemTag.TYPE_WORLD_SEED)) {
+                mainHand.amount -= 1
+                consumed = true
+            } else if (ItemTag.isType(offHand, ItemTag.TYPE_WORLD_SEED)) {
+                offHand.amount -= 1
+                consumed = true
+            } else {
+                 // Check inventory content if not in hand (should be rare if they just clicked, but possible)
+                 // But strictly speaking, it implies they are holding it? Not necessarily with dialogs.
+                 // Let's stick to hands for now as it's an item-use action.
+            }
+
+            if (!consumed) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.item_not_found_hand"))
+                return
+            }
+
+            // Update Stats
+            stats.unlockedWorldSlot += 1
+            plugin.playerStatsRepository.save(stats)
+
+            // Message & Sound
+            val newTotal = defaultSlots + stats.unlockedWorldSlot
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_expanded", mapOf("slots" to newTotal)))
+            player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+            
+        } else if (identifier == net.kyori.adventure.key.Key.key("mwm:confirm/cancel")) {
+             // For generic cancel, we might want to ensure it's closing ONLY if it was related to this flow? 
+             // But CustomClickEvent is global. We should check if we opened it?
+             // Actually, safeCloseDialog is usually enough. Or do nothing.
+             // But if we want sound:
+             // We don't know if this cancel was for WorldSeed or Environment unless we encode it in ID, which we didn't (just "mwm:confirm/cancel").
+             // So let's leave generic cancel handling to caller or generic listener, OR just ignore here.
+        }
+    }
 }
