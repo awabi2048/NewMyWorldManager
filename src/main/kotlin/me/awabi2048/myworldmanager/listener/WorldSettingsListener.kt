@@ -1141,6 +1141,24 @@ class WorldSettingsListener : Listener {
 												}
 										}
                                         ItemTag.TYPE_GUI_SETTING_PORTALS -> {
+                                                // ワールドオーナーのみアクセス可能
+                                                val isOwner = worldData.owner == player.uniqueId ||
+                                                        plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
+                                                if (!isOwner) {
+                                                        player.sendMessage(
+                                                                plugin.languageManager.getMessage(
+                                                                        player,
+                                                                        "error.no_permission"
+                                                                )
+                                                        )
+                                                        plugin.soundManager.playClickSound(
+                                                                player,
+                                                                clickedItem,
+                                                                "world_settings"
+                                                        )
+                                                        return
+                                                }
+
                                                 val worldName =
                                                         worldData.customWorldName
                                                                 ?: "my_world.${worldData.uuid}"
@@ -1161,7 +1179,7 @@ class WorldSettingsListener : Listener {
                                                                         worldData
                                                                 )
                                                 } else {
-                                                        // 繝昴・繧ｿ繝ｫ縺後↑縺・ｴ蜷医・髢九°縺ｪ縺・(繧ｯ繝ｪ繝・け髻ｳ縺縺鷹ｳｴ繧九√∪縺溘・菴輔ｂ縺励↑縺・
+                                                        // ポータルがない場合の処理 (クリック音も鳴らさない)
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,

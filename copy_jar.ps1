@@ -1,0 +1,1 @@
+Copy-Item -Path "target\MyWorldManager-v1.1.2.jar" -Destination "D:\Minecraft\Chiyogami 1.21.8\plugins\" -Force

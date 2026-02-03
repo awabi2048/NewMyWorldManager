@@ -777,7 +777,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // スロット52: 設置済みポータルの管理
                 // スロット52: 設置済みポータルの管理
-                if (hasManagePermission) {
+                // ワールドオーナーのみ表示
+                if (isOwner) {
                         val portalLore = lang.getComponentList(player, "gui.settings.portals.lore")
                         inventory.setItem(
                                 52,
