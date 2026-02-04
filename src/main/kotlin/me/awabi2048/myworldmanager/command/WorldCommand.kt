@@ -75,13 +75,16 @@ class WorldCommand(
                 val currentTotal = plugin.worldConfigRepository.findAll().size
 
                 if (currentTotal >= maxTotal) {
-                    sender.sendMessage(
-                        lang.getMessage(
-                            sender as? Player,
-                            "gui.creation.command_limit_reached_total",
-                            mapOf("max" to maxTotal)
-                        )
+                    val errorMessage = lang.getMessage(
+                        sender as? Player,
+                        "gui.creation.command_limit_reached_total",
+                        mapOf("max" to maxTotal)
                     )
+                    sender.sendMessage(errorMessage)
+                    // グローバル上限エラーは対象プレイヤーがオンラインの場合も通知
+                    if (targetPlayer.isOnline) {
+                        targetPlayer.sendMessage(errorMessage)
+                    }
                     return true
                 }
 
