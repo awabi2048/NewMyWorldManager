@@ -4,7 +4,8 @@ import java.util.*
 
 data class PlayerWorldSession(
     val playerUuid: UUID,
-    var showBackButton: Boolean = false
+    var showBackButton: Boolean = false,
+    var currentPage: Int = 0
 )
 
 class PlayerWorldSessionManager {
