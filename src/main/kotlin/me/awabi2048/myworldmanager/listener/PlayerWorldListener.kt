@@ -44,10 +44,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
             
-            // ホバーしたスロットとアイテムを記録（Fキー検出用）
-            val pwSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
-            pwSession.lastHoveredSlot = event.slot
-            pwSession.lastHoveredItem = currentItem
+
             
             val gui = PlayerWorldGui(plugin)
 
@@ -129,8 +126,22 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
-            if (event.isLeftClick) {
-                // 左クリック：アーカイブ状態のチェック
+            if (event.isShiftClick && event.isLeftClick) {
+                // Shift+左クリック：ワールドを先頭に移動
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                stats.worldDisplayOrder.remove(uuid)
+                stats.worldDisplayOrder.add(0, uuid)
+                plugin.playerStatsRepository.save(stats)
+                
+                player.sendMessage("§a「${worldData.name}」を一番上に移動しました。")
+                plugin.soundManager.playClickSound(player, currentItem, "player_world")
+                
+                // 現在のページ番号を取得してGUI再表示
+                val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+                plugin.playerWorldGui.open(player, session.currentPage)
+                return
+            } else if (event.isLeftClick && !event.isShiftClick) {
+                // Shiftなし左クリック：アーカイブ状態のチェック
                 if (worldData.isArchived) {
                     if (worldData.owner == player.uniqueId) {
                         plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)

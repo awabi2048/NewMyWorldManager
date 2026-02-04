@@ -205,7 +205,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)
         server.pluginManager.registerEvents(AnnouncementDialogManager(), this)
-        server.pluginManager.registerEvents(KeyBindActionListener(this), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
