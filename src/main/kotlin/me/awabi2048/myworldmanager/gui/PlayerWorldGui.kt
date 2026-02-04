@@ -26,8 +26,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         private val itemsPerPageNum = dataRowsPerPage * worldsPerRow // 28 items
 
         fun getPlayerWorlds(player: Player): List<WorldData> {
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 val allWorlds = repository.findAll()
-                return allWorlds
+                
+                // プレイヤーがアクセス可能なワールドをフィルタリング
+                val accessibleWorlds = allWorlds
                         .filter {
                                 it.owner == player.uniqueId ||
                                         it.moderators.contains(player.uniqueId) ||
@@ -37,7 +40,18 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         .filter {
                                 it.owner == player.uniqueId || !it.isArchived
                         } // メンバーとして参加しているアーカイブ済みは非表示
+                
+                // worldDisplayOrder に含まれるワールド（順序リスト順）
+                val orderedWorlds = stats.worldDisplayOrder
+                        .mapNotNull { uuid -> accessibleWorlds.find { it.uuid == uuid } }
+                
+                // worldDisplayOrder に含まれていないワールド（作成日時降順）
+                val unorderedWorlds = accessibleWorlds
+                        .filter { !stats.worldDisplayOrder.contains(it.uuid) }
                         .sortedWith(compareBy<WorldData> { it.isArchived }.thenByDescending { it.createdAt })
+                
+                // 完全な順序リスト（orderedWorlds + unorderedWorlds）
+                return orderedWorlds + unorderedWorlds
         }
 
         fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
@@ -46,8 +60,34 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         session.showBackButton = showBackButton
                 }
 
+                // worldDisplayOrder のバリデーション
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                val beforeCount = stats.worldDisplayOrder.size
+                stats.worldDisplayOrder.removeAll { uuid ->
+                        plugin.worldConfigRepository.findByUuid(uuid) == null
+                }
+                val afterCount = stats.worldDisplayOrder.size
+                
+                // 変更があれば保存＆ログ出力
+                if (beforeCount != afterCount) {
+                        plugin.playerStatsRepository.save(stats)
+                        plugin.logger.info("[PlayerWorldGui] ${player.name} の worldDisplayOrder から削除されたワールド ${beforeCount - afterCount} 件を削除しました。")
+                }
+
                 repository.loadAll()
                 val playerWorlds = getPlayerWorlds(player)
+                
+                // worldDisplayOrder に含まれていないワールドを自動追加
+                val currentUuids = playerWorlds.map { it.uuid }
+                val missingUuids = currentUuids.filter { !stats.worldDisplayOrder.contains(it) }
+                if (missingUuids.isNotEmpty()) {
+                        stats.worldDisplayOrder.addAll(missingUuids)
+                        plugin.playerStatsRepository.save(stats)
+                        plugin.logger.info("[PlayerWorldGui] ${player.name} の worldDisplayOrder に新規ワールド ${missingUuids.size} 件を追加しました。")
+                }
+                
+                // 現在のページ番号を保存
+                session.currentPage = page
 
                 val startIndex = page * itemsPerPageNum
                 val currentPageWorlds = playerWorlds.drop(startIndex).take(itemsPerPageNum)
@@ -119,7 +159,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 // 統計情報の取得
                 val currentCreateCount = playerWorlds.count { it.owner == player.uniqueId }
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 val maxSlot =
                         plugin.config.getInt("creation.max_create_count_default", 3) +
                                 stats.unlockedWorldSlot

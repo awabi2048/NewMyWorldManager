@@ -4,7 +4,10 @@ import java.util.*
 
 data class PlayerWorldSession(
     val playerUuid: UUID,
-    var showBackButton: Boolean = false
+    var showBackButton: Boolean = false,
+    var currentPage: Int = 0,
+    var lastHoveredSlot: Int = -1,
+    var lastHoveredItem: org.bukkit.inventory.ItemStack? = null
 )
 
 class PlayerWorldSessionManager {

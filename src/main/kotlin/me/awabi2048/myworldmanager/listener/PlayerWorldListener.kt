@@ -44,6 +44,11 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
             
+            // ホバーしたスロットとアイテムを記録（Fキー検出用）
+            val pwSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+            pwSession.lastHoveredSlot = event.slot
+            pwSession.lastHoveredItem = currentItem
+            
             val gui = PlayerWorldGui(plugin)
 
             if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
