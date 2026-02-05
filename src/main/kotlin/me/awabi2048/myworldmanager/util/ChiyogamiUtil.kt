@@ -74,6 +74,25 @@ object ChiyogamiUtil {
         return String.format("%s%.1f", color, mspt)
     }
 
+    /** サーバー全体のMSPTを取得します。Chiyogamiが利用可能な場合はPerformanceMonitorから取得し、そうでない場合はTPSから概算します。 */
+    fun getServerMspt(): Double {
+        return if (isChiyogamiActive()) {
+            try {
+                PerformanceMonitor.getFullServerTickNanoTime() * 0.000001
+            } catch (e: Exception) {
+                // フォールバック: TPSから計算
+                getServerMsptFromTps()
+            }
+        } else {
+            getServerMsptFromTps()
+        }
+    }
+
+    private fun getServerMsptFromTps(): Double {
+        val tps = Bukkit.getTPS()[0] // 1分平均TPS
+        return if (tps > 0) 50.0 / tps else 50.0 // TPSが0以下の場合は50msとする
+    }
+
     private fun reflectionGetWorldMspt(world: World): Double? {
         val possibleClassNames =
                 listOf(

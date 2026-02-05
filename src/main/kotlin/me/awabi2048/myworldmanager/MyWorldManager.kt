@@ -61,6 +61,8 @@ class MyWorldManager : JavaPlugin() {
     lateinit var macroManager: MacroManager
     lateinit var directoryManager: DirectoryManager
     lateinit var worldUnloadService: WorldUnloadService
+    lateinit var msptMonitorTask: me.awabi2048.myworldmanager.task.MsptMonitorTask
+    lateinit var inviteCommand: me.awabi2048.myworldmanager.command.InviteCommand
 
     override fun onEnable() {
         // Serializationの登録
@@ -106,7 +108,8 @@ class MyWorldManager : JavaPlugin() {
         worldUnloadService.start()
 
         // MSPT監視タスクの開始
-        me.awabi2048.myworldmanager.task.MsptMonitorTask(this).start()
+        msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
+        msptMonitorTask.start()
 
         // GUIの初期化
         worldGui = WorldGui(this)
@@ -168,7 +171,7 @@ class MyWorldManager : JavaPlugin() {
         previewSessionManager = PreviewSessionManager(this)
         adminGuiSessionManager = AdminGuiSessionManager()
 
-        val inviteCmd = InviteCommand(this)
+        inviteCommand = InviteCommand(this)
 
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(), this)
@@ -187,7 +190,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(PlayerDataListener(), this)
         server.pluginManager.registerEvents(WorldSettingsListener(), this)
         server.pluginManager.registerEvents(WorldExpirationListener(worldConfigRepository), this)
-        server.pluginManager.registerEvents(InviteChatListener(this, inviteCmd), this)
+        server.pluginManager.registerEvents(InviteChatListener(this, inviteCommand), this)
         server.pluginManager.registerEvents(PortalListener(this), this)
         server.pluginManager.registerEvents(PortalGui(this), this)
         server.pluginManager.registerEvents(DiscoveryListener(this), this)
@@ -218,22 +221,9 @@ class MyWorldManager : JavaPlugin() {
             it.setTabCompleter(visitCmd)
         }
 
-        getCommand("invite")?.setExecutor(inviteCmd)
-        getCommand("invite")?.setTabCompleter(inviteCmd)
-        getCommand("inviteaccept_internal")?.setExecutor { sender, _, _, _ ->
-            if (sender is Player) inviteCmd.handleAccept(sender)
-            true
-        }
-        getCommand("memberinviteaccept_internal")?.setExecutor { sender, _, _, _ ->
-            if (sender is Player) memberInviteManager.handleMemberInviteAccept(sender)
-            true
-        }
-        getCommand("memberrequest_internal")?.setExecutor { sender, _, _, args ->
-            if (sender is Player && args.size >= 2) {
-                memberRequestManager.handleInternalCommand(sender, args[0], args[1])
-            }
-            true
-        }
+        getCommand("invite")?.setExecutor(inviteCommand)
+        getCommand("invite")?.setTabCompleter(inviteCommand)
+
 
         getCommand("favorite")?.setExecutor(FavoriteCommand(this))
         getCommand("discovery")?.setExecutor(DiscoveryCommand(this))

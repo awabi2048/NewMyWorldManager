@@ -20,15 +20,12 @@ commands:
   invite:
     description: Invite a player to your current world
     usage: /invite <player>
-  inviteaccept_internal:
-    description: Internal command for invite accept
-    usage: /inviteaccept_internal <uuid>
+
   favorite:
     description: お気に入り登録したワールドの一覧を表示します。
   discovery:
     description: 公開されているワールドを検索・探索します。
-  memberinviteaccept_internal:
-    description: Internal command for member invite accept
+
   meet:
     description: オンラインプレイヤーの現在のワールド情報を表示・訪問します。
     usage: /meet <player>
@@ -41,6 +38,9 @@ commands:
   dialog_test:
     description: Test dialog input for world cloning
     usage: /dialog_test
+  mwm_internal:
+    description: Internal command for MyWorldManager
+    usage: ''
 permissions:
   myworldmanager.admin:
     description: Allows full access to MyWorldManager

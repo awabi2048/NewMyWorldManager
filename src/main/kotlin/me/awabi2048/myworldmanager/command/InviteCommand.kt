@@ -100,7 +100,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
             .append(Component.newline())
             .append(Component.text(clickText, NamedTextColor.AQUA)
                 .decoration(TextDecoration.UNDERLINED, true)
-                .clickEvent(ClickEvent.runCommand("/inviteaccept_internal ${target.uniqueId}"))
+                 .clickEvent(ClickEvent.runCommand("/mwm_internal inviteaccept"))
                 .hoverEvent(HoverEvent.showText(Component.text(hoverText))))
             .build()
 

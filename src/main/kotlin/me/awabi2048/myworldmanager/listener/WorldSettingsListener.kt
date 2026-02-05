@@ -2142,7 +2142,7 @@ plugin.languageManager
                                                                                                                 .event
                                                                                                                 .ClickEvent
                                                                                                                 .runCommand(
-                                                                                                                        "/memberinviteaccept_internal"
+                                                                                                                         "/mwm_internal memberinviteaccept"
                                                                                                                 )
                                                                                                 )
                                                                                                 .hoverEvent(
@@ -3026,28 +3026,49 @@ player.sendMessage(
                 val args = message.substring("/mwm_internal ".length).split(" ")
                 if (args.isEmpty()) return
 
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                event.isCancelled = true
                 val lang = plugin.languageManager
 
-                if (args[0] == "expand_confirm") {
-                        if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
-                                event.isCancelled = true
-                                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-                                val direction = session.expansionDirection
-                                val cost = session.getMetadata("expand_cost") as? Int ?: 0
-                                plugin.worldSettingsGui.openExpansionConfirmation(
-                                        player,
-                                        worldData.uuid,
-                                        direction,
-                                        cost
-                                )
+                when (args[0]) {
+                        "expand_confirm" -> {
+                                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                                if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
+                                        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                                        val direction = session.expansionDirection
+                                        val cost = session.getMetadata("expand_cost") as? Int ?: 0
+                                        plugin.worldSettingsGui.openExpansionConfirmation(
+                                                player,
+                                                worldData.uuid,
+                                                direction,
+                                                cost
+                                        )
+                                }
                         }
-                } else if (args[0] == "expand_retry") {
-                        if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
-                                event.isCancelled = true
-                                clearBorderPreview(player)
-                                session.action = SettingsAction.EXPAND_DIRECTION_WAIT
-                                player.sendMessage(lang.getMessage(player, "messages.expand_direction_prompt"))
+                        "expand_retry" -> {
+                                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                                if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
+                                        clearBorderPreview(player)
+                                        session.action = SettingsAction.EXPAND_DIRECTION_WAIT
+                                        player.sendMessage(lang.getMessage(player, "messages.expand_direction_prompt"))
+                                }
+                        }
+                        "mspt-sort" -> {
+                                if (!player.isOp) return
+                                val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
+                                session.sortBy = me.awabi2048.myworldmanager.session.AdminSortType.MSPT_DESC
+                                plugin.worldGui.open(player, 0, false, true)
+                        }
+                        "inviteaccept" -> {
+                                plugin.inviteCommand.handleAccept(player)
+                        }
+                        "memberinviteaccept" -> {
+                                plugin.memberInviteManager.handleMemberInviteAccept(player)
+                        }
+                        "memberrequest" -> {
+                                if (args.size < 3) return
+                                val key = args[1]
+                                val action = args[2] // "approve" or "reject"
+                                plugin.memberRequestManager.handleInternalCommand(player, key, action)
                         }
                 }
         }

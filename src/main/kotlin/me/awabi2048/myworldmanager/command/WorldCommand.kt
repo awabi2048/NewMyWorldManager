@@ -464,6 +464,8 @@ class WorldCommand(
                 return true
             }
 
+
+
             else -> {
                 sender.sendMessage(plugin.languageManager.getMessage("error.unknown_subcommand"))
                 return true
@@ -483,7 +485,7 @@ class WorldCommand(
 
         when (args.size) {
             1 -> {
-                list.addAll(listOf("create", "reload", "stats", "give"))
+                  list.addAll(listOf("create", "reload", "stats", "give"))
                 if (sender is org.bukkit.command.ConsoleCommandSender) {
                     list.add("update-day")
                     list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))

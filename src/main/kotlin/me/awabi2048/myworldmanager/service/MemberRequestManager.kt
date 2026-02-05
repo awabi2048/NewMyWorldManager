@@ -66,11 +66,11 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
         owner.sendMessage(message)
 
         val approveText = languageManager.getComponent(owner, "messages.member_request_click_approve")
-            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/memberrequest_internal $key approve"))
+            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal memberrequest $key approve"))
             .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(languageManager.getComponent(owner, "messages.member_request_hover_approve")))
 
         val rejectText = languageManager.getComponent(owner, "messages.member_request_click_reject")
-            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/memberrequest_internal $key reject"))
+            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal memberrequest $key reject"))
             .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(languageManager.getComponent(owner, "messages.member_request_hover_reject")))
 
         owner.sendMessage(net.kyori.adventure.text.Component.text("").append(approveText).append(net.kyori.adventure.text.Component.text(" ")).append(rejectText))

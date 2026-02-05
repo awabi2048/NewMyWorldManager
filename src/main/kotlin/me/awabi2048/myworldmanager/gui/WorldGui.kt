@@ -507,20 +507,24 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
 
                 meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
-                meta.lore(
-                        listOf(
-                                lang.getComponent(
-                                        null,
-                                        "gui.admin.info.total_count",
-                                        mapOf("count" to totalCount)
-                                ),
-                                lang.getComponent(
-                                        null,
-                                        "gui.admin.info.page",
-                                        mapOf("page" to current, "total_pages" to total)
-                                )
-                        )
-                )
+                val lore = mutableListOf<Component>()
+                lore.add(lang.getComponent(
+                        null,
+                        "gui.admin.info.total_count",
+                        mapOf("count" to totalCount)
+                ))
+                lore.add(lang.getComponent(
+                        null,
+                        "gui.admin.info.page",
+                        mapOf("page" to current, "total_pages" to total)
+                ))
+                if (me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
+                    val mspt = plugin.msptMonitorTask.currentServerMspt
+                     lore.add(Component.text(
+                         String.format("§7Server MSPT: %s ms", me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColoredString(mspt))
+                     ))
+                }
+                meta.lore(lore)
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
