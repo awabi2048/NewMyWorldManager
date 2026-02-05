@@ -14,7 +14,10 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class PortalManager(private val plugin: MyWorldManager) {
+    // PortalUUID -> TextDisplay の紐付け
     private val textDisplays = ConcurrentHashMap<UUID, TextDisplay>()
+    // TextDisplayUUID -> PortalUUID の逆引きマップ
+    private val displayToPortal = ConcurrentHashMap<UUID, UUID>()
     private val warpCooldowns = ConcurrentHashMap<UUID, Long>()
     private val ignorePlayers = ConcurrentHashMap.newKeySet<UUID>()
     private val portalGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> Expiry)
@@ -46,19 +49,33 @@ class PortalManager(private val plugin: MyWorldManager) {
     }
 
     private fun updatePortals() {
-        val portals = plugin.portalRepository.findAll()
-        portalCache.clear()
-        
-        for (portal in portals) {
-            val world = Bukkit.getWorld(portal.worldName) ?: continue
-            val block = world.getBlockAt(portal.x, portal.y, portal.z)
+         val portals = plugin.portalRepository.findAll()
+         portalCache.clear()
+         
+         // 孤立したTextDisplayをクリーンアップ（ポータルデータが存在しないが、紐付けマップに残っている）
+         val validPortalIds = portals.map { it.id }.toSet()
+         val displayIterator = displayToPortal.iterator()
+         while (displayIterator.hasNext()) {
+             val entry = displayIterator.next()
+             if (!validPortalIds.contains(entry.value)) {
+                 // ポータルが削除されているのに紐付けマップに残っている
+                 val orphanDisplay = textDisplays[entry.value]
+                 orphanDisplay?.remove()
+                 textDisplays.remove(entry.value)
+                 displayIterator.remove()
+             }
+         }
+         
+         for (portal in portals) {
+             val world = Bukkit.getWorld(portal.worldName) ?: continue
+             val block = world.getBlockAt(portal.x, portal.y, portal.z)
 
-            // ブロックが消失（END_PORTAL_FRAMEでなくなった）している場合は自動撤去
-            if (block.type != org.bukkit.Material.END_PORTAL_FRAME) {
-                removePortalVisuals(portal.id)
-                plugin.portalRepository.removePortal(portal.id)
-                continue
-            }
+             // ブロックが消失（END_PORTAL_FRAMEでなくなった）している場合は自動撤去
+             if (block.type != org.bukkit.Material.END_PORTAL_FRAME) {
+                 removePortalVisuals(portal.id)
+                 plugin.portalRepository.removePortal(portal.id)
+                 continue
+             }
 
             val loc = portal.getCenterLocation()
 
@@ -89,56 +106,87 @@ class PortalManager(private val plugin: MyWorldManager) {
             graces.entries.removeIf { it.value < now }
         }
 
-        // 5. ignorePlayersの解除判定 (ポータル判定範囲外に出たら解除)
-        val iterator = ignorePlayers.iterator()
-        while (iterator.hasNext()) {
-            val playerUuid = iterator.next()
-            val player = Bukkit.getPlayer(playerUuid)
-            
-            if (player == null) {
-                iterator.remove()
-                continue
-            }
+         // 5. ignorePlayersの解除判定 (ポータル判定範囲外に出たら解除)
+         val playerIterator = ignorePlayers.iterator()
+         while (playerIterator.hasNext()) {
+             val playerUuid = playerIterator.next()
+             val player = Bukkit.getPlayer(playerUuid)
+             
+             if (player == null) {
+                 playerIterator.remove()
+                 continue
+             }
 
-            // 全てのポータルの判定エリア外にいるかチェック
-            var isInAnyPortal = false
-            for (portal in portals) {
-                val loc = portal.getCenterLocation()
-                val checkCenter = loc.clone().add(0.0, 1.5, 0.0)
-                if (player.world.name == portal.worldName && player.location.distanceSquared(checkCenter) <= 0.25) { // 0.5 * 0.5
-                    isInAnyPortal = true
-                    break
-                }
-            }
-            
-            if (!isInAnyPortal) {
-                iterator.remove()
-            }
-        }
+             // 全てのポータルの判定エリア外にいるかチェック
+             var isInAnyPortal = false
+             for (portal in portals) {
+                 val loc = portal.getCenterLocation()
+                 val checkCenter = loc.clone().add(0.0, 1.5, 0.0)
+                 if (player.world.name == portal.worldName && player.location.distanceSquared(checkCenter) <= 0.25) { // 0.5 * 0.5
+                     isInAnyPortal = true
+                     break
+                 }
+             }
+             
+             if (!isInAnyPortal) {
+                 playerIterator.remove()
+             }
+         }
     }
 
-    private fun updateTextDisplay(portal: PortalData) {
-        val lang = plugin.languageManager
-        if (!portal.showText) {
-            textDisplays[portal.id]?.remove()
-            textDisplays.remove(portal.id)
-            return
-        }
+     private fun updateTextDisplay(portal: PortalData) {
+         val lang = plugin.languageManager
+         if (!portal.showText) {
+             // テキスト表示が無効の場合は削除
+             removeTextDisplayForPortal(portal.id)
+             return
+         }
 
-        val loc = portal.getCenterLocation()
-        val world = loc.world ?: return
-        val displayLoc = loc.clone().add(0.0, 3.0, 0.0)
-        
-        var display = textDisplays[portal.id]
-        if (display == null || !display.isValid) {
-            // 周囲の既存textDisplayを掃除
-            world.getNearbyEntities(displayLoc, 0.1, 0.1, 0.1) { it is TextDisplay }.forEach { it.remove() }
-            
-            display = world.spawn(displayLoc, TextDisplay::class.java) {
-                it.billboard = org.bukkit.entity.Display.Billboard.CENTER
-            }
-            textDisplays[portal.id] = display
-        }
+         val loc = portal.getCenterLocation()
+         val world = loc.world ?: return
+         val displayLoc = loc.clone().add(0.0, 3.0, 0.0)
+         
+         var display = textDisplays[portal.id]
+         
+         // 既存のTextDisplayが有効か確認
+         if (display == null || !display.isValid) {
+             // 無効な場合は新しく作成
+             // まず、保存されているUUIDから取得を試みる
+             if (portal.textDisplayUuid != null) {
+                 val world = Bukkit.getWorld(portal.worldName)
+                 if (world != null) {
+                     val entity = world.getEntity(portal.textDisplayUuid!!)
+                     if (entity is TextDisplay && entity.isValid) {
+                         // 保存されたUUIDが有効なら使用
+                         display = entity
+                         textDisplays[portal.id] = display
+                     } else {
+                         // 無効ならUUIDをクリア
+                         portal.textDisplayUuid = null
+                     }
+                 }
+             }
+             
+             // それでも無効なら新規作成
+             if (display == null || !display.isValid) {
+                 // 周囲の孤立したTextDisplayを削除
+                 world.getNearbyEntities(displayLoc, 1.0, 1.0, 1.0) { it is TextDisplay }.forEach { 
+                     if (it is TextDisplay && it.uniqueId != portal.textDisplayUuid) it.remove() 
+                 }
+                 
+                 display = world.spawn(displayLoc, TextDisplay::class.java) {
+                     it.billboard = org.bukkit.entity.Display.Billboard.CENTER
+                 }
+                 
+                 // 紐付け情報を保存
+                 portal.textDisplayUuid = display.uniqueId
+                 textDisplays[portal.id] = display
+                 displayToPortal[display.uniqueId] = portal.id
+                 
+                 // リポジトリに保存
+                 plugin.portalRepository.saveAll()
+             }
+         }
 
         val destName = if (portal.worldUuid != null) {
             val destinationData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
@@ -226,8 +274,33 @@ class PortalManager(private val plugin: MyWorldManager) {
         }
     }
 
-    fun removePortalVisuals(portalId: UUID) {
-        textDisplays[portalId]?.remove()
-        textDisplays.remove(portalId)
-    }
+     /**
+      * ポータルの TextDisplay を削除
+      */
+     private fun removeTextDisplayForPortal(portalId: UUID) {
+         // メモリから削除
+         val display = textDisplays[portalId]
+         textDisplays.remove(portalId)
+         
+         // TextDisplay をエンティティから削除
+         if (display != null && display.isValid) {
+             displayToPortal.remove(display.uniqueId)
+             display.remove()
+         }
+     }
+     
+     /**
+      * ポータルのビジュアル要素をすべて削除
+      */
+     fun removePortalVisuals(portalId: UUID) {
+         // TextDisplay を削除
+         removeTextDisplayForPortal(portalId)
+         
+         // ポータルデータから紐付けUUIDを削除
+         val portal = plugin.portalRepository.findAll().find { it.id == portalId }
+         if (portal != null) {
+             portal.textDisplayUuid = null
+             plugin.portalRepository.saveAll()
+         }
+     }
 }

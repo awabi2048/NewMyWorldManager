@@ -143,15 +143,21 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                 plugin.portalRepository.saveAll()
                 open(player, portal)
             }
-            ItemTag.TYPE_GUI_PORTAL_REMOVE -> {
-                plugin.soundManager.playClickSound(player, item)
-                val world = Bukkit.getWorld(portal.worldName)
-                val block = world?.getBlockAt(portal.x, portal.y, portal.z)
-                if (block != null && block.type == Material.END_PORTAL_FRAME) {
-                    block.type = Material.AIR
-                }
-                plugin.portalManager.removePortalVisuals(portal.id)
-                plugin.portalRepository.removePortal(portal.id)
+             ItemTag.TYPE_GUI_PORTAL_REMOVE -> {
+                 plugin.soundManager.playClickSound(player, item)
+                 
+                 // ビジュアル要素を先に削除（タイミング問題を防ぐ）
+                 plugin.portalManager.removePortalVisuals(portal.id)
+                 
+                 // その後、リポジトリから削除
+                 plugin.portalRepository.removePortal(portal.id)
+                 
+                 // 最後にブロックを破壊
+                 val world = Bukkit.getWorld(portal.worldName)
+                 val block = world?.getBlockAt(portal.x, portal.y, portal.z)
+                 if (block != null && block.type == Material.END_PORTAL_FRAME) {
+                     block.type = Material.AIR
+                 }
                 
                 val returnItem = PortalItemUtil.createBasePortalItem(lang, player)
                 if (portal.worldUuid != null) {

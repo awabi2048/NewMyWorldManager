@@ -107,18 +107,23 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         event.player.sendMessage(lang.getMessage(event.player, "messages.portal_place_success"))
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockBreak(event: org.bukkit.event.block.BlockBreakEvent) {
-        val block = event.block
-        if (block.type == Material.END_PORTAL_FRAME) {
-            val portal = plugin.portalRepository.findByLocation(block.location) ?: return
-            
-            // 撤去処理
-            plugin.portalManager.removePortalVisuals(portal.id)
-            plugin.portalRepository.removePortal(portal.id)
-            event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_broken"))
-        }
-    }
+     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+     fun onBlockBreak(event: org.bukkit.event.block.BlockBreakEvent) {
+         val block = event.block
+         if (block.type == Material.END_PORTAL_FRAME) {
+             val portal = plugin.portalRepository.findByLocation(block.location) ?: return
+             
+             // 撤去処理（正確な順序で実行）
+             // 1. ビジュアル要素を削除（TextDisplay など）
+             plugin.portalManager.removePortalVisuals(portal.id)
+             
+             // 2. ポータルデータをリポジトリから削除
+             plugin.portalRepository.removePortal(portal.id)
+             
+             // 3. プレイヤーにメッセージを送信
+             event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_broken"))
+         }
+     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     fun onPlayerMove(event: PlayerMoveEvent) {

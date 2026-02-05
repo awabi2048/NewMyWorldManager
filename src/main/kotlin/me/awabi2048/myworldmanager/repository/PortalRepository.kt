@@ -103,6 +103,9 @@ class PortalRepository(private val plugin: MyWorldManager) {
                 finalWorldUuid = null
             }
 
+            val textDisplayUuidStr = section.getString("text_display_uuid")
+            val textDisplayUuid = if (textDisplayUuidStr != null && textDisplayUuidStr != "null") UUID.fromString(textDisplayUuidStr) else null
+            
             portals[id] = PortalData(
                 id = id,
                 worldName = worldName,
@@ -114,7 +117,8 @@ class PortalRepository(private val plugin: MyWorldManager) {
                 showText = showText,
                 particleColor = Color.fromRGB(colorInt),
                 ownerUuid = ownerUuid,
-                createdAt = createdAt
+                createdAt = createdAt,
+                textDisplayUuid = textDisplayUuid
             )
         }
         
@@ -123,26 +127,27 @@ class PortalRepository(private val plugin: MyWorldManager) {
     }
 
     fun saveAll() {
-        val config = YamlConfiguration()
-        val section = config.createSection("portals")
-        for ((id, data) in portals) {
-            val s = section.createSection(id.toString())
-            // 整数値として保存
-            s.set("location", mapOf(
-                "world" to data.worldName,
-                "x" to data.x,
-                "y" to data.y,
-                "z" to data.z
-            ))
-            s.set("world_uuid", data.worldUuid?.toString())
-            s.set("target_world_name", data.targetWorldName)
-            s.set("show_text", data.showText)
-            s.set("color", data.particleColor.asRGB())
-            s.set("owner_uuid", data.ownerUuid.toString())
-            s.set("created_at", data.createdAt)
-        }
-        config.save(file)
-    }
+         val config = YamlConfiguration()
+         val section = config.createSection("portals")
+         for ((id, data) in portals) {
+             val s = section.createSection(id.toString())
+             // 整数値として保存
+             s.set("location", mapOf(
+                 "world" to data.worldName,
+                 "x" to data.x,
+                 "y" to data.y,
+                 "z" to data.z
+             ))
+             s.set("world_uuid", data.worldUuid?.toString())
+             s.set("target_world_name", data.targetWorldName)
+             s.set("show_text", data.showText)
+             s.set("color", data.particleColor.asRGB())
+             s.set("owner_uuid", data.ownerUuid.toString())
+             s.set("created_at", data.createdAt)
+             s.set("text_display_uuid", data.textDisplayUuid?.toString())
+         }
+         config.save(file)
+     }
 
     fun addPortal(portal: PortalData) {
         portals[portal.id] = portal

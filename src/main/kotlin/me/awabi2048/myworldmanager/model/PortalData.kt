@@ -19,7 +19,8 @@ data class PortalData(
     var showText: Boolean = true,
     var particleColor: Color = Color.AQUA,
     val ownerUuid: UUID, // 設置者
-    val createdAt: String = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) // 設置日時
+    val createdAt: String = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), // 設置日時
+    var textDisplayUuid: UUID? = null // テキストディスプレイエンティティのUUID
 ) {
     /**
      * ブロックの中心座標(X+0.5, Z+0.5)をLocationとして取得する
