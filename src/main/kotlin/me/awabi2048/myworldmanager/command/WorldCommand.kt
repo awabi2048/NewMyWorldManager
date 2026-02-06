@@ -388,19 +388,40 @@ class WorldCommand(
                         }
                 item.amount = amount
 
-                targetPlayer.inventory.addItem(item)
+                // インベントリに追加を試みる
+                val result = targetPlayer.inventory.addItem(item)
                 val displayName = item.itemMeta?.displayName ?: customItem.id
-                sender.sendMessage(
-                        lang.getMessage(
-                                sender as? Player,
-                                "messages.give_success",
-                                mapOf(
-                                        "player" to targetPlayer.name,
-                                        "item" to displayName,
-                                        "amount" to amount
-                                )
-                        )
-                )
+                
+                // インベントリがいっぱいで、アイテムがドロップされたかどうかを確認
+                if (result.isNotEmpty()) {
+                    // ドロップされたアイテムを足元に配置
+                    result.values.forEach { droppedItem ->
+                        targetPlayer.world.dropItemNaturally(targetPlayer.location, droppedItem)
+                    }
+                    sender.sendMessage(
+                            lang.getMessage(
+                                    sender as? Player,
+                                    "messages.give_inventory_full",
+                                    mapOf(
+                                            "player" to targetPlayer.name,
+                                            "item" to displayName,
+                                            "amount" to result.values.sumOf { it.amount }
+                                    )
+                            )
+                    )
+                } else {
+                    sender.sendMessage(
+                            lang.getMessage(
+                                    sender as? Player,
+                                    "messages.give_success",
+                                    mapOf(
+                                            "player" to targetPlayer.name,
+                                            "item" to displayName,
+                                            "amount" to amount
+                                    )
+                            )
+                    )
+                }
                 return true
             }
             "migrate-worlds" -> {

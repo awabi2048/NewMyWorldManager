@@ -53,7 +53,19 @@ class LanguageManager(private val plugin: MyWorldManager) {
 
     private fun getLangName(player: Player?): String {
         return if (player != null) {
-            plugin.playerStatsRepository.findByUuid(player.uniqueId).language
+            // CC-Systemが有効で、use_cc_system設定が有効な場合、CC-Systemから言語設定を取得
+            val useCCSystem = plugin.config.getBoolean("use_cc_system", false)
+            val isCCSystemAvailable = CCSystemUtil.isCCSystemAvailable()
+            
+            if (useCCSystem && isCCSystemAvailable) {
+                val lang = CCSystemUtil.getPlayerLanguageFromCCSystem(player)
+                plugin.logger.info("[DEBUG] CC-System言語取得 - Player: ${player.name}, Language: $lang")
+                lang ?: plugin.playerStatsRepository.findByUuid(player.uniqueId).language
+            } else {
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                plugin.logger.info("[DEBUG] 内部設定から言語取得 - Player: ${player.name}, useCCSystem: $useCCSystem, isCCSystemAvailable: $isCCSystemAvailable, Language: ${stats.language}")
+                stats.language
+            }
         } else {
             plugin.config.getString("language", "ja_jp") ?: "ja_jp"
         }

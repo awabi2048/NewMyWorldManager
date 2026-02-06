@@ -32,31 +32,10 @@ object ItemConverter {
         val legacyItemName = itemNameComponent?.let { legacySerializer.serialize(it).trim() } ?: ""
 
         val pdc = meta.persistentDataContainer
-        val legacyIdKey = org.bukkit.NamespacedKey("myworldmanager", "item_id")
-        val legacyId = pdc.get(legacyIdKey, org.bukkit.persistence.PersistentDataType.STRING)
+         val legacyIdKey = org.bukkit.NamespacedKey("myworldmanager", "item_id")
+         val legacyId = pdc.get(legacyIdKey, org.bukkit.persistence.PersistentDataType.STRING)
 
-        // デバッグ用ログ: 対象のマテリアルを持つアイテム、またはPDCタグを持つアイテムのみログ出力
-        if (item.type == Material.END_PORTAL_FRAME || item.type == Material.MAGMA_CREAM || legacyId != null) {
-            plugin.logger.info("[ItemConverter Debug] Checking Item: ${item.type}")
-            plugin.logger.info("  > DisplayName (Plain): '$plainName', (Legacy): '$legacyName'")
-            plugin.logger.info("  > ItemName (Plain): '$plainItemName', (Legacy): '$legacyItemName'")
-            if (pdc.keys.isEmpty()) {
-                plugin.logger.info("  > No PDC keys found.")
-            } else {
-                plugin.logger.info("  > PDC Keys:")
-                pdc.keys.forEach { key ->
-                    val dispVal = when {
-                        pdc.has(key, org.bukkit.persistence.PersistentDataType.STRING) -> pdc.get(key, org.bukkit.persistence.PersistentDataType.STRING)
-                        pdc.has(key, org.bukkit.persistence.PersistentDataType.INTEGER) -> pdc.get(key, org.bukkit.persistence.PersistentDataType.INTEGER)
-                        pdc.has(key, org.bukkit.persistence.PersistentDataType.DOUBLE) -> pdc.get(key, org.bukkit.persistence.PersistentDataType.DOUBLE)
-                        else -> "Unknown Type"
-                    }
-                    plugin.logger.info("    - $key: $dispVal")
-                }
-            }
-        }
-
-        // 1. ワールドポータル
+         // 1. ワールドポータル
         if (item.type == Material.END_PORTAL_FRAME && (legacyName == "§dワールドポータル" || legacyItemName == "§dワールドポータル")) {
             val newItem = CustomItem.WORLD_PORTAL.create(plugin.languageManager, null)
             newItem.amount = item.amount

@@ -15,6 +15,11 @@ validation:
 # メニュー設定
 menu_command: "mwm"
 
+# CC-System連携設定
+# CC-Systemプラグインが導入されている場合、プレイヤーの言語設定をCC-Systemから取得します
+# false の場合は内部システム（PlayerStats）から言語設定を取得します
+use_cc_system: false
+
 
 creation:
   max_create_count_default: 3
