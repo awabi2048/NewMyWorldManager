@@ -83,6 +83,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                         inventory.setItem(i, blackPane)
                 }
 
+                val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
+                if (currentWorldData != null) {
+                        inventory.setItem(4, createCurrentWorldInfoItem(player, currentWorldData))
+                }
+
                 // ワールドアイテムの配置 (スロット9から44まで)
                 val startIndex = safePage * itemsPerPage
                 val pageWorlds = filteredWorlds.drop(startIndex).take(itemsPerPage)
@@ -343,6 +348,51 @@ class WorldGui(private val plugin: MyWorldManager) {
                 return item
         }
 
+        private fun createCurrentWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
+                val lang = plugin.languageManager
+                val ownerName =
+                        PlayerNameUtil.getNameOrDefault(
+                                worldData.owner,
+                                lang.getMessage(player, "general.unknown")
+                        )
+                val statusVal =
+                        if (worldData.isArchived) {
+                                lang.getMessage(player, "gui.admin.world_item.status_archived")
+                        } else {
+                                lang.getMessage(player, "gui.admin.world_item.status_active")
+                        }
+                val generation = getGenerationMethodLabel(player, worldData.sourceWorld)
+
+                val item = ItemStack(worldData.icon)
+                val meta = item.itemMeta ?: return item
+                meta.displayName(
+                        LegacyComponentSerializer.legacySection()
+                                .deserialize(lang.getMessage(player, "gui.admin_menu.current_world.display"))
+                                .decoration(TextDecoration.ITALIC, false)
+                )
+                meta.lore(
+                        lang.getMessageList(
+                                        player,
+                                        "gui.admin_menu.current_world.lore",
+                                        mapOf(
+                                                "world" to worldData.name,
+                                                "owner" to ownerName,
+                                                "status" to statusVal,
+                                                "generation" to generation
+                                        )
+                                )
+                                .map {
+                                        LegacyComponentSerializer.legacySection()
+                                                .deserialize(it)
+                                                .decoration(TextDecoration.ITALIC, false)
+                                }
+                )
+                item.itemMeta = meta
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO)
+                ItemTag.setWorldUuid(item, worldData.uuid)
+                return item
+        }
+
         /** ワールド情報の表示用アイテム */
         private fun createWorldItem(player: Player, data: WorldData): ItemStack {
                 val item = ItemStack(data.icon)
@@ -375,6 +425,12 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
                 val publishName = lang.getMessage(player, "publish_level.${data.publishLevel.name.lowercase()}")
                 val publishLine = lang.getMessage(player, "gui.admin.world_item.publish", mapOf("color" to publishColor, "level" to publishName))
+
+                val generationLine = lang.getMessage(
+                        player,
+                        "gui.admin.world_item.generation",
+                        mapOf("method" to getGenerationMethodLabel(player, data.sourceWorld))
+                )
 
                 // Expansion Line
                 val expansionLine = if (data.sourceWorld != "CONVERT") {
@@ -459,6 +515,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                                 "owner_line" to ownerLine,
                                                 "status_line" to statusLine,
                                                 "publish_line" to publishLine,
+                                                "generation_line" to generationLine,
                                                 "expansion_line" to expansionLine,
                                                 "created_line" to createdLine,
                                                 "expire_line" to expireLine,
@@ -478,6 +535,17 @@ class WorldGui(private val plugin: MyWorldManager) {
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
                 ItemTag.setWorldUuid(item, data.uuid)
                 return item
+        }
+
+        private fun getGenerationMethodLabel(player: Player, sourceWorld: String): String {
+                val lang = plugin.languageManager
+                return when (sourceWorld.uppercase()) {
+                        "CONVERT" -> lang.getMessage(player, "gui.admin.world_item.generation_type.convert")
+                        "TEMPLATE" -> lang.getMessage(player, "gui.admin.world_item.generation_type.template")
+                        "SEED" -> lang.getMessage(player, "gui.admin.world_item.generation_type.seed")
+                        "RANDOM", "DEFAULT" -> lang.getMessage(player, "gui.admin.world_item.generation_type.random")
+                        else -> lang.getMessage(player, "gui.admin.world_item.generation_type.unknown", mapOf("source" to sourceWorld))
+                }
         }
 
         private fun createNavButton(label: String, material: Material, targetPage: Int): ItemStack {

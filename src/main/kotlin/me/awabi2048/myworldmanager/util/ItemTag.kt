@@ -100,6 +100,7 @@ object ItemTag {
     const val TYPE_GUI_ADMIN_INFO = "gui_admin_info"
     const val TYPE_GUI_ADMIN_PORTALS = "gui_admin_portals"
     const val TYPE_GUI_ADMIN_UNLINK = "gui_admin_unlink"
+    const val TYPE_GUI_ADMIN_CURRENT_WORLD_INFO = "gui_admin_current_world_info"
 
     fun tagItem(item: ItemStack, type: String) {
         val meta = item.itemMeta ?: return
