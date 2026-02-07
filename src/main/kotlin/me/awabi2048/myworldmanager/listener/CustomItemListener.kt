@@ -183,30 +183,25 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  }
                  
                  // Open Confirmation
-                 val betaFeaturesEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || 
-                                           plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
+                 val title = net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.title"))
+                 val bodyLines = listOf(
+                     net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.0")),
+                     net.kyori.adventure.text.Component.text(""),
+                     net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.2", mapOf("current" to currentSlots))),
+                     net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.3", mapOf("next" to (currentSlots + 1))))
+                 )
 
-                 if (betaFeaturesEnabled) {
-                     val title = net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.title"))
-                     val bodyLines = listOf(
-                         net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.0")), // "Use World Seed?"
-                         net.kyori.adventure.text.Component.text(""),
-                         net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.2", mapOf("current" to currentSlots))),
-                         net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.3", mapOf("next" to (currentSlots + 1))))
-                     )
-                     
-                     me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
-                         player,
-                         plugin,
-                         title,
-                         bodyLines,
-                         "mwm:confirm/world_seed",
-                         "mwm:confirm/cancel"
-                     )
-                 } else {
+                 me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
+                     player,
+                     plugin,
+                     title,
+                     bodyLines,
+                     "mwm:confirm/world_seed",
+                     "mwm:confirm/cancel"
+                 ) {
                      plugin.worldSeedConfirmGui.open(player, currentSlots, currentSlots + 1)
                  }
-             }
+              }
         }
     }
 }

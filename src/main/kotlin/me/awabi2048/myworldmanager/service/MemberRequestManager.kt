@@ -161,28 +161,23 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
 
         if (type == "approve" || type == "reject") {
             // オーナーがアクションを起こした際、beta機能の設定に応じてDialogかGUIを選択
-            val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-            val betaEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || stats.betaFeaturesEnabled
+            val titleText = languageManager.getMessage(player, "gui.member_request_owner_confirm.title")
+            val bodyLines = languageManager.getMessageList(
+                player,
+                "gui.member_request_owner_confirm.lore",
+                mapOf("player" to (Bukkit.getPlayer(request.requestorUuid)?.name ?: "Unknown"))
+            )
 
-            if (betaEnabled) {
-                // Dialog API を表示
-                val titleText = languageManager.getMessage(player, "gui.member_request_owner_confirm.title")
-                val bodyLines = languageManager.getMessageList(player, "gui.member_request_owner_confirm.lore", mapOf("player" to (Bukkit.getPlayer(request.requestorUuid)?.name ?: "Unknown")))
-                
-                me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
-                    player,
-                    plugin,
-                    net.kyori.adventure.text.Component.text(titleText),
-                    bodyLines.map { net.kyori.adventure.text.Component.text(it) },
-                    "mwm:confirm/member_request_owner_approve/$key",
-                    "mwm:confirm/cancel", // Rejection is handled as part of the dialog usually, or I can use another key
-                    confirmText = languageManager.getMessage(player, "gui.member_request_owner_confirm.confirm"),
-                    cancelText = languageManager.getMessage(player, "gui.member_request_owner_confirm.reject")
-                )
-                // Note: The cancel button in showSimpleConfirmationDialog currently just closes it.
-                // If I want a real "Reject" action from the dialog, I should use a different action key.
-            } else {
-                // Chest GUI を表示
+            me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
+                player,
+                plugin,
+                net.kyori.adventure.text.Component.text(titleText),
+                bodyLines.map { net.kyori.adventure.text.Component.text(it) },
+                "mwm:confirm/member_request_owner_approve/$key",
+                "mwm:confirm/member_request_owner_reject/$key",
+                confirmText = languageManager.getMessage(player, "gui.member_request_owner_confirm.confirm"),
+                cancelText = languageManager.getMessage(player, "gui.member_request_owner_confirm.reject")
+            ) {
                 plugin.memberRequestOwnerConfirmGui.open(player, request, key)
             }
         }

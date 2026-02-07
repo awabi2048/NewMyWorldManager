@@ -146,100 +146,180 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     fun openConvertConfirmation(player: Player, mode: WorldService.ConversionMode) {
         val lang = plugin.languageManager
         val action = if (mode == WorldService.ConversionMode.NORMAL) SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM else SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM
-        plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, action, isGui = true)
         val titleKey = if (mode == WorldService.ConversionMode.NORMAL) "gui.admin_menu.convert.confirm_normal" else "gui.admin_menu.convert.confirm_admin"
         val title = lang.getComponent(player, titleKey)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
-        setupConfirmationGui(inventory, player, mode == WorldService.ConversionMode.NORMAL)
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        val confirmId = if (mode == WorldService.ConversionMode.NORMAL) {
+            "mwm:confirm/admin/convert_normal"
+        } else {
+            "mwm:confirm/admin/convert_admin"
+        }
+        showDialogOrGuiConfirmation(player, player.uniqueId, action, title, confirmId) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, mode == WorldService.ConversionMode.NORMAL)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
     }
 
     fun openUnlinkConfirmation(player: Player) {
         val lang = plugin.languageManager
-        plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_UNLINK_CONFIRM, isGui = true)
         val title = lang.getComponent(player, "gui.admin_menu.unlink.confirm_title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
-        setupConfirmationGui(inventory, player, true)
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        showDialogOrGuiConfirmation(
+            player,
+            player.uniqueId,
+            SettingsAction.ADMIN_UNLINK_CONFIRM,
+            title,
+            "mwm:confirm/admin/unlink"
+        ) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, true)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
     }
 
     fun openExportConfirmation(player: Player, worldName: String) {
         val lang = plugin.languageManager
-        plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_EXPORT_CONFIRM, isGui = true)
         val title = lang.getComponent(player, "gui.admin_menu.export.confirm_title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
-        
-        setupConfirmationGui(inventory, player, true, 
-            extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.export.target_world", mapOf("world" to worldName))))
-            
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        val extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.export.target_world", mapOf("world" to worldName)))
+        showDialogOrGuiConfirmation(
+            player,
+            player.uniqueId,
+            SettingsAction.ADMIN_EXPORT_CONFIRM,
+            title,
+            "mwm:confirm/admin/export",
+            extraInfo
+        ) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
     }
 
     fun openArchiveAllConfirmation(player: Player) {
         val lang = plugin.languageManager
-        plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM, isGui = true)
         val title = lang.getComponent(player, "gui.admin_menu.archive.confirm_title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
-        setupConfirmationGui(inventory, player, true)
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        showDialogOrGuiConfirmation(
+            player,
+            player.uniqueId,
+            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
+            title,
+            "mwm:confirm/admin/archive_all"
+        ) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, true)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
     }
     
     fun openUpdateDataConfirmation(player: Player) {
         val lang = plugin.languageManager
-        plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_UPDATE_DATA_CONFIRM, isGui = true)
         val title = lang.getComponent(player, "gui.admin_menu.update_data.confirm_title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
-        setupConfirmationGui(inventory, player, true)
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        showDialogOrGuiConfirmation(
+            player,
+            player.uniqueId,
+            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
+            title,
+            "mwm:confirm/admin/update_data"
+        ) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, true)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
     }
 
     fun openRepairTemplatesConfirmation(player: Player) {
         val lang = plugin.languageManager
-        plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM, isGui = true)
         val title = lang.getComponent(player, "gui.admin_menu.repair_templates.confirm_title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
-        setupConfirmationGui(inventory, player, true)
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        showDialogOrGuiConfirmation(
+            player,
+            player.uniqueId,
+            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM,
+            title,
+            "mwm:confirm/admin/repair_templates"
+        ) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, true)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
     }
 
     fun openArchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
         val lang = plugin.languageManager
-        plugin.settingsSessionManager.updateSessionAction(player, worldUuid, SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM, isGui = true)
         val title = lang.getComponent(player, "gui.admin_menu.archive_world.confirm_title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
-
-        setupConfirmationGui(inventory, player, true,
-            extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.archive_world.target_world", mapOf("world" to worldName))))
-
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        val extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.archive_world.target_world", mapOf("world" to worldName)))
+        showDialogOrGuiConfirmation(
+            player,
+            worldUuid,
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM,
+            title,
+            "mwm:confirm/admin/archive_world/$worldUuid",
+            extraInfo
+        ) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
     }
 
     fun openUnarchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
         val lang = plugin.languageManager
-        plugin.settingsSessionManager.updateSessionAction(player, worldUuid, SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM, isGui = true)
         val title = lang.getComponent(player, "gui.admin_menu.unarchive_world.confirm_title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        val inventory = Bukkit.createInventory(null, 27, title)
+        val extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.unarchive_world.target_world", mapOf("world" to worldName)))
+        showDialogOrGuiConfirmation(
+            player,
+            worldUuid,
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM,
+            title,
+            "mwm:confirm/admin/unarchive_world/$worldUuid",
+            extraInfo
+        ) {
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            val inventory = Bukkit.createInventory(null, 27, title)
+            setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
+            player.openInventory(inventory)
+            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        }
+    }
 
-        setupConfirmationGui(inventory, player, true,
-            extraInfo = listOf(lang.getMessage(player, "gui.admin_menu.unarchive_world.target_world", mapOf("world" to worldName))))
+    private fun showDialogOrGuiConfirmation(
+        player: Player,
+        worldUuid: UUID,
+        action: SettingsAction,
+        title: Component,
+        confirmActionId: String,
+        extraInfo: List<String> = emptyList(),
+        onGuiFallback: () -> Unit
+    ) {
+        val lang = plugin.languageManager
+        plugin.settingsSessionManager.updateSessionAction(player, worldUuid, action, isGui = true)
+        val bodyLines = (extraInfo + "" + lang.getMessage(player, "gui.common.confirm_warning"))
+            .map { LegacyComponentSerializer.legacySection().deserialize(it) }
 
-        player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        DialogConfirmManager.showConfirmationByPreference(
+            player,
+            plugin,
+            title,
+            bodyLines,
+            confirmActionId,
+            "mwm:confirm/cancel",
+            lang.getMessage(player, "gui.common.confirm"),
+            lang.getMessage(player, "gui.common.cancel")
+        ) {
+            onGuiFallback()
+        }
     }
 
     private fun setupConfirmationGui(inventory: Inventory, player: Player, isDanger: Boolean, extraInfo: List<String> = emptyList()) {

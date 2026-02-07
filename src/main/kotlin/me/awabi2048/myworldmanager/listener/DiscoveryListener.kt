@@ -65,23 +65,18 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                             return
                         }
 
-                        val betaFeaturesEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || 
-                                                  plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
+                        val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.member_request_confirm.title"))
+                        val bodyLines = lang.getMessageList(player, "gui.member_request_confirm.lore", mapOf("world" to worldData.name))
+                            .map { net.kyori.adventure.text.Component.text(it) }
 
-                        if (betaFeaturesEnabled) {
-                            val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.member_request_confirm.title"))
-                            val bodyLines = lang.getMessageList(player, "gui.member_request_confirm.lore", mapOf("world" to worldData.name))
-                                .map { net.kyori.adventure.text.Component.text(it) }
-
-                            me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
-                                player,
-                                plugin,
-                                title,
-                                bodyLines,
-                                "mwm:confirm/member_request_send/" + worldData.uuid.toString(),
-                                "mwm:confirm/cancel"
-                            )
-                        } else {
+                        me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
+                            player,
+                            plugin,
+                            title,
+                            bodyLines,
+                            "mwm:confirm/member_request_send/" + worldData.uuid.toString(),
+                            "mwm:confirm/cancel"
+                        ) {
                             plugin.memberRequestConfirmGui.open(player, worldData)
                         }
                         plugin.soundManager.playClickSound(player, item, "discovery")
@@ -98,23 +93,18 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     if (event.isShiftClick) {
                         // Spotlight削除 (Shift + 右クリック)
                         if (session.sort == DiscoverySort.SPOTLIGHT && player.hasPermission("myworldmanager.admin")) {
-                            val betaFeaturesEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || 
-                                                      plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
-                            
-                            if (betaFeaturesEnabled) {
-                                val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.discovery.spotlight_remove_confirm.title"))
-                                val bodyLines = lang.getMessageList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name))
-                                    .map { net.kyori.adventure.text.Component.text(it) }
+                            val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.discovery.spotlight_remove_confirm.title"))
+                            val bodyLines = lang.getMessageList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name))
+                                .map { net.kyori.adventure.text.Component.text(it) }
 
-                                me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
-                                    player,
-                                    plugin,
-                                    title,
-                                    bodyLines,
-                                    "mwm:confirm/spotlight_remove/" + worldData.uuid.toString(),
-                                    "mwm:confirm/cancel"
-                                )
-                            } else {
+                            me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
+                                player,
+                                plugin,
+                                title,
+                                bodyLines,
+                                "mwm:confirm/spotlight_remove/" + worldData.uuid.toString(),
+                                "mwm:confirm/cancel"
+                            ) {
                                 plugin.spotlightRemoveConfirmGui.open(player, worldData)
                             }
                             plugin.soundManager.playClickSound(player, item, "discovery")
@@ -217,23 +207,18 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         return
                     }
                     
-                    val betaFeaturesEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || 
-                                              plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
-                    
-                    if (betaFeaturesEnabled) {
-                        val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.spotlight_confirm.title"))
-                        val bodyLines = lang.getMessageList(player, "gui.spotlight_confirm.lore", mapOf("world" to worldData.name))
-                            .map { net.kyori.adventure.text.Component.text(it) }
+                    val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.spotlight_confirm.title"))
+                    val bodyLines = lang.getMessageList(player, "gui.spotlight_confirm.lore", mapOf("world" to worldData.name))
+                        .map { net.kyori.adventure.text.Component.text(it) }
 
-                        me.awabi2048.myworldmanager.gui.DialogConfirmManager.showSimpleConfirmationDialog(
-                            player,
-                            plugin,
-                            title,
-                            bodyLines,
-                            "mwm:confirm/spotlight_add/" + worldData.uuid.toString(),
-                            "mwm:confirm/cancel"
-                        )
-                    } else {
+                    me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
+                        player,
+                        plugin,
+                        title,
+                        bodyLines,
+                        "mwm:confirm/spotlight_add/" + worldData.uuid.toString(),
+                        "mwm:confirm/cancel"
+                    ) {
                         plugin.spotlightConfirmGui.open(player, worldData)
                     }
                     plugin.soundManager.playClickSound(player, item, "discovery")

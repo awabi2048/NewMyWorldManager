@@ -206,12 +206,38 @@ class WorldSettingsListener : Listener {
                                                                         return
                                                                 }
 
-                                                                plugin.worldSettingsGui
-                                                                        .openMemberTransferConfirmation(
+                                                                val memberName = PlayerNameUtil.getNameOrDefault(memberId, lang.getMessage(player, "general.unknown"))
+                                                                val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
+                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.title", mapOf("player" to memberName))
+                                                                )
+                                                                val bodyLines = lang.getMessageList(
+                                                                        player,
+                                                                        "gui.member_management.transfer_confirm.lore",
+                                                                        mapOf("player" to memberName, "world" to worldData.name)
+                                                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
+
+                                                                plugin.settingsSessionManager.updateSessionAction(
+                                                                        player,
+                                                                        worldData.uuid,
+                                                                        SettingsAction.MEMBER_TRANSFER_CONFIRM,
+                                                                        isGui = true
+                                                                )
+                                                                DialogConfirmManager.showConfirmationByPreference(
+                                                                        player,
+                                                                        plugin,
+                                                                        dialogTitle,
+                                                                        bodyLines,
+                                                                        "mwm:confirm/member_transfer/$memberId",
+                                                                        "mwm:confirm/cancel",
+                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.confirm"),
+                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.cancel")
+                                                                ) {
+                                                                        plugin.worldSettingsGui.openMemberTransferConfirmation(
                                                                                 player,
                                                                                 worldData,
                                                                                 memberId
                                                                         )
+                                                                }
                                                         } else if (event.isRightClick) {
                                                                 plugin.soundManager.playClickSound(
                                                                         player,
@@ -219,12 +245,38 @@ class WorldSettingsListener : Listener {
                                                                         "world_settings"
                                                                 )
                                                                 // メンバー削除
-                                                                plugin.worldSettingsGui
-                                                                        .openMemberRemoveConfirmation(
+                                                                val memberName = PlayerNameUtil.getNameOrDefault(memberId, lang.getMessage(player, "general.unknown"))
+                                                                val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
+                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.title", mapOf("player" to memberName))
+                                                                )
+                                                                val bodyLines = lang.getMessageList(
+                                                                        player,
+                                                                        "gui.member_management.remove_confirm.lore",
+                                                                        mapOf("player" to memberName, "world" to worldData.name)
+                                                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
+
+                                                                plugin.settingsSessionManager.updateSessionAction(
+                                                                        player,
+                                                                        worldData.uuid,
+                                                                        SettingsAction.MEMBER_REMOVE_CONFIRM,
+                                                                        isGui = true
+                                                                )
+                                                                DialogConfirmManager.showConfirmationByPreference(
+                                                                        player,
+                                                                        plugin,
+                                                                        dialogTitle,
+                                                                        bodyLines,
+                                                                        "mwm:confirm/member_remove/$memberId",
+                                                                        "mwm:confirm/cancel",
+                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.confirm"),
+                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.cancel")
+                                                                ) {
+                                                                        plugin.worldSettingsGui.openMemberRemoveConfirmation(
                                                                                 player,
                                                                                 worldData,
                                                                                 memberId
                                                                         )
+                                                                }
                                                         }
                                                 } else if (event.isLeftClick) {
                                                         plugin.soundManager.playClickSound(
@@ -418,11 +470,41 @@ class WorldSettingsListener : Listener {
                                                         item,
                                                         "world_settings"
                                                 )
-                                                plugin.worldSettingsGui.openVisitorKickConfirmation(
-                                                        player,
-                                                        worldData,
-                                                        visitorUuid
+                                                val targetName = PlayerNameUtil.getNameOrDefault(visitorUuid, lang.getMessage(player, "general.unknown"))
+                                                val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
+                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.title", mapOf("player" to targetName))
                                                 )
+                                                val bodyLines = listOf(
+                                                        LegacyComponentSerializer.legacySection().deserialize(
+                                                                lang.getMessage(player, "gui.visitor_management.kick_confirm.question")
+                                                        ),
+                                                        LegacyComponentSerializer.legacySection().deserialize(
+                                                                lang.getMessage(player, "gui.visitor_management.kick_confirm.player", mapOf("player" to targetName))
+                                                        )
+                                                )
+
+                                                plugin.settingsSessionManager.updateSessionAction(
+                                                        player,
+                                                        worldData.uuid,
+                                                        SettingsAction.VISITOR_KICK_CONFIRM,
+                                                        isGui = true
+                                                )
+                                                DialogConfirmManager.showConfirmationByPreference(
+                                                        player,
+                                                        plugin,
+                                                        dialogTitle,
+                                                        bodyLines,
+                                                        "mwm:confirm/visitor_kick/$visitorUuid",
+                                                        "mwm:confirm/cancel",
+                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.confirm"),
+                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.cancel")
+                                                ) {
+                                                        plugin.worldSettingsGui.openVisitorKickConfirmation(
+                                                                player,
+                                                                worldData,
+                                                                visitorUuid
+                                                        )
+                                                }
                                         }
                                 } else if (type == ItemTag.TYPE_GUI_CANCEL) {
                                         handleCommandCancel()
@@ -542,9 +624,7 @@ class WorldSettingsListener : Listener {
                                                 calculateExpansionCost(
                                                         worldData.borderExpansionLevel
                                                 )
-                                        // Note: openExpansionConfirmation updates session action to
-                                        // EXPAND_CONFIRM
-                                        plugin.worldSettingsGui.openExpansionConfirmation(
+                                        openExpandConfirmationByPreference(
                                                 player,
                                                 worldData.uuid,
                                                 null,
@@ -982,10 +1062,35 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                plugin.worldSettingsGui.openArchiveConfirmation(
-                                                        player,
-                                                        worldData
+                                                val title = LegacyComponentSerializer.legacySection().deserialize(
+                                                        plugin.languageManager.getMessage(player, "gui.archive.confirm_title")
                                                 )
+                                                val bodyLines = listOf(
+                                                        LegacyComponentSerializer.legacySection().deserialize(
+                                                                plugin.languageManager.getMessage(player, "gui.common.confirm_warning")
+                                                        )
+                                                )
+                                                plugin.settingsSessionManager.updateSessionAction(
+                                                        player,
+                                                        worldData.uuid,
+                                                        SettingsAction.ARCHIVE_WORLD,
+                                                        isGui = true
+                                                )
+                                                DialogConfirmManager.showConfirmationByPreference(
+                                                        player,
+                                                        plugin,
+                                                        title,
+                                                        bodyLines,
+                                                        "mwm:confirm/archive_world",
+                                                        "mwm:confirm/cancel",
+                                                        plugin.languageManager.getMessage(player, "gui.archive.confirm"),
+                                                        plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                ) {
+                                                        plugin.worldSettingsGui.openArchiveConfirmation(
+                                                                player,
+                                                                worldData
+                                                        )
+                                                }
                                         }
                                         ItemTag.TYPE_GUI_SETTING_TAGS -> {
                                                 plugin.logger.info("[MWM-Debug] Tag settings button clicked by ${player.name}")
@@ -1566,11 +1671,33 @@ class WorldSettingsListener : Listener {
                                                         item,
                                                         "world_settings"
                                                 )
-                                                plugin.worldSettingsGui
-                                                        .openResetExpansionConfirmation(
+                                                val title = LegacyComponentSerializer.legacySection().deserialize(
+                                                        plugin.languageManager.getMessage(player, "gui.confirm.reset_expansion.title")
+                                                )
+                                                val bodyLines = plugin.languageManager
+                                                        .getMessageList(player, "gui.confirm.reset_expansion.lore")
+                                                        .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                                                plugin.settingsSessionManager.updateSessionAction(
+                                                        player,
+                                                        worldData.uuid,
+                                                        SettingsAction.RESET_EXPANSION_CONFIRM,
+                                                        isGui = true
+                                                )
+                                                DialogConfirmManager.showConfirmationByPreference(
+                                                        player,
+                                                        plugin,
+                                                        title,
+                                                        bodyLines,
+                                                        "mwm:confirm/reset_expansion",
+                                                        "mwm:confirm/cancel",
+                                                        plugin.languageManager.getMessage(player, "gui.common.confirm"),
+                                                        plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                ) {
+                                                        plugin.worldSettingsGui.openResetExpansionConfirmation(
                                                                 player,
                                                                 worldData
                                                         )
+                                                }
                                         }
                                         ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> {
                                                 plugin.soundManager.playClickSound(
@@ -1578,11 +1705,33 @@ class WorldSettingsListener : Listener {
                                                         item,
                                                         "world_settings"
                                                 )
-                                                plugin.worldSettingsGui
-                                                        .openDeleteWorldConfirmation1(
+                                                val title = LegacyComponentSerializer.legacySection().deserialize(
+                                                        plugin.languageManager.getMessage(player, "gui.confirm.delete_1.title")
+                                                )
+                                                val bodyLines = plugin.languageManager
+                                                        .getMessageList(player, "gui.confirm.delete_1.lore")
+                                                        .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                                                plugin.settingsSessionManager.updateSessionAction(
+                                                        player,
+                                                        worldData.uuid,
+                                                        SettingsAction.DELETE_WORLD_CONFIRM,
+                                                        isGui = true
+                                                )
+                                                DialogConfirmManager.showConfirmationByPreference(
+                                                        player,
+                                                        plugin,
+                                                        title,
+                                                        bodyLines,
+                                                        "mwm:confirm/delete_world_step1",
+                                                        "mwm:confirm/cancel",
+                                                        plugin.languageManager.getMessage(player, "gui.confirm.delete_1.next"),
+                                                        plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                ) {
+                                                        plugin.worldSettingsGui.openDeleteWorldConfirmation1(
                                                                 player,
                                                                 worldData
                                                         )
+                                                }
                                         }
                                 }
                         }
@@ -3036,7 +3185,7 @@ player.sendMessage(
                                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
                                         val direction = session.expansionDirection
                                         val cost = session.getMetadata("expand_cost") as? Int ?: 0
-                                        plugin.worldSettingsGui.openExpansionConfirmation(
+                                        openExpandConfirmationByPreference(
                                                 player,
                                                 worldData.uuid,
                                                 direction,
@@ -3294,6 +3443,67 @@ player.sendMessage(
                 plugin.logger.info("[MWM-Debug] Dialog shown to player ${player.name}")
         }
         
+        private fun openExpandConfirmationByPreference(
+                player: Player,
+                worldUuid: UUID,
+                direction: org.bukkit.block.BlockFace?,
+                cost: Int
+        ) {
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
+                val lang = plugin.languageManager
+                val title = LegacyComponentSerializer.legacySection().deserialize(
+                        lang.getMessage(player, "gui.expansion.confirm_title")
+                )
+                val directionKey = when (direction) {
+                        org.bukkit.block.BlockFace.NORTH_WEST -> "general.direction.north_west"
+                        org.bukkit.block.BlockFace.NORTH_EAST -> "general.direction.north_east"
+                        org.bukkit.block.BlockFace.SOUTH_WEST -> "general.direction.south_west"
+                        org.bukkit.block.BlockFace.SOUTH_EAST -> "general.direction.south_east"
+                        else -> "general.direction.unknown"
+                }
+                val directionName = lang.getMessage(player, directionKey)
+                val methodText = if (direction == null) {
+                        lang.getMessage(player, "gui.expansion.method_center")
+                } else {
+                        lang.getMessage(player, "gui.expansion.method_direction", mapOf("direction" to directionName))
+                }
+                val bodyLines = listOf(
+                        LegacyComponentSerializer.legacySection().deserialize(
+                                lang.getMessage(player, "gui.expansion.method", mapOf("method" to methodText))
+                        ),
+                        LegacyComponentSerializer.legacySection().deserialize(
+                                lang.getMessage(player, "gui.expansion.cost", mapOf("cost" to cost))
+                        ),
+                        LegacyComponentSerializer.legacySection().deserialize(
+                                lang.getMessage(player, "gui.expansion.warning")
+                        )
+                )
+
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldUuid,
+                        SettingsAction.EXPAND_CONFIRM,
+                        isGui = true
+                )
+                plugin.settingsSessionManager.getSession(player)?.let {
+                        it.expansionDirection = direction
+                        it.setMetadata("expand_cost", cost)
+                }
+
+                DialogConfirmManager.showConfirmationByPreference(
+                        player,
+                        plugin,
+                        title,
+                        bodyLines,
+                        "mwm:confirm/expand",
+                        "mwm:confirm/cancel",
+                        lang.getMessage(player, "gui.common.confirm"),
+                        lang.getMessage(player, "gui.common.cancel")
+                ) {
+                        plugin.worldSettingsGui.openExpansionConfirmation(player, worldData.uuid, direction, cost)
+                }
+        }
+
         // Helper to show generic simple confirmation
         private fun showEnvConfirmDialog(player: Player, type: String, cost: Int) {
             val lang = plugin.languageManager
@@ -3609,6 +3819,42 @@ player.sendMessage(
                 }
         }
 
+        private fun handleUnarchiveWorldConfirm(player: Player, worldData: WorldData) {
+                player.closeInventory()
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.unarchive_start"
+                        )
+                )
+
+                plugin.worldService.unarchiveWorld(worldData.uuid)
+                        .thenAccept { success: Boolean ->
+                                Bukkit.getScheduler().runTask(
+                                        plugin,
+                                        Runnable {
+                                                if (success) {
+                                                        player.sendMessage(
+                                                                plugin.languageManager.getMessage(
+                                                                        player,
+                                                                        "messages.unarchive_success"
+                                                                )
+                                                        )
+                                                        plugin.worldService.teleportToWorld(player, worldData.uuid)
+                                                } else {
+                                                        player.sendMessage(
+                                                                plugin.languageManager.getMessage(
+                                                                        player,
+                                                                        "error.unarchive_failed"
+                                                                )
+                                                        )
+                                                }
+                                        }
+                                )
+                        }
+                plugin.settingsSessionManager.endSession(player)
+        }
+
         private fun handleVisitorKickConfirm(player: Player, worldData: WorldData, visitorUuid: UUID) {
                 val visitor = Bukkit.getPlayer(visitorUuid)
                 val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
@@ -3655,6 +3901,10 @@ player.sendMessage(
                                 SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                                 SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                                 SettingsAction.MEMBER_REMOVE_CONFIRM, SettingsAction.MEMBER_TRANSFER_CONFIRM -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                                SettingsAction.RESET_EXPANSION_CONFIRM,
+                                SettingsAction.DELETE_WORLD_CONFIRM,
+                                SettingsAction.DELETE_WORLD_CONFIRM_FINAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                SettingsAction.UNARCHIVE_CONFIRM -> plugin.playerWorldGui.open(player)
                                 else -> plugin.worldSettingsGui.open(player, worldData)
                         }
                         return
@@ -3674,6 +3924,22 @@ player.sendMessage(
                         return
                 }
 
+                if (identifier == Key.key("mwm:confirm/archive_world")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.archive_success",
+                                        mapOf("world" to worldData.name)
+                                )
+                        )
+                        worldData.isArchived = true
+                        plugin.worldConfigRepository.save(worldData)
+                        plugin.settingsSessionManager.endSession(player)
+                        player.closeInventory()
+                        return
+                }
+
                 if (identifier == Key.key("mwm:confirm/expand")) {
                         DialogConfirmManager.safeCloseDialog(player)
                         handleExpandConfirm(player, worldData)
@@ -3686,9 +3952,89 @@ player.sendMessage(
                         return
                 }
 
+                if (identifier == Key.key("mwm:confirm/delete_world_step1")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        val title = LegacyComponentSerializer.legacySection().deserialize(
+                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.title")
+                        )
+                        val bodyLines = plugin.languageManager
+                                .getMessageList(player, "gui.confirm.delete_2.lore")
+                                .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                        DialogConfirmManager.showSimpleConfirmationDialog(
+                                player,
+                                plugin,
+                                title,
+                                bodyLines,
+                                "mwm:confirm/delete_world",
+                                "mwm:confirm/cancel",
+                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.confirm_btn"),
+                                plugin.languageManager.getMessage(player, "gui.common.cancel")
+                        )
+                        return
+                }
+
                 if (identifier == Key.key("mwm:confirm/delete_world")) {
                         DialogConfirmManager.safeCloseDialog(player)
                         handleDeleteWorldConfirm(player, worldData)
+                        return
+                }
+
+                if (identifier == Key.key("mwm:confirm/unarchive_world")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        handleUnarchiveWorldConfirm(player, worldData)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/member_remove/")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        val targetUuidStr = keyVal.substringAfter("confirm/member_remove/")
+                        val targetUuid = try { UUID.fromString(targetUuidStr) } catch(e: Exception) { return }
+                        val memberName = PlayerNameUtil.getNameOrDefault(targetUuid, "Unknown")
+                        worldData.members.remove(targetUuid)
+                        worldData.moderators.remove(targetUuid)
+                        plugin.worldConfigRepository.save(worldData)
+                        player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
+                        plugin.macroManager.execute(
+                                "on_member_remove",
+                                mapOf(
+                                        "world_uuid" to worldData.uuid.toString(),
+                                        "member" to memberName
+                                )
+                        )
+                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/member_transfer/")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        val targetUuidStr = keyVal.substringAfter("confirm/member_transfer/")
+                        val newOwnerId = try { UUID.fromString(targetUuidStr) } catch(e: Exception) { return }
+                        val oldOwnerId = worldData.owner
+                        val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
+                        val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
+                        worldData.owner = newOwnerId
+                        if (!worldData.moderators.contains(oldOwnerId)) {
+                                worldData.moderators.add(oldOwnerId)
+                        }
+                        worldData.moderators.remove(newOwnerId)
+                        worldData.members.remove(newOwnerId)
+                        plugin.worldConfigRepository.save(worldData)
+                        plugin.macroManager.execute(
+                                "on_owner_transfer",
+                                mapOf(
+                                        "world_uuid" to worldData.uuid.toString(),
+                                        "old_owner" to oldOwnerName,
+                                        "new_owner" to newOwnerName
+                                )
+                        )
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.owner_transferred",
+                                        mapOf("old_owner" to newOwnerName)
+                                )
+                        )
+                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
                         return
                 }
 

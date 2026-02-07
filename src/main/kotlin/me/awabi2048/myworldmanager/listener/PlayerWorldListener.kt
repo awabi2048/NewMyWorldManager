@@ -1,14 +1,17 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PlayerWorldGui
 import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -144,7 +147,30 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 // Shiftなし左クリック：アーカイブ状態のチェック
                 if (worldData.isArchived) {
                     if (worldData.owner == player.uniqueId) {
-                        plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
+                        val title = LegacyComponentSerializer.legacySection().deserialize(
+                            lang.getMessage(player, "gui.unarchive_confirm.title")
+                        )
+                        val bodyLines = lang.getMessageList(player, "gui.unarchive_confirm.lore")
+                            .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+
+                        plugin.settingsSessionManager.updateSessionAction(
+                            player,
+                            worldData.uuid,
+                            SettingsAction.UNARCHIVE_CONFIRM,
+                            isGui = true
+                        )
+                        DialogConfirmManager.showConfirmationByPreference(
+                            player,
+                            plugin,
+                            title,
+                            bodyLines,
+                            "mwm:confirm/unarchive_world",
+                            "mwm:confirm/cancel",
+                            lang.getMessage(player, "gui.common.confirm"),
+                            lang.getMessage(player, "gui.common.cancel")
+                        ) {
+                            plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
+                        }
                     } else {
                         player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
                     }

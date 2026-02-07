@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.listener
 
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -10,6 +11,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import io.papermc.paper.event.player.PlayerCustomClickEvent
 import org.bukkit.plugin.java.JavaPlugin
 
 class AdminCommandListener : Listener {
@@ -39,6 +41,44 @@ class AdminCommandListener : Listener {
         } else if (isAdminConfirmAction(session.action)) {
             handleAdminConfirmClick(event, player, plugin, session.action)
         }
+    }
+
+    @EventHandler
+    fun onCustomClick(event: PlayerCustomClickEvent) {
+        val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
+        val player = conn.player
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
+        val identifier = event.identifier.asString()
+
+        if (identifier == "mwm:confirm/cancel") {
+            if (!isAdminConfirmAction(session.action)) return
+            DialogConfirmManager.safeCloseDialog(player)
+            plugin.soundManager.playAdminClickSound(player)
+            plugin.adminCommandGui.open(player)
+            return
+        }
+
+        if (!identifier.startsWith("mwm:confirm/admin/")) return
+        if (!isAdminConfirmAction(session.action)) return
+
+        DialogConfirmManager.safeCloseDialog(player)
+        plugin.soundManager.playAdminClickSound(player)
+
+        when (session.action) {
+            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> performUpdateData(player, plugin)
+            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> performRepairTemplates(player, plugin)
+            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> performArchiveAll(player, plugin)
+            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
+            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
+            SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
+            SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin)
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> performArchiveWorld(player, plugin)
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> performUnarchiveWorld(player, plugin)
+            else -> return
+        }
+
+        plugin.settingsSessionManager.endSession(player)
     }
 
     private fun isAdminConfirmAction(action: SettingsAction): Boolean {
