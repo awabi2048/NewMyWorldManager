@@ -56,9 +56,6 @@ class CreationChatListener(private val plugin: MyWorldManager) : Listener {
             event.isCancelled = true
             event.viewers().clear()
             
-            // 入力文字列をシード値として処理
-            val seed = message.toLongOrNull() ?: message.hashCode().toLong()
-            session.seed = seed
             session.inputSeedString = message
             session.phase = WorldCreationPhase.CONFIRM
             

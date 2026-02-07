@@ -83,8 +83,6 @@ class CreationDialogManager : Listener {
             val seedInputAny = view.getText("seed_value") ?: ""
             val seedInput = seedInputAny.toString()
 
-            val seed = seedInput.toLongOrNull() ?: seedInput.hashCode().toLong()
-            session.seed = seed
             session.inputSeedString = seedInput
             session.phase = WorldCreationPhase.CONFIRM
 

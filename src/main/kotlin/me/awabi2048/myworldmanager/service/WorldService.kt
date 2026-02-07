@@ -21,6 +21,11 @@ class WorldService(
 
     private val creatingWorlds = mutableSetOf<String>()
 
+    private fun resolveSeed(seedInput: String?): Long? {
+        val normalized = seedInput?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        return normalized.toLongOrNull() ?: normalized.hashCode().toLong()
+    }
+
     enum class ConversionMode {
         NORMAL,
         ADMIN
@@ -86,12 +91,9 @@ class WorldService(
             creator.environment(environment)
             creator.type(worldType)
 
-            if (seed != null) {
-                try {
-                    creator.seed(seed.hashCode().toLong()) // 文字列シード対応（簡易的）
-                } catch (e: NumberFormatException) {
-                    creator.seed(seed.hashCode().toLong())
-                }
+            val resolvedSeed = resolveSeed(seed)
+            if (resolvedSeed != null) {
+                creator.seed(resolvedSeed)
             } else {
                 // ランダムシードはデフォルトで適用されるので設定不要
             }

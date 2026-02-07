@@ -22,7 +22,6 @@ data class WorldCreationSession(
     var worldName: String? = null,
     var creationType: WorldCreationType? = null,
     var templateName: String? = null,
-    var seed: Long? = null,
     var inputSeedString: String? = null,
     var isDialogMode: Boolean = false,
     var lastActivity: Long = System.currentTimeMillis()

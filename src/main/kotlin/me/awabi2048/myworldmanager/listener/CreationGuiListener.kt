@@ -241,7 +241,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                             plugin.worldService.generateWorld(
                                             player.uniqueId,
                                             session.worldName!!,
-                                            session.seed?.toString(),
+                                            session.inputSeedString,
                                             cost
                                     )
                                     .thenAccept { success: Boolean ->
