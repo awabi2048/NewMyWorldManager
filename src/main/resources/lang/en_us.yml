@@ -552,6 +552,17 @@ gui:
         - "§7View and manage all worlds."
         - ""
         - "§e§nClick to Open"
+    current_world:
+      display: "§bCurrent World Info"
+      lore:
+        - "§8§m-----------------------"
+        - "§f§l| §7World §a{world}"
+        - "§f§l| §7Owner §b{owner}"
+        - "§f§l| §7Status {status}"
+        - "§f§l| §7Generation §e{generation}"
+        - "§8§m-----------------------"
+        - "§e§nClick to open settings"
+        - "§8§m-----------------------"
     portals:
       display: "§bPortal Management"
       lore:
@@ -572,6 +583,7 @@ gui:
         - "{owner_line}"
         - "{status_line}"
         - "{publish_line}"
+        - "{generation_line}"
         - "{expansion_line}"
         - "{created_line}"
         - "{expire_line}"
@@ -589,6 +601,13 @@ gui:
       status_archived: "§cArchived"
       status_active: "§bActive"
       publish: "§f§l| §7Publish {color}{level}"
+      generation: "§f§l| §7Generation §e{method}"
+      generation_type:
+        convert: "Converted"
+        template: "Template"
+        seed: "Seed"
+        random: "Random"
+        unknown: "{source}"
       expansion: "§f§l| §7Expansion §e{level}"
       
       expires_at: "§f§l| §7Multi-Archive §e{date} §8({days_remain})"
@@ -886,7 +905,6 @@ messages:
   member_request_expired: "§cThe request has expired."
   member_request_approved: "§aYour member request has been approved!"
   member_request_rejected: "§cYour member request has been rejected."
-      - "§7at the top of the discovery menu."
 
   visit:
     title: "{player}'s Worlds"

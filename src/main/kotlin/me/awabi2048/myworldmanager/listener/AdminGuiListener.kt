@@ -156,6 +156,21 @@ class AdminGuiListener : Listener {
                 plugin.worldGui.open(player)
                 return
             }
+
+            if (type == ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO) {
+                val uuid = ItemTag.getWorldUuid(currentItem) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
+                plugin.soundManager.playAdminClickSound(player)
+                plugin.settingsSessionManager.updateSessionAction(
+                    player,
+                    uuid,
+                    SettingsAction.VIEW_SETTINGS,
+                    isGui = true,
+                    isAdminFlow = true
+                )
+                plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
+                return
+            }
             
             if (type == ItemTag.TYPE_GUI_DECORATION || type == ItemTag.TYPE_GUI_INFO) return
 
