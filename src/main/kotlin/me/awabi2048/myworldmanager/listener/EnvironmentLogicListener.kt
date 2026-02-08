@@ -57,8 +57,8 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        // 難易度を EASY に、モブスポーンを false に設定
-        world.difficulty = Difficulty.EASY
+        // 難易度を PEACEFUL に、モブスポーンを false に設定
+        world.difficulty = Difficulty.PEACEFUL
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false)
     }
 

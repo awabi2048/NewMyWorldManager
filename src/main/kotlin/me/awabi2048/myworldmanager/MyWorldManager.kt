@@ -177,7 +177,7 @@ class MyWorldManager : JavaPlugin() {
         inviteCommand = InviteCommand(this)
 
         // リスナーの登録
-        server.pluginManager.registerEvents(WorldStatusListener(), this)
+        server.pluginManager.registerEvents(WorldStatusListener(this), this)
         server.pluginManager.registerEvents(AccessControlListener(this), this)
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
         // 旧 GuiListener を分割して登録
