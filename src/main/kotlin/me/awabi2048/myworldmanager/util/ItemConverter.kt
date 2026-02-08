@@ -56,8 +56,14 @@ object ItemConverter {
         val isLegacySeedById = legacyId == "my_world_seed" || legacyId == "world_seed"
 
         if ((item.type == Material.MAGMA_CREAM && isLegacySeedByName) || isLegacySeedById) {
+            val originalAmount = item.amount.coerceAtLeast(1)
             val newItem = CustomItem.WORLD_SEED.create(plugin.languageManager, null)
-            newItem.amount = item.amount.coerceAtLeast(1)
+            if (originalAmount > 1) {
+                val newMeta = newItem.itemMeta
+                newMeta.setMaxStackSize(originalAmount.coerceAtMost(99))
+                newItem.itemMeta = newMeta
+            }
+            newItem.amount = originalAmount
             return newItem
         }
 
