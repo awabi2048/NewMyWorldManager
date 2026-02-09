@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.repository
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
-import org.bukkit.Bukkit
+import me.awabi2048.myworldmanager.model.PortalType
 import org.bukkit.Color
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
@@ -19,12 +19,18 @@ class PortalRepository(private val plugin: MyWorldManager) {
 
     fun loadAll() {
         if (!file.exists()) return
+        portals.clear()
+
         val config = YamlConfiguration.loadConfiguration(file)
         val sections = config.getConfigurationSection("portals") ?: return
         
         for (key in sections.getKeys(false)) {
             val section = sections.getConfigurationSection(key) ?: continue
-            val id = UUID.fromString(key)
+            val id = try {
+                UUID.fromString(key)
+            } catch (_: Exception) {
+                continue
+            }
             
             val worldUuidStr = section.getString("world_uuid")
             val worldUuid = if (worldUuidStr != null && worldUuidStr != "null") UUID.fromString(worldUuidStr) else null
@@ -49,6 +55,7 @@ class PortalRepository(private val plugin: MyWorldManager) {
             val showText = section.getBoolean("show_text", true)
             val colorInt = section.getInt("color", Color.AQUA.asRGB())
             val ownerUuid = UUID.fromString(section.getString("owner_uuid") ?: continue)
+            val type = PortalType.fromKey(section.getString("type", "portal"))
 
             var worldName: String? = section.getString("location.world")
             var lx = section.getInt("location.x")
@@ -81,6 +88,14 @@ class PortalRepository(private val plugin: MyWorldManager) {
             }
 
             if (worldName == null) continue
+
+            val areaSection = section.getConfigurationSection("area")
+            val areaMinX = if (areaSection?.contains("min_x") == true) areaSection.getInt("min_x") else null
+            val areaMinY = if (areaSection?.contains("min_y") == true) areaSection.getInt("min_y") else null
+            val areaMinZ = if (areaSection?.contains("min_z") == true) areaSection.getInt("min_z") else null
+            val areaMaxX = if (areaSection?.contains("max_x") == true) areaSection.getInt("max_x") else null
+            val areaMaxY = if (areaSection?.contains("max_y") == true) areaSection.getInt("max_y") else null
+            val areaMaxZ = if (areaSection?.contains("max_z") == true) areaSection.getInt("max_z") else null
 
             // 設置場所がマイワールドの場合、そのワールドが存在するかチェック
             if (worldName.startsWith("my_world.")) {
@@ -118,7 +133,14 @@ class PortalRepository(private val plugin: MyWorldManager) {
                 particleColor = Color.fromRGB(colorInt),
                 ownerUuid = ownerUuid,
                 createdAt = createdAt,
-                textDisplayUuid = textDisplayUuid
+                textDisplayUuid = textDisplayUuid,
+                type = type,
+                minX = if (type == PortalType.GATE) areaMinX ?: lx else null,
+                minY = if (type == PortalType.GATE) areaMinY ?: ly else null,
+                minZ = if (type == PortalType.GATE) areaMinZ ?: lz else null,
+                maxX = if (type == PortalType.GATE) areaMaxX ?: lx else null,
+                maxY = if (type == PortalType.GATE) areaMaxY ?: ly else null,
+                maxZ = if (type == PortalType.GATE) areaMaxZ ?: lz else null
             )
         }
         
@@ -126,23 +148,37 @@ class PortalRepository(private val plugin: MyWorldManager) {
         saveAll()
     }
 
-    fun saveAll() {
-         val config = YamlConfiguration()
-         val section = config.createSection("portals")
-         for ((id, data) in portals) {
-             val s = section.createSection(id.toString())
-             // 整数値として保存
-             s.set("location", mapOf(
-                 "world" to data.worldName,
-                 "x" to data.x,
-                 "y" to data.y,
-                 "z" to data.z
-             ))
-             s.set("world_uuid", data.worldUuid?.toString())
-             s.set("target_world_name", data.targetWorldName)
-             s.set("show_text", data.showText)
-             s.set("color", data.particleColor.asRGB())
-             s.set("owner_uuid", data.ownerUuid.toString())
+     fun saveAll() {
+          val config = YamlConfiguration()
+          val section = config.createSection("portals")
+          for ((id, data) in portals) {
+              val s = section.createSection(id.toString())
+              s.set("type", data.type.key)
+              // 整数値として保存
+              s.set("location", mapOf(
+                  "world" to data.worldName,
+                  "x" to data.x,
+                  "y" to data.y,
+                  "z" to data.z
+              ))
+              if (data.isGate()) {
+                  s.set(
+                      "area",
+                      mapOf(
+                          "min_x" to data.getMinX(),
+                          "min_y" to data.getMinY(),
+                          "min_z" to data.getMinZ(),
+                          "max_x" to data.getMaxX(),
+                          "max_y" to data.getMaxY(),
+                          "max_z" to data.getMaxZ()
+                      )
+                  )
+              }
+              s.set("world_uuid", data.worldUuid?.toString())
+              s.set("target_world_name", data.targetWorldName)
+              s.set("show_text", data.showText)
+              s.set("color", data.particleColor.asRGB())
+              s.set("owner_uuid", data.ownerUuid.toString())
              s.set("created_at", data.createdAt)
              s.set("text_display_uuid", data.textDisplayUuid?.toString())
          }
@@ -160,13 +196,23 @@ class PortalRepository(private val plugin: MyWorldManager) {
     }
 
     fun findAll(): Collection<PortalData> = portals.values
-    
+
     fun findByLocation(location: org.bukkit.Location): PortalData? {
-        return portals.values.find { 
+        return portals.values.find {
             it.worldName == location.world?.name &&
             it.x == location.blockX &&
             it.y == location.blockY &&
             it.z == location.blockZ
+        }
+    }
+
+    fun findByContainingLocation(location: org.bukkit.Location): PortalData? {
+        val worldName = location.world?.name ?: return null
+        val exact = findByLocation(location)
+        if (exact != null) return exact
+
+        return portals.values.find {
+            it.worldName == worldName && it.containsBlock(location.blockX, location.blockY, location.blockZ)
         }
     }
 }

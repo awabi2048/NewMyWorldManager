@@ -214,6 +214,21 @@ gui:
       - "§f右クリックで設置して§dワールドポータル§f作成します！"
       - "§e§l| §eShift + 右クリック§7 リンクを§c解除§7する"
       - "§8§m－－－－－－－－－－－－－－－－－－"
+
+  world_gate_item:
+    name: "§3ワールドゲート"
+    lore_unbound:
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§e§l| §eShift + 右クリック§7 現在のマイワールドを§bリンク§7する"
+      - "§e§l| §e右クリック§7 2点を選択して範囲を設定"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+    lore_bound:
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§f§l| §bリンク先 §f§n{destination}"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§f右クリックで2点選択し、3回目で§3ワールドゲート§fを設置します"
+      - "§e§l| §eShift + 右クリック§7 いつでも再リンク可能"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
       
   template_wizard:
     title: "テンプレート作成ウィザード"
@@ -1476,6 +1491,13 @@ messages:
   portal_unbind_success: "§eポータルの紐づけを解除しました"
   portal_place_success: "§aワールドポータルを設置しました"
   portal_broken: "§eワールドポータルが破壊されました"
+  world_gate_bind_success: "§aこのワールドゲートを「{destination}」に紐づけました"
+  world_gate_select_first: "§eワールドゲートの1点目を右クリックで選択してください。"
+  world_gate_select_second: "§eワールドゲートの2点目を右クリックで選択してください。"
+  world_gate_point_selected: "§a{point}点目を選択: §f({x}, {y}, {z})"
+  world_gate_confirm_place: "§e3回目の右クリックでワールドゲートを設置します。"
+  world_gate_place_success: "§aワールドゲートを設置しました"
+  world_gate_world_mismatch: "§c同じワールド内の2点を選択してください。1点目を再設定しました。"
   world_created_warp: "§a作成されたワールドに移動しました"
   status_on: "オン"
   status_off: "オフ"
@@ -1689,6 +1711,7 @@ error:
   portal_bind_myworld_only: "§cポータルはマイワールド内でのみ紐づけ可能です。"
   portal_dest_locked: "§cこのポータルの先は現在閉鎖されています！"
   portal_not_bound: "§cこのポータルはまだワールドに紐づけられていません。"
+  world_gate_bind_required: "§cワールドゲートを使うには、先にShift+右クリックでワールドを紐づけてください。"
   preview_template_not_found: "§cテンプレートが見つかりませんでした。"
   preview_world_load_failed: "§cプレビュー用ワールドのロードに失敗しました。"
   target_not_in_myworld: "§c対象のプレイヤーはマイワールド内にいません。"

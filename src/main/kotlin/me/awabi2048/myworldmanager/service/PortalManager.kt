@@ -7,9 +7,11 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.Particle
-import org.bukkit.entity.TextDisplay
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
+import org.bukkit.entity.TextDisplay
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -19,9 +21,13 @@ class PortalManager(private val plugin: MyWorldManager) {
     // TextDisplayUUID -> PortalUUID の逆引きマップ
     private val displayToPortal = ConcurrentHashMap<UUID, UUID>()
     private val warpCooldowns = ConcurrentHashMap<UUID, Long>()
+    private val entityWarpCooldowns = ConcurrentHashMap<UUID, Long>()
     private val ignorePlayers = ConcurrentHashMap.newKeySet<UUID>()
+    private val ignoreEntities = ConcurrentHashMap.newKeySet<UUID>()
     private val portalGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> Expiry)
+    private val entityGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // EntityUUID -> (PortalUUID -> Expiry)
     private val portalCache = ConcurrentHashMap<String, ConcurrentHashMap<Long, PortalData>>() // WorldName -> BlockKey -> PortalData
+    private val gateCache = ConcurrentHashMap<String, MutableList<PortalData>>() // WorldName -> Gate portals
 
     private fun getBlockKey(x: Int, y: Int, z: Int): Long {
         return (x.toLong() and 0x7FFFFFF shl 38) or (z.toLong() and 0x7FFFFFF shl 12) or (y.toLong() and 0xFFF)
@@ -41,6 +47,13 @@ class PortalManager(private val plugin: MyWorldManager) {
     }
 
     /**
+     * 指定したエンティティの一時的なワープ判定を無効化する
+     */
+    private fun addIgnoreEntity(entity: Entity) {
+        ignoreEntities.add(entity.uniqueId)
+    }
+
+    /**
      * 指定したポータルに対して、プレイヤーのテレポート猶予期間を設定する
      */
     fun addPortalGrace(player: Player, portalUuid: UUID, seconds: Long) {
@@ -48,90 +61,151 @@ class PortalManager(private val plugin: MyWorldManager) {
         playerGrace[portalUuid] = System.currentTimeMillis() + (seconds * 1000)
     }
 
-    private fun updatePortals() {
-         val portals = plugin.portalRepository.findAll()
-         portalCache.clear()
-         
-         // 孤立したTextDisplayをクリーンアップ（ポータルデータが存在しないが、紐付けマップに残っている）
-         val validPortalIds = portals.map { it.id }.toSet()
-         val displayIterator = displayToPortal.iterator()
-         while (displayIterator.hasNext()) {
-             val entry = displayIterator.next()
-             if (!validPortalIds.contains(entry.value)) {
-                 // ポータルが削除されているのに紐付けマップに残っている
-                 val orphanDisplay = textDisplays[entry.value]
-                 orphanDisplay?.remove()
-                 textDisplays.remove(entry.value)
-                 displayIterator.remove()
-             }
-         }
-         
-         for (portal in portals) {
-             val world = Bukkit.getWorld(portal.worldName) ?: continue
-             val block = world.getBlockAt(portal.x, portal.y, portal.z)
+    /**
+     * 指定したポータルに対して、エンティティのテレポート猶予期間を設定する
+     */
+    private fun addEntityGrace(entity: Entity, portalUuid: UUID, seconds: Long) {
+        val entityGrace = entityGracePeriods.computeIfAbsent(entity.uniqueId) { ConcurrentHashMap() }
+        entityGrace[portalUuid] = System.currentTimeMillis() + (seconds * 1000)
+    }
 
-             // ブロックが消失（END_PORTAL_FRAMEでなくなった）している場合は自動撤去
-             if (block.type != org.bukkit.Material.END_PORTAL_FRAME) {
-                 removePortalVisuals(portal.id)
-                 plugin.portalRepository.removePortal(portal.id)
-                 continue
-             }
+    private fun updatePortals() {
+        val portals = plugin.portalRepository.findAll()
+        portalCache.clear()
+        gateCache.clear()
+
+        // 孤立したTextDisplayをクリーンアップ（ポータルデータが存在しないが、紐付けマップに残っている）
+        val validPortalIds = portals.map { it.id }.toSet()
+        val displayIterator = displayToPortal.iterator()
+        while (displayIterator.hasNext()) {
+            val entry = displayIterator.next()
+            if (!validPortalIds.contains(entry.value)) {
+                val orphanDisplay = textDisplays[entry.value]
+                orphanDisplay?.remove()
+                textDisplays.remove(entry.value)
+                displayIterator.remove()
+            }
+        }
+
+        for (portal in portals) {
+            val world = Bukkit.getWorld(portal.worldName) ?: continue
+
+            if (!portal.isGate()) {
+                val block = world.getBlockAt(portal.x, portal.y, portal.z)
+                if (block.type != org.bukkit.Material.END_PORTAL_FRAME) {
+                    removePortalVisuals(portal.id)
+                    plugin.portalRepository.removePortal(portal.id)
+                    continue
+                }
+            }
 
             val loc = portal.getCenterLocation()
 
             // 1. パーティクル表示
             val dustOptions = Particle.DustOptions(portal.particleColor, 1.0f)
-            for (i in 0..10) {
-                val offset = Math.random() * 2.0
-                loc.world?.spawnParticle(
-                    Particle.DUST,
-                    loc.clone().add(0.0, 0.5 + offset, 0.0),
-                    1,
-                    0.3, 0.0, 0.3,
-                    dustOptions
-                )
+            if (portal.isGate()) {
+                val minX = portal.getMinX().toDouble()
+                val maxX = portal.getMaxX().toDouble()
+                val minY = portal.getMinY().toDouble()
+                val maxY = portal.getMaxY().toDouble()
+                val minZ = portal.getMinZ().toDouble()
+                val maxZ = portal.getMaxZ().toDouble()
+
+                for (i in 0..30) {
+                    val px = minX + Math.random() * (maxX - minX + 1.0)
+                    val py = minY + Math.random() * (maxY - minY + 1.0)
+                    val pz = minZ + Math.random() * (maxZ - minZ + 1.0)
+                    world.spawnParticle(
+                        Particle.DUST,
+                        Location(world, px, py, pz),
+                        1,
+                        0.0, 0.0, 0.0,
+                        dustOptions
+                    )
+                }
+            } else {
+                for (i in 0..10) {
+                    val offset = Math.random() * 2.0
+                    world.spawnParticle(
+                        Particle.DUST,
+                        loc.clone().add(0.0, 0.5 + offset, 0.0),
+                        1,
+                        0.3, 0.0, 0.3,
+                        dustOptions
+                    )
+                }
             }
 
             // 2. テキスト表示の更新
             updateTextDisplay(portal)
 
-            // Cache creation
-            val key = getBlockKey(portal.x, portal.y, portal.z)
-            portalCache.computeIfAbsent(portal.worldName) { ConcurrentHashMap() }[key] = portal
+            if (portal.isGate()) {
+                gateCache.computeIfAbsent(portal.worldName) { mutableListOf() }.add(portal)
+            } else {
+                val key = getBlockKey(portal.x, portal.y, portal.z)
+                portalCache.computeIfAbsent(portal.worldName) { ConcurrentHashMap() }[key] = portal
+            }
         }
+
+        warpEntitiesInGates()
 
         // 4. portalGracePeriodsの清掃 (期限切れのものを削除)
         val now = System.currentTimeMillis()
-        portalGracePeriods.forEach { (playerUuid, graces) ->
+        portalGracePeriods.forEach { (_, graces) ->
+            graces.entries.removeIf { it.value < now }
+        }
+        entityWarpCooldowns.entries.removeIf { now - it.value > 60_000L }
+
+        // エンティティの猶予期間をクリア
+        entityGracePeriods.forEach { (_, graces) ->
             graces.entries.removeIf { it.value < now }
         }
 
-         // 5. ignorePlayersの解除判定 (ポータル判定範囲外に出たら解除)
-         val playerIterator = ignorePlayers.iterator()
-         while (playerIterator.hasNext()) {
-             val playerUuid = playerIterator.next()
-             val player = Bukkit.getPlayer(playerUuid)
-             
-             if (player == null) {
-                 playerIterator.remove()
-                 continue
-             }
+        // 無効化エンティティのクリーンアップ
+        val entityIterator = ignoreEntities.iterator()
+        while (entityIterator.hasNext()) {
+            val entityUuid = entityIterator.next()
+            val entity = Bukkit.getEntity(entityUuid)
+            if (entity == null || !entity.isValid) {
+                entityIterator.remove()
+                entityGracePeriods.remove(entityUuid)
+            }
+        }
 
-             // 全てのポータルの判定エリア外にいるかチェック
-             var isInAnyPortal = false
-             for (portal in portals) {
-                 val loc = portal.getCenterLocation()
-                 val checkCenter = loc.clone().add(0.0, 1.5, 0.0)
-                 if (player.world.name == portal.worldName && player.location.distanceSquared(checkCenter) <= 0.25) { // 0.5 * 0.5
-                     isInAnyPortal = true
-                     break
-                 }
-             }
-             
-             if (!isInAnyPortal) {
-                 playerIterator.remove()
-             }
-         }
+        // 5. ignorePlayersの解除判定 (ポータル判定範囲外に出たら解除)
+        val playerIterator = ignorePlayers.iterator()
+        while (playerIterator.hasNext()) {
+            val playerUuid = playerIterator.next()
+            val player = Bukkit.getPlayer(playerUuid)
+
+            if (player == null) {
+                playerIterator.remove()
+                continue
+            }
+
+            var isInAnyPortal = false
+            for (portal in portals) {
+                if (player.world.name != portal.worldName) continue
+
+                if (portal.isGate()) {
+                    if (portal.containsLocation(player.location)) {
+                        isInAnyPortal = true
+                        break
+                    }
+                } else {
+                    val loc = portal.getCenterLocation()
+                    val checkCenter = loc.clone().add(0.0, 1.5, 0.0)
+                    if (player.location.distanceSquared(checkCenter) <= 0.25) {
+                        isInAnyPortal = true
+                        break
+                    }
+                }
+            }
+
+            if (!isInAnyPortal) {
+                playerIterator.remove()
+            }
+        }
     }
 
      private fun updateTextDisplay(portal: PortalData) {
@@ -197,15 +271,46 @@ class PortalManager(private val plugin: MyWorldManager) {
         }
         
         val color = TextColor.color(portal.particleColor.asRGB())
-        display.text(
-            Component.text()
-                .append(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(null as Player?, "gui.portal.destination_label")))
-                .append(Component.text(destName, color))
-                .build()
-        )
+         display.text(
+             Component.text()
+                 .append(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(null as Player?, "gui.portal.destination_label")))
+                 .append(Component.text(destName, color))
+                 .build()
+         )
+     }
+
+    private fun warpEntitiesInGates() {
+        for ((worldName, gates) in gateCache) {
+            if (gates.isEmpty()) continue
+            val world = Bukkit.getWorld(worldName) ?: continue
+
+            for (entity in world.entities) {
+                if (!entity.isValid || entity.isDead) continue
+
+                var isInAnyGate = false
+                for (gate in gates) {
+                    if (!gate.containsLocation(entity.location)) continue
+                    if (entity is TextDisplay && entity.uniqueId == gate.textDisplayUuid) continue
+
+                    isInAnyGate = true
+                    if (!ignoreEntities.contains(entity.uniqueId)) {
+                        if (entity is Player) {
+                            executeWarp(entity, gate)
+                        } else {
+                            executeEntityWarp(entity, gate)
+                        }
+                    }
+                    break
+                }
+
+                if (!isInAnyGate) {
+                    ignoreEntities.remove(entity.uniqueId)
+                }
+            }
+        }
     }
 
-    fun handlePlayerMove(player: Player) {
+     fun handlePlayerMove(player: Player) {
         val worldName = player.world.name
         val worldPortals = portalCache[worldName] ?: return
         
@@ -220,8 +325,8 @@ class PortalManager(private val plugin: MyWorldManager) {
         executeWarp(player, portal)
     }
 
-    private fun executeWarp(player: Player, portal: PortalData) {
-        val lang = plugin.languageManager
+     private fun executeWarp(player: Player, portal: PortalData) {
+         val lang = plugin.languageManager
             
         // クールタイムチェック (1秒)
         val lastWarp = warpCooldowns[player.uniqueId] ?: 0L
@@ -271,12 +376,49 @@ class PortalManager(private val plugin: MyWorldManager) {
             
             val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
             player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to displayName)))
+         }
+     }
+
+    private fun executeEntityWarp(entity: Entity, portal: PortalData) {
+        val now = System.currentTimeMillis()
+        val lastWarp = entityWarpCooldowns[entity.uniqueId] ?: 0L
+        if (now - lastWarp < 1000L) return
+
+        if (ignoreEntities.contains(entity.uniqueId)) return
+
+        val entityGrace = entityGracePeriods[entity.uniqueId]
+        if (entityGrace != null) {
+            val expiry = entityGrace[portal.id]
+            if (expiry != null && expiry > now) return
+        }
+
+        if (portal.worldUuid != null) {
+            val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!) ?: return
+            if (destData.publishLevel == PublishLevel.LOCKED) return
+
+            if (!plugin.worldService.loadWorld(destData.uuid)) return
+            val targetWorld = Bukkit.getWorld(plugin.worldService.getWorldFolderName(destData)) ?: return
+            val targetLoc = destData.spawnPosGuest ?: targetWorld.spawnLocation
+            if (targetLoc.world == null) {
+                targetLoc.world = targetWorld
+            }
+
+            entity.teleport(targetLoc)
+            entityWarpCooldowns[entity.uniqueId] = now
+            addIgnoreEntity(entity)
+            addEntityGrace(entity, portal.id, 5L)
+        } else if (portal.targetWorldName != null) {
+            val targetWorld = Bukkit.getWorld(portal.targetWorldName!!) ?: return
+            entity.teleport(targetWorld.spawnLocation)
+            entityWarpCooldowns[entity.uniqueId] = now
+            addIgnoreEntity(entity)
+            addEntityGrace(entity, portal.id, 5L)
         }
     }
 
-     /**
-      * ポータルの TextDisplay を削除
-      */
+      /**
+       * ポータルの TextDisplay を削除
+       */
      private fun removeTextDisplayForPortal(portalId: UUID) {
          // メモリから削除
          val display = textDisplays[portalId]

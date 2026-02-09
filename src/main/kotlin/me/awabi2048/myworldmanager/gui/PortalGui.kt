@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.WorldGateItemUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -144,28 +145,41 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                 open(player, portal)
             }
              ItemTag.TYPE_GUI_PORTAL_REMOVE -> {
-                 plugin.soundManager.playClickSound(player, item)
-                 
-                 // ビジュアル要素を先に削除（タイミング問題を防ぐ）
-                 plugin.portalManager.removePortalVisuals(portal.id)
+                  plugin.soundManager.playClickSound(player, item)
+                  
+                  // ビジュアル要素を先に削除（タイミング問題を防ぐ）
+                  plugin.portalManager.removePortalVisuals(portal.id)
                  
                  // その後、リポジトリから削除
                  plugin.portalRepository.removePortal(portal.id)
                  
-                 // 最後にブロックを破壊
-                 val world = Bukkit.getWorld(portal.worldName)
-                 val block = world?.getBlockAt(portal.x, portal.y, portal.z)
-                 if (block != null && block.type == Material.END_PORTAL_FRAME) {
-                     block.type = Material.AIR
-                 }
-                
-                val returnItem = PortalItemUtil.createBasePortalItem(lang, player)
+                  if (!portal.isGate()) {
+                      val world = Bukkit.getWorld(portal.worldName)
+                      val block = world?.getBlockAt(portal.x, portal.y, portal.z)
+                      if (block != null && block.type == Material.END_PORTAL_FRAME) {
+                          block.type = Material.AIR
+                      }
+                  }
+                 
+                val returnItem = if (portal.isGate()) {
+                    WorldGateItemUtil.createBaseWorldGateItem(lang, player)
+                } else {
+                    PortalItemUtil.createBasePortalItem(lang, player)
+                }
                 if (portal.worldUuid != null) {
                     val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
-                    PortalItemUtil.bindWorld(returnItem, portal.worldUuid!!, worldName = destData?.name ?: lang.getMessage(player, "general.unknown"), lang, player)
+                    if (portal.isGate()) {
+                        WorldGateItemUtil.bindWorld(returnItem, portal.worldUuid!!, worldName = destData?.name ?: lang.getMessage(player, "general.unknown"), lang, player)
+                    } else {
+                        PortalItemUtil.bindWorld(returnItem, portal.worldUuid!!, worldName = destData?.name ?: lang.getMessage(player, "general.unknown"), lang, player)
+                    }
                 } else if (portal.targetWorldName != null) {
                     val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
-                    PortalItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
+                    if (portal.isGate()) {
+                        WorldGateItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
+                    } else {
+                        PortalItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
+                    }
                 }
                 
                 player.inventory.addItem(returnItem)

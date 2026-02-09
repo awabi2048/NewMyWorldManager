@@ -1548,19 +1548,21 @@ class WorldSettingsListener : Listener {
                                                                 it.id == portalId
                                                         }
                                                 if (portal != null) {
-                                                        val world =
-                                                                Bukkit.getWorld(portal.worldName)
-                                                        val block =
-                                                                world?.getBlockAt(
-                                                                        portal.x,
-                                                                        portal.y,
-                                                                        portal.z
-                                                                )
-                                                        if (block != null &&
-                                                                        block.type ==
-                                                                                Material.END_PORTAL_FRAME
-                                                        ) {
-                                                                block.type = Material.AIR
+                                                        if (!portal.isGate()) {
+                                                                val world =
+                                                                        Bukkit.getWorld(portal.worldName)
+                                                                val block =
+                                                                        world?.getBlockAt(
+                                                                                portal.x,
+                                                                                portal.y,
+                                                                                portal.z
+                                                                        )
+                                                                if (block != null &&
+                                                                                block.type ==
+                                                                                        Material.END_PORTAL_FRAME
+                                                                ) {
+                                                                        block.type = Material.AIR
+                                                                }
                                                         }
                                                         plugin.portalManager.removePortalVisuals(
                                                                 portal.id
@@ -1569,46 +1571,79 @@ class WorldSettingsListener : Listener {
                                                                 portal.id
                                                         )
 
-                                                        val returnItem =
+                                                        val returnItem = if (portal.isGate()) {
+                                                                me.awabi2048.myworldmanager.util.WorldGateItemUtil
+                                                                        .createBaseWorldGateItem(
+                                                                                lang,
+                                                                                player
+                                                                        )
+                                                        } else {
                                                                 me.awabi2048.myworldmanager.util
                                                                         .PortalItemUtil
                                                                         .createBasePortalItem(
                                                                                 lang,
                                                                                 player
                                                                         )
+                                                        }
                                                         if (portal.worldUuid != null) {
                                                                 val destData =
                                                                         plugin.worldConfigRepository
                                                                                 .findByUuid(
                                                                                         portal.worldUuid!!
                                                                                 )
-                                                                me.awabi2048.myworldmanager.util
-                                                                        .PortalItemUtil.bindWorld(
-                                                                        returnItem,
-                                                                        portal.worldUuid!!,
-                                                                        worldName = destData?.name
-                                                                                        ?: lang.getMessage(
-                                                                                                player,
-                                                                                                "general.unknown"
-                                                                                        ),
-                                                                        lang,
-                                                                        player
-                                                                )
+                                                                if (portal.isGate()) {
+                                                                        me.awabi2048.myworldmanager.util.WorldGateItemUtil
+                                                                                .bindWorld(
+                                                                                        returnItem,
+                                                                                        portal.worldUuid!!,
+                                                                                        worldName = destData?.name
+                                                                                                ?: lang.getMessage(
+                                                                                                        player,
+                                                                                                        "general.unknown"
+                                                                                                ),
+                                                                                        lang,
+                                                                                        player
+                                                                                )
+                                                                } else {
+                                                                        me.awabi2048.myworldmanager.util
+                                                                                .PortalItemUtil.bindWorld(
+                                                                                returnItem,
+                                                                                portal.worldUuid!!,
+                                                                                worldName = destData?.name
+                                                                                                ?: lang.getMessage(
+                                                                                                        player,
+                                                                                                        "general.unknown"
+                                                                                                ),
+                                                                                lang,
+                                                                                player
+                                                                        )
+                                                                }
                                                         } else if (portal.targetWorldName != null) {
                                                                 val displayName =
                                                                         plugin.config.getString(
                                                                                 "portal_targets.${portal.targetWorldName}"
                                                                         )
                                                                                 ?: portal.targetWorldName!!
-                                                                me.awabi2048.myworldmanager.util
-                                                                        .PortalItemUtil
-                                                                        .bindExternalWorld(
-                                                                                returnItem,
-                                                                                portal.targetWorldName!!,
-                                                                                displayName,
-                                                                                lang,
-                                                                                player
-                                                                        )
+                                                                if (portal.isGate()) {
+                                                                        me.awabi2048.myworldmanager.util.WorldGateItemUtil
+                                                                                .bindExternalWorld(
+                                                                                        returnItem,
+                                                                                        portal.targetWorldName!!,
+                                                                                        displayName,
+                                                                                        lang,
+                                                                                        player
+                                                                                )
+                                                                } else {
+                                                                        me.awabi2048.myworldmanager.util
+                                                                                .PortalItemUtil
+                                                                                .bindExternalWorld(
+                                                                                        returnItem,
+                                                                                        portal.targetWorldName!!,
+                                                                                        displayName,
+                                                                                        lang,
+                                                                                        player
+                                                                                )
+                                                                }
                                                         }
                                                         player.inventory.addItem(returnItem)
 
