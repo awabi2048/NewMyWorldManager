@@ -81,14 +81,15 @@ class AdminGuiListener : Listener {
                         player.closeInventory()
                     } else if (event.isRightClick) {
                         // 撤去
-                        plugin.portalRepository.removePortal(portalUuid)
                         plugin.portalManager.removePortalVisuals(portalUuid)
+                        plugin.portalRepository.removePortal(portalUuid)
                         
-                        // ブロックを空気に（もしエンドポータルフレームなら）
-                        val world = Bukkit.getWorld(portal.worldName)
-                        val block = world?.getBlockAt(portal.x, portal.y, portal.z)
-                        if (block != null && block.type == org.bukkit.Material.END_PORTAL_FRAME) {
-                            block.type = org.bukkit.Material.AIR
+                        if (!portal.isGate()) {
+                            val world = Bukkit.getWorld(portal.worldName)
+                            val block = world?.getBlockAt(portal.x, portal.y, portal.z)
+                            if (block != null && block.type == org.bukkit.Material.END_PORTAL_FRAME) {
+                                block.type = org.bukkit.Material.AIR
+                            }
                         }
                         
                         plugin.soundManager.playAdminClickSound(player)

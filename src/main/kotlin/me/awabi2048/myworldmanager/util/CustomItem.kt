@@ -14,7 +14,11 @@ enum class CustomItem(val id: String) {
     WORLD_PORTAL("world_portal") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack = PortalItemUtil.createBasePortalItem(lang, player)
     },
-    
+
+    WORLD_GATE("world_gate") {
+        override fun create(lang: LanguageManager, player: Player?): ItemStack = WorldGateItemUtil.createBaseWorldGateItem(lang, player)
+    },
+
     EMPTY_BIOME_BOTTLE("empty_biome_bottle") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
             val item = ItemStack(Material.POISONOUS_POTATO)

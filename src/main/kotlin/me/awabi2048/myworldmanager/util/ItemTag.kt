@@ -15,6 +15,7 @@ object ItemTag {
     
     // Types
     const val TYPE_PORTAL = "portal"
+    const val TYPE_WORLD_GATE = "world_gate"
     const val TYPE_EMPTY_BIOME_BOTTLE = "empty_biome_bottle"
     const val TYPE_BOTTLED_BIOME_AIR = "bottled_biome_air"
     const val TYPE_MOON_STONE = "moon_stone"
