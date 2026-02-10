@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
+import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.UUID
@@ -106,6 +108,15 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
         // Add member
         worldData.members.add(requestorUuid)
         plugin.worldConfigRepository.save(worldData)
+        Bukkit.getPluginManager().callEvent(
+            MwmMemberAddedEvent(
+                worldUuid = worldData.uuid,
+                memberUuid = requestorUuid,
+                memberName = Bukkit.getPlayer(requestorUuid)?.name ?: requestorUuid.toString(),
+                addedByUuid = player.uniqueId,
+                source = MwmMemberAddSource.REQUEST_APPROVE
+            )
+        )
 
         // Execute macro
         plugin.macroManager.execute("on_member_add", mapOf(

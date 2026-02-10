@@ -4,6 +4,11 @@ import java.io.File
 import java.util.*
 import java.util.logging.Level
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmDailyMaintenanceCompletedEvent
+import me.awabi2048.myworldmanager.api.event.MwmWorldCreatedEvent
+import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
+import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
+import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
@@ -177,6 +182,17 @@ class WorldService(
                 )
 
         repository.save(worldData)
+
+        Bukkit.getPluginManager().callEvent(
+                MwmWorldCreatedEvent(
+                        worldUuid = worldData.uuid,
+                        worldName = worldData.name,
+                        ownerUuid = worldData.owner,
+                        ownerName = player.name,
+                        templateName = templateName,
+                        createdAt = worldData.createdAt
+                )
+        )
 
         player.sendMessage(
                 plugin.languageManager.getMessage(
@@ -396,7 +412,8 @@ class WorldService(
             player: Player,
             worldUuid: UUID,
             location: Location? = null,
-            runMacro: Boolean = true
+            runMacro: Boolean = true,
+            reason: MwmWarpReason = MwmWarpReason.DIRECT
     ) {
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
@@ -435,6 +452,16 @@ class WorldService(
         player.teleport(targetLoc)
 
         plugin.soundManager.playTeleportSound(player)
+
+        Bukkit.getPluginManager().callEvent(
+                MwmWorldWarpedEvent(
+                        playerUuid = player.uniqueId,
+                        playerName = player.name,
+                        worldUuid = worldUuid,
+                        toLocation = targetLoc.clone(),
+                        reason = reason
+                )
+        )
 
         // マクロ実行
         if (runMacro) {
@@ -522,6 +549,15 @@ class WorldService(
                 if (deleted) {
                     repository.delete(worldUuid)
 
+                    Bukkit.getPluginManager().callEvent(
+                            MwmWorldDeletedEvent(
+                                    worldUuid = worldUuid,
+                                    ownerUuid = worldData.owner,
+                                    refundPoints = refund,
+                                    wasArchived = worldData.isArchived
+                            )
+                    )
+
                     // マクロ実行
                     plugin.macroManager.execute(
                             "on_world_delete",
@@ -534,6 +570,14 @@ class WorldService(
             } else {
                 // フォルダがない場合もデータだけ削除
                 repository.delete(worldUuid)
+                Bukkit.getPluginManager().callEvent(
+                        MwmWorldDeletedEvent(
+                                worldUuid = worldUuid,
+                                ownerUuid = worldData.owner,
+                                refundPoints = refund,
+                                wasArchived = worldData.isArchived
+                        )
+                )
                 future.complete(true)
             }
         } else {
@@ -656,6 +700,15 @@ class WorldService(
 
         // マクロ実行
         plugin.macroManager.execute("on_daily_maintenance", emptyMap())
+
+        Bukkit.getPluginManager().callEvent(
+                MwmDailyMaintenanceCompletedEvent(
+                        executedDate = today,
+                        updatedCount = updatedCount,
+                        archivedCount = archivedCount,
+                        totalWorlds = worlds.size
+                )
+        )
 
         return mapOf(
             "updated" to updatedCount,

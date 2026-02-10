@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.repository
 
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.util.UUID
@@ -88,6 +89,20 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      */
     fun findAll(): List<WorldData> {
         return cache.values.toList()
+    }
+
+    /**
+     * 所有者UUIDを指定してワールドデータを取得する
+     */
+    fun findByOwner(ownerUuid: UUID): List<WorldData> {
+        return cache.values.filter { it.owner == ownerUuid }
+    }
+
+    /**
+     * プレイヤーが所有するワールドデータを取得する
+     */
+    fun findByOwner(player: Player): List<WorldData> {
+        return findByOwner(player.uniqueId)
     }
 
     /**

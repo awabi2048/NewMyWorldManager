@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
+import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.FavoriteGui
 import me.awabi2048.myworldmanager.gui.VisitGui
@@ -177,6 +179,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     if (worldData.owner == player.uniqueId) return
                     
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                    var favoriteAdded = false
 
                     if (stats.favoriteWorlds.containsKey(uuid)) {
                         stats.favoriteWorlds.remove(uuid)
@@ -191,11 +194,23 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                         }
                         stats.favoriteWorlds[uuid] = java.time.LocalDate.now().toString()
                         worldData.favorite++
+                        favoriteAdded = true
                         player.sendMessage(lang.getMessage(player, "messages.favorite_added"))
                         plugin.soundManager.playActionSound(player, "favorite", "favorite_add")
                     }
                     plugin.playerStatsRepository.save(stats)
                     plugin.worldConfigRepository.save(worldData)
+                    if (favoriteAdded) {
+                        Bukkit.getPluginManager().callEvent(
+                            MwmWorldFavoritedEvent(
+                                worldUuid = worldData.uuid,
+                                worldName = worldData.name,
+                                playerUuid = player.uniqueId,
+                                playerName = player.name,
+                                source = MwmFavoriteAddSource.FAVORITE_MENU
+                            )
+                        )
+                    }
                     plugin.favoriteMenuGui.open(player, worldData)
                 }
                 ItemTag.TYPE_GUI_FAVORITE_LIST -> {

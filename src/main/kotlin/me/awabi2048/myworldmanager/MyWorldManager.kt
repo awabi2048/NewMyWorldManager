@@ -309,6 +309,11 @@ class MyWorldManager : JavaPlugin() {
         logger.info("全てのシステム設定およびデータを再読み込みしました。")
     }
 
+    /** プレイヤーが所有するマイワールド一覧を取得する */
+    fun getOwnedWorlds(player: Player): List<WorldData> {
+        return worldConfigRepository.findByOwner(player)
+    }
+
     /** リソースファイルが存在しない場合のみ保存する */
     private fun saveResourceIfNotExists(resourcePath: String) {
         val file = java.io.File(dataFolder, resourcePath)

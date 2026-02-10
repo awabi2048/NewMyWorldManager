@@ -3,6 +3,10 @@ package me.awabi2048.myworldmanager.listener
 import io.papermc.paper.event.player.AsyncChatEvent
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmMemberRemoveSource
+import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
+import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferSource
+import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.model.WorldTag
@@ -337,6 +341,15 @@ class WorldSettingsListener : Listener {
                                                 worldData.members.remove(memberId)
                                                 worldData.moderators.remove(memberId)
                                                 plugin.worldConfigRepository.save(worldData)
+                                                Bukkit.getPluginManager().callEvent(
+                                                        MwmMemberRemovedEvent(
+                                                                worldUuid = worldData.uuid,
+                                                                memberUuid = memberId,
+                                                                memberName = memberName,
+                                                                removedByUuid = player.uniqueId,
+                                                                source = MwmMemberRemoveSource.MANUAL
+                                                        )
+                                                )
                                                 player.sendMessage(
                                                         plugin.languageManager.getMessage(
                                                                 "messages.member_deleted"
@@ -400,6 +413,17 @@ class WorldSettingsListener : Listener {
                                         worldData.members.remove(newOwnerId)
 
                                         plugin.worldConfigRepository.save(worldData)
+                                        Bukkit.getPluginManager().callEvent(
+                                                MwmOwnerTransferredEvent(
+                                                        worldUuid = worldData.uuid,
+                                                        oldOwnerUuid = oldOwnerId,
+                                                        oldOwnerName = oldOwnerName,
+                                                        newOwnerUuid = newOwnerId,
+                                                        newOwnerName = newOwnerName,
+                                                        transferredByUuid = player.uniqueId,
+                                                        source = MwmOwnerTransferSource.MANUAL
+                                                )
+                                        )
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
                                                         player,
@@ -4028,6 +4052,15 @@ player.sendMessage(
                         worldData.members.remove(targetUuid)
                         worldData.moderators.remove(targetUuid)
                         plugin.worldConfigRepository.save(worldData)
+                        Bukkit.getPluginManager().callEvent(
+                                MwmMemberRemovedEvent(
+                                        worldUuid = worldData.uuid,
+                                        memberUuid = targetUuid,
+                                        memberName = memberName,
+                                        removedByUuid = player.uniqueId,
+                                        source = MwmMemberRemoveSource.MANUAL
+                                )
+                        )
                         player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
                         plugin.macroManager.execute(
                                 "on_member_remove",
@@ -4054,6 +4087,17 @@ player.sendMessage(
                         worldData.moderators.remove(newOwnerId)
                         worldData.members.remove(newOwnerId)
                         plugin.worldConfigRepository.save(worldData)
+                        Bukkit.getPluginManager().callEvent(
+                                MwmOwnerTransferredEvent(
+                                        worldUuid = worldData.uuid,
+                                        oldOwnerUuid = oldOwnerId,
+                                        oldOwnerName = oldOwnerName,
+                                        newOwnerUuid = newOwnerId,
+                                        newOwnerName = newOwnerName,
+                                        transferredByUuid = player.uniqueId,
+                                        source = MwmOwnerTransferSource.MANUAL
+                                )
+                        )
                         plugin.macroManager.execute(
                                 "on_owner_transfer",
                                 mapOf(
