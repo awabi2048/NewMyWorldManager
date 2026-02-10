@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
+import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DiscoveryGui
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldTag
@@ -119,6 +121,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         if (isWorldMember) return // 所属ワールドはお気に入り不可
 
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                        var favoriteAdded = false
                         if (stats.favoriteWorlds.containsKey(uuid)) {
                             stats.favoriteWorlds.remove(uuid)
                             worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
@@ -134,11 +137,23 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                             val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
                             stats.favoriteWorlds[uuid] = now.format(formatter)
                             worldData.favorite++
+                            favoriteAdded = true
                             player.sendMessage(lang.getMessage(player, "messages.favorite_added"))
                             plugin.soundManager.playActionSound(player, "discovery", "favorite_add")
                         }
                         plugin.playerStatsRepository.save(stats)
                         plugin.worldConfigRepository.save(worldData)
+                        if (favoriteAdded) {
+                            Bukkit.getPluginManager().callEvent(
+                                MwmWorldFavoritedEvent(
+                                    worldUuid = worldData.uuid,
+                                    worldName = worldData.name,
+                                    playerUuid = player.uniqueId,
+                                    playerName = player.name,
+                                    source = MwmFavoriteAddSource.DISCOVERY_MENU
+                                )
+                            )
+                        }
                         plugin.discoveryGui.open(player)
                     } else {
                         // プレビュー (通常右クリック)

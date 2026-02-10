@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmLikeSignLikeSource
+import me.awabi2048.myworldmanager.api.event.MwmLikeSignLikedEvent
 import me.awabi2048.myworldmanager.gui.LikeSignDialogManager
 import me.awabi2048.myworldmanager.model.LikeSignDisplayType
 import me.awabi2048.myworldmanager.util.CustomItem
@@ -79,6 +81,17 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
                 plugin.worldConfigRepository.save(worldData)
                 plugin.likeSignManager.refreshSignDisplay(signData, worldData)
                 plugin.likeSignManager.setCooldown(player.uniqueId)
+                plugin.server.pluginManager.callEvent(
+                    MwmLikeSignLikedEvent(
+                        worldUuid = worldData.uuid,
+                        signUuid = signData.uuid,
+                        title = signData.title,
+                        likedByUuid = player.uniqueId,
+                        likedByName = player.name,
+                        source = MwmLikeSignLikeSource.SIGN_BLOCK,
+                        likeCount = signData.likeCount()
+                    )
+                )
 
                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.liked"))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f)
@@ -126,6 +139,17 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
             plugin.worldConfigRepository.save(worldData)
             plugin.likeSignManager.refreshSignDisplay(signData, worldData)
             plugin.likeSignManager.setCooldown(player.uniqueId)
+            plugin.server.pluginManager.callEvent(
+                MwmLikeSignLikedEvent(
+                    worldUuid = worldData.uuid,
+                    signUuid = signData.uuid,
+                    title = signData.title,
+                    likedByUuid = player.uniqueId,
+                    likedByName = player.name,
+                    source = MwmLikeSignLikeSource.HOLOGRAM,
+                    likeCount = signData.likeCount()
+                )
+            )
 
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.liked"))
             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f)

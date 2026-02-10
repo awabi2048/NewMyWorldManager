@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
 import net.kyori.adventure.text.Component
@@ -352,7 +353,11 @@ class PortalManager(private val plugin: MyWorldManager) {
             }
 
             // ワープ実行
-            plugin.worldService.teleportToWorld(player, portal.worldUuid!!)
+            plugin.worldService.teleportToWorld(
+                player,
+                portal.worldUuid!!,
+                reason = MwmWarpReason.PORTAL
+            )
             warpCooldowns[player.uniqueId] = System.currentTimeMillis()
             player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to destData.name)))
 

@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmVisitSource
+import me.awabi2048.myworldmanager.api.event.MwmWorldVisitedEvent
 import me.awabi2048.myworldmanager.model.PublishLevel
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
@@ -54,17 +56,34 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
 
     }
 
-    private fun handleWorldEntry(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
+    private fun handleWorldEntry(
+        player: Player,
+        worldData: me.awabi2048.myworldmanager.model.WorldData,
+        source: MwmVisitSource
+    ) {
         val isMember = worldData.owner == player.uniqueId || 
                        worldData.members.contains(player.uniqueId) || 
                        worldData.moderators.contains(player.uniqueId)
 
         if (!isMember) {
             // 訪問者統計の更新 (同日の重複カウント防止)
-            if (PlayerTag.shouldCountVisit(player, worldData.uuid)) {
+            val firstVisitToday = PlayerTag.shouldCountVisit(player, worldData.uuid)
+            if (firstVisitToday) {
                 worldData.recentVisitors[0]++
                 plugin.worldConfigRepository.save(worldData)
             }
+
+            plugin.server.pluginManager.callEvent(
+                MwmWorldVisitedEvent(
+                    worldUuid = worldData.uuid,
+                    worldName = worldData.name,
+                    visitorUuid = player.uniqueId,
+                    visitorName = player.name,
+                    ownerUuid = worldData.owner,
+                    firstVisitToday = firstVisitToday,
+                    source = source
+                )
+            )
 
             // アナウンスメッセージ送信
             plugin.worldService.sendAnnouncementMessage(player, worldData)
@@ -90,7 +109,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
         val worldData = repository.findByWorldName(player.world.name) ?: return
         
         // 共通処理呼び出し
-        handleWorldEntry(player, worldData)
+        handleWorldEntry(player, worldData, MwmVisitSource.WORLD_CHANGE)
     }
 
     @EventHandler
@@ -107,7 +126,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
             player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
         } else {
             // 共通処理呼び出し
-            handleWorldEntry(player, worldData)
+            handleWorldEntry(player, worldData, MwmVisitSource.JOIN)
         }
     }
 }

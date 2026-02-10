@@ -1,6 +1,9 @@
 package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
+import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
+import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
 import org.bukkit.entity.Player
 import java.util.UUID
@@ -60,9 +63,18 @@ class MemberInviteManager(
 
         worldData.members.add(player.uniqueId)
         worldConfigRepository.save(worldData)
+        Bukkit.getPluginManager().callEvent(
+            MwmMemberAddedEvent(
+                worldUuid = worldData.uuid,
+                memberUuid = player.uniqueId,
+                memberName = player.name,
+                addedByUuid = info.senderUuid,
+                source = MwmMemberAddSource.INVITE
+            )
+        )
         player.sendMessage(lang.getMessage(player, "messages.invite_accepted_self", mapOf("world" to worldData.name)))
         
-        val sender = org.bukkit.Bukkit.getPlayer(info.senderUuid)
+        val sender = Bukkit.getPlayer(info.senderUuid)
         sender?.sendMessage(lang.getMessage(sender, "messages.invite_accepted_sender", mapOf("player" to player.name, "world" to worldData.name)))
 
         // マクロ実行
