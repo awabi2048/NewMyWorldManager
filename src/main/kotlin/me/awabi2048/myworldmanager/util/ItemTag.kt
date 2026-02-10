@@ -20,6 +20,7 @@ object ItemTag {
     const val TYPE_BOTTLED_BIOME_AIR = "bottled_biome_air"
     const val TYPE_MOON_STONE = "moon_stone"
     const val TYPE_WORLD_SEED = "world_seed"
+    const val TYPE_LIKE_SIGN = "like_sign"
 
     const val TYPE_GUI_NAV_PREV = "gui_nav_prev"
     const val TYPE_GUI_NAV_NEXT = "gui_nav_next"

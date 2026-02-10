@@ -84,6 +84,26 @@ enum class CustomItem(val id: String) {
             ItemTag.tagItem(item, ItemTag.TYPE_WORLD_SEED)
             return item
         }
+    },
+    
+    LIKE_SIGN("like_sign") {
+        override fun create(lang: LanguageManager, player: Player?): ItemStack {
+            val item = ItemStack(Material.POISONOUS_POTATO)
+            val meta = item.itemMeta ?: return item
+            
+            meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.like_sign.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
+            meta.lore(lang.getMessageList(player, "custom_item.like_sign.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
+            
+            meta.setMaxStackSize(16)
+            meta.setItemModel(NamespacedKey("minecraft", "pale_oak_sign"))
+            item.itemMeta = meta
+            
+            item.unsetData(DataComponentTypes.CONSUMABLE)
+            item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("like_sign").build())
+            
+            ItemTag.tagItem(item, ItemTag.TYPE_LIKE_SIGN)
+            return item
+        }
     };
 
     abstract fun create(lang: LanguageManager, player: Player?): ItemStack

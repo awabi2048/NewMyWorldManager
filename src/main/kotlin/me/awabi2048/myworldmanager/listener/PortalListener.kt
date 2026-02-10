@@ -76,6 +76,17 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         if (ItemTag.isType(item, ItemTag.TYPE_WORLD_GATE) && (event.action == Action.RIGHT_CLICK_AIR || event.action == Action.RIGHT_CLICK_BLOCK)) {
             val lang = plugin.languageManager
             if (player.isSneaking) {
+                val boundWorldUuid = WorldGateItemUtil.getBoundWorldUuid(item)
+                val boundTargetWorldName = WorldGateItemUtil.getBoundTargetWorldName(item)
+                
+                if (boundWorldUuid != null || boundTargetWorldName != null) {
+                    WorldGateItemUtil.unbindWorld(item, lang, player)
+                    player.sendMessage(lang.getMessage(player, "messages.world_gate_unbind_success"))
+                    gateSelections.remove(player.uniqueId)
+                    event.isCancelled = true
+                    return
+                }
+                
                 val managedWorld = plugin.worldConfigRepository.findByWorldName(player.world.name)
                 if (managedWorld == null) {
                     player.sendMessage(lang.getMessage(player, "error.portal_bind_myworld_only"))
@@ -205,15 +216,27 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        // 2. 設置済みポータルの操作（メニュー）
-        if (event.action == Action.RIGHT_CLICK_BLOCK) {
-            val block = event.clickedBlock ?: return
-            val portal = plugin.portalRepository.findByContainingLocation(block.location) ?: return
-
-            // 権限チェック (設置者または管理者)
-            if (portal.ownerUuid == player.uniqueId || player.hasPermission("myworldmanager.admin")) {
-                event.isCancelled = true
-                PortalGui(plugin).open(player, portal)
+        // 2. 設置済みポータル/ゲートの操作（メニュー）
+        if ((event.action == Action.RIGHT_CLICK_BLOCK || event.action == Action.RIGHT_CLICK_AIR) && !player.isSneaking) {
+            val targetLocation = when (event.action) {
+                Action.RIGHT_CLICK_BLOCK -> event.clickedBlock?.location
+                Action.RIGHT_CLICK_AIR -> {
+                    val eyeLocation = player.eyeLocation
+                    val direction = eyeLocation.direction
+                    val rayTraceResult = player.world.rayTraceBlocks(eyeLocation, direction, 5.0, org.bukkit.FluidCollisionMode.NEVER, true)
+                    rayTraceResult?.hitBlock?.location
+                }
+                else -> null
+            }
+            
+            if (targetLocation != null) {
+                val portal = plugin.portalRepository.findByContainingLocation(targetLocation)
+                if (portal != null && portal.isGate()) {
+                    if (portal.ownerUuid == player.uniqueId || player.hasPermission("myworldmanager.admin")) {
+                        event.isCancelled = true
+                        PortalGui(plugin).open(player, portal)
+                    }
+                }
             }
         }
     }
