@@ -20,3 +20,9 @@ enum class WorldTag(val displayName: String) {
         fun fromDisplayName(name: String): WorldTag? = values().find { it.displayName == name }
     }
 }
+
+/** Like看板の表示形式 */
+enum class LikeSignDisplayType {
+    SIGN,
+    HOLOGRAM
+}

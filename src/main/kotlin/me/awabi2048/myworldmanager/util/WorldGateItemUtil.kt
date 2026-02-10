@@ -16,7 +16,7 @@ object WorldGateItemUtil {
     private val TARGET_WORLD_NAME_KEY = NamespacedKey("myworldmanager", "world_gate_target_world_name")
 
     fun createBaseWorldGateItem(lang: LanguageManager, player: Player?): ItemStack {
-        val item = ItemStack(Material.END_PORTAL_FRAME)
+        val item = ItemStack(Material.POISONOUS_POTATO)
         val meta = item.itemMeta ?: return item
         meta.displayName(Component.text(lang.getMessage(player, "gui.world_gate_item.name")).decoration(TextDecoration.ITALIC, false))
         meta.lore(lang.getComponentList(player, "gui.world_gate_item.lore_unbound"))
@@ -28,6 +28,7 @@ object WorldGateItemUtil {
         meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
         item.itemMeta = meta
 
+        item.unsetData(DataComponentTypes.CONSUMABLE)
         item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("world_gate").build())
 
         ItemTag.tagItem(item, ItemTag.TYPE_WORLD_GATE)

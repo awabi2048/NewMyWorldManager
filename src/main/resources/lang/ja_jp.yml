@@ -1339,6 +1339,29 @@ gui:
         - "§e§nクリックで開く"
         - "§8§m－－－－－－－－－－－－－－－－－－"
 
+  like_sign:
+    placement:
+      title: "Like看板の設置"
+      description: "§7Like看板の設定を入力してください"
+    edit:
+      title: "Like看板の編集"
+      current_likes: "§7現在のLike数"
+    display_type:
+      sign: "看板"
+      hologram: "ホログラム"
+    input:
+      title: "タイトル"
+      description: "説明文"
+      display_type: "表示形式"
+    button:
+      place: "設置する"
+      cancel: "キャンセル"
+      save: "保存"
+      delete: "削除"
+    unlike_confirm:
+      title: "Likeの取り消し"
+      description: "§cLikeを取り消しますか？"
+
 # メッセージ
 messages:
   # 設定操作
@@ -1430,6 +1453,14 @@ messages:
     - "§eおあげちゃんが境界線を押し広げています！"
     - "§eおあげちゃんが新しい土地を開拓しています..."
   oage_ganbaru_default: "§e拡張の準備をしています..."
+  
+  # Like看板
+  like_sign:
+    placed: "§aLike看板を設置しました！"
+    saved: "§aLike看板を更新しました！"
+    deleted: "§cLike看板を削除しました。"
+    liked: "§c❤ §aLikeしました！"
+    unliked: "§cLikeを取り消しました。"
 
   # 拡張・削除・アーカイブ
   expand_direction_prompt: "§a拡張したい方角（北西・北東・南西・南東）を向いて左クリックしてください"
@@ -1492,6 +1523,7 @@ messages:
   portal_place_success: "§aワールドポータルを設置しました"
   portal_broken: "§eワールドポータルが破壊されました"
   world_gate_bind_success: "§aこのワールドゲートを「{destination}」に紐づけました"
+  world_gate_unbind_success: "§aワールドゲートのリンクを解除しました。"
   world_gate_select_first: "§eワールドゲートの1点目を右クリックで選択してください。"
   world_gate_select_second: "§eワールドゲートの2点目を右クリックで選択してください。"
   world_gate_point_selected: "§a{point}点目を選択: §f({x}, {y}, {z})"
@@ -1618,6 +1650,15 @@ custom_item:
       - "§8§m－－－－－－－－－－－－－－－－－－"
       - "§e§l| §e右クリックで使用"
       - "§8§m－－－－－－－－－－－－－－－－－－"
+  like_sign:
+    name: "§3Like看板"
+    lore:
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§7訪問者が§c❤§7を押せる看板です！"
+      - "§7マイワールド内に設置できます。"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
+      - "§e§l| §e右クリックで設置"
+      - "§8§m－－－－－－－－－－－－－－－－－－"
 
 
 biomes:
@@ -1724,3 +1765,9 @@ error:
   world_creation_in_progress: "§cワールド作成処理が進行中です。"
   world_load_failed: "§cワールドのロードに失敗しました。"
   world_not_public: "§cこのワールドは現在公開されていません。"
+  like_sign:
+    my_world_only: "§cLike看板はマイワールド内でのみ設置できます。"
+    no_permission: "§cこのワールドにLike看板を設置する権限がありません。"
+    limit_reached: "§cこのワールドには既に10個のLike看板が設置されています。"
+    title_required: "§cタイトルを入力してください。"
+    cooldown: "§cしばらく待ってからもう一度お試しください。"

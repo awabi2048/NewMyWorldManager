@@ -36,7 +36,8 @@ data class WorldData(
     var gravityMultiplier: Double = 1.0,
     var fixedWeather: String? = null,
     var fixedBiome: String? = null,
-    val partialBiomes: MutableList<PartialBiomeData> = mutableListOf()
+    val partialBiomes: MutableList<PartialBiomeData> = mutableListOf(),
+    val likeSigns: MutableList<LikeSignData> = mutableListOf()
 ) : ConfigurationSerializable {
 
     override fun serialize(): Map<String, Any?> {
@@ -68,7 +69,8 @@ data class WorldData(
             "gravity_multiplier" to gravityMultiplier,
             "fixed_weather" to fixedWeather,
             "fixed_biome" to fixedBiome,
-            "partial_biomes" to partialBiomes.map { mapOf("x" to it.x, "z" to it.z, "radius" to it.radius, "biome" to it.biome) }
+            "partial_biomes" to partialBiomes.map { mapOf("x" to it.x, "z" to it.z, "radius" to it.radius, "biome" to it.biome) },
+            "like_signs" to likeSigns.map { it.serialize() }
         )
     }
 
@@ -136,6 +138,12 @@ data class WorldData(
                     val radius = (map["radius"] as? Number)?.toInt() ?: return@mapNotNull null
                     val biome = map["biome"] as? String ?: return@mapNotNull null
                     PartialBiomeData(x, z, radius, biome)
+                }?.toMutableList() ?: mutableListOf(),
+                likeSigns = (args["like_signs"] as? List<*>)?.mapNotNull {
+                    try {
+                        @Suppress("UNCHECKED_CAST")
+                        LikeSignData.deserialize(it as Map<String, Any>)
+                    } catch (e: Exception) { null }
                 }?.toMutableList() ?: mutableListOf()
             )
         }

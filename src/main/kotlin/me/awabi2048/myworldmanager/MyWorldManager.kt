@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager
 import me.awabi2048.myworldmanager.command.*
 import me.awabi2048.myworldmanager.gui.*
 import me.awabi2048.myworldmanager.listener.*
+import me.awabi2048.myworldmanager.model.LikeSignData
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.service.*
@@ -63,10 +64,12 @@ class MyWorldManager : JavaPlugin() {
     lateinit var worldUnloadService: WorldUnloadService
     lateinit var msptMonitorTask: me.awabi2048.myworldmanager.task.MsptMonitorTask
     lateinit var inviteCommand: me.awabi2048.myworldmanager.command.InviteCommand
+    lateinit var likeSignManager: me.awabi2048.myworldmanager.service.LikeSignManager
 
     override fun onEnable() {
         // Serializationの登録
         ConfigurationSerialization.registerClass(WorldData::class.java)
+        ConfigurationSerialization.registerClass(LikeSignData::class.java)
 
         // 設定用フォルダの作成
         if (!dataFolder.exists()) {
@@ -109,6 +112,7 @@ class MyWorldManager : JavaPlugin() {
         portalManager.startTasks()
         worldUnloadService = WorldUnloadService(this)
         worldUnloadService.start()
+        likeSignManager = LikeSignManager(this)
 
         // MSPT監視タスクの開始
         msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
@@ -211,6 +215,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)
         server.pluginManager.registerEvents(AnnouncementDialogManager(), this)
+        server.pluginManager.registerEvents(LikeSignListener(this), this)
+        server.pluginManager.registerEvents(LikeSignDialogManager(), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
