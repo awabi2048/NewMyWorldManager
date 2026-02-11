@@ -151,3 +151,9 @@ mspt_monitor:
   enabled: true
   interval_seconds: 30
   threshold: 40.0
+
+# 統合版プレイヤー設定
+bedrock:
+  # 統合版プレイヤーのプレイヤー名接頭辞（GeyserMC等で使用される接頭辞）
+  # 例: "." を設定すると、統合版プレイヤーは ".PlayerName" の形式で検出されます
+  player_name_prefix: "."
