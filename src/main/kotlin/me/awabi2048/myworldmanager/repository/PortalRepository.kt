@@ -118,10 +118,10 @@ class PortalRepository(private val plugin: MyWorldManager) {
                 finalWorldUuid = null
             }
 
-            val textDisplayUuidStr = section.getString("text_display_uuid")
-            val textDisplayUuid = if (textDisplayUuidStr != null && textDisplayUuidStr != "null") UUID.fromString(textDisplayUuidStr) else null
-            
-            portals[id] = PortalData(
+             val textDisplayUuidStr = section.getString("text_display_uuid")
+             val textDisplayUuid = if (textDisplayUuidStr != null && textDisplayUuidStr != "null") UUID.fromString(textDisplayUuidStr) else null
+             
+             portals[id] = PortalData(
                 id = id,
                 worldName = worldName,
                 x = lx,
@@ -149,40 +149,44 @@ class PortalRepository(private val plugin: MyWorldManager) {
     }
 
      fun saveAll() {
-          val config = YamlConfiguration()
-          val section = config.createSection("portals")
-          for ((id, data) in portals) {
-              val s = section.createSection(id.toString())
-              s.set("type", data.type.key)
-              // 整数値として保存
-              s.set("location", mapOf(
-                  "world" to data.worldName,
-                  "x" to data.x,
-                  "y" to data.y,
-                  "z" to data.z
-              ))
-              if (data.isGate()) {
-                  s.set(
-                      "area",
-                      mapOf(
-                          "min_x" to data.getMinX(),
-                          "min_y" to data.getMinY(),
-                          "min_z" to data.getMinZ(),
-                          "max_x" to data.getMaxX(),
-                          "max_y" to data.getMaxY(),
-                          "max_z" to data.getMaxZ()
-                      )
-                  )
-              }
-              s.set("world_uuid", data.worldUuid?.toString())
-              s.set("target_world_name", data.targetWorldName)
-              s.set("show_text", data.showText)
-              s.set("color", data.particleColor.asRGB())
-              s.set("owner_uuid", data.ownerUuid.toString())
-             s.set("created_at", data.createdAt)
-             s.set("text_display_uuid", data.textDisplayUuid?.toString())
+         try {
+             val config = YamlConfiguration()
+             val section = config.createSection("portals")
+             for ((id, data) in portals) {
+                 val s = section.createSection(id.toString())
+                 s.set("type", data.type.key)
+                 s.set("location", mapOf(
+                     "world" to data.worldName,
+                     "x" to data.x,
+                     "y" to data.y,
+                     "z" to data.z
+                 ))
+                 if (data.isGate()) {
+                     s.set(
+                         "area",
+                         mapOf(
+                             "min_x" to data.getMinX(),
+                             "min_y" to data.getMinY(),
+                             "min_z" to data.getMinZ(),
+                             "max_x" to data.getMaxX(),
+                             "max_y" to data.getMaxY(),
+                             "max_z" to data.getMaxZ()
+                         )
+                     )
+                 }
+                 s.set("world_uuid", data.worldUuid?.toString())
+                 s.set("target_world_name", data.targetWorldName)
+                 s.set("show_text", data.showText)
+                 s.set("color", data.particleColor.asRGB())
+                 s.set("owner_uuid", data.ownerUuid.toString())
+                 s.set("created_at", data.createdAt)
+                 s.set("text_display_uuid", data.textDisplayUuid?.toString())
+             }
+             config.save(file)
+         } catch (e: Exception) {
+             plugin.logger.warning("[PortalRepository] 保存中にエラーが発生しました: ${e.message}")
+             e.printStackTrace()
          }
-         config.save(file)
      }
 
     fun addPortal(portal: PortalData) {
@@ -215,4 +219,6 @@ class PortalRepository(private val plugin: MyWorldManager) {
             it.worldName == worldName && it.containsBlock(location.blockX, location.blockY, location.blockZ)
         }
     }
+
+    fun findById(id: UUID): PortalData? = portals[id]
 }

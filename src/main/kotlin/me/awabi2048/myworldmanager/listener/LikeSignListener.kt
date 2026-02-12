@@ -20,7 +20,6 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractAtEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
-import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.inventory.EquipmentSlot
 import java.util.UUID
 
@@ -161,17 +160,4 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    @EventHandler
-    fun onChunkLoad(event: ChunkLoadEvent) {
-        val world = event.world
-        val worldName = world.name
-
-        if (!worldName.startsWith("my_world.")) return
-
-        val worldUuidStr = worldName.removePrefix("my_world.")
-        val worldUuid = try { UUID.fromString(worldUuidStr) } catch (e: Exception) { return }
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-
-        plugin.likeSignManager.spawnHologramsForWorld(worldData)
-    }
 }

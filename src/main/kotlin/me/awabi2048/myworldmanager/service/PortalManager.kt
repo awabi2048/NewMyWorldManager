@@ -35,9 +35,35 @@ class PortalManager(private val plugin: MyWorldManager) {
     }
 
     fun startTasks() {
+        // TextDisplayの存在確認を初期化時に実行
+        initializeTextDisplays()
+        
         Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             updatePortals()
-        }, 0L, 4L) // 4tick間隔 (0.2秒)
+        }, 0L, 20L) // 20tick間隔 (1秒)
+    }
+    
+    /**
+     * サーバー起動時に既存のTextDisplayをメモリマップに復元
+     */
+    private fun initializeTextDisplays() {
+        val portals = plugin.portalRepository.findAll()
+        for (portal in portals) {
+            if (!portal.showText || portal.textDisplayUuid == null) continue
+            
+            val world = Bukkit.getWorld(portal.worldName) ?: continue
+            val entity = world.getEntity(portal.textDisplayUuid!!)
+            
+            if (entity is TextDisplay && entity.isValid) {
+                // 既存のTextDisplayをメモリマップに復元
+                textDisplays[portal.id] = entity
+                displayToPortal[entity.uniqueId] = portal.id
+            } else {
+                // 無効な場合はUUIDをクリア
+                portal.textDisplayUuid = null
+            }
+        }
+        plugin.portalRepository.saveAll()
     }
 
     /**
@@ -221,57 +247,89 @@ class PortalManager(private val plugin: MyWorldManager) {
          val world = loc.world ?: return
          val displayLoc = loc.clone().add(0.0, 3.0, 0.0)
          
+         // メモリマップから取得
          var display = textDisplays[portal.id]
          
          // 既存のTextDisplayが有効か確認
-         if (display == null || !display.isValid) {
-             // 無効な場合は新しく作成
-             // まず、保存されているUUIDから取得を試みる
-             if (portal.textDisplayUuid != null) {
-                 val world = Bukkit.getWorld(portal.worldName)
-                 if (world != null) {
-                     val entity = world.getEntity(portal.textDisplayUuid!!)
-                     if (entity is TextDisplay && entity.isValid) {
-                         // 保存されたUUIDが有効なら使用
-                         display = entity
-                         textDisplays[portal.id] = display
-                     } else {
-                         // 無効ならUUIDをクリア
-                         portal.textDisplayUuid = null
-                     }
-                 }
-             }
-             
-             // それでも無効なら新規作成
-             if (display == null || !display.isValid) {
-                 // 周囲の孤立したTextDisplayを削除
-                 world.getNearbyEntities(displayLoc, 1.0, 1.0, 1.0) { it is TextDisplay }.forEach { 
-                     if (it is TextDisplay && it.uniqueId != portal.textDisplayUuid) it.remove() 
-                 }
-                 
-                 display = world.spawn(displayLoc, TextDisplay::class.java) {
-                     it.billboard = org.bukkit.entity.Display.Billboard.CENTER
-                 }
-                 
-                 // 紐付け情報を保存
-                 portal.textDisplayUuid = display.uniqueId
+         if (display != null && display.isValid) {
+             // 有効な場合はテキストを更新して終了
+             updateDisplayText(display, portal, lang)
+             return
+         }
+         
+         // メモリマップにない場合、保存されているUUIDから取得を試みる
+         if (portal.textDisplayUuid != null) {
+             val savedUuid = portal.textDisplayUuid!!
+             val entity = world.getEntity(savedUuid)
+             if (entity is TextDisplay && entity.isValid) {
+                 // 保存されたUUIDが有効なら使用
+                 display = entity
                  textDisplays[portal.id] = display
                  displayToPortal[display.uniqueId] = portal.id
-                 
-                 // リポジトリに保存
-                 plugin.portalRepository.saveAll()
+                 updateDisplayText(display, portal, lang)
+                 return
+             } else {
+                 // 無効ならUUIDをクリア（リポジトリ内のオブジェクトも更新）
+                 val repoPortal = plugin.portalRepository.findById(portal.id)
+                 if (repoPortal != null) {
+                     repoPortal.textDisplayUuid = null
+                 }
              }
          }
-
-        val destName = if (portal.worldUuid != null) {
-            val destinationData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
-            destinationData?.name ?: "未知のワールド"
-        } else {
-            val configName = plugin.config.getString("portal_targets.${portal.targetWorldName}")
-            configName ?: portal.targetWorldName ?: "未知のワールド"
-        }
-        
-        val color = TextColor.color(portal.particleColor.asRGB())
+         
+         // 位置ベースでも検索してみる（UUIDが変わっていても検出できるように）
+         val nearbyDisplays = world.getNearbyEntities(displayLoc, 0.5, 0.5, 0.5)
+             .filterIsInstance<TextDisplay>()
+             .filter { it.isValid }
+         
+         if (nearbyDisplays.isNotEmpty()) {
+             // 既存のTextDisplayを再利用
+             display = nearbyDisplays.first()
+             // リポジトリ内のオブジェクトも更新
+             val repoPortal = plugin.portalRepository.findById(portal.id)
+             if (repoPortal != null) {
+                 repoPortal.textDisplayUuid = display.uniqueId
+                 plugin.portalRepository.saveAll()
+             }
+             textDisplays[portal.id] = display
+             displayToPortal[display.uniqueId] = portal.id
+             updateDisplayText(display, portal, lang)
+             return
+         }
+         
+         // 新規作成が必要な場合
+         display = world.spawn(displayLoc, TextDisplay::class.java) {
+             it.billboard = org.bukkit.entity.Display.Billboard.CENTER
+         }
+         
+         // 紐付け情報を保存
+         // 重要: リポジトリ内のオブジェクトを更新する必要がある
+         val repoPortal = plugin.portalRepository.findById(portal.id)
+         if (repoPortal != null) {
+             repoPortal.textDisplayUuid = display.uniqueId
+             plugin.portalRepository.saveAll()
+         }
+         
+         textDisplays[portal.id] = display
+         displayToPortal[display.uniqueId] = portal.id
+         
+         // 新規作成した場合もテキストを更新
+         updateDisplayText(display, portal, lang)
+      }
+     
+     /**
+      * TextDisplayのテキストを更新
+      */
+     private fun updateDisplayText(display: TextDisplay, portal: PortalData, lang: me.awabi2048.myworldmanager.util.LanguageManager) {
+         val destName = if (portal.worldUuid != null) {
+             val destinationData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
+             destinationData?.name ?: "未知のワールド"
+         } else {
+             val configName = plugin.config.getString("portal_targets.${portal.targetWorldName}")
+             configName ?: portal.targetWorldName ?: "未知のワールド"
+         }
+         
+         val color = TextColor.color(portal.particleColor.asRGB())
          display.text(
              Component.text()
                  .append(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(null as Player?, "gui.portal.destination_label")))
@@ -436,18 +494,41 @@ class PortalManager(private val plugin: MyWorldManager) {
          }
      }
      
-     /**
-      * ポータルのビジュアル要素をすべて削除
-      */
-     fun removePortalVisuals(portalId: UUID) {
-         // TextDisplay を削除
-         removeTextDisplayForPortal(portalId)
-         
-         // ポータルデータから紐付けUUIDを削除
-         val portal = plugin.portalRepository.findAll().find { it.id == portalId }
-         if (portal != null) {
-             portal.textDisplayUuid = null
-             plugin.portalRepository.saveAll()
-         }
-     }
+      /**
+       * ポータルのビジュアル要素をすべて削除
+       */
+       fun removePortalVisuals(portalId: UUID) {
+           // TextDisplay を削除
+           removeTextDisplayForPortal(portalId)
+           
+           // ポータルデータから紐付けUUIDを削除
+           val portal = plugin.portalRepository.findById(portalId)
+           if (portal != null) {
+               portal.textDisplayUuid = null
+               plugin.portalRepository.saveAll()
+           }
+      }
+
+      /**
+       * ワールドアンロード時にそのワールドのTextDisplayをメモリマップから削除
+       */
+      fun cleanupWorld(worldName: String) {
+          val portalIdsToRemove = mutableListOf<UUID>()
+          val displayUuidsToRemove = mutableListOf<UUID>()
+          
+          for ((portalId, display) in textDisplays) {
+              if (display.world?.name == worldName) {
+                  portalIdsToRemove.add(portalId)
+                  displayUuidsToRemove.add(display.uniqueId)
+              }
+          }
+          
+          for (portalId in portalIdsToRemove) {
+              textDisplays.remove(portalId)
+          }
+          
+          for (displayUuid in displayUuidsToRemove) {
+              displayToPortal.remove(displayUuid)
+          }
+      }
 }

@@ -16,6 +16,9 @@ class WorldStatusListener(private val plugin: MyWorldManager) : Listener {
         // キャンセルされる可能性もあるので、MONITOR優先度が望ましいが、通常のEventHandlerで処理
         // WorldServiceでの手動アンロードと重複する可能性があるが、Setなので問題ない
         UnloadedWorldRegistry.register(event.world.name)
+        
+        // そのワールドのTextDisplayをメモリマップからクリア
+        plugin.portalManager.cleanupWorld(event.world.name)
     }
 
     @EventHandler
@@ -26,6 +29,21 @@ class WorldStatusListener(private val plugin: MyWorldManager) : Listener {
         // マイワールドがロードされたときは難易度をピースフルに統一
         if (plugin.worldConfigRepository.findByWorldName(event.world.name) != null) {
             event.world.difficulty = Difficulty.PEACEFUL
+        }
+        
+        // マイワールドのLikeSignホログラムを生成
+        val worldName = event.world.name
+        if (worldName.startsWith("my_world.")) {
+            val worldUuidStr = worldName.removePrefix("my_world.")
+            val worldUuid = try { 
+                java.util.UUID.fromString(worldUuidStr) 
+            } catch (e: Exception) { 
+                return 
+            }
+            val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+            if (worldData != null) {
+                plugin.likeSignManager.spawnHologramsForWorld(worldData)
+            }
         }
     }
 }
