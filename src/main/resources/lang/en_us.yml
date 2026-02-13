@@ -352,6 +352,26 @@ gui:
         - "§e§nClick to reset (Irreversible)"
       lore_unavailable:
         - "§cCannot reset (not expanded)"
+    archive_world:
+      display: "§6§nArchive World"
+      # Placeholder: {cooldown_hours}, {hours_remaining} (cooldown only)
+      lore:
+        - "§8§m-----------------------"
+        - "§7Archives the world."
+        - "§7Archived worlds cannot be accessed by players,"
+        - "§7but data is preserved."
+        - "§8§m-----------------------"
+        - "§e§nClick to archive"
+        - "§8§m-----------------------"
+      lore_cooldown:
+        - "§8§m-----------------------"
+        - "§7Archives the world."
+        - "§7Archived worlds cannot be accessed by players,"
+        - "§7but data is preserved."
+        - "§8§m-----------------------"
+        - "§cCannot perform until {cooldown_hours}h has passed since last action."
+        - "§8(About {hours_remaining}h remaining)"
+        - "§8§m-----------------------"
     delete_world:
       display: "§4§l§nDelete World"
       # Placeholder: {points}, {percent}
@@ -1075,6 +1095,7 @@ messages:
   invite_sent_success: "§eSent invite to {player} for world \"§a{world}§f\"!"
   invite_target_offline: "§cPlayer {player} is not online."
   invite_not_in_myworld: "§cYou must be in a MyWorld to send an invitation."
+  invite_not_member: "§cYou cannot send an invitation because you are not a member of this world"
   invite_hover: "Click to join the world"
   invite_text: "{player} invited you to \"{world}\"!"
   invite_click_text: "«Click here to warp»"
@@ -1128,6 +1149,7 @@ messages:
   world_delete_fail: "§cFailed to delete world."
   archive_start: "§eArchiving world..."
   archive_success: "§cWorld \"{world}\" has been archived."
+  archive_cooldown: "§cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)"
   archive_failed: "§cFailed to archive world."
 
   # Preview
@@ -1141,6 +1163,7 @@ messages:
 
   unarchive_start: "§eRestoring world from archive..."
   unarchive_success: "§aWorld restored from archive."
+  unarchive_cooldown: "§cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)"
   unarchive_failed: "§cFailed to restore world."
   archive_access_denied: "§cAccess denied. This world is archived."
 

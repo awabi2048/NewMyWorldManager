@@ -58,6 +58,12 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
             return true
         }
 
+        // ワールドメンバーチェック
+        if (!worldData.members.contains(player.uniqueId)) {
+            player.sendMessage(lang.getMessage(player, "messages.invite_not_member"))
+            return true
+        }
+
         // 封鎖中チェック
         if (worldData.publishLevel == PublishLevel.LOCKED) {
             player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
