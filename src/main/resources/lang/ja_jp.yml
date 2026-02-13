@@ -540,6 +540,26 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
       lore_unavailable:
         - "§cまた拡張されていないため、初期化できません"
+    archive_world:
+      display: "§6§nワールドをアーカイブ"
+      # Placeholder: {cooldown_hours}, {hours_remaining} (クールダウン中のみ)
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7ワールドをアーカイブします。"
+        - "§7アーカイブされたワールドはプレイヤーが"
+        - "§7アクセスできなくなりますが、データは保持されます。"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックして実行"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_cooldown:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7ワールドをアーカイブします。"
+        - "§7アーカイブされたワールドはプレイヤーが"
+        - "§7アクセスできなくなりますが、データは保持されます。"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§c前回の操作から {cooldown_hours} 時間経過するまで実行できません。"
+        - "§8(残り約 {hours_remaining} 時間)"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     delete_world:
       display: "§4§l§nワールドを削除"
       # Placeholder: {points}, {percent}
@@ -1408,6 +1428,7 @@ messages:
   invite_sent_success: "§e{player} §fさんを「§a{world}§f」に招待しました！"
   invite_target_offline: "§c{player}さんは現在オフラインです"
   invite_not_in_myworld: "§c招待を送信するには、マイワールドにいる必要があります！"
+  invite_not_member: "§cこのワールドのメンバーではないため、招待を送信できません"
   invite_hover: "クリックしてワールドに参加します"
   invite_text: "{player}さんがあなたを【{world}】に招待しました！"
   invite_click_text: "§e§n§lクリックしてワープ"
@@ -1477,6 +1498,8 @@ messages:
   world_delete_fail: "§cワールドの削除に失敗しました。"
   archive_start: "§eワールドをアーカイブしています..."
   archive_success: "§cワールド「{world}」をアーカイブしました。"
+  archive_cooldown: "§c前回のアーカイブ/復旧操作から {cooldown_hours} 時間が経過するまで実行できません。（残り約 {hours_remaining} 時間）"
+  archive_failed: "§cワールドのアーカイブに失敗しました。"
 
   # プレビュー
   preview_start: "§aテンプレート「{template}」のプレビューを開始しました… §7(Shiftキーで中断可能)"
@@ -1487,6 +1510,7 @@ messages:
 
   unarchive_start: "§eワールドをアーカイブから復旧しています..."
   unarchive_success: "§aワールドを復旧しました。"
+  unarchive_cooldown: "§c前回のアーカイブ/復旧操作から {cooldown_hours} 時間が経過するまで実行できません。（残り約 {hours_remaining} 時間）"
   archive_access_denied: "§cこのワールドは現在アーカイブされているため、アクセスできません。"
   unknown_world: "未知のワールド"
   item_not_found_hand: "§cアイテムを手に持っていません。"
