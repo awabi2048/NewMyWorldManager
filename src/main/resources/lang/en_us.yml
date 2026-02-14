@@ -1,1372 +1,1588 @@
 # MyWorldManager Language File (English)
 
-# General
+colors:
+  white: white
+  silver: light gray
+  gray: gray
+  black: black
+  red: red
+  maroon: dark red
+  yellow: yellow
+  olive: dark yellow
+  lime: yellow green
+  green: green
+  aqua: sky blue
+  teal: light blue
+  blue: blue
+  navy: dark blue
+  fuchsia: reddish purple
+  purple: violet
+  orange: orange color
 general:
-  prefix: "§7[§aMyWorldManager§7] "
-  no_permission: "§cYou do not have permission."
-  player_only: "§cThis command can only be executed by a player."
-  world_not_found: "§cWorld not found."
-  player_not_found: "§cPlayer not found."
-  unknown: "Unknown"
+  prefix: '§7[§aMyWorldManager§7] '
+  no_permission: §cYou do not have permission.
+  player_only: §cThis command can only be executed by a player.
+  world_not_found: §cWorld not found.
+  player_not_found: §cPlayer not found.
+  unknown: Unknown
   direction:
-    north_west: "North West"
-    north_east: "North East"
-    south_west: "South West"
-    south_east: "South East"
-    unknown: "Unknown"
-    
+    north_west: North West
+    north_east: North East
+    south_west: South West
+    south_east: South East
+    unknown: Unknown
   commands:
     settings:
-      description: "Opens the user settings menu."
-      
+      description: Opens the user settings menu.
   status:
-    join_me: "Join Me"
-    ask_me: "Ask Me"
-    busy: "Busy"
+    join_me: Join Me
+    ask_me: Ask Me
+    busy: Busy
     description:
-      join_me: "§fAnyone can warp to your location."
-      ask_me: "§fOnly players you approve can warp."
-      busy: "§fNot shown in /meet menu, and no one can warp."
-      
+      join_me: §fAnyone can warp to your location.
+      ask_me: §fOnly players you approve can warp.
+      busy: §fNot shown in /meet menu, and no one can warp.
   meet_request:
-    sent: "§aWarp request sent to {player}."
-    received: "§e{player} wants to visit you."
-    accept_button: "§a§l【Accept】"
-    hover_accept: "§7Click to accept the warp"
-
+    sent: §aWarp request sent to {player}.
+    received: §e{player} wants to visit you.
+    accept_button: §a§l【Accept】
+    hover_accept: §7Click to accept the warp
+    accepted: §a Warp allowed
+    accepted_by_target: §a{target} has given permission to warp!
   language:
-    ja_jp: "日本語"
-    en_us: "English"
-
-# Publish Level
+    ja_jp: Japanese
+    en_us: English
 world_tag:
-  shop: "Shop"
-  minigame: "Minigame"
-  building: "Building"
-  facility: "Facility"
-  streaming: "Streaming/Recording Welcome"
-
+  shop: Shop
+  minigame: Minigame
+  building: Building
+  facility: Facility
+  streaming: Streaming/Recording Welcome
 publish_level:
-  public: "Public"
-  friend: "Limited"
-  private: "Private"
-  locked: "Locked"
+  public: Public
+  friend: Limited
+  private: Private
+  locked: Locked
   description:
-    public: "§fAnyone can visit. Listed in the discovery menu."
-    friend: "§fAnyone can visit, but not listed in discovery menu."
-    private: "§fOnly invited players can visit."
-    locked: "§fNon-members cannot visit, and portal warp is disabled."
-  
+    public: §fAnyone can visit. Listed in the discovery menu.
+    friend: §fAnyone can visit, but not listed in discovery menu.
+    private: §fOnly invited players can visit.
+    locked: §fNon-members cannot visit, and portal warp is disabled.
   color:
-    public: "§a"
-    friend: "§e"
-    private: "§c"
-    locked: "§c"
-    owner: "§6"
-    moderator: "§b"
-    member: "§f"
-    online: "§a"
-    offline: "§c"
-    active: "§a"
-    inactive: "§7"
-    uuid: "§8"
-    debug: "§8"
-
-# GUI Settings
+    public: §a
+    friend: §e
+    private: §c
+    locked: §c
+    owner: §6
+    moderator: §b
+    member: §f
+    online: §a
+    offline: §c
+    active: §a
+    inactive: §7
+    uuid: §8
+    debug: §8
 gui:
   common:
-    back: "§7Back to Settings"
-    next_page: "§aNext Page"
-    prev_page: "§aPrev Page"
-    confirm: "§aExecute"
-    confirm_desc: "§7Click to execute"
-    cancel: "§cCancel"
-    cancel_desc: "§7Click to cancel"
-    separator: "§8§m-----------------------"
-    status_display: "§7Status: {color}{status}"
-    return: "§eBack"
-    return_desc: "§7Return to the previous menu"
-    world_item_name: "§f【§a{world}§f】"
-    world_item_name_simple: "§f「§a{world}§f」"
-    world_desc: "§f{description}"
-    confirmation: "Confirmation"
-    confirm_warning: "§cThis action involves important changes!"
-  
+    back: §7Back to Settings
+    next_page: §aNext Page
+    prev_page: §aPrev Page
+    confirm_action: §eConfirmation of operation
+    confirm: §aExecute
+    confirm_desc: §7Click to execute
+    cancel: §cCancel
+    cancel_desc: §7Click to cancel
+    separator: §8§m-----------------------
+    status_display: '§7Status: {color}{status}'
+    return: §eBack
+    return_desc: §7Return to the previous menu
+    world_item_name: §f【§a{world}§f】
+    world_item_name_simple: §f「§a{world}§f」
+    world_desc: §f{description}
+    confirmation: Confirmation
+    confirm_warning: §cThis action involves important changes!
   creation:
-    title_type: "Create World: Select Type"
-    title_template: "Create World: Select Template"
-    title_confirm: "Create World: Confirmation"
+    title_type: 'Create World: Select Type'
+    title_template: 'Create World: Select Template'
+    title_confirm: 'Create World: Confirmation'
     dialog:
-      name_title: "Enter World Name"
-      seed_title: "Enter Seed Value"
+      name_title: Enter World Name
+      seed_title: Enter Seed Value
     type:
       template:
-        name: "From Template"
-        desc: "Create a world from a predefined template."
+        name: From Template
+        lore:
+        - Create a world from the provided template.
       seed:
-        name: "Specify Seed"
-        desc: "Generate a world with a specific seed."
+        name: Specify Seed
+        lore:
+        - Generate a world by specifying a seed value.
       random:
-        name: "Random"
-        desc: "Generate a world with a random seed."
-      cost: "§f§l| §7Cost: §6🛖 §e{cost}"
-      points: "§f§l| §7Your Points: §6🛖 §e{points}"
-      available: "§aAvailable"
-      insufficient: "§cInsufficient points (§6🛖 §e{shortage} short)"
-    insufficient: "§cInsufficient points (§6🛖 §e{shortage} short)"
-    limit_reached: "§cYou have reached the limit of world creation. ({current}/{max})"
-    limit_reached_total: "§cThe server-wide limit for world creation ({limit}) has been reached."
+        name: Random
+        lore:
+        - Generate a world randomly.
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
+      points: '§f§l| §7Your Points: §6🛖 §e{points}'
+      available: §aAvailable
+      insufficient: §cInsufficient points (§6🛖 §e{shortage} short)
+    insufficient: §cInsufficient points (§6🛖 §e{shortage} short)
+    limit_reached: §cYou have reached the limit of world creation. ({current}/{max})
+    limit_reached_total: §cThe server-wide limit for world creation ({limit}) has been reached.
+    command_limit_reached_total: §c[Warning] The number of worlds created on the entire server has reached the upper limit ({max}), so it cannot be created.
+    command_limit_reached: '§c[Warning] The target player ({player}) cannot create a world because the number of worlds he can create has reached the upper limit. (Currently: {current}/{max})'
     template_item:
-      preview_hint: "§7Right-Click to Preview"
+      preview_hint: §7Right-Click to Preview
     confirm:
-      name: "Confirm and Create"
-      world_name: "§f§l| §7World Name: §f{name}"
-      creation_type: "§f§l| §7Creation Type: §f{type}"
-      template: "§f§l| §7Template: §f{template}"
-      seed: "§f§l| §7Seed: §f{seed}"
-      cost: "§f§l| §7Cost: §6🛖 §e{cost}"
-      name_label: "World Name"
-      type_label: "Creation Type"
-      cost_label: "Cost"
-      select_action: "Select Action"
-      action_create: "Create World"
-      action_preview: "Preview Template"
-      action_back: "Back"
-      action_cancel: "Cancel"
-      proceed_button: "Proceed"
-      cancel_button: "Close"
-
+      name: Confirm and Create
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7World name §a{name}
+      - §f§l| §7Creation method §e{type}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{template}'
+      - '{seed}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Consumption points §6🛖 §e{cost}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      template_line: §f§l| §7Template §f{template}
+      seed_line: §f§l| §7 Seed value §f{seed}
+      name_label: World Name
+      type_label: Creation Type
+      cost_label: Cost
+      select_action: Select Action
+      action_create: Create World
+      action_preview: Preview Template
+      action_back: Back
+      action_cancel: Cancel
+      proceed_button: Proceed
+      cancel_button: Close
   portal:
-    title: "Portal Settings"
-    id_format: "§8PORTAL_ID: {id}"
+    title: Portal Settings
+    id_format: '§8PORTAL_ID: {id}'
     toggle_text:
-      name: "§aToggle Floating Text"
-      current: "§fCurrent Status: {status}"
-      click: "§eClick to Toggle"
-    destination_label: "§7Destination: "
+      name: §aToggle Floating Text
+      lore:
+      - '§fCurrent setting: {status}'
+      - ''
+      - §eClick to switch
+    destination_label: '§7Destination: '
     color:
-      name: "§eParticle Color"
-      current: "§7Current: {color}"
-      click: "§eClick to change"
-      click_prev: "§7← Left-Click: {color}"
-      click_next: "§7Right-Click: {color} →"
+      name: §eParticle Color
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current color {color}
+      - ''
+      - §7« {prev_color}
+      - §7{next_color} »
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §eClick to change
+      - §8§m－－－－－－－－－－－－－－－－－－
     remove:
-      name: "§cRemove Portal"
-      desc: "§7Removes the placed portal."
-      click: "§eClick to remove"
-    colors:
-      white: "White"
-      silver: "Silver"
-      gray: "Gray"
-      black: "Black"
-      red: "Red"
-      maroon: "Maroon"
-      yellow: "Yellow"
-      olive: "Olive"
-      lime: "Lime"
-      green: "Green"
-      aqua: "Aqua"
-      teal: "Teal"
-      blue: "Blue"
-      navy: "Navy"
-      fuchsia: "Magenta"
-      purple: "Purple"
-      orange: "Orange"
-
+      name: §cRemove Portal
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Remove the installed portal.
+      - §eClick to run
+      - §8§m－－－－－－－－－－－－－－－－－－
   portal_item:
-    name: "§bWorld Portal"
-    lore_bind: "§e§l| §e§nRight-Click §fBind current MyWorld"
-    lore_unbind: "§e§l| §eShift+Right-Click §f§cUnbind§f world"
-    lore_dest: "§f§l| §bDestination §f§n{destination}"
-    lore_place: "§fRight-click to place a §dWorld Portal§f!"
-
-  world_gate_item:
-    name: "§3World Gate"
+    name: §bWorld Portal
     lore_unbound:
-      - "§8§m------------------------------"
-      - "§e§l| §eShift + Right-Click§7 Bind current MyWorld"
-      - "§e§l| §eRight-Click§7 Select two points for range"
-      - "§8§m------------------------------"
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §eRight click§7 Link current My World §b§7
+    - §e§l| §eShift + right click§7 Unlink§c§7
+    - §8§m－－－－－－－－－－－－－－－－－－
     lore_bound:
-      - "§8§m------------------------------"
-      - "§f§l| §bDestination §f§n{destination}"
-      - "§8§m------------------------------"
-      - "§fSelect two points, then right-click once more to place §3World Gate§f."
-      - "§e§l| §eShift + Right-Click§7 Rebind destination"
-      - "§8§m------------------------------"
-
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §f§l| §bLink §f§n{destination}
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §fRight-click to install and create §dworld portal§f!
+    - §e§l| §eShift + right click§7 Unlink§c§7
+    - §8§m－－－－－－－－－－－－－－－－－－
+  world_gate_item:
+    name: §3World Gate
+    lore_unbound:
+    - §8§m------------------------------
+    - §e§l| §eShift + Right-Click§7 Bind current MyWorld
+    - §e§l| §eRight-Click§7 Select two points for range
+    - §8§m------------------------------
+    lore_bound:
+    - §8§m------------------------------
+    - §f§l| §bDestination §f§n{destination}
+    - §8§m------------------------------
+    - §fSelect two points, then right-click once more to place §3World Gate§f.
+    - §e§l| §eShift + Right-Click§7 Rebind destination
+    - §8§m------------------------------
   template_wizard:
-    title: "Template Creation Wizard"
+    title: Template Creation Wizard
     name_input:
-      display: "§eSet Template Name/ID"
+      display: §eSet Template Name/ID
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Set the display name and ID of the template.
+      - §fName {name}
+      - ' §fID {id}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §eClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
     desc_input:
-      display: "§eSet Template Description"
+      display: §eSet Template Description
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Set the template description.
+      - §7Current settings
+      - '{desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §eClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
     icon_select:
-      display: "§eSelect Template Icon"
+      display: §eSelect Template Icon
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Set the template icon.
+      - §7Current settings {icon}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §eClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
     origin_set:
-      display: "§eSet Origin Location"
+      display: §eSet Origin Location
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Set the origin that is the reference point for the spawn point and offset.
+      - §7Current settings {origin}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §eClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
     save_confirm:
-      display: "§6Save and Register Template"
-
+      display: §6Save and Register Template
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Save the template with the current settings.
+      - §c *Existing files will be overwritten.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §eClick to run
+      - §8§m－－－－－－－－－－－－－－－－－－
   unarchive_confirm:
-    title: "§6Unarchive Confirmation"
+    title: §6Unarchive Confirmation
     lore:
-      - "§fThis world is currently archived."
-      - "§fDo you want to unarchive and warp?"
-  
+    - §fThis world is currently archived.
+    - §fDo you want to unarchive and warp?
+  admin_portals:
+    title: Remote portal management
+    portal_item:
+      name: '§b Portal: §f{id}'
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7Owner: §f{owner}'
+      - '§f§l| §7Placed world: §f{world}'
+      - '§f§l| §7 coordinates: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft click §7Teleport to portal location
+      - §e§l| §eRight click§7 Remove portal
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_management:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7 coordinates: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft click §7Teleport to portal location
+      - §e§l| §eRight click§7 Remove portal
+      - §8§m－－－－－－－－－－－－－－－－－－
+    sort:
+      display: §e Sorting method
+      created_desc: Installation date (newest first)
+      created_asc: Installation date (oldest first)
   settings:
-    title: "World Settings: {world}"
+    title: 'World Settings: {world}'
     info:
-      display: "§aWorld Info Settings"
+      display: §aWorld Info Settings
       lore:
-        - "§e§l| §e§nLeft-Click §aChange Name"
-        - "§e§l| §e§nRight-Click §aChange Description"
-        - ""
-        - "§eType in chat to set"
+      - §e§l| §e§nLeft-Click §aChange Name
+      - §e§l| §e§nRight-Click §aChange Description
+      - ''
+      - §eType in chat to set
     spawn:
-      display: "§aSet Spawn Point"
+      display: §aSet Spawn Point
       type:
-        guest: "Guest"
-        member: "Member"
+        guest: Guest
+        member: Member
       lore:
-        - "§7Left-Click: Set Guest Spawn"
-        - "§7Right-Click: Set Member Spawn"
-        - ""
-        - "§eClick a block after selection"
-        - "§eto set the location and direction."
+      - '§7Left-Click: Set Guest Spawn'
+      - '§7Right-Click: Set Member Spawn'
+      - ''
+      - §eClick a block after selection
+      - §eto set the location and direction.
+    error:
+      must_be_in_world_lore: §c *You must be in the world to change this setting
     icon:
-      display: "§aChange World Icon"
+      display: §aChange World Icon
       lore:
-        - "§7Click to enter change mode."
-        - "§7Then, click an item in your inventory"
-        - "§7to set it as the icon."
+      - §7Click to enter change mode.
+      - §7Then, click an item in your inventory
+      - §7to set it as the icon.
     tags:
-      display: "§aWorld Tag Settings"
-      lore_header: "§f§l| §7Active Tags"
-      lore_empty: "  §fNone"
-      lore_item: "  §6- {tag}"
-      lore_footer: "§e§nClick to edit tags"
+      display: §aWorld Tag Settings
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Tag being set
+      - '{tags_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to edit tag
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_empty: '  §fNone'
+      lore_item: '  §6- {tag}'
     expand:
-      display: "§aExpand World"
-      lore_desc: "§7Click to §bexpand the world border"
-      level: "§f§l| §7Current Level §e§l{current}§7/{max}"
-      cost: "§f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)"
-      cost_insufficient: "§f§l| §7Cost §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage} points §cinsufficient."
-      points: "§f§l| §7Your Points §6🛖 §e{points}"
-      max_level: "§f§l| §cMaximum expansion reached!"
+      display: §aExpand World
+      cost: §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+      lore_upgrade:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Click to §bExpand the border of the world§7
+      - §f§l| §7Current expansion level §e§l{current}/{max}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+      - §f§l| §7Points you own §6🛖 §e{points}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_insufficient:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Click to §bExpand the border of the world§7
+      - §f§l| §7Current expansion level §e§l{current}/{max}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Cost §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}Points §c are missing.
+      - §f§l| §7Points you own §6🛖 §e{points}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_max:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Click to §bExpand the border of the world§7
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current expansion level §e§l{current}/{max}
+      - §f§l| §cCannot be expanded any further!
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_no_border:
+      - §a There are no borders in this world.
+    environment:
+      display: §a World environment settings
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 World biome, weather, and gravity
+      - §7 can be changed.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to view
+      - §8§m－－－－－－－－－－－－－－－－－－
     publish:
-      display: "§6Change Publish Level"
-      current: "§f§l| §7Current Setting {color}{level}"
-      active_prefix: "§6» "
-      inactive_prefix: "  "
-      desc_header: "§f§l| Description "
-      click_left: "§e§l| §e§nLeft-Click Prev"
-      click_right: "§e§l| §e§nRight-Click Next"
+      display: §6Change Publish Level
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current setting {current_color}{current_level}
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{level_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft click§7 Previous
+      - §e§l| §eRight click§7 Next
+      - §8§m－－－－－－－－－－－－－－－－－－
+      active_prefix: '§6» '
+      inactive_prefix: '  '
     member:
-      display: "§6Member Management"
-      count: "§f§l| §7Members: §b{count}"
-      list_header: "§f§l| §bMember List"
-      role_owner: "Owner"
-      role_moderator: "Moderator"
-      role_member: "Member"
-      list_item: "  {debug_color}[{role_color}{role}{debug_color}] {name_color}{player}"
-      list_item_member: "  {name_color}{player}"
-      more_members: "  §7+{remaining} total (§a{online} online§7)"
-      click: "§e§nClick§7 to manage members"
-      promote: "§e§l| §e§nLeft-Click §7Promote to Moderator"
-      demote: "§e§l| §e§nRight-Click §7Demote to Member"
-      remove: "§e§l| §e§nShift + Left-Click §cRemove Member"
-      transfer: "§e§l| §e§nShift + Right-Click §cTransfer Owner"
+      display: §6Member Management
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current number of members §b{count} people
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §b List of members
+      - '{member_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to view list
+      - §8§m－－－－－－－－－－－－－－－－－－
+      role_owner: Owner
+      role_moderator: Moderator
+      role_member: Member
+      list_item: '  {debug_color}[{role_color}{role}{debug_color}] {name_color}{player}'
+      list_item_member: '  {name_color}{player}'
+      more_members: '  §7+{remaining} total (§a{online} online§7)'
+      actions:
+        promote: §e§l| §eLeft click§7 Change to moderator
+        demote: §e§l| §eRight click§7 Change to member
+        remove: §e§l| §eShift + left click§c Remove from member
+        transfer: §e§l| §eShift + right click§c Transfer ownership
     main_info:
-      name: "§f【§a{world}§f】"
+      name: §f【§a{world}§f】
       lore:
-        - "§8§m-----------------------"
-        - "§f§l| §f{description}"
-        - "§f§l| §7Owner §b{owner}"
-        - "§f§l| §7Expansion §e§l{level}§7/{max_level}"
-        - "§8§m-----------------------"
-        - "§f§l| §7Archive in §6{days_until_archive} days §8({archive_date})"
-        - "§f§l| §7Members §f{member_count} §8({online_count} online)"
-        - "§f§l| §7Publish Level {publish_color}{publish_level}"
-        - "§8§m-----------------------"
-        - "§f§l| §7Favorites §c{favorites}"
-        - "§f§l| §7Recent Visitors §b{visitors}"
-        - "§8§m-----------------------"
+      - §8§m-----------------------
+      - §f§l| §f{description}
+      - §f§l| §7Owner §b{owner}
+      - §f§l| §7Expansion §e§l{level}§7/{max_level}
+      - §8§m-----------------------
+      - §f§l| §7Archive in §6{days_until_archive} days §8({archive_date})
+      - §f§l| §7Members §f{member_count} §8({online_count} online)
+      - §f§l| §7Publish Level {publish_color}{publish_level}
+      - §8§m-----------------------
+      - §f§l| §7Favorites §c{favorites}
+      - §f§l| §7Recent Visitors §b{visitors}
+      - §8§m-----------------------
+      lore_special:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §f{description}
+      - §f§l| §7Owner §b{owner}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Creation date §e{created_at_date_formatted} §8({created_days_ago})
+      - '§f§l| §7 members §f{member_count} people §8(Online: {online_count} people)'
+      - §f§l| §7Public level {publish_color}{publish_level}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Number of favorites §c{favorites}
+      - §f§l| §7Recently visited players §b{visitors} people
+      - §8§m－－－－－－－－－－－－－－－－－－
     visitors:
-      display: "§aVisitor Management"
-      # Placeholder: {count}
+      display: §aVisitor Management
       lore:
-        - "§f§l| §7Current visitors §e{count}"
-        - ""
-        - "§e§nClick to view/manage"
+      - §f§l| §7Current visitors §e{count}
+      - ''
+      - §e§nClick to view/manage
     notification:
-      display: "§aToggle Notifications"
-      "on": "ON"
-      "off": "OFF"
-      # Placeholder: {color}, {status}
+      display: §aToggle Notifications
+      'on': 'ON'
+      'off': 'OFF'
       lore:
-        - "§f§l| §7Current: {color}{status}"
-        - ""
-        - "§7When ON, members will be notified"
-        - "§7when a guest visits the world."
-        - ""
-        - "§e§nClick to toggle"
+      - '§f§l| §7Current: {color}{status}'
+      - ''
+      - §7When ON, members will be notified
+      - §7when a guest visits the world.
+      - ''
+      - §e§nClick to toggle
     announcement:
-      display: "§aPlayer Announcement"
-      # Placeholder: {message_preview}
+      display: §aPlayer Announcement
       lore:
-        - "§7Set a message to display"
-        - "§7to visitors upon arrival."
-        - ""
-        - "§e§nLeft-Click§7 Set Message"
-        - "§e§nRight-Click§7 Reset Message"
-        - "{message_preview}"
-      preview_header: "§f§l| §e§nCurrent Message"
-      preview_footer: "§e§nClick to edit/reset"
+      - §7Set a message to display
+      - §7to visitors upon arrival.
+      - ''
+      - §e§nLeft-Click§7 Set Message
+      - §e§nRight-Click§7 Reset Message
+      - '{message_preview}'
+      preview_header: §f§l| §e§nCurrent Message
+      preview_footer: §e§nClick to edit/reset
     critical:
-      display: "§c§nCritical Settings"
+      display: §c§nCritical Settings
       lore:
-        - "§cPerform irreversible actions"
-        - "§clike deleting the world."
-        - ""
-        - "§e§nClick to view"
+      - §cPerform irreversible actions
+      - §clike deleting the world.
+      - ''
+      - §e§nClick to view
     portals:
-      display: "§bManage Placed Portals"
+      display: §bManage Placed Portals
       lore:
-        - "§7Manage and check portals"
-        - "§7placed within the world."
-        - ""
-        - "§e§nClick to view"
-
-
+      - §7Manage and check portals
+      - §7placed within the world.
+      - ''
+      - §e§nClick to view
   critical:
-    title: "Critical Settings"
+    title: Critical Settings
     reset_expansion:
-      display: "§c§nReset Expansion"
-      # Placeholder: {level}, {points}
+      display: §c§nReset Expansion
       lore:
-        - "§f§l| §7Current level §e§l{level}"
-        - ""
-        - "§f§l| §7Refund points §6🛖 §e{points}"
-        - ""
-        - "§e§nClick to reset (Irreversible)"
+      - §f§l| §7Current level §e§l{level}
+      - ''
+      - §f§l| §7Refund points §6🛖 §e{points}
+      - ''
+      - §e§nClick to reset (Irreversible)
       lore_unavailable:
-        - "§cCannot reset (not expanded)"
+      - §cCannot reset (not expanded)
     archive_world:
-      display: "§6§nArchive World"
-      # Placeholder: {cooldown_hours}, {hours_remaining} (cooldown only)
+      display: §6§nArchive World
       lore:
-        - "§8§m-----------------------"
-        - "§7Archives the world."
-        - "§7Archived worlds cannot be accessed by players,"
-        - "§7but data is preserved."
-        - "§8§m-----------------------"
-        - "§e§nClick to archive"
-        - "§8§m-----------------------"
+      - §8§m-----------------------
+      - §7Archives the world.
+      - §7Archived worlds cannot be accessed by players,
+      - §7but data is preserved.
+      - §8§m-----------------------
+      - §e§nClick to archive
+      - §8§m-----------------------
       lore_cooldown:
-        - "§8§m-----------------------"
-        - "§7Archives the world."
-        - "§7Archived worlds cannot be accessed by players,"
-        - "§7but data is preserved."
-        - "§8§m-----------------------"
-        - "§cCannot perform until {cooldown_hours}h has passed since last action."
-        - "§8(About {hours_remaining}h remaining)"
-        - "§8§m-----------------------"
+      - §8§m-----------------------
+      - §7Archives the world.
+      - §7Archived worlds cannot be accessed by players,
+      - §7but data is preserved.
+      - §8§m-----------------------
+      - §cCannot perform until {cooldown_hours}h has passed since last action.
+      - §8(About {hours_remaining}h remaining)
+      - §8§m-----------------------
     delete_world:
-      display: "§4§l§nDelete World"
-      # Placeholder: {points}, {percent}
+      display: §4§l§nDelete World
       lore:
-        - "§7Deletes the world permanently."
-        - "§7This action is irreversible."
-        - ""
-        - "§8§m-----------------------"
-        - "§f§l| §7Refund points: §6🛖 §e{points}"
-        - "§8({percent}% of total spent points returned)"
-        - "§8§m-----------------------"
-        - ""
-        - "§4§lClick to DELETE (Irreversible)"
-
+      - §7Deletes the world permanently.
+      - §7This action is irreversible.
+      - ''
+      - §8§m-----------------------
+      - '§f§l| §7Refund points: §6🛖 §e{points}'
+      - §8({percent}% of total spent points returned)
+      - §8§m-----------------------
+      - ''
+      - §4§lClick to DELETE (Irreversible)
   confirm:
     reset_expansion:
-      title: "Confirm Reset"
+      title: Confirm Reset
       lore:
-        - "§cAre you sure you want to reset?"
-        - "§7Expansion level will be reset and points refunded."
-        - "§7World border will return to initial size."
+      - §cAre you sure you want to reset?
+      - §7Expansion level will be reset and points refunded.
+      - §7World border will return to initial size.
     delete_1:
-      title: "Delete Confirm (1/2)"
+      title: Delete Confirm (1/2)
       lore:
-        - "§cAre you sure you want to DELETE?"
-        - "§7All data will be lost forever."
-        - "§7※ There will be a final confirmation."
-      next: "§cProceed"
+      - §cAre you sure you want to DELETE?
+      - §7All data will be lost forever.
+      - §7※ There will be a final confirmation.
+      next: §cProceed
     delete_2:
-      title: "Final Confirmation (2/2)"
+      title: Final Confirmation (2/2)
       lore:
-        - "§4§lARE YOU POSITIVE?"
-        - "§c§lWARNING: This is the final step."
-      confirm_btn: "§4§l【CONFIRM DELETE】"
-
-  archive:
-    title: "Archive Confirm: {world}"
-    question: "§cAre you sure you want to archive?"
-    warning:
-      - "§7Access will be denied after archiving."
-      - "§7Contact an admin to restore."
-    cancel: "§aCancel"
-    cancel_desc: "§7Return to settings"
-    confirm: "§cExecute"
-    confirm_desc: "§7Archive the world"
-
+      - §4§lARE YOU POSITIVE?
+      - '§c§lWARNING: This is the final step.'
+      confirm_btn: §4§l【CONFIRM DELETE】
   expansion:
-    method_title: "Select Expansion Method"
-    confirm_title: "Expansion Confirmation"
+    method_title: Select Expansion Method
+    confirm_title: Expansion Confirmation
     center_expand:
-      name: "§aExpand from Center"
+      name: §aExpand from Center
       lore:
-        - "§7Expands the world border"
-        - "§7while keeping the current center."
+      - §7Expands the world border
+      - §7while keeping the current center.
     direction_expand:
-      name: "§aSpecify Direction"
+      name: §aSpecify Direction
       lore:
-        - "§7Expands towards a specific corner"
-        - "§7relative to your current position."
-        - "§e(Requires direction selection after)"
-    confirm_info: "§aExpansion Summary"
-    method: "§f§l| §7Method {method}"
-    method_center: "Center"
-    method_direction: "§f§l| §7Direction {direction}"
-    cost: "§f§l| §7Cost §6🛖 §e{cost}"
-    warning: "§eThis action is irreversible!"
-    execute: "§aExpand World"
-    execute_desc: "§7Spend points to expand"
-    cancel: "§cCancel"
-    cancel_desc: "§7Back to selection"
-
+      - §7Expands towards a specific corner
+      - §7relative to your current position.
+      - §e(Requires direction selection after)
+    confirm_info: §aExpansion Summary
+    method: §f§l| §7Method {method}
+    method_center: Center
+    method_direction: §f§l| §7Direction {direction}
+    cost: §f§l| §7Cost §6🛖 §e{cost}
+    warning: §eThis action is irreversible!
+    execute: §aExpand World
+    execute_desc: §7Spend points to expand
+    cancel: §cCancel
+    cancel_desc: §7Back to selection
   announcement_dialog:
-    title: "Edit Welcome Message"
-    line_label: "Line {number}"
-    help: "Enter the welcome message to be displayed to visitors"
-    max_lines: "You can set up to {max} lines"
-    max_length: "You can enter up to {max} characters per line"
-    save: "Save"
-    cancel: "Cancel"
-    reset: "Reset"
-
+    title: Edit Welcome Message
+    line_label: Line {number}
+    help: Enter the welcome message to be displayed to visitors
+    max_lines: You can set up to {max} lines
+    max_length: You can enter up to {max} characters per line
+    save: Save
+    cancel: Cancel
+    reset: Reset
   member_management:
-    title: "Member Management"
+    title: Member Management
     invite:
-      name: "§aInvite Member"
-      desc: "§eClick and type name in chat"
+      name: §aInvite Member
+      desc: §eClick and type name in chat
     remove_confirm:
-      title: "Confirm Removal"
-      # Placeholder: {player}, {world}
+      title: Confirm Removal
       lore:
-        - "§cReally remove?"
-        - "§f§l| §7Player §f{player}"
-        - "§f§l| §7World §f{world}"
-        - ""
-        - "§c※ They will lose access to this world."
-      cancel: "§aCancel"
-      cancel_desc: "§7Back to list"
-      confirm: "§cRemove"
-      confirm_desc: "§7Revoke membership"
+      - §cReally remove?
+      - §f§l| §7Player §f{player}
+      - §f§l| §7World §f{world}
+      - ''
+      - §c※ They will lose access to this world.
+      cancel: §aCancel
+      cancel_desc: §7Back to list
+      confirm: §cRemove
+      confirm_desc: §7Revoke membership
     item:
-      last_online_label: "Last Online"
-      # Placeholder: {last_online}, {role}
-      # {last_online} should be empty if online or hidden logic in code
+      last_online_label: Last Online
       lore_info:
-        - "§8§m-----------------------"
-        - "{last_online}"
-        - "§f§l| §7Rank §f{role}"
-        - "§8§m-----------------------"
-      # Placeholder: {next_role}
+      - §8§m-----------------------
+      - '{last_online}'
+      - §f§l| §7Rank §f{role}
+      - §8§m-----------------------
       lore_actions:
-        - "§e§l| §eLeft-Click §7Change to §b{next_role}"
-        - "§e§l| §eShift+Left §cTransfer Ownership"
-        - "§e§l| §eShift+Right §cRemove Member"
-        - "§8§m-----------------------"
-
+      - §e§l| §eLeft-Click §7Change to §b{next_role}
+      - §e§l| §eShift+Left §cTransfer Ownership
+      - §e§l| §eShift+Right §cRemove Member
+      - §8§m-----------------------
     transfer_confirm:
-      title: "Transfer Ownership"
-      # Placeholder: {player}, {world}
+      title: Transfer Ownership
       lore:
-        - "§cReally transfer ownership?"
-        - "§f§l| §7New Owner §f{player}"
-        - "§f§l| §7Target World §f{world}"
-        - ""
-        - "§c※ You will lose ownership of this world."
-      cancel: "§aCancel"
-      cancel_desc: "§7Back to list"
-      confirm: "§cTransfer"
-      confirm_desc: "§dTransfer ownership to this player"
-
+      - §cReally transfer ownership?
+      - §f§l| §7New Owner §f{player}
+      - §f§l| §7Target World §f{world}
+      - ''
+      - §c※ You will lose ownership of this world.
+      cancel: §aCancel
+      cancel_desc: §7Back to list
+      confirm: §cTransfer
+      confirm_desc: §dTransfer ownership to this player
   visitor_management:
-    title: "Manage Visitors"
-    no_visitors: "§cThere are currently no visitors in this world."
+    title: Manage Visitors
+    no_visitors: §cThere are currently no visitors in this world.
     kick_confirm:
-      title: "Confirm Kick: {player}"
-      question: "§cReally kick?"
-      player: "§f§l| §7Player §f{player}"
-      cancel: "§aCancel"
-      cancel_desc: "§7Back to list"
-      confirm: "§cKick"
-      confirm_desc: "§7Eject player from world"
+      title: 'Confirm Kick: {player}'
+      question: §cReally kick?
+      player: §f§l| §7Player §f{player}
+      cancel: §aCancel
+      cancel_desc: §7Back to list
+      confirm: §cKick
+      confirm_desc: §7Eject player from world
     item:
-      kick: "§e§l| §cRight-Click Kick"
-
+      kick: §e§l| §cRight-Click Kick
   tag_editor:
-    title: "Tag Editor"
-    status_active: "§aActive"
-    status_inactive: "§cInactive"
-    click_toggle: "§e§nClick to toggle"
-
+    title: Tag Editor
+    status_active: §aActive
+    status_inactive: §cInactive
+    click_toggle: §e§nClick to toggle
   admin_menu:
-    title: "Admin Menu"
+    title: Admin Menu
     update_data:
-      display: "§eUpdate Data"
+      display: §eUpdate Data
       lore:
-        - "§7Validate and update integrity of all"
-        - "§7world and player data."
-        - ""
-        - "§e§nClick to Confirm"
-      confirm_title: "Update Data Confirmation"
+      - §7Validate and update integrity of all
+      - §7world and player data.
+      - ''
+      - §e§nClick to Confirm
+      confirm_title: Update Data Confirmation
     repair_templates:
-      display: "§eRepair Templates"
+      display: §eRepair Templates
       lore:
-        - "§7Detect missing template worlds and"
-        - "§7attempt to regenerate them."
-        - ""
-        - "§e§nClick to Confirm"
-      confirm_title: "Repair Templates Confirmation"
+      - §7Detect missing template worlds and
+      - §7attempt to regenerate them.
+      - ''
+      - §e§nClick to Confirm
+      confirm_title: Repair Templates Confirmation
     create_template:
-      display: "§aCreate Template"
+      display: §aCreate Template
       lore:
-        - "§7Open the Template Creation Wizard."
-        - ""
-        - "§e§nClick to Start"
+      - §7Open the Template Creation Wizard.
+      - ''
+      - §e§nClick to Start
     archive:
-      display: "§cExecute Archive"
+      display: §cExecute Archive
       lore:
-        - "§7Batch archive all expired worlds."
-        - ""
-        - "§e§nClick to Confirm"
-      confirm_title: "Batch Archive Confirmation"
+      - §7Batch archive all expired worlds.
+      - ''
+      - §e§nClick to Confirm
+      confirm_title: Batch Archive Confirmation
     convert:
-      display: "§6Convert World"
+      display: §6Convert World
       lore:
-        - "§7Register current world under MyWorld management."
-        - ""
-        - "§e§nLeft Click§7 Convert in Normal Mode"
-        - "§7(Rename directory for standard management)"
-        - ""
-        - "§e§nRight Click§7 Convert in Admin Mode"
-        - "§7(Keep current structure, apply management only)"
-      confirm_normal: "Convert Confirmation (Normal)"
-      confirm_admin: "Convert Confirmation (Admin)"
+      - §7Register current world under MyWorld management.
+      - ''
+      - §e§nLeft Click§7 Convert in Normal Mode
+      - §7(Rename directory for standard management)
+      - ''
+      - §e§nRight Click§7 Convert in Admin Mode
+      - §7(Keep current structure, apply management only)
+      confirm_normal: Convert Confirmation (Normal)
+      confirm_admin: Convert Confirmation (Admin)
     unlink:
-      display: "§cUnlink World"
+      display: §cUnlink World
       lore:
-        - "§7Remove MyWorld configuration for this world"
-        - "§7and revert it to a normal world."
-        - "§7(World data is NOT deleted)"
-        - ""
-        - "§e§nClick to Confirm"
-      confirm_title: "Unlink Confirmation"
+      - §7Remove MyWorld configuration for this world
+      - §7and revert it to a normal world.
+      - §7(World data is NOT deleted)
+      - ''
+      - §e§nClick to Confirm
+      confirm_title: Unlink Confirmation
     export:
-      display: "§bExport World"
+      display: §bExport World
       lore:
-        - "§7Export current world as ZIP archive."
-        - ""
-        - "§e§nClick to Confirm"
-      confirm_title: "Export Confirmation"
-      target_world: "§f§l| §7Target World §b{world}"
+      - §7Export current world as ZIP archive.
+      - ''
+      - §e§nClick to Confirm
+      confirm_title: Export Confirmation
+      target_world: §f§l| §7Target World §b{world}
+    archive_world:
+      confirm_title: Check archive
+      target_world: §f§l| §7Target world §b{world}
+    unarchive_world:
+      confirm_title: Confirmation of unarchiving
+      target_world: §f§l| §7Target world §b{world}
     info:
-      display: "§aWorld List"
+      display: §aWorld List
       lore:
-        - "§7View and manage all worlds."
-        - ""
-        - "§e§nClick to Open"
+      - §7View and manage all worlds.
+      - ''
+      - §e§nClick to Open
     current_world:
-      display: "§bCurrent World Info"
+      display: §bCurrent World Info
       lore:
-        - "§8§m-----------------------"
-        - "§f§l| §7World §a{world}"
-        - "§f§l| §7Owner §b{owner}"
-        - "§f§l| §7Status {status}"
-        - "§f§l| §7Generation §e{generation}"
-        - "§8§m-----------------------"
-        - "§e§nClick to open settings"
-        - "§8§m-----------------------"
+      - §8§m-----------------------
+      - §f§l| §7World §a{world}
+      - §f§l| §7Owner §b{owner}
+      - §f§l| §7Status {status}
+      - §f§l| §7Generation §e{generation}
+      - §8§m-----------------------
+      - §e§nClick to open settings
+      - §8§m-----------------------
     portals:
-      display: "§bPortal Management"
+      display: §bPortal Management
       lore:
-        - "§7View list of placed portals."
-        - ""
-        - "§e§nClick to Open"
-
+      - §7View list of placed portals.
+      - ''
+      - §e§nClick to Open
   admin:
-    title: "Manage All Worlds"
+    title: Manage All Worlds
     info:
-      display: "§fStatistics"
-      total_count: "§7Results: §f{count}"
-      page: "§7Page: §f{current} / {max}"
+      display: §fStatistics
+      total_count: '§7Results: §f{count}'
+      page: '§7Page: §f{current} / {max}'
     world_item:
-      # Placeholder: {owner_line}, {status_line}, {publish_line}, {expansion_line}, {created_line}, {expire_line}, {mspt_line}, {action_warp}...
       lore:
-        - "{uuid_line}"
-        - "{owner_line}"
-        - "{status_line}"
-        - "{publish_line}"
-        - "{generation_line}"
-        - "{expansion_line}"
-        - "{created_line}"
-        - "{expire_line}"
-        - "{mspt_line}"
-        - "{tag_line}"
-        - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "{action_warp}"
-        - "{action_settings}"
-        - "{action_archive}"
-        - "{uuid_copy_hint}"
-
-      uuid: "§f§l| §7UUID §8{uuid}"
-      owner: "§f§l| §7Owner {owner}{status_color}"
-      status: "§f§l| §7Status {status}"
-      status_archived: "§cArchived"
-      status_active: "§bActive"
-      publish: "§f§l| §7Publish {color}{level}"
-      generation: "§f§l| §7Generation §e{method}"
+      - '{uuid_line}'
+      - '{owner_line}'
+      - '{status_line}'
+      - '{publish_line}'
+      - '{generation_line}'
+      - '{expansion_line}'
+      - '{created_line}'
+      - '{expire_line}'
+      - '{mspt_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{action_warp}'
+      - '{action_settings}'
+      - '{action_archive}'
+      - '{uuid_copy_hint}'
+      uuid: §f§l| §7UUID §8{uuid}
+      owner: §f§l| §7Owner {owner}{status_color}
+      status: §f§l| §7Status {status}
+      status_archived: §cArchived
+      status_active: §bActive
+      publish: §f§l| §7Publish {color}{level}
+      generation: §f§l| §7Generation §e{method}
       generation_type:
-        convert: "Converted"
-        template: "Template"
-        seed: "Seed"
-        random: "Random"
-        unknown: "{source}"
-      expansion: "§f§l| §7Expansion §e{level}"
-      
-      expires_at: "§f§l| §7Multi-Archive §e{date} §8({days_remain})"
-      created_at: "§f§l| §7Created §e{date} §8({days_ago})"
-      
-      created_info_days: "§7{days} days ago"
-      created_info_today: "§7Today"
-      expire_info_remaining: "§7{days} days left"
-      expire_info_overdue: "§7{days} days overdue"
-      
-      mspt: "§f§l| §7MSPT: §e{mspt} §7ms"
-      mspt_unloaded: "§f§l| §7MSPT: §cThis world is unloaded"
-      mspt_error: "§f§l| §7MSPT: §cCould not retrieve"
-      mspt_low: "§f§l| §7MSPT: §e< 0.1ms"
-      
-      action_archive: "§e§l| §e§nShift + Right-Click §7Toggle Archive"
-      action_settings: "§e§l| §b§nRight-Click§7 Settings"
-      action_warp: "§e§l| §b§nLeft-Click §7Warp"
-      uuid_copy_hint: "§e§l| §8Middle-Click §7Copy UUID"
+        convert: Converted
+        template: Template
+        seed: Seed
+        random: Random
+        unknown: '{source}'
+      expansion: §f§l| §7Expansion §e{level}
+      expires_at: §f§l| §7Multi-Archive §e{date} §8({days_remain})
+      created_at: §f§l| §7Created §e{date} §8({days_ago})
+      created_info_days: §7{days} days ago
+      created_info_today: §7Today
+      expire_info_remaining: §7{days} days left
+      expire_info_overdue: §7{days} days overdue
+      mspt: '§f§l| §7MSPT: §e{mspt} §7ms'
+      mspt_low: '§f§l| §7MSPT: §e< 0.1ms'
+      mspt_unloaded: '§f§l| §7MSPT: §cThis world is unloaded'
+      mspt_error: '§f§l| §7MSPT: §cCould not retrieve'
+      action_archive: §e§l| §e§nShift + Right-Click §7Toggle Archive
+      action_settings: §e§l| §b§nRight-Click§7 Settings
+      action_warp: §e§l| §b§nLeft-Click §7Warp
+      uuid_copy_hint: §e§l| §8Middle-Click §7Copy UUID
     filter:
       archive:
-        display: "§eArchive Filter"
-        all: "All"
-        active: "Active Only"
-        archived: "Archived Only"
+        display: §eArchive Filter
+        all: All
+        active: Active Only
+        archived: Archived Only
       publish:
-        display: "§ePublish Filter"
-        all: "All"
-        public: "Public Only"
-        friend: "Limited Only"
-        private: "Private Only"
-        locked: "Locked Only"
+        display: §ePublish Filter
+        all: All
+        public: Public Only
+        friend: Limited Only
+        private: Private Only
+        locked: Locked Only
       player:
-        display: "§ePlayer Filter"
-        none: "No Filter"
-        owner: "Owner Worlds"
-        member: "Member Worlds"
-        current_type: "§f§l §7Filter Type §f{type}"
-        current_player: "§f§l §7Target Player §b{player}"
-        click_left: "§e§l §eLeft-Click §7Change Filter Type"
-        click_right: "§e§l §eRight-Click §7Set Player"
-      click_cycle: "§e§nClick to cycle"
-      click_lr: "§e§nLeft/Right-Click §7to change"
+        display: §ePlayer Filter
+        lore:
+        - §8§m－－－－－－－－－－－－－－－－－－
+        - §f§l| §7Filter type §f{type}
+        - §f§l| §7Target player §b{player}
+        - §8§m－－－－－－－－－－－－－－－－－－
+        - §e§nLeft click§7 Change type
+        - §e§nRight click§7 Set Player
+        - §8§m－－－－－－－－－－－－－－－－－－
+        none: No Filter
+        owner: Owner Worlds
+        member: Member Worlds
+        current_type: §f§l §7Filter Type §f{type}
+        current_player: §f§l §7Target Player §b{player}
+        click_left: §e§l §eLeft-Click §7Change Filter Type
+        click_right: §e§l §eRight-Click §7Set Player
+      click_cycle: §e§nClick to cycle
+      click_lr: §e§nLeft/Right-Click §7to change
     sort:
-      display: "§eSort Order"
-      created_desc: "Created (Newest)"
-      created_asc: "Created (Oldest)"
-      expire_asc: "Expire Date (Soon)"
-      expire_desc: "Expire Date (Later)"
-      expansion_desc: "Expansion (High)"
-      expansion_asc: "Expansion (Low)"
-      mspt_desc: "MSPT (High)"
-  
+      display: §eSort Order
+      created_desc: Created (Newest)
+      created_asc: Created (Oldest)
+      expire_asc: Expire Date (Soon)
+      expire_desc: Expire Date (Later)
+      expansion_desc: Expansion (High)
+      expansion_asc: Expansion (Low)
+      mspt_desc: MSPT (High)
   environment:
-    title: "Environment Settings"
+    title: Environment Settings
     gravity:
-      display: "§eGravity Settings"
-      current: "§f§l| §7Current Multiplier: §6{multiplier}"
-      click: "§e§nClick§7 to cycle"
-      cost: "§f§l| §7Cost: §6🛖 §e{cost}"
+      display: §eGravity Settings
+      current: '§f§l| §7Current Multiplier: §6{multiplier}'
+      click_hint: Change by clicking while holding §e§nMoon Stone§7
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
       options:
-        zero: "Zero Gravity (x0.0)"
-        moon: "Moon (x0.17)"
-        mars: "Mars (x0.38)"
-        earth: "Earth (x1.0)"
+        zero: Zero Gravity (x0.0)
+        moon: Moon (x0.17)
+        mars: Mars (x0.38)
+        earth: Earth (x1.0)
     weather:
-      display: "§bWeather Settings"
-      current: "§f§l| §7Current Weather: §b{weather}"
-      click: "§e§nClick§7 to cycle"
-      cost: "§f§l| §7Cost: §6🛖 §e{cost}"
-      desc: "§7The weather will be fixed to the selected setting."
+      display: §bWeather Settings
+      current: '§f§l| §7Current Weather: §b{weather}'
+      click_cycle: §e§nLeft click§7 to switch
+      click_confirm: §d§nRight click§7 to confirm/consume points
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
+      desc: §7The weather will be fixed to the selected setting.
     biome:
-      display: "§aBiome Settings"
-      current: "§f§l| §7Current Biome: §a{biome}"
-      click: "§e§nClick§7 to cycle"
-      click_bottle_hint: "§7Click with a Bottled Biome Air to apply."
-      cost: "§f§l| §7Cost: §6🛖 §e{cost}"
-      desc: "§7Changes the biome for the entire world."
-
-
-
+      display: §aBiome Settings
+      current: '§f§l| §7Current Biome: §a{biome}'
+      click_hint: Change by clicking while holding §e§nbiome bottle§7
+      click_bottle_hint: §7Click with a Bottled Biome Air to apply.
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
+      desc: §7Changes the biome for the entire world.
   meet:
-    title: "Visit {player}"
-    title_list: "Go to Player's Place"
+    title: Visit {player}
+    title_list: Go to Player's Place
     world_item:
-      current_world: "§f§l| §7Current World §f{world}"
-      click_visit: "§e§l| §e§nClick to warp"
-    
+      current_world: §f§l| §7Current World §f{world}
+      status: §f§l| §7Status §e{status}
+      click_visit: §e§l| §e§nClick to warp
+      click_request: §e§l| §eClick to submit warp request
     status_button:
-      display: "§aStatus Settings"
-      current: "§f§l| §7Current Status: §e{status}"
-      next: "§f§l| §7Next Status: §7{next_status}"
-      click: "§e§nClick to Toggle"
-
+      display: §aStatus Settings
+      current: '§f§l| §7Current Status: §e{status}'
+      next: '§f§l| §7Next Status: §7{next_status}'
+      click: §e§nClick to Toggle
+  meet_settings:
+    title: /meet settings
+    status_selector:
+      display: §aStatus settings
+      current: §f§l| §7Current status §e{status}
+      active_prefix: '§6» '
+      inactive_prefix: '  '
+      desc_header: §f§l| §fDescription
+      click_cycle: §e§nClick to switch
   discovery:
-    title: "Discovery"
+    title: Discovery
     world_item:
       lore:
-        - "§8§m-----------------------"
-        - "{owner}"
-        - "{favorite}"
-        - "{recent_visitors}"
-        - "{tag}"
-        - "§8§m-----------------------"
-        - "§e§l| §eLeft-Click §7Warp"
-        - "{preview_hint}"
-        - "{member_request_hint}"
-        - "§e§l| §eShift + Right-Click §7Add/Remove Favorite"
-        - "§8§m-----------------------"
-      owner: "§f§l| §7Owner {owner}{status_color}"
-      favorite: "§f§l| §7Favorites §c{count}"
-      recent_visitors: "§f§l| §7Recent Visitors §a{count}"
-      tag: "§f§l| §7Tags §e{tags}"
-      warp: "§e§l| §e§nLeft-Click §7Warp"
-      preview_hint: "§e§l| §eRight-Click §7Preview"
-      member_request_hint: "§e§l| §dShift + Left-Click §7Request Membership"
-      favorite_toggle: "§e§l| §dShift + Right-Click§7 Toggle Favorite"
-      fav_add: "§e§l| §e§nRight-Click §7Favorite"
-      fav_remove: "§e§l| §e§nRight-Click §7Unfavorite"
+      - §8§m-----------------------
+      - '{owner}'
+      - '{favorite}'
+      - '{recent_visitors}'
+      - '{tag}'
+      - §8§m-----------------------
+      - §e§l| §eLeft-Click §7Warp
+      - '{preview_hint}'
+      - '{member_request_hint}'
+      - §e§l| §eShift + Right-Click §7Add/Remove Favorite
+      - §8§m-----------------------
+      owner: §f§l| §7Owner {owner}{status_color}
+      tag: §f§l| §7Tags §e{tags}
+      favorite: §f§l| §7Favorites §c{count}
+      recent_visitors: §f§l| §7Recent Visitors §a{count}
+      warp: §e§l| §e§nLeft-Click §7Warp
+      preview: §e§l| §eRight click§7 Preview
+      preview_hint: §e§l| §eRight-Click §7Preview
+      member_request_hint: §e§l| §dShift + Left-Click §7Request Membership
+      favorite_toggle: §e§l| §dShift + Right-Click§7 Toggle Favorite
+      fav_add: §e§l| §e§nRight-Click §7Favorite
+      fav_remove: §e§l| §e§nRight-Click §7Unfavorite
+      spotlight_remove: §e§l| §eShift + right click§c Remove from SPOTLIGHT
+    spotlight_empty:
+      name: §7[Empty slot]
+      lore_admin:
+      - §7This slot is currently vacant.
+      - §7Click to view the world you are currently in.
+      - Register with §6SPOTLIGHT§7.
+      - ''
+      - §e§nClick to register
+      lore_visitor:
+      - §7This slot is currently vacant.
+      - New recommended worlds managed by §7
+      - Please wait for §7 to appear!
     sort:
-      name: "§aSelect Sort Order"
-      click: "§e§nClick to cycle"
+      display: §aSelecting the sorting method
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7{current_prefix} §f{sort_name}
+      - '  §8{sort_desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{sort_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to switch
+      name: §aSelect Sort Order
+      click: §e§nClick to cycle
       type:
-        hot: "Popular"
-        new: "New"
-        favorites: "Favorites"
-        spotlight: "Spotlight"
-        random: "Random"
+        hot: Popular
+        new: New
+        favorites: Favorites
+        spotlight: Spotlight
+        random: Random
     tag_select:
-      display: "§aSelect Tag"
-      current: "§f§l| Current Tag §6{tag}"
-      none: "§fNone"
-      active: "§a» {tag}"
-      inactive: "§8- {tag}"
-      click_next: "§e§nLeft-Click §7Next"
-      click_reset: "§e§nRight-Click §7Reset"
+      display: §aSelect Tag
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| Selected tag §6{tag}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{tag_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nLeft click§7 Next
+      - §e§nRight click§7 Deselect
+      - §8§m－－－－－－－－－－－－－－－－－－
+      current: §f§l| Current Tag §6{tag}
+      none: §fNone
+      active: §a» {tag}
+      inactive: §8- {tag}
+      click_next: §e§nLeft-Click §7Next
+      click_reset: §e§nRight-Click §7Reset
     tag_filter:
-      name: "Tag Filter"
-      # Placeholder: {prefix}, {tag}, {tag_list}, {click_left}, {click_right}
+      name: Tag Filter
       lore:
-        - "§8§m-----------------------"
-        - "§f§l| {prefix} §6{tag}"
-        - "§8§m-----------------------"
-        - "{tag_list}"
-        - "§8§m-----------------------"
-        - "{click_left}"
-        - "{click_right}"
-        - "§8§m-----------------------"
-      current_prefix: "Selected"
-      active: "§e» "
-      inactive: "§7  "
-      no_selection: "No selection"
-      all: "All"
-      click_left: "§e§nLeft Click§7 Toggle Filter"
-      click_right: "§e§nRight Click§7 Reset Filter"
+      - §8§m-----------------------
+      - §f§l| {prefix} §6{tag}
+      - §8§m-----------------------
+      - '{tag_list}'
+      - §8§m-----------------------
+      - '{click_left}'
+      - '{click_right}'
+      - §8§m-----------------------
+      current_prefix: Selected
+      active: '§e» '
+      inactive: '§7  '
+      no_selection: No selection
+      all: All
+      click_left: §e§nLeft Click§7 Toggle Filter
+      click_right: §e§nRight Click§7 Reset Filter
+    stats:
+      name: §fStatistics
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7 Sorting order: §b{sort}'
+      - '§f§l| §7 Tag: §b{tag}'
+      - §f§l| §7Search results §b{count}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7{desc}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      sort: '§f§l| §7 Sorting order: §b{sort}'
+      tag: '§f§l| §7 Tag: §b{tag}'
+      count: §f§l| §7Search results §b{count}
+      desc: §7 Displaying worlds that match the conditions
     sort_info:
-      hot: "Sorted by recent visitors"
-      new: "Sorted by publication date"
-      favorites: "Sorted by number of favorites"
-      spotlight: "Hand-picked worlds by staff"
-      random: "Worlds are shuffled every time you see them"
-    no_result: "§7No worlds found matching the criteria"
-
+      hot: Sorted by recent visitors
+      new: Sorted by publication date
+      favorites: Sorted by number of favorites
+      spotlight: Hand-picked worlds by staff
+      random: Worlds are shuffled every time you see them
+    no_result: §7No worlds found matching the criteria
     spotlight_remove_confirm:
-      title: "Remove from SPOTLIGHT"
+      title: Remove from SPOTLIGHT
       lore:
-        - "§fDo you want to remove"
-        - "§fworld \"§a{world}§f\" from §6SPOTLIGHT§f?"
-
-  favorite:
-    title: "Favorite Worlds"
-    world_item:
-      owner: "§f§l| §7Owner §b{owner}{status_color}"
-      favorite: "§f§l| §7Favorites §c{count}"
-      recent_visitors: "§f§l| §7Recent Visitors §a{count}"
-      tag: "§f§l| §7Tags §e{tags}"
-      unfavorite: "§cRight-Click to remove"
-      archived_label: "§c§l[ARCHIVED]"
-      unfavorite_archived: "§cClick to remove"
-    info:
-      display: "§fStatistics"
-      count: "§7Favorites §f{count}"
-      page: "§7Page §a{current}§7/{max}"
-    player_icon:
-      name: "§b{player}"
-      lore_count: "§f§l| §7Favorited Worlds: §a{count}"
-    
-    favorite_menu:
-      title: "Favorite Menu"
-      other_worlds:
-        name: "§aOther Worlds of this Player"
-        lore:
-          - "§7View other worlds owned by"
-          - "§7the owner of this world."
-          - ""
-          - "§e§nClick to View"
-          - "§e§nClick to View"
-      toggle:
-        name_add: "§bAdd to Favorites"
-        name_remove: "§cRemove from Favorites"
-        name_restricted: "§7Cannot Favorite"
-        lore_add: "§7Add this world to your favorites."
-        lore_remove: "§7Remove this world from your favorites."
-        lore_restricted_owner: "§cYou cannot favorite your own world."
-        lore_restricted_not_managed: "§cThis location cannot be favorited."
-        click: "§e§nClick to Toggle"
-      list:
-        name: "§dView Favorite List"
-        lore:
-          - "§7View the list of worlds you"
-          - "§7have added to your favorites."
-          - ""
-          - "§e§nClick to View"
-
-  member_request_confirm:
-    title: "Member Request Confirmation"
-    confirm: "§aSend Request"
-    cancel: "§cCancel"
-    lore:
-      - "§fSend a §dmember request§f to"
-      - "§fthe owner of \"§a{world}§f\"?"
-      - ""
-      - "§7If the owner approves, you will become a member."
-    
-  member_request_owner_confirm:
-    title: "Member Request Approval"
-    confirm: "§aApprove"
-    reject: "§cReject"
-    lore:
-      - "§fApprove the §dmember request§f from"
-      - "§fplayer \"§a{player}§f\"?"
-      - ""
-      - "§7If approved, they will become a member of this world."
-
+      - §fDo you want to remove
+      - §fworld "§a{world}§f" from §6SPOTLIGHT§f?
   spotlight_confirm:
-    title: "Register to SPOTLIGHT"
+    title: Register to SPOTLIGHT
     lore:
-      - "§fDo you want to register"
-      - "§fworld \"§a{world}§f\" to §6SPOTLIGHT§f?"
-      - ""
-      - "§7Registered worlds will be displayed"
-    
-error:
-  member_request_owner_offline: "§cCannot send request because the owner is offline."
-  member_request_already_member: "§cYou are already a member of this world."
-  console_only: "§cThis command can only be executed from console."
-  custom_item:
-    item_not_found_hand: "§cItem not found in hand."
-    no_permission: "§cYou do not have permission to change the biome."
-    world_seed_limit_reached: "§cCannot expand slots further. (Limit: {limit})"
-  delete_failed: "§cFailed to delete world."
-  expand_failed: "§cExpansion failed (World might not be loaded)."
-  expand_insufficient_points: "§cInsufficient points. (Required: §6🛖 §e{cost}§c)"
-  favorite_limit_reached: "§cYou have reached the favorite limit ({limit})."
-  internal_error: "§cInternal error occurred."
-  invalid_item_id: "§cInvalid Item ID."
-  invite_already_member: "§cAlready a member of this world."
-  invite_expired: "§cInvite not found or expired."
-  invite_locked_error: "§cYou cannot invite players to a locked world."
-  invite_world_not_found: "§cWorld data not found."
-  load_failed: "§cFailed to load world."
-  max_expansion_reached: "§cWorld is already at max level."
-  migration_disabled: "§cMigration command is disabled. Set '{config_key}' to true in config.yml."
-  no_portals_found: "§cNo portals found."
-  player_not_found: "§cPlayer not found."
-  portal_bind_invalid_publish: "§cOnly Public or Limited worlds can be bound."
-  portal_bind_myworld_only: "§cPortals can only be bound inside a MyWorld."
-  world_gate_bind_required: "§cBind destination first with Shift+Right-Click before selecting points."
-  portal_dest_locked: "§cThe destination of this portal is currently locked."
-  portal_not_bound: "§cThis portal is not yet bound to a world."
-  preview_template_not_found: "§cTemplate not found."
-  preview_world_load_failed: "§cFailed to load preview world."
-  spotlight_already_registered: "§cThis world is already registered to SPOTLIGHT."
-  spotlight_limit_reached: "§cSPOTLIGHT slots are full."
-  spotlight_not_in_myworld: "§cYou must be in the target MyWorld to register it."
-  spotlight_not_owner: "§cYou can only register worlds you own."
-  target_not_in_myworld: "§cTarget player is not in a MyWorld."
-  target_offline: "§cTarget player is offline."
-  unarchive_failed: "§cFailed to restore world."
-  unknown_subcommand: "§cUnknown subcommand."
-  unlink_not_myworld: "§cThis world is not a MyWorld."
-  world_already_exists: "§cWorld already exists."
-  world_creation_failed: "§cWorld creation failed."
-  world_creation_in_progress: "§cWorld creation is in progress."
-  world_load_failed: "§cWorld load failed."
-  world_not_public: "§cThis world is not currently public."
-
-
-messages:
-  member_request_sent: "§aMember request sent."
-  member_request_received: "§eReceived a member request from §a{player}§e."
-  member_request_click_approve: "§a§l【Open Approval】"
-  member_request_click_reject: "§c§l【Open Rejection】"
-  member_request_hover_approve: "§7Click to open approval/rejection confirmation."
-  member_request_hover_reject: "§7Click to open approval/rejection confirmation."
-  member_request_expired: "§cThe request has expired."
-  member_request_approved: "§aYour member request has been approved!"
-  member_request_rejected: "§cYour member request has been rejected."
-
+    - §fDo you want to register
+    - §fworld "§a{world}§f" to §6SPOTLIGHT§f?
+    - ''
+    - §7Registered worlds will be displayed
+  favorite:
+    title: Favorite Worlds
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_line}'
+      - '{archived_line}'
+      - '{unfavorite_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7Owner §b{owner}{status_color}
+      favorite: §f§l| §7Favorites §c{count}
+      recent_visitors: §f§l| §7Recent Visitors §a{count}
+      tag: §f§l| §7Tags §e{tags}
+      warp: §e§l| §eLeft click§7 Warp
+      unfavorite: §cRight-Click to remove
+      archived_label: §c§l[ARCHIVED]
+      unfavorite_archived: §cClick to remove
+    info:
+      display: §fStatistics
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Registered §f{count} items
+      - §7Displaying §a{current_page}§7/{max_page} page
+      - §8§m－－－－－－－－－－－－－－－－－－
+      count: §7Favorites §f{count}
+      page: §7Page §a{current}§7/{max}
+    player_icon:
+      name: §b{player}
+      lore_count: '§f§l| §7Favorited Worlds: §a{count}'
+    favorite_menu:
+      title: Favorite Menu
+      other_worlds:
+        name: §aOther Worlds of this Player
+        lore:
+        - §7View other worlds owned by
+        - §7the owner of this world.
+        - ''
+        - §e§nClick to View
+        - §e§nClick to View
+      toggle:
+        name_add: §bAdd to Favorites
+        name_remove: §cRemove from Favorites
+        name_restricted: §7Cannot Favorite
+        lore_add: §7Add this world to your favorites.
+        lore_remove: §7Remove this world from your favorites.
+        lore_restricted_owner: §cYou cannot favorite your own world.
+        lore_restricted_not_managed: §cThis location cannot be favorited.
+        click: §e§nClick to Toggle
+      list:
+        name: §dView Favorite List
+        lore:
+        - §7View the list of worlds you
+        - §7have added to your favorites.
+        - ''
+        - §e§nClick to View
+    remove_confirm:
+      title: Confirmation of cancellation of favorites
+      lore:
+      - §fWorld "§a{world}§f"
+      - §cRemove from favorites§f?
+      - ''
+      - If you cancel §7, it will be removed from your favorites list.
+  member_request_confirm:
+    title: Member Request Confirmation
+    confirm: §aSend Request
+    cancel: §cCancel
+    lore:
+    - §fSend a §dmember request§f to
+    - §fthe owner of "§a{world}§f"?
+    - ''
+    - §7If the owner approves, you will become a member.
+  member_request_owner_confirm:
+    title: Member Request Approval
+    confirm: §aApprove
+    reject: §cReject
+    lore:
+    - §fApprove the §dmember request§f from
+    - §fplayer "§a{player}§f"?
+    - ''
+    - §7If approved, they will become a member of this world.
+  world_seed_confirm:
+    title: Using world seeds
+    lore:
+    - Do you want to use §d world seed §f?
+    - ''
+    - '§7Current My World Slot: §a{current}'
+    - 'My world slot after using §7: §a{next}'
+    - ''
+    - By expanding the §7 slot, you can create
+    - §7 The number of My Worlds will increase.
   visit:
-    title: "{player}'s Worlds"
+    title: '{player}''s world'
     world_item:
-      # Placeholder: {description}, {owner_line}, {favorite_line}, {visitor_line}, {tag_line}, {warp_line}, {archived_line}, {unfavorite_line}
       lore:
-        - "{description}"
-        - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "{owner_line}"
-        - "{favorite_line}"
-        - "{visitor_line}"
-        - "{tag_line}"
-        - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "{warp_line}"
-        - "{archived_line}"
-        - "{unfavorite_line}"
-
-      owner: "§f§l| §7Owner §b{owner}{status_color}"
-      favorite: "§f§l| §7Favorites §c{count}"
-      recent_visitors: "§f§l| §7Recent Visitors §a{count}"
-      tag: "§f§l| §7Tags §e{tags}"
-      warp: "§e§l| §e§nLeft-Click §7Warp"
-      fav_add: "§e§l| §e§nRight-Click §7Favorite"
-      fav_remove: "§e§l| §e§nRight-Click §7Unfavorite"
-      unfavorite: "§e§l| §cShift + Right-Click§7 Unfavorite"
-      archived_label: "§c[ ARCHIVED ]"
-      unfavorite_archived: "§cClick to remove from favorites"
-
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_line}'
+      - '{fav_action_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7Owner §b{owner}{status_color}
+      tag: §f§l| §7tag §b{tags}
+      favorite: §f§l| §7Favorite §c{count}
+      recent_visitors: §f§l| §7Recent Visitors §a{count}
+      warp: §e§l| §eLeft click§7 Warp
+      fav_add: §e§l| §eRight click§7 Add to Favorites§a
+      fav_remove: §e§l| §cRight click§7 Remove favorites§c
   player_world:
-    title: "My Worlds"
+    title: My world list
     world_item:
-      # Placeholder: {description}, {owner_line}, {publish_line}, {favorite_line}, {visitor_line}, {tag_line}, {expires_at_line}, {expired_line}, {warp_action}, {settings_action}
       lore:
-        - "{description}"
-        - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "{owner_line}"
-        - "{publish_line}"
-        - "{favorite_line}"
-        - "{visitor_line}"
-        - "{tag_line}"
-        - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "{expires_at_line}"
-        - "{expired_line}"
-        - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "{warp_action}"
-        - "{settings_action}"
-
-      owner: "§f§l| §7Owner §f{owner}"
-      publish: "§f§l| §7Publish §b{level}{status_color}"
-      favorite: "§f§l| §7Favorites §c{count}"
-      recent_visitors: "§f§l| §7Recent Visitors §a{count}"
-      tag: "§f§l| §7Tags §e{tags}"
-      warp: "§e§l| §e§nLeft-Click§7 Warp"
-      settings: "§e§l| §b§nRight-Click§7 Settings"
-      expired: "§c§nThis world is ARCHIVED."
-      expires_at: "§f§l| §7Archive in §f{days} days §8({date})"
-
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{publish_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{expires_at_line}'
+      - '{expired_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_action}'
+      - '{settings_action}'
+      owner: §f§l| §7Owner §f{owner}
+      publish: §f§l| §7Public setting §b{level}{status_color}
+      favorite: §f§l| §7Favorite §c{count}
+      recent_visitors: §f§l| §7Recently visited players §a{count} people
+      tag: §f§l| §7tag §e{tags}
+      warp: §e§l| §eLeft click§7 Warp to this world§b
+      settings: §e§l| §eRight click§7 Open world settings
+      expired: §c§nThis world has been archived
+      expires_at: §f§l| §7Days until archive §f{days} days §8(archived to {date})
     creation_button:
-      display: "§a§lCreate New MyWorld"
+      display: §a§lCreate a new My World
       lore:
-        - "§7Create a new personal world."
-        - "§7You can set templates and publish level."
-        - ""
-        - "§e§nClick to Start Creation"
-    
+      - §7 Create a new My World.
+      - §7You can freely set the template and disclosure range.
+      - ''
+      - §e§nClick to start creating
     stats_button:
-      display: "§e{player}"
-      world_point: "§f§l| §7World Points §6🛖 {points}"
-      slot_count: "§f§l| §7World Slots §a§l{current}§7/{max}"
-      slot_full: "§cSlots are full!"
-
+      display: §e{player}
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7World Point §6{icon} {point}
+      - §7These points can be used to create a new My World, expand it, etc.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7 World Slot §a§l{current_occupied}§7/{unlocked}
+      - §7This is the number of slots that can be used to create a new My World.
+      - §7 Can be released by using "World Seed"
+      - §8§m－－－－－－－－－－－－－－－－－－
   user_settings:
-    title: "User Settings"
+    title: Personal settings
     notification:
-      display: "§aVisitor Notifications"
+      display: §aVisitor notification
       lore:
-        - "§7Toggle whether to receive"
-        - "§7notifications when someone visits"
-        - "§7your world."
-        - ""
-        - "§e§nClick to Toggle"
+      - §7When someone visits your world
+      - §7 Set whether to send notifications.
+      - ''
+      - §f§l| §7Current state {status}
+      - ''
+      - §e§nClick to switch
     language:
-      display: "§aLanguage Settings"
-      format: "§f{language}"
+      display: §aLanguage settings
+      format: §f{language}
       lore:
-        - "§7Change the display language"
-        - "§7of the plugin."
-        - "§8§m-----------------------"
-        - "§f§l|§7Current: §f{language}"
-        - "§8§m-----------------------"
-        - "§e§nClick to cycle"
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Change the display language of menus and messages.
+      - '§f§l| §7Current setting: §f{language}'
+      - ''
+      - §e§nClick next
+      - §8§m－－－－－－－－－－－－－－－－－－
     critical_settings_visibility:
-      display: "§aCritical Settings Visibility"
+      display: §aShow critical settings
       lore:
-        - "§7Toggle whether to show the"
-        - "§7'Critical Settings' icon in the"
-        - "§7world management menu."
-        - "§8§m-----------------------"
-        - "§f§l| §7Current State {status}"
-        - "§8§m-----------------------"
-        - "§e§nClick to Toggle"
-    meet_enabled:
-      display: "§a/meet Settings"
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 in the world management menu
+      - §7 Set whether to display the "Critical Settings" icon.
+      - §f§l| §7Current setting {status}
+      - ''
+      - §e§nClick to switch
+      - §8§m－－－－－－－－－－－－－－－－－－
+    beta_features:
+      display: §e Beta features (experimental features)
       lore:
-        - "§7Toggle whether other players"
-        - "§7can see your location via the"
-        - "§7/meet command."
-        - "§8§m-----------------------"
-        - "§f§l| §7Current State {status}"
-        - "§8§m-----------------------"
-        - "§e§nClick to Toggle"
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Enables features under development.
+      - §7Now instead of traditional chat input
+      - §7 Use new dialog input.
+      - §c* It does not work on clients older than 1.21.8, so
+      - §cSupport will be discontinued in the future!
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current state {status}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to switch
+      - §8§m－－－－－－－－－－－－－－－－－－
     button:
-      display: "§6User Settings"
+      display: §6Personal settings
       lore:
-        - "§7Change your personal settings"
-        - "§7such as language and notifications."
-        - ""
-        - "§e§nClick to open"
-
-
-
-  # Settings
-  world_name_prompt: "§ePlease type the world name in chat."
-  chat_input_cancel_hint: "§7(Type §e{word} §7in chat to cancel)"
-  world_desc_prompt: "§ePlease type the world description in chat."
-  world_name_change: "§aWorld name changed."
-  world_name_invalid: "§cName must be 3-16 characters."
-  world_desc_change: "§aDescription changed."
-  icon_prompt: "§eClick an item in your inventory to set as icon."
-  icon_changed: "§aWorld icon changed to \"{icon}\"."
-  icon_cancelled: "§eIcon change cancelled."
-  spawn_set_start: "§aSetting spawn point for {type}. Left-click a block while facing the desired direction."
-  spawn_guest_set: "§aGuest spawn point set."
-  spawn_member_set: "§aMember spawn point set."
-  tag_added: "§aTag \"{tag}\" added."
-  tag_removed: "§eTag \"{tag}\" removed."
-  tag_max_reached: "§cMax {limit} tags allowed."
-  
-  # Members / Visitors / Kick
-  member_invite_input: "§eType the player ID in chat to invite."
-  member_deleted: "§aMember removed."
-  owner_transfer_failed_limit: "§cTarget player has no available world slots."
-  invite_locked_error: "§cYou cannot invite players to a locked world."
-  portal_dest_locked: "§cThe destination of this portal is currently locked."
-  portal_warped: "§aWarped to \"{destination}\" via portal."
-  invite_self_error: "§cYou cannot invite yourself."
-  invite_expired: "§cInvite not found or expired."
-  invite_world_not_found: "§cWorld data not found."
-  invite_already_member: "§cAlready a member of this world."
-  invite_accepted_self: "§aYou are now a member of world【{world}】!"
-  invite_accepted_sender: "§e{player} §faccepted your invite to world【§a{world}§f】."
-  invite_sent_success: "§eSent invite to {player} for world \"§a{world}§f\"!"
-  invite_target_offline: "§cPlayer {player} is not online."
-  invite_not_in_myworld: "§cYou must be in a MyWorld to send an invitation."
-  invite_not_member: "§cYou cannot send an invitation because you are not a member of this world"
-  invite_hover: "Click to join the world"
-  invite_text: "{player} invited you to \"{world}\"!"
-  invite_click_text: "«Click here to warp»"
-  member_invite_text: "{player} invited you to join \"{world}\" as a member."
-  member_invite_click: "«Click to accept»"
-  member_invite_hover: "Click to accept the member invitation"
-  member_request_sent: "§aMember request sent successfully"
-  member_request_received: "§d{player} wants to join your world as a member"
-  member_request_click_approve: "§a[Approve]"
-  member_request_click_reject: "§c[Reject]"
-  member_request_hover_approve: "Click to approve"
-  member_request_hover_reject: "Click to reject"
-  member_request_approved: "§aYour member request has been approved"
-  member_request_rejected: "§cYour member request has been rejected"
-  member_request_expired: "§cThe request has expired"
-  visitor_notified: "§e{player} §fvisited your world!"
-  kicked: "§cYou have been kicked from this world."
-  kicked_success: "§aKicked {player}."
-  target_offline: "§cTarget player is offline."
-  target_not_in_myworld: "§cTarget player is not in a MyWorld."
-  meet_no_players: "§cThere are currently no visible players online."
-  admin_player_filter_set: "§aPlayer filter set to {player}."
-  announcement_prompt: "§eEnter announcement message in chat. (& for colors, 'cancel' to abort)"
-  announcement_set: "§aAnnouncement message set!"
-  announcement_reset: "§eAnnouncement message reset."
-  announcement_invalid_length: "§cMessage is too long. (Max {max_lines} lines, {max_length} chars per line)"
-  announcement_blocked_string: "§cMessage contains blocked string: {string}"
-  announcement_preview: "§7[Preview] {message}"
-  creation_insufficient_points: "§cInsufficient points."
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Change display language, notifications, etc.
+      - §e§nClick to open
+      - §8§m－－－－－－－－－－－－－－－－－－
+  like_sign:
+    placement:
+      title: Installation of Like signboard
+      description: §7Please enter the Like sign settings
+    edit:
+      title: Edit Like sign
+      current_likes: §7Current number of likes
+    display_type:
+      sign: signboard
+      hologram: hologram
+    input:
+      title: title
+      description: Explanatory text
+      display_type: Display format
+    button:
+      place: install
+      cancel: cancel
+      save: keep
+      delete: delete
+    unlike_confirm:
+      title: Cancel Like
+      description: §cCancel Like?
+messages:
+  world_name_prompt: §ePlease type the world name in chat.
+  chat_input_cancel_hint: §7(Type §e{word} §7in chat to cancel)
+  wizard_cancel_word: cancel
+  unlink_success: §aWorld unlinked successfully.
+  unlink_failed: §cFailed to unlink world.
+  unlink_not_myworld: §cThis world is not a MyWorld.
+  world_desc_prompt: §ePlease type the world description in chat.
+  world_name_change: §aWorld name changed.
+  world_name_invalid: §cName must be 3-16 characters.
+  world_desc_change: §aDescription changed.
+  icon_prompt: §eClick an item in your inventory to set as icon.
+  icon_changed: §aWorld icon changed to "{icon}".
+  icon_cancelled: §eIcon change cancelled.
+  operation_cancelled: §c operation canceled.
+  insufficient_points: You don't have enough §c points.
+  creation_insufficient_points: §cInsufficient points.
+  invalid_biome_data: §c Biome data is incorrect.
+  creation_cancelled: §c Creation of My World has been canceled.
+  creation_success: §a World creation completed!
+  creation_failed: §c creation failed.
+  world_not_found: §c World not found.
+  spawn_set_start: §aSetting spawn point for {type}. Left-click a block while facing the desired direction.
+  spawn_guest_set: §aGuest spawn point set.
+  spawn_member_set: §aMember spawn point set.
+  favorite_removed: §c Removed from favorites
+  tag_max_reached: §cMax {limit} tags allowed.
+  member_invite_input: §eType the player ID in chat to invite.
+  member_deleted: §aMember removed.
+  owner_transferred: Ownership has been transferred to §a{old_owner}.
+  owner_transfer_failed_limit: §cTarget player has no available world slots.
+  invite_locked_error: §cYou cannot invite players to a locked world.
+  portal_dest_locked: §cThe destination of this portal is currently locked.
+  portal_warped: §aWarped to "{destination}" via portal.
+  invite_expired: §cInvite not found or expired.
+  invite_world_not_found: §cWorld data not found.
+  invite_already_member: §cAlready a member of this world.
+  invite_accepted_self: §aYou are now a member of world【{world}】!
+  invite_accepted_sender: §e{player} §faccepted your invite to world【§a{world}§f】.
+  invite_sent_success: §eSent invite to {player} for world "§a{world}§f"!
+  invite_target_offline: §cPlayer {player} is not online.
+  invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
+  invite_not_member: §cYou cannot send an invitation because you are not a member of this world
+  invite_hover: Click to join the world
+  invite_text: '{player} invited you to "{world}"!'
+  invite_click_text: «Click here to warp»
+  member_invite_text: '{player} invited you to join "{world}" as a member.'
+  member_invite_click: «Click to accept»
+  member_invite_hover: Click to accept the member invitation
+  member_request_sent: §aMember request sent successfully
+  member_request_received: §d{player} wants to join your world as a member
+  member_request_click_approve: §a[Approve]
+  member_request_click_reject: §c[Reject]
+  member_request_hover_approve: Click to approve
+  member_request_hover_reject: Click to reject
+  member_request_approved: §aYour member request has been approved
+  member_request_rejected: §cYour member request has been rejected
+  member_request_expired: §cThe request has expired
+  visitor_notified: §e{player} §fvisited your world!
+  kicked: §cYou have been kicked from this world.
+  kicked_success: §aKicked {player}.
+  admin_player_filter_set: §aPlayer filter set to {player}.
+  announcement_prompt: §eEnter announcement message in chat. (& for colors, 'cancel' to abort)
+  announcement_set: §aAnnouncement message set!
+  announcement_reset: §eAnnouncement message reset.
+  announcement_invalid_length: §cMessage is too long. (Max {max_lines} lines, {max_length} chars per line)
+  announcement_blocked_string: '§cMessage contains blocked string: {string}'
+  announcement_preview: §7[Preview] {message}
+  env_gravity_changed: '§aGravity has been changed to "{gravity}" (Magnification: {multiplier})'
+  env_weather_changed: §a Weather has been specified as "{weather}"
+  env_biome_changed: Changed §a biome to "{biome}"
+  env_cost_paid: §6🛖 §e{cost} §a points were spent. {remaining_info}
+  env_cost_paid_remaining: '(Remaining: §6🛖 §e{remaining})'
+  creation_start: §a Creating world...
+  creation_seed_prompt: Please enter the seed value to be used for §a generation in the chat.
+  wizard_input_mode_ended: §e Exited input mode.
+  wizard_name_set: '§a Template name set: {name} (ID: {id})'
+  wizard_desc_set: §a Explanation text has been set.
+  wizard_icon_prompt: §e[MyWorldManager] Click on the item you want to make into an icon.
+  wizard_origin_set: §a The origin position has been set.
+  wizard_id_missing: §cID is not set.
+  wizard_id_exists: §c That ID already exists.
+  wizard_registered: §a template “{template}” has been registered!
   oage_ganbaru_messages:
-    - "§eOage is expanding the world... §7\"Heave-ho!\""
-    - "§eOage is pushing the boundaries!"
-    - "§eOage is developing new lands..."
-  oage_ganbaru_default: "§ePreparing for expansion..."
-
-  # Expansion / Delete / Archive
-  expand_direction_prompt: "§aLeft-click while facing the direction (NW, NE, SW, SE) you want to expand."
-  expand_direction_selected: "§aDirection selected: {direction}"
-  expand_confirm_chat: "§aPreviewing world border. Confirm expansion with these details?"
-  expand_confirm_button: "§a§l[Confirm Expansion]"
-  expand_confirm_hover: "§7Click to spend points and execute expansion"
-  expand_retry_button: "§c§l[Retry Selection]"
-  expand_retry_hover: "§7Click to clear the preview and pick a direction again"
-  expand_complete: "§aExpansion complete! §7{level_before} §f→ §e§l{level_after} §7(Remaining: §6🛖 §e{remaining}§7)"
-  expand_failed: "§cExpansion failed (World might not be loaded)."
-  max_expansion_reached: "§cWorld is already at max level."
-  expand_insufficient_points: "§cInsufficient points. (Required: §6🛖 §e{cost}§c)"
-  expansion_reset_success: "§aExpansion reset. Refunded §6🛖 §e{points} §apoints."
-  world_delete_start: "§cDeleting world \"{world}\"..."
-  world_delete_success: "§aDeleted world and refunded §6🛖 §e{points} §apoints."
-  world_delete_fail: "§cFailed to delete world."
-  archive_start: "§eArchiving world..."
-  archive_success: "§cWorld \"{world}\" has been archived."
-  archive_cooldown: "§cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)"
-  archive_failed: "§cFailed to archive world."
-
-  # Preview
-  preview_start: "§aPreviewing template \"{template}\"... §7(Press Shift to cancel)"
-  preview_end: "§ePreview ended."
-  preview_cancel: "§ePreview cancelled."
-  preview_template_not_found: "§cTemplate not found."
-  preview_world_load_failed: "§cFailed to load preview world."
-  preview_restored: "§eYou were restored to your original position after disconnecting during preview."
-  preview_archived: "§cThis world is currently archived and cannot be previewed."
-
-  unarchive_start: "§eRestoring world from archive..."
-  unarchive_success: "§aWorld restored from archive."
-  unarchive_cooldown: "§cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)"
-  unarchive_failed: "§cFailed to restore world."
-  archive_access_denied: "§cAccess denied. This world is archived."
-
-  # Warp / Load
-  warp_success: "§aWarped to world \"{world}\"."
-  warp_invite_success: "§aWarped to the invited world."
-  warp_generic: "§aWarped to world."
-  admin_warp_success: "§a§l[Admin] §aWarped to world \"{world}\"."
-  admin_warp_archived_error: "§cCannot warp to archived world. Please restore it first."
-  portal_warp_success: "§aSuccessfully moved to \"{destination}\" via portal."
-  world_loading: "§aLoading world..."
-  load_failed: "§cFailed to load world."
-  world_instance_error: "§cFailed to retrieve world instance."
-  world_not_public: "§cThis world is not currently public."
-  evacuated: "§cWorld unloaded. Moving to spawn."
-  no_in_myworld: "§cYou must be in a MyWorld to do this."
-  admin_player_filter_prompt: "§eType the player name in chat to filter."
-  
-  # Others
-  favorite_limit_reached: "§cYou have reached the favorite limit ({limit})."
-  favorite_added: "§bAdded to favorites!"
-  portal_removed: "§aPortal removed."
-  portal_bind_success: "§aPortal bound to \"{destination}\"."
-  portal_unbind_success: "§ePortal binding removed."
-  portal_bind_myworld_only: "§cPortals can only be bound inside a MyWorld."
-  portal_bind_invalid_publish: "§cOnly Public or Limited worlds can be bound."
-  portal_not_bound: "§cThis portal is not yet bound to a world."
-  portal_place_success: "§aWorld portal placed successfully."
-  portal_broken: "§eWorld portal has been broken."
-  world_gate_bind_success: "§aWorld gate bound to \"{destination}\"."
-  world_gate_select_first: "§eRight-click a block to select point 1 for the world gate."
-  world_gate_select_second: "§eRight-click a block to select point 2 for the world gate."
-  world_gate_point_selected: "§aPoint {point} selected: §f({x}, {y}, {z})"
-  world_gate_confirm_place: "§eRight-click once more to place the world gate."
-  world_gate_place_success: "§aWorld gate placed successfully."
-  world_gate_world_mismatch: "§cPlease select both points in the same world. Point 1 was reset."
-  world_created_warp: "§aMoved to the created world."
-  no_registered_worlds: "§cYou don't have any registered worlds yet."
-  status_on: "ON"
-  status_off: "OFF"
-  status_visible: "§aVisible"
-  status_hidden: "§cHidden"
-  wizard_start: "§aStarting creation wizard."
-  wizard_name_prompt: "§ePlease type the world name in chat."
-  wizard_cancel_word: "cancel"
-  unlink_success: "§aWorld unlinked successfully."
-  unlink_failed: "§cFailed to unlink world."
-  unlink_not_myworld: "§cThis world is not a MyWorld."
-  wizard_started_for: "§aWizard started for {player}."
-  creation_timeout: "§cWorld creation session timed out due to inactivity."
-  reload_success: "§aReloaded MyWorldManager configuration."
-  daily_update_success: "§aCompleted daily maintenance. (Updated: {updated}, Archived: {archived})"
-  data_update_success: "§aUpdated all world ({world_count}) and player ({player_count}) data."
-  
-  # /meet
+  - §eOage is expanding the world... §7"Heave-ho!"
+  - §eOage is pushing the boundaries!
+  - §eOage is developing new lands...
+  oage_ganbaru_default: §ePreparing for expansion...
+  like_sign:
+    placed: §aLike signboard has been installed!
+    saved: §aLike signboard has been updated!
+    deleted: §cLike sign has been deleted.
+    liked: §c❤ §aLiked!
+    unliked: §cLike canceled.
+  expand_direction_prompt: §aLeft-click while facing the direction (NW, NE, SW, SE) you want to expand.
+  expand_direction_selected: '§aDirection selected: {direction}'
+  expand_confirm_chat: §aPreviewing world border. Confirm expansion with these details?
+  expand_confirm_button: §a§l[Confirm Expansion]
+  expand_confirm_hover: §7Click to spend points and execute expansion
+  expand_retry_button: §c§l[Retry Selection]
+  expand_retry_hover: §7Click to clear the preview and pick a direction again
+  expand_complete: '§aExpansion complete! §7{level_before} §f→ §e§l{level_after} §7(Remaining: §6🛖 §e{remaining}§7)'
+  expansion_reset_success: §aExpansion reset. Refunded §6🛖 §e{points} §apoints.
+  world_delete_start: §cDeleting world "{world}"...
+  world_delete_success: §aDeleted world and refunded §6🛖 §e{points} §apoints.
+  world_delete_fail: §cFailed to delete world.
+  archive_start: §eArchiving world...
+  archive_success: §cWorld "{world}" has been archived.
+  archive_cooldown: §cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)
+  archive_failed: §cFailed to archive world.
+  preview_start: §aPreviewing template "{template}"... §7(Press Shift to cancel)
+  preview_end: §ePreview ended.
+  preview_cancel: §ePreview cancelled.
+  preview_restored: §eYou were restored to your original position after disconnecting during preview.
+  preview_archived: §cThis world is currently archived and cannot be previewed.
+  unarchive_start: §eRestoring world from archive...
+  unarchive_success: §aWorld restored from archive.
+  unarchive_cooldown: §cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)
+  archive_access_denied: §cAccess denied. This world is archived.
+  unknown_world: unknown world
+  item_not_found_hand: §c You don't have any items in hand.
+  admin_update_data_start: §e Updating player data...
+  admin_repair_template_none_missing: §a There are no missing template directories.
+  admin_repair_template_start: §eStarting repair of missing templates ({count})...
+  admin_repair_template_progress: §7- Generating {template}... ({path})
+  admin_repair_template_success: Successfully generated §a -> {template}.
+  admin_repair_template_complete: §a Repair process completed.
+  admin_convert_start: §e Start converting the world. Please wait...
+  admin_convert_success: '§aCurrent world ''{world}'' has been registered as MyWorld. (UUID: {uuid})'
+  admin_convert_success_normal: The §a directory will be renamed to standard format and normal My World management will be applied.
+  admin_convert_success_admin: Only the §a configuration file was generated. It is treated as an administrative world.
+  warp_success: §aWarped to world "{world}".
+  warp_invite_success: §aWarped to the invited world.
+  warp_generic: §aWarped to world.
+  admin_warp_success: §a§l[Admin] §aWarped to world "{world}".
+  admin_warp_archived_error: §cCannot warp to archived world. Please restore it first.
+  portal_warp_success: §aSuccessfully moved to "{destination}" via portal.
+  world_loading: §aLoading world...
+  evacuated: §cWorld unloaded. Moving to spawn.
+  no_in_myworld: §cYou must be in a MyWorld to do this.
+  admin_player_filter_prompt: §eType the player name in chat to filter.
+  favorite_added: §bAdded to favorites!
+  portal_removed: §aPortal removed.
+  portal_bind_success: §aPortal bound to "{destination}".
+  portal_unbind_success: §ePortal binding removed.
+  portal_place_success: §aWorld portal placed successfully.
+  portal_broken: §eWorld portal has been broken.
+  world_gate_bind_success: §aWorld gate bound to "{destination}".
+  world_gate_unbind_success: §a World gate link has been removed.
+  world_gate_select_first: §eRight-click a block to select point 1 for the world gate.
+  world_gate_select_second: §eRight-click a block to select point 2 for the world gate.
+  world_gate_point_selected: '§aPoint {point} selected: §f({x}, {y}, {z})'
+  world_gate_confirm_place: §eRight-click once more to place the world gate.
+  world_gate_place_success: §aWorld gate placed successfully.
+  world_gate_world_mismatch: §cPlease select both points in the same world. Point 1 was reset.
+  world_created_warp: §aMoved to the created world.
+  status_on: 'ON'
+  status_off: 'OFF'
+  status_visible: §aVisible
+  status_hidden: §cHidden
+  wizard_start: §aStarting creation wizard.
+  wizard_name_prompt: §ePlease type the world name in chat.
+  creation_timeout: §cWorld creation session timed out due to inactivity.
+  wizard_started_for: §aWizard started for {player}.
+  reload_success: §aReloaded MyWorldManager configuration.
+  daily_update_success: '§aCompleted daily maintenance. (Updated: {updated}, Archived: {archived})'
+  data_update_success: §aUpdated all world ({world_count}) and player ({player_count}) data.
+  spotlight_added: §aRegistered world "{world}" to SPOTLIGHT!
+  spotlight_removed: §cRemoved world "{world}" from SPOTLIGHT.
+  world_creation_started: §e Started creating my world "{world}"...
+  world_creation_success: §a My world “§a{world}§a” was successfully created!
+  world_unloading_evacuation: §c The world has been unloaded, so move to the spawn point.
+  mspt_warning_chat: §c [WARNING] §f The MSPT of world "§a{world}§f" has reached §e{mspt}ms§f. §7(Load may be high)
   meet:
-    busy: "§cThe target player is currently busy."
-    request_accepted: "§aAccepted warp request from §e{player}§a."
-    request_accepted_by_target: "§aWarp request was accepted by §e{player}§a!"
-    not_in_valid_world: "§cYou are not in a valid world."
-    requester_offline: "§cRequester is no longer online."
-    no_pending_request: "§cNo pending request found."
-  spotlight_added: "§aRegistered world \"{world}\" to SPOTLIGHT!"
-  spotlight_removed: "§cRemoved world \"{world}\" from SPOTLIGHT."
-  spotlight_already_registered: "§cThis world is already registered to SPOTLIGHT."
-  spotlight_limit_reached: "§cSPOTLIGHT slots are full."
-  spotlight_not_in_myworld: "§cYou must be in the target MyWorld to register it."
-  spotlight_not_owner: "§cYou can only register worlds you own."
-  member_request_owner_offline: "§cThe world owner is offline. Cannot send request."
-  member_request_already_member: "§cYou are already a member of this world"
-  member_request_is_owner: "§cYou cannot request membership to your own world"
-
-  # Command Errors / Admin actions
-  invalid_field: "§cInvalid field name."
-  invalid_action: "§cInvalid action (get, set, add, remove)."
-  value_required: "§cPlease specify a value."
-  value_negative: "§cValue cannot be negative."
-  stats_get: "§b{key} §7of §e{player}§7: {value}"
-  stats_set: "§aSet {key} of {player} to {value}."
-  stats_add: "§aAdded {value} to {key} of {player}."
-  stats_remove: "§aRemoved {value} from {key} of {player}."
-  stats_remove_error: "§cError: Resulting value would be negative. (Current: {value})"
-  give_success: "§aGave {amount}x {item} to {player}."
-  give_inventory_full: "§e{player}'s inventory was full, so {amount}x {item} was dropped at their feet."
-  no_favorites_found: "§cNo favorite worlds found."
-  invalid_item_id: "§cInvalid Item ID."
-  migration_file_not_found: "§cSource file ({file}) not found."
-  migration_disabled: "§cMigration command is disabled. Set '{config_key}' to true in config.yml."
-  migration_error: "§cError: Migration failed for {error}."
-  migration_success: "§aMigration successful. Migrated {count} items."
-  migration_archive_start: "§e{count} worlds need archiving. Starting process (ETA: {eta}s)"
-  migration_archive_progress: "§7Archive progress: {current}/{total} - {world}"
-  migration_archive_complete: "§aArchive complete ({count} worlds)"
-  migration_folder_not_found: "§c[Error] World folder not found, skipping: {path} (ID: {id})"
-  console_only: "§cThis command can only be executed from console."
-  unknown_subcommand: "§cUnknown subcommand."
-  usage_create: "§cUsage: /mwm create <player>"
-  usage_stats: "§cUsage: /mwm stats <player> <field> <action> [value]"
-  usage_stats_fields: "§7Fields: points, warp-slots, world-slots"
-  usage_give: "§cUsage: /mwm give <player> <item_id> [amount]"
-  
-  # UUID Copy
-  internal_data_extracted: "§7Extracted internal data related to MyWorld §a【{world}】§7."
-  copy_world_uuid: "§7- §b§nMyWorld UUID"
-  copy_owner_uuid: "§7- §b§nOwner UUID"
-  copy_world_uuid_hover: "Click to copy World UUID to clipboard"
-  copy_owner_uuid_hover: "Click to copy Owner UUID to clipboard"
-
-# Common Status/Roles
+    busy: §cThe target player is currently busy.
+    request_accepted: §aAccepted warp request from §e{player}§a.
+    request_accepted_by_target: §aWarp request was accepted by §e{player}§a!
+    not_in_valid_world: §cYou are not in a valid world.
+    requester_offline: §cRequester is no longer online.
+    no_pending_request: §cNo pending request found.
+  invalid_field: §cInvalid field name.
+  invalid_action: §cInvalid action (get, set, add, remove).
+  value_required: §cPlease specify a value.
+  value_negative: §cValue cannot be negative.
+  stats_get: '§b{key} §7of §e{player}§7: {value}'
+  stats_set: §aSet {key} of {player} to {value}.
+  stats_add: §aAdded {value} to {key} of {player}.
+  stats_remove: §aRemoved {value} from {key} of {player}.
+  stats_remove_error: '§cError: Resulting value would be negative. (Current: {value})'
+  give_success: §aGave {amount}x {item} to {player}.
+  give_inventory_full: §e{player}'s inventory was full, so {amount}x {item} was dropped at their feet.
+  migration_file_not_found: §cSource file ({file}) not found.
+  migration_error: '§cError: Migration failed for {error}.'
+  migration_success: §aMigration successful. Migrated {count} items.
+  migration_archive_start: '§e{count} worlds need archiving. Starting process (ETA: {eta}s)'
+  migration_archive_progress: '§7Archive progress: {current}/{total} - {world}'
+  migration_archive_complete: §aArchive complete ({count} worlds)
+  migration_folder_not_found: '§c[Error] World folder not found, skipping: {path} (ID: {id})'
+  usage_create: '§cUsage: /mwm create <player>'
+  usage_stats: '§cUsage: /mwm stats <player> <field> <action> [value]'
+  usage_stats_fields: '§7Fields: points, warp-slots, world-slots'
+  usage_give: '§cUsage: /mwm give <player> <item_id> [amount]'
+  internal_data_extracted: §7Extracted internal data related to MyWorld §a【{world}】§7.
+  copy_world_uuid: §7- §b§nMyWorld UUID
+  copy_owner_uuid: §7- §b§nOwner UUID
+  copy_world_uuid_hover: Click to copy World UUID to clipboard
+  copy_owner_uuid_hover: Click to copy Owner UUID to clipboard
+  custom_item:
+    bottle_fill: '§a We bottled the air of the biome! (Biome: {biome})'
+    partial_biome_applied: §aThe surrounding biome has been changed to {biome}!
+    world_seed_expanded: '§a My World slot has been expanded! Current number of slots: {slots}'
+  member_request_is_owner: §cYou cannot request membership to your own world
 status:
-  online: "Online"
-  offline: "Offline"
+  online: Online
+  offline: Offline
 role:
-  owner: "Owner"
-  moderator: "Moderator"
-  member: "Member"
-
+  owner: Owner
+  moderator: Moderator
+  member: Member
 custom_item:
   empty_biome_bottle:
-    name: "§fEmpty Biome Bottle (WIP)"
+    name: §fEmpty Biome Bottle (WIP)
     lore:
-      - "§8§m-----------------------"
-      - "§7Use in a specific biome to capture its air!"
-      - "§7The bottled air can be used for §6Biome Settings§7 in MyWorld."
-      - "§8§m-----------------------"
+    - §8§m-----------------------
+    - §7Use in a specific biome to capture its air!
+    - §7The bottled air can be used for §6Biome Settings§7 in MyWorld.
+    - §8§m-----------------------
   bottled_biome_air:
-    name: "§fBottled Biome Atmosphere【{biome}】"
+    name: §fBottled Biome Atmosphere【{biome}】
     lore:
-      - "§8§m-----------------------"
-      - "§7§oFilled with dense biome air."
-      - "§7Can be used for §6Biome Settings§7 in MyWorld!"
-      - "§8§m-----------------------"
+    - §8§m-----------------------
+    - §7§oFilled with dense biome air.
+    - §7Can be used for §6Biome Settings§7 in MyWorld!
+    - §8§m-----------------------
   moon_stone:
-    name: "§fMoon Stone"
+    name: §fMoon Stone
     lore:
-      - "§8§m-----------------------"
-      - "§7§oA seemingly normal stone, yet undeniably from the moon."
-      - "§7Can be used for §bGravity Settings§7 in MyWorld!"
-      - "§8§m-----------------------"
-
+    - §8§m-----------------------
+    - §7§oA seemingly normal stone, yet undeniably from the moon.
+    - §7Can be used for §bGravity Settings§7 in MyWorld!
+    - §8§m-----------------------
+  world_seed:
+    name: §dWorld Seed
+    lore:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - By using §7, §bMy World Slot§7
+    - §7 can be extended by one!
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §eUsed by right click
+    - §8§m－－－－－－－－－－－－－－－－－－
+  like_sign:
+    name: §3Like sign
+    lore:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §7This is a signboard where visitors can press §c❤§7!
+    - §7 Can be installed in My World.
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §eRight click to install
+    - §8§m－－－－－－－－－－－－－－－－－－
 biomes:
-  plains: "Plains"
-  sunflower_plains: "Sunflower Plains"
-  snowy_plains: "Snowy Plains"
-  ice_spikes: "Ice Spikes"
-  desert: "Desert"
-  swamp: "Swamp"
-  mangrove_swamp: "Mangrove Swamp"
-  forest: "Forest"
-  flower_forest: "Flower Forest"
-  birch_forest: "Birch Forest"
-  old_growth_birch_forest: "Old Growth Birch Forest"
-  dark_forest: "Dark Forest"
-  jungle: "Jungle"
-  sparse_jungle: "Sparse Jungle"
-  bamboo_jungle: "Bamboo Jungle"
-  river: "River"
-  frozen_river: "Frozen River"
-  beach: "Beach"
-  snowy_beach: "Snowy Beach"
-  stony_shore: "Stony Shore"
-  mountains: "Mountains"
-  stony_peaks: "Stony Peaks"
-  jagged_peaks: "Jagged Peaks"
-  frozen_peaks: "Frozen Peaks"
-  meadow: "Meadow"
-  cherry_grove: "Cherry Grove"
-  grove: "Grove"
-  snowy_slopes: "Snowy Slopes"
-  taiga: "Taiga"
-  snowy_taiga: "Snowy Taiga"
-  old_growth_pine_taiga: "Old Growth Pine Taiga"
-  old_growth_spruce_taiga: "Old Growth Spruce Taiga"
-  savanna: "Savanna"
-  savanna_plateau: "Savanna Plateau"
-  windswept_savanna: "Windswept Savanna"
-  badlands: "Badlands"
-  wooded_badlands: "Wooded Badlands"
-  eroded_badlands: "Eroded Badlands"
-  deep_ocean: "Deep Ocean"
-  ocean: "Ocean"
-  warm_ocean: "Warm Ocean"
-  lukewarm_ocean: "Lukewarm Ocean"
-  cold_ocean: "Cold Ocean"
-  frozen_ocean: "Frozen Ocean"
-  mushroom_fields: "Mushroom Fields"
-  dripstone_caves: "Dripstone Caves"
-  lush_caves: "Lush Caves"
-  deep_dark: "Deep Dark"
-  nether_wastes: "Nether Wastes"
-  soul_sand_valley: "Soul Sand Valley"
-  crimson_forest: "Crimson Forest"
-  warped_forest: "Warped Forest"
-  basalt_deltas: "Basalt Deltas"
-  the_end: "The End"
-  small_end_islands: "Small End Islands"
-  end_midlands: "End Midlands"
-  end_highlands: "End Highlands"
-  end_barrens: "End Barrens"
+  plains: Plains
+  sunflower_plains: Sunflower Plains
+  snowy_plains: Snowy Plains
+  ice_spikes: Ice Spikes
+  desert: Desert
+  swamp: Swamp
+  mangrove_swamp: Mangrove Swamp
+  forest: Forest
+  flower_forest: Flower Forest
+  birch_forest: Birch Forest
+  old_growth_birch_forest: Old Growth Birch Forest
+  dark_forest: Dark Forest
+  jungle: Jungle
+  sparse_jungle: Sparse Jungle
+  bamboo_jungle: Bamboo Jungle
+  river: River
+  frozen_river: Frozen River
+  beach: Beach
+  snowy_beach: Snowy Beach
+  stony_shore: Stony Shore
+  mountains: Mountains
+  stony_peaks: Stony Peaks
+  jagged_peaks: Jagged Peaks
+  frozen_peaks: Frozen Peaks
+  meadow: Meadow
+  cherry_grove: Cherry Grove
+  grove: Grove
+  snowy_slopes: Snowy Slopes
+  taiga: Taiga
+  snowy_taiga: Snowy Taiga
+  old_growth_pine_taiga: Old Growth Pine Taiga
+  old_growth_spruce_taiga: Old Growth Spruce Taiga
+  savanna: Savanna
+  savanna_plateau: Savanna Plateau
+  windswept_savanna: Windswept Savanna
+  badlands: Badlands
+  wooded_badlands: Wooded Badlands
+  eroded_badlands: Eroded Badlands
+  deep_ocean: Deep Ocean
+  ocean: Ocean
+  warm_ocean: Warm Ocean
+  lukewarm_ocean: Lukewarm Ocean
+  cold_ocean: Cold Ocean
+  frozen_ocean: Frozen Ocean
+  mushroom_fields: Mushroom Fields
+  dripstone_caves: Dripstone Caves
+  lush_caves: Lush Caves
+  deep_dark: Deep Dark
+  nether_wastes: Nether Wastes
+  soul_sand_valley: Soul Sand Valley
+  crimson_forest: Crimson Forest
+  warped_forest: Warped Forest
+  basalt_deltas: Basalt Deltas
+  the_end: The End
+  small_end_islands: Small End Islands
+  end_midlands: End Midlands
+  end_highlands: End Highlands
+  end_barrens: End Barrens
+error:
+  spotlight_not_in_myworld: §cYou must be in the target MyWorld to register it.
+  spotlight_not_owner: §cYou can only register worlds you own.
+  spotlight_already_registered: §cThis world is already registered to SPOTLIGHT.
+  spotlight_limit_reached: §cSPOTLIGHT slots are full.
+  member_request_owner_offline: §cCannot send request because the owner is offline.
+  member_request_already_member: §cYou are already a member of this world.
+  console_only: §cThis command can only be executed from console.
   custom_item:
-    bottle_fill: "§aYou have bottled the biome air! (Biome: {biome})"
-    biome_world_only: "§cYou can only use this item in MyWorld."
-    no_permission: "§cYou do not have permission to change the biome."
-    partial_biome_applied: "§aApplied biome {biome} to the surrounding area!"
-    world_seed_expanded: "§aExpanded your MyWorld slots! Current slots: {slots}"
-    world_seed_limit_reached: "§cCannot expand slots further. (Limit: {limit})"
+    item_not_found_hand: §cItem not found in hand.
+    no_permission: §cYou do not have permission to change the biome.
+    world_seed_limit_reached: '§cCannot expand slots further. (Limit: {limit})'
+  delete_failed: §cFailed to delete world.
+  expand_failed: §cExpansion failed (World might not be loaded).
+  expand_insufficient_points: '§cInsufficient points. (Required: §6🛖 §e{cost}§c)'
+  favorite_limit_reached: §cYou have reached the favorite limit ({limit}).
+  internal_error: §cInternal error occurred.
+  invalid_item_id: §cInvalid Item ID.
+  invite_already_member: §cAlready a member of this world.
+  invite_expired: §cInvite not found or expired.
+  invite_locked_error: §cYou cannot invite players to a locked world.
+  invite_world_not_found: §cWorld data not found.
+  load_failed: §cFailed to load world.
+  max_expansion_reached: §cWorld is already at max level.
+  migration_disabled: §cMigration command is disabled. Set '{config_key}' to true in config.yml.
+  no_portals_found: §cNo portals found.
+  player_not_found: §cPlayer not found.
+  portal_bind_invalid_publish: §cOnly Public or Limited worlds can be bound.
+  portal_bind_myworld_only: §cPortals can only be bound inside a MyWorld.
+  portal_dest_locked: §cThe destination of this portal is currently locked.
+  portal_not_bound: §cThis portal is not yet bound to a world.
+  world_gate_bind_required: §cBind destination first with Shift+Right-Click before selecting points.
+  preview_template_not_found: §cTemplate not found.
+  preview_world_load_failed: §cFailed to load preview world.
+  target_not_in_myworld: §cTarget player is not in a MyWorld.
+  target_offline: §cTarget player is offline.
+  unarchive_failed: §cFailed to restore world.
+  unknown_subcommand: §cUnknown subcommand.
+  unlink_not_myworld: §cThis world is not a MyWorld.
+  world_already_exists: §cWorld already exists.
+  world_creation_failed: §cWorld creation failed.
+  world_creation_in_progress: §cWorld creation is in progress.
+  world_load_failed: §cWorld load failed.
+  world_not_public: §cThis world is not currently public.
+  like_sign:
+    my_world_only: §cLike signboards can only be placed in My World.
+    no_permission: §c You do not have the authority to place Like signs in this world.
+    limit_reached: §cThere are already 10 Like signs installed in this world.
+    title_required: §c Please enter a title.
+    cooldown: §c Please wait a while and try again.

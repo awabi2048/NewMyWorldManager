@@ -162,3 +162,10 @@ bedrock:
   # 統合版プレイヤーのプレイヤー名接頭辞（GeyserMC等で使用される接頭辞）
   # 例: "." を設定すると、統合版プレイヤーは ".PlayerName" の形式で検出されます
   player_name_prefix: "."
+  ui:
+    # auto: FormUI利用可能時はForm、失敗時はInventoryへ自動フォールバック
+    # form: FormUIを優先利用（利用不可時はInventoryへフォールバック）
+    # inventory: 常にBedrock専用Inventoryを利用
+    mode: "auto"
+    # Form送信失敗後、再試行までInventoryを使うクールダウン時間（分）
+    form_failure_cooldown_minutes: 10
