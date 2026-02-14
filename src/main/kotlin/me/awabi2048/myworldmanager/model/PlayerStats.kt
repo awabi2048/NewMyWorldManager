@@ -19,5 +19,6 @@ data class PlayerStats(
     var criticalSettingsEnabled: Boolean = true,
     var meetStatus: String = "JOIN_ME",
     var betaFeaturesEnabled: Boolean = false,
-    val worldDisplayOrder: MutableList<UUID> = mutableListOf() // マイワールド表示順序（完全な順序リスト）
+    val worldDisplayOrder: MutableList<UUID> = mutableListOf(), // マイワールド表示順序（完全な順序リスト）
+    var lastArchiveActionAt: String? = null // プレイヤーごとのアーカイブ/復旧操作の最終実行日時 (yyyy-MM-dd HH:mm:ss)
 )

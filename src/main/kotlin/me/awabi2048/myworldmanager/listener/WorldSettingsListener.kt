@@ -1758,6 +1758,60 @@ class WorldSettingsListener : Listener {
                                                         )
                                                 }
                                         }
+                                        ItemTag.TYPE_GUI_SETTING_ARCHIVE -> {
+                                                // クールダウンチェック（GUI側でも再確認）- プレイヤーごとのクールタイム
+                                                val cooldownHours = plugin.config.getLong("critical_settings.archive_cooldown_hours", 24L)
+                                                val dtFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                val isOnCooldown = stats.lastArchiveActionAt?.let { lastAt ->
+                                                    try {
+                                                        val lastAction = java.time.LocalDateTime.parse(lastAt, dtFormatter)
+                                                        java.time.Duration.between(lastAction, java.time.LocalDateTime.now()).toHours() < cooldownHours
+                                                    } catch (e: Exception) { false }
+                                                } ?: false
+                                                if (isOnCooldown) {
+                                                    val hoursRemaining = stats.lastArchiveActionAt?.let { lastAt ->
+                                                        try {
+                                                            val lastAction = java.time.LocalDateTime.parse(lastAt, dtFormatter)
+                                                            val elapsed = java.time.Duration.between(lastAction, java.time.LocalDateTime.now()).toHours()
+                                                            (cooldownHours - elapsed).coerceAtLeast(0L)
+                                                        } catch (e: Exception) { 0L }
+                                                    } ?: 0L
+                                                    player.sendMessage(plugin.languageManager.getMessage(
+                                                        player,
+                                                        "messages.archive_cooldown",
+                                                        mapOf("cooldown_hours" to cooldownHours, "hours_remaining" to hoursRemaining)
+                                                    ))
+                                                    return
+                                                }
+                                                plugin.soundManager.playClickSound(player, item, "world_settings")
+                                                val title = LegacyComponentSerializer.legacySection().deserialize(
+                                                    plugin.languageManager.getMessage(player, "gui.archive.confirm_title")
+                                                )
+                                                val bodyLines = listOf(
+                                                    LegacyComponentSerializer.legacySection().deserialize(
+                                                        plugin.languageManager.getMessage(player, "gui.common.confirm_warning")
+                                                    )
+                                                )
+                                                plugin.settingsSessionManager.updateSessionAction(
+                                                    player,
+                                                    worldData.uuid,
+                                                    SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL,
+                                                    isGui = true
+                                                )
+                                                DialogConfirmManager.showConfirmationByPreference(
+                                                    player,
+                                                    plugin,
+                                                    title,
+                                                    bodyLines,
+                                                    "mwm:confirm/archive_world_critical",
+                                                    "mwm:confirm/cancel",
+                                                    plugin.languageManager.getMessage(player, "gui.archive.confirm"),
+                                                    plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                ) {
+                                                    plugin.worldSettingsGui.openArchiveConfirmation(player, worldData)
+                                                }
+                                        }
                                         ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> {
                                                 plugin.soundManager.playClickSound(
                                                         player,
@@ -1998,6 +2052,43 @@ class WorldSettingsListener : Listener {
                                         player.closeInventory()
                                 }
                         }
+                        SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> {
+                                event.isCancelled = true
+                                if (event.clickedInventory != event.view.topInventory) return
+
+                                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                                        player.closeInventory()
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+                                        plugin.worldService.archiveWorld(worldData.uuid)
+                                            .thenAccept { success: Boolean ->
+                                                Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                    if (success) {
+                                                        // クールダウン記録（プレイヤーごと）
+                                                        val now = java.time.LocalDateTime.now()
+                                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                        stats.lastArchiveActionAt = now
+                                                        plugin.playerStatsRepository.save(stats)
+                                                        player.sendMessage(plugin.languageManager.getMessage(
+                                                            player,
+                                                            "messages.archive_success",
+                                                            mapOf("world" to worldData.name)
+                                                        ))
+                                                    } else {
+                                                        player.sendMessage(plugin.languageManager.getMessage(
+                                                            player,
+                                                            "messages.archive_failed"
+                                                        ))
+                                                    }
+                                                })
+                                            }
+                                        plugin.settingsSessionManager.endSession(player)
+                                }
+                        }
                         SettingsAction.UNARCHIVE_CONFIRM -> {
                                 event.isCancelled = true
                                 if (event.clickedInventory != event.view.topInventory) return
@@ -2031,6 +2122,12 @@ class WorldSettingsListener : Listener {
                                                                         plugin,
                                                                         Runnable {
                                                                                 if (success) {
+                                                                                        // クールダウン記録（プレイヤーごと）
+                                                                                        val now = java.time.LocalDateTime.now()
+                                                                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                                                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                                                        stats.lastArchiveActionAt = now
+                                                                                        plugin.playerStatsRepository.save(stats)
                                                                                         player.sendMessage(
                                                                                                 plugin.languageManager
                                                                                                         .getMessage(
@@ -2043,7 +2140,7 @@ class WorldSettingsListener : Listener {
                                                                                                         player,
                                                                                                         worldData
                                                                                                                 .uuid
-                                                                                                )
+                                                                                                 )
                                                                                 } else {
                                                                                         player.sendMessage(
 plugin.languageManager
@@ -3892,7 +3989,13 @@ player.sendMessage(
                                 Bukkit.getScheduler().runTask(
                                         plugin,
                                         Runnable {
-                                                if (success) {
+                                if (success) {
+                                                        // クールダウン記録（プレイヤーごと）
+                                                        val now = java.time.LocalDateTime.now()
+                                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                        stats.lastArchiveActionAt = now
+                                                        plugin.playerStatsRepository.save(stats)
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,
@@ -3962,7 +4065,8 @@ player.sendMessage(
                                 SettingsAction.MEMBER_REMOVE_CONFIRM, SettingsAction.MEMBER_TRANSFER_CONFIRM -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
                                 SettingsAction.RESET_EXPANSION_CONFIRM,
                                 SettingsAction.DELETE_WORLD_CONFIRM,
-                                SettingsAction.DELETE_WORLD_CONFIRM_FINAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
+                                SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
                                 SettingsAction.UNARCHIVE_CONFIRM -> plugin.playerWorldGui.open(player)
                                 else -> plugin.worldSettingsGui.open(player, worldData)
                         }
@@ -3996,6 +4100,35 @@ player.sendMessage(
                         plugin.worldConfigRepository.save(worldData)
                         plugin.settingsSessionManager.endSession(player)
                         player.closeInventory()
+                        return
+                }
+
+                if (identifier == Key.key("mwm:confirm/archive_world_critical")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+                        plugin.worldService.archiveWorld(worldData.uuid)
+                            .thenAccept { success: Boolean ->
+                                Bukkit.getScheduler().runTask(plugin, Runnable {
+                                    if (success) {
+                                        val now = java.time.LocalDateTime.now()
+                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                        stats.lastArchiveActionAt = now
+                                        plugin.playerStatsRepository.save(stats)
+                                        player.sendMessage(plugin.languageManager.getMessage(
+                                            player,
+                                            "messages.archive_success",
+                                            mapOf("world" to worldData.name)
+                                        ))
+                                    } else {
+                                        player.sendMessage(plugin.languageManager.getMessage(
+                                            player,
+                                            "messages.archive_failed"
+                                        ))
+                                    }
+                                })
+                            }
+                        plugin.settingsSessionManager.endSession(player)
                         return
                 }
 

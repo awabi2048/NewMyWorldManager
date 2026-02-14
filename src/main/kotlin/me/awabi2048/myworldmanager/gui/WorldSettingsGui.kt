@@ -2076,71 +2076,104 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 for (i in 0..8) inventory.setItem(i, blackPane)
                 for (i in 36..44) inventory.setItem(i, blackPane)
 
-                // 拡張段階の初期化
-                // 拡張段階の初期化
-                if (worldData.borderExpansionLevel != WorldData.EXPANSION_LEVEL_SPECIAL) {
-                        val currentLevel = worldData.borderExpansionLevel
-                        val resetLore: List<Component>
-                        
-                        if (currentLevel > 0) {
-                                val refundRate =
-                                        plugin.config.getDouble(
-                                                "critical_settings.refund_percentage",
-                                                0.5
-                                        )
-                                val refund =
-                                        (calculateTotalExpansionCost(currentLevel) * refundRate)
-                                                .toInt()
-                                resetLore = lang.getComponentList(
-                                        player,
-                                        "gui.critical.reset_expansion.lore",
-                                        mapOf(
-                                                "level" to currentLevel,
-                                                "points" to refund
-                                        )
-                                )
-                        } else {
-                                resetLore = lang.getComponentList(
-                                        player,
-                                        "gui.critical.reset_expansion.lore_unavailable"
-                                )
-                        }
-
-                        inventory.setItem(
-                                20,
-                                createItemComponent(
-                                        Material.BARRIER,
-                                        lang.getMessage(
-                                                player,
-                                                "gui.critical.reset_expansion.display"
-                                        ),
-                                        resetLore,
-                                        ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION
-                                )
-                        )
-                }
-
-                // ワールドの削除
-
-
-                // 払い戻し額の計算
                 // 払い戻し額の計算
                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
                 val refund = (worldData.cumulativePoints * refundRate).toInt()
                 val percent = (refundRate * 100).toInt()
 
-                val deleteLore = lang.getComponentList(
-                        player,
-                        "gui.critical.delete_world.lore",
-                        mapOf(
-                                "points" to refund,
-                                "percent" to percent
-                        )
+                // プレイヤーごとのクールタイムチェック
+                val cooldownHours = plugin.config.getLong("critical_settings.archive_cooldown_hours", 24L)
+                val playerStats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                val lastActionAt = playerStats.lastArchiveActionAt
+                val dtFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                val isOnCooldown = if (lastActionAt != null) {
+                    try {
+                        val lastAction = java.time.LocalDateTime.parse(lastActionAt, dtFormatter)
+                        val elapsed = java.time.Duration.between(lastAction, java.time.LocalDateTime.now()).toHours()
+                        elapsed < cooldownHours
+                    } catch (e: Exception) { false }
+                } else false
+                val hoursRemaining = if (isOnCooldown && lastActionAt != null) {
+                    try {
+                        val lastAction = java.time.LocalDateTime.parse(lastActionAt, dtFormatter)
+                        val elapsed = java.time.Duration.between(lastAction, java.time.LocalDateTime.now()).toHours()
+                        (cooldownHours - elapsed).coerceAtLeast(0L)
+                    } catch (e: Exception) { 0L }
+                } else 0L
+
+                val archiveLoreKey = if (isOnCooldown) "gui.critical.archive_world.lore_cooldown" else "gui.critical.archive_world.lore"
+                val archiveLore = lang.getComponentList(
+                    player,
+                    archiveLoreKey,
+                    mapOf(
+                        "cooldown_hours" to cooldownHours,
+                        "hours_remaining" to hoursRemaining
+                    )
                 )
 
-                val deleteSlot =
-                        if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) 22
-                        else 24
+                // 動的スロット配置: ボーダー拡張の有無に応じて決定
+                // - 拡張あり (level > 0): スロット20=リセット, 22=アーカイブ, 24=削除
+                // - 拡張なし (level == 0): スロット20=削除, 24=アーカイブ
+                val isExpansionEnabled = worldData.borderExpansionLevel > 0
+                val hasSpecialExpansion = worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL
+
+                if (isExpansionEnabled || hasSpecialExpansion) {
+                    // 拡張リセットボタン (スロット20)
+                    val currentLevel = worldData.borderExpansionLevel
+                    val resetLore: List<Component>
+
+                    if (currentLevel > 0) {
+                        val resetRefund = (calculateTotalExpansionCost(currentLevel) * refundRate).toInt()
+                        resetLore = lang.getComponentList(
+                            player,
+                            "gui.critical.reset_expansion.lore",
+                            mapOf("level" to currentLevel, "points" to resetRefund)
+                        )
+                    } else {
+                        resetLore = lang.getComponentList(player, "gui.critical.reset_expansion.lore_unavailable")
+                    }
+
+                    inventory.setItem(
+                        20,
+                        createItemComponent(
+                            Material.BARRIER,
+                            lang.getMessage(player, "gui.critical.reset_expansion.display"),
+                            resetLore,
+                            ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION
+                        )
+                    )
+
+                    // アーカイブボタン (スロット22)
+                    inventory.setItem(
+                        22,
+                        createItemComponent(
+                            plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
+                            lang.getMessage(player, "gui.critical.archive_world.display"),
+                            archiveLore,
+                            if (isOnCooldown) ItemTag.TYPE_GUI_INFO else ItemTag.TYPE_GUI_SETTING_ARCHIVE
+                        )
+                    )
+                } else {
+                    // 拡張なし: アーカイブは slot 24
+                    inventory.setItem(
+                        24,
+                        createItemComponent(
+                            plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
+                            lang.getMessage(player, "gui.critical.archive_world.display"),
+                            archiveLore,
+                            if (isOnCooldown) ItemTag.TYPE_GUI_INFO else ItemTag.TYPE_GUI_SETTING_ARCHIVE
+                        )
+                    )
+                }
+
+                // 削除ボタン
+                val deleteLore = lang.getComponentList(
+                    player,
+                    "gui.critical.delete_world.lore",
+                    mapOf("points" to refund, "percent" to percent)
+                )
+
+                val deleteSlot = if (isExpansionEnabled || hasSpecialExpansion) 24 else 20
                 inventory.setItem(
                         deleteSlot,
                         createItemComponent(
