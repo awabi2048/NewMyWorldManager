@@ -6,7 +6,6 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import java.util.UUID
 
 class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
 
@@ -42,7 +41,7 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
 
         // GUIを開く
         val showBackButton = args.contains("-menu")
-        plugin.worldSettingsGui.open(player, worldData, showBackButton)
+        plugin.menuEntryRouter.openWorldSettings(player, worldData, showBackButton)
         return true
     }
 }

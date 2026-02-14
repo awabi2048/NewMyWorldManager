@@ -20,7 +20,7 @@ class SettingsCommand(private val plugin: MyWorldManager) : CommandExecutor {
         }
 
         val showBackButton = args.contains("-menu")
-        plugin.userSettingsGui.open(sender, showBackButton)
+        plugin.menuEntryRouter.openUserSettings(sender, showBackButton)
         return true
     }
 }

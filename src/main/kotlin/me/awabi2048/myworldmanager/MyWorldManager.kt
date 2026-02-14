@@ -8,6 +8,11 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.service.*
 import me.awabi2048.myworldmanager.session.*
+import me.awabi2048.myworldmanager.ui.MenuEntryRouter
+import me.awabi2048.myworldmanager.ui.PlayerPlatformResolver
+import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
+import me.awabi2048.myworldmanager.ui.bedrock.BedrockUiRoutingService
+import me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
 import me.awabi2048.myworldmanager.util.*
 import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
@@ -65,6 +70,11 @@ class MyWorldManager : JavaPlugin() {
     lateinit var msptMonitorTask: me.awabi2048.myworldmanager.task.MsptMonitorTask
     lateinit var inviteCommand: me.awabi2048.myworldmanager.command.InviteCommand
     lateinit var likeSignManager: me.awabi2048.myworldmanager.service.LikeSignManager
+    lateinit var playerPlatformResolver: PlayerPlatformResolver
+    lateinit var floodgateFormBridge: FloodgateFormBridge
+    lateinit var bedrockUiRoutingService: BedrockUiRoutingService
+    lateinit var bedrockMenuService: BedrockMenuService
+    lateinit var menuEntryRouter: MenuEntryRouter
 
     override fun onEnable() {
         // Serializationの登録
@@ -178,6 +188,14 @@ class MyWorldManager : JavaPlugin() {
         previewSessionManager = PreviewSessionManager(this)
         adminGuiSessionManager = AdminGuiSessionManager()
 
+        playerPlatformResolver = PlayerPlatformResolver(this)
+        floodgateFormBridge = FloodgateFormBridge(this)
+        bedrockUiRoutingService =
+                BedrockUiRoutingService(this, playerPlatformResolver, floodgateFormBridge)
+        bedrockMenuService =
+                BedrockMenuService(this, bedrockUiRoutingService, floodgateFormBridge)
+        menuEntryRouter = MenuEntryRouter(this, playerPlatformResolver, bedrockMenuService)
+
         inviteCommand = InviteCommand(this)
 
         // リスナーの登録
@@ -217,6 +235,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(AnnouncementDialogManager(), this)
         server.pluginManager.registerEvents(LikeSignListener(this), this)
         server.pluginManager.registerEvents(LikeSignDialogManager(), this)
+        server.pluginManager.registerEvents(BedrockInventoryListener(this), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
@@ -302,6 +321,10 @@ class MyWorldManager : JavaPlugin() {
 
         // SoundManagerの設定再読み込み（config依存のためインスタンス再生成）
         soundManager = SoundManager(this)
+
+        if (::playerPlatformResolver.isInitialized) {
+            playerPlatformResolver.clearCache()
+        }
 
         // WorldUnloadServiceの再起動
         worldUnloadService.start()
