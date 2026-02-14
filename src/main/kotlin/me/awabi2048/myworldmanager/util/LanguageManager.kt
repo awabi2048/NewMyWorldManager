@@ -5,7 +5,6 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
-import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
@@ -56,19 +55,53 @@ class LanguageManager(private val plugin: MyWorldManager) {
             // CC-Systemが有効で、use_cc_system設定が有効な場合、CC-Systemから言語設定を取得
             val useCCSystem = plugin.config.getBoolean("use_cc_system", false)
             val isCCSystemAvailable = CCSystemUtil.isCCSystemAvailable()
-            
+
             if (useCCSystem && isCCSystemAvailable) {
                 val lang = CCSystemUtil.getPlayerLanguageFromCCSystem(player)
-                plugin.logger.info("[DEBUG] CC-System言語取得 - Player: ${player.name}, Language: $lang")
-                lang ?: plugin.playerStatsRepository.findByUuid(player.uniqueId).language
+                (lang ?: plugin.playerStatsRepository.findByUuid(player.uniqueId).language).lowercase()
             } else {
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                plugin.logger.info("[DEBUG] 内部設定から言語取得 - Player: ${player.name}, useCCSystem: $useCCSystem, isCCSystemAvailable: $isCCSystemAvailable, Language: ${stats.language}")
-                stats.language
+                stats.language.lowercase()
             }
         } else {
-            plugin.config.getString("language", "ja_jp") ?: "ja_jp"
+            (plugin.config.getString("language", "ja_jp") ?: "ja_jp").lowercase()
         }
+    }
+
+    private fun getFallbackLangName(): String {
+        return (plugin.config.getString("fallback_language", "ja_jp") ?: "ja_jp").lowercase()
+    }
+
+    private fun getLanguageCandidates(lang: String): List<String> {
+        return linkedSetOf(lang.lowercase(), getFallbackLangName(), "ja_jp").toList()
+    }
+
+    private fun hasAnyLanguageConfig(lang: String): Boolean {
+        return getLanguageCandidates(lang).any { langConfigs.containsKey(it) }
+    }
+
+    private fun findMessage(lang: String, key: String): String? {
+        for (candidate in getLanguageCandidates(lang)) {
+            val config = langConfigs[candidate] ?: continue
+            val message = config.getString(key) ?: config.getDefaults()?.getString(key)
+            if (message != null) return message
+        }
+        return null
+    }
+
+    private fun findMessageList(lang: String, key: String): List<String>? {
+        for (candidate in getLanguageCandidates(lang)) {
+            val config = langConfigs[candidate] ?: continue
+            val list = config.getStringList(key)
+            if (list.isNotEmpty()) return list
+
+            val defaultList = config.getDefaults()?.getStringList(key)
+            if (defaultList != null && defaultList.isNotEmpty()) return defaultList
+
+            val single = config.getString(key) ?: config.getDefaults()?.getString(key)
+            if (single != null) return listOf(single)
+        }
+        return null
     }
 
     /**
@@ -76,8 +109,8 @@ class LanguageManager(private val plugin: MyWorldManager) {
      */
     fun getMessage(player: Player?, key: String): String {
         val lang = getLangName(player)
-        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return "§cMISSING_LANG_FILE: $lang"
-        return config.getString(key) ?: config.getDefaults()?.getString(key) ?: return "§cMISSING_LANG: $key"
+        if (!hasAnyLanguageConfig(lang)) return "§cMISSING_LANG_FILE: $lang"
+        return findMessage(lang, key) ?: "§cMISSING_LANG: $key"
     }
 
     fun getMessage(key: String): String {
@@ -89,11 +122,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
      */
     fun getMessage(player: Player?, key: String, placeholders: Map<String, Any>): String {
         val lang = getLangName(player)
-        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return "§cMISSING_LANG_FILE: $lang"
-        var message = config.getString(key) ?: config.getDefaults()?.getString(key) ?: return "§cMISSING_LANG: $key"
+        if (!hasAnyLanguageConfig(lang)) return "§cMISSING_LANG_FILE: $lang"
+        var message = findMessage(lang, key) ?: return "§cMISSING_LANG: $key"
 
-        placeholders.forEach { (key, value) ->
-            message = message.replace("{$key}", value.toString())
+        placeholders.forEach { (placeholder, value) ->
+            message = message.replace("{$placeholder}", value.toString())
         }
 
         return message
@@ -131,8 +164,13 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun hasKey(lang: String, key: String): Boolean {
-        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return false
-        return config.contains(key) || (config.getDefaults()?.contains(key) ?: false)
+        for (candidate in getLanguageCandidates(lang)) {
+            val config = langConfigs[candidate] ?: continue
+            if (config.contains(key) || (config.getDefaults()?.contains(key) ?: false)) {
+                return true
+            }
+        }
+        return false
     }
 
     /**
@@ -140,9 +178,8 @@ class LanguageManager(private val plugin: MyWorldManager) {
      */
     fun getMessageStrict(player: Player?, key: String): String? {
         val lang = getLangName(player)
-        if (!hasKey(lang, key)) return null
-        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return null
-        return config.getString(key) ?: config.getDefaults()?.getString(key)
+        if (!hasAnyLanguageConfig(lang)) return null
+        return findMessage(lang, key)
     }
 
     /**
@@ -150,8 +187,8 @@ class LanguageManager(private val plugin: MyWorldManager) {
      */
     fun getMessageListStrict(player: Player?, key: String): List<String>? {
         val lang = getLangName(player)
-        if (!hasKey(lang, key)) return null
-        return getMessageListDraft(lang, key)
+        if (!hasAnyLanguageConfig(lang)) return null
+        return findMessageList(lang, key)
     }
 
     /**
@@ -166,14 +203,8 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessageListDraft(lang: String, key: String): List<String> {
-        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return listOf("§cMISSING_LANG_FILE: $lang")
-        val list = config.getStringList(key)
-        val resultList = if (list.isNotEmpty()) list else {
-            val defaultList = config.getDefaults()?.getStringList(key)
-            if (defaultList != null && defaultList.isNotEmpty()) defaultList else listOf(config.getString(key) ?: "§cMISSING_LANG: $key")
-        }
-
-        return resultList
+        if (!hasAnyLanguageConfig(lang)) return listOf("§cMISSING_LANG_FILE: $lang")
+        return findMessageList(lang, key) ?: listOf("§cMISSING_LANG: $key")
     }
 
     /**
@@ -181,13 +212,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
      */
     fun getMessageList(player: Player?, key: String, placeholders: Map<String, Any>): List<String> {
         val lang = getLangName(player)
-        val config = langConfigs[lang] ?: langConfigs["ja_jp"] ?: return listOf("§cMISSING_LANG_FILE: $lang")
-        val list = config.getStringList(key)
-        val resultList = if (list.isNotEmpty()) list else {
-            val defaultList = config.getDefaults()?.getStringList(key)
-            if (defaultList != null && defaultList.isNotEmpty()) defaultList else listOf(config.getString(key) ?: "§cMISSING_LANG: $key")
-        }
-
+        val resultList = getMessageListDraft(lang, key)
         return resultList.map {
             var line = it
             placeholders.forEach { (placeholder, value) ->
