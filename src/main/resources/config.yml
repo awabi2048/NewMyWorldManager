@@ -20,6 +20,9 @@ menu_command: "mwm"
 # false の場合は内部システム（PlayerStats）から言語設定を取得します
 use_cc_system: false
 
+# 翻訳キーが現在言語で見つからない場合に参照するフォールバック言語
+fallback_language: "ja_jp"
+
 
 creation:
   max_create_count_default: 3
@@ -88,9 +91,11 @@ migration:
   enable_player_migration: false
   enable_portal_migration: false
 
-# 重大な設定の払い戻し割合
+# 重大な設定の払い戻し割合・アーカイブクールダウン設定
 critical_settings:
   refund_percentage: 0.5
+  # ワールドの能動的アーカイブ・復旧のクールダウン時間（時間単位）
+  archive_cooldown_hours: 24
 
 # 環境設定
 environment:
