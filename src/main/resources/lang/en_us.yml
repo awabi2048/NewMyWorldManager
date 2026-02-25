@@ -1371,7 +1371,17 @@ messages:
   world_gate_select_second: §eRight-click a block to select point 2 for the world gate.
   world_gate_point_selected: '§aPoint {point} selected: §f({x}, {y}, {z})'
   world_gate_confirm_place: §eRight-click once more to place the world gate.
+  world_gate_confirm_title: §6Confirm World Gate Placement
+  world_gate_confirm_body:
+    - §fThe world gate will be placed in this region.
+    - '§7Min: §f({min_x}, {min_y}, {min_z})'
+    - '§7Max: §f({max_x}, {max_y}, {max_z})'
+    - '§7Cost: §6🛖 §e{required}'
+    - '§7Current: §6🛖 §e{current}'
+    - '§7After Place: §6🛖 §e{remaining}'
+  world_gate_place_cancelled: §eWorld gate placement was cancelled.
   world_gate_place_success: §aWorld gate placed successfully.
+  world_gate_removed_refund: '§aWorld gate removed. Refunded §6🛖 §e{points} §ato owner §e{owner}§a. (Rate: §e{percent}%§a)'
   world_gate_world_mismatch: §cPlease select both points in the same world. Point 1 was reset.
   world_created_warp: §aMoved to the created world.
   status_on: 'ON'
@@ -1568,6 +1578,8 @@ error:
   portal_dest_locked: §cThe destination of this portal is currently locked.
   portal_not_bound: §cThis portal is not yet bound to a world.
   world_gate_bind_required: §cBind destination first with Shift+Right-Click before selecting points.
+  world_gate_item_required: §cHold a world gate item before confirming placement.
+  world_gate_insufficient_points: '§cInsufficient points. (Required: §6🛖 §e{required}§c / Current: §6🛖 §e{current}§c / Short: §6🛖 §e{shortage}§c)'
   preview_template_not_found: §cTemplate not found.
   preview_world_load_failed: §cFailed to load preview world.
   target_not_in_myworld: §cTarget player is not in a MyWorld.

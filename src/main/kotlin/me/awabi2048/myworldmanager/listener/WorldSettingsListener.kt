@@ -1572,6 +1572,13 @@ class WorldSettingsListener : Listener {
                                                                 it.id == portalId
                                                         }
                                                 if (portal != null) {
+                                                        val refundResult =
+                                                                if (portal.isGate()) {
+                                                                        plugin.portalManager
+                                                                                .refundPointsForRemovedGate(portal)
+                                                                } else {
+                                                                        null
+                                                                }
                                                         if (!portal.isGate()) {
                                                                 val world =
                                                                         Bukkit.getWorld(portal.worldName)
@@ -1671,12 +1678,38 @@ class WorldSettingsListener : Listener {
                                                         }
                                                         player.inventory.addItem(returnItem)
 
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "messages.portal_removed"
+                                                        if (portal.isGate()) {
+                                                                val ownerName =
+                                                                        Bukkit.getOfflinePlayer(
+                                                                                        portal.ownerUuid
+                                                                                ).name
+                                                                                ?: portal.ownerUuid
+                                                                                        .toString()
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "messages.world_gate_removed_refund",
+                                                                                mapOf(
+                                                                                        "points" to
+                                                                                                (refundResult
+                                                                                                                ?.points
+                                                                                                        ?: 0),
+                                                                                        "percent" to
+                                                                                                (refundResult
+                                                                                                                ?.percent
+                                                                                                        ?: 0),
+                                                                                        "owner" to ownerName
+                                                                                )
+                                                                        )
                                                                 )
-                                                        )
+                                                        } else {
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "messages.portal_removed"
+                                                                        )
+                                                                )
+                                                        }
                                                         plugin.worldSettingsGui
                                                                 .openPortalManagement(
                                                                         player,
