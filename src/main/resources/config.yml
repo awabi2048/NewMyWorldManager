@@ -85,6 +85,14 @@ portal_targets:
   world_the_end: "ジ・エンド"
   lobby: "ロビー"
 
+portal:
+  world_gate:
+    point_cost_per_block: 1
+    remove_refund_rate: 0.5
+    particle_density_per_block: 0.8
+    particle_min_count: 16
+    particle_max_count: 320
+
 # 移行コマンドの設定
 migration:
   enable_world_migration: false

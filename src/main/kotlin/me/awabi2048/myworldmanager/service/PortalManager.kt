@@ -17,6 +17,8 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class PortalManager(private val plugin: MyWorldManager) {
+    data class GateRefundResult(val points: Int, val percent: Int, val ownerUuid: UUID)
+
     // PortalUUID -> TextDisplay の紐付け
     private val textDisplays = ConcurrentHashMap<UUID, TextDisplay>()
     // TextDisplayUUID -> PortalUUID の逆引きマップ
@@ -34,13 +36,58 @@ class PortalManager(private val plugin: MyWorldManager) {
         return (x.toLong() and 0x7FFFFFF shl 38) or (z.toLong() and 0x7FFFFFF shl 12) or (y.toLong() and 0xFFF)
     }
 
+    fun calculateWorldGatePlacementCost(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Int {
+        val volume = ((maxX - minX + 1).toLong().coerceAtLeast(1L) *
+                (maxY - minY + 1).toLong().coerceAtLeast(1L) *
+                (maxZ - minZ + 1).toLong().coerceAtLeast(1L))
+        val pointCostPerBlock = plugin.config.getInt("portal.world_gate.point_cost_per_block", 1).coerceAtLeast(0)
+        val totalCost = volume * pointCostPerBlock.toLong()
+        return totalCost.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+    }
+
+    fun calculateWorldGatePlacementCost(portal: PortalData): Int {
+        if (!portal.isGate()) return 0
+        return calculateWorldGatePlacementCost(
+            portal.getMinX(),
+            portal.getMinY(),
+            portal.getMinZ(),
+            portal.getMaxX(),
+            portal.getMaxY(),
+            portal.getMaxZ()
+        )
+    }
+
+    fun refundPointsForRemovedGate(portal: PortalData): GateRefundResult? {
+        if (!portal.isGate()) return null
+
+        val rate = plugin.config.getDouble(
+            "portal.world_gate.remove_refund_rate",
+            plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
+        ).coerceIn(0.0, 1.0)
+        val cost = calculateWorldGatePlacementCost(portal)
+        val refund = kotlin.math.floor(cost * rate).toInt().coerceAtLeast(0)
+        val percent = kotlin.math.floor(rate * 100.0).toInt().coerceIn(0, 100)
+
+        if (refund > 0) {
+            val ownerStats = plugin.playerStatsRepository.findByUuid(portal.ownerUuid)
+            ownerStats.worldPoint += refund
+            plugin.playerStatsRepository.save(ownerStats)
+        }
+
+        return GateRefundResult(refund, percent, portal.ownerUuid)
+    }
+
     fun startTasks() {
         // TextDisplayの存在確認を初期化時に実行
         initializeTextDisplays()
-        
+
         Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
-            updatePortals()
-        }, 0L, 20L) // 20tick間隔 (1秒)
+            updatePortalVisualsAndCache()
+        }, 0L, 10L) // 10tick間隔 (0.5秒)
+
+        Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+            processWarpCycle()
+        }, 0L, 5L) // 5tick間隔 (0.25秒)
     }
     
     /**
@@ -96,7 +143,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         entityGrace[portalUuid] = System.currentTimeMillis() + (seconds * 1000)
     }
 
-    private fun updatePortals() {
+    private fun updatePortalVisualsAndCache() {
         val portals = plugin.portalRepository.findAll()
         portalCache.clear()
         gateCache.clear()
@@ -137,8 +184,9 @@ class PortalManager(private val plugin: MyWorldManager) {
                 val maxY = portal.getMaxY().toDouble()
                 val minZ = portal.getMinZ().toDouble()
                 val maxZ = portal.getMaxZ().toDouble()
+                val particleCount = calculateGateParticleCount(portal)
 
-                for (i in 0..30) {
+                for (i in 0 until particleCount) {
                     val px = minX + Math.random() * (maxX - minX + 1.0)
                     val py = minY + Math.random() * (maxY - minY + 1.0)
                     val pz = minZ + Math.random() * (maxZ - minZ + 1.0)
@@ -174,10 +222,14 @@ class PortalManager(private val plugin: MyWorldManager) {
             }
         }
 
+    }
+
+    private fun processWarpCycle() {
         warpEntitiesInGates()
 
-        // 4. portalGracePeriodsの清掃 (期限切れのものを削除)
         val now = System.currentTimeMillis()
+
+        // portalGracePeriodsの清掃 (期限切れのものを削除)
         portalGracePeriods.forEach { (_, graces) ->
             graces.entries.removeIf { it.value < now }
         }
@@ -199,7 +251,7 @@ class PortalManager(private val plugin: MyWorldManager) {
             }
         }
 
-        // 5. ignorePlayersの解除判定 (ポータル判定範囲外に出たら解除)
+        // ignorePlayersの解除判定 (ポータル判定範囲外に出たら解除)
         val playerIterator = ignorePlayers.iterator()
         while (playerIterator.hasNext()) {
             val playerUuid = playerIterator.next()
@@ -210,29 +262,34 @@ class PortalManager(private val plugin: MyWorldManager) {
                 continue
             }
 
-            var isInAnyPortal = false
-            for (portal in portals) {
-                if (player.world.name != portal.worldName) continue
-
-                if (portal.isGate()) {
-                    if (portal.containsLocation(player.location)) {
-                        isInAnyPortal = true
-                        break
-                    }
-                } else {
-                    val loc = portal.getCenterLocation()
-                    val checkCenter = loc.clone().add(0.0, 1.5, 0.0)
-                    if (player.location.distanceSquared(checkCenter) <= 0.25) {
-                        isInAnyPortal = true
-                        break
-                    }
-                }
-            }
-
-            if (!isInAnyPortal) {
+            if (!isPlayerInAnyPortal(player)) {
                 playerIterator.remove()
             }
         }
+    }
+
+    private fun isPlayerInAnyPortal(player: Player): Boolean {
+        val worldName = player.world.name
+
+        val gates = gateCache[worldName]
+        if (gates != null) {
+            for (gate in gates) {
+                if (gate.containsLocation(player.location)) return true
+            }
+        }
+
+        val worldPortals = portalCache[worldName]
+        if (worldPortals != null) {
+            for (portal in worldPortals.values) {
+                val loc = portal.getCenterLocation()
+                val checkCenter = loc.clone().add(0.0, 1.5, 0.0)
+                if (player.location.distanceSquared(checkCenter) <= 0.25) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
      private fun updateTextDisplay(portal: PortalData) {
@@ -352,6 +409,9 @@ class PortalManager(private val plugin: MyWorldManager) {
                     if (entity is TextDisplay && entity.uniqueId == gate.textDisplayUuid) continue
 
                     isInAnyGate = true
+                    if (entity is Player && entity.isSneaking) {
+                        break
+                    }
                     if (!ignoreEntities.contains(entity.uniqueId)) {
                         if (entity is Player) {
                             executeWarp(entity, gate)
@@ -370,6 +430,8 @@ class PortalManager(private val plugin: MyWorldManager) {
     }
 
      fun handlePlayerMove(player: Player) {
+        if (player.isSneaking) return
+
         val worldName = player.world.name
         val worldPortals = portalCache[worldName] ?: return
         
@@ -382,6 +444,19 @@ class PortalManager(private val plugin: MyWorldManager) {
         val portal = worldPortals[key] ?: return
 
         executeWarp(player, portal)
+    }
+
+    private fun calculateGateParticleCount(portal: PortalData): Int {
+        val volume = ((portal.getMaxX() - portal.getMinX() + 1).toLong() *
+                (portal.getMaxY() - portal.getMinY() + 1).toLong() *
+                (portal.getMaxZ() - portal.getMinZ() + 1).toLong()).coerceAtLeast(1L)
+
+        val density = plugin.config.getDouble("portal.world_gate.particle_density_per_block", 0.8).coerceAtLeast(0.0)
+        val minCount = plugin.config.getInt("portal.world_gate.particle_min_count", 16).coerceAtLeast(0)
+        val maxCount = plugin.config.getInt("portal.world_gate.particle_max_count", 320).coerceAtLeast(minCount)
+
+        val scaled = kotlin.math.ceil(volume.toDouble() * density).toInt()
+        return scaled.coerceIn(minCount, maxCount)
     }
 
      private fun executeWarp(player: Player, portal: PortalData) {

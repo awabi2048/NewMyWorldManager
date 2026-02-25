@@ -146,6 +146,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
             }
              ItemTag.TYPE_GUI_PORTAL_REMOVE -> {
                   plugin.soundManager.playClickSound(player, item)
+                  val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
                   
                   // ビジュアル要素を先に削除（タイミング問題を防ぐ）
                   plugin.portalManager.removePortalVisuals(portal.id)
@@ -181,9 +182,24 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                         PortalItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
                     }
                 }
-                
+                 
                 player.inventory.addItem(returnItem)
-                player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
+                if (portal.isGate()) {
+                    val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: portal.ownerUuid.toString()
+                    player.sendMessage(
+                        lang.getMessage(
+                            player,
+                            "messages.world_gate_removed_refund",
+                            mapOf(
+                                "points" to (refundResult?.points ?: 0),
+                                "percent" to (refundResult?.percent ?: 0),
+                                "owner" to ownerName
+                            )
+                        )
+                    )
+                } else {
+                    player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
+                }
                 player.closeInventory()
             }
         }

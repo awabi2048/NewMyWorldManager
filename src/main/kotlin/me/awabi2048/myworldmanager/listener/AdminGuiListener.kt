@@ -81,6 +81,7 @@ class AdminGuiListener : Listener {
                         player.closeInventory()
                     } else if (event.isRightClick) {
                         // 撤去
+                        val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
                         plugin.portalManager.removePortalVisuals(portalUuid)
                         plugin.portalRepository.removePortal(portalUuid)
                         
@@ -93,6 +94,20 @@ class AdminGuiListener : Listener {
                         }
                         
                         plugin.soundManager.playAdminClickSound(player)
+                        if (portal.isGate()) {
+                            val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: portal.ownerUuid.toString()
+                            player.sendMessage(
+                                lang.getMessage(
+                                    player,
+                                    "messages.world_gate_removed_refund",
+                                    mapOf(
+                                        "points" to (refundResult?.points ?: 0),
+                                        "percent" to (refundResult?.percent ?: 0),
+                                        "owner" to ownerName
+                                    )
+                                )
+                            )
+                        }
                         player.sendMessage(lang.getMessage(player, "messages.admin_portal_removed"))
                         plugin.adminPortalGui.open(player)
                     }
