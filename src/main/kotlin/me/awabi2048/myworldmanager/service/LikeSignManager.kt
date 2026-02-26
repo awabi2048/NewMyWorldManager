@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.LikeSignData
 import me.awabi2048.myworldmanager.model.LikeSignDisplayType
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.TextDisplayEntityUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -18,7 +19,6 @@ import org.bukkit.block.Sign
 import org.bukkit.block.data.Directional
 import org.bukkit.entity.Interaction
 import org.bukkit.entity.Player
-import org.bukkit.entity.TextDisplay
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Transformation
 import org.joml.AxisAngle4f
@@ -153,7 +153,7 @@ class LikeSignManager(private val plugin: MyWorldManager) {
         val world = block.world
         val loc = Location(world, block.x + 0.5, block.y + 1.5, block.z + 0.5)
 
-        val textDisplay = world.spawn(loc, TextDisplay::class.java) { display ->
+        TextDisplayEntityUtil.spawnTaggedDisplay(world, loc, LIKE_SIGN_ENTITY_KEY, signData.uuid.toString()) { display ->
             display.text(createHologramText(signData))
             display.isShadowed = true
             display.isSeeThrough = false
@@ -165,11 +165,10 @@ class LikeSignManager(private val plugin: MyWorldManager) {
                 Vector3f(1f, 1f, 1f),
                 AxisAngle4f(0f, 0f, 0f, 1f)
             )
-            display.persistentDataContainer.set(LIKE_SIGN_ENTITY_KEY, PersistentDataType.STRING, signData.uuid.toString())
         }
 
         val interactionLoc = Location(world, block.x + 0.5, block.y + 1.0, block.z + 0.5)
-        val interaction = world.spawn(interactionLoc, Interaction::class.java) { inter ->
+        world.spawn(interactionLoc, Interaction::class.java) { inter ->
             inter.interactionWidth = 1.0f
             inter.interactionHeight = 1.5f
             inter.isResponsive = true
@@ -178,10 +177,8 @@ class LikeSignManager(private val plugin: MyWorldManager) {
     }
 
     fun updateHologramText(signData: LikeSignData, world: org.bukkit.World) {
-        val entities = world.entities.filterIsInstance<TextDisplay>().filter { entity ->
-            entity.persistentDataContainer.get(LIKE_SIGN_ENTITY_KEY, PersistentDataType.STRING) == signData.uuid.toString()
-        }
-        
+        val entities = TextDisplayEntityUtil.findTaggedDisplays(world, LIKE_SIGN_ENTITY_KEY, signData.uuid.toString())
+
         entities.forEach { display ->
             display.text(createHologramText(signData))
         }
@@ -215,10 +212,12 @@ class LikeSignManager(private val plugin: MyWorldManager) {
                 }
             }
             LikeSignDisplayType.HOLOGRAM -> {
-                val entities = world.entities.filter { entity ->
+                TextDisplayEntityUtil.findTaggedDisplays(world, LIKE_SIGN_ENTITY_KEY, signData.uuid.toString())
+                    .forEach { TextDisplayEntityUtil.removeIfValid(it) }
+                val interactions = world.entities.filterIsInstance<Interaction>().filter { entity ->
                     entity.persistentDataContainer.get(LIKE_SIGN_ENTITY_KEY, PersistentDataType.STRING) == signData.uuid.toString()
                 }
-                entities.forEach { it.remove() }
+                interactions.forEach { it.remove() }
                 
                 if (player != null) {
                     val item = me.awabi2048.myworldmanager.util.CustomItem.LIKE_SIGN.create(plugin.languageManager, player)
@@ -289,9 +288,7 @@ class LikeSignManager(private val plugin: MyWorldManager) {
             if (signData.displayType == LikeSignDisplayType.HOLOGRAM) {
                 val block = world.getBlockAt(signData.blockX, signData.blockY, signData.blockZ)
                 
-                val existingDisplay = world.entities.filterIsInstance<TextDisplay>().any { 
-                    it.persistentDataContainer.get(LIKE_SIGN_ENTITY_KEY, PersistentDataType.STRING) == signData.uuid.toString()
-                }
+                val existingDisplay = TextDisplayEntityUtil.findTaggedDisplays(world, LIKE_SIGN_ENTITY_KEY, signData.uuid.toString()).isNotEmpty()
                 val existingInteraction = world.entities.filterIsInstance<Interaction>().any { 
                     it.persistentDataContainer.get(LIKE_SIGN_ENTITY_KEY, PersistentDataType.STRING) == signData.uuid.toString()
                 }
