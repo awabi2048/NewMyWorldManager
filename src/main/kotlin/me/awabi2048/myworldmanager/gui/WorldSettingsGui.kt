@@ -745,15 +745,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 inventory.setItem(49, infoItem)
 
                 // スロット51: 訪問中のプレイヤー管理
-                if (hasManagePermission) {
-                        val visitors =
-                                Bukkit.getWorld("my_world.${worldData.uuid}")?.players?.filter {
-                                        it.uniqueId != worldData.owner &&
-                                                !worldData.moderators.contains(it.uniqueId) &&
-                                                !worldData.members.contains(it.uniqueId)
-                                }
-                                        ?: emptyList()
-                        
+                val visitors =
+                        Bukkit.getWorld(targetWorldName)?.players?.filter {
+                                it.uniqueId != worldData.owner &&
+                                        !worldData.moderators.contains(it.uniqueId) &&
+                                        !worldData.members.contains(it.uniqueId)
+                        }
+                                ?: emptyList()
+                if (hasManagePermission && visitors.isNotEmpty()) {
                         val visitorLore = lang.getComponentList(
                                 player,
                                 "gui.settings.visitors.lore",
@@ -776,9 +775,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット52: 設置済みポータルの管理
-                // スロット52: 設置済みポータルの管理
                 // ワールドオーナーのみ表示
-                if (isOwner) {
+                val hasPortals =
+                        isOwner &&
+                                plugin.portalRepository.findAll().any {
+                                        it.worldName == targetWorldName
+                                }
+                if (hasPortals) {
                         val portalLore = lang.getComponentList(player, "gui.settings.portals.lore")
                         inventory.setItem(
                                 52,
