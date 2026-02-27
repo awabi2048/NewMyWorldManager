@@ -113,7 +113,87 @@ gui:
     world_desc: "§f{description}"
     confirmation: "確認"
     confirm_warning: "§cこの操作は重要な変更を伴います！"
-  
+
+  bedrock:
+    player_world:
+      title: "マイワールド [BE]"
+      page_content: "ページ {current}/{total}"
+      archived_prefix: "[A] "
+      button:
+        prev: "前のページ"
+        next: "次のページ"
+        settings: "個人設定"
+        current_world: "現在のワールド"
+        return: "戻る"
+        close: "閉じる"
+
+    world_action:
+      title: "ワールド: {world}"
+      content:
+        owner: "オーナー: {owner}"
+        status: "状態: {status}"
+        publish: "公開: {publish}"
+      status:
+        archived: "アーカイブ中"
+        active: "アクティブ"
+      button:
+        warp: "ワープ"
+        cycle_publish: "公開設定切替 ({level})"
+        archive: "アーカイブ"
+        unarchive: "復旧"
+        advanced_settings: "詳細設定 GUI"
+        back_to_worlds: "ワールド一覧に戻る"
+        settings: "個人設定"
+        return: "戻る"
+        close: "閉じる"
+
+    settings:
+      title: "個人設定 [BE]"
+      form_content: "統合版向けのクイック設定"
+      button:
+        notification: "訪問通知: {status}"
+        language: "言語: {language}"
+        critical: "重大設定: {status}"
+        beta: "ベータ機能: {status}"
+        back_to_worlds: "ワールド一覧に戻る"
+        return: "戻る"
+        close: "閉じる"
+
+    world_item:
+      publish: "公開: {publish}"
+      favorite: "お気に入り: {favorite}"
+      open_actions: "タップして操作を開く"
+
+    input:
+      info_form:
+        title: "ワールド情報の編集"
+      rename:
+        title: "ワールド名の変更"
+        label: "新しいワールド名"
+        placeholder: "ワールド名を入力"
+      description:
+        title: "説明文の変更"
+        label: "新しい説明文"
+        placeholder: "説明文を入力"
+      member_invite:
+        title: "メンバー招待"
+        label: "招待するプレイヤー名"
+        placeholder: "プレイヤー名を入力"
+      announcement_menu:
+        title: "案内メッセージ"
+        content: "操作を選択してください"
+        edit: "編集"
+        reset: "リセット"
+      announcement_edit:
+        title: "案内メッセージ編集 ({max_lines}行/{max_length}文字)"
+        label: "{line}行目"
+        placeholder: "空欄で行をスキップ"
+      info_selector:
+        title: "編集項目の選択"
+        content: "変更したい項目を選んでください"
+        rename: "ワールド名"
+        description: "説明文"
+
   creation:
     title_type: "ワールドタイプを選択"
     title_template: "テンプレートを選択"
@@ -312,6 +392,12 @@ gui:
         - "§e§l| §e左クリック §7ポータルの位置にテレポート"
         - "§e§l| §e右クリック§7 ポータルを撤去"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_management_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7座標: §f{x}, {y}, {z}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §eクリック §7ポータルの位置にテレポート"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     sort:
       display: "§e並び替え方法"
       created_desc: "設置日（新しい順）"
@@ -328,11 +414,17 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7クリック後、チャット欄に入力して設定します"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックしてフォームを開く"
+        - "§7ワールド名と説明文をまとめて編集します"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     spawn:
       display: "§aスポーン地点の設定"
       type:
         guest: "ゲスト用"
         member: "メンバー用"
+        both: "ゲスト/メンバー共通"
       lore:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§l| §e左クリック§b ゲスト用スポーン地点§fを設定"
@@ -340,6 +432,12 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7クリック後、設定したい地点のブロックを"
         - "§7クリックして決定します。"
+        - "§e※設定時のプレイヤーの向きが保存されます"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックして設定開始"
+        - "§7クリックした地点をゲスト/メンバー両方に設定します"
         - "§e※設定時のプレイヤーの向きが保存されます"
         - "§8§m－－－－－－－－－－－－－－－－－－"
     error:
@@ -415,6 +513,15 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§l| §e左クリック§7 前へ"
         - "§e§l| §e右クリック§7 次へ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7現在の設定 {current_color}{current_level}"
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{level_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックで次の公開レベルへ"
         - "§8§m－－－－－－－－－－－－－－－－－－"
       active_prefix: "§6» "
       inactive_prefix: "  "
@@ -503,6 +610,13 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§n左クリック§7 メッセージを設定"
         - "§e§n右クリック§7 設定をリセット"
+        - "{message_preview}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7案内メッセージの編集・リセットを行います"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§nクリックで操作メニューを開く"
         - "{message_preview}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
       preview_header: "§f§l| §7現在の案内メッセージ"
@@ -670,6 +784,10 @@ gui:
         - "§e§l| §eShift + 左クリック §cオーナー権限を譲渡"
         - "§e§l| §eShift + 右クリック §cワールドメンバーから削除"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_actions_bedrock:
+        - "§e§l| §eクリック §7権限を§b{next_role}§7に変更"
+        - "§e§l| §e削除/譲渡は /myworld コマンドを使用"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
     
     transfer_confirm:
       title: "オーナー権限の譲渡"
@@ -699,6 +817,7 @@ gui:
       confirm_desc: "§7このプレイヤーをワールドから追い出します"
     item:
       kick: "§e§l| §e右クリック§c キックする"
+      kick_bedrock: "§e§l| §eクリック§c キックする"
 
   tag_editor:
     title: "ワールドタグの編集"
@@ -1281,6 +1400,7 @@ gui:
       tag: "§f§l| §7タグ §e{tags}"
       warp: "§e§l| §e左クリック§7 このワールドへ§bワープ"
       settings: "§e§l| §e右クリック§7 ワールド設定を開く"
+      settings_bedrock: "§7ワールド設定は /worldmenu から開けます"
       expired: "§c§nこのワールドはアーカイブされています"
       expires_at: "§f§l| §7アーカイブまでの日数 §f{days}日 §8({date} にアーカイブ)"
     
@@ -1395,6 +1515,7 @@ messages:
   world_name_change: "§aワールド名を変更しました！"
   world_name_invalid: "§cワールド名は3〜16文字で入力してください"
   world_desc_change: "§aワールド説明を変更しました！"
+  publish_updated: "§a公開設定を更新しました: {level}"
   icon_prompt: "§eインベントリ内のアイテムをクリックして、アイコンを設定します"
   icon_changed: "§aワールドアイコンを「{icon}」に変更しました！"
   icon_cancelled: "§cアイコン設定をキャンセルしました"
@@ -1407,8 +1528,10 @@ messages:
   creation_failed: "§c作成に失敗しました。"
   world_not_found: "§cワールドが見つかりませんでした。"
   spawn_set_start: "§e{type}スポーン地点の設定を開始しました。設置したい場所を向いてクリックしてください。"
+  spawn_set_start_bedrock: "§e{type}スポーン地点の設定を開始しました。設置したい場所を向いてクリックしてください。"
   spawn_guest_set: "§aゲスト用のスポーン位置を設定しました！"
   spawn_member_set: "§aメンバー用のスポーン位置を設定しました！"
+  spawn_both_set: "§aゲスト/メンバー共通のスポーン位置を設定しました！"
   favorite_removed: "§cお気に入りを解除しました"
   tag_max_reached: "§cタグは最大{limit}個まで設定可能です"
   
@@ -1454,6 +1577,8 @@ messages:
   announcement_invalid_length: "§cメッセージが長すぎます。（{max_lines}行まで、各行{max_length}文字まで）"
   announcement_blocked_string: "§c禁止文字列が含まれています: {string}"
   announcement_preview: "§7«案内プレビュー» {message}"
+  bedrock_option_unavailable: "§cこの機能は統合版インベントリUIでは利用できません。"
+  bedrock_form_unavailable: "§c統合版フォームを開けませんでした。"
   env_gravity_changed: "§a重力を「{gravity}」に変更しました（倍率: {multiplier}）"
   env_weather_changed: "§a天候を「{weather}」に規定しました"
   env_biome_changed: "§aバイオームを「{biome}」に変更しました"
@@ -1485,6 +1610,7 @@ messages:
 
   # 拡張・削除・アーカイブ
   expand_direction_prompt: "§a拡張したい方角（北西・北東・南西・南東）を向いて左クリックしてください"
+  expand_direction_prompt_bedrock: "§a拡張したい方角（北西・北東・南西・南東）を向いてクリックしてください"
   expand_direction_selected: "§a指定した方角: {direction}"
   expand_confirm_chat: "§a変更後のワールドボーダーのプレビューを表示しています。この内容で拡張しますか？"
   expand_confirm_button: "§a§l【拡張を確定する】"
@@ -1588,6 +1714,8 @@ messages:
     busy: "§c対象のプレイヤーは現在取り込み中です。"
     request_accepted: "§e{player}§aのワープ申請を許可しました"
     request_accepted_by_target: "§e{player}§aにワープ申請が許可されました！"
+    request_denied: "§cワープ申請を却下しました。"
+    request_denied_by_target: "§c{player}さんにワープ申請を却下されました。"
     not_in_valid_world: "§c有効なワールド内にいません。"
     requester_offline: "§c申請したプレイヤーがオフラインになりました。"
     no_pending_request: "§c保留中の申請が見つかりませんでした。"
@@ -1615,6 +1743,16 @@ messages:
   usage_stats: "§c使用法: /mwm stats <プレイヤー名> <項目> <get/set/add/remove> [値]"
   usage_stats_fields: "§7項目: points, warp-slots, world-slots"
   usage_give: "§c使用法: /mwm give <プレイヤー名> <アイテムID> [個数]"
+  myworld_command_usage: "§c使用法: /myworld accept | deny | transfer <プレイヤー> | remove_member <プレイヤー>"
+  myworld_command_bedrock_only: "§cこのサブコマンドは統合版プレイヤー専用です。"
+  myworld_target_not_member: "§c対象プレイヤーはこのワールドのメンバーではありません。"
+  myworld_owner_remove_forbidden: "§cオーナーをメンバー削除することはできません。"
+  myworld_pending_hint: "§e保留中の招待/申請があります。/myworld accept または /myworld deny で最新の1件を処理できます。 §7(保留: {count}件)"
+  myworld_pending_none: "§c処理可能な招待/申請はありません。"
+  myworld_pending_remaining: "§e未処理の招待/申請がまだあります。 §7(残り: {count}件)"
+  invite_declined: "§cワールド招待を辞退しました。"
+  member_invite_declined: "§cメンバー招待を辞退しました。"
+  member_invite_declined_sender: "§e{player}§c がメンバー招待を辞退しました。"
   
   # UUIDコピー
 

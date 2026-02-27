@@ -46,22 +46,27 @@ class CreationChatListener(private val plugin: MyWorldManager) : Listener {
 
             val cleanedName = cleanWorldName(message)
             session.worldName = cleanedName
-            session.phase = WorldCreationPhase.TYPE_SELECT
+            session.phase = WorldCreationPhase.CONFIRM
             
             // GUI open must be sync
             Bukkit.getScheduler().runTask(plugin, Runnable {
-                plugin.creationGui.openTypeSelection(player)
+                plugin.creationGui.openConfirmation(player, session)
             })
         } else if (session.phase == WorldCreationPhase.SEED_INPUT) {
             event.isCancelled = true
             event.viewers().clear()
             
             session.inputSeedString = message
-            session.phase = WorldCreationPhase.CONFIRM
+            session.phase = WorldCreationPhase.NAME_INPUT
             
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                plugin.creationGui.openConfirmation(player, session)
-            })
+            val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+            val cancelInfo =
+                    plugin.languageManager.getMessage(
+                            player,
+                            "messages.chat_input_cancel_hint",
+                            mapOf("word" to cancelWord)
+                    )
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
         }
     }
 

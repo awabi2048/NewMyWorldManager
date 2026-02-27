@@ -50,7 +50,13 @@ class MemberInviteManager(
         }
         removeInvite(player.uniqueId)
 
-        val worldData = worldConfigRepository.findByUuid(info.worldUuid)
+        handleMemberInviteAcceptDirect(player, info.worldUuid, info.senderUuid)
+    }
+
+    fun handleMemberInviteAcceptDirect(player: Player, worldUuid: UUID, senderUuid: UUID) {
+        val lang = languageManager
+
+        val worldData = worldConfigRepository.findByUuid(worldUuid)
         if (worldData == null) {
             player.sendMessage(lang.getMessage(player, "error.invite_world_not_found"))
             return
@@ -68,18 +74,18 @@ class MemberInviteManager(
                 worldUuid = worldData.uuid,
                 memberUuid = player.uniqueId,
                 memberName = player.name,
-                addedByUuid = info.senderUuid,
+                addedByUuid = senderUuid,
                 source = MwmMemberAddSource.INVITE
             )
         )
         player.sendMessage(lang.getMessage(player, "messages.invite_accepted_self", mapOf("world" to worldData.name)))
-        
-        val sender = Bukkit.getPlayer(info.senderUuid)
+
+        val sender = Bukkit.getPlayer(senderUuid)
         sender?.sendMessage(lang.getMessage(sender, "messages.invite_accepted_sender", mapOf("player" to player.name, "world" to worldData.name)))
 
         // マクロ実行
         macroManager.execute("on_member_add", mapOf(
-            "world_uuid" to info.worldUuid.toString(),
+            "world_uuid" to worldUuid.toString(),
             "member" to player.name
         ))
     }

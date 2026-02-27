@@ -110,29 +110,16 @@ class WorldCommand(
 
                 // ウィザード開始
                 val session = sessionManager.startSession(targetPlayer.uniqueId)
-                val cancelWord =
-                        plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                val cancelInfo =
-                        lang.getMessage(
-                                targetPlayer,
-                                "messages.chat_input_cancel_hint",
-                                mapOf("word" to cancelWord)
-                        )
 
                 // ベータ機能（ダイアログモード）チェック
                 val playerStats = plugin.playerStatsRepository.findByUuid(targetPlayer.uniqueId)
                 if (playerStats.betaFeaturesEnabled) {
-                    // ダイアログモード
                     session.isDialogMode = true
-                    targetPlayer.sendMessage(lang.getMessage("messages.wizard_start_dialog"))
-                    me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(targetPlayer, session)
                 } else {
-                    // 従来のチャット入力モード
-                    targetPlayer.sendMessage(lang.getMessage("messages.wizard_start"))
-                    targetPlayer.sendMessage(
-                            lang.getMessage("messages.wizard_name_prompt") + " " + cancelInfo
-                    )
+                    session.isDialogMode = false
                 }
+                targetPlayer.sendMessage(lang.getMessage("messages.wizard_start"))
+                plugin.creationGui.openTypeSelection(targetPlayer)
                 sender.sendMessage(
                         lang.getMessage(
                                 sender as? Player,

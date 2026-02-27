@@ -18,7 +18,7 @@ enum class WorldCreationType {
 
 data class WorldCreationSession(
     val playerId: UUID,
-    var phase: WorldCreationPhase = WorldCreationPhase.NAME_INPUT,
+    var phase: WorldCreationPhase = WorldCreationPhase.TYPE_SELECT,
     var worldName: String? = null,
     var creationType: WorldCreationType? = null,
     var templateName: String? = null,

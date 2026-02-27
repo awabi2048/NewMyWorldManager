@@ -52,7 +52,16 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             when (session.phase) {
                 WorldCreationPhase.TYPE_SELECT -> {
                     player.closeInventory()
+                    plugin.creationSessionManager.endSession(player.uniqueId)
+                    player.sendMessage(lang.getMessage(player, "messages.creation_cancelled"))
+                }
+                WorldCreationPhase.TEMPLATE_SELECT -> {
+                    session.phase = WorldCreationPhase.TYPE_SELECT
+                    plugin.creationGui.openTypeSelection(player)
+                }
+                WorldCreationPhase.CONFIRM -> {
                     session.phase = WorldCreationPhase.NAME_INPUT
+                    player.closeInventory()
                     val cancelWord =
                             plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
                     val cancelInfo =
@@ -66,19 +75,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                     " " +
                                     cancelInfo
                     )
-                }
-                WorldCreationPhase.TEMPLATE_SELECT -> {
-                    session.phase = WorldCreationPhase.TYPE_SELECT
-                    plugin.creationGui.openTypeSelection(player)
-                }
-                WorldCreationPhase.CONFIRM -> {
-                    if (session.creationType == WorldCreationType.TEMPLATE) {
-                        session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                        plugin.creationGui.openTemplateSelection(player)
-                    } else {
-                        session.phase = WorldCreationPhase.TYPE_SELECT
-                        plugin.creationGui.openTypeSelection(player)
-                    }
                 }
                 else -> {}
             }
@@ -122,13 +118,13 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     ItemTag.TYPE_GUI_CREATION_TYPE_SEED -> {
                         plugin.soundManager.playClickSound(player, currentItem)
                         session.creationType = WorldCreationType.SEED
+                        session.phase = WorldCreationPhase.SEED_INPUT
                         
                         if (session.isDialogMode) {
                             me.awabi2048.myworldmanager.gui.CreationDialogManager.showSeedInputDialog(player, session)
                             return
                         }
                         
-                        session.phase = WorldCreationPhase.SEED_INPUT
                         player.closeInventory()
                         val cancelWord =
                                 plugin.config.getString("creation.cancel_word", "cancel")
@@ -146,12 +142,21 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         session.creationType = WorldCreationType.RANDOM
                         
                         if (session.isDialogMode) {
-                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showConfirmationDialog(player, session)
+                            session.phase = WorldCreationPhase.NAME_INPUT
+                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
                             return
                         }
                         
-                        session.phase = WorldCreationPhase.CONFIRM
-                        plugin.creationGui.openConfirmation(player, session)
+                        session.phase = WorldCreationPhase.NAME_INPUT
+                        player.closeInventory()
+                        val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                        val cancelInfo =
+                                lang.getMessage(
+                                        player,
+                                        "messages.chat_input_cancel_hint",
+                                        mapOf("word" to cancelWord)
+                                )
+                        player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
                     }
                     else -> {}
                 }
@@ -181,12 +186,21 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     session.templateName = template.path
                     
                     if (session.isDialogMode) {
-                        me.awabi2048.myworldmanager.gui.CreationDialogManager.showConfirmationDialog(player, session)
+                        session.phase = WorldCreationPhase.NAME_INPUT
+                        me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
                         return
                     }
                     
-                    session.phase = WorldCreationPhase.CONFIRM
-                    plugin.creationGui.openConfirmation(player, session)
+                    session.phase = WorldCreationPhase.NAME_INPUT
+                    player.closeInventory()
+                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
+                    val cancelInfo =
+                            lang.getMessage(
+                                    player,
+                                    "messages.chat_input_cancel_hint",
+                                    mapOf("word" to cancelWord)
+                            )
+                    player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
                 }
             }
             WorldCreationPhase.CONFIRM -> {

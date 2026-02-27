@@ -69,11 +69,33 @@ class CreationDialogManager : Listener {
             }
 
             session.worldName = cleanWorldName(nameRaw)
-            session.phase = WorldCreationPhase.TYPE_SELECT
+            if (session.creationType == null) {
+                session.phase = WorldCreationPhase.TYPE_SELECT
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                    plugin.creationGui.openTypeSelection(player)
+                })
+            } else {
+                session.phase = WorldCreationPhase.CONFIRM
+                showConfirmationDialog(player, session)
+            }
+            return
+        }
 
-            org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
-                plugin.creationGui.openTypeSelection(player)
-            })
+        if (identifier == Key.key("mwm:creation/name_input_back")) {
+            when (session.creationType) {
+                WorldCreationType.TEMPLATE -> {
+                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                    plugin.creationGui.openTemplateSelection(player)
+                }
+                WorldCreationType.SEED -> {
+                    session.phase = WorldCreationPhase.SEED_INPUT
+                    showSeedInputDialog(player, session)
+                }
+                WorldCreationType.RANDOM, null -> {
+                    session.phase = WorldCreationPhase.TYPE_SELECT
+                    plugin.creationGui.openTypeSelection(player)
+                }
+            }
             return
         }
 
@@ -84,9 +106,8 @@ class CreationDialogManager : Listener {
             val seedInput = seedInputAny.toString()
 
             session.inputSeedString = seedInput
-            session.phase = WorldCreationPhase.CONFIRM
-
-            showConfirmationDialog(player, session)
+            session.phase = WorldCreationPhase.NAME_INPUT
+            showNameInputDialog(player, session)
             return
         }
 
@@ -116,18 +137,8 @@ class CreationDialogManager : Listener {
                     }
                 }
                 "back" -> {
-                    when (session.creationType) {
-                        WorldCreationType.SEED -> showSeedInputDialog(player, session)
-                        WorldCreationType.TEMPLATE -> {
-                            session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                            plugin.creationGui.openTemplateSelection(player)
-                        }
-                        WorldCreationType.RANDOM -> {
-                            session.phase = WorldCreationPhase.TYPE_SELECT
-                            plugin.creationGui.openTypeSelection(player)
-                        }
-                        else -> safeCloseDialog(player)
-                    }
+                    session.phase = WorldCreationPhase.NAME_INPUT
+                    showNameInputDialog(player, session)
                 }
                 "cancel" -> {
                     plugin.creationSessionManager.endSession(player.uniqueId)
@@ -140,21 +151,8 @@ class CreationDialogManager : Listener {
 
         // 最終確認 -> 戻る (Esc or Cancel button)
         if (identifier == Key.key("mwm:creation/confirm_back")) {
-            when (session.creationType) {
-                WorldCreationType.SEED -> showSeedInputDialog(player, session)
-                WorldCreationType.TEMPLATE -> {
-                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                    plugin.creationGui.openTemplateSelection(player)
-                }
-                WorldCreationType.RANDOM -> {
-                    session.phase = WorldCreationPhase.TYPE_SELECT
-                    plugin.creationGui.openTypeSelection(player)
-                }
-                else -> {
-                    session.phase = WorldCreationPhase.TYPE_SELECT
-                    plugin.creationGui.openTypeSelection(player)
-                }
-            }
+            session.phase = WorldCreationPhase.NAME_INPUT
+            showNameInputDialog(player, session)
             return
         }
     }
@@ -166,8 +164,6 @@ class CreationDialogManager : Listener {
         fun showNameInputDialog(player: Player, session: WorldCreationSession) {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
             val lang = plugin.languageManager
-
-            val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
 
             val dialog = Dialog.create { builder ->
                 builder.empty()
@@ -184,11 +180,6 @@ class CreationDialogManager : Listener {
                                                 player,
                                                 "messages.wizard_name_prompt"
                                             )
-                                        )
-                                    ),
-                                    DialogBody.plainMessage(
-                                        Component.text(
-                                            "§7${lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))}"
                                         )
                                     )
                                 )
@@ -212,10 +203,10 @@ class CreationDialogManager : Listener {
                                 DialogAction.customClick(Key.key("mwm:creation/name_input_next"), null)
                             ),
                             ActionButton.create(
-                                Component.text("Cancel", NamedTextColor.RED),
+                                Component.text("Back", NamedTextColor.GRAY),
                                 null,
                                 200,
-                                DialogAction.customClick(Key.key("mwm:creation/cancel"), null)
+                                DialogAction.customClick(Key.key("mwm:creation/name_input_back"), null)
                             )
                         )
                     )
