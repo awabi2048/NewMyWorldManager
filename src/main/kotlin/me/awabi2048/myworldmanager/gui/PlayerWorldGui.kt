@@ -284,7 +284,12 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 } else ""
                 
                 val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
-                val settingsAction = lang.getMessage(player, "gui.player_world.world_item.settings")
+                val settingsAction =
+                        if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                lang.getMessage(player, "gui.player_world.world_item.settings_bedrock")
+                        } else {
+                                lang.getMessage(player, "gui.player_world.world_item.settings")
+                        }
 
                 val separator = lang.getComponent(player, "gui.common.separator")
 
@@ -387,7 +392,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         "point" to stats.worldPoint,
                                         "current_occupied" to currentCreateCount,
                                         "unlocked" to maxSlot,
-                                        "icon" to "🛖"
+                                        "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖"
                                 )
                         )
                 )

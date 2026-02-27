@@ -36,6 +36,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var portalManager: PortalManager
     lateinit var memberInviteManager: MemberInviteManager
     lateinit var memberRequestManager: MemberRequestManager
+    lateinit var pendingDecisionManager: PendingDecisionManager
     lateinit var discoverySessionManager: DiscoverySessionManager
     lateinit var meetSessionManager: MeetSessionManager
     lateinit var favoriteSessionManager: FavoriteSessionManager
@@ -156,6 +157,7 @@ class MyWorldManager : JavaPlugin() {
         // MemberInviteManagerの初期化に依存関係を渡す
         memberInviteManager = MemberInviteManager(this, worldConfigRepository, macroManager)
         memberRequestManager = MemberRequestManager(this)
+        pendingDecisionManager = PendingDecisionManager(this)
 
         // 設定機能の初期化
         settingsSessionManager = SettingsSessionManager()
@@ -241,7 +243,9 @@ class MyWorldManager : JavaPlugin() {
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
         getCommand("mwm")?.setExecutor(mwmCmd)
         getCommand("mwm")?.setTabCompleter(mwmCmd)
-        getCommand("myworld")?.setExecutor(PlayerWorldCommand(this))
+        val myWorldCmd = PlayerWorldCommand(this)
+        getCommand("myworld")?.setExecutor(myWorldCmd)
+        getCommand("myworld")?.setTabCompleter(myWorldCmd)
         getCommand("worldmenu")?.setExecutor(WorldMenuCommand(this))
         getCommand("visit")?.let {
             val visitCmd = VisitCommand(this)

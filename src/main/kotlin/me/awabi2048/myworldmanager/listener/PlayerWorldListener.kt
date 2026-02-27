@@ -104,32 +104,26 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 
                 // セッションの開始
-                plugin.creationSessionManager.startSession(player.uniqueId)
+                val session = plugin.creationSessionManager.startSession(player.uniqueId)
                 
                 // ベータ機能が有効ならダイアログを使用
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 if (stats.betaFeaturesEnabled) {
-                    val session = plugin.creationSessionManager.getSession(player.uniqueId)
-                    if (session != null) {
-                        session.isDialogMode = true
-                        player.closeInventory()
-                        player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
-                        me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
-                    }
+                    session.isDialogMode = true
                 } else {
-                    player.closeInventory()
-                    player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
-                    
-                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                    val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
-                    player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
+                    session.isDialogMode = false
                 }
+
+                player.closeInventory()
+                player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
+                plugin.creationGui.openTypeSelection(player)
                 return
             }
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
+            val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
-            if (event.isShiftClick && event.isLeftClick) {
+            if (!isBedrock && event.isShiftClick && event.isLeftClick) {
                 // Shift+左クリック：ワールドを先頭に移動
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 stats.worldDisplayOrder.remove(uuid)
@@ -209,7 +203,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 } else {
                     player.sendMessage(lang.getMessage(player, "general.world_not_found"))
                 }
-            } else if (event.isRightClick) {
+            } else if (!isBedrock && event.isRightClick) {
 
                 // 右クリック：設定を開く
                 val isMember = worldData.owner == player.uniqueId ||

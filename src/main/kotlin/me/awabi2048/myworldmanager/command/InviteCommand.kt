@@ -91,26 +91,42 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
 
         // 招待の有効期限を設定
         val timeoutSeconds = plugin.config.getLong("invite.timeout_seconds", 60)
-        val expiry = System.currentTimeMillis() + (timeoutSeconds * 1000)
-        
-        pendingInvites[target.uniqueId] = InviteInfo(worldUuid, expiry)
 
-        // 対象へのメッセージ送信 (Adventure API)
-        val inviteText = lang.getMessage(target, "messages.invite_text", mapOf("player" to player.name, "world" to worldData.name))
-        val clickText = lang.getMessage(target, "messages.invite_click_text")
-        val hoverText = lang.getMessage(target, "messages.invite_hover")
+        if (plugin.playerPlatformResolver.isBedrock(target)) {
+            target.sendMessage(
+                lang.getMessage(
+                    target,
+                    "messages.invite_text",
+                    mapOf("player" to player.name, "world" to worldData.name)
+                )
+            )
+            val count = plugin.pendingDecisionManager.enqueueWorldInvite(
+                target,
+                worldUuid,
+                player.uniqueId,
+                timeoutSeconds
+            )
+            plugin.pendingDecisionManager.sendPendingHint(target, count)
+        } else {
+            val expiry = System.currentTimeMillis() + (timeoutSeconds * 1000)
+            pendingInvites[target.uniqueId] = InviteInfo(worldUuid, expiry)
 
-        // 簡易的な実装 (本来はキーを分けてComponent構築すべきだが、getMessageの結果が§入りなのでそれに合わせる)
-        val inviteMessage = Component.text()
-            .append(Component.text(inviteText))
-            .append(Component.newline())
-            .append(Component.text(clickText, NamedTextColor.AQUA)
-                .decoration(TextDecoration.UNDERLINED, true)
-                 .clickEvent(ClickEvent.runCommand("/mwm_internal inviteaccept"))
-                .hoverEvent(HoverEvent.showText(Component.text(hoverText))))
-            .build()
+            // 対象へのメッセージ送信 (Adventure API)
+            val inviteText = lang.getMessage(target, "messages.invite_text", mapOf("player" to player.name, "world" to worldData.name))
+            val clickText = lang.getMessage(target, "messages.invite_click_text")
+            val hoverText = lang.getMessage(target, "messages.invite_hover")
 
-        target.sendMessage(inviteMessage)
+            val inviteMessage = Component.text()
+                .append(Component.text(inviteText))
+                .append(Component.newline())
+                .append(Component.text(clickText, NamedTextColor.AQUA)
+                    .decoration(TextDecoration.UNDERLINED, true)
+                     .clickEvent(ClickEvent.runCommand("/mwm_internal inviteaccept"))
+                    .hoverEvent(HoverEvent.showText(Component.text(hoverText))))
+                .build()
+
+            target.sendMessage(inviteMessage)
+        }
 
         // 実行者へのメッセージ送信
         player.sendMessage(lang.getMessage(player, "messages.invite_sent_success", mapOf("player" to target.name, "world" to worldData.name)))

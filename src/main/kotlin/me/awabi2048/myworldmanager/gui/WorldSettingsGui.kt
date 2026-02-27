@@ -100,6 +100,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val isOwner = worldData.owner == player.uniqueId || currentSession?.isAdminFlow == true
                 val isModerator = worldData.moderators.contains(player.uniqueId)
                 val hasManagePermission = isOwner || isModerator
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 // スロット19: ワールド名・説明変更
                 if (hasManagePermission) {
@@ -112,7 +113,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.NAME_TAG
                                         ),
                                         lang.getMessage(player, "gui.settings.info.display"),
-                                        lang.getMessageList(player, "gui.settings.info.lore"),
+                                        lang.getMessageList(
+                                                player,
+                                                if (isBedrock) {
+                                                        "gui.settings.info.lore_bedrock"
+                                                } else {
+                                                        "gui.settings.info.lore"
+                                                }
+                                        ),
                                         ItemTag.TYPE_GUI_SETTING_INFO
                                 )
                         )
@@ -146,7 +154,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // スロット21: スポーン位置変更
                 if (hasManagePermission) {
                         val lore =
-                                lang.getMessageList(player, "gui.settings.spawn.lore")
+                                lang.getMessageList(
+                                                player,
+                                                if (isBedrock) {
+                                                        "gui.settings.spawn.lore_bedrock"
+                                                } else {
+                                                        "gui.settings.spawn.lore"
+                                                }
+                                        )
                                         .toMutableList()
                         if (!isInWorld && warningLore != null) {
                                 lore.add("")
@@ -324,7 +339,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                         val publishLore = lang.getComponentList(
                                 player,
-                                "gui.settings.publish.lore",
+                                if (isBedrock) {
+                                        "gui.settings.publish.lore_bedrock"
+                                } else {
+                                        "gui.settings.publish.lore"
+                                },
                                 mapOf(
                                         "current_color" to currentColor,
                                         "current_level" to currentLevelName,
@@ -496,7 +515,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                         val adLore = lang.getComponentList(
                                 player,
-                                "gui.settings.announcement.lore",
+                                if (isBedrock) {
+                                        "gui.settings.announcement.lore_bedrock"
+                                } else {
+                                        "gui.settings.announcement.lore"
+                                },
                                 mapOf("message_preview" to messagePreview)
                         )
 
@@ -565,7 +588,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット32: 環境設定 (オーナーのみ)
-                if (isOwner) {
+                if (isOwner && !isBedrock) {
                         val lore =
                                 lang.getMessageList(player, "gui.settings.environment.lore")
                                         .toMutableList()
@@ -1581,11 +1604,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 lang.getMessage(null as Player?, "role.member")
                         }
+                        val actionLoreKey =
+                                if (plugin.playerPlatformResolver.isBedrock(viewer)) {
+                                        "gui.member_management.item.lore_actions_bedrock"
+                                } else {
+                                        "gui.member_management.item.lore_actions"
+                                }
 
                         itemLore.addAll(
                             lang.getComponentList(
                                 viewer,
-                                "gui.member_management.item.lore_actions",
+                                actionLoreKey,
                                 mapOf("next_role" to nextRole)
                             )
                         )
@@ -1870,7 +1899,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 lore.add(separator)
 
                 if (canKick) {
-                        lore.add(lang.getMessage(viewer, "gui.visitor_management.item.kick"))
+                        val kickKey =
+                                if (plugin.playerPlatformResolver.isBedrock(viewer)) {
+                                        "gui.visitor_management.item.kick_bedrock"
+                                } else {
+                                        "gui.visitor_management.item.kick"
+                                }
+                        lore.add(lang.getMessage(viewer, kickKey))
                         lore.add(separator)
                 }
 
@@ -2078,6 +2113,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 for (i in 0..8) inventory.setItem(i, blackPane)
                 for (i in 36..44) inventory.setItem(i, blackPane)
+
+                val middleGrayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+                for (i in 9..35) inventory.setItem(i, middleGrayPane)
 
                 // 払い戻し額の計算
                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
@@ -2554,7 +2592,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 val lore = lang.getComponentList(
                         player,
-                        "gui.admin_portals.portal_item.lore_management",
+                        if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                "gui.admin_portals.portal_item.lore_management_bedrock"
+                        } else {
+                                "gui.admin_portals.portal_item.lore_management"
+                        },
                         mapOf("x" to portal.x, "y" to portal.y, "z" to portal.z)
                 )
 

@@ -136,6 +136,11 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
+
+                                        if (openBedrockMemberInviteInputForm(player, worldData)) {
+                                                return
+                                        }
+
                                         session.action = SettingsAction.MEMBER_INVITE
                                         player.closeInventory()
                                         val cancelWord =
@@ -169,6 +174,24 @@ class WorldSettingsListener : Listener {
                                 if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
                                         val memberId = ItemTag.getWorldUuid(item)
                                         if (memberId != null && memberId != player.uniqueId) {
+                                                val isBedrock =
+                                                        plugin.playerPlatformResolver.isBedrock(player)
+                                                if (isBedrock) {
+                                                        if (event.isLeftClick && !event.isShiftClick) {
+                                                                plugin.soundManager.playClickSound(
+                                                                        player,
+                                                                        item,
+                                                                        "world_settings"
+                                                                )
+                                                                toggleMemberRole(
+                                                                        player,
+                                                                        worldData,
+                                                                        memberId
+                                                                )
+                                                        }
+                                                        return
+                                                }
+
                                                 if (event.isShiftClick) {
                                                         if (event.isLeftClick) {
                                                                 plugin.soundManager.playClickSound(
@@ -288,25 +311,11 @@ class WorldSettingsListener : Listener {
                                                                 item,
                                                                 "world_settings"
                                                         )
-                                                        // 権限変更
-                                                        val isModerator = worldData.moderators.contains(memberId)
-                                                        if (isModerator) {
-                                                                // モデレーター -> メンバー
-                                                                worldData.moderators.remove(memberId)
-                                                                if (!worldData.members.contains(memberId)) {
-                                                                        worldData.members.add(memberId)
-                                                                }
-                                                        } else {
-                                                                // メンバー -> モデレーター
-                                                                worldData.members.remove(memberId)
-                                                                if (!worldData.moderators.contains(memberId)) {
-                                                                        worldData.moderators.add(memberId)
-                                                                }
-                                                        }
-                                                        plugin.worldConfigRepository.save(worldData)
-
-                                                        // GUI再描画
-                                                        plugin.worldSettingsGui.openMemberManagement(player, worldData, 0, false)
+                                                        toggleMemberRole(
+                                                                player,
+                                                                worldData,
+                                                                memberId
+                                                        )
                                                 }
                                         }
                                 }
@@ -486,7 +495,13 @@ class WorldSettingsListener : Listener {
                                 }
 
                                 if (type == ItemTag.TYPE_GUI_VISITOR_ITEM) {
-                                        if (event.isRightClick) {
+                                        val canKickByClick =
+                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                                        event.isLeftClick
+                                                } else {
+                                                        event.isRightClick
+                                                }
+                                        if (canKickByClick) {
                                                 val visitorUuid =
                                                         ItemTag.getWorldUuid(item) ?: return
                                                 plugin.soundManager.playClickSound(
@@ -662,10 +677,16 @@ class WorldSettingsListener : Listener {
                                         )
                                         session.action = SettingsAction.EXPAND_DIRECTION_WAIT
                                         player.closeInventory()
+                                        val promptKey =
+                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                                        "messages.expand_direction_prompt_bedrock"
+                                                } else {
+                                                        "messages.expand_direction_prompt"
+                                                }
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
                                                         player,
-                                                        "messages.expand_direction_prompt"
+                                                        promptKey
                                                 )
                                         )
                                 } else if (type == ItemTag.TYPE_GUI_CANCEL ||
@@ -876,14 +897,33 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
+
+                                                if (openBedrockWorldInfoInputForm(player, worldData)) {
+                                                        return
+                                                }
+
+                                                val isDescriptionInput = event.isRightClick
+
+                                                if (
+                                                        openBedrockSettingTextInputForm(
+                                                                player,
+                                                                worldData,
+                                                                isDescriptionInput
+                                                        )
+                                                ) {
+                                                        return
+                                                }
                                                 
                                                 // Beta Features Check
                                                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                                                val useDialog = stats.betaFeaturesEnabled
+                                                val useDialog =
+                                                        stats.betaFeaturesEnabled &&
+                                                                !plugin.playerPlatformResolver
+                                                                        .isBedrock(player)
                                                 
                                                 if (useDialog) {
                                                     // Dialog Flow
-                                                    if (event.isRightClick) {
+                                                    if (isDescriptionInput) {
                                                         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
                                                     } else {
                                                         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
@@ -891,7 +931,7 @@ class WorldSettingsListener : Listener {
                                                     
                                                     player.closeInventory()
                                                     Bukkit.getScheduler().runTask(plugin, Runnable {
-                                                        if (event.isRightClick) {
+                                                        if (isDescriptionInput) {
                                                             showDescriptionDialog(player, worldData)
                                                         } else {
                                                             showRenameDialog(player, worldData)
@@ -903,13 +943,12 @@ class WorldSettingsListener : Listener {
                                                     val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
                                                     val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
                                                     
-                                                    if (event.isRightClick) {
+                                                    if (isDescriptionInput) {
                                                         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
-                                                        // Fallback hardcoded or valid key
-                                                        player.sendMessage("§e新しい説明文を入力してください。 $cancelInfo")
+                                                        player.sendMessage("${lang.getMessage(player, "messages.world_desc_prompt")} $cancelInfo")
                                                     } else {
                                                         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
-                                                        player.sendMessage("§e新しいワールド名を入力してください。 $cancelInfo")
+                                                        player.sendMessage("${lang.getMessage(player, "messages.world_name_prompt")} $cancelInfo")
                                                     }
                                                     player.closeInventory()
                                                 }
@@ -921,13 +960,20 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                val isGuest = event.isLeftClick
+                                                val isBedrock =
+                                                        plugin.playerPlatformResolver.isBedrock(player)
+                                                val isGuest = isBedrock || event.isLeftClick
                                                 val action =
                                                         if (isGuest) SettingsAction.SET_SPAWN_GUEST
                                                         else SettingsAction.SET_SPAWN_MEMBER
                                                 val typeKey =
-                                                        if (isGuest) "gui.settings.spawn.type.guest"
-                                                        else "gui.settings.spawn.type.member"
+                                                        if (isBedrock) {
+                                                                "gui.settings.spawn.type.both"
+                                                        } else if (isGuest) {
+                                                                "gui.settings.spawn.type.guest"
+                                                        } else {
+                                                                "gui.settings.spawn.type.member"
+                                                        }
                                                 val typeName =
                                                         plugin.languageManager.getMessage(
                                                                 player,
@@ -937,7 +983,7 @@ class WorldSettingsListener : Listener {
                                                 player.sendMessage(
                                                         plugin.languageManager.getMessage(
                                                                 player,
-                                                                "messages.spawn_set_start",
+                                                                if (isBedrock) "messages.spawn_set_start_bedrock" else "messages.spawn_set_start",
                                                                 mapOf("type" to typeName)
                                                         )
                                                 )
@@ -946,6 +992,9 @@ class WorldSettingsListener : Listener {
                                                         worldData.uuid,
                                                         action
                                                 )
+                                                plugin.settingsSessionManager
+                                                        .getSession(player)
+                                                        ?.setMetadata("spawn_set_both", isBedrock)
                                                 player.closeInventory()
                                         }
                                         ItemTag.TYPE_GUI_SETTING_ICON -> {
@@ -1047,11 +1096,13 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
+                                                val isBedrock =
+                                                        plugin.playerPlatformResolver.isBedrock(player)
                                                 val nextLevel =
                                                         GuiHelper.getNextValue(
                                                                 worldData.publishLevel,
                                                                 PublishLevel.values(),
-                                                                event.isRightClick
+                                                                if (isBedrock) false else event.isRightClick
                                                         )
                                                 worldData.publishLevel = nextLevel
                                                 if (worldData.publishLevel == PublishLevel.PUBLIC) {
@@ -1206,14 +1257,17 @@ class WorldSettingsListener : Listener {
                                                 )
                                         }
 						ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
-												plugin.soundManager.playClickSound(
-														player,
-														clickedItem,
-														"world_settings"
-												)
-												if (event.isRightClick) {
-														worldData.announcementMessages.clear()
-														plugin.worldConfigRepository.save(worldData)
+								plugin.soundManager.playClickSound(
+										player,
+										clickedItem,
+										"world_settings"
+								)
+								if (openBedrockAnnouncementActionForm(player, worldData)) {
+										return
+								}
+								if (event.isRightClick) {
+										worldData.announcementMessages.clear()
+										plugin.worldConfigRepository.save(worldData)
 														player.sendMessage(
 																plugin.languageManager.getMessage(
 																		"messages.announcement_reset"
@@ -1323,6 +1377,15 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
+                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                                        player.sendMessage(
+                                                                plugin.languageManager.getMessage(
+                                                                        player,
+                                                                        "messages.bedrock_option_unavailable"
+                                                                )
+                                                        )
+                                                        return
+                                                }
                                                 if (player.hasPermission("myworldmanager.admin")) {
                                                         plugin.environmentGui.open(player, worldData)
                                                 }
@@ -1331,6 +1394,16 @@ class WorldSettingsListener : Listener {
                         }
                         SettingsAction.VIEW_ENVIRONMENT_SETTINGS -> {
                                 event.isCancelled = true
+                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                        player.sendMessage(
+                                                plugin.languageManager.getMessage(
+                                                        player,
+                                                        "messages.bedrock_option_unavailable"
+                                                )
+                                        )
+                                        plugin.worldSettingsGui.open(player, worldData)
+                                        return
+                                }
 
                                 // Handle player inventory clicks for biome bottle / Moon stone
                                 if (event.clickedInventory != event.view.topInventory) {
@@ -1561,7 +1634,9 @@ class WorldSettingsListener : Listener {
 
                                 if (type == ItemTag.TYPE_PORTAL) {
                                         val portalId = ItemTag.getPortalUuid(item) ?: return
-                                        if (event.isRightClick) {
+                                        val isBedrock =
+                                                plugin.playerPlatformResolver.isBedrock(player)
+                                        if (!isBedrock && event.isRightClick) {
                                                 plugin.soundManager.playClickSound(
                                                         player,
                                                         item,
@@ -2282,281 +2357,17 @@ plugin.languageManager
                                                 }
                                                 SettingsAction.RENAME_WORLD -> {
                                                         if (worldData == null) return@Runnable
-                                                        val newName = messageText
-                                                        if (newName.length < 3 ||
-                                                                        newName.length > 16
-                                                        ) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.world_name_invalid"
-                                                                        )
-                                                                )
-                                                        } else {
-                                                                worldData.name = newName
-                                                                plugin.worldConfigRepository.save(
-                                                                        worldData
-                                                                )
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.world_name_change"
-                                                                        )
-                                                                )
-                                                        }
-                                                        plugin.settingsSessionManager.endSession(
-                                                                player
-                                                        )
-                                                        plugin.worldSettingsGui.open(
-                                                                player,
-                                                                worldData
-                                                        )
+                                                        applyWorldNameUpdate(player, worldData, messageText)
                                                         return@Runnable
                                                 }
                                                 SettingsAction.CHANGE_DESCRIPTION -> {
                                                         if (worldData == null) return@Runnable
-                                                        val newDesc = messageText
-                                                        worldData.description = newDesc
-                                                        plugin.worldConfigRepository.save(worldData)
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "messages.world_desc_change"
-                                                                )
-                                                        )
-
-                                                        plugin.settingsSessionManager.endSession(
-                                                                player
-                                                        )
-                                                        plugin.worldSettingsGui.open(
-                                                                player,
-                                                                worldData
-                                                        )
+                                                        applyWorldDescriptionUpdate(player, worldData, messageText)
                                                         return@Runnable
                                                 }
                                                 SettingsAction.MEMBER_INVITE -> {
                                                         if (worldData == null) return@Runnable
-                                                        val targetName = messageText
-                                                        val target =
-                                                                Bukkit.getPlayerExact(targetName)
-                                                        if (target == null) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "general.player_not_found"
-                                                                        )
-                                                                )
-                                                                player.playSound(
-                                                                        player.location,
-                                                                        org.bukkit.Sound
-                                                                                .ENTITY_VILLAGER_NO,
-                                                                        1.0f,
-                                                                        1.0f
-                                                                )
-                                                                plugin.settingsSessionManager
-                                                                        .endSession(player)
-                                                                plugin.worldSettingsGui
-                                                                        .openMemberManagement(
-                                                                                player,
-                                                                                worldData,
-                                                                                playSound = false
-                                                                        )
-                                                                return@Runnable
-                                                        } else if (target == player) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.invite_self_error"
-                                                                        )
-                                                                )
-                                                                player.playSound(
-                                                                        player.location,
-                                                                        org.bukkit.Sound
-                                                                                .ENTITY_VILLAGER_NO,
-                                                                        1.0f,
-                                                                        1.0f
-                                                                )
-                                                                plugin.settingsSessionManager
-                                                                        .endSession(player)
-                                                                plugin.worldSettingsGui
-                                                                        .openMemberManagement(
-                                                                                player,
-                                                                                worldData,
-                                                                                playSound = false
-                                                                        )
-                                                                return@Runnable
-                                                        } else {
-                                                                val inviteText =
-                                                                        lang.getMessage(
-                                                                                target,
-                                                                                "messages.member_invite_text",
-                                                                                mapOf(
-                                                                                        "player" to
-                                                                                                player.name,
-                                                                                        "world" to
-                                                                                                worldData
-                                                                                                        .name
-                                                                                )
-                                                                        )
-                                                                val clickText =
-                                                                        lang.getMessage(
-                                                                                target,
-                                                                                "messages.member_invite_click"
-                                                                        )
-                                                                val hoverText =
-                                                                        lang.getMessage(
-                                                                                target,
-                                                                                "messages.member_invite_hover"
-                                                                        )
-
-                                                                val message =
-                                                                        net.kyori.adventure.text
-                                                                                .Component.text()
-                                                                                .append(
-                                                                                        net.kyori
-                                                                                                .adventure
-                                                                                                .text
-                                                                                                .Component
-                                                                                                .text(
-                                                                                                        "-----------------------",
-                                                                                                        net.kyori
-                                                                                                                .adventure
-                                                                                                                .text
-                                                                                                                .format
-                                                                                                                .NamedTextColor
-                                                                                                                .GRAY
-                                                                                                )
-                                                                                )
-                                                                                .append(
-                                                                                        net.kyori
-                                                                                                .adventure
-                                                                                                .text
-                                                                                                .Component
-                                                                                                .newline()
-                                                                                )
-                                                                                .append(
-                                                                                        net.kyori
-                                                                                                .adventure
-                                                                                                .text
-                                                                                                .Component
-                                                                                                .text(
-                                                                                                        inviteText
-                                                                                                )
-                                                                                )
-                                                                                .append(
-                                                                                        net.kyori
-                                                                                                .adventure
-                                                                                                .text
-                                                                                                .Component
-                                                                                                .newline()
-                                                                                )
-                                                                                .append(
-                                                                                        net.kyori
-                                                                                                .adventure
-                                                                                                .text
-                                                                                                .Component
-                                                                                                .text(
-                                                                                                        clickText,
-                                                                                                        net.kyori
-                                                                                                                .adventure
-                                                                                                                .text
-                                                                                                                .format
-                                                                                                                .NamedTextColor
-                                                                                                                .AQUA
-                                                                                                )
-                                                                                                .decoration(
-                                                                                                        net.kyori
-                                                                                                                .adventure
-                                                                                                                .text
-                                                                                                                .format
-                                                                                                                .TextDecoration
-                                                                                                                .UNDERLINED,
-                                                                                                        true
-                                                                                                )
-                                                                                                .clickEvent(
-                                                                                                        net.kyori
-                                                                                                                .adventure
-                                                                                                                .text
-                                                                                                                .event
-                                                                                                                .ClickEvent
-                                                                                                                .runCommand(
-                                                                                                                         "/mwm_internal memberinviteaccept"
-                                                                                                                )
-                                                                                                )
-                                                                                                .hoverEvent(
-                                                                                                        net.kyori
-                                                                                                                .adventure
-                                                                                                                .text
-                                                                                                                .event
-                                                                                                                .HoverEvent
-                                                                                                                .showText(
-                                                                                                                        net.kyori
-                                                                                                                                .adventure
-                                                                                                                                .text
-                                                                                                                                .Component
-                                                                                                                                .text(
-                                                                                                                                        hoverText
-                                                                                                                                )
-                                                                                                                )
-                                                                                                )
-                                                                                )
-                                                                                .append(
-                                                                                        net.kyori
-                                                                                                .adventure
-                                                                                                .text
-                                                                                                .Component
-                                                                                                .newline()
-                                                                                )
-                                                                                .append(
-                                                                                        net.kyori
-                                                                                                .adventure
-                                                                                                .text
-                                                                                                .Component
-                                                                                                .text(
-                                                                                                        "-----------------------",
-                                                                                                        net.kyori
-                                                                                                                .adventure
-                                                                                                                .text
-                                                                                                                .format
-                                                                                                                .NamedTextColor
-                                                                                                                .GRAY
-                                                                                                )
-                                                                                )
-                                                                                .build()
-
-                                                                target.sendMessage(message)
-                                                                plugin.memberInviteManager
-                                                                        .addInvite(
-                                                                                target.uniqueId,
-                                                                                worldData.uuid,
-                                                                                player.uniqueId,
-                                                                                plugin.config
-                                                                                        .getLong(
-                                                                                                "invite.timeout_seconds",
-                                                                                                60
-                                                                                        )
-                                                                        )
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.invite_sent_success",
-                                                                                mapOf(
-                                                                                        "player" to
-                                                                                                target.name,
-                                                                                        "world" to
-                                                                                                worldData
-                                                                                                        .name
-                                                                                )
-                                                                        )
-                                                                )
-                                                        }
-                                                        session.action =
-                                                                SettingsAction.MANAGE_MEMBERS
-                                                        plugin.worldSettingsGui
-                                                                .openMemberManagement(
-                                                                        player,
-                                                                        worldData
-                                                                )
+                                                        applyMemberInvite(player, worldData, messageText)
                                                         return@Runnable
                                                 }
                                                 SettingsAction.SET_ANNOUNCEMENT -> {
@@ -2689,6 +2500,695 @@ plugin.languageManager
                         )
         }
 
+        private fun openBedrockExpandDirectionConfirmForm(
+                player: Player,
+                worldUuid: UUID,
+                direction: org.bukkit.block.BlockFace,
+                cost: Int
+        ): Boolean {
+                if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                        return false
+                }
+                if (!plugin.floodgateFormBridge.isAvailable(player)) {
+                        return false
+                }
+
+                val session = plugin.settingsSessionManager.getSession(player) ?: return false
+                session.action = SettingsAction.EXPAND_CONFIRM
+                session.expansionDirection = direction
+                session.setMetadata("expand_cost", cost)
+
+                val lang = plugin.languageManager
+                val directionKey =
+                        when (direction) {
+                                org.bukkit.block.BlockFace.NORTH_WEST -> "general.direction.north_west"
+                                org.bukkit.block.BlockFace.NORTH_EAST -> "general.direction.north_east"
+                                org.bukkit.block.BlockFace.SOUTH_WEST -> "general.direction.south_west"
+                                org.bukkit.block.BlockFace.SOUTH_EAST -> "general.direction.south_east"
+                                else -> "general.direction.unknown"
+                        }
+                val directionName = lang.getMessage(player, directionKey)
+                val methodText =
+                        lang.getMessage(
+                                player,
+                                "gui.expansion.method_direction",
+                                mapOf("direction" to directionName)
+                        )
+                val content =
+                        listOf(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.expansion.method",
+                                                mapOf("method" to methodText)
+                                        ),
+                                        lang.getMessage(
+                                                player,
+                                                "gui.expansion.cost",
+                                                mapOf("cost" to cost)
+                                        ),
+                                        lang.getMessage(player, "gui.expansion.warning")
+                                )
+                                .joinToString("\n")
+
+                return plugin.floodgateFormBridge.sendSimpleForm(
+                        player = player,
+                        title = lang.getMessage(player, "gui.expansion.confirm_title"),
+                        content = content,
+                        buttons =
+                                listOf(
+                                        lang.getMessage(player, "gui.common.confirm"),
+                                        lang.getMessage(player, "messages.expand_retry_button")
+                                ),
+                        onSelect = { index ->
+                                val latestSession = plugin.settingsSessionManager.getSession(player)
+                                                ?: return@sendSimpleForm
+                                if (latestSession.worldUuid != worldUuid) {
+                                        return@sendSimpleForm
+                                }
+
+                                if (index == 0) {
+                                        val latestWorld =
+                                                plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                        ?: return@sendSimpleForm
+                                        handleExpandConfirm(player, latestWorld)
+                                        return@sendSimpleForm
+                                }
+
+                                latestSession.action = SettingsAction.EXPAND_DIRECTION_WAIT
+                                player.sendMessage(
+                                        lang.getMessage(player, "messages.expand_direction_prompt_bedrock")
+                                )
+                        }
+                )
+        }
+
+        private fun openBedrockSettingTextInputForm(
+                player: Player,
+                worldData: WorldData,
+                isDescriptionInput: Boolean
+        ): Boolean {
+                if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                        return false
+                }
+                if (!plugin.floodgateFormBridge.isAvailable(player)) {
+                        return false
+                }
+
+                val lang = plugin.languageManager
+                val titleKey =
+                        if (isDescriptionInput) {
+                                "gui.bedrock.input.description.title"
+                        } else {
+                                "gui.bedrock.input.rename.title"
+                        }
+                val labelKey =
+                        if (isDescriptionInput) {
+                                "gui.bedrock.input.description.label"
+                        } else {
+                                "gui.bedrock.input.rename.label"
+                        }
+                val placeholderKey =
+                        if (isDescriptionInput) {
+                                "gui.bedrock.input.description.placeholder"
+                        } else {
+                                "gui.bedrock.input.rename.placeholder"
+                        }
+                val initialValue = if (isDescriptionInput) worldData.description else worldData.name
+                val worldUuid = worldData.uuid
+
+                player.closeInventory()
+
+                val opened =
+                        plugin.floodgateFormBridge.sendCustomInputForm(
+                                player = player,
+                                title = lang.getMessage(player, titleKey),
+                                label = lang.getMessage(player, labelKey),
+                                placeholder = lang.getMessage(player, placeholderKey),
+                                defaultValue = initialValue,
+                                onSubmit = { value ->
+                                        val latestWorld =
+                                                plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                        ?: return@sendCustomInputForm
+                                        if (isDescriptionInput) {
+                                                applyWorldDescriptionUpdate(
+                                                        player,
+                                                        latestWorld,
+                                                        value
+                                                )
+                                        } else {
+                                                applyWorldNameUpdate(player, latestWorld, value)
+                                        }
+                                },
+                                onClosed = {
+                                        if (!player.isOnline) {
+                                                return@sendCustomInputForm
+                                        }
+                                        val latestWorld =
+                                                plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                        ?: return@sendCustomInputForm
+                                        plugin.worldSettingsGui.open(player, latestWorld)
+                                }
+                        )
+                return opened
+        }
+
+        private fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {
+                if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                        return false
+                }
+                if (!plugin.floodgateFormBridge.isAvailable(player)) {
+                        return false
+                }
+
+                val lang = plugin.languageManager
+                val worldUuid = worldData.uuid
+                player.closeInventory()
+
+                return plugin.floodgateFormBridge.sendCustomForm(
+                        player = player,
+                        title = lang.getMessage(player, "gui.bedrock.input.info_form.title"),
+                        inputs =
+                                listOf(
+                                        me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
+                                                .CustomFormInput(
+                                                        label =
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "gui.bedrock.input.rename.label"
+                                                                ),
+                                                        placeholder =
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "gui.bedrock.input.rename.placeholder"
+                                                                ),
+                                                        defaultValue = worldData.name
+                                                ),
+                                        me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
+                                                .CustomFormInput(
+                                                        label =
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "gui.bedrock.input.description.label"
+                                                                ),
+                                                        placeholder =
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "gui.bedrock.input.description.placeholder"
+                                                                ),
+                                                        defaultValue = worldData.description
+                                                )
+                                ),
+                        onSubmit = { values ->
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendCustomForm
+                                val newName = values.getOrNull(0).orEmpty().trim()
+                                val newDescription = values.getOrNull(1).orEmpty().trim()
+                                applyWorldInfoUpdate(
+                                        player,
+                                        latestWorld,
+                                        newName,
+                                        newDescription
+                                )
+                        },
+                        onClosed = {
+                                if (!player.isOnline) {
+                                        return@sendCustomForm
+                                }
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendCustomForm
+                                plugin.worldSettingsGui.open(player, latestWorld)
+                        }
+                )
+        }
+
+        private fun openBedrockMemberInviteInputForm(player: Player, worldData: WorldData): Boolean {
+                if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                        return false
+                }
+                if (!plugin.floodgateFormBridge.isAvailable(player)) {
+                        return false
+                }
+
+                val lang = plugin.languageManager
+                val worldUuid = worldData.uuid
+                player.closeInventory()
+
+                return plugin.floodgateFormBridge.sendCustomInputForm(
+                        player = player,
+                        title = lang.getMessage(player, "gui.bedrock.input.member_invite.title"),
+                        label = lang.getMessage(player, "gui.bedrock.input.member_invite.label"),
+                        placeholder =
+                                lang.getMessage(player, "gui.bedrock.input.member_invite.placeholder"),
+                        defaultValue = "",
+                        onSubmit = { value ->
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendCustomInputForm
+                                applyMemberInvite(player, latestWorld, value)
+                        },
+                        onClosed = {
+                                if (!player.isOnline) {
+                                        return@sendCustomInputForm
+                                }
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendCustomInputForm
+                                plugin.worldSettingsGui.openMemberManagement(
+                                        player,
+                                        latestWorld,
+                                        playSound = false
+                                )
+                        }
+                )
+        }
+
+        private fun openBedrockAnnouncementActionForm(player: Player, worldData: WorldData): Boolean {
+                if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                        return false
+                }
+                if (!plugin.floodgateFormBridge.isAvailable(player)) {
+                        return false
+                }
+
+                val lang = plugin.languageManager
+                val worldUuid = worldData.uuid
+                player.closeInventory()
+
+                return plugin.floodgateFormBridge.sendSimpleForm(
+                        player = player,
+                        title =
+                                lang.getMessage(
+                                        player,
+                                        "gui.bedrock.input.announcement_menu.title"
+                                ),
+                        content =
+                                lang.getMessage(
+                                        player,
+                                        "gui.bedrock.input.announcement_menu.content"
+                                ),
+                        buttons =
+                                listOf(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.bedrock.input.announcement_menu.edit"
+                                        ),
+                                        lang.getMessage(
+                                                player,
+                                                "gui.bedrock.input.announcement_menu.reset"
+                                        )
+                                ),
+                        onSelect = { index ->
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendSimpleForm
+                                if (index == 1) {
+                                        latestWorld.announcementMessages.clear()
+                                        plugin.worldConfigRepository.save(latestWorld)
+                                        player.sendMessage(
+                                                lang.getMessage(player, "messages.announcement_reset")
+                                        )
+                                        plugin.worldSettingsGui.open(player, latestWorld)
+                                        return@sendSimpleForm
+                                }
+                                if (!openBedrockAnnouncementEditForm(player, latestWorld)) {
+                                        player.sendMessage(
+                                                lang.getMessage(
+                                                        player,
+                                                        "messages.bedrock_form_unavailable"
+                                                )
+                                        )
+                                        plugin.worldSettingsGui.open(player, latestWorld)
+                                }
+                        },
+                        onClosed = {
+                                if (!player.isOnline) {
+                                        return@sendSimpleForm
+                                }
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendSimpleForm
+                                plugin.worldSettingsGui.open(player, latestWorld)
+                        }
+                )
+        }
+
+        private fun openBedrockAnnouncementEditForm(player: Player, worldData: WorldData): Boolean {
+                if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                        return false
+                }
+                if (!plugin.floodgateFormBridge.isAvailable(player)) {
+                        return false
+                }
+
+                val lang = plugin.languageManager
+                val maxLines = plugin.config.getInt("announcement.max_lines", 5)
+                val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
+                val worldUuid = worldData.uuid
+                val inputs =
+                        (0 until maxLines).map { index ->
+                                val current = worldData.announcementMessages.getOrNull(index).orEmpty()
+                                me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
+                                        .CustomFormInput(
+                                                label =
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.bedrock.input.announcement_edit.label",
+                                                                mapOf("line" to index + 1)
+                                                        ),
+                                                placeholder =
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.bedrock.input.announcement_edit.placeholder",
+                                                                mapOf("max" to maxLength)
+                                                        ),
+                                                defaultValue =
+                                                        current
+                                                                .removePrefix("§f")
+                                                                .replace("§", "&")
+                                        )
+                        }
+
+                player.closeInventory()
+
+                return plugin.floodgateFormBridge.sendCustomForm(
+                        player = player,
+                        title =
+                                lang.getMessage(
+                                        player,
+                                        "gui.bedrock.input.announcement_edit.title",
+                                        mapOf("max_lines" to maxLines, "max_length" to maxLength)
+                                ),
+                        inputs = inputs,
+                        onSubmit = { values ->
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendCustomForm
+                                applyAnnouncementUpdateFromForm(
+                                        player,
+                                        latestWorld,
+                                        values
+                                )
+                        },
+                        onClosed = {
+                                if (!player.isOnline) {
+                                        return@sendCustomForm
+                                }
+                                val latestWorld =
+                                        plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                ?: return@sendCustomForm
+                                plugin.worldSettingsGui.open(player, latestWorld)
+                        }
+                )
+        }
+
+        private fun applyAnnouncementUpdateFromForm(
+                player: Player,
+                worldData: WorldData,
+                rawInputs: List<String>
+        ) {
+                val lang = plugin.languageManager
+                val maxLines = plugin.config.getInt("announcement.max_lines", 5)
+                val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
+                val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
+
+                val trimmed = rawInputs.map { it.trim() }.filter { it.isNotEmpty() }
+                if (trimmed.size > maxLines) {
+                        player.sendMessage(
+                                lang.getMessage(
+                                        player,
+                                        "messages.announcement_invalid_length",
+                                        mapOf(
+                                                "max_lines" to maxLines,
+                                                "max_length" to maxLength
+                                        )
+                                )
+                        )
+                        plugin.worldSettingsGui.open(player, worldData)
+                        return
+                }
+
+                for (line in trimmed) {
+                        if (line.length > maxLength) {
+                                player.sendMessage(
+                                        lang.getMessage(
+                                                player,
+                                                "messages.announcement_invalid_length",
+                                                mapOf(
+                                                        "max_lines" to maxLines,
+                                                        "max_length" to maxLength
+                                                )
+                                        )
+                                )
+                                plugin.worldSettingsGui.open(player, worldData)
+                                return
+                        }
+
+                        val blocked =
+                                blockedStrings.firstOrNull {
+                                        line.contains(it, ignoreCase = true)
+                                }
+                        if (blocked != null) {
+                                player.sendMessage(
+                                        lang.getMessage(
+                                                player,
+                                                "messages.announcement_blocked_string",
+                                                mapOf("string" to blocked)
+                                        )
+                                )
+                                plugin.worldSettingsGui.open(player, worldData)
+                                return
+                        }
+                }
+
+                worldData.announcementMessages.clear()
+                trimmed.forEach { line ->
+                        worldData.announcementMessages.add("§f${line.replace("&", "§")}")
+                }
+
+                plugin.worldConfigRepository.save(worldData)
+                player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        private fun toggleMemberRole(player: Player, worldData: WorldData, memberId: UUID) {
+                val isModerator = worldData.moderators.contains(memberId)
+                if (isModerator) {
+                        worldData.moderators.remove(memberId)
+                        if (!worldData.members.contains(memberId)) {
+                                worldData.members.add(memberId)
+                        }
+                } else {
+                        worldData.members.remove(memberId)
+                        if (!worldData.moderators.contains(memberId)) {
+                                worldData.moderators.add(memberId)
+                        }
+                }
+                plugin.worldConfigRepository.save(worldData)
+                plugin.worldSettingsGui.openMemberManagement(player, worldData, 0, false)
+        }
+
+        private fun applyMemberInvite(player: Player, worldData: WorldData, targetNameRaw: String) {
+                val lang = plugin.languageManager
+                val targetName = targetNameRaw.trim()
+                val target = Bukkit.getPlayerExact(targetName)
+
+                if (target == null) {
+                        player.sendMessage(lang.getMessage(player, "general.player_not_found"))
+                        player.playSound(
+                                player.location,
+                                org.bukkit.Sound.ENTITY_VILLAGER_NO,
+                                1.0f,
+                                1.0f
+                        )
+                        plugin.settingsSessionManager.endSession(player)
+                        plugin.worldSettingsGui.openMemberManagement(
+                                player,
+                                worldData,
+                                playSound = false
+                        )
+                        return
+                }
+
+                if (target == player) {
+                        player.sendMessage(lang.getMessage(player, "messages.invite_self_error"))
+                        player.playSound(
+                                player.location,
+                                org.bukkit.Sound.ENTITY_VILLAGER_NO,
+                                1.0f,
+                                1.0f
+                        )
+                        plugin.settingsSessionManager.endSession(player)
+                        plugin.worldSettingsGui.openMemberManagement(
+                                player,
+                                worldData,
+                                playSound = false
+                        )
+                        return
+                }
+
+                val inviteText =
+                        lang.getMessage(
+                                target,
+                                "messages.member_invite_text",
+                                mapOf(
+                                        "player" to player.name,
+                                        "world" to worldData.name
+                                )
+                        )
+                val clickText =
+                        lang.getMessage(
+                                target,
+                                "messages.member_invite_click"
+                        )
+                val hoverText =
+                        lang.getMessage(
+                                target,
+                                "messages.member_invite_hover"
+                        )
+
+                val timeoutSeconds = plugin.config.getLong("invite.timeout_seconds", 60)
+                if (plugin.playerPlatformResolver.isBedrock(target)) {
+                        target.sendMessage(inviteText)
+                        val count = plugin.pendingDecisionManager.enqueueMemberInvite(
+                                target,
+                                worldData.uuid,
+                                player.uniqueId,
+                                timeoutSeconds
+                        )
+                        plugin.pendingDecisionManager.sendPendingHint(target, count)
+                } else {
+                        val message =
+                                net.kyori.adventure.text.Component.text()
+                                        .append(
+                                                net.kyori.adventure.text.Component.text(
+                                                        "-----------------------",
+                                                        net.kyori.adventure.text.format.NamedTextColor.GRAY
+                                                )
+                                        )
+                                        .append(net.kyori.adventure.text.Component.newline())
+                                        .append(net.kyori.adventure.text.Component.text(inviteText))
+                                        .append(net.kyori.adventure.text.Component.newline())
+                                        .append(
+                                                net.kyori.adventure.text.Component.text(
+                                                        clickText,
+                                                        net.kyori.adventure.text.format.NamedTextColor.AQUA
+                                                )
+                                                        .decoration(
+                                                                net.kyori.adventure.text.format.TextDecoration
+                                                                        .UNDERLINED,
+                                                                true
+                                                        )
+                                                        .clickEvent(
+                                                                net.kyori.adventure.text.event.ClickEvent
+                                                                        .runCommand(
+                                                                                "/mwm_internal memberinviteaccept"
+                                                                        )
+                                                        )
+                                                        .hoverEvent(
+                                                                net.kyori.adventure.text.event.HoverEvent
+                                                                        .showText(
+                                                                                net.kyori.adventure.text
+                                                                                        .Component.text(
+                                                                                                hoverText
+                                                                                        )
+                                                                        )
+                                                        )
+                                        )
+                                        .append(net.kyori.adventure.text.Component.newline())
+                                        .append(
+                                                net.kyori.adventure.text.Component.text(
+                                                        "-----------------------",
+                                                        net.kyori.adventure.text.format.NamedTextColor.GRAY
+                                                )
+                                        )
+                                        .build()
+
+                        target.sendMessage(message)
+                        plugin.memberInviteManager.addInvite(
+                                target.uniqueId,
+                                worldData.uuid,
+                                player.uniqueId,
+                                timeoutSeconds
+                        )
+                }
+                player.sendMessage(
+                        lang.getMessage(
+                                player,
+                                "messages.invite_sent_success",
+                                mapOf(
+                                        "player" to target.name,
+                                        "world" to worldData.name
+                                )
+                        )
+                )
+
+                plugin.worldSettingsGui.openMemberManagement(
+                        player,
+                        worldData,
+                        playSound = false
+                )
+        }
+
+        private fun applyWorldInfoUpdate(
+                player: Player,
+                worldData: WorldData,
+                newName: String,
+                newDescription: String
+        ) {
+                val lang = plugin.languageManager
+                var updated = false
+
+                if (newName.length < 3 || newName.length > 16) {
+                        player.sendMessage(lang.getMessage(player, "messages.world_name_invalid"))
+                } else if (worldData.name != newName) {
+                        worldData.name = newName
+                        updated = true
+                        player.sendMessage(lang.getMessage(player, "messages.world_name_change"))
+                }
+
+                if (worldData.description != newDescription) {
+                        worldData.description = newDescription
+                        updated = true
+                        player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
+                }
+
+                if (updated) {
+                        plugin.worldConfigRepository.save(worldData)
+                }
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
+                val lang = plugin.languageManager
+                if (newName.length < 3 || newName.length > 16) {
+                        player.sendMessage(lang.getMessage(player, "messages.world_name_invalid"))
+                } else {
+                        worldData.name = newName
+                        plugin.worldConfigRepository.save(worldData)
+                        player.sendMessage(lang.getMessage(player, "messages.world_name_change"))
+                }
+
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        private fun applyWorldDescriptionUpdate(
+                player: Player,
+                worldData: WorldData,
+                newDescription: String
+        ) {
+                val lang = plugin.languageManager
+                worldData.description = newDescription
+                plugin.worldConfigRepository.save(worldData)
+                player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
+
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
         @EventHandler
         fun onInventoryClose(event: InventoryCloseEvent) {
                 val player = event.player as? Player ?: return
@@ -2814,9 +3314,18 @@ player.sendMessage(
                 val currentAction = settingsSession.action
 
                 if (currentAction == SettingsAction.EXPAND_DIRECTION_WAIT) {
-                        if (event.action == Action.LEFT_CLICK_AIR ||
-                                        event.action == Action.LEFT_CLICK_BLOCK
-                        ) {
+                        val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
+                        val isDirectionClick =
+                                if (isBedrock) {
+                                        event.action == Action.LEFT_CLICK_AIR ||
+                                                event.action == Action.LEFT_CLICK_BLOCK ||
+                                                event.action == Action.RIGHT_CLICK_AIR ||
+                                                event.action == Action.RIGHT_CLICK_BLOCK
+                                } else {
+                                        event.action == Action.LEFT_CLICK_AIR ||
+                                                event.action == Action.LEFT_CLICK_BLOCK
+                                }
+                        if (isDirectionClick) {
                                 event.isCancelled = true
 
                                 var yaw = player.location.yaw
@@ -2864,7 +3373,18 @@ player.sendMessage(
                                                 mapOf("direction" to directionName)
                                         )
                                 )
-                                
+
+                                if (isBedrock &&
+                                                openBedrockExpandDirectionConfirmForm(
+                                                        player,
+                                                        worldData.uuid,
+                                                        direction,
+                                                        cost
+                                                )
+                                ) {
+                                        return
+                                }
+
                                 showBorderPreview(player, worldData, direction)
                                 sendExpansionConfirmMessage(player)
                         }
@@ -2901,7 +3421,19 @@ player.sendMessage(
                         val worldData =
                                 plugin.worldConfigRepository.findByUuid(settingsSession.worldUuid)
                         if (worldData != null) {
-                                if (currentAction == SettingsAction.SET_SPAWN_GUEST) {
+                                val setBoth =
+                                        settingsSession.getMetadata("spawn_set_both") as? Boolean
+                                                ?: false
+                                if (setBoth) {
+                                        worldData.spawnPosGuest = loc.clone()
+                                        worldData.spawnPosMember = loc.clone()
+                                        player.sendMessage(
+                                                plugin.languageManager.getMessage(
+                                                        player,
+                                                        "messages.spawn_both_set"
+                                                )
+                                        )
+                                } else if (currentAction == SettingsAction.SET_SPAWN_GUEST) {
                                         worldData.spawnPosGuest = loc
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
@@ -3387,7 +3919,13 @@ player.sendMessage(
                                 if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
                                         clearBorderPreview(player)
                                         session.action = SettingsAction.EXPAND_DIRECTION_WAIT
-                                        player.sendMessage(lang.getMessage(player, "messages.expand_direction_prompt"))
+                                        val promptKey =
+                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                                        "messages.expand_direction_prompt_bedrock"
+                                                } else {
+                                                        "messages.expand_direction_prompt"
+                                                }
+                                        player.sendMessage(lang.getMessage(player, promptKey))
                                 }
                         }
                         "mspt-sort" -> {
@@ -3447,16 +3985,8 @@ player.sendMessage(
                     plugin.logger.info("[MWM-Debug] WorldData not found")
                     return
                 }
-                
-                worldData.name = newName
-                plugin.worldConfigRepository.save(worldData)
-                player.sendMessage(
-                    plugin.languageManager.getMessage(
-                        player,
-                        "messages.world_name_change"
-                    )
-                )
-                plugin.worldSettingsGui.open(player, worldData)
+
+                applyWorldNameUpdate(player, worldData, newName)
                 return
             }
             
@@ -3474,16 +4004,8 @@ player.sendMessage(
 
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-                
-                worldData.description = newDesc
-                plugin.worldConfigRepository.save(worldData)
-                 player.sendMessage(
-                    plugin.languageManager.getMessage(
-                        player,
-                        "messages.world_desc_changed" // Assuming this key exists, or use generic
-                    )
-                )
-                plugin.worldSettingsGui.open(player, worldData)
+
+                applyWorldDescriptionUpdate(player, worldData, newDesc)
                 return
             }
             

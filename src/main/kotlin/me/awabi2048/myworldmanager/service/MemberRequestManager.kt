@@ -57,11 +57,30 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
             return
         }
 
-        // Add request to pending
-        val key = addRequest(requestor.uniqueId, worldUuid, ownerUuid)
-
         // Notify requestor
         requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_sent"))
+
+        if (plugin.playerPlatformResolver.isBedrock(owner)) {
+            owner.sendMessage(
+                languageManager.getMessage(
+                    owner,
+                    "messages.member_request_received",
+                    mapOf("player" to requestor.name)
+                )
+            )
+            val count = plugin.pendingDecisionManager.enqueueMemberRequest(
+                owner,
+                worldUuid,
+                requestor.uniqueId,
+                requestTimeout / 1000L
+            )
+            plugin.pendingDecisionManager.sendPendingHint(owner, count)
+            plugin.soundManager.playActionSound(owner, "member_request", "received")
+            return
+        }
+
+        // Add request to pending (JE clickable path)
+        val key = addRequest(requestor.uniqueId, worldUuid, ownerUuid)
 
         // Notify owner with clickable components
         val message = languageManager.getComponent(owner, "messages.member_request_received", mapOf("player" to requestor.name))
@@ -89,53 +108,7 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
             return
         }
 
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-        if (worldData == null) {
-            player.sendMessage(languageManager.getMessage(player, "error.invite_world_not_found"))
-            removeRequest(key)
-            return
-        }
-
-        // Check if requestor is already a member/moderator/owner
-        if (worldData.members.contains(requestorUuid) ||
-            worldData.moderators.contains(requestorUuid) ||
-            worldData.owner == requestorUuid) {
-            player.sendMessage(languageManager.getMessage(player, "error.invite_already_member"))
-            removeRequest(key)
-            return
-        }
-
-        // Add member
-        worldData.members.add(requestorUuid)
-        plugin.worldConfigRepository.save(worldData)
-        Bukkit.getPluginManager().callEvent(
-            MwmMemberAddedEvent(
-                worldUuid = worldData.uuid,
-                memberUuid = requestorUuid,
-                memberName = Bukkit.getPlayer(requestorUuid)?.name ?: requestorUuid.toString(),
-                addedByUuid = player.uniqueId,
-                source = MwmMemberAddSource.REQUEST_APPROVE
-            )
-        )
-
-        // Execute macro
-        plugin.macroManager.execute("on_member_add", mapOf(
-            "member" to (Bukkit.getPlayer(requestorUuid)?.name ?: requestorUuid.toString()),
-            "world_name" to worldData.name,
-            "world_uuid" to worldData.uuid.toString()
-        ))
-
-        // Notify requestor
-        val requestor = Bukkit.getPlayer(requestorUuid)
-        if (requestor != null && requestor.isOnline) {
-            requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_approved"))
-            plugin.soundManager.playActionSound(requestor, "member_request", "approved")
-        }
-
-        // Notify owner
-        player.sendMessage(languageManager.getMessage(player, "messages.invite_accepted_sender",
-            mapOf("player" to (requestor?.name ?: requestorUuid.toString()), "world" to worldData.name)))
-        plugin.soundManager.playActionSound(player, "member_request", "approved")
+        handleApprovalDirect(player, requestorUuid, worldUuid)
 
         removeRequest(key)
     }
@@ -150,17 +123,67 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
             return
         }
 
-        // Notify requestor
+        handleRejectionDirect(player, requestorUuid, worldUuid)
+
+        removeRequest(key)
+    }
+
+    fun handleApprovalDirect(player: Player, requestorUuid: UUID, worldUuid: UUID) {
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+        if (worldData == null) {
+            player.sendMessage(languageManager.getMessage(player, "error.invite_world_not_found"))
+            return
+        }
+
+        if (worldData.members.contains(requestorUuid) ||
+            worldData.moderators.contains(requestorUuid) ||
+            worldData.owner == requestorUuid) {
+            player.sendMessage(languageManager.getMessage(player, "error.invite_already_member"))
+            return
+        }
+
+        worldData.members.add(requestorUuid)
+        plugin.worldConfigRepository.save(worldData)
+        Bukkit.getPluginManager().callEvent(
+            MwmMemberAddedEvent(
+                worldUuid = worldData.uuid,
+                memberUuid = requestorUuid,
+                memberName = Bukkit.getPlayer(requestorUuid)?.name ?: requestorUuid.toString(),
+                addedByUuid = player.uniqueId,
+                source = MwmMemberAddSource.REQUEST_APPROVE
+            )
+        )
+
+        plugin.macroManager.execute("on_member_add", mapOf(
+            "member" to (Bukkit.getPlayer(requestorUuid)?.name ?: requestorUuid.toString()),
+            "world_name" to worldData.name,
+            "world_uuid" to worldData.uuid.toString()
+        ))
+
+        val requestor = Bukkit.getPlayer(requestorUuid)
+        if (requestor != null && requestor.isOnline) {
+            requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_approved"))
+            plugin.soundManager.playActionSound(requestor, "member_request", "approved")
+        }
+
+        player.sendMessage(
+            languageManager.getMessage(
+                player,
+                "messages.invite_accepted_sender",
+                mapOf("player" to (requestor?.name ?: requestorUuid.toString()), "world" to worldData.name)
+            )
+        )
+        plugin.soundManager.playActionSound(player, "member_request", "approved")
+    }
+
+    fun handleRejectionDirect(player: Player, requestorUuid: UUID, worldUuid: UUID) {
         val requestor = Bukkit.getPlayer(requestorUuid)
         if (requestor != null && requestor.isOnline) {
             requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_rejected"))
             plugin.soundManager.playActionSound(requestor, "member_request", "rejected")
         }
 
-        // Notify owner
         plugin.soundManager.playActionSound(player, "member_request", "rejected")
-
-        removeRequest(key)
     }
 
     fun handleInternalCommand(player: Player, key: String, type: String) {

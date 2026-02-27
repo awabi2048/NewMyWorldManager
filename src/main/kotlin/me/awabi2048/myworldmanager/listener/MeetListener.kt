@@ -70,16 +70,20 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     // Send Request
                     plugin.soundManager.playClickSound(player, currentItem, "meet")
                     player.closeInventory()
-                    
-                    me.awabi2048.myworldmanager.command.MeetCommand.pendingRequests[target.uniqueId] = player.uniqueId
-                    
+
                     player.sendMessage(lang.getMessage(player, "general.meet_request.sent", mapOf("player" to target.name)))
-                    
+
                     target.sendMessage(lang.getMessage(target, "general.meet_request.received", mapOf("player" to player.name)))
-                    val acceptText = net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.accept_button"))
-                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/meet accept ${player.uniqueId}"))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.hover_accept"))))
-                    target.sendMessage(acceptText)
+                    if (plugin.playerPlatformResolver.isBedrock(target)) {
+                        val count = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, 60)
+                        plugin.pendingDecisionManager.sendPendingHint(target, count)
+                    } else {
+                        me.awabi2048.myworldmanager.command.MeetCommand.pendingRequests[target.uniqueId] = player.uniqueId
+                        val acceptText = net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.accept_button"))
+                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/meet accept ${player.uniqueId}"))
+                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.hover_accept"))))
+                        target.sendMessage(acceptText)
+                    }
                     return
                 }
 

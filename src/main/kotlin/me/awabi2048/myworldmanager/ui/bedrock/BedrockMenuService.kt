@@ -24,6 +24,7 @@ class BedrockMenuService(
 
     private data class FormAction(
         val label: String,
+        val iconMaterial: Material? = null,
         val onClick: () -> Unit
     )
 
@@ -37,34 +38,27 @@ class BedrockMenuService(
 
     private val formPageSize = 8
 
+    private val materialPathOverrides =
+        mapOf(
+            Material.WRITABLE_BOOK to "textures/items/book_writable",
+            Material.COMPASS to "textures/items/compass_item",
+            Material.REDSTONE to "textures/items/redstone_dust",
+            Material.EXPERIENCE_BOTTLE to "textures/items/experience_bottle",
+            Material.ENDER_PEARL to "textures/items/ender_pearl",
+            Material.ENDER_EYE to "textures/items/ender_eye"
+        )
+
     fun openPlayerWorld(player: Player, page: Int = 0, showBackButton: Boolean = false) {
         val safePage = page.coerceAtLeast(0)
-
-        if (routingService.shouldUseForm(player)) {
-            val opened = openPlayerWorldForm(player, safePage, showBackButton)
-            if (opened) {
-                return
-            }
-            routingService.markFormFailure(player, "openPlayerWorldForm returned false")
-        }
-
-        openPlayerWorldInventory(player, safePage, showBackButton)
+        plugin.playerWorldGui.open(player, safePage, showBackButton)
     }
 
     fun openCurrentWorldMenu(player: Player, worldData: WorldData, showBackButton: Boolean = false) {
-        openWorldActionMenu(player, worldData, 0, showBackButton)
+        plugin.worldSettingsGui.open(player, worldData, showBackButton)
     }
 
     fun openSettings(player: Player, showBackButton: Boolean = false, returnPage: Int = 0) {
-        if (routingService.shouldUseForm(player)) {
-            val opened = openSettingsForm(player, showBackButton, returnPage)
-            if (opened) {
-                return
-            }
-            routingService.markFormFailure(player, "openSettingsForm returned false")
-        }
-
-        openSettingsInventory(player, showBackButton, returnPage)
+        plugin.userSettingsGui.open(player, showBackButton)
     }
 
     fun handleInventoryClick(event: InventoryClickEvent) {
@@ -94,50 +88,56 @@ class BedrockMenuService(
         val page = requestedPage.coerceIn(0, totalPages - 1)
         val start = page * formPageSize
         val pageWorlds = worlds.drop(start).take(formPageSize)
+        val archivedPrefix = tr(player, "gui.bedrock.player_world.archived_prefix")
 
         val actions = mutableListOf<FormAction>()
         pageWorlds.forEach { world ->
-            val archivedMarker = if (world.isArchived) "[A] " else ""
-            actions += FormAction("$archivedMarker${world.name}") {
+            val archivedMarker = if (world.isArchived) archivedPrefix else ""
+            actions += FormAction("$archivedMarker${world.name}", world.icon) {
                 val latestWorld = plugin.worldConfigRepository.findByUuid(world.uuid) ?: return@FormAction
                 openWorldActionMenu(player, latestWorld, page, showBackButton)
             }
         }
 
         if (page > 0) {
-            actions += FormAction("< Prev") {
+            actions += FormAction(tr(player, "gui.bedrock.player_world.button.prev"), Material.ARROW) {
                 openPlayerWorld(player, page - 1, showBackButton)
             }
         }
         if (start + pageWorlds.size < worlds.size) {
-            actions += FormAction("Next >") {
+            actions += FormAction(tr(player, "gui.bedrock.player_world.button.next"), Material.ARROW) {
                 openPlayerWorld(player, page + 1, showBackButton)
             }
         }
 
-        actions += FormAction("Settings") {
+        actions += FormAction(tr(player, "gui.bedrock.player_world.button.settings"), Material.WRITABLE_BOOK) {
             openSettings(player, showBackButton, page)
         }
 
         val currentManagedWorld = getCurrentManagedWorld(player)
         if (currentManagedWorld != null && canAccessWorldSettings(player, currentManagedWorld)) {
-            actions += FormAction("Current World") {
+            actions += FormAction(tr(player, "gui.bedrock.player_world.button.current_world"), Material.COMPASS) {
                 openCurrentWorldMenu(player, currentManagedWorld, showBackButton)
             }
         }
 
         if (showBackButton) {
-            actions += FormAction("Return") {
+            actions += FormAction(tr(player, "gui.bedrock.player_world.button.return"), Material.BARRIER) {
                 performConfiguredReturn(player)
             }
         }
 
-        actions += FormAction("Close") {
+        actions += FormAction(tr(player, "gui.bedrock.player_world.button.close"), Material.REDSTONE) {
             player.closeInventory()
         }
 
-        val title = "My Worlds [BE]"
-        val content = "Page ${page + 1}/$totalPages"
+        val title = tr(player, "gui.bedrock.player_world.title")
+        val content =
+            tr(
+                player,
+                "gui.bedrock.player_world.page_content",
+                mapOf("current" to page + 1, "total" to totalPages)
+            )
         return sendActionForm(player, title, content, actions)
     }
 
@@ -149,13 +149,21 @@ class BedrockMenuService(
     ): Boolean {
         val actions = mutableListOf<FormAction>()
 
-        actions += FormAction("Warp") {
+        actions += FormAction(tr(player, "gui.bedrock.world_action.button.warp"), Material.ENDER_PEARL) {
             val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
             warpToWorld(player, latest)
         }
 
         if (canManagePublish(player, worldData)) {
-            actions += FormAction("Cycle Publish (${worldData.publishLevel.name})") {
+            actions +=
+                FormAction(
+                    tr(
+                        player,
+                        "gui.bedrock.world_action.button.cycle_publish",
+                        mapOf("level" to publishLevelText(player, worldData.publishLevel))
+                    ),
+                    Material.ENDER_EYE
+                ) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
                 cyclePublishLevel(player, latest)
                 openWorldActionMenu(player, latest, returnPage, showBackButton)
@@ -163,8 +171,13 @@ class BedrockMenuService(
         }
 
         if (canManageArchive(player, worldData)) {
-            val label = if (worldData.isArchived) "Unarchive" else "Archive"
-            actions += FormAction(label) {
+            val label =
+                if (worldData.isArchived) {
+                    tr(player, "gui.bedrock.world_action.button.unarchive")
+                } else {
+                    tr(player, "gui.bedrock.world_action.button.archive")
+                }
+            actions += FormAction(label, Material.CHEST) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
                 toggleArchiveState(player, latest) {
                     val refreshed = plugin.worldConfigRepository.findByUuid(worldData.uuid)
@@ -178,78 +191,137 @@ class BedrockMenuService(
         }
 
         if (canAccessWorldSettings(player, worldData)) {
-            actions += FormAction("Advanced Settings GUI") {
+            actions += FormAction(tr(player, "gui.bedrock.world_action.button.advanced_settings"), Material.COMPARATOR) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
                 plugin.worldSettingsGui.open(player, latest, showBackButton)
             }
         }
 
-        actions += FormAction("Back to Worlds") {
+        actions += FormAction(tr(player, "gui.bedrock.world_action.button.back_to_worlds"), Material.ARROW) {
             openPlayerWorld(player, returnPage, showBackButton)
         }
 
-        actions += FormAction("Settings") {
+        actions += FormAction(tr(player, "gui.bedrock.world_action.button.settings"), Material.WRITABLE_BOOK) {
             openSettings(player, showBackButton, returnPage)
         }
 
         if (showBackButton) {
-            actions += FormAction("Return") {
+            actions += FormAction(tr(player, "gui.bedrock.world_action.button.return"), Material.BARRIER) {
                 performConfiguredReturn(player)
             }
         }
 
-        actions += FormAction("Close") {
+        actions += FormAction(tr(player, "gui.bedrock.world_action.button.close"), Material.REDSTONE) {
             player.closeInventory()
         }
 
         val content =
-            "Owner: ${worldData.owner}\nStatus: ${if (worldData.isArchived) "ARCHIVED" else "ACTIVE"}\nPublish: ${worldData.publishLevel.name}"
-        return sendActionForm(player, worldData.name, content, actions)
+            listOf(
+                    tr(
+                        player,
+                        "gui.bedrock.world_action.content.owner",
+                        mapOf("owner" to worldData.owner)
+                    ),
+                    tr(
+                        player,
+                        "gui.bedrock.world_action.content.status",
+                        mapOf("status" to worldStateText(player, worldData.isArchived))
+                    ),
+                    tr(
+                        player,
+                        "gui.bedrock.world_action.content.publish",
+                        mapOf("publish" to publishLevelText(player, worldData.publishLevel))
+                    )
+                )
+                .joinToString("\n")
+        return sendActionForm(
+            player,
+            tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)),
+            content,
+            actions
+        )
     }
 
     private fun openSettingsForm(player: Player, showBackButton: Boolean, returnPage: Int): Boolean {
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val actions = mutableListOf<FormAction>()
 
-        actions += FormAction("Visitor Notification: ${statusText(stats.visitorNotificationEnabled)}") {
+        actions +=
+            FormAction(
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.notification",
+                    mapOf("status" to statusText(player, stats.visitorNotificationEnabled))
+                ),
+                Material.BELL
+            ) {
             stats.visitorNotificationEnabled = !stats.visitorNotificationEnabled
             plugin.playerStatsRepository.save(stats)
             openSettings(player, showBackButton, returnPage)
         }
 
-        actions += FormAction("Language: ${languageDisplay(player, stats.language)}") {
+        actions +=
+            FormAction(
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.language",
+                    mapOf("language" to languageDisplay(player, stats.language))
+                ),
+                Material.WRITABLE_BOOK
+            ) {
             cycleLanguage(stats)
             plugin.playerStatsRepository.save(stats)
             openSettings(player, showBackButton, returnPage)
         }
 
-        actions += FormAction("Critical Menu: ${statusText(stats.criticalSettingsEnabled)}") {
+        actions +=
+            FormAction(
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.critical",
+                    mapOf("status" to statusText(player, stats.criticalSettingsEnabled))
+                ),
+                Material.REPEATER
+            ) {
             stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
             plugin.playerStatsRepository.save(stats)
             openSettings(player, showBackButton, returnPage)
         }
 
-        actions += FormAction("Beta Features: ${statusText(stats.betaFeaturesEnabled)}") {
+        actions +=
+            FormAction(
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.beta",
+                    mapOf("status" to statusText(player, stats.betaFeaturesEnabled))
+                ),
+                Material.EXPERIENCE_BOTTLE
+            ) {
             stats.betaFeaturesEnabled = !stats.betaFeaturesEnabled
             plugin.playerStatsRepository.save(stats)
             openSettings(player, showBackButton, returnPage)
         }
 
-        actions += FormAction("Back to Worlds") {
+        actions += FormAction(tr(player, "gui.bedrock.settings.button.back_to_worlds"), Material.ARROW) {
             openPlayerWorld(player, returnPage, showBackButton)
         }
 
         if (showBackButton) {
-            actions += FormAction("Return") {
+            actions += FormAction(tr(player, "gui.bedrock.settings.button.return"), Material.BARRIER) {
                 performConfiguredReturn(player)
             }
         }
 
-        actions += FormAction("Close") {
+        actions += FormAction(tr(player, "gui.bedrock.settings.button.close"), Material.REDSTONE) {
             player.closeInventory()
         }
 
-        return sendActionForm(player, "User Settings [BE]", "Single-tap menu for Bedrock", actions)
+        return sendActionForm(
+            player,
+            tr(player, "gui.bedrock.settings.title"),
+            tr(player, "gui.bedrock.settings.form_content"),
+            actions
+        )
     }
 
     private fun sendActionForm(
@@ -262,14 +334,20 @@ class BedrockMenuService(
             return false
         }
 
-        val labels = actions.map { it.label }
-        return formBridge.sendSimpleForm(
+        val buttons =
+            actions.map { action ->
+                FloodgateFormBridge.SimpleFormButton(
+                    label = action.label,
+                    imagePath = materialToBedrockPath(action.iconMaterial)
+                )
+            }
+        return formBridge.sendSimpleFormWithImages(
             player = player,
             title = title,
             content = content,
-            buttons = labels,
+            buttons = buttons,
             onSelect = { index ->
-                val action = actions.getOrNull(index) ?: return@sendSimpleForm
+                val action = actions.getOrNull(index) ?: return@sendSimpleFormWithImages
                 action.onClick()
             }
         )
@@ -284,7 +362,12 @@ class BedrockMenuService(
         val pageWorlds = worlds.drop(start).take(pageSize)
 
         val holder = BedrockPlayerWorldListHolder(page, showBackButton)
-        val inventory = Bukkit.createInventory(holder, 54, Component.text("My Worlds [BE]"))
+        val inventory =
+            Bukkit.createInventory(
+                holder,
+                54,
+                Component.text(tr(player, "gui.bedrock.player_world.title"))
+            )
         holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -302,45 +385,45 @@ class BedrockMenuService(
 
         pageWorlds.forEachIndexed { index, worldData ->
             val slot = inventoryWorldSlots[index]
-            inventory.setItem(slot, createWorldListItem(worldData))
+            inventory.setItem(slot, createWorldListItem(player, worldData))
         }
 
         if (page > 0) {
             inventory.setItem(
                 45,
-                createActionItem(Material.ARROW, "Prev", "open_prev_page")
+                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.prev"), "open_prev_page")
             )
         }
         if (start + pageWorlds.size < worlds.size) {
             inventory.setItem(
                 53,
-                createActionItem(Material.ARROW, "Next", "open_next_page")
+                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.next"), "open_next_page")
             )
         }
 
         inventory.setItem(
             47,
-            createActionItem(Material.WRITABLE_BOOK, "Settings", "open_settings")
+            createActionItem(Material.WRITABLE_BOOK, tr(player, "gui.bedrock.player_world.button.settings"), "open_settings")
         )
 
         val currentManagedWorld = getCurrentManagedWorld(player)
         if (currentManagedWorld != null && canAccessWorldSettings(player, currentManagedWorld)) {
             inventory.setItem(
                 49,
-                createActionItem(Material.COMPASS, "Current World", "open_current_world_menu")
+                createActionItem(Material.COMPASS, tr(player, "gui.bedrock.player_world.button.current_world"), "open_current_world_menu")
             )
         }
 
         if (showBackButton) {
             inventory.setItem(
                 51,
-                createActionItem(Material.BARRIER, "Return", "return_command")
+                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.player_world.button.return"), "return_command")
             )
         }
 
         inventory.setItem(
             52,
-            createActionItem(Material.REDSTONE, "Close", "close_menu")
+            createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.player_world.button.close"), "close_menu")
         )
 
         player.openInventory(inventory)
@@ -353,7 +436,12 @@ class BedrockMenuService(
         showBackButton: Boolean
     ) {
         val holder = BedrockWorldActionHolder(worldData.uuid, returnPage, showBackButton)
-        val inventory = Bukkit.createInventory(holder, 27, Component.text("World: ${worldData.name}"))
+        val inventory =
+            Bukkit.createInventory(
+                holder,
+                27,
+                Component.text(tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)))
+            )
         holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -363,7 +451,7 @@ class BedrockMenuService(
 
         inventory.setItem(
             10,
-            createActionItem(Material.ENDER_PEARL, "Warp", "warp_world", worldData.uuid)
+            createActionItem(Material.ENDER_PEARL, tr(player, "gui.bedrock.world_action.button.warp"), "warp_world", worldData.uuid)
         )
 
         if (canManagePublish(player, worldData)) {
@@ -371,7 +459,11 @@ class BedrockMenuService(
                 11,
                 createActionItem(
                     Material.ENDER_EYE,
-                    "Cycle Publish (${worldData.publishLevel.name})",
+                    tr(
+                        player,
+                        "gui.bedrock.world_action.button.cycle_publish",
+                        mapOf("level" to publishLevelText(player, worldData.publishLevel))
+                    ),
                     "cycle_publish",
                     worldData.uuid
                 )
@@ -379,7 +471,12 @@ class BedrockMenuService(
         }
 
         if (canManageArchive(player, worldData)) {
-            val label = if (worldData.isArchived) "Unarchive" else "Archive"
+            val label =
+                if (worldData.isArchived) {
+                    tr(player, "gui.bedrock.world_action.button.unarchive")
+                } else {
+                    tr(player, "gui.bedrock.world_action.button.archive")
+                }
             inventory.setItem(
                 12,
                 createActionItem(Material.CHEST, label, "toggle_archive", worldData.uuid)
@@ -389,29 +486,34 @@ class BedrockMenuService(
         if (canAccessWorldSettings(player, worldData)) {
             inventory.setItem(
                 14,
-                createActionItem(Material.COMPARATOR, "Advanced Settings GUI", "open_advanced_settings", worldData.uuid)
+                createActionItem(
+                    Material.COMPARATOR,
+                    tr(player, "gui.bedrock.world_action.button.advanced_settings"),
+                    "open_advanced_settings",
+                    worldData.uuid
+                )
             )
         }
 
         inventory.setItem(
             15,
-            createActionItem(Material.WRITABLE_BOOK, "Settings", "open_settings")
+            createActionItem(Material.WRITABLE_BOOK, tr(player, "gui.bedrock.world_action.button.settings"), "open_settings")
         )
 
         inventory.setItem(
             16,
-            createActionItem(Material.ARROW, "Back to Worlds", "back_to_worlds")
+            createActionItem(Material.ARROW, tr(player, "gui.bedrock.world_action.button.back_to_worlds"), "back_to_worlds")
         )
 
         if (showBackButton) {
             inventory.setItem(
                 22,
-                createActionItem(Material.BARRIER, "Return", "return_command")
+                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.world_action.button.return"), "return_command")
             )
         } else {
             inventory.setItem(
                 22,
-                createActionItem(Material.REDSTONE, "Close", "close_menu")
+                createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.world_action.button.close"), "close_menu")
             )
         }
 
@@ -420,7 +522,7 @@ class BedrockMenuService(
 
     private fun openSettingsInventory(player: Player, showBackButton: Boolean, returnPage: Int) {
         val holder = BedrockSettingsHolder(showBackButton, returnPage)
-        val inventory = Bukkit.createInventory(holder, 27, Component.text("Settings [BE]"))
+        val inventory = Bukkit.createInventory(holder, 27, Component.text(tr(player, "gui.bedrock.settings.title")))
         holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -434,7 +536,11 @@ class BedrockMenuService(
             10,
             createActionItem(
                 Material.BELL,
-                "Visitor Notification: ${statusText(stats.visitorNotificationEnabled)}",
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.notification",
+                    mapOf("status" to statusText(player, stats.visitorNotificationEnabled))
+                ),
                 "toggle_notification"
             )
         )
@@ -442,7 +548,11 @@ class BedrockMenuService(
             11,
             createActionItem(
                 Material.WRITABLE_BOOK,
-                "Language: ${languageDisplay(player, stats.language)}",
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.language",
+                    mapOf("language" to languageDisplay(player, stats.language))
+                ),
                 "cycle_language"
             )
         )
@@ -450,7 +560,11 @@ class BedrockMenuService(
             12,
             createActionItem(
                 Material.REPEATER,
-                "Critical Menu: ${statusText(stats.criticalSettingsEnabled)}",
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.critical",
+                    mapOf("status" to statusText(player, stats.criticalSettingsEnabled))
+                ),
                 "toggle_critical"
             )
         )
@@ -458,25 +572,29 @@ class BedrockMenuService(
             13,
             createActionItem(
                 Material.EXPERIENCE_BOTTLE,
-                "Beta Features: ${statusText(stats.betaFeaturesEnabled)}",
+                tr(
+                    player,
+                    "gui.bedrock.settings.button.beta",
+                    mapOf("status" to statusText(player, stats.betaFeaturesEnabled))
+                ),
                 "toggle_beta"
             )
         )
         inventory.setItem(
             15,
-            createActionItem(Material.ARROW, "Back to Worlds", "back_to_worlds")
+            createActionItem(Material.ARROW, tr(player, "gui.bedrock.settings.button.back_to_worlds"), "back_to_worlds")
         )
 
         if (showBackButton) {
             inventory.setItem(
                 22,
-                createActionItem(Material.BARRIER, "Return", "return_command")
+                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.settings.button.return"), "return_command")
             )
         }
 
         inventory.setItem(
             23,
-            createActionItem(Material.REDSTONE, "Close", "close_menu")
+            createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.settings.button.close"), "close_menu")
         )
 
         player.openInventory(inventory)
@@ -619,14 +737,6 @@ class BedrockMenuService(
         returnPage: Int,
         showBackButton: Boolean
     ) {
-        if (routingService.shouldUseForm(player)) {
-            val opened = openWorldActionsForm(player, worldData, returnPage, showBackButton)
-            if (opened) {
-                return
-            }
-            routingService.markFormFailure(player, "openWorldActionsForm returned false")
-        }
-
         openWorldActionsInventory(player, worldData, returnPage, showBackButton)
     }
 
@@ -681,19 +791,19 @@ class BedrockMenuService(
 
     private fun warpToWorld(player: Player, worldData: WorldData) {
         if (worldData.isArchived) {
-            player.sendMessage("§cThis world is archived.")
+            player.sendMessage(tr(player, "messages.archive_access_denied"))
             return
         }
 
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         if (Bukkit.getWorld(folderName) == null && !plugin.worldService.loadWorld(worldData.uuid)) {
-            player.sendMessage("§cFailed to load the world.")
+            player.sendMessage(tr(player, "messages.world_load_failed"))
             return
         }
 
         val targetWorld = Bukkit.getWorld(folderName)
         if (targetWorld == null) {
-            player.sendMessage("§cWorld not found.")
+            player.sendMessage(tr(player, "messages.world_not_found"))
             return
         }
 
@@ -710,7 +820,7 @@ class BedrockMenuService(
             }
 
         plugin.worldService.teleportToWorld(player, worldData.uuid, spawnLocation)
-        player.sendMessage("§aWarped to ${worldData.name}.")
+        player.sendMessage(tr(player, "messages.warp_success", mapOf("world" to worldData.name)))
         player.closeInventory()
     }
 
@@ -722,30 +832,36 @@ class BedrockMenuService(
             worldData.publicAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         }
         plugin.worldConfigRepository.save(worldData)
-        player.sendMessage("§aPublish updated: ${worldData.publishLevel.name}")
+        player.sendMessage(
+            tr(
+                player,
+                "messages.publish_updated",
+                mapOf("level" to publishLevelText(player, worldData.publishLevel))
+            )
+        )
     }
 
     private fun toggleArchiveState(player: Player, worldData: WorldData, onComplete: () -> Unit) {
         if (worldData.isArchived) {
-            player.sendMessage("§eUnarchiving world...")
+            player.sendMessage(tr(player, "messages.unarchive_start"))
             plugin.worldService.unarchiveWorld(worldData.uuid).thenAccept { success ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     if (success) {
-                        player.sendMessage("§aWorld unarchived.")
+                        player.sendMessage(tr(player, "messages.unarchive_success"))
                     } else {
-                        player.sendMessage("§cFailed to unarchive world.")
+                        player.sendMessage(tr(player, "messages.unarchive_failed"))
                     }
                     onComplete()
                 })
             }
         } else {
-            player.sendMessage("§eArchiving world...")
+            player.sendMessage(tr(player, "messages.archive_start"))
             plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     if (success) {
-                        player.sendMessage("§aWorld archived.")
+                        player.sendMessage(tr(player, "messages.archive_success", mapOf("world" to worldData.name)))
                     } else {
-                        player.sendMessage("§cFailed to archive world.")
+                        player.sendMessage(tr(player, "messages.archive_failed"))
                     }
                     onComplete()
                 })
@@ -771,8 +887,19 @@ class BedrockMenuService(
         return if (message.isNullOrBlank()) languageKey else message
     }
 
-    private fun statusText(enabled: Boolean): String {
-        return if (enabled) "ON" else "OFF"
+    private fun statusText(player: Player, enabled: Boolean): String {
+        return if (enabled) {
+            tr(player, "messages.status_on")
+        } else {
+            tr(player, "messages.status_off")
+        }
+    }
+
+    private fun materialToBedrockPath(material: Material?): String? {
+        if (material == null || material.isAir) {
+            return null
+        }
+        return materialPathOverrides[material] ?: "textures/items/${material.key.key}"
     }
 
     private fun performConfiguredReturn(player: Player) {
@@ -781,13 +908,18 @@ class BedrockMenuService(
         player.performCommand(command)
     }
 
-    private fun createWorldListItem(worldData: WorldData): ItemStack {
-        val title = if (worldData.isArchived) "[A] ${worldData.name}" else worldData.name
+    private fun createWorldListItem(player: Player, worldData: WorldData): ItemStack {
+        val archivedPrefix = tr(player, "gui.bedrock.player_world.archived_prefix")
+        val title = if (worldData.isArchived) "$archivedPrefix${worldData.name}" else worldData.name
         val lore =
             listOf(
-                "Publish: ${worldData.publishLevel.name}",
-                "Favorite: ${worldData.favorite}",
-                "Tap to open actions"
+                tr(
+                    player,
+                    "gui.bedrock.world_item.publish",
+                    mapOf("publish" to publishLevelText(player, worldData.publishLevel))
+                ),
+                tr(player, "gui.bedrock.world_item.favorite", mapOf("favorite" to worldData.favorite)),
+                tr(player, "gui.bedrock.world_item.open_actions")
             )
 
         return createActionItem(
@@ -830,6 +962,26 @@ class BedrockMenuService(
             ItemTag.setWorldUuid(item, worldUuid)
         }
         return item
+    }
+
+    private fun tr(player: Player, key: String, placeholders: Map<String, Any> = emptyMap()): String {
+        return if (placeholders.isEmpty()) {
+            plugin.languageManager.getMessage(player, key)
+        } else {
+            plugin.languageManager.getMessage(player, key, placeholders)
+        }
+    }
+
+    private fun publishLevelText(player: Player, level: PublishLevel): String {
+        return tr(player, "publish_level.${level.name.lowercase()}")
+    }
+
+    private fun worldStateText(player: Player, archived: Boolean): String {
+        return if (archived) {
+            tr(player, "gui.bedrock.world_action.status.archived")
+        } else {
+            tr(player, "gui.bedrock.world_action.status.active")
+        }
     }
 
     private fun createDecorationItem(material: Material): ItemStack {
