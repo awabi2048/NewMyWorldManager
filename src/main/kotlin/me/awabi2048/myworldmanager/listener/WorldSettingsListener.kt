@@ -1,6 +1,5 @@
 package me.awabi2048.myworldmanager.listener
 
-import io.papermc.paper.event.player.AsyncChatEvent
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemoveSource
@@ -141,25 +140,15 @@ class WorldSettingsListener : Listener {
                                                 return
                                         }
 
+                                        if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+                                                plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                                                return
+                                        }
+
                                         session.action = SettingsAction.MEMBER_INVITE
                                         player.closeInventory()
-                                        val cancelWord =
-                                                plugin.config.getString(
-                                                        "creation.cancel_word",
-                                                        "cancel"
-                                                )
-                                                        ?: "cancel"
-                                        val cancelInfo =
-                                                lang.getMessage(
-                                                        player,
-                                                        "messages.chat_input_cancel_hint",
-                                                        mapOf("word" to cancelWord)
-                                                )
-                                        player.sendMessage(
-                                                plugin.languageManager.getMessage(
-                                                        "messages.member_invite_input"
-                                                ) + " " + cancelInfo
-                                        )
+                                        showMemberInviteDialog(player, worldData)
                                         return
                                 }
 
@@ -914,44 +903,26 @@ class WorldSettingsListener : Listener {
                                                         return
                                                 }
                                                 
-                                                // Beta Features Check
-                                                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                                                val useDialog =
-                                                        stats.betaFeaturesEnabled &&
-                                                                !plugin.playerPlatformResolver
-                                                                        .isBedrock(player)
-                                                
-                                                if (useDialog) {
-                                                    // Dialog Flow
-                                                    if (isDescriptionInput) {
-                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
-                                                    } else {
-                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
-                                                    }
-                                                    
-                                                    player.closeInventory()
-                                                    Bukkit.getScheduler().runTask(plugin, Runnable {
-                                                        if (isDescriptionInput) {
-                                                            showDescriptionDialog(player, worldData)
-                                                        } else {
-                                                            showRenameDialog(player, worldData)
-                                                        }
-                                                    })
-                                                } else {
-                                                    // Chat Flow
-                                                    val lang = plugin.languageManager
-                                                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                                                    val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
-                                                    
-                                                    if (isDescriptionInput) {
-                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
-                                                        player.sendMessage("${lang.getMessage(player, "messages.world_desc_prompt")} $cancelInfo")
-                                                    } else {
-                                                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
-                                                        player.sendMessage("${lang.getMessage(player, "messages.world_name_prompt")} $cancelInfo")
-                                                    }
-                                                    player.closeInventory()
+                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+                                                    plugin.worldSettingsGui.open(player, worldData)
+                                                    return
                                                 }
+
+                                                if (isDescriptionInput) {
+                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
+                                                } else {
+                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
+                                                }
+
+                                                player.closeInventory()
+                                                Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                    if (isDescriptionInput) {
+                                                        showDescriptionDialog(player, worldData)
+                                                    } else {
+                                                        showRenameDialog(player, worldData)
+                                                    }
+                                                })
 
                                         }
                                         ItemTag.TYPE_GUI_SETTING_SPAWN -> {
@@ -1265,6 +1236,11 @@ class WorldSettingsListener : Listener {
 								if (openBedrockAnnouncementActionForm(player, worldData)) {
 										return
 								}
+								if (plugin.playerPlatformResolver.isBedrock(player)) {
+										player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+										plugin.worldSettingsGui.open(player, worldData)
+										return
+								}
 								if (event.isRightClick) {
 										worldData.announcementMessages.clear()
 										plugin.worldConfigRepository.save(worldData)
@@ -1278,50 +1254,15 @@ class WorldSettingsListener : Listener {
 																worldData
 														)
 												} else {
-														// ベータ機能の確認
-														val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-														val betaEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false) || stats.betaFeaturesEnabled
-
-												if (betaEnabled) {
-														// ベータ機能有効時：ダイアログを開く
-														player.closeInventory()
-														me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
-														plugin.settingsSessionManager
-																.updateSessionAction(
-																		player,
-																		worldData.uuid,
-																		SettingsAction
-																				.SET_ANNOUNCEMENT
-																)
-														} else {
-																// ベータ機能無効時：従来のチャット入力方式
-																val cancelWord =
-																		plugin.config.getString(
-																				"creation.cancel_word",
-																				"cancel"
-																		)
-																		?: "cancel"
-																val cancelInfo =
-																		plugin.languageManager.getMessage(
-																				player,
-																				"messages.chat_input_cancel_hint",
-																				mapOf("word" to cancelWord)
-																		)
-																player.sendMessage(
-																		plugin.languageManager.getMessage(
-																				"messages.announcement_prompt"
-																		) + " " + cancelInfo
-																)
-																plugin.settingsSessionManager
-																		.updateSessionAction(
-																				player,
-																				worldData.uuid,
-																				SettingsAction
-																						.SET_ANNOUNCEMENT
-																		)
-																player.closeInventory()
-														}
-												}
+												player.closeInventory()
+												me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
+												plugin.settingsSessionManager
+														.updateSessionAction(
+																player,
+																worldData.uuid,
+																SettingsAction.SET_ANNOUNCEMENT
+														)
+										}
 										}
                                         ItemTag.TYPE_GUI_SETTING_PORTALS -> {
                                                 // ワールドオーナーのみアクセス可能
@@ -2268,238 +2209,6 @@ plugin.languageManager
                 }
         }
 
-        @EventHandler(priority = EventPriority.LOWEST)
-        fun onChat(event: AsyncChatEvent) {
-                val player = event.player
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val worldData =
-                        if (session.action == SettingsAction.ADMIN_PLAYER_FILTER) null
-                        else plugin.worldConfigRepository.findByUuid(session.worldUuid)
-
-                if (worldData == null && session.action != SettingsAction.ADMIN_PLAYER_FILTER)
-                        return
-                val lang = plugin.languageManager
-                val messageText =
-                        PlainTextComponentSerializer.plainText().serialize(event.originalMessage())
-
-                event.isCancelled = true
-                event.viewers().clear()
-
-                Bukkit.getScheduler()
-                        .runTask(
-                                plugin,
-                                Runnable {
-                                        val cancelWord =
-                                                plugin.config.getString(
-                                                        "creation.cancel_word",
-                                                        "cancel"
-                                                )
-                                                        ?: "cancel"
-                                        if (messageText.equals(cancelWord, ignoreCase = true)) {
-                                                if (worldData != null) {
-                                                        plugin.worldSettingsGui.open(
-                                                                player,
-                                                                worldData
-                                                        )
-                                                } else {
-                                                        plugin.worldGui.open(player)
-                                                }
-                                                player.sendMessage(
-                                                        lang.getMessage(
-                                                                player,
-                                                                "messages.operation_cancelled"
-                                                        )
-                                                )
-                                                return@Runnable
-                                        }
-
-                                        when (session.action) {
-                                                SettingsAction.ADMIN_PLAYER_FILTER -> {
-                                                        val targetName = messageText
-                                                        val offlinePlayer =
-                                                                Bukkit.getOfflinePlayer(targetName)
-
-                                                        val adminSession =
-                                                                plugin.adminGuiSessionManager
-                                                                        .getSession(player.uniqueId)
-                                                        adminSession.playerFilter =
-                                                                offlinePlayer.uniqueId
-                                                        if (adminSession.playerFilterType ==
-                                                                        me.awabi2048.myworldmanager
-                                                                                .session
-                                                                                .PlayerFilterType
-                                                                                .NONE
-                                                        ) {
-                                                                adminSession.playerFilterType =
-                                                                        me.awabi2048.myworldmanager
-                                                                                .session
-                                                                                .PlayerFilterType
-                                                                                .OWNER
-                                                        }
-
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "messages.admin_player_filter_set",
-                                                                        mapOf(
-                                                                                "player" to
-                                                                                        (offlinePlayer
-                                                                                                .name
-                                                                                                ?: targetName)
-                                                                        )
-                                                                )
-                                                        )
-                                                        plugin.settingsSessionManager.endSession(
-                                                                player
-                                                        )
-                                                        plugin.worldGui.open(player)
-                                                        return@Runnable
-                                                }
-                                                SettingsAction.RENAME_WORLD -> {
-                                                        if (worldData == null) return@Runnable
-                                                        applyWorldNameUpdate(player, worldData, messageText)
-                                                        return@Runnable
-                                                }
-                                                SettingsAction.CHANGE_DESCRIPTION -> {
-                                                        if (worldData == null) return@Runnable
-                                                        applyWorldDescriptionUpdate(player, worldData, messageText)
-                                                        return@Runnable
-                                                }
-                                                SettingsAction.MEMBER_INVITE -> {
-                                                        if (worldData == null) return@Runnable
-                                                        applyMemberInvite(player, worldData, messageText)
-                                                        return@Runnable
-                                                }
-                                                SettingsAction.SET_ANNOUNCEMENT -> {
-                                                        if (worldData == null) return@Runnable
-                                                        val input = messageText
-
-                                                        // 繝舌Μ繝・・繧ｷ繝ｧ繝ｳ
-                                                        val maxLines =
-                                                                plugin.config.getInt(
-                                                                        "announcement.max_lines",
-                                                                        5
-                                                                )
-                                                        val maxLength =
-                                                                plugin.config.getInt(
-                                                                        "announcement.max_line_length",
-                                                                        100
-                                                                )
-                                                        val blockedStrings =
-                                                                plugin.config.getStringList(
-                                                                        "announcement.blocked_strings"
-                                                                )
-
-                                                        blockedStrings.forEach { blocked ->
-                                                                if (input.contains(
-                                                                                blocked,
-                                                                                ignoreCase = true
-                                                                        )
-                                                                ) {
-                                                                        player.sendMessage(
-                                                                                lang.getMessage(
-                                                                                        player,
-                                                                                        "messages.announcement_blocked_string",
-                                                                                        mapOf(
-                                                                                                "string" to
-                                                                                                        blocked
-                                                                                        )
-                                                                                )
-                                                                        )
-                                                                        return@Runnable
-                                                                }
-                                                        }
-
-                                                        if (input.length > maxLength) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.announcement_invalid_length",
-                                                                                mapOf(
-                                                                                        "max_lines" to
-                                                                                                maxLines,
-                                                                                        "max_length" to
-                                                                                                maxLength
-                                                                                )
-                                                                        )
-                                                                )
-                                                                return@Runnable
-                                                        }
-
-                                                        // 隍・焚陦悟・蜉帙・邁｡譏灘ｮ溯｣・ｼ・陦後★縺､霑ｽ蜉縺励※縺・￥繧ｹ繧ｿ繧､繝ｫ縺ｫ縺吶ｋ縺九∽ｸ蠎ｦ縺ｫ險ｭ螳壹☆繧九°縲・
-                                                        // 繝励Ο繝ｳ繝励ヨ縺ｧ "exit" 縺ｧ邨ゆｺ・→縺ゅｋ縺ｮ縺ｧ縲∬ｿｽ險伜梛縺ｫ縺吶ｋ
-                                                        if (input.equals("exit", ignoreCase = true)
-                                                        ) {
-                                                                plugin.worldConfigRepository.save(
-                                                                        worldData
-                                                                )
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.announcement_set"
-                                                                        )
-                                                                )
-                                                                plugin.settingsSessionManager
-                                                                        .endSession(player)
-                                                                plugin.worldSettingsGui.open(
-                                                                        player,
-                                                                        worldData
-                                                                )
-                                                                return@Runnable
-                                                        }
-
-                                                        if (worldData.announcementMessages.size >=
-                                                                        maxLines
-                                                        ) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.announcement_invalid_length",
-                                                                                mapOf(
-                                                                                        "max_lines" to
-                                                                                                maxLines,
-                                                                                        "max_length" to
-                                                                                                maxLength
-                                                                                )
-                                                                        )
-                                                                )
-                                                                // 繝｡繝・そ繝ｼ繧ｸ縺後＞縺｣縺ｱ縺・〒縺吶‘xit縺励※螳御ｺ・＠縺ｦ縺上□縺輔＞逧・↑繝｡繝・そ繝ｼ繧ｸ縺瑚憶縺・′縲・
-                                                                // 縺ｨ繧翫≠縺医★辟｡險縺ｧ霑ｽ蜉縺励↑縺・°縲√お繝ｩ繝ｼ繧貞・縺・
-                                                                return@Runnable
-                                                        }
-
-                                                        // 色コード変換 (初期色を白にする)
-                                                        val formatted =
-                                                                "§f" + input.replace("&", "§")
-                                                        worldData.announcementMessages.add(
-                                                                formatted
-                                                        )
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "messages.announcement_preview",
-                                                                        mapOf(
-                                                                                "message" to
-                                                                                        formatted
-                                                                        )
-                                                                )
-                                                        )
-                                                        // 繧ｻ繝・す繝ｧ繝ｳ縺ｯ邯ｭ謖・ｼ・xit縺輔ｌ繧九∪縺ｧ・・
-                                                        return@Runnable
-                                                }
-                                                SettingsAction.EXPAND_DIRECTION_CONFIRM -> {
-                                                        // Handled by onCommandPreprocess
-                                                        return@Runnable
-                                                }
-                                                else -> {}
-                                        }
-                                        if (worldData != null) {
-                                                plugin.worldSettingsGui.open(player, worldData)
-                                        }
-                                }
-                        )
-        }
-
         private fun openBedrockExpandDirectionConfirmForm(
                 player: Player,
                 worldUuid: UUID,
@@ -3202,15 +2911,7 @@ plugin.languageManager
                         return
                 }
 
-                // 繝√Ε繝・ヨ蜈･蜉帛ｾ・ｩ滉ｸｭ繧・ヶ繝ｭ繝・け蜈･蜉帛ｾ・ｩ滉ｸｭ縺ｮ繧｢繧ｯ繧ｷ繝ｧ繝ｳ縺ｯ縲√う繝ｳ繝吶Φ繝医Μ繧帝哩縺倥※繧ゅそ繝・す繝ｧ繝ｳ繧堤ｶｭ謖√☆繧・
-                val chatInputActions =
-                        setOf(
-                                SettingsAction.RENAME_WORLD,
-                                SettingsAction.CHANGE_DESCRIPTION,
-                                SettingsAction.MEMBER_INVITE,
-                                SettingsAction.SET_ANNOUNCEMENT,
-                                SettingsAction.ADMIN_PLAYER_FILTER
-                        )
+                // ブロック選択入力中のアクションは、インベントリを閉じてもセッションを維持する
                 val blockInputActions =
                         setOf(
                                 SettingsAction.SET_SPAWN_GUEST,
@@ -3219,7 +2920,7 @@ plugin.languageManager
                                 SettingsAction.EXPAND_DIRECTION_CONFIRM
                         )
 
-                if (session.action in chatInputActions || session.action in blockInputActions) {
+                if (session.action in blockInputActions) {
                         return
                 }
 
@@ -4008,6 +3709,24 @@ player.sendMessage(
                 applyWorldDescriptionUpdate(player, worldData, newDesc)
                 return
             }
+
+            if (identifier == Key.key("mwm:settings/member_invite_submit")) {
+                val view = event.getDialogResponseView() ?: return
+                val targetAny = view.getText("member_invite_target") ?: ""
+                val targetName = targetAny.toString().trim()
+
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                applyMemberInvite(player, worldData, targetName)
+                return
+            }
+
+            if (identifier == Key.key("mwm:settings/member_invite_cancel")) {
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                return
+            }
             
             // Cancel
             if (identifier == Key.key("mwm:settings/cancel")) {
@@ -4108,6 +3827,47 @@ player.sendMessage(
                         ActionButton.create(Component.text("Submit", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/desc_submit"), null)),
                         ActionButton.create(Component.text("Cancel", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/cancel"), null))
                     ))
+            }
+            player.showDialog(dialog)
+        }
+
+        private fun showMemberInviteDialog(player: Player, worldData: WorldData) {
+             val lang = plugin.languageManager
+             val dialog = Dialog.create { builder ->
+                builder.empty()
+                    .base(
+                        DialogBase.builder(Component.text(lang.getMessage(player, "gui.member_management.invite.name"), NamedTextColor.YELLOW))
+                            .body(
+                                listOf(
+                                    DialogBody.plainMessage(Component.text(lang.getMessage(player, "messages.member_invite_input")))
+                                )
+                            )
+                            .inputs(
+                                listOf(
+                                    DialogInput.text(
+                                        "member_invite_target",
+                                        Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label"))
+                                    ).maxLength(16).build()
+                                )
+                            )
+                            .build()
+                    )
+                    .type(
+                        DialogType.confirmation(
+                            ActionButton.create(
+                                Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                                null,
+                                100,
+                                DialogAction.customClick(Key.key("mwm:settings/member_invite_submit"), null)
+                            ),
+                            ActionButton.create(
+                                Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                                null,
+                                200,
+                                DialogAction.customClick(Key.key("mwm:settings/member_invite_cancel"), null)
+                            )
+                        )
+                    )
             }
             player.showDialog(dialog)
         }

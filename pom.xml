@@ -46,12 +46,6 @@
             <version>${kotlin.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.ucchyocean</groupId>
-            <artifactId>LunaChat</artifactId>
-            <version>3.0.16</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.bea4dev</groupId>
             <artifactId>ChiyogamiLib</artifactId>
             <version>793983cef1</version>

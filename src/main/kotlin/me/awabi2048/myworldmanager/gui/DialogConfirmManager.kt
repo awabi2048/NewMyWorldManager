@@ -19,9 +19,7 @@ import org.bukkit.inventory.ItemStack
 object DialogConfirmManager {
 
     fun isNativeDialogEnabled(player: Player, plugin: MyWorldManager): Boolean {
-        val globalEnabled = plugin.config.getBoolean("beta-features.enable_native_dialog", false)
-        val playerEnabled = plugin.playerStatsRepository.findByUuid(player.uniqueId).betaFeaturesEnabled
-        return globalEnabled || playerEnabled
+        return !plugin.playerPlatformResolver.isBedrock(player)
     }
 
     fun showConfirmationByPreference(

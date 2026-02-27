@@ -57,18 +57,6 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE
         ))
         
-        // 3. Beta Features
-        val betaStatus = if (stats.betaFeaturesEnabled) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
-        val betaLore = lang.getMessageList(player, "gui.user_settings.beta_features.lore", mapOf("status" to betaStatus))
-            .ifEmpty { listOf("§7实验的な機能の使用:", "§7・ダイアログ入力", "", "§7現在の状態: $betaStatus") } // Fallback if key missing
-
-        items.add(createItem(
-            Material.EXPERIENCE_BOTTLE,
-            lang.getMessage(player, "gui.user_settings.beta_features.display").ifEmpty { "§eベータ機能" },
-            betaLore,
-            ItemTag.TYPE_GUI_USER_SETTING_BETA_FEATURES
-        ))
-        
         // Calculate Size
         val itemsPerRow = 7
         val contentRows = (items.size + itemsPerRow - 1) / itemsPerRow

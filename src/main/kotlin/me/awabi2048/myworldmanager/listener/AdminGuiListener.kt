@@ -1,8 +1,21 @@
 package me.awabi2048.myworldmanager.listener
 
+import io.papermc.paper.connection.PlayerGameConnection
+import io.papermc.paper.dialog.Dialog
+import io.papermc.paper.event.player.PlayerCustomClickEvent
+import io.papermc.paper.registry.data.dialog.ActionButton
+import io.papermc.paper.registry.data.dialog.DialogBase
+import io.papermc.paper.registry.data.dialog.action.DialogAction
+import io.papermc.paper.registry.data.dialog.body.DialogBody
+import io.papermc.paper.registry.data.dialog.input.DialogInput
+import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.session.PlayerFilterType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.ItemTag
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -159,7 +172,7 @@ class AdminGuiListener : Listener {
                     if (session.playerFilterType != me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
                         plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
                         player.closeInventory()
-                        player.sendMessage(lang.getMessage(player, "messages.admin_player_filter_prompt"))
+                        openAdminPlayerFilterInput(plugin, player)
                     }
                 }
                 return
@@ -244,5 +257,129 @@ class AdminGuiListener : Listener {
             }
             return
         }
+    }
+
+    @EventHandler
+    fun onAdminFilterDialog(event: PlayerCustomClickEvent) {
+        val identifier = event.identifier
+        if (
+            identifier != Key.key("mwm:admin/player_filter_submit") &&
+                identifier != Key.key("mwm:admin/player_filter_cancel")
+        ) {
+            return
+        }
+
+        val conn = event.commonConnection as? PlayerGameConnection ?: return
+        val player = conn.player
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+
+        if (identifier == Key.key("mwm:admin/player_filter_cancel")) {
+            plugin.settingsSessionManager.endSession(player)
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
+            plugin.worldGui.open(player)
+            return
+        }
+
+        val view = event.getDialogResponseView() ?: return
+        val input = view.getText("admin_player_name")?.toString().orEmpty()
+        applyAdminPlayerFilter(plugin, player, input)
+    }
+
+    private fun openAdminPlayerFilterInput(plugin: MyWorldManager, player: Player) {
+        val lang = plugin.languageManager
+
+        if (plugin.playerPlatformResolver.isBedrock(player)) {
+            if (!plugin.floodgateFormBridge.isAvailable(player)) {
+                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldGui.open(player)
+                return
+            }
+
+            val opened =
+                plugin.floodgateFormBridge.sendCustomInputForm(
+                    player = player,
+                    title = lang.getMessage(player, "gui.bedrock.input.admin_player_filter.title"),
+                    label = lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label"),
+                    placeholder =
+                        lang.getMessage(player, "gui.bedrock.input.admin_player_filter.placeholder"),
+                    defaultValue = "",
+                    onSubmit = { value ->
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            applyAdminPlayerFilter(plugin, player, value)
+                        })
+                    },
+                    onClosed = {
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            plugin.settingsSessionManager.endSession(player)
+                            if (player.isOnline) {
+                                plugin.worldGui.open(player)
+                            }
+                        })
+                    }
+                )
+            if (!opened) {
+                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldGui.open(player)
+            }
+            return
+        }
+
+        val prompt = lang.getMessage(player, "messages.admin_player_filter_prompt")
+        val dialog = Dialog.create { builder ->
+            builder.empty()
+                .base(
+                    DialogBase.builder(Component.text(prompt, NamedTextColor.YELLOW))
+                        .body(listOf(DialogBody.plainMessage(Component.text(prompt))))
+                        .inputs(
+                            listOf(
+                                DialogInput.text(
+                                    "admin_player_name",
+                                    Component.text(lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label"))
+                                ).build()
+                            )
+                        )
+                        .build()
+                )
+                .type(
+                    DialogType.confirmation(
+                        ActionButton.create(
+                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                            null,
+                            100,
+                            DialogAction.customClick(Key.key("mwm:admin/player_filter_submit"), null)
+                        ),
+                        ActionButton.create(
+                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                            null,
+                            200,
+                            DialogAction.customClick(Key.key("mwm:admin/player_filter_cancel"), null)
+                        )
+                    )
+                )
+        }
+        player.showDialog(dialog)
+    }
+
+    private fun applyAdminPlayerFilter(plugin: MyWorldManager, player: Player, targetNameRaw: String) {
+        val targetName = targetNameRaw.trim()
+        val offlinePlayer = Bukkit.getOfflinePlayer(targetName)
+
+        val adminSession = plugin.adminGuiSessionManager.getSession(player.uniqueId)
+        adminSession.playerFilter = offlinePlayer.uniqueId
+        if (adminSession.playerFilterType == PlayerFilterType.NONE) {
+            adminSession.playerFilterType = PlayerFilterType.OWNER
+        }
+
+        player.sendMessage(
+            plugin.languageManager.getMessage(
+                player,
+                "messages.admin_player_filter_set",
+                mapOf("player" to (offlinePlayer.name ?: targetName))
+            )
+        )
+        plugin.settingsSessionManager.endSession(player)
+        plugin.worldGui.open(player)
     }
 }

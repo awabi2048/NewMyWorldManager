@@ -3,9 +3,19 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PlayerWorldGui
+import io.papermc.paper.connection.PlayerGameConnection
+import io.papermc.paper.dialog.Dialog
+import io.papermc.paper.event.player.PlayerCustomClickEvent
+import io.papermc.paper.registry.data.dialog.ActionButton
+import io.papermc.paper.registry.data.dialog.DialogBase
+import io.papermc.paper.registry.data.dialog.action.DialogAction
+import io.papermc.paper.registry.data.dialog.body.DialogBody
+import io.papermc.paper.registry.data.dialog.input.DialogInput
+import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.ItemTag
+import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
@@ -83,19 +93,24 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 }
                 
                 val worldUuid = worldData.uuid
-                
-                if (worldUuid != null) {
-                    if (worldData.publishLevel == PublishLevel.LOCKED) {
-                        player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
-                        player.closeInventory()
-                        return
-                    }
-                    
-                    plugin.inviteSessionManager.startSession(player.uniqueId, worldUuid)
+
+                if (worldData.publishLevel == PublishLevel.LOCKED) {
+                    player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
                     player.closeInventory()
-                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                    val cancelInfo = lang.getMessage(player, "messages.chat_input_cancel_hint", mapOf("word" to cancelWord))
-                    player.sendMessage(lang.getMessage(player, "messages.member_invite_input") + " " + cancelInfo)
+                    return
+                }
+
+                plugin.inviteSessionManager.startSession(player.uniqueId, worldUuid)
+                player.closeInventory()
+
+                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                    if (!openBedrockInviteInputForm(player)) {
+                        plugin.inviteSessionManager.endSession(player.uniqueId)
+                        player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                        plugin.playerWorldGui.open(player)
+                    }
+                } else {
+                    showInviteInputDialog(player)
                 }
                 return
             }
@@ -106,13 +121,8 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 // セッションの開始
                 val session = plugin.creationSessionManager.startSession(player.uniqueId)
                 
-                // ベータ機能が有効ならダイアログを使用
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                if (stats.betaFeaturesEnabled) {
-                    session.isDialogMode = true
-                } else {
-                    session.isDialogMode = false
-                }
+                // JE は常にダイアログ、BE は FormUI を使用
+                session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(player)
 
                 player.closeInventory()
                 player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
@@ -247,12 +257,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     plugin.playerStatsRepository.save(stats)
                     plugin.userSettingsGui.open(player)
                 }
-                ItemTag.TYPE_GUI_USER_SETTING_BETA_FEATURES -> {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    stats.betaFeaturesEnabled = !stats.betaFeaturesEnabled
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.userSettingsGui.open(player)
-                }
 
                 ItemTag.TYPE_GUI_RETURN -> {
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
@@ -261,5 +265,126 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             }
             return
         }
+    }
+
+    @EventHandler
+    fun onInviteDialogResponse(event: PlayerCustomClickEvent) {
+        val identifier = event.identifier
+        if (identifier != Key.key("mwm:invite/input_submit") && identifier != Key.key("mwm:invite/input_cancel")) {
+            return
+        }
+
+        val conn = event.commonConnection as? PlayerGameConnection ?: return
+        val player = conn.player
+
+        if (identifier == Key.key("mwm:invite/input_cancel")) {
+            plugin.inviteSessionManager.endSession(player.uniqueId)
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
+            plugin.playerWorldGui.open(player)
+            return
+        }
+
+        val view = event.getDialogResponseView() ?: return
+        val input = view.getText("invite_player")?.toString().orEmpty()
+        processInviteInput(player, input)
+    }
+
+    private fun openBedrockInviteInputForm(player: Player): Boolean {
+        if (!plugin.floodgateFormBridge.isAvailable(player)) {
+            return false
+        }
+
+        val lang = plugin.languageManager
+        return plugin.floodgateFormBridge.sendCustomInputForm(
+            player = player,
+            title = lang.getMessage(player, "gui.bedrock.input.member_invite.title"),
+            label = lang.getMessage(player, "gui.bedrock.input.member_invite.label"),
+            placeholder = lang.getMessage(player, "gui.bedrock.input.member_invite.placeholder"),
+            defaultValue = "",
+            onSubmit = { value ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    processInviteInput(player, value)
+                })
+            },
+            onClosed = {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    plugin.inviteSessionManager.endSession(player.uniqueId)
+                    if (player.isOnline) {
+                        plugin.playerWorldGui.open(player)
+                    }
+                })
+            }
+        )
+    }
+
+    private fun showInviteInputDialog(player: Player) {
+        val lang = plugin.languageManager
+        val dialog = Dialog.create { builder ->
+            builder.empty()
+                .base(
+                    DialogBase.builder(Component.text(lang.getMessage(player, "gui.member_management.invite.name"), NamedTextColor.YELLOW))
+                        .body(
+                            listOf(
+                                DialogBody.plainMessage(Component.text(lang.getMessage(player, "messages.member_invite_input")))
+                            )
+                        )
+                        .inputs(
+                            listOf(
+                                DialogInput.text("invite_player", Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label")))
+                                    .maxLength(16)
+                                    .build()
+                            )
+                        )
+                        .build()
+                )
+                .type(
+                    DialogType.confirmation(
+                        ActionButton.create(
+                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                            null,
+                            100,
+                            DialogAction.customClick(Key.key("mwm:invite/input_submit"), null)
+                        ),
+                        ActionButton.create(
+                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                            null,
+                            200,
+                            DialogAction.customClick(Key.key("mwm:invite/input_cancel"), null)
+                        )
+                    )
+                )
+        }
+        player.showDialog(dialog)
+    }
+
+    private fun processInviteInput(player: Player, rawInput: String) {
+        val session = plugin.inviteSessionManager.getSession(player.uniqueId) ?: return
+        val targetName = rawInput.trim()
+        val lang = plugin.languageManager
+        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+
+        if (worldData == null) {
+            plugin.inviteSessionManager.endSession(player.uniqueId)
+            player.sendMessage(lang.getMessage(player, "general.world_not_found"))
+            return
+        }
+
+        val target = Bukkit.getPlayerExact(targetName)
+        if (target == null) {
+            plugin.inviteSessionManager.endSession(player.uniqueId)
+            player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))
+            plugin.playerWorldGui.open(player)
+            return
+        }
+
+        if (target == player) {
+            plugin.inviteSessionManager.endSession(player.uniqueId)
+            player.sendMessage(lang.getMessage(player, "messages.invite_self_error"))
+            plugin.playerWorldGui.open(player)
+            return
+        }
+
+        plugin.inviteSessionManager.endSession(player.uniqueId)
+        player.performCommand("invite $targetName")
     }
 }

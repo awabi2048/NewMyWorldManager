@@ -62,19 +62,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 WorldCreationPhase.CONFIRM -> {
                     session.phase = WorldCreationPhase.NAME_INPUT
                     player.closeInventory()
-                    val cancelWord =
-                            plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                    val cancelInfo =
-                            lang.getMessage(
-                                    player,
-                                    "messages.chat_input_cancel_hint",
-                                    mapOf("word" to cancelWord)
-                            )
-                    player.sendMessage(
-                            lang.getMessage(player, "messages.wizard_name_prompt") +
-                                    " " +
-                                    cancelInfo
-                    )
+                    openNameInputByPlatform(player, session)
                 }
                 else -> {}
             }
@@ -124,18 +112,9 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                             me.awabi2048.myworldmanager.gui.CreationDialogManager.showSeedInputDialog(player, session)
                             return
                         }
-                        
+
                         player.closeInventory()
-                        val cancelWord =
-                                plugin.config.getString("creation.cancel_word", "cancel")
-                                        ?: "cancel"
-                        val cancelInfo =
-                                lang.getMessage(
-                                        player,
-                                        "messages.chat_input_cancel_hint",
-                                        mapOf("word" to cancelWord)
-                                )
-                        player.sendMessage("§a生成に使用するシード値をチャットに入力してください。 " + cancelInfo)
+                        openSeedInputByPlatform(player, session)
                     }
                     ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> {
                         plugin.soundManager.playClickSound(player, currentItem)
@@ -149,14 +128,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         
                         session.phase = WorldCreationPhase.NAME_INPUT
                         player.closeInventory()
-                        val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                        val cancelInfo =
-                                lang.getMessage(
-                                        player,
-                                        "messages.chat_input_cancel_hint",
-                                        mapOf("word" to cancelWord)
-                                )
-                        player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
+                        openNameInputByPlatform(player, session)
                     }
                     else -> {}
                 }
@@ -193,14 +165,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     
                     session.phase = WorldCreationPhase.NAME_INPUT
                     player.closeInventory()
-                    val cancelWord = plugin.config.getString("creation.cancel_word", "cancel") ?: "cancel"
-                    val cancelInfo =
-                            lang.getMessage(
-                                    player,
-                                    "messages.chat_input_cancel_hint",
-                                    mapOf("word" to cancelWord)
-                            )
-                    player.sendMessage(lang.getMessage(player, "messages.wizard_name_prompt") + " " + cancelInfo)
+                    openNameInputByPlatform(player, session)
                 }
             }
             WorldCreationPhase.CONFIRM -> {
@@ -290,6 +255,87 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             }
             else -> {}
         }
+    }
+
+    private fun openSeedInputByPlatform(player: Player, session: WorldCreationSession) {
+        if (!plugin.playerPlatformResolver.isBedrock(player)) {
+            me.awabi2048.myworldmanager.gui.CreationDialogManager.showSeedInputDialog(player, session)
+            return
+        }
+
+        val lang = plugin.languageManager
+        if (!plugin.floodgateFormBridge.isAvailable(player)) {
+            plugin.creationSessionManager.endSession(player.uniqueId)
+            player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+            return
+        }
+
+        plugin.floodgateFormBridge.sendCustomInputForm(
+            player = player,
+            title = lang.getMessage(player, "gui.bedrock.input.creation_seed.title"),
+            label = lang.getMessage(player, "gui.bedrock.input.creation_seed.label"),
+            placeholder = lang.getMessage(player, "gui.bedrock.input.creation_seed.placeholder"),
+            defaultValue = session.inputSeedString ?: "",
+            onSubmit = { value ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    val latest = plugin.creationSessionManager.getSession(player.uniqueId) ?: return@Runnable
+                    latest.inputSeedString = value
+                    latest.phase = WorldCreationPhase.NAME_INPUT
+                    openNameInputByPlatform(player, latest)
+                })
+            },
+            onClosed = {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    val latest = plugin.creationSessionManager.getSession(player.uniqueId) ?: return@Runnable
+                    plugin.creationSessionManager.endSession(player.uniqueId)
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_cancelled"))
+                })
+            }
+        )
+    }
+
+    private fun openNameInputByPlatform(player: Player, session: WorldCreationSession) {
+        if (!plugin.playerPlatformResolver.isBedrock(player)) {
+            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
+            return
+        }
+
+        val lang = plugin.languageManager
+        if (!plugin.floodgateFormBridge.isAvailable(player)) {
+            plugin.creationSessionManager.endSession(player.uniqueId)
+            player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+            return
+        }
+
+        plugin.floodgateFormBridge.sendCustomInputForm(
+            player = player,
+            title = lang.getMessage(player, "gui.bedrock.input.creation_name.title"),
+            label = lang.getMessage(player, "gui.bedrock.input.creation_name.label"),
+            placeholder = lang.getMessage(player, "gui.bedrock.input.creation_name.placeholder"),
+            defaultValue = session.worldName ?: "",
+            onSubmit = { value ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    val latest = plugin.creationSessionManager.getSession(player.uniqueId) ?: return@Runnable
+                    val error = plugin.worldValidator.validateName(value)
+                    if (error != null) {
+                        player.sendMessage("§c$error")
+                        openNameInputByPlatform(player, latest)
+                        return@Runnable
+                    }
+
+                    latest.worldName = me.awabi2048.myworldmanager.gui.CreationDialogManager.cleanWorldName(value)
+                    latest.phase = WorldCreationPhase.CONFIRM
+                    plugin.creationGui.openConfirmation(player, latest)
+                })
+            },
+            onClosed = {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    val latest = plugin.creationSessionManager.getSession(player.uniqueId) ?: return@Runnable
+                    plugin.creationSessionManager.endSession(player.uniqueId)
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_cancelled"))
+                })
+            }
+        )
     }
 
     @EventHandler

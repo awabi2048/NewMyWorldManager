@@ -111,13 +111,8 @@ class WorldCommand(
                 // ウィザード開始
                 val session = sessionManager.startSession(targetPlayer.uniqueId)
 
-                // ベータ機能（ダイアログモード）チェック
-                val playerStats = plugin.playerStatsRepository.findByUuid(targetPlayer.uniqueId)
-                if (playerStats.betaFeaturesEnabled) {
-                    session.isDialogMode = true
-                } else {
-                    session.isDialogMode = false
-                }
+                // JE は常にダイアログ入力、BE は FormUI 入力
+                session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(targetPlayer)
                 targetPlayer.sendMessage(lang.getMessage("messages.wizard_start"))
                 plugin.creationGui.openTypeSelection(targetPlayer)
                 sender.sendMessage(
