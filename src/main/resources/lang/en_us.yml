@@ -167,6 +167,26 @@ gui:
         title: "Invite Member"
         label: "Player Name"
         placeholder: "Enter player name"
+      creation_name:
+        title: "Enter World Name"
+        label: "World Name"
+        placeholder: "Type world name"
+      creation_seed:
+        title: "Enter Seed Value"
+        label: "Seed (optional)"
+        placeholder: "Type seed or text"
+      admin_player_filter:
+        title: "Player Filter"
+        label: "Target Player Name"
+        placeholder: "Type player name"
+      template_wizard_name:
+        title: "Enter Template Name"
+        label: "Template Name"
+        placeholder: "Type template name"
+      template_wizard_desc:
+        title: "Enter Template Description"
+        label: "Template Description"
+        placeholder: "Type description"
       announcement_menu:
         title: "Announcement"
         content: "Choose an action"
@@ -1368,7 +1388,7 @@ messages:
   spawn_both_set: §aShared guest/member spawn point set.
   favorite_removed: §c Removed from favorites
   tag_max_reached: §cMax {limit} tags allowed.
-  member_invite_input: §eType the player ID in chat to invite.
+  member_invite_input: §eType the player ID to invite.
   member_deleted: §aMember removed.
   owner_transferred: Ownership has been transferred to §a{old_owner}.
   owner_transfer_failed_limit: §cTarget player has no available world slots.
@@ -1484,7 +1504,7 @@ messages:
   world_loading: §aLoading world...
   evacuated: §cWorld unloaded. Moving to spawn.
   no_in_myworld: §cYou must be in a MyWorld to do this.
-  admin_player_filter_prompt: §eType the player name in chat to filter.
+  admin_player_filter_prompt: §eType the player name to filter.
   favorite_added: §bAdded to favorites!
   portal_removed: §aPortal removed.
   portal_bind_success: §aPortal bound to "{destination}".
@@ -1515,7 +1535,8 @@ messages:
   status_visible: §aVisible
   status_hidden: §cHidden
   wizard_start: §aStarting creation wizard.
-  wizard_name_prompt: §ePlease type the world name in chat.
+  wizard_name_prompt: §ePlease type the world name.
+  wizard_seed_prompt: §ePlease type a seed value.
   creation_timeout: §cWorld creation session timed out due to inactivity.
   wizard_started_for: §aWizard started for {player}.
   reload_success: §aReloaded MyWorldManager configuration.

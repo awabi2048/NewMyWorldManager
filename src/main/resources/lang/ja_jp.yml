@@ -179,6 +179,26 @@ gui:
         title: "メンバー招待"
         label: "招待するプレイヤー名"
         placeholder: "プレイヤー名を入力"
+      creation_name:
+        title: "ワールド名の入力"
+        label: "ワールド名"
+        placeholder: "ワールド名を入力"
+      creation_seed:
+        title: "シード値の入力"
+        label: "シード値（空欄可）"
+        placeholder: "シード値または文字列を入力"
+      admin_player_filter:
+        title: "プレイヤーフィルター"
+        label: "対象プレイヤー名"
+        placeholder: "プレイヤー名を入力"
+      template_wizard_name:
+        title: "テンプレート名の入力"
+        label: "テンプレート名"
+        placeholder: "テンプレート名を入力"
+      template_wizard_desc:
+        title: "テンプレート説明の入力"
+        label: "テンプレート説明"
+        placeholder: "説明文を入力"
       announcement_menu:
         title: "案内メッセージ"
         content: "操作を選択してください"
@@ -1536,7 +1556,7 @@ messages:
   tag_max_reached: "§cタグは最大{limit}個まで設定可能です"
   
   # 招待関連
-  member_invite_input: "§e招待したいプレイヤーのIDをチャットに入力してください"
+  member_invite_input: "§e招待したいプレイヤーのIDを入力してください"
   member_deleted: "§cメンバーを削除しました"
   owner_transferred: "§a{old_owner}さんへオーナー権限を譲渡しました。"
   owner_transfer_failed_limit: "§c譲渡先のプレイヤーのワールドスロットがいっぱいです"
@@ -1663,7 +1683,7 @@ messages:
   world_loading: "§aワールドをロードしています..."
   evacuated: "§cワールドがアンロードされたため、スポーン地点へ移動しました。"
   no_in_myworld: "§cマイワールド内に滞在している必要があります。"
-  admin_player_filter_prompt: "§eフィルタリングするプレイヤー名をチャットで入力してください。"
+  admin_player_filter_prompt: "§eフィルタリングするプレイヤー名を入力してください。"
   
   # その他
   favorite_added: "§bこのワールドをお気に入りに追加しました！"
@@ -1696,7 +1716,8 @@ messages:
   status_visible: "§a表示中"
   status_hidden: "§c非表示"
   wizard_start: "§aワールド作成ウィザードを開始します。"
-  wizard_name_prompt: "§eまずは作成するワールドの名前をチャットで入力してください。"
+  wizard_name_prompt: "§eまずは作成するワールドの名前を入力してください。"
+  wizard_seed_prompt: "§e生成に使用するシード値を入力してください。"
   creation_timeout: "§c長時間操作がなかったため、ワールド作成セッションがタイムアウトしました。"
   wizard_started_for: "§a{player} に対してワールド作成ウィザードを開始しました。"
   reload_success: "§aMyWorldManager の設定を再読み込みしました。"

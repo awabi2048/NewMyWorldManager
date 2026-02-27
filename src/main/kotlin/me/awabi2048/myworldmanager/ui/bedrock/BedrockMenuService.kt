@@ -288,20 +288,6 @@ class BedrockMenuService(
             openSettings(player, showBackButton, returnPage)
         }
 
-        actions +=
-            FormAction(
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.beta",
-                    mapOf("status" to statusText(player, stats.betaFeaturesEnabled))
-                ),
-                Material.EXPERIENCE_BOTTLE
-            ) {
-            stats.betaFeaturesEnabled = !stats.betaFeaturesEnabled
-            plugin.playerStatsRepository.save(stats)
-            openSettings(player, showBackButton, returnPage)
-        }
-
         actions += FormAction(tr(player, "gui.bedrock.settings.button.back_to_worlds"), Material.ARROW) {
             openPlayerWorld(player, returnPage, showBackButton)
         }
@@ -569,18 +555,6 @@ class BedrockMenuService(
             )
         )
         inventory.setItem(
-            13,
-            createActionItem(
-                Material.EXPERIENCE_BOTTLE,
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.beta",
-                    mapOf("status" to statusText(player, stats.betaFeaturesEnabled))
-                ),
-                "toggle_beta"
-            )
-        )
-        inventory.setItem(
             15,
             createActionItem(Material.ARROW, tr(player, "gui.bedrock.settings.button.back_to_worlds"), "back_to_worlds")
         )
@@ -715,12 +689,6 @@ class BedrockMenuService(
 
             "toggle_critical" -> {
                 stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
-                plugin.playerStatsRepository.save(stats)
-                openSettings(player, holder.showBackButton, holder.returnPage)
-            }
-
-            "toggle_beta" -> {
-                stats.betaFeaturesEnabled = !stats.betaFeaturesEnabled
                 plugin.playerStatsRepository.save(stats)
                 openSettings(player, holder.showBackButton, holder.returnPage)
             }
