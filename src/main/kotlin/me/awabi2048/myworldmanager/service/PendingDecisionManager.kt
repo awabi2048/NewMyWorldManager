@@ -168,6 +168,12 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     }
 
     fun sendPendingHint(target: Player, count: Int) {
+        if (!plugin.playerPlatformResolver.isBedrock(target)) {
+            return
+        }
+        if (count < 2) {
+            return
+        }
         target.sendMessage(
             plugin.languageManager.getMessage(
                 target,

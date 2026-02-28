@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
+import org.bukkit.Sound
 import org.bukkit.entity.Player
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -78,10 +79,30 @@ class MemberInviteManager(
                 source = MwmMemberAddSource.INVITE
             )
         )
-        player.sendMessage(lang.getMessage(player, "messages.invite_accepted_self", mapOf("world" to worldData.name)))
 
-        val sender = Bukkit.getPlayer(senderUuid)
-        sender?.sendMessage(lang.getMessage(sender, "messages.invite_accepted_sender", mapOf("player" to player.name, "world" to worldData.name)))
+        player.sendMessage(lang.getMessage(player, "messages.invite_accepted_self", mapOf("world" to worldData.name)))
+        player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
+
+        val recipients = linkedSetOf<UUID>()
+        recipients.add(worldData.owner)
+        recipients.addAll(worldData.moderators)
+        recipients.addAll(worldData.members)
+        recipients.remove(player.uniqueId)
+
+        recipients.forEach { memberUuid ->
+            val memberPlayer = Bukkit.getPlayer(memberUuid) ?: return@forEach
+            if (!memberPlayer.isOnline) {
+                return@forEach
+            }
+            memberPlayer.sendMessage(
+                lang.getMessage(
+                    memberPlayer,
+                    "messages.member_joined_notify",
+                    mapOf("player" to player.name, "world" to worldData.name)
+                )
+            )
+            memberPlayer.playSound(memberPlayer.location, Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
+        }
 
         // マクロ実行
         macroManager.execute("on_member_add", mapOf(
