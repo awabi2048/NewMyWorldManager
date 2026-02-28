@@ -1226,6 +1226,10 @@ gui:
     - By expanding the §7 slot, you can create
     - §7 The number of My Worlds will increase.
   visit:
+    input:
+      title: Visit Target Player
+      label: Player Name
+      placeholder: Enter player name
     title: '{player}''s world'
     world_item:
       lore:
@@ -1398,6 +1402,7 @@ messages:
   favorite_removed: §c Removed from favorites
   tag_max_reached: §cMax {limit} tags allowed.
   member_invite_input: §eType the player ID to invite.
+  visit_target_input: §eType the player ID to visit.
   member_deleted: §aMember removed.
   owner_transferred: Ownership has been transferred to §a{old_owner}.
   owner_transfer_failed_limit: §cTarget player has no available world slots.

@@ -16,7 +16,7 @@ commands:
     usage: /<command>
   visit:
     description: Visit another player's public worlds
-    usage: /visit <player>
+    usage: /visit [player]
   invite:
     description: Invite a player to your current world
     usage: /invite <player>

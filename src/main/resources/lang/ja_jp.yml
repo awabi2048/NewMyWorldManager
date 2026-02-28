@@ -1379,6 +1379,10 @@ gui:
       - "§7マイワールドの数が増えます。"
 
   visit:
+    input:
+      title: "訪問先プレイヤーの入力"
+      label: "プレイヤー名"
+      placeholder: "プレイヤー名を入力"
     title: "{player}のワールド"
     world_item:
       # Placeholder: {description}, {owner_line}, {favorite_line}, {visitor_line}, {tag_line}, {warp_line}, {fav_action_line}
@@ -1567,6 +1571,7 @@ messages:
   
   # 招待関連
   member_invite_input: "§e招待したいプレイヤーのIDを入力してください"
+  visit_target_input: "§e訪問したいプレイヤーのIDを入力してください"
   member_deleted: "§cメンバーを削除しました"
   owner_transferred: "§a{old_owner}さんへオーナー権限を譲渡しました。"
   owner_transfer_failed_limit: "§c譲渡先のプレイヤーのワールドスロットがいっぱいです"

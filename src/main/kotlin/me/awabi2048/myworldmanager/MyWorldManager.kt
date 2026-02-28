@@ -247,6 +247,7 @@ class MyWorldManager : JavaPlugin() {
             val visitCmd = VisitCommand(this)
             it.setExecutor(visitCmd)
             it.setTabCompleter(visitCmd)
+            server.pluginManager.registerEvents(visitCmd, this)
         }
 
         getCommand("invite")?.setExecutor(inviteCommand)
