@@ -8,7 +8,6 @@ import io.papermc.paper.registry.data.dialog.DialogBase
 import io.papermc.paper.registry.data.dialog.action.DialogAction
 import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.session.PreviewSource
@@ -53,11 +52,8 @@ class CreationDialogManager : Listener {
 
         // 名前入力 -> 次へ
         if (identifier == Key.key("mwm:creation/name_input_next")) {
-            val view = event.getDialogResponseView() ?: return
-
-            val nameRawAny = view.getText("world_name")
-            if (nameRawAny == null) return
-            val nameRaw = nameRawAny.toString()
+            val view = event.getDialogResponseView()
+            val nameRaw = view?.getText("world_name")?.toString().orEmpty()
 
             // 名前のバリデーション
             val error = plugin.worldValidator.validateName(nameRaw)
@@ -118,33 +114,32 @@ class CreationDialogManager : Listener {
             return
         }
 
-        // 最終確認 -> 実行
-        if (identifier == Key.key("mwm:creation/confirm_proceed")) {
-            val view = event.getDialogResponseView() ?: return
-            val actionAny = view.getText("action_choice") ?: "cancel"
-            val action = actionAny.toString()
+        // 最終確認 -> 進む
+        if (identifier == Key.key("mwm:creation/confirm_next")) {
+            performWorldCreation(player, session, plugin)
+            safeCloseDialog(player)
+            return
+        }
 
-            when (action) {
-                "create" -> {
-                    performWorldCreation(player, session, plugin)
+        // 最終確認 -> テンプレートプレビュー
+        if (identifier == Key.key("mwm:creation/confirm_preview")) {
+            if (session.creationType == WorldCreationType.TEMPLATE && session.templateName != null) {
+                session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                val target = PreviewSessionManager.PreviewTarget.Template(session.templateName!!)
+                val started =
+                    plugin.previewSessionManager.startPreview(
+                        player,
+                        target,
+                        PreviewSource.TEMPLATE_SELECTION
+                    )
+                if (started) {
                     safeCloseDialog(player)
+                } else {
+                    session.phase = WorldCreationPhase.CONFIRM
+                    showConfirmationDialog(player, session)
                 }
-                "preview" -> {
-                    if (session.creationType == WorldCreationType.TEMPLATE && session.templateName != null) {
-                        val target = PreviewSessionManager.PreviewTarget.Template(session.templateName!!)
-                        plugin.previewSessionManager.startPreview(player, target, PreviewSource.TEMPLATE_SELECTION)
-                        safeCloseDialog(player)
-                    }
-                }
-                "back" -> {
-                    session.phase = WorldCreationPhase.NAME_INPUT
-                    showNameInputDialog(player, session)
-                }
-                "cancel" -> {
-                    plugin.creationSessionManager.endSession(player.uniqueId)
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_cancelled"))
-                    safeCloseDialog(player)
-                }
+            } else {
+                showConfirmationDialog(player, session)
             }
             return
         }
@@ -314,38 +309,34 @@ class CreationDialogManager : Listener {
             bodyLines.add(Component.text("§f§l| §7${lang.getMessage(player, "gui.creation.confirm.cost_label")} §6🛖 §e$cost"))
             bodyLines.add(Component.text("§8§m－－－－－－－－－－－－－－－－－－"))
 
-            val actionOptions = mutableListOf(
-                SingleOptionDialogInput.OptionEntry.create(
-                    "create",
-                    Component.text(lang.getMessage(player, "gui.creation.confirm.action_create"), NamedTextColor.GREEN),
-                    true
+            val actionButtons =
+                mutableListOf(
+                    ActionButton.create(
+                        Component.text("進む", NamedTextColor.GREEN),
+                        null,
+                        100,
+                        DialogAction.customClick(Key.key("mwm:creation/confirm_next"), null)
+                    )
                 )
-            )
 
             if (session.creationType == WorldCreationType.TEMPLATE) {
-                actionOptions.add(
-                    SingleOptionDialogInput.OptionEntry.create(
-                        "preview",
-                        Component.text(lang.getMessage(player, "gui.creation.confirm.action_preview"), NamedTextColor.YELLOW),
-                        false
+                actionButtons.add(
+                    ActionButton.create(
+                        Component.text("テンプレートをプレビュー", NamedTextColor.YELLOW),
+                        null,
+                        200,
+                        DialogAction.customClick(Key.key("mwm:creation/confirm_preview"), null)
                     )
                 )
             }
 
-            actionOptions.add(
-                SingleOptionDialogInput.OptionEntry.create(
-                    "back",
-                    Component.text(lang.getMessage(player, "gui.creation.confirm.action_back"), NamedTextColor.GRAY),
-                    false
+            val backButton =
+                ActionButton.create(
+                    Component.text("戻る", NamedTextColor.GRAY),
+                    null,
+                    300,
+                    DialogAction.customClick(Key.key("mwm:creation/confirm_back"), null)
                 )
-            )
-            actionOptions.add(
-                SingleOptionDialogInput.OptionEntry.create(
-                    "cancel",
-                    Component.text(lang.getMessage(player, "gui.creation.confirm.action_cancel"), NamedTextColor.RED),
-                    false
-                )
-            )
 
             val dialog = Dialog.create { builder ->
                 builder.empty()
@@ -355,33 +346,10 @@ class CreationDialogManager : Listener {
                                 .deserialize(lang.getMessage(player, "gui.creation.title_confirm"))
                         )
                             .body(bodyLines.map { DialogBody.plainMessage(it) })
-                            .inputs(
-                                listOf(
-                                    DialogInput.singleOption(
-                                        "action_choice",
-                                        Component.text(lang.getMessage(player, "gui.creation.confirm.select_action")),
-                                        actionOptions
-                                    )
-                                        .build()
-                                )
-                            )
                             .build()
                     )
                     .type(
-                        DialogType.confirmation(
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.creation.confirm.proceed_button"), NamedTextColor.GREEN),
-                                null,
-                                100,
-                                DialogAction.customClick(Key.key("mwm:creation/confirm_proceed"), null)
-                            ),
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.creation.confirm.cancel_button"), NamedTextColor.RED),
-                                null,
-                                200,
-                                DialogAction.customClick(Key.key("mwm:creation/confirm_back"), null)
-                            )
-                        )
+                        DialogType.multiAction(actionButtons, backButton, 1)
                     )
             }
 

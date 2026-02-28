@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import java.util.UUID
+import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemoveSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
@@ -146,9 +147,17 @@ class WorldSettingsListener : Listener {
                                                 return
                                         }
 
-                                        session.action = SettingsAction.MEMBER_INVITE
+                                        plugin.settingsSessionManager.updateSessionAction(
+                                                player,
+                                                worldData.uuid,
+                                                SettingsAction.MEMBER_INVITE,
+                                                isGui = true
+                                        )
                                         player.closeInventory()
-                                        showMemberInviteDialog(player, worldData)
+                                        Bukkit.getScheduler().runTask(
+                                                plugin,
+                                                Runnable { showMemberInviteDialog(player, worldData) }
+                                        )
                                         return
                                 }
 
@@ -2701,7 +2710,24 @@ plugin.languageManager
         private fun applyMemberInvite(player: Player, worldData: WorldData, targetNameRaw: String) {
                 val lang = plugin.languageManager
                 val targetName = targetNameRaw.trim()
-                val target = Bukkit.getPlayerExact(targetName)
+
+                if (targetName.isEmpty()) {
+                        player.sendMessage(lang.getMessage(player, "messages.member_invite_input"))
+                        player.playSound(
+                                player.location,
+                                org.bukkit.Sound.ENTITY_VILLAGER_NO,
+                                1.0f,
+                                1.0f
+                        )
+                        plugin.worldSettingsGui.openMemberManagement(
+                                player,
+                                worldData,
+                                playSound = false
+                        )
+                        return
+                }
+
+                val target = resolveInviteTarget(targetName)
 
                 if (target == null) {
                         player.sendMessage(lang.getMessage(player, "general.player_not_found"))
@@ -2711,7 +2737,6 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        plugin.settingsSessionManager.endSession(player)
                         plugin.worldSettingsGui.openMemberManagement(
                                 player,
                                 worldData,
@@ -2728,7 +2753,26 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        plugin.settingsSessionManager.endSession(player)
+                        plugin.worldSettingsGui.openMemberManagement(
+                                player,
+                                worldData,
+                                playSound = false
+                        )
+                        return
+                }
+
+                if (
+                        worldData.owner == target.uniqueId ||
+                                worldData.members.contains(target.uniqueId) ||
+                                worldData.moderators.contains(target.uniqueId)
+                ) {
+                        player.sendMessage(lang.getMessage(player, "error.invite_already_member"))
+                        player.playSound(
+                                player.location,
+                                org.bukkit.Sound.ENTITY_VILLAGER_NO,
+                                1.0f,
+                                1.0f
+                        )
                         plugin.worldSettingsGui.openMemberManagement(
                                 player,
                                 worldData,
@@ -2833,11 +2877,29 @@ plugin.languageManager
                         )
                 )
 
-                plugin.worldSettingsGui.openMemberManagement(
-                        player,
-                        worldData,
-                        playSound = false
-                )
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        private fun resolveInviteTarget(inputName: String): Player? {
+                Bukkit.getPlayerExact(inputName)?.let { return it }
+
+                val configuredPrefix =
+                        plugin.config.getString("bedrock.player_name_prefix", "")?.trim().orEmpty()
+                if (configuredPrefix.isNotEmpty()) {
+                        if (!inputName.startsWith(configuredPrefix)) {
+                                Bukkit.getPlayerExact("$configuredPrefix$inputName")?.let { return it }
+                        } else {
+                                val withoutPrefix = inputName.removePrefix(configuredPrefix)
+                                if (withoutPrefix.isNotEmpty()) {
+                                        Bukkit.getPlayerExact(withoutPrefix)?.let { return it }
+                                }
+                        }
+                }
+
+                val lowerInput = inputName.lowercase(Locale.ROOT)
+                return Bukkit.getOnlinePlayers().firstOrNull {
+                        it.name.lowercase(Locale.ROOT) == lowerInput
+                }
         }
 
         private fun applyWorldInfoUpdate(
@@ -3639,7 +3701,42 @@ player.sendMessage(
                                 plugin.inviteCommand.handleAccept(player)
                         }
                         "memberinviteaccept" -> {
-                                plugin.memberInviteManager.handleMemberInviteAccept(player)
+                                val invite = plugin.memberInviteManager.getInvite(player.uniqueId)
+                                if (invite == null) {
+                                        player.sendMessage(lang.getMessage(player, "error.invite_expired"))
+                                        return
+                                }
+
+                                val worldData = plugin.worldConfigRepository.findByUuid(invite.worldUuid)
+                                if (worldData == null) {
+                                        player.sendMessage(lang.getMessage(player, "error.invite_world_not_found"))
+                                        plugin.memberInviteManager.removeInvite(player.uniqueId)
+                                        return
+                                }
+
+                                val senderName = PlayerNameUtil.getNameOrDefault(invite.senderUuid, "Unknown")
+                                val title = Component.text(
+                                        lang.getMessage(player, "gui.member_invite_accept_confirm.title")
+                                )
+                                val bodyLines = lang.getMessageList(
+                                        player,
+                                        "gui.member_invite_accept_confirm.lore",
+                                        mapOf(
+                                                "world" to worldData.name,
+                                                "player" to senderName
+                                        )
+                                ).map { Component.text(it) }
+
+                                DialogConfirmManager.showSimpleConfirmationDialog(
+                                        player,
+                                        plugin,
+                                        title,
+                                        bodyLines,
+                                        "mwm:confirm/member_invite_accept",
+                                        "mwm:confirm/member_invite_accept_cancel",
+                                        lang.getMessage(player, "gui.member_invite_accept_confirm.confirm"),
+                                        lang.getMessage(player, "gui.member_invite_accept_confirm.cancel")
+                                )
                         }
                         "memberrequest" -> {
                                 if (args.size < 3) return
@@ -3711,12 +3808,18 @@ player.sendMessage(
             }
 
             if (identifier == Key.key("mwm:settings/member_invite_submit")) {
-                val view = event.getDialogResponseView() ?: return
-                val targetAny = view.getText("member_invite_target") ?: ""
-                val targetName = targetAny.toString().trim()
+                val view = event.getDialogResponseView()
+                val targetName = view?.getText("member_invite_target")?.toString().orEmpty().trim()
 
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                val session = plugin.settingsSessionManager.getSession(player) ?: run {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.member_invite_input"))
+                    return
+                }
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "general.world_not_found"))
+                    plugin.settingsSessionManager.endSession(player)
+                    return
+                }
                 applyMemberInvite(player, worldData, targetName)
                 return
             }
@@ -3733,6 +3836,18 @@ player.sendMessage(
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
                 plugin.worldSettingsGui.open(player, worldData)
+            }
+
+            if (identifier == Key.key("mwm:confirm/member_invite_accept")) {
+                DialogConfirmManager.safeCloseDialog(player)
+                plugin.memberInviteManager.handleMemberInviteAccept(player)
+                return
+            }
+
+            if (identifier == Key.key("mwm:confirm/member_invite_accept_cancel")) {
+                DialogConfirmManager.safeCloseDialog(player)
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
+                return
             }
 
             // Dialog Confirmation Handler (Environment & Visitor Kick)
@@ -3847,7 +3962,7 @@ player.sendMessage(
                                     DialogInput.text(
                                         "member_invite_target",
                                         Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label"))
-                                    ).maxLength(16).build()
+                                    ).maxLength(32).build()
                                 )
                             )
                             .build()

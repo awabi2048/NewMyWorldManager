@@ -109,6 +109,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         session.phase = WorldCreationPhase.SEED_INPUT
                         
                         if (session.isDialogMode) {
+                            player.closeInventory()
                             me.awabi2048.myworldmanager.gui.CreationDialogManager.showSeedInputDialog(player, session)
                             return
                         }
@@ -122,6 +123,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         
                         if (session.isDialogMode) {
                             session.phase = WorldCreationPhase.NAME_INPUT
+                            player.closeInventory()
                             me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
                             return
                         }
@@ -159,6 +161,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     
                     if (session.isDialogMode) {
                         session.phase = WorldCreationPhase.NAME_INPUT
+                        player.closeInventory()
                         me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
                         return
                     }

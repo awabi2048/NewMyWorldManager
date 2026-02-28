@@ -15,7 +15,6 @@ class GlobalMenuListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked
-        val inventory = event.inventory
         
         // マイワールドマネージャーのメニューはHolderを持っているか、特定のタイトルを持つ
         // ここでは、トップインベントリをクリックした場合のみ判定する（プレイヤーインベントリの操作は除外するかもしれないが、メニューを開いている間は全体的に制限したほうが安全）
@@ -27,8 +26,7 @@ class GlobalMenuListener(private val plugin: MyWorldManager) : Listener {
         // ダブルクリック防止の観点からは、メニューを開いている間はすべてのクリックを制限したほうが無難。
         // ただし、通常のチェストを開いているときなどに誤爆しないように、MyWorldManagerのGUIかどうかの判定が必要。
         
-        val holder = inventory.holder
-        val title = event.view.title
+        val holder = event.view.topInventory.holder
         
         // Holderによる判定 (MyWorldManagerのGUIは専用のHolderを持つ場合があるが、全てではないかもしれない)
         // 現状の実装を見ると、WorldSettingsGuiHolder, DiscoveryGuiHolderなどがある。
@@ -36,10 +34,12 @@ class GlobalMenuListener(private val plugin: MyWorldManager) : Listener {
         
         // 簡易的な判定として、MyWorldManagerのGUIを開いているかどうかをチェックする手段があると良いが、
         // 既存のコードでは、各Listenerでタイトル判定などを行っている。
-        // ここでは、「カスタムインベントリ（タイプがCHESTなど）を開いている」かつ
-        // 「MyWorldManagerのパッケージに含まれるHolderを持っている」または「Holderがnull（一部のGUI）」の場合に適用する。
+        // ここでは、MyWorldManager側の専用Holderを持つGUIにだけ適用する。
         
-        val isPluginGui = holder?.javaClass?.name?.startsWith("me.awabi2048.myworldmanager") == true || holder == null
+        val holderClassName = holder?.javaClass?.name ?: return
+        val isPluginGui =
+            holderClassName.startsWith("me.awabi2048.myworldmanager") &&
+                holderClassName.endsWith("Holder")
         
         if (!isPluginGui) return
 

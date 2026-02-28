@@ -1206,6 +1206,15 @@ gui:
     - §fplayer "§a{player}§f"?
     - ''
     - §7If approved, they will become a member of this world.
+  member_invite_accept_confirm:
+    title: Member Invite Confirmation
+    confirm: §aAccept
+    cancel: §cDecline
+    lore:
+    - §fAccept the §dmember invite§f from
+    - §fplayer "§a{player}§f"?
+    - ''
+    - '§7Target world: §a{world}'
   world_seed_confirm:
     title: Using world seeds
     lore:
@@ -1400,6 +1409,7 @@ messages:
   invite_already_member: §cAlready a member of this world.
   invite_accepted_self: §aYou are now a member of world【{world}】!
   invite_accepted_sender: §e{player} §faccepted your invite to world【§a{world}§f】.
+  member_joined_notify: §a{player} §fjoined world【§a{world}§f】 as a member.
   invite_sent_success: §eSent invite to {player} for world "§a{world}§f"!
   invite_target_offline: §cPlayer {player} is not online.
   invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
