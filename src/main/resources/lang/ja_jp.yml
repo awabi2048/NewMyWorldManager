@@ -1348,6 +1348,16 @@ gui:
       - ""
       - "§7承認すると、このプレイヤーはワールドのメンバーになります。"
 
+  member_invite_accept_confirm:
+    title: "メンバー招待の確認"
+    confirm: "§a承諾する"
+    cancel: "§c辞退する"
+    lore:
+      - "§fプレイヤー「§a{player}§f」からの"
+      - "§dメンバー招待§fを承諾しますか？"
+      - ""
+      - "§7対象ワールド: §a{world}"
+
   spotlight_confirm:
     title: "SPOTLIGHTへの登録"
     lore:
@@ -1568,6 +1578,7 @@ messages:
   invite_already_member: "§c既にこのワールドのメンバーです"
   invite_accepted_self: "§aワールド【{world}】のメンバーになりました！"
   invite_accepted_sender: "§e{player} §fさんがワールド【§a{world}§f】のメンバー招待を承諾しました"
+  member_joined_notify: "§a{player} §fさんがワールド【§a{world}§f】のメンバーになりました"
   invite_sent_success: "§e{player} §fさんを「§a{world}§f」に招待しました！"
   invite_target_offline: "§c{player}さんは現在オフラインです"
   invite_not_in_myworld: "§c招待を送信するには、マイワールドにいる必要があります！"
