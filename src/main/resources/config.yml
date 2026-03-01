@@ -149,6 +149,9 @@ announcement:
 world_unload:
   enabled: true
   time_minutes: 5
+  max_per_cycle: 1
+  failure_retry_minutes: 5
+  failure_retry_max_minutes: 30
   exclude_worlds:
     - "world"
     - "world_nether"
