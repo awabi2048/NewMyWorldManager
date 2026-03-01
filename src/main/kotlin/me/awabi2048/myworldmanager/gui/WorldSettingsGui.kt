@@ -73,19 +73,42 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WorldSettingsGuiHolder::class.java
                 )
 
+                // 権限判定
+                val currentSession = plugin.settingsSessionManager.getSession(player)
+                val isOwner = worldData.owner == player.uniqueId || currentSession?.isAdminFlow == true
+                val isModerator = worldData.moderators.contains(player.uniqueId)
+                val isMember = worldData.members.contains(player.uniqueId)
+                val hasManagePermission = isOwner || isModerator
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
+
+                val isMemberLayout = isMember && !hasManagePermission
+                val useModeratorCenteredLayout = isModerator && !isOwner
+
+                val inventorySize = if (isMemberLayout) 45 else 54
+                val bottomRowStartSlot = inventorySize - 9
+                val backButtonSlot = if (isMemberLayout) 36 else 45
+                val worldInfoSlot = if (isMemberLayout) 22 else 49
+
+                val infoSettingSlot = if (useModeratorCenteredLayout) 21 else 19
+                val iconSettingSlot = if (useModeratorCenteredLayout) 22 else 20
+                val spawnSettingSlot = if (useModeratorCenteredLayout) 23 else 21
+                val tagsSettingSlot = if (useModeratorCenteredLayout) 30 else 28
+                val announcementSettingSlot = if (useModeratorCenteredLayout) 31 else 29
+                val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else 30
+
                 val holder = WorldSettingsGuiHolder()
-                val inventory = Bukkit.createInventory(holder, 54, title)
+                val inventory = Bukkit.createInventory(holder, inventorySize, title)
                 holder.inv = inventory
 
                 // 背景 (黒の板ガラス)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 45..53) inventory.setItem(i, blackPane)
+                for (i in bottomRowStartSlot until inventorySize) inventory.setItem(i, blackPane)
 
                 // 戻るボタン
                 if (currentShowBack) {
                         inventory.setItem(
-                                45,
+                                backButtonSlot,
                                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
                                         plugin,
                                         player,
@@ -94,17 +117,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // 権限判定
-                val currentSession = plugin.settingsSessionManager.getSession(player)
-                val isOwner = worldData.owner == player.uniqueId || currentSession?.isAdminFlow == true
-                val isModerator = worldData.moderators.contains(player.uniqueId)
-                val hasManagePermission = isOwner || isModerator
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
-                // スロット19: ワールド名・説明変更
+                // ワールド名・説明変更
                 if (hasManagePermission) {
                         inventory.setItem(
-                                19,
+                                infoSettingSlot,
                                 createItem(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
@@ -133,10 +149,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 lang.getMessage(player, "gui.settings.error.must_be_in_world_lore")
                         else null
 
-                // スロット20: アイコン変更
+                // アイコン変更
                 if (hasManagePermission) {
                         inventory.setItem(
-                                20,
+                                iconSettingSlot,
                                 createItem(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
@@ -150,7 +166,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット21: スポーン位置変更
+                // スポーン位置変更
                 if (hasManagePermission) {
                         val lore =
                                 lang.getMessageList(
@@ -168,7 +184,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
 
                         inventory.setItem(
-                                21,
+                                spawnSettingSlot,
                                 createItem(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
@@ -457,7 +473,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット28: タグ設定
+                // タグ設定
                 if (hasManagePermission) {
                         val tagsList = if (worldData.tags.isEmpty()) {
                                 lang.getMessage(player, "gui.settings.tags.lore_empty")
@@ -481,7 +497,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
 
                         inventory.setItem(
-                                28,
+                                tagsSettingSlot,
                                 createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
@@ -495,8 +511,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット29: 案内設定
-                // スロット29: 案内設定
+                // 案内設定
                 if (hasManagePermission) {
                         val messagePreview = if (worldData.announcementMessages.isNotEmpty()) {
                                 mutableListOf<String>().apply {
@@ -520,7 +535,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
 
                         inventory.setItem(
-                                29,
+                                announcementSettingSlot,
                                 createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
@@ -537,8 +552,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット30: 通知設定
-                // スロット30: 通知設定
+                // 通知設定
                 if (hasManagePermission) {
                         val onlineColor = lang.getMessage(player, "publish_level.color.online")
                         val offlineColor = lang.getMessage(player, "publish_level.color.offline")
@@ -559,7 +573,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
 
                         inventory.setItem(
-                                30,
+                                notificationSettingSlot,
                                 createItemComponent(
                                         if (worldData.notificationEnabled)
                                                 plugin.menuConfigManager.getIconMaterial(
@@ -633,7 +647,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット49: ワールド情報 (中央下)
+                // ワールド情報
                 val currentLevel = worldData.borderExpansionLevel
                 val costsSection = plugin.config.getConfigurationSection("expansion.costs")
                 val maxLevel = costsSection?.getKeys(false)?.size ?: 3
@@ -761,7 +775,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
-                inventory.setItem(49, infoItem)
+                inventory.setItem(worldInfoSlot, infoItem)
 
                 // スロット51: 訪問中のプレイヤー管理
                 val visitors =
