@@ -192,16 +192,26 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  )
 
                  me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
-                     player,
-                     plugin,
-                     title,
-                     bodyLines,
-                     "mwm:confirm/world_seed",
-                     "mwm:confirm/cancel"
-                 ) {
-                     plugin.worldSeedConfirmGui.open(player, currentSlots, currentSlots + 1)
-                 }
-              }
+                      player,
+                      plugin,
+                      title,
+                      bodyLines,
+                      "mwm:confirm/world_seed",
+                      "mwm:confirm/cancel"
+                  ) {
+                      plugin.menuEntryRouter.openWorldSeedConfirm(
+                          player,
+                          currentSlots,
+                          currentSlots + 1,
+                          onBedrockConfirm = {
+                              WorldSeedListener.expandWorldSlot(plugin, player)
+                          },
+                          onBedrockCancel = {
+                              plugin.soundManager.playClickSound(player, null)
+                          }
+                      )
+                  }
+               }
         }
     }
 }

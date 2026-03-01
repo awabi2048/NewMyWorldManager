@@ -49,6 +49,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var favoriteGui: FavoriteGui
     lateinit var favoriteMenuGui: FavoriteMenuGui
     lateinit var favoriteConfirmGui: FavoriteConfirmGui
+    lateinit var visitGui: VisitGui
     lateinit var meetGui: MeetGui
     lateinit var playerWorldGui: PlayerWorldGui
     lateinit var userSettingsGui: UserSettingsGui
@@ -139,6 +140,7 @@ class MyWorldManager : JavaPlugin() {
         favoriteGui = FavoriteGui(this)
         favoriteMenuGui = FavoriteMenuGui(this)
         favoriteConfirmGui = FavoriteConfirmGui(this)
+        visitGui = VisitGui(this)
         meetGui = MeetGui(this)
         playerWorldGui = PlayerWorldGui(this)
         worldSettingsGui = WorldSettingsGui(this)

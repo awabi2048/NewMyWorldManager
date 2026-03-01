@@ -3,7 +3,6 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
-import me.awabi2048.myworldmanager.gui.DiscoveryGui
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
@@ -40,6 +39,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         val item = event.currentItem ?: return
         val tag = ItemTag.getType(item) ?: return
         val session = plugin.discoverySessionManager.getSession(player.uniqueId)
+        val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
         when (tag) {
             "discovery_world_item", ItemTag.TYPE_GUI_WORLD_ITEM -> {
@@ -49,6 +49,21 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 val isMember = worldData.owner == player.uniqueId || 
                               worldData.moderators.contains(player.uniqueId) ||
                               worldData.members.contains(player.uniqueId)
+
+                if (isBedrock) {
+                    if (worldData.publishLevel != PublishLevel.PUBLIC && !isMember) {
+                        player.sendMessage(lang.getMessage(player, "error.world_not_public"))
+                        plugin.soundManager.playActionSound(player, "discovery", "access_denied")
+                        player.closeInventory()
+                        return
+                    }
+
+                    plugin.soundManager.playClickSound(player, item, "discovery")
+                    plugin.worldService.teleportToWorld(player, uuid)
+                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                    player.closeInventory()
+                    return
+                }
 
                 if (event.isLeftClick) {
                     // アクセス判定
@@ -78,7 +93,16 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                             "mwm:confirm/member_request_send/" + worldData.uuid.toString(),
                             "mwm:confirm/cancel"
                         ) {
-                            plugin.memberRequestConfirmGui.open(player, worldData)
+                            plugin.menuEntryRouter.openMemberRequestConfirm(
+                                player,
+                                worldData,
+                                onBedrockConfirm = {
+                                    plugin.memberRequestManager.sendRequest(player, worldData.uuid)
+                                },
+                                onBedrockCancel = {
+                                    plugin.soundManager.playActionSound(player, "member_request", "cancel")
+                                }
+                            )
                         }
                         plugin.soundManager.playClickSound(player, item, "discovery")
                         return
@@ -106,7 +130,26 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                                 "mwm:confirm/spotlight_remove/" + worldData.uuid.toString(),
                                 "mwm:confirm/cancel"
                             ) {
-                                plugin.spotlightRemoveConfirmGui.open(player, worldData)
+                                plugin.menuEntryRouter.openSpotlightRemoveConfirm(
+                                    player,
+                                    worldData,
+                                    onBedrockConfirm = {
+                                        plugin.spotlightRepository.remove(worldData.uuid)
+                                        player.sendMessage(
+                                            lang.getMessage(
+                                                player,
+                                                "messages.spotlight_removed",
+                                                mapOf("world" to worldData.name)
+                                            )
+                                        )
+                                        plugin.soundManager.playClickSound(player, null, "discovery")
+                                        plugin.menuEntryRouter.openDiscovery(player)
+                                    },
+                                    onBedrockCancel = {
+                                        plugin.soundManager.playClickSound(player, null, "discovery")
+                                        plugin.menuEntryRouter.openDiscovery(player)
+                                    }
+                                )
                             }
                             plugin.soundManager.playClickSound(player, item, "discovery")
                             return
@@ -153,7 +196,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                                 )
                             )
                         }
-                        plugin.discoveryGui.open(player)
+                        plugin.menuEntryRouter.openDiscovery(player)
                     } else {
                         // プレビュー (通常右クリック)
                         player.closeInventory()
@@ -164,32 +207,33 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
             }
             ItemTag.TYPE_GUI_DISCOVERY_TAG -> {
                 val allTags = plugin.worldTagManager.getEnabledTagIds()
-                if (event.isRightClick) {
-                    session.selectedTag = null
-                } else if (event.isLeftClick) {
+                if (isBedrock || event.isLeftClick) {
                     val currentIndex = if (session.selectedTag == null) -1 else allTags.indexOf(session.selectedTag)
                     val nextIndex = (currentIndex + 1) % (allTags.size + 1)
-                    
+
                     session.selectedTag = if (nextIndex == allTags.size) {
                         null
                     } else {
                         allTags[nextIndex]
                     }
+                } else if (event.isRightClick) {
+                    session.selectedTag = null
                 }
                 
                 plugin.soundManager.playClickSound(player, item, "discovery")
-                plugin.discoveryGui.open(player)
+                plugin.menuEntryRouter.openDiscovery(player)
             }
             ItemTag.TYPE_GUI_DISCOVERY_SORT -> {
-                session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), event.isLeftClick)
+                val forward = if (isBedrock) true else event.isLeftClick
+                session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), forward)
                 plugin.soundManager.playClickSound(player, item, "discovery")
-                plugin.discoveryGui.open(player)
+                plugin.menuEntryRouter.openDiscovery(player)
             }
             ItemTag.TYPE_GUI_RETURN -> {
                 me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, item)
             }
             "discovery_spotlight_empty" -> {
-                if (event.isLeftClick && player.hasPermission("myworldmanager.admin")) {
+                if ((isBedrock || event.isLeftClick) && player.hasPermission("myworldmanager.admin")) {
                     val world = player.world
                     
                     // Try getting by UUID first (standard MyWorld folder name format: my_world.<UUID>)
@@ -233,7 +277,34 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         "mwm:confirm/spotlight_add/" + worldData.uuid.toString(),
                         "mwm:confirm/cancel"
                     ) {
-                        plugin.spotlightConfirmGui.open(player, worldData)
+                        plugin.menuEntryRouter.openSpotlightConfirm(
+                            player,
+                            worldData,
+                            onBedrockConfirm = {
+                                if (plugin.spotlightRepository.isSpotlight(worldData.uuid)) {
+                                    player.sendMessage(lang.getMessage(player, "error.spotlight_already_registered"))
+                                } else {
+                                    val success = plugin.spotlightRepository.add(worldData.uuid)
+                                    if (success) {
+                                        player.sendMessage(
+                                            lang.getMessage(
+                                                player,
+                                                "messages.spotlight_added",
+                                                mapOf("world" to worldData.name)
+                                            )
+                                        )
+                                        plugin.soundManager.playClickSound(player, null, "discovery")
+                                    } else {
+                                        player.sendMessage(lang.getMessage(player, "error.spotlight_limit_reached"))
+                                    }
+                                }
+                                plugin.menuEntryRouter.openDiscovery(player)
+                            },
+                            onBedrockCancel = {
+                                plugin.soundManager.playClickSound(player, null, "discovery")
+                                plugin.menuEntryRouter.openDiscovery(player)
+                            }
+                        )
                     }
                     plugin.soundManager.playClickSound(player, item, "discovery")
                 }

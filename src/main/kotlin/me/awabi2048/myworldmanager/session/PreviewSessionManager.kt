@@ -250,10 +250,10 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                     }
                 }
                 PreviewSource.FAVORITE_MENU -> {
-                    plugin.favoriteGui.open(player)
+                    plugin.menuEntryRouter.openFavoriteList(player)
                 }
                 PreviewSource.DISCOVERY_MENU -> {
-                    plugin.discoveryGui.open(player)
+                    plugin.menuEntryRouter.openDiscovery(player)
                 }
             }
         }, 5L)

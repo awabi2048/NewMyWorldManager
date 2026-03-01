@@ -39,11 +39,11 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
                         player.sendMessage(lang.getMessage(player, "error.spotlight_limit_reached"))
                     }
                 }
-                plugin.discoveryGui.open(player)
+                plugin.menuEntryRouter.openDiscovery(player)
             }
             "spotlight_confirm_no" -> {
                 plugin.soundManager.playClickSound(player, item)
-                plugin.discoveryGui.open(player)
+                plugin.menuEntryRouter.openDiscovery(player)
             }
             "spotlight_remove_confirm_yes" -> {
                 val uuid = ItemTag.getWorldUuid(item) ?: return
@@ -52,11 +52,11 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
                 plugin.spotlightRepository.remove(uuid)
                 player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
                 plugin.soundManager.playClickSound(player, item)
-                plugin.discoveryGui.open(player)
+                plugin.menuEntryRouter.openDiscovery(player)
             }
             "spotlight_remove_confirm_no" -> {
                 plugin.soundManager.playClickSound(player, item)
-                plugin.discoveryGui.open(player)
+                plugin.menuEntryRouter.openDiscovery(player)
             }
         }
     }
@@ -90,7 +90,7 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
             // Dialog closing is handled by client/server handshake usually, but safeCloseDialog ensures state.
             // Opening another GUI immediately after dialog might be tricky or fine.
             // Let's open discovery GUI as per original flow.
-            plugin.discoveryGui.open(player)
+            plugin.menuEntryRouter.openDiscovery(player)
 
         } else if (identifierStr.startsWith("mwm:confirm/spotlight_remove/")) {
             me.awabi2048.myworldmanager.gui.DialogConfirmManager.safeCloseDialog(player)
@@ -101,7 +101,7 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
             plugin.spotlightRepository.remove(uuid)
             player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
             plugin.soundManager.playClickSound(player, null)
-            plugin.discoveryGui.open(player)
+            plugin.menuEntryRouter.openDiscovery(player)
         }
     }
 }

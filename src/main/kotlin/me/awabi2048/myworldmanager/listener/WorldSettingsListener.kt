@@ -254,7 +254,17 @@ class WorldSettingsListener : Listener {
                                                                         "mwm:confirm/member_transfer/$memberId",
                                                                         "mwm:confirm/cancel",
                                                                         lang.getMessage(player, "gui.member_management.transfer_confirm.confirm"),
-                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.cancel")
+                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.cancel"),
+                                                                        onBedrockConfirm = {
+                                                                                handleBedrockDialogAction(
+                                                                                        player,
+                                                                                        worldData,
+                                                                                        "mwm:confirm/member_transfer/$memberId"
+                                                                                )
+                                                                        },
+                                                                        onBedrockCancel = {
+                                                                                handleBedrockDialogCancel(player, worldData)
+                                                                        }
                                                                 ) {
                                                                         plugin.worldSettingsGui.openMemberTransferConfirmation(
                                                                                 player,
@@ -293,7 +303,17 @@ class WorldSettingsListener : Listener {
                                                                         "mwm:confirm/member_remove/$memberId",
                                                                         "mwm:confirm/cancel",
                                                                         lang.getMessage(player, "gui.member_management.remove_confirm.confirm"),
-                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.cancel")
+                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.cancel"),
+                                                                        onBedrockConfirm = {
+                                                                                handleBedrockDialogAction(
+                                                                                        player,
+                                                                                        worldData,
+                                                                                        "mwm:confirm/member_remove/$memberId"
+                                                                                )
+                                                                        },
+                                                                        onBedrockCancel = {
+                                                                                handleBedrockDialogCancel(player, worldData)
+                                                                        }
                                                                 ) {
                                                                         plugin.worldSettingsGui.openMemberRemoveConfirmation(
                                                                                 player,
@@ -533,7 +553,17 @@ class WorldSettingsListener : Listener {
                                                         "mwm:confirm/visitor_kick/$visitorUuid",
                                                         "mwm:confirm/cancel",
                                                         lang.getMessage(player, "gui.visitor_management.kick_confirm.confirm"),
-                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.cancel")
+                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.cancel"),
+                                                        onBedrockConfirm = {
+                                                                handleBedrockDialogAction(
+                                                                        player,
+                                                                        worldData,
+                                                                        "mwm:confirm/visitor_kick/$visitorUuid"
+                                                                )
+                                                        },
+                                                        onBedrockCancel = {
+                                                                handleBedrockDialogCancel(player, worldData)
+                                                        }
                                                 ) {
                                                         plugin.worldSettingsGui.openVisitorKickConfirmation(
                                                                 player,
@@ -1138,7 +1168,17 @@ class WorldSettingsListener : Listener {
                                                         "mwm:confirm/archive_world",
                                                         "mwm:confirm/cancel",
                                                         plugin.languageManager.getMessage(player, "gui.archive.confirm"),
-                                                        plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                                        onBedrockConfirm = {
+                                                                handleBedrockDialogAction(
+                                                                        player,
+                                                                        worldData,
+                                                                        "mwm:confirm/archive_world"
+                                                                )
+                                                        },
+                                                        onBedrockCancel = {
+                                                                handleBedrockDialogCancel(player, worldData)
+                                                        }
                                                 ) {
                                                         plugin.worldSettingsGui.openArchiveConfirmation(
                                                                 player,
@@ -1798,7 +1838,17 @@ class WorldSettingsListener : Listener {
                                                         "mwm:confirm/reset_expansion",
                                                         "mwm:confirm/cancel",
                                                         plugin.languageManager.getMessage(player, "gui.common.confirm"),
-                                                        plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                                        onBedrockConfirm = {
+                                                                handleBedrockDialogAction(
+                                                                        player,
+                                                                        worldData,
+                                                                        "mwm:confirm/reset_expansion"
+                                                                )
+                                                        },
+                                                        onBedrockCancel = {
+                                                                handleBedrockDialogCancel(player, worldData)
+                                                        }
                                                 ) {
                                                         plugin.worldSettingsGui.openResetExpansionConfirmation(
                                                                 player,
@@ -1855,7 +1905,17 @@ class WorldSettingsListener : Listener {
                                                     "mwm:confirm/archive_world_critical",
                                                     "mwm:confirm/cancel",
                                                     plugin.languageManager.getMessage(player, "gui.archive.confirm"),
-                                                    plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                    plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                                    onBedrockConfirm = {
+                                                            handleBedrockDialogAction(
+                                                                    player,
+                                                                    worldData,
+                                                                    "mwm:confirm/archive_world_critical"
+                                                            )
+                                                    },
+                                                    onBedrockCancel = {
+                                                            handleBedrockDialogCancel(player, worldData)
+                                                    }
                                                 ) {
                                                     plugin.worldSettingsGui.openArchiveConfirmation(player, worldData)
                                                 }
@@ -1886,7 +1946,17 @@ class WorldSettingsListener : Listener {
                                                         "mwm:confirm/delete_world_step1",
                                                         "mwm:confirm/cancel",
                                                         plugin.languageManager.getMessage(player, "gui.confirm.delete_1.next"),
-                                                        plugin.languageManager.getMessage(player, "gui.common.cancel")
+                                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                                        onBedrockConfirm = {
+                                                                handleBedrockDialogAction(
+                                                                        player,
+                                                                        worldData,
+                                                                        "mwm:confirm/delete_world_step1"
+                                                                )
+                                                        },
+                                                        onBedrockCancel = {
+                                                                handleBedrockDialogCancel(player, worldData)
+                                                        }
                                                 ) {
                                                         plugin.worldSettingsGui.openDeleteWorldConfirmation1(
                                                                 player,
@@ -4074,7 +4144,13 @@ player.sendMessage(
                         "mwm:confirm/expand",
                         "mwm:confirm/cancel",
                         lang.getMessage(player, "gui.common.confirm"),
-                        lang.getMessage(player, "gui.common.cancel")
+                        lang.getMessage(player, "gui.common.cancel"),
+                        onBedrockConfirm = {
+                                handleBedrockDialogAction(player, worldData, "mwm:confirm/expand")
+                        },
+                        onBedrockCancel = {
+                                handleBedrockDialogCancel(player, worldData)
+                        }
                 ) {
                         plugin.worldSettingsGui.openExpansionConfirmation(player, worldData.uuid, direction, cost)
                 }
@@ -4100,7 +4176,17 @@ player.sendMessage(
                 "mwm:confirm/env_change/$type",
                 "mwm:confirm/cancel",
                 lang.getMessage(player, "gui.common.confirm"),
-                lang.getMessage(player, "gui.common.cancel")
+                lang.getMessage(player, "gui.common.cancel"),
+                onBedrockConfirm = {
+                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
+                                ?: return@showSimpleConfirmationDialog
+                        handleBedrockDialogAction(player, worldData, "mwm:confirm/env_change/$type")
+                },
+                onBedrockCancel = {
+                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
+                                ?: return@showSimpleConfirmationDialog
+                        handleBedrockDialogCancel(player, worldData)
+                }
             )
         }
         
@@ -4120,7 +4206,17 @@ player.sendMessage(
                 "mwm:confirm/visitor_kick/$targetUuid",
                 "mwm:confirm/cancel",
                 "KICK",
-                "Cancel"
+                "Cancel",
+                onBedrockConfirm = {
+                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
+                                ?: return@showSimpleConfirmationDialog
+                        handleBedrockDialogAction(player, worldData, "mwm:confirm/visitor_kick/$targetUuid")
+                },
+                onBedrockCancel = {
+                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
+                                ?: return@showSimpleConfirmationDialog
+                        handleBedrockDialogCancel(player, worldData)
+                }
             )
         }
         
@@ -4450,6 +4546,227 @@ player.sendMessage(
                 plugin.soundManager.playActionSound(player, "world_settings", "kick")
                 }
                 plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+        }
+
+        private fun handleBedrockDialogCancel(player: Player, worldData: WorldData) {
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                when (session.action) {
+                        SettingsAction.ENV_CONFIRM -> plugin.environmentGui.open(player, worldData)
+                        SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                        SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                        SettingsAction.MEMBER_REMOVE_CONFIRM,
+                        SettingsAction.MEMBER_TRANSFER_CONFIRM -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        SettingsAction.RESET_EXPANSION_CONFIRM,
+                        SettingsAction.DELETE_WORLD_CONFIRM,
+                        SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
+                        SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        SettingsAction.UNARCHIVE_CONFIRM -> plugin.menuEntryRouter.openPlayerWorld(player)
+                        else -> plugin.worldSettingsGui.open(player, worldData)
+                }
+        }
+
+        private fun handleBedrockDialogAction(player: Player, worldData: WorldData, actionId: String) {
+                val keyVal = if (actionId.startsWith("mwm:")) actionId.substringAfter("mwm:") else actionId
+
+                if (keyVal == "confirm/cancel") {
+                        handleBedrockDialogCancel(player, worldData)
+                        return
+                }
+
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+
+                if (keyVal.startsWith("confirm/env_change/")) {
+                        val type = keyVal.substringAfter("confirm/env_change/")
+                        when (type) {
+                                "gravity" -> handleEnvGravityConfirm(player, worldData)
+                                "weather" -> handleWeatherConfirm(player, worldData)
+                                "biome" -> {
+                                        val biomeId = session.getMetadata("temp_biome") as? String ?: return
+                                        handleEnvBiomeConfirm(player, worldData, biomeId)
+                                }
+                        }
+                        return
+                }
+
+                if (keyVal == "confirm/archive_world") {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.archive_success",
+                                        mapOf("world" to worldData.name)
+                                )
+                        )
+                        worldData.isArchived = true
+                        plugin.worldConfigRepository.save(worldData)
+                        plugin.settingsSessionManager.endSession(player)
+                        player.closeInventory()
+                        return
+                }
+
+                if (keyVal == "confirm/archive_world_critical") {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+                        plugin.worldService.archiveWorld(worldData.uuid)
+                                .thenAccept { success: Boolean ->
+                                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                if (success) {
+                                                        val now = java.time.LocalDateTime.now()
+                                                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                        stats.lastArchiveActionAt = now
+                                                        plugin.playerStatsRepository.save(stats)
+                                                        player.sendMessage(
+                                                                plugin.languageManager.getMessage(
+                                                                        player,
+                                                                        "messages.archive_success",
+                                                                        mapOf("world" to worldData.name)
+                                                                )
+                                                        )
+                                                } else {
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_failed"))
+                                                }
+                                        })
+                                }
+                        plugin.settingsSessionManager.endSession(player)
+                        return
+                }
+
+                if (keyVal == "confirm/expand") {
+                        handleExpandConfirm(player, worldData)
+                        return
+                }
+
+                if (keyVal == "confirm/reset_expansion") {
+                        handleResetExpansionConfirm(player, worldData)
+                        return
+                }
+
+                if (keyVal == "confirm/delete_world_step1") {
+                        val title = LegacyComponentSerializer.legacySection().deserialize(
+                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.title")
+                        )
+                        val bodyLines = plugin.languageManager
+                                .getMessageList(player, "gui.confirm.delete_2.lore")
+                                .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                        DialogConfirmManager.showSimpleConfirmationDialog(
+                                player,
+                                plugin,
+                                title,
+                                bodyLines,
+                                "mwm:confirm/delete_world",
+                                "mwm:confirm/cancel",
+                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.confirm_btn"),
+                                plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                onBedrockConfirm = {
+                                        handleBedrockDialogAction(player, worldData, "mwm:confirm/delete_world")
+                                },
+                                onBedrockCancel = {
+                                        handleBedrockDialogCancel(player, worldData)
+                                },
+                                onBedrockFallback = {
+                                        plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
+                                }
+                        )
+                        return
+                }
+
+                if (keyVal == "confirm/delete_world") {
+                        handleDeleteWorldConfirm(player, worldData)
+                        return
+                }
+
+                if (keyVal == "confirm/unarchive_world") {
+                        handleUnarchiveWorldConfirm(player, worldData)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/member_remove/")) {
+                        val targetUuidStr = keyVal.substringAfter("confirm/member_remove/")
+                        val targetUuid = try {
+                                UUID.fromString(targetUuidStr)
+                        } catch (_: Exception) {
+                                return
+                        }
+                        val memberName = PlayerNameUtil.getNameOrDefault(targetUuid, "Unknown")
+                        worldData.members.remove(targetUuid)
+                        worldData.moderators.remove(targetUuid)
+                        plugin.worldConfigRepository.save(worldData)
+                        Bukkit.getPluginManager().callEvent(
+                                MwmMemberRemovedEvent(
+                                        worldUuid = worldData.uuid,
+                                        memberUuid = targetUuid,
+                                        memberName = memberName,
+                                        removedByUuid = player.uniqueId,
+                                        source = MwmMemberRemoveSource.MANUAL
+                                )
+                        )
+                        player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
+                        plugin.macroManager.execute(
+                                "on_member_remove",
+                                mapOf(
+                                        "world_uuid" to worldData.uuid.toString(),
+                                        "member" to memberName
+                                )
+                        )
+                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/member_transfer/")) {
+                        val targetUuidStr = keyVal.substringAfter("confirm/member_transfer/")
+                        val newOwnerId = try {
+                                UUID.fromString(targetUuidStr)
+                        } catch (_: Exception) {
+                                return
+                        }
+                        val oldOwnerId = worldData.owner
+                        val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
+                        val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
+                        worldData.owner = newOwnerId
+                        if (!worldData.moderators.contains(oldOwnerId)) {
+                                worldData.moderators.add(oldOwnerId)
+                        }
+                        worldData.moderators.remove(newOwnerId)
+                        worldData.members.remove(newOwnerId)
+                        plugin.worldConfigRepository.save(worldData)
+                        Bukkit.getPluginManager().callEvent(
+                                MwmOwnerTransferredEvent(
+                                        worldUuid = worldData.uuid,
+                                        oldOwnerUuid = oldOwnerId,
+                                        oldOwnerName = oldOwnerName,
+                                        newOwnerUuid = newOwnerId,
+                                        newOwnerName = newOwnerName,
+                                        transferredByUuid = player.uniqueId,
+                                        source = MwmOwnerTransferSource.MANUAL
+                                )
+                        )
+                        plugin.macroManager.execute(
+                                "on_owner_transfer",
+                                mapOf(
+                                        "world_uuid" to worldData.uuid.toString(),
+                                        "old_owner" to oldOwnerName,
+                                        "new_owner" to newOwnerName
+                                )
+                        )
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.owner_transferred",
+                                        mapOf("old_owner" to newOwnerName)
+                                )
+                        )
+                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/visitor_kick/")) {
+                        val targetUuidStr = keyVal.substringAfter("confirm/visitor_kick/")
+                        val targetUuid = try {
+                                UUID.fromString(targetUuidStr)
+                        } catch (_: Exception) {
+                                return
+                        }
+                        handleVisitorKickConfirm(player, worldData, targetUuid)
+                }
         }
 
         @EventHandler

@@ -5,7 +5,8 @@ import java.util.*
 data class FavoriteSession(
     val playerUuid: UUID,
     var showBackButton: Boolean = false,
-    var selectedTag: String? = null
+    var selectedTag: String? = null,
+    var returnToFavoriteMenu: Boolean = false
 )
 
 class FavoriteSessionManager {

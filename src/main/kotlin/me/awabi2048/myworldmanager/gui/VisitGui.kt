@@ -145,7 +145,12 @@ class VisitGui(private val plugin: MyWorldManager) {
                         lang.getMessage(viewer, "gui.visit.world_item.tag", mapOf("tags" to tagNames))
                 } else ""
 
-                val warpLine = lang.getMessage(viewer, "gui.visit.world_item.warp")
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(viewer)
+                val warpLine = if (isBedrock) {
+                        lang.getMessage(viewer, "gui.visit.world_item.warp_bedrock")
+                } else {
+                        lang.getMessage(viewer, "gui.visit.world_item.warp")
+                }
                 
                 val stats = plugin.playerStatsRepository.findByUuid(viewer.uniqueId)
                 val viewerPlayerUuid = viewer.uniqueId
@@ -153,7 +158,9 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 world.moderators.contains(viewerPlayerUuid) ||
                                 world.members.contains(viewerPlayerUuid)
 
-                val favActionLine = if (!isMember) {
+                val favActionLine = if (isBedrock) {
+                        ""
+                } else if (!isMember) {
                         if (stats.favoriteWorlds.containsKey(world.uuid)) {
                                 lang.getMessage(viewer, "gui.visit.world_item.fav_remove")
                         } else {

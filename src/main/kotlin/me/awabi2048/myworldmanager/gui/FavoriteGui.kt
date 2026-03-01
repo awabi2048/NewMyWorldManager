@@ -22,6 +22,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 player: Player,
                 page: Int = 0,
                 returnToWorld: WorldData? = null,
+                returnToFavoriteMenu: Boolean = false,
                 showBackButton: Boolean? = null
         ) {
                 val lang = plugin.languageManager
@@ -30,6 +31,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 if (showBackButton != null) {
                         session.showBackButton = showBackButton
                 }
+                session.returnToFavoriteMenu = returnToFavoriteMenu
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 val favWorldUuids = stats.favoriteWorlds.keys
                 val selectedTag = session.selectedTag
@@ -108,7 +110,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         val emptyItem = ItemStack(Material.QUARTZ)
                         val emptyMeta = emptyItem.itemMeta
                         emptyMeta?.displayName(
-                                Component.text("§7まだお気に入りがありません")
+                                lang.getComponent(player, "gui.favorite.empty_message")
                                         .decoration(TextDecoration.ITALIC, false)
                         )
                         emptyItem.itemMeta = emptyMeta
@@ -129,6 +131,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                         item,
                                         returnToWorld.uuid
                                 )
+                        else if (session.returnToFavoriteMenu)
+                                ItemTag.setString(item, "favorite_return_target", "favorite_menu")
                         inventory.setItem(footerStart + 1, item)
                 }
 
@@ -147,11 +151,19 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                         item,
                                         returnToWorld.uuid
                                 )
+                        else if (session.returnToFavoriteMenu)
+                                ItemTag.setString(item, "favorite_return_target", "favorite_menu")
                         inventory.setItem(footerStart + 8, item)
                 }
 
                 // タグフィルターボタン
-                inventory.setItem(footerStart + 7, createTagFilterButton(player, session.selectedTag))
+                val tagFilterButton = createTagFilterButton(player, session.selectedTag)
+                if (returnToWorld != null) {
+                        ItemTag.setWorldUuid(tagFilterButton, returnToWorld.uuid)
+                } else if (session.returnToFavoriteMenu) {
+                        ItemTag.setString(tagFilterButton, "favorite_return_target", "favorite_menu")
+                }
+                inventory.setItem(footerStart + 7, tagFilterButton)
 
                 // 戻るボタン
                 val returnItem =
@@ -165,6 +177,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 returnItem,
                                 returnToWorld.uuid
                         )
+                } else if (session.returnToFavoriteMenu) {
+                        ItemTag.setString(returnItem, "favorite_return_target", "favorite_menu")
                 }
                 inventory.setItem(footerStart, returnItem)
 
@@ -188,6 +202,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val item = ItemStack(data.icon)
                 val meta = item.itemMeta ?: return item
                 val lang = plugin.languageManager
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
                 val worldName = lang.getMessageStrict(player, data.name) ?: data.name
                 meta.displayName(
                         lang.getComponent(
@@ -218,14 +233,20 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 } else ""
 
                 val warpLine = if (!data.isArchived && (data.publishLevel == PublishLevel.PUBLIC || data.publishLevel == PublishLevel.FRIEND)) {
-                        lang.getMessage(player, "gui.favorite.world_item.warp")
+                        if (isBedrock) {
+                                lang.getMessage(player, "gui.favorite.world_item.warp_bedrock")
+                        } else {
+                                lang.getMessage(player, "gui.favorite.world_item.warp")
+                        }
                 } else ""
 
                 val viewerUuid = player.uniqueId
                 val isMember = data.owner == viewerUuid || data.moderators.contains(viewerUuid) || data.members.contains(viewerUuid)
 
                 val archivedLine = if (data.isArchived) lang.getMessage(player, "gui.favorite.world_item.archived_label") else ""
-                val unfavoriteLine = if (data.isArchived) {
+                val unfavoriteLine = if (isBedrock) {
+                        ""
+                } else if (data.isArchived) {
                         lang.getMessage(player, "gui.favorite.world_item.unfavorite_archived")
                 } else if (!isMember) {
                         lang.getMessage(player, "gui.favorite.world_item.unfavorite")
@@ -355,6 +376,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG))
                 val meta = item.itemMeta ?: return item
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 val tagName = if (selectedTag != null)
                         plugin.worldTagManager.getDisplayName(player, selectedTag)
@@ -365,8 +387,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")
                 else ""
 
-                val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
-                val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
+                val clickLeft = if (isBedrock) lang.getMessage(player, "gui.discovery.tag_filter.click_bedrock") else lang.getMessage(player, "gui.discovery.tag_filter.click_left")
+                val clickRight = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.tag_filter.click_right")
+                val loreKey = if (isBedrock) "gui.discovery.tag_filter.lore_bedrock" else "gui.discovery.tag_filter.lore"
 
                 val tagList = plugin.worldTagManager.getEnabledTagIds().joinToString("\n") { tagId ->
                         val tagPrefix = if (tagId == selectedTag)
@@ -382,7 +405,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 meta.lore(
                         lang.getComponentList(
                                 player,
-                                "gui.discovery.tag_filter.lore",
+                                loreKey,
                                 mapOf(
                                         "prefix" to prefix,
                                         "tag" to tagName,

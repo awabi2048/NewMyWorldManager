@@ -1,7 +1,6 @@
 package me.awabi2048.myworldmanager.command
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.gui.MeetGui
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
@@ -11,8 +10,6 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 
 class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCompleter {
-    private val meetGui = MeetGui(plugin)
-    
     companion object {
         // Target UUID -> Requester UUID
         val pendingRequests = mutableMapOf<java.util.UUID, java.util.UUID>()
@@ -26,12 +23,12 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
         if (sender !is Player) return true
         
         if (args.contains("-menu")) {
-            meetGui.open(sender, true)
+            plugin.menuEntryRouter.openMeet(sender, true)
             return true
         }
 
         if (args.isEmpty()) {
-            meetGui.open(sender)
+            plugin.menuEntryRouter.openMeet(sender)
             return true
         }
         
