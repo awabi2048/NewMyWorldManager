@@ -999,15 +999,28 @@ gui:
     world_item:
       lore:
       - §8§m-----------------------
-      - '{owner}'
-      - '{favorite}'
-      - '{recent_visitors}'
-      - '{tag}'
+      - '{description}'
+      - §8§m-----------------------
+      - §f§l| §7Owner {owner}{status_color}
+      - §f§l| §7Favorites §c{favorites}
+      - §f§l| §7Recent Visitors §a{visitors}
+      - '{tags}'
       - §8§m-----------------------
       - §e§l| §eLeft-Click §7Warp
       - '{preview_hint}'
       - '{member_request_hint}'
       - §e§l| §eShift + Right-Click §7Add/Remove Favorite
+      - §8§m-----------------------
+      lore_bedrock:
+      - §8§m-----------------------
+      - '{description}'
+      - §8§m-----------------------
+      - §f§l| §7Owner {owner}{status_color}
+      - §f§l| §7Favorites §c{favorites}
+      - §f§l| §7Recent Visitors §a{visitors}
+      - '{tags}'
+      - §8§m-----------------------
+      - §e§l| §eClick §7Warp
       - §8§m-----------------------
       owner: §f§l| §7Owner {owner}{status_color}
       tag: §f§l| §7Tags §e{tags}
@@ -1027,6 +1040,11 @@ gui:
       - §7This slot is currently vacant.
       - §7Click to view the world you are currently in.
       - Register with §6SPOTLIGHT§7.
+      - ''
+      - §e§nClick to register
+      lore_admin_bedrock:
+      - §7This slot is currently vacant.
+      - §7Register your current world to §6SPOTLIGHT§7.
       - ''
       - §e§nClick to register
       lore_visitor:
@@ -1079,6 +1097,14 @@ gui:
       - '{click_left}'
       - '{click_right}'
       - §8§m-----------------------
+      lore_bedrock:
+      - §8§m-----------------------
+      - §f§l| {prefix} §6{tag}
+      - §8§m-----------------------
+      - '{tag_list}'
+      - §8§m-----------------------
+      - '{click_left}'
+      - §8§m-----------------------
       current_prefix: Selected
       active: '§e» '
       inactive: '§7  '
@@ -1086,6 +1112,7 @@ gui:
       all: All
       click_left: §e§nLeft Click§7 Toggle Filter
       click_right: §e§nRight Click§7 Reset Filter
+      click_bedrock: §e§nClick§7 Toggle Filter
     stats:
       name: §fStatistics
       lore:
@@ -1121,6 +1148,7 @@ gui:
     - §7Registered worlds will be displayed
   favorite:
     title: Favorite Worlds
+    empty_message: §7No favorites yet.
     world_item:
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－
@@ -1140,6 +1168,7 @@ gui:
       recent_visitors: §f§l| §7Recent Visitors §a{count}
       tag: §f§l| §7Tags §e{tags}
       warp: §e§l| §eLeft click§7 Warp
+      warp_bedrock: §e§l| §eClick§7 Warp
       unfavorite: §cRight-Click to remove
       archived_label: §c§l[ARCHIVED]
       unfavorite_archived: §cClick to remove
@@ -1249,6 +1278,7 @@ gui:
       favorite: §f§l| §7Favorite §c{count}
       recent_visitors: §f§l| §7Recent Visitors §a{count}
       warp: §e§l| §eLeft click§7 Warp
+      warp_bedrock: §e§l| §eClick§7 Warp
       fav_add: §e§l| §eRight click§7 Add to Favorites§a
       fav_remove: §e§l| §cRight click§7 Remove favorites§c
   player_world:
@@ -1269,12 +1299,14 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       - '{warp_action}'
       - '{settings_action}'
+      - §8§m－－－－－－－－－－－－－－－－－－
       owner: §f§l| §7Owner §f{owner}
       publish: §f§l| §7Public setting §b{level}{status_color}
       favorite: §f§l| §7Favorite §c{count}
       recent_visitors: §f§l| §7Recently visited players §a{count} people
       tag: §f§l| §7tag §e{tags}
       warp: §e§l| §eLeft click§7 Warp to this world§b
+      warp_bedrock: §e§l| §eClick§7 Warp to this world§b
       settings: §e§l| §eRight click§7 Open world settings
       settings_bedrock: §7Open world settings from /worldmenu
       expired: §c§nThis world has been archived

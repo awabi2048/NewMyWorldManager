@@ -212,7 +212,7 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
                 confirmText = languageManager.getMessage(player, "gui.member_request_owner_confirm.confirm"),
                 cancelText = languageManager.getMessage(player, "gui.member_request_owner_confirm.reject")
             ) {
-                plugin.memberRequestOwnerConfirmGui.open(player, request, key)
+                plugin.menuEntryRouter.openMemberRequestOwnerConfirm(player, request, key)
             }
         }
     }

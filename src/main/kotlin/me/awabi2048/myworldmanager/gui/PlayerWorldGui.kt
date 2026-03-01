@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PlayerStats
@@ -265,7 +266,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 val now = LocalDate.now()
                 val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                val displayFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
+                val displayFormatter = dateFormatterFor(player)
                 val expireDate = try {
                         LocalDate.parse(world.expireDate, inputFormatter)
                 } catch (e: Exception) {
@@ -410,6 +411,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
                 return item
+        }
+
+        private fun dateFormatterFor(player: Player): DateTimeFormatter {
+                val language = plugin.playerStatsRepository.findByUuid(player.uniqueId).language.lowercase(Locale.ROOT)
+                return if (language == "ja_jp") {
+                        DateTimeFormatter.ofPattern("yyyy年MM月dd日")
+                } else {
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                }
         }
 
         class PlayerWorldGuiHolder : org.bukkit.inventory.InventoryHolder {

@@ -10,7 +10,6 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.gui.VisitGui
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -28,8 +27,6 @@ import org.bukkit.event.Listener
 import java.util.UUID
 
 class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCompleter, Listener {
-
-    private val visitGui = VisitGui(plugin)
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         val lang = plugin.languageManager
@@ -174,7 +171,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             return
         }
 
-        visitGui.open(player, target)
+        plugin.menuEntryRouter.openVisitMenu(player, target)
     }
 
     private fun resolveTargetPlayer(targetName: String): org.bukkit.OfflinePlayer? {

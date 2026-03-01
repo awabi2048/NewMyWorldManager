@@ -41,7 +41,7 @@ general:
   status:
     join_me: "Join Me"
     ask_me: "Ask Me"
-    busy: "取り込み中"
+    busy: "Busy"
     description:
       join_me: "§f誰でもあなたのいるワールドにワープできます。"
       ask_me: "§f許可を出したプレイヤーのみワープできます。"
@@ -1126,6 +1126,17 @@ gui:
         - "{member_request_hint}"
         - "§e§l| §eShift + 右クリック §7お気に入り登録/解除"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{description}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7オーナー {owner}{status_color}"
+        - "§f§l| §7お気に入り §c{favorites}"
+        - "§f§l| §7最近の来訪者 §a{visitors}"
+        - "{tags}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §eクリック §7ワープ"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       owner: "§f§l| §7オーナー {owner}{status_color}"
       tag: "§f§l| §7タグ §e{tags}"
       favorite: "§f§l| §7お気に入り §c{count}"
@@ -1144,6 +1155,11 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§7現在このスロットにはワールドが登録されていません。"
         - "§e§l| §e左クリック§7 現在のマイワールドを登録"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_admin_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7現在このスロットにはワールドが登録されていません。"
+        - "§e§l| §eクリック§7 現在のマイワールドを登録"
         - "§8§m－－－－－－－－－－－－－－－－－－"
       lore_visitor:
         - "§8§m－－－－－－－－－－－－－－－－－－"
@@ -1198,6 +1214,14 @@ gui:
         - "{click_left}"
         - "{click_right}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_bedrock:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| {prefix} §6{tag}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{tag_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{click_left}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       current_prefix: "選択中"
       active: "§e» "
       inactive: "§7  "
@@ -1205,6 +1229,7 @@ gui:
       all: "すべて"
       click_left: "§e§n左クリック§7 フィルターを切り替え"
       click_right: "§e§n右クリック§7 フィルターを解除"
+      click_bedrock: "§e§nクリック§7 フィルターを切り替え"
     stats:
       name: "§f統計情報"
       # プレースホルダー: {sort}, {tag}, {count}, {desc}
@@ -1255,6 +1280,7 @@ gui:
 
   favorite:
     title: "お気に入りリスト"
+    empty_message: "§7まだお気に入りがありません"
     world_item:
       # Placeholder: {description}, {owner_line}, {favorite_line}, {visitor_line}, {tag_line}, {warp_line}, {archived_line}, {unfavorite_line}
       lore:
@@ -1276,6 +1302,7 @@ gui:
       recent_visitors: "§f§l| §7最近の来訪者 §a{count}"
       tag: "§f§l| §7タグ §e{tags}"
       warp: "§e§l| §e左クリック§7 ワープ"
+      warp_bedrock: "§e§l| §eクリック§7 ワープ"
       unfavorite: "§cShift + 右クリックでお気に入りを解除"
       archived_label: "§c【アーカイブされています】"
       unfavorite_archived: "§cクリックしてお気に入りから削除"
@@ -1404,6 +1431,7 @@ gui:
       favorite: "§f§l| §7お気に入り §c{count}"
       recent_visitors: "§f§l| §7最近の来訪者 §a{count}"
       warp: "§e§l| §e左クリック§7 ワープ"
+      warp_bedrock: "§e§l| §eクリック§7 ワープ"
       fav_add: "§e§l| §e右クリック§7 お気に入りに§a追加"
       fav_remove: "§e§l| §c右クリック§7 お気に入りを§c解除"
 
@@ -1426,6 +1454,7 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "{warp_action}"
         - "{settings_action}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
 
       owner: "§f§l| §7オーナー §f{owner}"
       publish: "§f§l| §7公開設定 §b{level}{status_color}"
@@ -1433,6 +1462,7 @@ gui:
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
       tag: "§f§l| §7タグ §e{tags}"
       warp: "§e§l| §e左クリック§7 このワールドへ§bワープ"
+      warp_bedrock: "§e§l| §eクリック§7 このワールドへ§bワープ"
       settings: "§e§l| §e右クリック§7 ワールド設定を開く"
       settings_bedrock: "§7ワールド設定は /worldmenu から開けます"
       expired: "§c§nこのワールドはアーカイブされています"

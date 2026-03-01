@@ -1,7 +1,6 @@
 package me.awabi2048.myworldmanager.command
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.gui.DiscoveryGui
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -9,8 +8,6 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 
 class DiscoveryCommand(private val plugin: MyWorldManager) : CommandExecutor {
-    private val gui = DiscoveryGui(plugin)
-
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) {
             PermissionManager.sendNoPermissionMessage(sender)
@@ -22,7 +19,7 @@ class DiscoveryCommand(private val plugin: MyWorldManager) : CommandExecutor {
         }
 
         val showBackButton = args.contains("-menu")
-        gui.open(sender, 0, showBackButton)
+        plugin.menuEntryRouter.openDiscovery(sender, 0, showBackButton)
         return true
     }
 }

@@ -5,7 +5,6 @@ import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.FavoriteGui
-import me.awabi2048.myworldmanager.gui.VisitGui
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -26,6 +25,8 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         val player = event.whoClicked as? Player ?: return
         val lang = plugin.languageManager
+        val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
+        val favoriteSession = plugin.favoriteSessionManager.getSession(player.uniqueId)
 
         // GUI遷移中のクリックを無視
         val session = plugin.settingsSessionManager.getSession(player)
@@ -45,8 +46,9 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 val page = ItemTag.getTargetPage(currentItem) ?: 0
                 val worldUuid = ItemTag.getWorldUuid(currentItem)
                 val worldData = if (worldUuid != null) plugin.worldConfigRepository.findByUuid(worldUuid) else null
+                val returnToFavoriteMenu = ItemTag.getString(currentItem, "favorite_return_target") == "favorite_menu"
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                plugin.favoriteGui.open(player, page, worldData)
+                plugin.menuEntryRouter.openFavoriteList(player, page, worldData, returnToFavoriteMenu)
                 return
             }
 
@@ -55,9 +57,15 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 if (uuid != null) {
                     val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
                     plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    plugin.favoriteMenuGui.open(player, worldData)
+                    plugin.menuEntryRouter.openFavoriteMenu(player, worldData)
                 } else {
-                    me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, currentItem)
+                    val returnTarget = ItemTag.getString(currentItem, "favorite_return_target")
+                    if (returnTarget == "favorite_menu") {
+                        plugin.soundManager.playClickSound(player, currentItem, "favorite")
+                        plugin.menuEntryRouter.openFavoriteMenu(player, null)
+                    } else {
+                        me.awabi2048.myworldmanager.util.GuiHelper.handleReturnClick(plugin, player, currentItem)
+                    }
                 }
                 return
             }
@@ -66,24 +74,26 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
             // タグフィルター処理
             if (type == ItemTag.TYPE_GUI_FAVORITE_TAG) {
-                val favSession = plugin.favoriteSessionManager.getSession(player.uniqueId)
                 val allTags = plugin.worldTagManager.getEnabledTagIds()
+                val returnUuid = ItemTag.getWorldUuid(currentItem)
+                val returnToWorld = if (returnUuid != null) plugin.worldConfigRepository.findByUuid(returnUuid) else null
+                val returnToFavoriteMenu = ItemTag.getString(currentItem, "favorite_return_target") == "favorite_menu"
 
-                if (event.isRightClick) {
-                    favSession.selectedTag = null
-                } else if (event.isLeftClick) {
-                    val currentIndex = if (favSession.selectedTag == null) -1 else allTags.indexOf(favSession.selectedTag)
+                if (isBedrock || event.isLeftClick) {
+                    val currentIndex = if (favoriteSession.selectedTag == null) -1 else allTags.indexOf(favoriteSession.selectedTag)
                     val nextIndex = (currentIndex + 1) % (allTags.size + 1)
 
-                    favSession.selectedTag = if (nextIndex == allTags.size) {
+                    favoriteSession.selectedTag = if (nextIndex == allTags.size) {
                         null
                     } else {
                         allTags[nextIndex]
                     }
+                } else if (event.isRightClick) {
+                    favoriteSession.selectedTag = null
                 }
 
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                plugin.favoriteGui.open(player, 0)
+                plugin.menuEntryRouter.openFavoriteList(player, 0, returnToWorld, returnToFavoriteMenu)
                 return
             }
 
@@ -95,6 +105,28 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
             // アーカイブ済みの場合は無反応とする
             if (worldData.isArchived) return
+
+            if (isBedrock) {
+                val isMember = worldData.owner == player.uniqueId ||
+                               worldData.moderators.contains(player.uniqueId) ||
+                               worldData.members.contains(player.uniqueId)
+
+                if (!isMember && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.PUBLIC && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.FRIEND) {
+                    return
+                }
+
+                plugin.soundManager.playClickSound(player, currentItem, "favorite")
+                plugin.worldService.teleportToWorld(player, uuid)
+                player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+
+                if (!isMember) {
+                    worldData.recentVisitors[0]++
+                    plugin.worldConfigRepository.save(worldData)
+                }
+
+                player.closeInventory()
+                return
+            }
 
             if (event.isLeftClick) {
                 val isMember = worldData.owner == player.uniqueId || 
@@ -142,7 +174,34 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                             lang.getMessage(player, "gui.favorite.remove_confirm.confirm"),
                             lang.getMessage(player, "gui.common.cancel")
                         ) {
-                            me.awabi2048.myworldmanager.gui.FavoriteConfirmGui(plugin).open(player, worldData)
+                            plugin.menuEntryRouter.openFavoriteRemoveConfirm(
+                                player,
+                                worldData,
+                                onBedrockConfirm = {
+                                    val bedrockStats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                    if (bedrockStats.favoriteWorlds.containsKey(uuid)) {
+                                        bedrockStats.favoriteWorlds.remove(uuid)
+                                        worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
+                                        plugin.playerStatsRepository.save(bedrockStats)
+                                        plugin.worldConfigRepository.save(worldData)
+                                        player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
+                                        plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
+                                    }
+                                    plugin.menuEntryRouter.openFavoriteList(
+                                        player,
+                                        0,
+                                        returnToFavoriteMenu = favoriteSession.returnToFavoriteMenu
+                                    )
+                                },
+                                onBedrockCancel = {
+                                    plugin.soundManager.playClickSound(player, null, "favorite")
+                                    plugin.menuEntryRouter.openFavoriteList(
+                                        player,
+                                        0,
+                                        returnToFavoriteMenu = favoriteSession.returnToFavoriteMenu
+                                    )
+                                }
+                            )
                         }
                     }
                 } else {
@@ -168,7 +227,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
                     val owner = Bukkit.getOfflinePlayer(worldData.owner)
                     plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    VisitGui(plugin).open(player, owner, 0, worldData)
+                    plugin.menuEntryRouter.openVisitMenu(player, owner, 0, worldData)
                 }
                 ItemTag.TYPE_GUI_FAVORITE_TOGGLE -> {
                     val uuid = ItemTag.getWorldUuid(currentItem) ?: return
@@ -210,19 +269,19 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                             )
                         )
                     }
-                    plugin.favoriteMenuGui.open(player, worldData)
+                    plugin.menuEntryRouter.openFavoriteMenu(player, worldData)
                 }
                 ItemTag.TYPE_GUI_FAVORITE_LIST -> {
                     val uuid = ItemTag.getWorldUuid(currentItem)
                     val worldData = if (uuid != null) plugin.worldConfigRepository.findByUuid(uuid) else null
                     plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    plugin.favoriteGui.open(player, 0, worldData)
+                    plugin.menuEntryRouter.openFavoriteList(player, 0, worldData, returnToFavoriteMenu = true)
                 }
                 ItemTag.TYPE_GUI_RETURN -> {
                     val uuid = ItemTag.getWorldUuid(currentItem) ?: return
                     val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
                     plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    plugin.favoriteMenuGui.open(player, worldData)
+                    plugin.menuEntryRouter.openFavoriteMenu(player, worldData)
                 }
             }
             return
@@ -248,11 +307,19 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
                     plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
                 }
-                plugin.favoriteGui.open(player, 0)
+                plugin.menuEntryRouter.openFavoriteList(
+                    player,
+                    0,
+                    returnToFavoriteMenu = favoriteSession.returnToFavoriteMenu
+                )
             } else if (type == ItemTag.TYPE_GUI_CANCEL) {
                 // キャンセルしてリストに戻る
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                plugin.favoriteGui.open(player, 0)
+                plugin.menuEntryRouter.openFavoriteList(
+                    player,
+                    0,
+                    returnToFavoriteMenu = favoriteSession.returnToFavoriteMenu
+                )
             }
         }
     }
@@ -266,7 +333,11 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         if (id == "mwm:confirm/favorite_cancel") {
             DialogConfirmManager.safeCloseDialog(player)
             plugin.soundManager.playClickSound(player, null, "favorite")
-            plugin.favoriteGui.open(player, 0)
+            plugin.menuEntryRouter.openFavoriteList(
+                player,
+                0,
+                returnToFavoriteMenu = plugin.favoriteSessionManager.getSession(player.uniqueId).returnToFavoriteMenu
+            )
             return
         }
 
@@ -289,6 +360,10 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
             plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
         }
-        plugin.favoriteGui.open(player, 0)
+        plugin.menuEntryRouter.openFavoriteList(
+            player,
+            0,
+            returnToFavoriteMenu = plugin.favoriteSessionManager.getSession(player.uniqueId).returnToFavoriteMenu
+        )
     }
 }

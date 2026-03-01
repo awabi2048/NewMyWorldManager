@@ -3,17 +3,22 @@ package me.awabi2048.myworldmanager.ui.bedrock
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 import java.util.UUID
 
 class BedrockMenuService(
@@ -28,13 +33,7 @@ class BedrockMenuService(
         val onClick: () -> Unit
     )
 
-    private val inventoryWorldSlots =
-        listOf(
-            10, 11, 12, 13, 14, 15, 16,
-            19, 20, 21, 22, 23, 24, 25,
-            28, 29, 30, 31, 32, 33, 34,
-            37, 38, 39, 40, 41, 42, 43
-        )
+    private val playerWorldPageSize = 28
 
     private val formPageSize = 8
 
@@ -50,7 +49,7 @@ class BedrockMenuService(
 
     fun openPlayerWorld(player: Player, page: Int = 0, showBackButton: Boolean = false) {
         val safePage = page.coerceAtLeast(0)
-        plugin.playerWorldGui.open(player, safePage, showBackButton)
+        openPlayerWorldInventory(player, safePage, showBackButton)
     }
 
     fun openCurrentWorldMenu(player: Player, worldData: WorldData, showBackButton: Boolean = false) {
@@ -58,7 +57,159 @@ class BedrockMenuService(
     }
 
     fun openSettings(player: Player, showBackButton: Boolean = false, returnPage: Int = 0) {
-        plugin.userSettingsGui.open(player, showBackButton)
+        openSettingsInventory(player, showBackButton, returnPage)
+    }
+
+    fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
+        plugin.discoveryGui.open(player, page, showBackButton)
+    }
+
+    fun openFavoriteList(
+        player: Player,
+        page: Int = 0,
+        worldData: WorldData? = null,
+        returnToFavoriteMenu: Boolean = false,
+        showBackButton: Boolean = false
+    ) {
+        plugin.favoriteGui.open(player, page, worldData, returnToFavoriteMenu, showBackButton)
+    }
+
+    fun openFavoriteMenu(player: Player, worldData: WorldData?) {
+        plugin.favoriteMenuGui.open(player, worldData)
+    }
+
+    fun openVisitMenu(
+        player: Player,
+        owner: org.bukkit.OfflinePlayer,
+        page: Int = 0,
+        worldData: WorldData? = null
+    ) {
+        plugin.visitGui.open(player, owner, page, worldData)
+    }
+
+    fun openMeet(player: Player, showBackButton: Boolean? = null) {
+        plugin.meetGui.open(player, showBackButton)
+    }
+
+    fun openFavoriteRemoveConfirm(
+        player: Player,
+        worldData: WorldData,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val lang = plugin.languageManager
+        return openSimpleConfirmationForm(
+            player = player,
+            title = lang.getMessage(player, "gui.favorite.remove_confirm.title"),
+            bodyLines =
+                lang.getMessageList(
+                    player,
+                    "gui.favorite.remove_confirm.lore",
+                    mapOf("world" to worldData.name)
+                ),
+            confirmLabel = lang.getMessage(player, "gui.favorite.remove_confirm.confirm"),
+            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
+            failureReason = "favorite_remove_confirm_form_open_failed",
+            onConfirm = onConfirm,
+            onCancel = onCancel
+        )
+    }
+
+    fun openSpotlightConfirm(
+        player: Player,
+        worldData: WorldData,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val lang = plugin.languageManager
+        return openSimpleConfirmationForm(
+            player = player,
+            title = lang.getMessage(player, "gui.spotlight_confirm.title"),
+            bodyLines =
+                lang.getMessageList(
+                    player,
+                    "gui.spotlight_confirm.lore",
+                    mapOf("world" to worldData.name)
+                ),
+            confirmLabel = lang.getMessage(player, "gui.common.confirm"),
+            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
+            failureReason = "spotlight_add_confirm_form_open_failed",
+            onConfirm = onConfirm,
+            onCancel = onCancel
+        )
+    }
+
+    fun openSpotlightRemoveConfirm(
+        player: Player,
+        worldData: WorldData,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val lang = plugin.languageManager
+        return openSimpleConfirmationForm(
+            player = player,
+            title = lang.getMessage(player, "gui.discovery.spotlight_remove_confirm.title"),
+            bodyLines =
+                lang.getMessageList(
+                    player,
+                    "gui.discovery.spotlight_remove_confirm.lore",
+                    mapOf("world" to worldData.name)
+                ),
+            confirmLabel = lang.getMessage(player, "gui.common.confirm"),
+            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
+            failureReason = "spotlight_remove_confirm_form_open_failed",
+            onConfirm = onConfirm,
+            onCancel = onCancel
+        )
+    }
+
+    fun openMemberRequestConfirm(
+        player: Player,
+        worldData: WorldData,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val lang = plugin.languageManager
+        return openSimpleConfirmationForm(
+            player = player,
+            title = lang.getMessage(player, "gui.member_request_confirm.title"),
+            bodyLines =
+                lang.getMessageList(
+                    player,
+                    "gui.member_request_confirm.lore",
+                    mapOf("world" to worldData.name)
+                ),
+            confirmLabel = lang.getMessage(player, "gui.member_request_confirm.confirm"),
+            cancelLabel = lang.getMessage(player, "gui.member_request_confirm.cancel"),
+            failureReason = "member_request_confirm_form_open_failed",
+            onConfirm = onConfirm,
+            onCancel = onCancel
+        )
+    }
+
+    fun openWorldSeedConfirm(
+        player: Player,
+        currentSlots: Int,
+        nextSlots: Int,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val lang = plugin.languageManager
+        return openSimpleConfirmationForm(
+            player = player,
+            title = lang.getMessage(player, "gui.world_seed_confirm.title"),
+            bodyLines =
+                lang.getMessageList(
+                    player,
+                    "gui.world_seed_confirm.lore",
+                    mapOf("current" to currentSlots, "next" to nextSlots)
+                ),
+            confirmLabel = lang.getMessage(player, "gui.common.confirm"),
+            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
+            failureReason = "world_seed_confirm_form_open_failed",
+            onConfirm = onConfirm,
+            onCancel = onCancel
+        )
     }
 
     fun handleInventoryClick(event: InventoryClickEvent) {
@@ -274,20 +425,6 @@ class BedrockMenuService(
             openSettings(player, showBackButton, returnPage)
         }
 
-        actions +=
-            FormAction(
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.critical",
-                    mapOf("status" to statusText(player, stats.criticalSettingsEnabled))
-                ),
-                Material.REPEATER
-            ) {
-            stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
-            plugin.playerStatsRepository.save(stats)
-            openSettings(player, showBackButton, returnPage)
-        }
-
         actions += FormAction(tr(player, "gui.bedrock.settings.button.back_to_worlds"), Material.ARROW) {
             openPlayerWorld(player, returnPage, showBackButton)
         }
@@ -341,18 +478,25 @@ class BedrockMenuService(
 
     private fun openPlayerWorldInventory(player: Player, requestedPage: Int, showBackButton: Boolean) {
         val worlds = getAccessibleWorlds(player)
-        val pageSize = inventoryWorldSlots.size
+        val pageSize = playerWorldPageSize
         val totalPages = if (worlds.isEmpty()) 1 else (worlds.size + pageSize - 1) / pageSize
         val page = requestedPage.coerceIn(0, totalPages - 1)
         val start = page * pageSize
         val pageWorlds = worlds.drop(start).take(pageSize)
 
+        val neededDataRows = if (pageWorlds.isEmpty()) 1 else (pageWorlds.size + 6) / 7
+        val rowCount = (neededDataRows + 2).coerceIn(3, 6)
+        val footerStart = (rowCount - 1) * 9
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val currentCreateCount = worlds.count { it.owner == player.uniqueId }
+        val maxSlot = plugin.config.getInt("creation.max_create_count_default", 3) + stats.unlockedWorldSlot
+
         val holder = BedrockPlayerWorldListHolder(page, showBackButton)
         val inventory =
             Bukkit.createInventory(
                 holder,
-                54,
-                Component.text(tr(player, "gui.bedrock.player_world.title"))
+                rowCount * 9,
+                Component.text(tr(player, "gui.player_world.title"))
             )
         holder.inv = inventory
 
@@ -362,55 +506,50 @@ class BedrockMenuService(
         for (slot in 0..8) {
             inventory.setItem(slot, blackPane)
         }
-        for (slot in 9 until 45) {
-            inventory.setItem(slot, grayPane)
+        for (row in 0 until neededDataRows) {
+            val rowStart = (row + 1) * 9
+            inventory.setItem(rowStart, grayPane)
+            inventory.setItem(rowStart + 8, grayPane)
+            for (col in 1..7) {
+                inventory.setItem(rowStart + col, grayPane)
+            }
         }
-        for (slot in 45 until 54) {
+        for (slot in footerStart until footerStart + 9) {
             inventory.setItem(slot, blackPane)
         }
 
         pageWorlds.forEachIndexed { index, worldData ->
-            val slot = inventoryWorldSlots[index]
+            val row = index / 7
+            val col = index % 7
+            val slot = (row + 1) * 9 + 1 + col
             inventory.setItem(slot, createWorldListItem(player, worldData))
         }
 
         if (page > 0) {
             inventory.setItem(
-                45,
+                footerStart + 1,
                 createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.prev"), "open_prev_page")
             )
         }
         if (start + pageWorlds.size < worlds.size) {
             inventory.setItem(
-                53,
+                footerStart + 8,
                 createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.next"), "open_next_page")
             )
         }
 
-        inventory.setItem(
-            47,
-            createActionItem(Material.WRITABLE_BOOK, tr(player, "gui.bedrock.player_world.button.settings"), "open_settings")
-        )
-
-        val currentManagedWorld = getCurrentManagedWorld(player)
-        if (currentManagedWorld != null && canAccessWorldSettings(player, currentManagedWorld)) {
-            inventory.setItem(
-                49,
-                createActionItem(Material.COMPASS, tr(player, "gui.bedrock.player_world.button.current_world"), "open_current_world_menu")
-            )
+        if (currentCreateCount < maxSlot) {
+            inventory.setItem(footerStart + 2, createCreationButtonItem(player))
         }
+        inventory.setItem(footerStart + 4, createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint))
+        inventory.setItem(footerStart + 6, createCriticalVisibilityItem(player, stats.criticalSettingsEnabled))
 
         if (showBackButton) {
             inventory.setItem(
-                51,
+                footerStart,
                 createActionItem(Material.BARRIER, tr(player, "gui.bedrock.player_world.button.return"), "return_command")
             )
         }
-
-        inventory.setItem(
-            52,
-            createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.player_world.button.close"), "close_menu")
-        )
 
         player.openInventory(inventory)
     }
@@ -508,68 +647,61 @@ class BedrockMenuService(
 
     private fun openSettingsInventory(player: Player, showBackButton: Boolean, returnPage: Int) {
         val holder = BedrockSettingsHolder(showBackButton, returnPage)
-        val inventory = Bukkit.createInventory(holder, 27, Component.text(tr(player, "gui.bedrock.settings.title")))
+        val title = Component.text(tr(player, "gui.user_settings.title"))
+        val inventory = Bukkit.createInventory(holder, 27, title)
         holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-        for (slot in 0 until 27) {
+        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+
+        for (slot in 0..8) {
+            inventory.setItem(slot, blackPane)
+        }
+        for (slot in 9..17) {
+            inventory.setItem(slot, grayPane)
+        }
+        for (slot in 18..26) {
             inventory.setItem(slot, blackPane)
         }
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val languageName = languageDisplay(player, stats.language)
+        val notifyStatus = statusText(player, stats.visitorNotificationEnabled)
 
         inventory.setItem(
             10,
             createActionItem(
                 Material.BELL,
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.notification",
-                    mapOf("status" to statusText(player, stats.visitorNotificationEnabled))
-                ),
-                "toggle_notification"
+                tr(player, "gui.user_settings.notification.display"),
+                "toggle_notification",
+                lore =
+                    plugin.languageManager.getMessageList(
+                        player,
+                        "gui.user_settings.notification.lore",
+                        mapOf("status" to notifyStatus)
+                    )
             )
         )
         inventory.setItem(
             11,
             createActionItem(
                 Material.WRITABLE_BOOK,
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.language",
-                    mapOf("language" to languageDisplay(player, stats.language))
-                ),
-                "cycle_language"
+                tr(player, "gui.user_settings.language.display"),
+                "cycle_language",
+                lore =
+                    plugin.languageManager.getMessageList(
+                        player,
+                        "gui.user_settings.language.lore",
+                        mapOf("language" to languageName)
+                    )
             )
         )
-        inventory.setItem(
-            12,
-            createActionItem(
-                Material.REPEATER,
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.critical",
-                    mapOf("status" to statusText(player, stats.criticalSettingsEnabled))
-                ),
-                "toggle_critical"
-            )
-        )
-        inventory.setItem(
-            15,
-            createActionItem(Material.ARROW, tr(player, "gui.bedrock.settings.button.back_to_worlds"), "back_to_worlds")
-        )
-
         if (showBackButton) {
             inventory.setItem(
                 22,
-                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.settings.button.return"), "return_command")
+                createActionItem(Material.REDSTONE, tr(player, "gui.common.return"), "return_command")
             )
         }
-
-        inventory.setItem(
-            23,
-            createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.settings.button.close"), "close_menu")
-        )
 
         player.openInventory(inventory)
     }
@@ -588,22 +720,29 @@ class BedrockMenuService(
         val action = ItemTag.getString(item, "bedrock_action") ?: return
 
         when (action) {
-            "open_world_actions" -> {
+            "warp_world" -> {
                 val worldUuid = ItemTag.getWorldUuid(item) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-                openWorldActionMenu(player, worldData, holder.page, holder.showBackButton)
+                warpToWorld(player, worldData)
             }
 
             "open_prev_page" -> openPlayerWorld(player, holder.page - 1, holder.showBackButton)
             "open_next_page" -> openPlayerWorld(player, holder.page + 1, holder.showBackButton)
-            "open_settings" -> openSettings(player, holder.showBackButton, holder.page)
-            "open_current_world_menu" -> {
-                val currentWorld = getCurrentManagedWorld(player) ?: return
-                openCurrentWorldMenu(player, currentWorld, holder.showBackButton)
+            "start_creation" -> {
+                val session = plugin.creationSessionManager.startSession(player.uniqueId)
+                session.isDialogMode = false
+                player.closeInventory()
+                player.sendMessage(tr(player, "messages.wizard_start"))
+                plugin.creationGui.openTypeSelection(player)
+            }
+            "toggle_critical" -> {
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
+                plugin.playerStatsRepository.save(stats)
+                openPlayerWorld(player, holder.page, holder.showBackButton)
             }
 
             "return_command" -> performConfiguredReturn(player)
-            "close_menu" -> player.closeInventory()
         }
     }
 
@@ -654,9 +793,7 @@ class BedrockMenuService(
                 openSettings(player, holder.showBackButton, holder.returnPage)
             }
 
-            "back_to_worlds" -> openPlayerWorld(player, holder.returnPage, holder.showBackButton)
             "return_command" -> performConfiguredReturn(player)
-            "close_menu" -> player.closeInventory()
         }
     }
 
@@ -687,12 +824,6 @@ class BedrockMenuService(
                 openSettings(player, holder.showBackButton, holder.returnPage)
             }
 
-            "toggle_critical" -> {
-                stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
-                plugin.playerStatsRepository.save(stats)
-                openSettings(player, holder.showBackButton, holder.returnPage)
-            }
-
             "back_to_worlds" -> openPlayerWorld(player, holder.returnPage, holder.showBackButton)
             "return_command" -> performConfiguredReturn(player)
             "close_menu" -> player.closeInventory()
@@ -705,7 +836,57 @@ class BedrockMenuService(
         returnPage: Int,
         showBackButton: Boolean
     ) {
+        if (routingService.shouldUseForm(player)) {
+            if (openWorldActionsForm(player, worldData, returnPage, showBackButton)) {
+                routingService.clearFormFailure(player)
+                return
+            }
+            routingService.markFormFailure(player, "world_action_form_open_failed")
+        }
+
         openWorldActionsInventory(player, worldData, returnPage, showBackButton)
+    }
+
+    private fun openSimpleConfirmationForm(
+        player: Player,
+        title: String,
+        bodyLines: List<String>,
+        confirmLabel: String,
+        cancelLabel: String,
+        failureReason: String,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        if (!routingService.shouldUseForm(player)) {
+            return false
+        }
+
+        val content = bodyLines.joinToString("\n")
+        val opened =
+            formBridge.sendSimpleForm(
+                player = player,
+                title = title,
+                content = content,
+                buttons = listOf(confirmLabel, cancelLabel),
+                onSelect = { index ->
+                    if (index == 0) {
+                        onConfirm()
+                    } else {
+                        onCancel()
+                    }
+                },
+                onClosed = {
+                    onCancel()
+                }
+            )
+
+        if (!opened) {
+            routingService.markFormFailure(player, failureReason)
+            return false
+        }
+
+        routingService.clearFormFailure(player)
+        return true
     }
 
     private fun getAccessibleWorlds(player: Player): List<WorldData> {
@@ -863,6 +1044,15 @@ class BedrockMenuService(
         }
     }
 
+    private fun dateFormatterFor(player: Player): DateTimeFormatter {
+        val language = plugin.playerStatsRepository.findByUuid(player.uniqueId).language.lowercase(Locale.ROOT)
+        return if (language == "ja_jp") {
+            DateTimeFormatter.ofPattern("yyyy年MM月dd日")
+        } else {
+            DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        }
+    }
+
     private fun materialToBedrockPath(material: Material?): String? {
         if (material == null || material.isAir) {
             return null
@@ -877,26 +1067,172 @@ class BedrockMenuService(
     }
 
     private fun createWorldListItem(player: Player, worldData: WorldData): ItemStack {
-        val archivedPrefix = tr(player, "gui.bedrock.player_world.archived_prefix")
-        val title = if (worldData.isArchived) "$archivedPrefix${worldData.name}" else worldData.name
-        val lore =
-            listOf(
+        val item = ItemStack(worldData.icon)
+        val meta = item.itemMeta ?: return item
+
+        meta.displayName(
+            plugin.languageManager.getComponent(
+                player,
+                "gui.common.world_item_name",
+                mapOf("world" to worldData.name)
+            )
+        )
+
+        val formattedDesc =
+            if (worldData.description.isNotEmpty()) {
+                tr(player, "gui.common.world_desc", mapOf("description" to worldData.description))
+            } else {
+                ""
+            }
+
+        val ownerName = PlayerNameUtil.getNameOrDefault(worldData.owner, tr(player, "general.unknown"))
+        val ownerLine = tr(player, "gui.player_world.world_item.owner", mapOf("owner" to ownerName))
+        val publishLevelColor = tr(player, "publish_level.color.${worldData.publishLevel.name.lowercase()}")
+        val publishLevelName = tr(player, "publish_level.${worldData.publishLevel.name.lowercase()}")
+        val publishLine =
+            tr(
+                player,
+                "gui.player_world.world_item.publish",
+                mapOf("level" to publishLevelName, "status_color" to publishLevelColor)
+            )
+        val favoriteLine = tr(player, "gui.player_world.world_item.favorite", mapOf("count" to worldData.favorite))
+        val visitorLine =
+            tr(
+                player,
+                "gui.player_world.world_item.recent_visitors",
+                mapOf("count" to worldData.recentVisitors.sum())
+            )
+        val tagLine =
+            if (worldData.tags.isNotEmpty()) {
+                val tagNames = worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
+                tr(player, "gui.player_world.world_item.tag", mapOf("tags" to tagNames))
+            } else {
+                ""
+            }
+
+        val now = LocalDate.now()
+        val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val displayFormatter = dateFormatterFor(player)
+        val expireDate =
+            try {
+                LocalDate.parse(worldData.expireDate, inputFormatter)
+            } catch (_: Exception) {
+                LocalDate.now().plusYears(1)
+            }
+        val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
+
+        val expiresAtLine =
+            if (expireDate.year < 2900) {
+                if (daysRemaining < 0) {
+                    meta.setEnchantmentGlintOverride(true)
+                }
                 tr(
                     player,
-                    "gui.bedrock.world_item.publish",
-                    mapOf("publish" to publishLevelText(player, worldData.publishLevel))
-                ),
-                tr(player, "gui.bedrock.world_item.favorite", mapOf("favorite" to worldData.favorite)),
-                tr(player, "gui.bedrock.world_item.open_actions")
-            )
+                    "gui.player_world.world_item.expires_at",
+                    mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate))
+                )
+            } else {
+                ""
+            }
 
-        return createActionItem(
-            material = worldData.icon,
-            displayName = title,
-            action = "open_world_actions",
-            worldUuid = worldData.uuid,
-            lore = lore
+        val expiredLine =
+            if (worldData.isArchived) {
+                meta.setEnchantmentGlintOverride(true)
+                tr(player, "gui.player_world.world_item.expired")
+            } else {
+                ""
+            }
+
+        val warpAction = tr(player, "gui.player_world.world_item.warp_bedrock")
+        val settingsAction = ""
+        val separator = plugin.languageManager.getComponent(player, "gui.common.separator")
+        val loreLines =
+            plugin.languageManager.getComponentList(
+                player,
+                "gui.player_world.world_item.lore",
+                mapOf(
+                    "description" to formattedDesc,
+                    "owner_line" to ownerLine,
+                    "publish_line" to publishLine,
+                    "favorite_line" to favoriteLine,
+                    "visitor_line" to visitorLine,
+                    "tag_line" to tagLine,
+                    "expires_at_line" to expiresAtLine,
+                    "expired_line" to expiredLine,
+                    "warp_action" to warpAction,
+                    "settings_action" to settingsAction
+                )
+            )
+        meta.lore(GuiHelper.cleanupLore(loreLines, separator))
+
+        item.itemMeta = meta
+        ItemTag.tagItem(item, "bedrock_menu_item")
+        ItemTag.setString(item, "bedrock_action", "warp_world")
+        ItemTag.setWorldUuid(item, worldData.uuid)
+        return item
+    }
+
+    private fun createCreationButtonItem(player: Player): ItemStack {
+        val item = ItemStack(Material.NETHER_STAR)
+        val meta = item.itemMeta ?: return item
+        meta.displayName(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display"))
+        meta.lore(plugin.languageManager.getComponentList(player, "gui.player_world.creation_button.lore"))
+        item.itemMeta = meta
+        ItemTag.tagItem(item, "bedrock_menu_item")
+        ItemTag.setString(item, "bedrock_action", "start_creation")
+        return item
+    }
+
+    private fun createStatsButtonItem(
+        player: Player,
+        currentCreateCount: Int,
+        maxSlot: Int,
+        worldPoint: Int
+    ): ItemStack {
+        val item = ItemStack(Material.PLAYER_HEAD)
+        val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
+        meta.owningPlayer = player
+        val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
+        meta.displayName(
+            plugin.languageManager.getComponent(
+                player,
+                "gui.player_world.stats_button.display",
+                mapOf("player" to playerName)
+            )
         )
+        meta.lore(
+            plugin.languageManager.getComponentList(
+                player,
+                "gui.player_world.stats_button.lore",
+                mapOf(
+                    "point" to worldPoint,
+                    "current_occupied" to currentCreateCount,
+                    "unlocked" to maxSlot,
+                    "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖"
+                )
+            )
+        )
+        item.itemMeta = meta
+        ItemTag.tagItem(item, "bedrock_menu_item")
+        return item
+    }
+
+    private fun createCriticalVisibilityItem(player: Player, enabled: Boolean): ItemStack {
+        val item = ItemStack(Material.RECOVERY_COMPASS)
+        val meta = item.itemMeta ?: return item
+        val status = if (enabled) tr(player, "messages.status_visible") else tr(player, "messages.status_hidden")
+        meta.displayName(plugin.languageManager.getComponent(player, "gui.user_settings.critical_settings_visibility.display"))
+        meta.lore(
+            plugin.languageManager.getComponentList(
+                player,
+                "gui.user_settings.critical_settings_visibility.lore",
+                mapOf("status" to status)
+            )
+        )
+        item.itemMeta = meta
+        ItemTag.tagItem(item, "bedrock_menu_item")
+        ItemTag.setString(item, "bedrock_action", "toggle_critical")
+        return item
     }
 
     private fun createActionItem(
@@ -910,14 +1246,14 @@ class BedrockMenuService(
         val meta = item.itemMeta ?: return item
 
         meta.displayName(
-            Component.text(displayName, NamedTextColor.YELLOW)
+            LegacyComponentSerializer.legacySection().deserialize(displayName)
                 .decoration(TextDecoration.ITALIC, false)
         )
 
         if (lore.isNotEmpty()) {
             meta.lore(
                 lore.map {
-                    Component.text(it, NamedTextColor.GRAY)
+                    LegacyComponentSerializer.legacySection().deserialize(it)
                         .decoration(TextDecoration.ITALIC, false)
                 }
             )

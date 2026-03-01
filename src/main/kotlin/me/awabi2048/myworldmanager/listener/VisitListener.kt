@@ -22,6 +22,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
         if (view.topInventory.holder is VisitGui.VisitGuiHolder) {
             val player = event.whoClicked as? Player ?: return
             val lang = plugin.languageManager
+            val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
             event.isCancelled = true
             val currentItem = event.currentItem ?: return
@@ -34,11 +35,31 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                     plugin.soundManager.playClickSound(player, currentItem)
                     val worldData = plugin.worldConfigRepository.findByUuid(uuid)
                     if (worldData != null) {
-                        plugin.favoriteMenuGui.open(player, worldData)
+                        plugin.menuEntryRouter.openFavoriteMenu(player, worldData)
                     }
                 }
                 ItemTag.TYPE_GUI_WORLD_ITEM -> {
                     val uuid = ItemTag.getWorldUuid(currentItem) ?: return
+
+                    if (isBedrock) {
+                        val worldData = plugin.worldConfigRepository.findByUuid(uuid)
+                        val isMember = worldData != null && (worldData.owner == player.uniqueId ||
+                                      worldData.moderators.contains(player.uniqueId) ||
+                                      worldData.members.contains(player.uniqueId))
+
+                        if (worldData == null || (worldData.publishLevel != PublishLevel.PUBLIC && !isMember)) {
+                            player.sendMessage(lang.getMessage(player, "error.world_not_public"))
+                            plugin.soundManager.playActionSound(player, "visit", "access_denied")
+                            player.closeInventory()
+                            return
+                        }
+
+                        plugin.soundManager.playClickSound(player, currentItem)
+                        plugin.worldService.teleportToWorld(player, uuid)
+                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                        player.closeInventory()
+                        return
+                    }
 
                     if (event.isLeftClick) {
                         val worldData = plugin.worldConfigRepository.findByUuid(uuid)
@@ -94,7 +115,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                         // 表示更新
                         val targetPlayerName = title.substringBefore(lang.getMessage(player, "gui.visit.title").replace("{player}", ""))
                         val targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName)
-                        VisitGui(plugin).open(player, targetPlayer)
+                        plugin.menuEntryRouter.openVisitMenu(player, targetPlayer)
                     }
                 }
             }

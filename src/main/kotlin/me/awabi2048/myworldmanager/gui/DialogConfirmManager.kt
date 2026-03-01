@@ -10,8 +10,8 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 /**
  * 汎用的な確認ダイアログを管理するクラス
@@ -31,6 +31,8 @@ object DialogConfirmManager {
         cancelActionId: String = "mwm:confirm/cancel",
         confirmText: String? = null,
         cancelText: String? = null,
+        onBedrockConfirm: (() -> Unit)? = null,
+        onBedrockCancel: (() -> Unit)? = null,
         onGuiFallback: () -> Unit
     ) {
         if (isNativeDialogEnabled(player, plugin)) {
@@ -46,6 +48,39 @@ object DialogConfirmManager {
             )
             return
         }
+
+        if (onBedrockConfirm != null && plugin.bedrockUiRoutingService.shouldUseForm(player)) {
+            val confirmLabel = confirmText ?: plugin.languageManager.getMessage(player, "gui.common.confirm")
+            val cancelLabel = cancelText ?: plugin.languageManager.getMessage(player, "gui.common.cancel")
+            val opened =
+                plugin.floodgateFormBridge.sendSimpleForm(
+                    player = player,
+                    title = PlainTextComponentSerializer.plainText().serialize(title),
+                    content =
+                        bodyLines.joinToString("\n") {
+                            PlainTextComponentSerializer.plainText().serialize(it)
+                        },
+                    buttons = listOf(confirmLabel, cancelLabel),
+                    onSelect = { index ->
+                        if (index == 0) {
+                            onBedrockConfirm()
+                        } else {
+                            onBedrockCancel?.invoke()
+                        }
+                    },
+                    onClosed = {
+                        onBedrockCancel?.invoke()
+                    }
+                )
+
+            if (opened) {
+                plugin.bedrockUiRoutingService.clearFormFailure(player)
+                return
+            }
+
+            plugin.bedrockUiRoutingService.markFormFailure(player, "dialog_confirm:$confirmActionId")
+        }
+
         onGuiFallback()
     }
 
@@ -70,13 +105,52 @@ object DialogConfirmManager {
         confirmText: String? = null,
         cancelText: String? = null,
         confirmValue: String? = null,
-        cancelValue: String? = null
+        cancelValue: String? = null,
+        onBedrockConfirm: (() -> Unit)? = null,
+        onBedrockCancel: (() -> Unit)? = null,
+        onBedrockFallback: (() -> Unit)? = null
     ) {
 
 
         val lang = plugin.languageManager
         val confirmLabel = confirmText ?: lang.getMessage(player, "gui.common.confirm")
         val cancelLabel = cancelText ?: lang.getMessage(player, "gui.common.cancel")
+
+        if (plugin.playerPlatformResolver.isBedrock(player) && onBedrockConfirm != null &&
+            plugin.bedrockUiRoutingService.shouldUseForm(player)
+        ) {
+            val opened =
+                plugin.floodgateFormBridge.sendSimpleForm(
+                    player = player,
+                    title = PlainTextComponentSerializer.plainText().serialize(title),
+                    content =
+                        bodyLines.joinToString("\n") {
+                            PlainTextComponentSerializer.plainText().serialize(it)
+                        },
+                    buttons = listOf(confirmLabel, cancelLabel),
+                    onSelect = { index ->
+                        if (index == 0) {
+                            onBedrockConfirm()
+                        } else {
+                            onBedrockCancel?.invoke()
+                        }
+                    },
+                    onClosed = {
+                        onBedrockCancel?.invoke()
+                    }
+                )
+
+            if (opened) {
+                plugin.bedrockUiRoutingService.clearFormFailure(player)
+                return
+            }
+
+            plugin.bedrockUiRoutingService.markFormFailure(player, "dialog_simple_confirm:$confirmActionId")
+            if (onBedrockFallback != null) {
+                onBedrockFallback()
+                return
+            }
+        }
 
         val dialog = Dialog.create { builder ->
             builder.empty()

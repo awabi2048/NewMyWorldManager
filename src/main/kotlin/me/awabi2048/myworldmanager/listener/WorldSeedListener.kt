@@ -12,6 +12,56 @@ import org.bukkit.inventory.EquipmentSlot
 
 class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
 
+    companion object {
+        fun expandWorldSlot(plugin: MyWorldManager, player: Player): Boolean {
+            val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+
+            val defaultSlots = plugin.config.getInt("creation.max_create_count_default")
+            val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
+            if (defaultSlots + stats.unlockedWorldSlot >= limit) {
+                player.sendMessage(
+                    plugin.languageManager.getMessage(
+                        player,
+                        "error.custom_item.world_seed_limit_reached",
+                        mapOf("limit" to limit)
+                    )
+                )
+                return false
+            }
+
+            var consumed = false
+            val mainHand = player.inventory.itemInMainHand
+            val offHand = player.inventory.itemInOffHand
+
+            if (ItemTag.isType(mainHand, ItemTag.TYPE_WORLD_SEED)) {
+                mainHand.amount -= 1
+                consumed = true
+            } else if (ItemTag.isType(offHand, ItemTag.TYPE_WORLD_SEED)) {
+                offHand.amount -= 1
+                consumed = true
+            }
+
+            if (!consumed) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.item_not_found_hand"))
+                return false
+            }
+
+            stats.unlockedWorldSlot += 1
+            plugin.playerStatsRepository.save(stats)
+
+            val newTotal = defaultSlots + stats.unlockedWorldSlot
+            player.sendMessage(
+                plugin.languageManager.getMessage(
+                    player,
+                    "messages.custom_item.world_seed_expanded",
+                    mapOf("slots" to newTotal)
+                )
+            )
+            player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+            return true
+        }
+    }
+
     @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
@@ -28,46 +78,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
 
         when (tag) {
             "world_seed_confirm_yes" -> {
-                // Execute Expansion
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                
-                // Double check limit just in case
-                val defaultSlots = plugin.config.getInt("creation.max_create_count_default")
-                val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
-                if (defaultSlots + stats.unlockedWorldSlot >= limit) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
-                    player.closeInventory()
-                    return
-                }
-
-                // Consume Item
-                var consumed = false
-                val mainHand = player.inventory.itemInMainHand
-                val offHand = player.inventory.itemInOffHand
-
-                if (ItemTag.isType(mainHand, ItemTag.TYPE_WORLD_SEED)) {
-                    mainHand.amount -= 1
-                    consumed = true
-                } else if (ItemTag.isType(offHand, ItemTag.TYPE_WORLD_SEED)) {
-                    offHand.amount -= 1
-                    consumed = true
-                }
-
-                if (!consumed) {
-                    player.sendMessage("§cItem not found in hand.") // Should ideally use message key or be silent if weird state
-                    player.closeInventory()
-                    return
-                }
-
-                // Update Stats
-                stats.unlockedWorldSlot += 1
-                plugin.playerStatsRepository.save(stats)
-
-                // Message & Sound
-                val newTotal = defaultSlots + stats.unlockedWorldSlot
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_expanded", mapOf("slots" to newTotal)))
-                player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f) // Or specific sound
-                
+                expandWorldSlot(plugin, player)
                 player.closeInventory()
             }
             "world_seed_confirm_no" -> {
@@ -87,48 +98,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
             
             me.awabi2048.myworldmanager.gui.DialogConfirmManager.safeCloseDialog(player)
 
-            // Execute Expansion
-            val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-            
-            // Double check limit just in case
-            val defaultSlots = plugin.config.getInt("creation.max_create_count_default")
-            val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
-            if (defaultSlots + stats.unlockedWorldSlot >= limit) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
-                return
-            }
-
-            // Consume Item (Check inventory mainly)
-            var consumed = false
-            // Check hands first
-            val mainHand = player.inventory.itemInMainHand
-            val offHand = player.inventory.itemInOffHand
-
-            if (ItemTag.isType(mainHand, ItemTag.TYPE_WORLD_SEED)) {
-                mainHand.amount -= 1
-                consumed = true
-            } else if (ItemTag.isType(offHand, ItemTag.TYPE_WORLD_SEED)) {
-                offHand.amount -= 1
-                consumed = true
-            } else {
-                 // Check inventory content if not in hand (should be rare if they just clicked, but possible)
-                 // But strictly speaking, it implies they are holding it? Not necessarily with dialogs.
-                 // Let's stick to hands for now as it's an item-use action.
-            }
-
-            if (!consumed) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.item_not_found_hand"))
-                return
-            }
-
-            // Update Stats
-            stats.unlockedWorldSlot += 1
-            plugin.playerStatsRepository.save(stats)
-
-            // Message & Sound
-            val newTotal = defaultSlots + stats.unlockedWorldSlot
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.world_seed_expanded", mapOf("slots" to newTotal)))
-            player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
+            expandWorldSlot(plugin, player)
             
         } else if (identifier == net.kyori.adventure.key.Key.key("mwm:confirm/cancel")) {
              // For generic cancel, we might want to ensure it's closing ONLY if it was related to this flow? 

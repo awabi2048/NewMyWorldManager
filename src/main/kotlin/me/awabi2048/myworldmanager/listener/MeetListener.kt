@@ -40,7 +40,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                 plugin.playerStatsRepository.save(stats)
                 
                 // Refresh
-                plugin.meetGui.open(player)
+                plugin.menuEntryRouter.openMeet(player)
                 return
             }
 

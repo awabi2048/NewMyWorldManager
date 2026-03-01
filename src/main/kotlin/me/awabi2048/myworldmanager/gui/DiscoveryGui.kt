@@ -176,6 +176,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val item = ItemStack(data.icon)
                 val meta = item.itemMeta ?: return item
                 val lang = plugin.languageManager
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 meta.displayName(
                         lang.getComponent(
@@ -206,8 +207,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         ""
                 }
 
-                val previewHint = lang.getMessage(player, "gui.discovery.world_item.preview_hint")
-                val memberRequestHint = lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
+                val previewHint = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.preview_hint")
+                val memberRequestHint = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
+                val loreKey = if (isBedrock) "gui.discovery.world_item.lore_bedrock" else "gui.discovery.world_item.lore"
 
                 val separator = lang.getComponent(player, "gui.common.separator")
 
@@ -215,7 +217,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
                                 lang.getComponentList(
                                         player,
-                                        "gui.discovery.world_item.lore",
+                                        loreKey,
                                         mapOf(
                                                 "description" to formattedDesc,
                                                 "owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")),
@@ -277,6 +279,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG))
                 val meta = item.itemMeta ?: return item
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 val tagName = if (selectedTag != null) {
                         plugin.worldTagManager.getDisplayName(player, selectedTag)
@@ -284,8 +287,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
                 }
                 val prefix = if (selectedTag != null) lang.getMessage(player, "gui.discovery.tag_filter.current_prefix") else ""
-                val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
-                val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
+                val clickLeft = if (isBedrock) lang.getMessage(player, "gui.discovery.tag_filter.click_bedrock") else lang.getMessage(player, "gui.discovery.tag_filter.click_left")
+                val clickRight = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.tag_filter.click_right")
+                val loreKey = if (isBedrock) "gui.discovery.tag_filter.lore_bedrock" else "gui.discovery.tag_filter.lore"
 
                 val tagList = plugin.worldTagManager.getEnabledTagIds().joinToString("\n") { tagId ->
                         val tagPrefix = if (tagId == selectedTag) lang.getMessage(player, "gui.discovery.tag_filter.active") else lang.getMessage(player, "gui.discovery.tag_filter.inactive")
@@ -298,7 +302,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 meta.lore(
                         lang.getComponentList(
                                 player,
-                                "gui.discovery.tag_filter.lore",
+                                loreKey,
                                 mapOf(
                                         "prefix" to prefix,
                                         "tag" to tagName,
@@ -318,6 +322,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(Material.GLASS_PANE)
                 val meta = item.itemMeta ?: return item
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 meta.displayName(
                         lang.getComponent(player, "gui.discovery.spotlight_empty.name")
@@ -328,7 +333,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         if (player.hasPermission("myworldmanager.admin")) {
                                 lang.getComponentList(
                                         player,
-                                        "gui.discovery.spotlight_empty.lore_admin"
+                                        if (isBedrock) "gui.discovery.spotlight_empty.lore_admin_bedrock" else "gui.discovery.spotlight_empty.lore_admin"
                                 )
                         } else {
                                 lang.getComponentList(
@@ -336,11 +341,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         "gui.discovery.spotlight_empty.lore_visitor"
                                 )
                         }
-                
-                // Temporary Debug
-                val debugLore = loreLines.map { it.decoration(TextDecoration.ITALIC, false) }.toMutableList()
-                debugLore.add(Component.text("§8[Debug] Admin: ${player.hasPermission("myworldmanager.admin")}, OP: ${player.isOp}"))
-                meta.lore(debugLore)
+
+                meta.lore(loreLines.map { it.decoration(TextDecoration.ITALIC, false) })
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, "discovery_spotlight_empty")
