@@ -4,13 +4,14 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import org.bukkit.Difficulty
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.world.WorldLoadEvent
 import org.bukkit.event.world.WorldUnloadEvent
 
 class WorldStatusListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onWorldUnload(event: WorldUnloadEvent) {
         // アンロードされたワールドを登録
         // キャンセルされる可能性もあるので、MONITOR優先度が望ましいが、通常のEventHandlerで処理

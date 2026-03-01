@@ -217,6 +217,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(WorldSettingsListener(), this)
         server.pluginManager.registerEvents(WorldExpirationListener(worldConfigRepository), this)
         server.pluginManager.registerEvents(PortalListener(this), this)
+        server.pluginManager.registerEvents(PortalDisplayLifecycleListener(this), this)
         server.pluginManager.registerEvents(PortalGui(this), this)
         server.pluginManager.registerEvents(DiscoveryListener(this), this)
         server.pluginManager.registerEvents(SpotlightListener(this), this)

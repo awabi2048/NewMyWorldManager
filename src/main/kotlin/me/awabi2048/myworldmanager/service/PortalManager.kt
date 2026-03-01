@@ -16,6 +16,7 @@ import org.bukkit.entity.Display
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
+import org.bukkit.persistence.PersistentDataType
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -26,16 +27,8 @@ class PortalManager(private val plugin: MyWorldManager) {
     private val textDisplays = ConcurrentHashMap<UUID, TextDisplay>()
     // TextDisplayUUID -> PortalUUID の逆引きマップ
     private val displayToPortal = ConcurrentHashMap<UUID, UUID>()
-    private val textDisplayLastSeen = ConcurrentHashMap<UUID, Long>()
+    private val activeDisplayWorlds = ConcurrentHashMap.newKeySet<String>()
     private val portalDisplayKey = NamespacedKey(plugin, "portal_display_id")
-    private val textDisplaySpawnRangeSquared = plugin.config.getDouble("portal.text_display.spawn_distance", 48.0)
-        .coerceAtLeast(1.0)
-        .let { it * it }
-    private val textDisplayDespawnRangeSquared = plugin.config.getDouble("portal.text_display.despawn_distance", 64.0)
-        .coerceAtLeast(1.0)
-        .let { it * it }
-    private val textDisplayDespawnDelayMs = plugin.config.getLong("portal.text_display.despawn_delay_millis", 8_000L)
-        .coerceAtLeast(0L)
     private val warpCooldowns = ConcurrentHashMap<UUID, Long>()
     private val entityWarpCooldowns = ConcurrentHashMap<UUID, Long>()
     private val ignorePlayers = ConcurrentHashMap.newKeySet<UUID>()
@@ -102,6 +95,38 @@ class PortalManager(private val plugin: MyWorldManager) {
             processWarpCycle()
         }, 0L, 5L) // 5tick間隔 (0.25秒)
     }
+
+    fun refreshWorldDisplayLifecycle(previousWorldName: String?, currentWorldName: String?) {
+        refreshWorldDisplayLifecycle(previousWorldName)
+        if (currentWorldName != previousWorldName) {
+            refreshWorldDisplayLifecycle(currentWorldName)
+        }
+    }
+
+    fun refreshWorldDisplayLifecycle(worldName: String?) {
+        if (worldName.isNullOrBlank()) return
+
+        val world = Bukkit.getWorld(worldName)
+        if (world == null || world.players.isEmpty()) {
+            activeDisplayWorlds.remove(worldName)
+            removeTextDisplaysForWorld(worldName)
+            return
+        }
+
+        val portals = plugin.portalRepository.findAll().filter { it.worldName == worldName }
+        if (portals.isEmpty()) {
+            activeDisplayWorlds.remove(worldName)
+            return
+        }
+
+        if (!activeDisplayWorlds.add(worldName)) {
+            return
+        }
+
+        for (portal in portals) {
+            updateTextDisplay(portal, true)
+        }
+    }
     
     /**
      * 旧バージョンで保存されたTextDisplay UUIDをクリア
@@ -160,17 +185,19 @@ class PortalManager(private val plugin: MyWorldManager) {
         portalCache.clear()
         gateCache.clear()
         val playersByWorld = Bukkit.getOnlinePlayers().groupBy { it.world.name }
+        syncActiveDisplayWorlds(portals, playersByWorld)
+        val portalById = portals.associateBy { it.id }
 
         // 孤立したTextDisplayをクリーンアップ（ポータルデータが存在しないが、紐付けマップに残っている）
-        val validPortalIds = portals.map { it.id }.toSet()
         val displayIterator = displayToPortal.iterator()
         while (displayIterator.hasNext()) {
             val entry = displayIterator.next()
-            val mappedDisplay = textDisplays[entry.value]
-            if (!validPortalIds.contains(entry.value) || mappedDisplay == null || !mappedDisplay.isValid) {
+            val portalId = entry.value
+            val mappedDisplay = textDisplays[portalId]
+            val portal = portalById[portalId]
+            if (portal == null || mappedDisplay == null || !mappedDisplay.isValid || mappedDisplay.world.name != portal.worldName) {
                 TextDisplayEntityUtil.removeIfValid(mappedDisplay)
-                textDisplays.remove(entry.value)
-                textDisplayLastSeen.remove(entry.value)
+                textDisplays.remove(portalId)
                 displayIterator.remove()
             }
         }
@@ -226,7 +253,7 @@ class PortalManager(private val plugin: MyWorldManager) {
             }
 
             // 2. テキスト表示の更新
-            updateTextDisplay(portal, playersByWorld[portal.worldName].orEmpty())
+            updateTextDisplay(portal, activeDisplayWorlds.contains(portal.worldName))
 
             if (portal.isGate()) {
                 gateCache.computeIfAbsent(portal.worldName) { mutableListOf() }.add(portal)
@@ -236,6 +263,32 @@ class PortalManager(private val plugin: MyWorldManager) {
             }
         }
 
+    }
+
+    private fun syncActiveDisplayWorlds(
+        portals: Collection<PortalData>,
+        playersByWorld: Map<String, List<Player>>
+    ) {
+        val worldsWithPortals = portals.map { it.worldName }.toSet()
+
+        for (worldName in worldsWithPortals) {
+            if (playersByWorld[worldName].isNullOrEmpty()) {
+                if (activeDisplayWorlds.remove(worldName)) {
+                    removeTextDisplaysForWorld(worldName)
+                }
+            } else {
+                activeDisplayWorlds.add(worldName)
+            }
+        }
+
+        val activeIterator = activeDisplayWorlds.iterator()
+        while (activeIterator.hasNext()) {
+            val worldName = activeIterator.next()
+            if (!worldsWithPortals.contains(worldName)) {
+                removeTextDisplaysForWorld(worldName)
+                activeIterator.remove()
+            }
+        }
     }
 
     private fun processWarpCycle() {
@@ -306,89 +359,65 @@ class PortalManager(private val plugin: MyWorldManager) {
         return false
     }
 
-     private fun updateTextDisplay(portal: PortalData, worldPlayers: List<Player>) {
+     private fun updateTextDisplay(portal: PortalData, worldActive: Boolean) {
          val lang = plugin.languageManager
-         val now = System.currentTimeMillis()
-         if (!portal.showText) {
-              // テキスト表示が無効の場合は削除
-              removeTextDisplayForPortal(portal.id)
-              return
-          }
+         if (!portal.showText || !worldActive) {
+             removeTextDisplayForPortal(portal.id)
+             return
+         }
 
-          val loc = portal.getCenterLocation()
-          val world = loc.world ?: run {
-              removeTextDisplayForPortal(portal.id)
-              return
-          }
-          val displayLoc = loc.clone().add(0.0, 3.0, 0.0)
+         val loc = portal.getCenterLocation()
+         val world = loc.world ?: run {
+             removeTextDisplayForPortal(portal.id)
+             return
+         }
+         val displayLoc = loc.clone().add(0.0, 3.0, 0.0)
+         val tagValue = portal.id.toString()
 
-          // メモリマップから取得
-          var display = textDisplays[portal.id]
+         var display = textDisplays[portal.id]
+         if (display != null) {
+             val wrongWorld = display.world.name != portal.worldName
+             if (!display.isValid || wrongWorld) {
+                 displayToPortal.remove(display.uniqueId)
+                 TextDisplayEntityUtil.removeIfValid(display)
+                 textDisplays.remove(portal.id)
+                 display = null
+             }
+         }
 
-          if (display != null && !display.isValid) {
-              displayToPortal.remove(display.uniqueId)
-              textDisplays.remove(portal.id)
-              display = null
-          }
+         if (display == null) {
+             val taggedDisplays = TextDisplayEntityUtil.findTaggedDisplays(world, portalDisplayKey, tagValue)
+             if (taggedDisplays.isNotEmpty()) {
+                 display = taggedDisplays.first()
+                 for (duplicate in taggedDisplays.drop(1)) {
+                     TextDisplayEntityUtil.removeIfValid(duplicate)
+                     displayToPortal.remove(duplicate.uniqueId)
+                 }
+             }
+         }
 
-          if (display != null) {
-              val hasNearbyPlayer = hasNearbyPlayer(displayLoc, worldPlayers, textDisplayDespawnRangeSquared)
-              if (hasNearbyPlayer) {
-                  textDisplayLastSeen[portal.id] = now
-                  updateDisplayText(display, portal, lang)
-              } else {
-                  val lastSeen = textDisplayLastSeen.computeIfAbsent(portal.id) { now }
-                  if (now - lastSeen >= textDisplayDespawnDelayMs) {
-                      removeTextDisplayForPortal(portal.id)
-                  }
-              }
-              return
-          }
+         if (display == null) {
+             display = TextDisplayEntityUtil.spawnTaggedDisplay(
+                 world,
+                 displayLoc,
+                 portalDisplayKey,
+                 tagValue
+             ) {
+                 it.billboard = Display.Billboard.CENTER
+             }
+         } else {
+             if (!TextDisplayEntityUtil.hasTag(display, portalDisplayKey, tagValue)) {
+                 TextDisplayEntityUtil.setTag(display, portalDisplayKey, tagValue)
+             }
+             if (display.location.world != world || display.location.distanceSquared(displayLoc) > 0.01) {
+                 display.teleport(displayLoc)
+             }
+         }
 
-          if (!hasNearbyPlayer(displayLoc, worldPlayers, textDisplaySpawnRangeSquared)) {
-              return
-          }
-
-          val tagValue = portal.id.toString()
-
-          // 位置ベース + タグで検索（使い捨て運用の再利用）
-          display = TextDisplayEntityUtil.findNearbyTaggedDisplay(world, displayLoc, 1.0, portalDisplayKey, tagValue)
-          if (display == null) {
-              display = world.getNearbyEntities(displayLoc, 0.5, 0.5, 0.5)
-                  .filterIsInstance<TextDisplay>()
-                  .firstOrNull { it.isValid }
-              if (display != null) {
-                  TextDisplayEntityUtil.setTag(display, portalDisplayKey, tagValue)
-              }
-          }
-
-          // 既存のTextDisplayが有効か確認
-          if (display == null) {
-              display = TextDisplayEntityUtil.spawnTaggedDisplay(
-                  world,
-                  displayLoc,
-                  portalDisplayKey,
-                  tagValue
-              ) {
-                  it.billboard = Display.Billboard.CENTER
-              }
-          }
-
-          textDisplays[portal.id] = display
-          displayToPortal[display.uniqueId] = portal.id
-          textDisplayLastSeen[portal.id] = now
-
-          // 新規作成した場合もテキストを更新
-          updateDisplayText(display, portal, lang)
-       }
-
-    private fun hasNearbyPlayer(location: Location, players: List<Player>, rangeSquared: Double): Boolean {
-        for (player in players) {
-            if (!player.isOnline || player.world != location.world) continue
-            if (player.location.distanceSquared(location) <= rangeSquared) return true
-        }
-        return false
-    }
+         textDisplays[portal.id] = display
+         displayToPortal[display.uniqueId] = portal.id
+         updateDisplayText(display, portal, lang)
+     }
      
      /**
       * TextDisplayのテキストを更新
@@ -422,7 +451,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                 var isInAnyGate = false
                 for (gate in gates) {
                     if (!gate.containsLocation(entity.location)) continue
-                    if (entity is TextDisplay && displayToPortal.containsKey(entity.uniqueId)) continue
+                    if (entity is TextDisplay && entity.persistentDataContainer.has(portalDisplayKey, PersistentDataType.STRING)) continue
 
                     isInAnyGate = true
                     if (entity is Player && entity.isSneaking) {
@@ -576,12 +605,22 @@ class PortalManager(private val plugin: MyWorldManager) {
      private fun removeTextDisplayForPortal(portalId: UUID) {
           // メモリから削除
           val display = textDisplays.remove(portalId)
-          textDisplayLastSeen.remove(portalId)
 
           // TextDisplay をエンティティから削除
           if (display != null) {
               displayToPortal.remove(display.uniqueId)
               TextDisplayEntityUtil.removeIfValid(display)
+          }
+      }
+
+      private fun removeTextDisplaysForWorld(worldName: String) {
+          val portalIds = plugin.portalRepository.findAll()
+              .asSequence()
+              .filter { it.worldName == worldName }
+              .map { it.id }
+              .toList()
+          for (portalId in portalIds) {
+              removeTextDisplayForPortal(portalId)
           }
       }
      
@@ -604,20 +643,21 @@ class PortalManager(private val plugin: MyWorldManager) {
        * ワールドアンロード時にそのワールドのTextDisplayをメモリマップから削除
        */
       fun cleanupWorld(worldName: String) {
+          activeDisplayWorlds.remove(worldName)
           val portalIdsToRemove = mutableListOf<UUID>()
           val displayUuidsToRemove = mutableListOf<UUID>()
           
           for ((portalId, display) in textDisplays) {
-              if (display.world?.name == worldName) {
+              val portalWorld = plugin.portalRepository.findById(portalId)?.worldName
+              if (display.world.name == worldName || portalWorld == worldName) {
                   portalIdsToRemove.add(portalId)
                   displayUuidsToRemove.add(display.uniqueId)
               }
           }
           
-           for (portalId in portalIdsToRemove) {
-               textDisplays.remove(portalId)
-               textDisplayLastSeen.remove(portalId)
-           }
+            for (portalId in portalIdsToRemove) {
+                textDisplays.remove(portalId)
+            }
           
           for (displayUuid in displayUuidsToRemove) {
               displayToPortal.remove(displayUuid)
