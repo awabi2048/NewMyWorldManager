@@ -140,7 +140,7 @@ class VisitGui(private val plugin: MyWorldManager) {
 
                 val tagLine = if (world.tags.isNotEmpty()) {
                         val tagNames = world.tags.joinToString(", ") {
-                                lang.getMessage(viewer, "world_tag.${it.name.lowercase()}")
+                                plugin.worldTagManager.getDisplayName(viewer, it)
                         }
                         lang.getMessage(viewer, "gui.visit.world_item.tag", mapOf("tags" to tagNames))
                 } else ""

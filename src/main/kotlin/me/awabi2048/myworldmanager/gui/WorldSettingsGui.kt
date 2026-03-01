@@ -5,7 +5,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
-import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -469,10 +468,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "gui.settings.tags.lore_item",
                                                 mapOf(
                                                         "tag" to
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "world_tag.${it.name.lowercase()}"
-                                                                )
+                                                                plugin.worldTagManager.getDisplayName(player, it)
                                                 )
                                         )
                                 }
@@ -2014,10 +2010,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 for (i in 18..26) inventory.setItem(i, blackPane)
 
                 // タグの配置
-                val tags = WorldTag.values()
-                tags.forEachIndexed { index, tag ->
+                val tags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
+                val maxVisibleTags = 7
+                val visibleTags = tags.take(maxVisibleTags)
+                visibleTags.forEachIndexed { index, tagId ->
                         val slot = 10 + index
-                        val hasTag = worldData.tags.contains(tag)
+                        val hasTag = worldData.tags.contains(tagId)
 
                         val activeColor = lang.getMessage(player, "publish_level.color.active")
                         val inactiveColor = lang.getMessage(player, "publish_level.color.inactive")
@@ -2028,10 +2026,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 LegacyComponentSerializer.legacySection()
                                         .deserialize(
                                                 (if (hasTag) activeColor else inactiveColor) +
-                                                        lang.getMessage(
-                                                                player,
-                                                                "world_tag.${tag.name.lowercase()}"
-                                                        )
+                                                        plugin.worldTagManager.getDisplayName(player, tagId)
                                         )
                                         .decoration(TextDecoration.ITALIC, false)
                         )
@@ -2059,8 +2054,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 }
                         )
                         item.itemMeta = meta
-                        ItemTag.tagItem(item, "tag_" + tag.name)
+                        ItemTag.tagItem(item, "tag_$tagId")
                         inventory.setItem(slot, item)
+                }
+
+                if (tags.size > maxVisibleTags) {
+                        inventory.setItem(
+                                17,
+                                createItem(
+                                        Material.PAPER,
+                                        "§e...",
+                                        listOf("§7タグが多いため、ダイアログ編集を利用してください"),
+                                        ItemTag.TYPE_GUI_INFO
+                                )
+                        )
                 }
 
                 // 戻るボタン

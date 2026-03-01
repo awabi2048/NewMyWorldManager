@@ -4,7 +4,6 @@ import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
-import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
@@ -30,13 +29,13 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 }
 
                 // ワールドの取得とフィルタリング
+                val selectedTag = session.selectedTag
                 val allWorlds =
                         plugin.worldConfigRepository
                                 .findAll()
                                 .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived && it.sourceWorld != "CONVERT" }
                                 .filter {
-                                        session.selectedTag == null ||
-                                                it.tags.contains(session.selectedTag)
+                                        selectedTag == null || it.tags.contains(selectedTag)
                                 }
 
                 // ソート
@@ -199,13 +198,13 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 } else ""
 
                 val tagNames = if (data.tags.isNotEmpty()) {
-                val tagsStr = data.tags.joinToString(", ") {
-                        lang.getMessage(player, "world_tag.${it.name.lowercase()}")
+                        val tagsStr = data.tags.joinToString(", ") {
+                                plugin.worldTagManager.getDisplayName(player, it)
+                        }
+                        lang.getMessage(player, "gui.discovery.world_item.tag", mapOf("tags" to tagsStr))
+                } else {
+                        ""
                 }
-                lang.getMessage(player, "gui.discovery.world_item.tag", mapOf("tags" to tagsStr))
-        } else {
-                ""
-        }
 
                 val previewHint = lang.getMessage(player, "gui.discovery.world_item.preview_hint")
                 val memberRequestHint = lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
@@ -274,37 +273,41 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 return item
         }
 
-        private fun createTagFilterButton(player: Player, selectedTag: WorldTag?): ItemStack {
+        private fun createTagFilterButton(player: Player, selectedTag: String?): ItemStack {
                 val lang = plugin.languageManager
                 val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG))
                 val meta = item.itemMeta ?: return item
 
-                val tagName = if (selectedTag != null) lang.getMessage(player, "world_tag.${selectedTag.name.lowercase()}") else lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
-        val prefix = if (selectedTag != null) lang.getMessage(player, "gui.discovery.tag_filter.current_prefix") else ""
-        val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
-        val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
+                val tagName = if (selectedTag != null) {
+                        plugin.worldTagManager.getDisplayName(player, selectedTag)
+                } else {
+                        lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
+                }
+                val prefix = if (selectedTag != null) lang.getMessage(player, "gui.discovery.tag_filter.current_prefix") else ""
+                val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
+                val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
 
-        val tagList = WorldTag.values().joinToString("\n") { tag ->
-                val tagPrefix = if (tag == selectedTag) lang.getMessage(player, "gui.discovery.tag_filter.active") else lang.getMessage(player, "gui.discovery.tag_filter.inactive")
-                val tagColor = if (tag == selectedTag) "§e" else "§7"
-                val name = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
-                "$tagPrefix$tagColor$name"
-        }
+                val tagList = plugin.worldTagManager.getEnabledTagIds().joinToString("\n") { tagId ->
+                        val tagPrefix = if (tagId == selectedTag) lang.getMessage(player, "gui.discovery.tag_filter.active") else lang.getMessage(player, "gui.discovery.tag_filter.inactive")
+                        val tagColor = if (tagId == selectedTag) "§e" else "§7"
+                        val name = plugin.worldTagManager.getDisplayName(player, tagId)
+                        "$tagPrefix$tagColor$name"
+                }
 
-        meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
-        meta.lore(
-                lang.getComponentList(
-                        player,
-                        "gui.discovery.tag_filter.lore",
-                        mapOf(
-                                "prefix" to prefix,
-                                "tag" to tagName,
-                                "tag_list" to tagList,
-                                "click_left" to clickLeft,
-                                "click_right" to clickRight
+                meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
+                meta.lore(
+                        lang.getComponentList(
+                                player,
+                                "gui.discovery.tag_filter.lore",
+                                mapOf(
+                                        "prefix" to prefix,
+                                        "tag" to tagName,
+                                        "tag_list" to tagList,
+                                        "click_left" to clickLeft,
+                                        "click_right" to clickRight
+                                )
                         )
                 )
-        )
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_TAG)
@@ -347,7 +350,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         private fun createStatsItem(
                 player: Player,
                 sort: DiscoverySort,
-                tag: WorldTag?,
+                tag: String?,
                 count: Int
         ): ItemStack {
                 val lang = plugin.languageManager
@@ -355,7 +358,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val meta = item.itemMeta ?: return item
 
                 val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
-                val tagName = tag?.let { lang.getMessage(player, "world_tag.${it.name.lowercase()}") } ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
+                val tagName = tag?.let { plugin.worldTagManager.getDisplayName(player, it) } ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
                 val desc = lang.getMessage(player, "gui.discovery.stats.desc")
 
                 meta.displayName(lang.getComponent(player, "gui.discovery.stats.name"))

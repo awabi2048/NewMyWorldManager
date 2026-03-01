@@ -258,7 +258,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 val tagLine = if (world.tags.isNotEmpty()) {
                         val tagNames = world.tags.joinToString(", ") {
-                                lang.getMessage(player, "world_tag.${it.name.lowercase()}")
+                                plugin.worldTagManager.getDisplayName(player, it)
                         }
                         lang.getMessage(player, "gui.player_world.world_item.tag", mapOf("tags" to tagNames))
                 } else ""

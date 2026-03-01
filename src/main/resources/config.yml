@@ -2,8 +2,12 @@ world_name:
   min_length: 3
   max_length: 16
 
-tags:
-  max_count: 4
+world_tags:
+  - shop
+  - minigame
+  - building
+  - facility
+  - streaming
 
 validation:
   blocked_strings:

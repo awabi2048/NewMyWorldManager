@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.model
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.configuration.serialization.ConfigurationSerializable
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -27,7 +28,7 @@ data class WorldData(
     var favorite: Int = 0,
     var recentVisitors: MutableList<Int> = mutableListOf(0, 0, 0, 0, 0, 0, 0),
     var publicAt: String? = null,
-    val tags: MutableList<WorldTag> = mutableListOf(),
+    val tags: MutableList<String> = mutableListOf(),
     var cumulativePoints: Int = 0,
     var notificationEnabled: Boolean = true,
     val announcementMessages: MutableList<String> = mutableListOf(),
@@ -60,7 +61,7 @@ data class WorldData(
             "favorite" to favorite,
             "recent_visitors" to recentVisitors,
             "public_at" to publicAt,
-            "tags" to tags.map { it.name },
+            "tags" to tags,
             "cumulative_points" to cumulativePoints,
             "notification_enabled" to notificationEnabled,
             "announcement_messages" to announcementMessages,
@@ -122,7 +123,11 @@ data class WorldData(
                 favorite = args["favorite"] as Int,
                 recentVisitors = (args["recent_visitors"] as? List<*>)?.filterIsInstance<Int>()?.toMutableList() ?: mutableListOf(0, 0, 0, 0, 0, 0, 0),
                 publicAt = args["public_at"] as? String,
-                tags = (args["tags"] as? List<*>)?.mapNotNull { try { WorldTag.valueOf(it as String) } catch (e: Exception) { null } }?.toMutableList() ?: mutableListOf(),
+                tags = (args["tags"] as? List<*>)
+                    ?.mapNotNull { (it as? String)?.let { raw -> normalizeTagId(raw) } }
+                    ?.distinct()
+                    ?.toMutableList()
+                    ?: mutableListOf(),
                 cumulativePoints = args["cumulative_points"] as Int,
                 notificationEnabled = args["notification_enabled"] as? Boolean ?: true,
                 announcementMessages = (args["announcement_messages"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf(),
@@ -180,6 +185,24 @@ data class WorldData(
             }
             return null
         }
+
+        private fun normalizeTagId(raw: String): String? {
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) return null
+
+            val legacy = legacyTagMap[trimmed.uppercase(Locale.ROOT)]
+            if (legacy != null) return legacy
+
+            return trimmed.lowercase(Locale.ROOT)
+        }
+
+        private val legacyTagMap = mapOf(
+            "SHOP" to "shop",
+            "MINIGAME" to "minigame",
+            "BUILDING" to "building",
+            "FACILITY" to "facility",
+            "STREAMING" to "streaming"
+        )
     }
 }
 

@@ -9,7 +9,6 @@ import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferSource
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
-import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -1516,25 +1515,16 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        val tagName = type.substringAfter("tag_")
-                                        val tag = WorldTag.valueOf(tagName)
+                                        val tagId = plugin.worldTagManager.normalizeTagId(type.substringAfter("tag_")) ?: return
+                                        val editableTags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
+                                        if (!editableTags.contains(tagId)) {
+                                                return
+                                        }
 
-                                        if (worldData.tags.contains(tag)) {
-                                                worldData.tags.remove(tag)
+                                        if (worldData.tags.contains(tagId)) {
+                                                worldData.tags.remove(tagId)
                                         } else {
-                                                val maxTags =
-                                                        plugin.config.getInt("tags.max_count", 4)
-                                                if (worldData.tags.size >= maxTags) {
-                                                        player.sendMessage(
-                                                                plugin.languageManager.getMessage(
-                                                                        player,
-                                                                        "messages.tag_max_reached",
-                                                                        mapOf("limit" to maxTags)
-                                                                )
-                                                        )
-                                                        return
-                                                }
-                                                worldData.tags.add(tag)
+                                                worldData.tags.add(tagId)
                                         }
                                         plugin.worldConfigRepository.save(worldData)
                                         plugin.worldSettingsGui.openTagEditor(player, worldData)
@@ -3992,19 +3982,19 @@ player.sendMessage(
                 
                 val lang = plugin.languageManager
                 val currentTags = worldData.tags
-                val allTags = WorldTag.values()
+                val allTags = plugin.worldTagManager.getEditableTagIds(currentTags)
                 
-                plugin.logger.info("[MWM-Debug] Current tags: ${currentTags.map { it.name }}")
+                plugin.logger.info("[MWM-Debug] Current tags: $currentTags")
                 
                 // Build Inputs
                 // Create a boolean input for each tag
-                val inputs = allTags.map { tag ->
-                        val tagName = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
-                        val isSelected = currentTags.contains(tag)
+                val inputs = allTags.map { tagId ->
+                        val tagName = plugin.worldTagManager.getDisplayName(player, tagId)
+                        val isSelected = currentTags.contains(tagId)
                         
-                        plugin.logger.info("[MWM-Debug] Creating input for tag ${tag.name}: key=tag_${tag.name}, initial=$isSelected")
+                        plugin.logger.info("[MWM-Debug] Creating input for tag $tagId: key=tag_$tagId, initial=$isSelected")
                         
-                        DialogInput.bool("tag_${tag.name}", Component.text(tagName))
+                        DialogInput.bool("tag_$tagId", Component.text(tagName))
                                 .initial(isSelected)
                                 .build()
                 }
@@ -4155,39 +4145,26 @@ player.sendMessage(
                         plugin.logger.info("[MWM-Debug] WorldData found: ${worldData.customWorldName}")
                         
                         // Collect all tags from input
-                        val allTags = WorldTag.values()
-                        val newTags = mutableSetOf<WorldTag>()
+                        val allTags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
+                        val newTags = mutableSetOf<String>()
                         plugin.logger.info("[MWM-Debug] Processing ${allTags.size} tags")
                         
-                        for (tag in allTags) {
-                                val inputKey = "tag_${tag.name}"
+                        for (tagId in allTags) {
+                                val inputKey = "tag_$tagId"
                                 val isSelected = view.getBoolean(inputKey) ?: false
-                                plugin.logger.info("[MWM-Debug] Tag ${tag.name}: inputKey=$inputKey, isSelected=$isSelected")
+                                plugin.logger.info("[MWM-Debug] Tag $tagId: inputKey=$inputKey, isSelected=$isSelected")
                                 if (isSelected) {
-                                        newTags.add(tag)
+                                        newTags.add(tagId)
                                 }
                         }
                         
-                        plugin.logger.info("[MWM-Debug] Selected tags: ${newTags.map { it.name }}")
-                        
-                        // Validate Max Count
-                        val maxTags = plugin.config.getInt("tags.max_count", 4)
-                        plugin.logger.info("[MWM-Debug] Max tags: $maxTags, Selected: ${newTags.size}")
-                        
-                        if (newTags.size > maxTags) {
-                                plugin.logger.warning("[MWM-Debug] Tag limit exceeded")
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tag_max_reached", mapOf("limit" to maxTags)))
-                                Bukkit.getScheduler().runTask(plugin, Runnable {
-                                        showTagEditorDialog(player, worldData) 
-                                })
-                                return
-                        }
+                        plugin.logger.info("[MWM-Debug] Selected tags: $newTags")
                         
                         // Save Changes
-                        plugin.logger.info("[MWM-Debug] Clearing old tags: ${worldData.tags.map { it.name }}")
+                        plugin.logger.info("[MWM-Debug] Clearing old tags: ${worldData.tags}")
                         worldData.tags.clear()
                         worldData.tags.addAll(newTags)
-                        plugin.logger.info("[MWM-Debug] New tags set: ${worldData.tags.map { it.name }}")
+                        plugin.logger.info("[MWM-Debug] New tags set: ${worldData.tags}")
                         
                         plugin.worldConfigRepository.save(worldData)
                         plugin.logger.info("[MWM-Debug] WorldData saved successfully")

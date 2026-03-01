@@ -63,6 +63,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var memberRequestOwnerConfirmGui: MemberRequestOwnerConfirmGui
     lateinit var worldSeedConfirmGui: WorldSeedConfirmGui
     lateinit var languageManager: LanguageManager
+    lateinit var worldTagManager: WorldTagManager
     lateinit var previewSessionManager: PreviewSessionManager
     lateinit var adminGuiSessionManager: AdminGuiSessionManager
     lateinit var macroManager: MacroManager
@@ -104,6 +105,8 @@ class MyWorldManager : JavaPlugin() {
 
         // 言語設定の初期化
         languageManager = LanguageManager(this)
+        worldTagManager = WorldTagManager(this)
+        worldTagManager.reload()
 
         // リポジトリの初期化
         worldConfigRepository = WorldConfigRepository(this)
@@ -308,6 +311,7 @@ class MyWorldManager : JavaPlugin() {
 
         // 各コンポーネントの再読み込み
         languageManager.loadAllLanguages()
+        worldTagManager.reload()
         worldConfigRepository.loadAll()
         templateRepository.loadTemplates()
         portalRepository.loadAll()

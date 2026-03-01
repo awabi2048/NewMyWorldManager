@@ -6,7 +6,6 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.FavoriteGui
 import me.awabi2048.myworldmanager.gui.VisitGui
-import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -68,7 +67,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             // タグフィルター処理
             if (type == ItemTag.TYPE_GUI_FAVORITE_TAG) {
                 val favSession = plugin.favoriteSessionManager.getSession(player.uniqueId)
-                val allTags = WorldTag.values()
+                val allTags = plugin.worldTagManager.getEnabledTagIds()
 
                 if (event.isRightClick) {
                     favSession.selectedTag = null

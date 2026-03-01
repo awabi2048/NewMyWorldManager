@@ -1,6 +1,5 @@
 package me.awabi2048.myworldmanager.session
 
-import me.awabi2048.myworldmanager.model.*
 import java.util.*
 
 enum class DiscoverySort {
@@ -10,7 +9,7 @@ enum class DiscoverySort {
 data class DiscoverySession(
     val playerUuid: UUID,
     var sort: DiscoverySort = DiscoverySort.HOT,
-    var selectedTag: WorldTag? = null,
+    var selectedTag: String? = null,
     var showBackButton: Boolean = false
 )
 

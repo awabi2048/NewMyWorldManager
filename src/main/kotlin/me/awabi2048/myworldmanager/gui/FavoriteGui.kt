@@ -3,7 +3,6 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
-import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -33,6 +32,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 }
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 val favWorldUuids = stats.favoriteWorlds.keys
+                val selectedTag = session.selectedTag
 
                 val allWorlds =
                         favWorldUuids.mapNotNull { uuid ->
@@ -44,7 +44,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                         data
                                 }
                         }.filter { worldData ->
-                                session.selectedTag == null || worldData.tags.contains(session.selectedTag)
+                                selectedTag == null || worldData.tags.contains(selectedTag)
                         }
                 if (allWorlds.size != favWorldUuids.size) {
                         plugin.playerStatsRepository.save(stats)
@@ -212,7 +212,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
                 val tagLine = if (data.tags.isNotEmpty()) {
                         val tagNames = data.tags.joinToString(", ") {
-                                lang.getMessage(player, "world_tag.${it.name.lowercase()}")
+                                plugin.worldTagManager.getDisplayName(player, it)
                         }
                         lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to tagNames))
                 } else ""
@@ -351,13 +351,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 return item
         }
 
-        private fun createTagFilterButton(player: Player, selectedTag: WorldTag?): ItemStack {
+        private fun createTagFilterButton(player: Player, selectedTag: String?): ItemStack {
                 val lang = plugin.languageManager
                 val item = ItemStack(plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG))
                 val meta = item.itemMeta ?: return item
 
                 val tagName = if (selectedTag != null)
-                        lang.getMessage(player, "world_tag.${selectedTag.name.lowercase()}")
+                        plugin.worldTagManager.getDisplayName(player, selectedTag)
                 else
                         lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
 
@@ -368,13 +368,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val clickLeft = lang.getMessage(player, "gui.discovery.tag_filter.click_left")
                 val clickRight = lang.getMessage(player, "gui.discovery.tag_filter.click_right")
 
-                val tagList = WorldTag.values().joinToString("\n") { tag ->
-                        val tagPrefix = if (tag == selectedTag)
+                val tagList = plugin.worldTagManager.getEnabledTagIds().joinToString("\n") { tagId ->
+                        val tagPrefix = if (tagId == selectedTag)
                                 lang.getMessage(player, "gui.discovery.tag_filter.active")
                         else
                                 lang.getMessage(player, "gui.discovery.tag_filter.inactive")
-                        val tagColor = if (tag == selectedTag) "§e" else "§7"
-                        val name = lang.getMessage(player, "world_tag.${tag.name.lowercase()}")
+                        val tagColor = if (tagId == selectedTag) "§e" else "§7"
+                        val name = plugin.worldTagManager.getDisplayName(player, tagId)
                         "$tagPrefix$tagColor$name"
                 }
 

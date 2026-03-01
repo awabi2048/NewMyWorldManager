@@ -5,7 +5,6 @@ import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DiscoveryGui
 import me.awabi2048.myworldmanager.model.PublishLevel
-import me.awabi2048.myworldmanager.model.WorldTag
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -164,7 +163,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 }
             }
             ItemTag.TYPE_GUI_DISCOVERY_TAG -> {
-                val allTags = WorldTag.values()
+                val allTags = plugin.worldTagManager.getEnabledTagIds()
                 if (event.isRightClick) {
                     session.selectedTag = null
                 } else if (event.isLeftClick) {
