@@ -177,7 +177,7 @@ class TemplateWizardListener : Listener {
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.templateWizardGui.open(player)
                 return
             }
@@ -204,7 +204,7 @@ class TemplateWizardListener : Listener {
                     }
                 )
             if (!opened) {
-                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.templateWizardGui.open(player)
             }
             return
@@ -260,7 +260,7 @@ class TemplateWizardListener : Listener {
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.templateWizardGui.open(player)
                 return
             }
@@ -287,7 +287,7 @@ class TemplateWizardListener : Listener {
                     }
                 )
             if (!opened) {
-                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.templateWizardGui.open(player)
             }
             return

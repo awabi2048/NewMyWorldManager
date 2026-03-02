@@ -269,11 +269,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             return
         }
 
-        plugin.floodgateFormBridge.sendCustomInputForm(
+        val opened = plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
             title = lang.getMessage(player, "gui.bedrock.input.creation_seed.title"),
             label = lang.getMessage(player, "gui.bedrock.input.creation_seed.label"),
@@ -295,6 +295,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 })
             }
         )
+
+        if (!opened) {
+            plugin.creationSessionManager.endSession(player.uniqueId)
+            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
+        }
     }
 
     private fun openNameInputByPlatform(player: Player, session: WorldCreationSession) {
@@ -306,11 +311,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             return
         }
 
-        plugin.floodgateFormBridge.sendCustomInputForm(
+        val opened = plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
             title = lang.getMessage(player, "gui.bedrock.input.creation_name.title"),
             label = lang.getMessage(player, "gui.bedrock.input.creation_name.label"),
@@ -339,6 +344,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 })
             }
         )
+
+        if (!opened) {
+            plugin.creationSessionManager.endSession(player.uniqueId)
+            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
+        }
     }
 
     @EventHandler

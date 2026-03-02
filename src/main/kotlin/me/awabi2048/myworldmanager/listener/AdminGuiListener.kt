@@ -290,7 +290,7 @@ class AdminGuiListener : Listener {
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
                 plugin.worldGui.open(player)
                 return
@@ -319,7 +319,7 @@ class AdminGuiListener : Listener {
                     }
                 )
             if (!opened) {
-                player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
                 plugin.worldGui.open(player)
             }

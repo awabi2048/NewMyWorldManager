@@ -75,7 +75,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         }
 
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             return
         }
 
@@ -101,7 +101,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         )
 
         if (!opened) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
         }
     }
 

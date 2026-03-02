@@ -4,9 +4,29 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
 
 class FloodgateFormBridge(private val plugin: MyWorldManager) {
+
+    enum class AvailabilityReason {
+        OK,
+        NO_FLOODGATE_API,
+        NOT_FLOODGATE_PLAYER,
+        NO_SIMPLE_FORM_CLASS,
+        NO_CUSTOM_FORM_CLASS,
+        NO_SEND_FORM_METHOD,
+        NO_INPUTS,
+        FORM_BUILD_FAILED,
+        SEND_RETURNED_FALSE,
+        REFLECTION_ERROR
+    }
+
+    data class AvailabilityResult(
+        val available: Boolean,
+        val reason: AvailabilityReason,
+        val apiInstance: Any? = null
+    )
 
     data class SimpleFormButton(
         val label: String,
@@ -49,24 +69,18 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
     @Volatile
     private var floodgateApiClass: Class<*>? = null
 
+    private val failureLogCooldown = ConcurrentHashMap<String, Long>()
+
     fun isAvailable(player: Player): Boolean {
-        val api = resolveFloodgateApiInstance() ?: return false
-        if (!isFloodgatePlayer(api, player.uniqueId)) {
-            return false
+        val availability = checkSimpleFormAvailability(player)
+        if (!availability.available) {
+            logAvailabilityFailure(player, "isAvailable", availability.reason)
         }
+        return availability.available
+    }
 
-        val simpleForm = resolveSimpleFormClass() ?: return false
-        val builderMethod = simpleForm.methods.firstOrNull {
-            it.name == "builder" && it.parameterCount == 0
-        }
-
-        val sendFormMethod = api.javaClass.methods.firstOrNull {
-            it.name == "sendForm" &&
-                it.parameterCount == 2 &&
-                it.parameterTypes[0] == UUID::class.java
-        }
-
-        return builderMethod != null && sendFormMethod != null
+    fun notifyFallbackCancelled(player: Player) {
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
     }
 
     fun sendSimpleForm(
@@ -96,19 +110,35 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
         onClosed: (() -> Unit)? = null
     ): Boolean {
         if (buttons.isEmpty()) {
+            logAvailabilityFailure(player, "sendSimpleForm", AvailabilityReason.NO_INPUTS)
             return false
         }
 
-        val api = resolveFloodgateApiInstance() ?: return false
-        if (!isFloodgatePlayer(api, player.uniqueId)) {
+        val availability = checkSimpleFormAvailability(player)
+        if (!availability.available) {
+            logAvailabilityFailure(player, "sendSimpleForm", availability.reason)
             return false
         }
+        val api = availability.apiInstance ?: return false
 
         return runCatching {
-            val form = buildSimpleForm(title, content, buttons, onSelect, onClosed) ?: return false
-            invokeSendForm(api, player.uniqueId, form)
+            val form = buildSimpleForm(title, content, buttons, onSelect, onClosed)
+                ?: return run {
+                    logAvailabilityFailure(player, "sendSimpleForm", AvailabilityReason.FORM_BUILD_FAILED)
+                    false
+                }
+            val opened = invokeSendForm(api, player.uniqueId, form)
+            if (!opened) {
+                logAvailabilityFailure(player, "sendSimpleForm", AvailabilityReason.SEND_RETURNED_FALSE)
+            }
+            opened
         }.getOrElse { throwable ->
-            plugin.logger.warning("[BedrockUI] Failed to send form: ${throwable.message}")
+            logAvailabilityFailure(
+                player,
+                "sendSimpleForm",
+                AvailabilityReason.REFLECTION_ERROR,
+                throwable.message
+            )
             false
         }
     }
@@ -141,13 +171,16 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
         onClosed: (() -> Unit)? = null
     ): Boolean {
         if (inputs.isEmpty()) {
+            logAvailabilityFailure(player, "sendCustomForm", AvailabilityReason.NO_INPUTS)
             return false
         }
 
-        val api = resolveFloodgateApiInstance() ?: return false
-        if (!isFloodgatePlayer(api, player.uniqueId)) {
+        val availability = checkCustomFormAvailability(player)
+        if (!availability.available) {
+            logAvailabilityFailure(player, "sendCustomForm", availability.reason)
             return false
         }
+        val api = availability.apiInstance ?: return false
 
         return runCatching {
             val form =
@@ -156,12 +189,96 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
                     inputs = inputs,
                     onSubmit = onSubmit,
                     onClosed = onClosed
-                ) ?: return false
-            invokeSendForm(api, player.uniqueId, form)
+                ) ?: return run {
+                    logAvailabilityFailure(player, "sendCustomForm", AvailabilityReason.FORM_BUILD_FAILED)
+                    false
+                }
+            val opened = invokeSendForm(api, player.uniqueId, form)
+            if (!opened) {
+                logAvailabilityFailure(player, "sendCustomForm", AvailabilityReason.SEND_RETURNED_FALSE)
+            }
+            opened
         }.getOrElse { throwable ->
-            plugin.logger.warning("[BedrockUI] Failed to send custom form: ${throwable.message}")
+            logAvailabilityFailure(
+                player,
+                "sendCustomForm",
+                AvailabilityReason.REFLECTION_ERROR,
+                throwable.message
+            )
             false
         }
+    }
+
+    private fun checkSimpleFormAvailability(player: Player): AvailabilityResult {
+        val api = resolveFloodgateApiInstance()
+            ?: return AvailabilityResult(false, AvailabilityReason.NO_FLOODGATE_API)
+        if (!isFloodgatePlayer(api, player.uniqueId)) {
+            return AvailabilityResult(false, AvailabilityReason.NOT_FLOODGATE_PLAYER)
+        }
+
+        val simpleForm = resolveSimpleFormClass()
+            ?: return AvailabilityResult(false, AvailabilityReason.NO_SIMPLE_FORM_CLASS)
+        val hasBuilder = simpleForm.methods.any { it.name == "builder" && it.parameterCount == 0 }
+        if (!hasBuilder) {
+            return AvailabilityResult(false, AvailabilityReason.NO_SIMPLE_FORM_CLASS)
+        }
+
+        val hasSendForm = api.javaClass.methods.any {
+            it.name == "sendForm" &&
+                it.parameterCount == 2 &&
+                it.parameterTypes[0] == UUID::class.java
+        }
+        if (!hasSendForm) {
+            return AvailabilityResult(false, AvailabilityReason.NO_SEND_FORM_METHOD)
+        }
+
+        return AvailabilityResult(true, AvailabilityReason.OK, api)
+    }
+
+    private fun checkCustomFormAvailability(player: Player): AvailabilityResult {
+        val api = resolveFloodgateApiInstance()
+            ?: return AvailabilityResult(false, AvailabilityReason.NO_FLOODGATE_API)
+        if (!isFloodgatePlayer(api, player.uniqueId)) {
+            return AvailabilityResult(false, AvailabilityReason.NOT_FLOODGATE_PLAYER)
+        }
+
+        val customForm = resolveCustomFormClass()
+            ?: return AvailabilityResult(false, AvailabilityReason.NO_CUSTOM_FORM_CLASS)
+        val hasBuilder = customForm.methods.any { it.name == "builder" && it.parameterCount == 0 }
+        if (!hasBuilder) {
+            return AvailabilityResult(false, AvailabilityReason.NO_CUSTOM_FORM_CLASS)
+        }
+
+        val hasSendForm = api.javaClass.methods.any {
+            it.name == "sendForm" &&
+                it.parameterCount == 2 &&
+                it.parameterTypes[0] == UUID::class.java
+        }
+        if (!hasSendForm) {
+            return AvailabilityResult(false, AvailabilityReason.NO_SEND_FORM_METHOD)
+        }
+
+        return AvailabilityResult(true, AvailabilityReason.OK, api)
+    }
+
+    private fun logAvailabilityFailure(
+        player: Player,
+        route: String,
+        reason: AvailabilityReason,
+        detail: String? = null
+    ) {
+        val key = "${player.uniqueId}:$route:$reason"
+        val now = System.currentTimeMillis()
+        val last = failureLogCooldown[key] ?: 0L
+        if (now - last < 60_000L) {
+            return
+        }
+        failureLogCooldown[key] = now
+
+        val suffix = detail?.takeIf { it.isNotBlank() }?.let { " detail=$it" }.orEmpty()
+        plugin.logger.warning(
+            "[BedrockUI] route=$route player=${player.name} uuid=${player.uniqueId} reason=$reason$suffix"
+        )
     }
 
     private fun buildSimpleForm(

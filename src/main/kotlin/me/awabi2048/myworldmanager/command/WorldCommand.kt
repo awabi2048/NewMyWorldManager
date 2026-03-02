@@ -37,7 +37,11 @@ class WorldCommand(
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
 
         if (args.isEmpty()) {
-            plugin.adminCommandGui.open(sender as Player)
+            if (sender !is Player) {
+                sender.sendMessage(plugin.languageManager.getMessage("error.player_only"))
+                return true
+            }
+            plugin.adminCommandGui.open(sender)
             return true
         }
 

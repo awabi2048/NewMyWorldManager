@@ -42,6 +42,8 @@ class BedrockUiRoutingService(
         val until = System.currentTimeMillis() + cooldownMinutes * 60_000L
         formFallbackUntil[player.uniqueId] = until
 
+        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
+
         if (!reason.isNullOrBlank()) {
             plugin.logger.warning(
                 "[BedrockUI] Form disabled for ${player.name} for ${cooldownMinutes}m. reason=$reason"
