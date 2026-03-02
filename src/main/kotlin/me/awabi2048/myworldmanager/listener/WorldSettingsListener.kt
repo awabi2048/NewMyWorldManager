@@ -141,7 +141,7 @@ class WorldSettingsListener : Listener {
                                         }
 
                                         if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+                                                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                                                 plugin.worldSettingsGui.openMemberManagement(player, worldData)
                                                 return
                                         }
@@ -942,7 +942,7 @@ class WorldSettingsListener : Listener {
                                                 }
                                                 
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+                                                    plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                                                     plugin.worldSettingsGui.open(player, worldData)
                                                     return
                                                 }
@@ -1285,7 +1285,7 @@ class WorldSettingsListener : Listener {
 										return
 								}
 								if (plugin.playerPlatformResolver.isBedrock(player)) {
-										player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_form_unavailable"))
+										plugin.floodgateFormBridge.notifyFallbackCancelled(player)
 										plugin.worldSettingsGui.open(player, worldData)
 										return
 								}
@@ -2594,7 +2594,7 @@ plugin.languageManager
                                         player.sendMessage(
                                                 lang.getMessage(
                                                         player,
-                                                        "messages.bedrock_form_unavailable"
+                                                        "messages.operation_cancelled"
                                                 )
                                         )
                                         plugin.worldSettingsGui.open(player, latestWorld)

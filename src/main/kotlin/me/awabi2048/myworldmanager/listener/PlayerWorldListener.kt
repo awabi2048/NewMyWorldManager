@@ -106,7 +106,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                     if (!openBedrockInviteInputForm(player)) {
                         plugin.inviteSessionManager.endSession(player.uniqueId)
-                        player.sendMessage(lang.getMessage(player, "messages.bedrock_form_unavailable"))
+                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                         plugin.playerWorldGui.open(player)
                     }
                 } else {
