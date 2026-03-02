@@ -1502,6 +1502,10 @@ gui:
         - "§7新規にマイワールドを作成することができる枠数です"
         - "§7「ワールドの種」を使用することで解放することができます"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7未処理の招待/申請 §e{pending_count}件"
+        - "§f§l| §7最新受信日時 §b{latest_pending_at}"
+        - "§e§nクリックで招待/申請一覧を開く"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       lore_bypass:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7ワールドポイント §6{icon} {point}"
@@ -1509,6 +1513,10 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7ワールド数 §a§l{current_occupied}"
         - "§7上限を貫通する権限が付与されています"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7未処理の招待/申請 §e{pending_count}件"
+        - "§f§l| §7最新受信日時 §b{latest_pending_at}"
+        - "§e§nクリックで招待/申請一覧を開く"
         - "§8§m－－－－－－－－－－－－－－－－－－"
 
   user_settings:
@@ -1563,6 +1571,29 @@ gui:
         - "§7表示言語や通知などを変更します。"
         - "§e§nクリックで開く"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+
+  pending_list:
+    title: "招待・申請通知"
+    type:
+      member_invite: "メンバー招待"
+      member_request: "参加申請"
+    item:
+      name: "§e{type}"
+      lore:
+        - "§f§l| §7対象ワールド §a{world}"
+        - "§f§l| §7相手プレイヤー §b{player}"
+        - "§f§l| §7受信日時 §f{datetime}"
+        - ""
+        - "§e§nクリックで承諾/辞退"
+    empty:
+      name: "§7未処理の通知はありません"
+      lore:
+        - "§8現在、処理が必要な招待/申請はありません。"
+    confirm:
+      title: "招待・申請の確認"
+      body: "§7種別: §e{type}\n§7相手: §b{player}\n§7ワールド: §a{world}\n§7受信日時: §f{datetime}\n\n§fこの通知を処理しますか？"
+      accept: "§a承諾する"
+      deny: "§c辞退する"
 
   like_sign:
     placement:
@@ -1640,6 +1671,7 @@ messages:
   member_joined_notify: "§a{player} §fさんがワールド【§a{world}§f】のメンバーになりました"
   invite_sent_success: "§e{player} §fさんを「§a{world}§f」に招待しました！"
   invite_target_offline: "§c{player}さんは現在オフラインです"
+  invite_queued_offline: "§7{player}さんはオフラインです。次回ログイン時に通知されます。"
   invite_not_in_myworld: "§c招待を送信するには、マイワールドにいる必要があります！"
   invite_not_member: "§cこのワールドのメンバーではないため、招待を送信できません"
   invite_hover: "クリックしてワールドに参加します"
@@ -1838,9 +1870,10 @@ messages:
   myworld_command_bedrock_only: "§cこのサブコマンドは統合版プレイヤー専用です。"
   myworld_target_not_member: "§c対象プレイヤーはこのワールドのメンバーではありません。"
   myworld_owner_remove_forbidden: "§cオーナーをメンバー削除することはできません。"
-  myworld_pending_hint: "§e保留中の招待/申請があります。/myworld accept または /myworld deny で最新の1件を処理できます。 §7(保留: {count}件)"
+  myworld_pending_hint: "§e保留中の招待/申請があります。/myworld を開いてプレイヤーアイコンから確認できます。 §7(保留: {count}件)"
   myworld_pending_none: "§c処理可能な招待/申請はありません。"
   myworld_pending_remaining: "§e未処理の招待/申請がまだあります。 §7(残り: {count}件)"
+  myworld_pending_login_notice: "§e未処理の招待/申請が {count} 件あります。最新受信: §b{datetime}"
   invite_declined: "§cワールド招待を辞退しました。"
   member_invite_declined: "§cメンバー招待を辞退しました。"
   member_invite_declined_sender: "§e{player}§c がメンバー招待を辞退しました。"

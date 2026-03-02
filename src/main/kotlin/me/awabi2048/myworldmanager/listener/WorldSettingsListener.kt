@@ -22,6 +22,7 @@ import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.block.BlockFace
+import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -2806,7 +2807,7 @@ plugin.languageManager
                         return
                 }
 
-                if (target == player) {
+                if (target.uniqueId == player.uniqueId) {
                         player.sendMessage(lang.getMessage(player, "messages.invite_self_error"))
                         player.playSound(
                                 player.location,
@@ -2844,104 +2845,47 @@ plugin.languageManager
 
                 val inviteText =
                         lang.getMessage(
-                                target,
+                                if (target is Player) target else player,
                                 "messages.member_invite_text",
                                 mapOf(
                                         "player" to player.name,
                                         "world" to worldData.name
                                 )
                         )
-                val clickText =
-                        lang.getMessage(
-                                target,
-                                "messages.member_invite_click"
-                        )
-                val hoverText =
-                        lang.getMessage(
-                                target,
-                                "messages.member_invite_hover"
-                        )
+                val count = plugin.pendingDecisionManager.enqueueMemberInvite(
+                        target.uniqueId,
+                        worldData.uuid,
+                        player.uniqueId
+                )
 
-                val timeoutSeconds = plugin.config.getLong("invite.timeout_seconds", 60)
-                if (plugin.playerPlatformResolver.isBedrock(target)) {
+                if (target is Player && target.isOnline) {
                         target.sendMessage(inviteText)
-                        val count = plugin.pendingDecisionManager.enqueueMemberInvite(
-                                target,
-                                worldData.uuid,
-                                player.uniqueId,
-                                timeoutSeconds
-                        )
                         plugin.pendingDecisionManager.sendPendingHint(target, count)
-                } else {
-                        val message =
-                                net.kyori.adventure.text.Component.text()
-                                        .append(
-                                                net.kyori.adventure.text.Component.text(
-                                                        "-----------------------",
-                                                        net.kyori.adventure.text.format.NamedTextColor.GRAY
-                                                )
-                                        )
-                                        .append(net.kyori.adventure.text.Component.newline())
-                                        .append(net.kyori.adventure.text.Component.text(inviteText))
-                                        .append(net.kyori.adventure.text.Component.newline())
-                                        .append(
-                                                net.kyori.adventure.text.Component.text(
-                                                        clickText,
-                                                        net.kyori.adventure.text.format.NamedTextColor.AQUA
-                                                )
-                                                        .decoration(
-                                                                net.kyori.adventure.text.format.TextDecoration
-                                                                        .UNDERLINED,
-                                                                true
-                                                        )
-                                                        .clickEvent(
-                                                                net.kyori.adventure.text.event.ClickEvent
-                                                                        .runCommand(
-                                                                                "/mwm_internal memberinviteaccept"
-                                                                        )
-                                                        )
-                                                        .hoverEvent(
-                                                                net.kyori.adventure.text.event.HoverEvent
-                                                                        .showText(
-                                                                                net.kyori.adventure.text
-                                                                                        .Component.text(
-                                                                                                hoverText
-                                                                                        )
-                                                                        )
-                                                        )
-                                        )
-                                        .append(net.kyori.adventure.text.Component.newline())
-                                        .append(
-                                                net.kyori.adventure.text.Component.text(
-                                                        "-----------------------",
-                                                        net.kyori.adventure.text.format.NamedTextColor.GRAY
-                                                )
-                                        )
-                                        .build()
-
-                        target.sendMessage(message)
-                        plugin.memberInviteManager.addInvite(
-                                target.uniqueId,
-                                worldData.uuid,
-                                player.uniqueId,
-                                timeoutSeconds
-                        )
                 }
                 player.sendMessage(
                         lang.getMessage(
                                 player,
-                                "messages.invite_sent_success",
-                                mapOf(
-                                        "player" to target.name,
-                                        "world" to worldData.name
+                                        "messages.invite_sent_success",
+                                        mapOf(
+                                                "player" to (target.name ?: targetName),
+                                                "world" to worldData.name
+                                        )
+                                )
+                )
+                if (!(target is Player && target.isOnline)) {
+                        player.sendMessage(
+                                lang.getMessage(
+                                        player,
+                                        "messages.invite_queued_offline",
+                                        mapOf("player" to (target.name ?: targetName))
                                 )
                         )
-                )
+                }
 
                 plugin.worldSettingsGui.open(player, worldData)
         }
 
-        private fun resolveInviteTarget(inputName: String): Player? {
+        private fun resolveInviteTarget(inputName: String): OfflinePlayer? {
                 Bukkit.getPlayerExact(inputName)?.let { return it }
 
                 val configuredPrefix =
@@ -2958,9 +2902,30 @@ plugin.languageManager
                 }
 
                 val lowerInput = inputName.lowercase(Locale.ROOT)
-                return Bukkit.getOnlinePlayers().firstOrNull {
+                Bukkit.getOnlinePlayers().firstOrNull {
                         it.name.lowercase(Locale.ROOT) == lowerInput
+                }?.let { return it }
+
+                val candidates = mutableListOf(inputName)
+                if (configuredPrefix.isNotEmpty()) {
+                        if (!inputName.startsWith(configuredPrefix)) {
+                                candidates += "$configuredPrefix$inputName"
+                        } else {
+                                val withoutPrefix = inputName.removePrefix(configuredPrefix)
+                                if (withoutPrefix.isNotEmpty()) {
+                                        candidates += withoutPrefix
+                                }
+                        }
                 }
+
+                for (candidate in candidates.distinct()) {
+                        val offline = Bukkit.getOfflinePlayer(candidate)
+                        if (offline.hasPlayedBefore()) {
+                                return offline
+                        }
+                }
+
+                return null
         }
 
         private fun applyWorldInfoUpdate(
@@ -3771,7 +3736,7 @@ player.sendMessage(
                                 val worldData = plugin.worldConfigRepository.findByUuid(invite.worldUuid)
                                 if (worldData == null) {
                                         player.sendMessage(lang.getMessage(player, "error.invite_world_not_found"))
-                                        plugin.memberInviteManager.removeInvite(player.uniqueId)
+                                        plugin.memberInviteManager.removeInvite(invite.id)
                                         return
                                 }
 

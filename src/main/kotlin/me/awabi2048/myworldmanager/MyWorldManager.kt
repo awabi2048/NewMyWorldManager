@@ -27,6 +27,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
     lateinit var spotlightRepository: SpotlightRepository
+    lateinit var pendingInteractionRepository: PendingInteractionRepository
 
     lateinit var settingsSessionManager: SettingsSessionManager
     lateinit var inviteSessionManager: InviteSessionManager
@@ -53,6 +54,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var visitWorldGui: VisitWorldGui
     lateinit var meetGui: MeetGui
     lateinit var playerWorldGui: PlayerWorldGui
+    lateinit var pendingInteractionGui: PendingInteractionGui
     lateinit var userSettingsGui: UserSettingsGui
     lateinit var adminPortalGui: AdminPortalGui
     lateinit var templateWizardGui: TemplateWizardGui
@@ -121,6 +123,7 @@ class MyWorldManager : JavaPlugin() {
         playerStatsRepository = PlayerStatsRepository(this)
         portalRepository = PortalRepository(this)
         spotlightRepository = SpotlightRepository(this)
+        pendingInteractionRepository = PendingInteractionRepository(this)
 
         // サービスの初期化
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
@@ -145,6 +148,7 @@ class MyWorldManager : JavaPlugin() {
         visitWorldGui = VisitWorldGui(this)
         meetGui = MeetGui(this)
         playerWorldGui = PlayerWorldGui(this)
+        pendingInteractionGui = PendingInteractionGui(this)
         worldSettingsGui = WorldSettingsGui(this)
         userSettingsGui = UserSettingsGui(this)
         adminPortalGui = AdminPortalGui(this)
@@ -330,6 +334,7 @@ class MyWorldManager : JavaPlugin() {
         spotlightRepository.load()
         macroManager.loadConfig()
         menuConfigManager.initialize() // フォルダ作成・デフォルトコピー・全読み込みを一括実行
+        pendingInteractionRepository.load()
 
         // ディレクトリの再チェック
         directoryManager.checkDirectories()

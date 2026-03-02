@@ -17,6 +17,8 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -744,6 +746,16 @@ class BedrockMenuService(
                 openPlayerWorld(player, holder.page, holder.showBackButton)
             }
 
+            "open_pending_interactions" -> {
+                plugin.pendingInteractionGui.open(
+                    player = player,
+                    page = 0,
+                    returnPage = holder.page,
+                    showBackButton = holder.showBackButton,
+                    fromBedrockMenu = true
+                )
+            }
+
             "return_command" -> performConfiguredReturn(player)
         }
     }
@@ -1196,6 +1208,13 @@ class BedrockMenuService(
         meta.owningPlayer = player
         val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
+        val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
+        val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
+        val latestPendingText = latestPendingAt?.let {
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.systemDefault())
+                .format(Instant.ofEpochMilli(it))
+        } ?: tr(player, "general.unknown")
         meta.displayName(
             plugin.languageManager.getComponent(
                 player,
@@ -1211,12 +1230,18 @@ class BedrockMenuService(
                     "point" to worldPoint,
                     "current_occupied" to currentCreateCount,
                     "unlocked" to maxSlot,
-                    "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖"
+                    "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖",
+                    "pending_count" to pendingCount,
+                    "latest_pending_at" to latestPendingText
                 )
             )
         )
+        if (pendingCount > 0) {
+            meta.setEnchantmentGlintOverride(true)
+        }
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
+        ItemTag.setString(item, "bedrock_action", "open_pending_interactions")
         return item
     }
 

@@ -6,6 +6,9 @@ import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class PlayerDataListener : Listener {
 
@@ -20,6 +23,24 @@ class PlayerDataListener : Listener {
         // 最新の名前を記録
         stats.lastName = player.name
         plugin.playerStatsRepository.save(stats)
+
+        val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
+        if (pendingCount > 0) {
+            val latest = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
+            val latestText = latest?.let {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(Instant.ofEpochMilli(it))
+            } ?: plugin.languageManager.getMessage(player, "general.unknown")
+
+            player.sendMessage(
+                plugin.languageManager.getMessage(
+                    player,
+                    "messages.myworld_pending_login_notice",
+                    mapOf("count" to pendingCount, "datetime" to latestText)
+                )
+            )
+        }
     }
 
     @EventHandler

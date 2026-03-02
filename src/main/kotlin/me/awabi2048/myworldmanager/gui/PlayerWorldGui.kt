@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -165,6 +167,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         plugin.config.getInt("creation.max_create_count_default", 3) +
                                 stats.unlockedWorldSlot
                 val bypassLimits = PermissionManager.canBypassWorldLimits(player)
+                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
+                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
+                val latestPendingText =
+                        latestPendingAt?.let {
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                        .withZone(ZoneId.systemDefault())
+                                        .format(Instant.ofEpochMilli(it))
+                        } ?: lang.getMessage(player, "general.unknown")
 
                 // マイワールド新規作成ボタン (Slot 2)
                 if (bypassLimits || currentCreateCount < maxSlot) {
@@ -378,6 +388,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
                 meta.owningPlayer = player
                 val bypassLimits = PermissionManager.canBypassWorldLimits(player)
+                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
+                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
+                val latestPendingText =
+                        latestPendingAt?.let {
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                        .withZone(ZoneId.systemDefault())
+                                        .format(Instant.ofEpochMilli(it))
+                        } ?: lang.getMessage(player, "general.unknown")
 
                 meta.displayName(
                         lang.getComponent(
@@ -396,10 +414,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         "point" to stats.worldPoint,
                                         "current_occupied" to currentCreateCount,
                                         "unlocked" to maxSlot,
-                                        "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖"
+                                        "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖",
+                                        "pending_count" to pendingCount,
+                                        "latest_pending_at" to latestPendingText
                                 )
                         )
                 )
+
+                if (pendingCount > 0) {
+                        meta.setEnchantmentGlintOverride(true)
+                }
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_PLAYER_STATS)

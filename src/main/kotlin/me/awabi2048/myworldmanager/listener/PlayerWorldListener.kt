@@ -51,6 +51,10 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         val lang = plugin.languageManager
 
+        if (plugin.pendingInteractionGui.handleInventoryClick(player, event)) {
+            return
+        }
+
         // プレイヤー用ワールド一覧
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder) {
             event.isCancelled = true
@@ -127,6 +131,20 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 player.closeInventory()
                 player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
                 plugin.creationGui.openTypeSelection(player)
+                return
+            }
+
+            if (type == ItemTag.TYPE_GUI_PLAYER_STATS) {
+                plugin.soundManager.playClickSound(player, currentItem, "player_world")
+                val currentPage = plugin.playerWorldSessionManager.getSession(player.uniqueId).currentPage
+                val showBack = plugin.playerWorldSessionManager.getSession(player.uniqueId).showBackButton
+                plugin.pendingInteractionGui.open(
+                    player = player,
+                    page = 0,
+                    returnPage = currentPage,
+                    showBackButton = showBack,
+                    fromBedrockMenu = false
+                )
                 return
             }
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
@@ -270,12 +288,16 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onInviteDialogResponse(event: PlayerCustomClickEvent) {
         val identifier = event.identifier
-        if (identifier != Key.key("mwm:invite/input_submit") && identifier != Key.key("mwm:invite/input_cancel")) {
+        val conn = event.commonConnection as? PlayerGameConnection ?: return
+        val player = conn.player
+
+        if (plugin.pendingInteractionGui.handleDialogResponse(player, identifier)) {
             return
         }
 
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
+        if (identifier != Key.key("mwm:invite/input_submit") && identifier != Key.key("mwm:invite/input_cancel")) {
+            return
+        }
 
         if (identifier == Key.key("mwm:invite/input_cancel")) {
             plugin.inviteSessionManager.endSession(player.uniqueId)
