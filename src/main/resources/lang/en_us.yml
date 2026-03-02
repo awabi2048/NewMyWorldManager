@@ -1244,6 +1244,37 @@ gui:
     - §fplayer "§a{player}§f"?
     - ''
     - '§7Target world: §a{world}'
+  pending_list:
+    title: Pending Invites & Requests
+    type:
+      member_invite: Member Invite
+      member_request: Membership Request
+    item:
+      name: '§e{type}'
+      lore:
+      - '§f§l| §7World §a{world}'
+      - '§f§l| §7Player §b{player}'
+      - '§f§l| §7Received §f{datetime}'
+      - ''
+      - §e§nClick to accept/deny
+    empty:
+      name: §7No pending entries
+      lore:
+      - §8There are no invites/requests to process right now.
+    confirm:
+      title: Pending Entry Confirmation
+      body: '§7Type: §e{type}
+
+        §7Player: §b{player}
+
+        §7World: §a{world}
+
+        §7Received: §f{datetime}
+
+
+        §fProcess this entry?'
+      accept: §aAccept
+      deny: §cDeny
   world_seed_confirm:
     title: Using world seeds
     lore:
@@ -1341,6 +1372,10 @@ gui:
       - §7This is the number of slots that can be used to create a new My World.
       - §7 Can be released by using "World Seed"
       - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7Pending invites/requests §e{pending_count}'
+      - '§f§l| §7Latest received §b{latest_pending_at}'
+      - §e§nClick to open the pending list
+      - §8§m－－－－－－－－－－－－－－－－－－
       lore_bypass:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7World Point §6{icon} {point}
@@ -1348,6 +1383,10 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7 World Count §a§l{current_occupied}
       - §7You have permission to bypass world count limits.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7Pending invites/requests §e{pending_count}'
+      - '§f§l| §7Latest received §b{latest_pending_at}'
+      - §e§nClick to open the pending list
       - §8§m－－－－－－－－－－－－－－－－－－
   user_settings:
     title: Personal settings
@@ -1472,6 +1511,7 @@ messages:
   member_joined_notify: §a{player} §fjoined world【§a{world}§f】 as a member.
   invite_sent_success: §eSent invite to {player} for world "§a{world}§f"!
   invite_target_offline: §cPlayer {player} is not online.
+  invite_queued_offline: §7{player} is offline. They will be notified on next login.
   invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
   invite_not_member: §cYou cannot send an invitation because you are not a member of this world
   invite_hover: Click to join the world
@@ -1653,9 +1693,10 @@ messages:
   myworld_command_bedrock_only: §cThis subcommand is available for Bedrock players only.
   myworld_target_not_member: §cTarget player is not a member of this world.
   myworld_owner_remove_forbidden: §cYou cannot remove the owner.
-  myworld_pending_hint: '§eYou have pending invites/requests. Use /myworld accept or /myworld deny to handle the latest one. §7(Pending: {count})'
+  myworld_pending_hint: '§eYou have pending invites/requests. Open /myworld and check the player icon. §7(Pending: {count})'
   myworld_pending_none: §cNo pending invites/requests to process.
   myworld_pending_remaining: '§eThere are still pending invites/requests. §7(Remaining: {count})'
+  myworld_pending_login_notice: '§eYou have {count} pending invites/requests. Latest: §b{datetime}'
   invite_declined: §cYou declined the world invite.
   member_invite_declined: §cYou declined the member invitation.
   member_invite_declined_sender: §e{player}§c declined the member invitation.

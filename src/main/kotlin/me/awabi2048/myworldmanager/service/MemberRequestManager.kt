@@ -6,61 +6,36 @@ import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 data class MemberRequestInfo(
     val requestorUuid: UUID,
     val worldUuid: UUID,
     val ownerUuid: UUID,
-    val expiryTime: Long
+    val decisionId: UUID,
+    val createdAt: Long
 )
 
 class MemberRequestManager(private val plugin: MyWorldManager) {
-    private val pendingRequests = ConcurrentHashMap<String, MemberRequestInfo>()
-    private val requestTimeout = 60000L // 60 seconds
     private val languageManager = plugin.languageManager
-
-    fun addRequest(requestorUuid: UUID, worldUuid: UUID, ownerUuid: UUID): String {
-        val key = generateKey(requestorUuid, worldUuid)
-        val expiryTime = System.currentTimeMillis() + requestTimeout
-        val info = MemberRequestInfo(requestorUuid, worldUuid, ownerUuid, expiryTime)
-        pendingRequests[key] = info
-        return key
-    }
-
-    fun getRequest(key: String): MemberRequestInfo? {
-        val info = pendingRequests[key] ?: return null
-        if (System.currentTimeMillis() > info.expiryTime) {
-            pendingRequests.remove(key)
-            return null
-        }
-        return info
-    }
-
-    fun removeRequest(key: String) {
-        pendingRequests.remove(key)
-    }
 
     fun sendRequest(requestor: Player, worldUuid: UUID) {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
         val ownerUuid = worldData.owner
-        
-        // Check if already a member
-        if (ownerUuid == requestor.uniqueId || worldData.moderators.contains(requestor.uniqueId) || worldData.members.contains(requestor.uniqueId)) {
+
+        if (ownerUuid == requestor.uniqueId ||
+            worldData.moderators.contains(requestor.uniqueId) ||
+            worldData.members.contains(requestor.uniqueId)
+        ) {
             requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_already_member"))
             return
         }
 
-        val owner = Bukkit.getPlayer(ownerUuid)
-        if (owner == null || !owner.isOnline) {
-            requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_owner_offline"))
-            return
-        }
-
-        // Notify requestor
         requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_sent"))
 
-        if (plugin.playerPlatformResolver.isBedrock(owner)) {
+        val count = plugin.pendingDecisionManager.enqueueMemberRequest(ownerUuid, worldUuid, requestor.uniqueId)
+
+        val owner = Bukkit.getPlayer(ownerUuid)
+        if (owner != null && owner.isOnline) {
             owner.sendMessage(
                 languageManager.getMessage(
                     owner,
@@ -68,64 +43,17 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
                     mapOf("player" to requestor.name)
                 )
             )
-            val count = plugin.pendingDecisionManager.enqueueMemberRequest(
-                owner,
-                worldUuid,
-                requestor.uniqueId,
-                requestTimeout / 1000L
-            )
             plugin.pendingDecisionManager.sendPendingHint(owner, count)
             plugin.soundManager.playActionSound(owner, "member_request", "received")
-            return
         }
-
-        // Add request to pending (JE clickable path)
-        val key = addRequest(requestor.uniqueId, worldUuid, ownerUuid)
-
-        // Notify owner with clickable components
-        val message = languageManager.getComponent(owner, "messages.member_request_received", mapOf("player" to requestor.name))
-        owner.sendMessage(message)
-
-        val approveText = languageManager.getComponent(owner, "messages.member_request_click_approve")
-            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal memberrequest $key approve"))
-            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(languageManager.getComponent(owner, "messages.member_request_hover_approve")))
-
-        val rejectText = languageManager.getComponent(owner, "messages.member_request_click_reject")
-            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal memberrequest $key reject"))
-            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(languageManager.getComponent(owner, "messages.member_request_hover_reject")))
-
-        owner.sendMessage(net.kyori.adventure.text.Component.text("").append(approveText).append(net.kyori.adventure.text.Component.text(" ")).append(rejectText))
-        plugin.soundManager.playActionSound(owner, "member_request", "received")
     }
 
     fun handleApproval(player: Player, requestorUuid: UUID, worldUuid: UUID) {
-        val key = generateKey(requestorUuid, worldUuid)
-        val request = getRequest(key)
-
-        if (request == null || System.currentTimeMillis() > request.expiryTime) {
-            player.sendMessage(languageManager.getMessage(player, "messages.member_request_expired"))
-            removeRequest(key)
-            return
-        }
-
         handleApprovalDirect(player, requestorUuid, worldUuid)
-
-        removeRequest(key)
     }
 
     fun handleRejection(player: Player, requestorUuid: UUID, worldUuid: UUID) {
-        val key = generateKey(requestorUuid, worldUuid)
-        val request = getRequest(key)
-
-        if (request == null || System.currentTimeMillis() > request.expiryTime) {
-            player.sendMessage(languageManager.getMessage(player, "messages.member_request_expired"))
-            removeRequest(key)
-            return
-        }
-
         handleRejectionDirect(player, requestorUuid, worldUuid)
-
-        removeRequest(key)
     }
 
     fun handleApprovalDirect(player: Player, requestorUuid: UUID, worldUuid: UUID) {
@@ -137,7 +65,8 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
 
         if (worldData.members.contains(requestorUuid) ||
             worldData.moderators.contains(requestorUuid) ||
-            worldData.owner == requestorUuid) {
+            worldData.owner == requestorUuid
+        ) {
             player.sendMessage(languageManager.getMessage(player, "error.invite_already_member"))
             return
         }
@@ -177,6 +106,12 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
     }
 
     fun handleRejectionDirect(player: Player, requestorUuid: UUID, worldUuid: UUID) {
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+        if (worldData == null) {
+            player.sendMessage(languageManager.getMessage(player, "error.invite_world_not_found"))
+            return
+        }
+
         val requestor = Bukkit.getPlayer(requestorUuid)
         if (requestor != null && requestor.isOnline) {
             requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_rejected"))
@@ -187,37 +122,10 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
     }
 
     fun handleInternalCommand(player: Player, key: String, type: String) {
-        val request = getRequest(key)
-        if (request == null) {
-            player.sendMessage(languageManager.getMessage(player, "messages.member_request_expired"))
-            return
+        val decisionId = runCatching { UUID.fromString(key) }.getOrNull() ?: return
+        when (type) {
+            "approve" -> plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, true)
+            "reject" -> plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, false)
         }
-
-        if (type == "approve" || type == "reject") {
-            // オーナーがアクションを起こした際、beta機能の設定に応じてDialogかGUIを選択
-            val titleText = languageManager.getMessage(player, "gui.member_request_owner_confirm.title")
-            val bodyLines = languageManager.getMessageList(
-                player,
-                "gui.member_request_owner_confirm.lore",
-                mapOf("player" to (Bukkit.getPlayer(request.requestorUuid)?.name ?: "Unknown"))
-            )
-
-            me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
-                player,
-                plugin,
-                net.kyori.adventure.text.Component.text(titleText),
-                bodyLines.map { net.kyori.adventure.text.Component.text(it) },
-                "mwm:confirm/member_request_owner_approve/$key",
-                "mwm:confirm/member_request_owner_reject/$key",
-                confirmText = languageManager.getMessage(player, "gui.member_request_owner_confirm.confirm"),
-                cancelText = languageManager.getMessage(player, "gui.member_request_owner_confirm.reject")
-            ) {
-                plugin.menuEntryRouter.openMemberRequestOwnerConfirm(player, request, key)
-            }
-        }
-    }
-
-    private fun generateKey(requestorUuid: UUID, worldUuid: UUID): String {
-        return "${requestorUuid}_${worldUuid}"
     }
 }

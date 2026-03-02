@@ -19,20 +19,16 @@ class MemberRequestOwnerConfirmListener(private val plugin: MyWorldManager) : Li
             "member_request_owner_yes" -> {
                 event.isCancelled = true
                 val key = ItemTag.getString(item, "key") ?: return
-                val request = plugin.memberRequestManager.getRequest(key)
-                if (request != null) {
-                    plugin.memberRequestManager.handleApproval(player, request.requestorUuid, request.worldUuid)
-                }
+                val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
+                plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, true)
                 player.closeInventory()
                 plugin.soundManager.playClickSound(player, item)
             }
             "member_request_owner_no" -> {
                 event.isCancelled = true
                 val key = ItemTag.getString(item, "key") ?: return
-                val request = plugin.memberRequestManager.getRequest(key)
-                if (request != null) {
-                    plugin.memberRequestManager.handleRejection(player, request.requestorUuid, request.worldUuid)
-                }
+                val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
+                plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, false)
                 player.closeInventory()
                 plugin.soundManager.playActionSound(player, "member_request", "rejected")
             }
@@ -48,18 +44,14 @@ class MemberRequestOwnerConfirmListener(private val plugin: MyWorldManager) : Li
         if (identifierStr.startsWith("mwm:confirm/member_request_owner_approve/")) {
             me.awabi2048.myworldmanager.gui.DialogConfirmManager.safeCloseDialog(player)
             val key = identifierStr.substringAfter("mwm:confirm/member_request_owner_approve/")
-            val request = plugin.memberRequestManager.getRequest(key)
-            if (request != null) {
-                plugin.memberRequestManager.handleApproval(player, request.requestorUuid, request.worldUuid)
-            }
+            val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
+            plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, true)
             plugin.soundManager.playClickSound(player, null)
         } else if (identifierStr.startsWith("mwm:confirm/member_request_owner_reject/")) {
             me.awabi2048.myworldmanager.gui.DialogConfirmManager.safeCloseDialog(player)
             val key = identifierStr.substringAfter("mwm:confirm/member_request_owner_reject/")
-            val request = plugin.memberRequestManager.getRequest(key)
-            if (request != null) {
-                plugin.memberRequestManager.handleRejection(player, request.requestorUuid, request.worldUuid)
-            }
+            val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
+            plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, false)
             plugin.soundManager.playActionSound(player, "member_request", "rejected")
         }
     }

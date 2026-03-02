@@ -8,12 +8,12 @@ import me.awabi2048.myworldmanager.repository.WorldConfigRepository
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 data class MemberInviteInfo(
+    val id: UUID,
     val worldUuid: UUID,
     val senderUuid: UUID,
-    val expiry: Long
+    val createdAt: Long
 )
 
 class MemberInviteManager(
@@ -21,25 +21,37 @@ class MemberInviteManager(
     private val worldConfigRepository: WorldConfigRepository,
     private val macroManager: MacroManager
 ) {
-    private val pendingInvites = ConcurrentHashMap<UUID, MemberInviteInfo>()
     private val languageManager = plugin.languageManager
 
-    fun addInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID, timeoutSeconds: Long) {
-        val expiry = System.currentTimeMillis() + (timeoutSeconds * 1000)
-        pendingInvites[targetUuid] = MemberInviteInfo(worldUuid, senderUuid, expiry)
+    fun addInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): MemberInviteInfo {
+        val interaction = plugin.pendingInteractionRepository.add(
+            type = me.awabi2048.myworldmanager.model.PendingInteractionType.MEMBER_INVITE,
+            targetUuid = targetUuid,
+            worldUuid = worldUuid,
+            actorUuid = senderUuid
+        )
+        return MemberInviteInfo(
+            id = interaction.id,
+            worldUuid = interaction.worldUuid,
+            senderUuid = interaction.actorUuid,
+            createdAt = interaction.createdAt
+        )
     }
 
     fun getInvite(targetUuid: UUID): MemberInviteInfo? {
-        val info = pendingInvites[targetUuid] ?: return null
-        if (System.currentTimeMillis() > info.expiry) {
-            pendingInvites.remove(targetUuid)
-            return null
-        }
-        return info
+        val interaction = plugin.pendingInteractionRepository.findByTarget(targetUuid)
+            .firstOrNull { it.type == me.awabi2048.myworldmanager.model.PendingInteractionType.MEMBER_INVITE }
+            ?: return null
+        return MemberInviteInfo(
+            id = interaction.id,
+            worldUuid = interaction.worldUuid,
+            senderUuid = interaction.actorUuid,
+            createdAt = interaction.createdAt
+        )
     }
 
-    fun removeInvite(targetUuid: UUID) {
-        pendingInvites.remove(targetUuid)
+    fun removeInvite(decisionId: UUID) {
+        plugin.pendingInteractionRepository.remove(decisionId)
     }
 
     fun handleMemberInviteAccept(player: Player) {
@@ -49,7 +61,7 @@ class MemberInviteManager(
             player.sendMessage(lang.getMessage(player, "error.invite_expired"))
             return
         }
-        removeInvite(player.uniqueId)
+        removeInvite(info.id)
 
         handleMemberInviteAcceptDirect(player, info.worldUuid, info.senderUuid)
     }

@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.model.PendingInteraction
+import me.awabi2048.myworldmanager.model.PendingInteractionType
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.ArrayDeque
@@ -10,80 +12,143 @@ import java.util.concurrent.ConcurrentHashMap
 class PendingDecisionManager(private val plugin: MyWorldManager) {
 
     private sealed interface PendingDecision {
+        val createdAt: Long
         val expiresAt: Long
     }
 
     private data class WorldInviteDecision(
         val worldUuid: UUID,
         val senderUuid: UUID?,
-        override val expiresAt: Long
-    ) : PendingDecision
-
-    private data class MemberInviteDecision(
-        val worldUuid: UUID,
-        val senderUuid: UUID,
-        override val expiresAt: Long
-    ) : PendingDecision
-
-    private data class MemberRequestDecision(
-        val worldUuid: UUID,
-        val requestorUuid: UUID,
+        override val createdAt: Long,
         override val expiresAt: Long
     ) : PendingDecision
 
     private data class MeetRequestDecision(
         val requesterUuid: UUID,
+        override val createdAt: Long,
         override val expiresAt: Long
     ) : PendingDecision
 
-    private val pendingByTarget = ConcurrentHashMap<UUID, ArrayDeque<PendingDecision>>()
+    data class PersistentPendingView(
+        val id: UUID,
+        val type: PendingInteractionType,
+        val worldUuid: UUID,
+        val actorUuid: UUID,
+        val createdAt: Long
+    )
+
+    private val transientByTarget = ConcurrentHashMap<UUID, ArrayDeque<PendingDecision>>()
 
     fun enqueueWorldInvite(target: Player, worldUuid: UUID, senderUuid: UUID?, timeoutSeconds: Long): Int {
-        return enqueue(
+        val now = System.currentTimeMillis()
+        return enqueueTransient(
             target.uniqueId,
             WorldInviteDecision(
                 worldUuid = worldUuid,
                 senderUuid = senderUuid,
-                expiresAt = System.currentTimeMillis() + (timeoutSeconds * 1000L)
+                createdAt = now,
+                expiresAt = now + (timeoutSeconds * 1000L)
             )
         )
     }
 
-    fun enqueueMemberInvite(target: Player, worldUuid: UUID, senderUuid: UUID, timeoutSeconds: Long): Int {
-        return enqueue(
-            target.uniqueId,
-            MemberInviteDecision(
-                worldUuid = worldUuid,
-                senderUuid = senderUuid,
-                expiresAt = System.currentTimeMillis() + (timeoutSeconds * 1000L)
-            )
+    fun enqueueMemberInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): Int {
+        plugin.pendingInteractionRepository.add(
+            type = PendingInteractionType.MEMBER_INVITE,
+            targetUuid = targetUuid,
+            worldUuid = worldUuid,
+            actorUuid = senderUuid
         )
+        return plugin.pendingInteractionRepository.countByTarget(targetUuid)
     }
 
-    fun enqueueMemberRequest(owner: Player, worldUuid: UUID, requestorUuid: UUID, timeoutSeconds: Long): Int {
-        return enqueue(
-            owner.uniqueId,
-            MemberRequestDecision(
-                worldUuid = worldUuid,
-                requestorUuid = requestorUuid,
-                expiresAt = System.currentTimeMillis() + (timeoutSeconds * 1000L)
-            )
+    fun enqueueMemberRequest(ownerUuid: UUID, worldUuid: UUID, requestorUuid: UUID): Int {
+        plugin.pendingInteractionRepository.add(
+            type = PendingInteractionType.MEMBER_REQUEST,
+            targetUuid = ownerUuid,
+            worldUuid = worldUuid,
+            actorUuid = requestorUuid
         )
+        return plugin.pendingInteractionRepository.countByTarget(ownerUuid)
     }
 
     fun enqueueMeetRequest(target: Player, requesterUuid: UUID, timeoutSeconds: Long): Int {
-        return enqueue(
+        val now = System.currentTimeMillis()
+        return enqueueTransient(
             target.uniqueId,
             MeetRequestDecision(
                 requesterUuid = requesterUuid,
-                expiresAt = System.currentTimeMillis() + (timeoutSeconds * 1000L)
+                createdAt = now,
+                expiresAt = now + (timeoutSeconds * 1000L)
             )
         )
+    }
+
+    fun getPersistentPending(targetUuid: UUID): List<PersistentPendingView> {
+        return plugin.pendingInteractionRepository.findByTarget(targetUuid).map {
+            PersistentPendingView(
+                id = it.id,
+                type = it.type,
+                worldUuid = it.worldUuid,
+                actorUuid = it.actorUuid,
+                createdAt = it.createdAt
+            )
+        }
+    }
+
+    fun getPersistentPendingCount(targetUuid: UUID): Int {
+        return plugin.pendingInteractionRepository.countByTarget(targetUuid)
+    }
+
+    fun getLatestPersistentCreatedAt(targetUuid: UUID): Long? {
+        return plugin.pendingInteractionRepository.latestByTarget(targetUuid)?.createdAt
+    }
+
+    fun resolvePersistentById(target: Player, decisionId: UUID, accept: Boolean): Boolean {
+        val lang = plugin.languageManager
+        val interaction = plugin.pendingInteractionRepository.findById(decisionId)
+        if (interaction == null || interaction.targetUuid != target.uniqueId) {
+            target.sendMessage(lang.getMessage(target, "messages.myworld_pending_none"))
+            return false
+        }
+
+        plugin.pendingInteractionRepository.remove(interaction.id)
+        handlePersistentResolve(target, interaction, accept)
+
+        val remaining = getPendingCount(target.uniqueId)
+        if (remaining > 0) {
+            target.sendMessage(
+                lang.getMessage(
+                    target,
+                    "messages.myworld_pending_remaining",
+                    mapOf("count" to remaining)
+                )
+            )
+        }
+        return true
     }
 
     fun resolveLatest(target: Player, accept: Boolean): Boolean {
         val lang = plugin.languageManager
-        val decision = pollLatestValid(target.uniqueId)
+
+        val latestPersistent = plugin.pendingInteractionRepository.latestByTarget(target.uniqueId)
+        if (latestPersistent != null) {
+            plugin.pendingInteractionRepository.remove(latestPersistent.id)
+            handlePersistentResolve(target, latestPersistent, accept)
+            val remaining = getPendingCount(target.uniqueId)
+            if (remaining > 0) {
+                target.sendMessage(
+                    lang.getMessage(
+                        target,
+                        "messages.myworld_pending_remaining",
+                        mapOf("count" to remaining)
+                    )
+                )
+            }
+            return true
+        }
+
+        val decision = pollLatestValidTransient(target.uniqueId)
         if (decision == null) {
             target.sendMessage(lang.getMessage(target, "messages.myworld_pending_none"))
             return false
@@ -96,43 +161,6 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                     target.sendMessage(lang.getMessage(target, "messages.warp_invite_success"))
                 } else {
                     target.sendMessage(lang.getMessage(target, "messages.invite_declined"))
-                }
-            }
-
-            is MemberInviteDecision -> {
-                if (accept) {
-                    plugin.memberInviteManager.handleMemberInviteAcceptDirect(
-                        target,
-                        decision.worldUuid,
-                        decision.senderUuid
-                    )
-                } else {
-                    target.sendMessage(lang.getMessage(target, "messages.member_invite_declined"))
-                    Bukkit.getPlayer(decision.senderUuid)?.let { sender ->
-                        sender.sendMessage(
-                            lang.getMessage(
-                                sender,
-                                "messages.member_invite_declined_sender",
-                                mapOf("player" to target.name)
-                            )
-                        )
-                    }
-                }
-            }
-
-            is MemberRequestDecision -> {
-                if (accept) {
-                    plugin.memberRequestManager.handleApprovalDirect(
-                        target,
-                        decision.requestorUuid,
-                        decision.worldUuid
-                    )
-                } else {
-                    plugin.memberRequestManager.handleRejectionDirect(
-                        target,
-                        decision.requestorUuid,
-                        decision.worldUuid
-                    )
                 }
             }
 
@@ -168,10 +196,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     }
 
     fun sendPendingHint(target: Player, count: Int) {
-        if (!plugin.playerPlatformResolver.isBedrock(target)) {
-            return
-        }
-        if (count < 2) {
+        if (count < 1) {
             return
         }
         target.sendMessage(
@@ -184,19 +209,65 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     }
 
     fun getPendingCount(targetUuid: UUID): Int {
-        val queue = pendingByTarget[targetUuid] ?: return 0
+        return getPersistentPendingCount(targetUuid) + getTransientPendingCount(targetUuid)
+    }
+
+    private fun handlePersistentResolve(target: Player, interaction: PendingInteraction, accept: Boolean) {
+        val lang = plugin.languageManager
+        when (interaction.type) {
+            PendingInteractionType.MEMBER_INVITE -> {
+                if (accept) {
+                    plugin.memberInviteManager.handleMemberInviteAcceptDirect(
+                        target,
+                        interaction.worldUuid,
+                        interaction.actorUuid
+                    )
+                } else {
+                    target.sendMessage(lang.getMessage(target, "messages.member_invite_declined"))
+                    Bukkit.getPlayer(interaction.actorUuid)?.let { sender ->
+                        sender.sendMessage(
+                            lang.getMessage(
+                                sender,
+                                "messages.member_invite_declined_sender",
+                                mapOf("player" to target.name)
+                            )
+                        )
+                    }
+                }
+            }
+
+            PendingInteractionType.MEMBER_REQUEST -> {
+                if (accept) {
+                    plugin.memberRequestManager.handleApprovalDirect(
+                        target,
+                        interaction.actorUuid,
+                        interaction.worldUuid
+                    )
+                } else {
+                    plugin.memberRequestManager.handleRejectionDirect(
+                        target,
+                        interaction.actorUuid,
+                        interaction.worldUuid
+                    )
+                }
+            }
+        }
+    }
+
+    private fun getTransientPendingCount(targetUuid: UUID): Int {
+        val queue = transientByTarget[targetUuid] ?: return 0
         synchronized(queue) {
             cleanupExpiredLocked(queue)
             val size = queue.size
             if (size == 0) {
-                pendingByTarget.remove(targetUuid)
+                transientByTarget.remove(targetUuid)
             }
             return size
         }
     }
 
-    private fun enqueue(targetUuid: UUID, decision: PendingDecision): Int {
-        val queue = pendingByTarget.computeIfAbsent(targetUuid) { ArrayDeque() }
+    private fun enqueueTransient(targetUuid: UUID, decision: PendingDecision): Int {
+        val queue = transientByTarget.computeIfAbsent(targetUuid) { ArrayDeque() }
         synchronized(queue) {
             cleanupExpiredLocked(queue)
             queue.addFirst(decision)
@@ -204,13 +275,13 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         }
     }
 
-    private fun pollLatestValid(targetUuid: UUID): PendingDecision? {
-        val queue = pendingByTarget[targetUuid] ?: return null
+    private fun pollLatestValidTransient(targetUuid: UUID): PendingDecision? {
+        val queue = transientByTarget[targetUuid] ?: return null
         synchronized(queue) {
             cleanupExpiredLocked(queue)
             val latest = if (queue.isEmpty()) null else queue.removeFirst()
             if (queue.isEmpty()) {
-                pendingByTarget.remove(targetUuid)
+                transientByTarget.remove(targetUuid)
             }
             return latest
         }
