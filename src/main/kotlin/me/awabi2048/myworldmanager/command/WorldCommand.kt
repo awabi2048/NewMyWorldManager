@@ -74,11 +74,12 @@ class WorldCommand(
                 plugin.worldService.preloadTemplateChunks()
 
                 // ----- 上限チェック (Moved from CreationGuiListener) -----
+                val bypassLimits = PermissionManager.canBypassWorldLimits(sender)
                 val stats = plugin.playerStatsRepository.findByUuid(targetPlayer.uniqueId)
                 val maxTotal = plugin.config.getInt("creation.max_total_world_count", 50)
                 val currentTotal = plugin.worldConfigRepository.findAll().size
 
-                if (currentTotal >= maxTotal) {
+                if (!bypassLimits && currentTotal >= maxTotal) {
                     val errorMessage = lang.getMessage(
                         sender as? Player,
                         "gui.creation.command_limit_reached_total",
@@ -96,7 +97,7 @@ class WorldCommand(
                 val maxPlayer = defaultMax + stats.unlockedWorldSlot
                 val currentPlayer = plugin.worldConfigRepository.findAll().count { it.owner == targetPlayer.uniqueId }
 
-                if (currentPlayer >= maxPlayer) {
+                if (!bypassLimits && currentPlayer >= maxPlayer) {
                     sender.sendMessage(
                         lang.getMessage(
                             sender as? Player,

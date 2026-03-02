@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -215,7 +216,7 @@ class WorldSettingsListener : Listener {
                                                                                         it.owner == memberId
                                                                                 }
 
-                                                                if (currentCounts >= maxCounts) {
+                                                                if (!PermissionManager.canBypassWorldLimits(player) && currentCounts >= maxCounts) {
                                                                         player.sendMessage(
                                                                                 plugin.languageManager
                                                                                         .getMessage(

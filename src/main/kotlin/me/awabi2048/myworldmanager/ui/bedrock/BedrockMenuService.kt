@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -490,6 +491,7 @@ class BedrockMenuService(
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val currentCreateCount = worlds.count { it.owner == player.uniqueId }
         val maxSlot = plugin.config.getInt("creation.max_create_count_default", 3) + stats.unlockedWorldSlot
+        val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         val holder = BedrockPlayerWorldListHolder(page, showBackButton)
         val inventory =
@@ -538,7 +540,7 @@ class BedrockMenuService(
             )
         }
 
-        if (currentCreateCount < maxSlot) {
+        if (bypassLimits || currentCreateCount < maxSlot) {
             inventory.setItem(footerStart + 2, createCreationButtonItem(player))
         }
         inventory.setItem(footerStart + 4, createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint))
@@ -1193,6 +1195,7 @@ class BedrockMenuService(
         val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
         meta.owningPlayer = player
         val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
+        val bypassLimits = PermissionManager.canBypassWorldLimits(player)
         meta.displayName(
             plugin.languageManager.getComponent(
                 player,
@@ -1203,7 +1206,7 @@ class BedrockMenuService(
         meta.lore(
             plugin.languageManager.getComponentList(
                 player,
-                "gui.player_world.stats_button.lore",
+                if (bypassLimits) "gui.player_world.stats_button.lore_bypass" else "gui.player_world.stats_button.lore",
                 mapOf(
                     "point" to worldPoint,
                     "current_occupied" to currentCreateCount,
