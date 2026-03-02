@@ -1435,6 +1435,19 @@ gui:
       fav_add: "§e§l| §e右クリック§7 お気に入りに§a追加"
       fav_remove: "§e§l| §c右クリック§7 お気に入りを§c解除"
 
+  visitworld:
+    input:
+      title: "訪問ワールド検索"
+      label: "検索キーワード"
+      placeholder: "ワールド名で検索"
+    title: "ワールド検索: {query}"
+    info:
+      name: "§6検索情報"
+      query: "§f§l| §7検索キーワード §f{query}"
+      hit: "§f§l| §7ヒット件数 §a{hit}"
+      shown: "§f§l| §7表示件数 §b{shown}"
+      page: "§f§l| §7ページ §e{current}/{total}"
+
   player_world:
     title: "マイワールドの一覧"
     world_item:
@@ -1610,6 +1623,9 @@ messages:
   # 招待関連
   member_invite_input: "§e招待したいプレイヤーのIDを入力してください"
   visit_target_input: "§e訪問したいプレイヤーのIDを入力してください"
+  visitworld_query_input: "§e検索したいワールド名のキーワードを入力してください"
+  visitworld_query_empty: "§c検索キーワードを入力してください。"
+  visitworld_no_result: "§c「{query}」に一致する公開ワールドが見つかりませんでした。"
   member_deleted: "§cメンバーを削除しました"
   owner_transferred: "§a{old_owner}さんへオーナー権限を譲渡しました。"
   owner_transfer_failed_limit: "§c譲渡先のプレイヤーのワールドスロットがいっぱいです"

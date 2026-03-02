@@ -17,6 +17,9 @@ commands:
   visit:
     description: Visit another player's public worlds
     usage: /visit [player]
+  visitworld:
+    description: 公開中のマイワールドをワールド名で検索します。
+    usage: /visitworld <検索キーワード>
   invite:
     description: Invite a player to your current world
     usage: /invite <player>
