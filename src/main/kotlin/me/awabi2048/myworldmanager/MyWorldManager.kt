@@ -50,6 +50,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var favoriteMenuGui: FavoriteMenuGui
     lateinit var favoriteConfirmGui: FavoriteConfirmGui
     lateinit var visitGui: VisitGui
+    lateinit var visitWorldGui: VisitWorldGui
     lateinit var meetGui: MeetGui
     lateinit var playerWorldGui: PlayerWorldGui
     lateinit var userSettingsGui: UserSettingsGui
@@ -141,6 +142,7 @@ class MyWorldManager : JavaPlugin() {
         favoriteMenuGui = FavoriteMenuGui(this)
         favoriteConfirmGui = FavoriteConfirmGui(this)
         visitGui = VisitGui(this)
+        visitWorldGui = VisitWorldGui(this)
         meetGui = MeetGui(this)
         playerWorldGui = PlayerWorldGui(this)
         worldSettingsGui = WorldSettingsGui(this)
@@ -212,6 +214,7 @@ class MyWorldManager : JavaPlugin() {
         // 旧 GuiListener を分割して登録
         server.pluginManager.registerEvents(PlayerWorldListener(this), this)
         server.pluginManager.registerEvents(VisitListener(this), this)
+        server.pluginManager.registerEvents(VisitWorldListener(this), this)
         server.pluginManager.registerEvents(FavoriteListener(this), this)
         server.pluginManager.registerEvents(MeetListener(this), this)
 
@@ -254,6 +257,13 @@ class MyWorldManager : JavaPlugin() {
             it.setExecutor(visitCmd)
             it.setTabCompleter(visitCmd)
             server.pluginManager.registerEvents(visitCmd, this)
+        }
+
+        getCommand("visitworld")?.let {
+            val visitWorldCmd = VisitWorldCommand(this)
+            it.setExecutor(visitWorldCmd)
+            it.setTabCompleter(visitWorldCmd)
+            server.pluginManager.registerEvents(visitWorldCmd, this)
         }
 
         getCommand("invite")?.setExecutor(inviteCommand)

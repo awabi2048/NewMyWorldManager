@@ -1281,6 +1281,18 @@ gui:
       warp_bedrock: §e§l| §eClick§7 Warp
       fav_add: §e§l| §eRight click§7 Add to Favorites§a
       fav_remove: §e§l| §cRight click§7 Remove favorites§c
+  visitworld:
+    input:
+      title: Visit World Search
+      label: Search Keyword
+      placeholder: Search by world name
+    title: 'World Search: {query}'
+    info:
+      name: §6Search Info
+      query: '§f§l| §7Query §f{query}'
+      hit: '§f§l| §7Hits §a{hit}'
+      shown: '§f§l| §7Shown §b{shown}'
+      page: '§f§l| §7Page §e{current}/{total}'
   player_world:
     title: My world list
     world_item:
@@ -1443,6 +1455,9 @@ messages:
   tag_max_reached: §cMax {limit} tags allowed.
   member_invite_input: §eType the player ID to invite.
   visit_target_input: §eType the player ID to visit.
+  visitworld_query_input: §eType a keyword for the world name you want to search.
+  visitworld_query_empty: §cPlease enter a search keyword.
+  visitworld_no_result: §cNo public world matched "{query}".
   member_deleted: §aMember removed.
   owner_transferred: Ownership has been transferred to §a{old_owner}.
   owner_transfer_failed_limit: §cTarget player has no available world slots.
