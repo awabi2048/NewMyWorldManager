@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Sound
 import org.bukkit.entity.Player
@@ -15,10 +16,11 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
     companion object {
         fun expandWorldSlot(plugin: MyWorldManager, player: Player): Boolean {
             val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+            val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
             val defaultSlots = plugin.config.getInt("creation.max_create_count_default")
             val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
-            if (defaultSlots + stats.unlockedWorldSlot >= limit) {
+            if (!bypassLimits && defaultSlots + stats.unlockedWorldSlot >= limit) {
                 player.sendMessage(
                     plugin.languageManager.getMessage(
                         player,

@@ -1329,6 +1329,14 @@ gui:
       - §7This is the number of slots that can be used to create a new My World.
       - §7 Can be released by using "World Seed"
       - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bypass:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7World Point §6{icon} {point}
+      - §7These points can be used to create a new My World, expand it, etc.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7 World Count §a§l{current_occupied}
+      - §7You have permission to bypass world count limits.
+      - §8§m－－－－－－－－－－－－－－－－－－
   user_settings:
     title: Personal settings
     notification:

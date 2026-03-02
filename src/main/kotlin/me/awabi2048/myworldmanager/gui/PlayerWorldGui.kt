@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -163,9 +164,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val maxSlot =
                         plugin.config.getInt("creation.max_create_count_default", 3) +
                                 stats.unlockedWorldSlot
+                val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
                 // マイワールド新規作成ボタン (Slot 2)
-                if (currentCreateCount < maxSlot) {
+                if (bypassLimits || currentCreateCount < maxSlot) {
                         inventory.setItem(footerStart + 2, createCreationButton(player))
                 }
 
@@ -375,6 +377,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val item = ItemStack(Material.PLAYER_HEAD)
                 val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
                 meta.owningPlayer = player
+                val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
                 meta.displayName(
                         lang.getComponent(
@@ -388,7 +391,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 meta.lore(
                         lang.getComponentList(
                                 player,
-                                "gui.player_world.stats_button.lore",
+                                if (bypassLimits) "gui.player_world.stats_button.lore_bypass" else "gui.player_world.stats_button.lore",
                                 mapOf(
                                         "point" to stats.worldPoint,
                                         "current_occupied" to currentCreateCount,

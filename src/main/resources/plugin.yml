@@ -47,6 +47,9 @@ permissions:
     default: op
     children:
       myworldmanager.citizen: true
+  myworldmanager.admin.bypass_world_limits:
+    description: Bypass all MyWorld world count limits
+    default: false
   myworldmanager.citizen:
     description: Allows access to basic player commands
     default: true

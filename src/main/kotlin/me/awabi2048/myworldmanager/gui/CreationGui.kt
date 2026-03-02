@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -24,11 +25,12 @@ class CreationGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val currentPoints = stats.worldPoint
+        val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         // サーバー全体の上限チェック
         val totalMax = config.getInt("creation.max_total_world_count", 50)
         val totalCurrent = plugin.worldConfigRepository.findAll().size
-        if (totalCurrent >= totalMax) {
+        if (!bypassLimits && totalCurrent >= totalMax) {
             player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached_total", mapOf("max" to totalMax)))
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER)) // エラー音の代わり
             return
@@ -38,7 +40,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val defaultMax = config.getInt("creation.max_create_count_default", 3)
         val playerMax = defaultMax + stats.unlockedWorldSlot
         val playerCurrent = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
-        if (playerCurrent >= playerMax) {
+        if (!bypassLimits && playerCurrent >= playerMax) {
             player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached", mapOf("current" to playerCurrent, "max" to playerMax)))
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
             return
@@ -76,8 +78,9 @@ class CreationGui(private val plugin: MyWorldManager) {
         val defaultMax = plugin.config.getInt("creation.max_create_count_default", 3)
         val maxCounts = defaultMax + stats.unlockedWorldSlot
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
-        
-        if (currentCounts >= maxCounts) {
+        val bypassLimits = PermissionManager.canBypassWorldLimits(player)
+
+        if (!bypassLimits && currentCounts >= maxCounts) {
             lore.add(lang.getComponent(player, "gui.creation.type.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).decoration(TextDecoration.ITALIC, false))
         } else if (currentPoints >= cost) {
             lore.add(lang.getComponent(player, "gui.creation.type.available").decoration(TextDecoration.ITALIC, false))

@@ -5,6 +5,7 @@ import org.bukkit.entity.Player
 
 object PermissionManager {
     const val ADMIN = "myworldmanager.admin"
+    const val ADMIN_BYPASS_WORLD_LIMITS = "myworldmanager.admin.bypass_world_limits"
     const val CITIZEN = "myworldmanager.citizen"
     const val TEST = "craftercrossing.test"
 
@@ -35,5 +36,9 @@ object PermissionManager {
      */
     fun sendNoPermissionMessage(sender: CommandSender) {
         sender.sendMessage("§cUnknown command. Type \"/help\" for help.")
+    }
+
+    fun canBypassWorldLimits(sender: CommandSender): Boolean {
+        return sender.hasPermission(ADMIN_BYPASS_WORLD_LIMITS)
     }
 }

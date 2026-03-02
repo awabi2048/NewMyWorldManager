@@ -146,7 +146,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         val stats = plugin.playerStatsRepository.findByUuid(targetId)
         val maxCounts = defaultMax + stats.unlockedWorldSlot
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == targetId }
-        if (currentCounts >= maxCounts) {
+        if (!PermissionManager.canBypassWorldLimits(player) && currentCounts >= maxCounts) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transfer_failed_limit"))
             return
         }
