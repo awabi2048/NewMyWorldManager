@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
@@ -275,9 +276,52 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 }
 
+                                val showOpenMenuHint = isInWorld && currentLevel < maxLevel
+                                if (showOpenMenuHint) {
+                                        val openMenuHintKey =
+                                                if (isBedrock) {
+                                                        "gui.settings.expand.lore_open_menu_hint_be"
+                                                } else {
+                                                        "gui.settings.expand.lore_open_menu_hint_je"
+                                                }
+                                        expansionLore.addAll(
+                                                2,
+                                                lang.getComponentList(player, openMenuHintKey)
+                                        )
+                                }
+
+                                val borderInfo = buildCurrentBorderInfo(worldData, currentLevel)
+                                expansionLore.addAll(
+                                        lang.getComponentList(
+                                                player,
+                                                "gui.settings.expand.lore_border_info",
+                                                mapOf(
+                                                        "x" to formatDecimal(borderInfo.centerX),
+                                                        "z" to formatDecimal(borderInfo.centerZ),
+                                                        "size" to formatDecimal(borderInfo.size)
+                                                )
+                                        )
+                                )
+                                if (!isBedrock && isInWorld) {
+                                        expansionLore.addAll(
+                                                lang.getComponentList(
+                                                        player,
+                                                        "gui.settings.expand.lore_teleport_hint"
+                                                )
+                                        )
+                                }
+                                expansionLore.add(
+                                        LegacyComponentSerializer.legacySection()
+                                                .deserialize(separator)
+                                                .decoration(TextDecoration.ITALIC, false)
+                                )
+
                                 if (!isInWorld && warningLore != null) {
-                                        expansionLore.add(Component.empty())
-                                        expansionLore.add(LegacyComponentSerializer.legacySection().deserialize(warningLore).decoration(TextDecoration.ITALIC, false))
+                                        expansionLore.add(
+                                                LegacyComponentSerializer.legacySection()
+                                                        .deserialize(warningLore)
+                                                        .decoration(TextDecoration.ITALIC, false)
+                                        )
                                 }
                         }
 
@@ -1956,6 +2000,47 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 item.itemMeta = meta
                 ItemTag.tagItem(item, tag)
                 return item
+        }
+
+        private data class BorderInfo(
+                val centerX: Double,
+                val centerZ: Double,
+                val size: Double
+        )
+
+        private fun buildCurrentBorderInfo(worldData: WorldData, currentLevel: Int): BorderInfo {
+                val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                val world = Bukkit.getWorld(worldName)
+                if (world != null) {
+                        val border = world.worldBorder
+                        return BorderInfo(
+                                centerX = border.center.x,
+                                centerZ = border.center.z,
+                                size = border.size
+                        )
+                }
+
+                val center =
+                        worldData.borderCenterPos
+                                ?: worldData.spawnPosMember
+                                ?: worldData.spawnPosGuest
+                                ?: plugin.server.worlds.firstOrNull()?.spawnLocation
+                val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+                val size = initialSize * Math.pow(2.0, currentLevel.toDouble())
+                return BorderInfo(
+                        centerX = center?.x ?: 0.0,
+                        centerZ = center?.z ?: 0.0,
+                        size = size
+                )
+        }
+
+        private fun formatDecimal(value: Double): String {
+                val rounded = Math.round(value)
+                return if (kotlin.math.abs(value - rounded.toDouble()) < 0.000001) {
+                        rounded.toString()
+                } else {
+                        String.format(Locale.US, "%.1f", value)
+                }
         }
 
         private fun createItemComponent(
