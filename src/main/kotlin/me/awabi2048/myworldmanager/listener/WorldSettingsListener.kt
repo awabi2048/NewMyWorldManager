@@ -1030,6 +1030,24 @@ class WorldSettingsListener : Listener {
                                                                 WorldData.EXPANSION_LEVEL_SPECIAL
                                                 )
                                                         return
+                                                val isBedrock =
+                                                        plugin.playerPlatformResolver.isBedrock(player)
+                                                if (!isBedrock && event.isRightClick) {
+                                                        plugin.soundManager.playClickSound(
+                                                                player,
+                                                                clickedItem,
+                                                                "world_settings"
+                                                        )
+                                                        if (!teleportToBorderCenterSurface(player, worldData)) {
+                                                                player.sendMessage(
+                                                                        plugin.languageManager.getMessage(
+                                                                                player,
+                                                                                "error.world_load_failed"
+                                                                        )
+                                                                )
+                                                        }
+                                                        return
+                                                }
                                                 plugin.soundManager.playClickSound(
                                                         player,
                                                         clickedItem,
@@ -1037,59 +1055,19 @@ class WorldSettingsListener : Listener {
                                                 )
 
                                                 val config = plugin.config
-                                                val stats =
-                                                        plugin.playerStatsRepository.findByUuid(
-                                                                player.uniqueId
-                                                        )
                                                 val costsSection =
                                                         config.getConfigurationSection(
                                                                 "expansion.costs"
                                                         )
                                                 val maxLevel =
                                                         costsSection?.getKeys(false)?.size ?: 3
-                                                val baseCost =
-                                                        config.getInt("expansion.base_cost", 100)
-                                                val multiplier =
-                                                        config.getDouble(
-                                                                "expansion.cost_multiplier",
-                                                                2.0
-                                                        )
 
                                                 val currentLevel = worldData.borderExpansionLevel
-                                                val targetLevel = currentLevel + 1
 
                                                 if (currentLevel >= maxLevel) {
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         "error.max_expansion_reached"
-                                                                )
-                                                        )
-                                                        return
-                                                }
-                                                val cost =
-                                                        if (config.contains(
-                                                                        "expansion.costs.$targetLevel"
-                                                                )
-                                                        ) {
-                                                                config.getInt(
-                                                                        "expansion.costs.$targetLevel"
-                                                                )
-                                                        } else {
-                                                                (baseCost *
-                                                                                Math.pow(
-                                                                                        multiplier,
-                                                                                        currentLevel
-                                                                                                .toDouble()
-                                                                                ))
-                                                                        .toInt()
-                                                        }
-
-                                                if (stats.worldPoint < cost) {
-                                                        player.sendMessage(
-                                                                plugin.languageManager.getMessage(
-                                                                        player,
-                                                                        "error.expand_insufficient_points",
-                                                                        mapOf("cost" to cost)
                                                                 )
                                                         )
                                                         return
@@ -3320,6 +3298,36 @@ player.sendMessage(
 
                 worldData.borderExpansionLevel += 1
                 plugin.worldConfigRepository.save(worldData)
+                return true
+        }
+
+        private fun teleportToBorderCenterSurface(player: Player, worldData: WorldData): Boolean {
+                val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                var world = Bukkit.getWorld(worldName)
+                if (world == null) {
+                        if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                                return false
+                        }
+                        world = Bukkit.getWorld(worldName) ?: return false
+                }
+                val targetWorld = world
+
+                val center = worldData.borderCenterPos ?: targetWorld.worldBorder.center
+                val centerX = Math.round(center.x).toInt()
+                val centerZ = Math.round(center.z).toInt()
+                val highestY = targetWorld.getHighestBlockYAt(centerX, centerZ)
+                val y = (highestY + 1).coerceAtLeast(targetWorld.minHeight + 1)
+                val target =
+                        org.bukkit.Location(
+                                targetWorld,
+                                centerX + 0.5,
+                                y.toDouble(),
+                                centerZ + 0.5,
+                                player.location.yaw,
+                                player.location.pitch
+                        )
+                player.teleport(target)
+                plugin.soundManager.playTeleportSound(player)
                 return true
         }
 

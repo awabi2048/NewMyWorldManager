@@ -452,7 +452,6 @@ gui:
       cost: §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
       lore_upgrade:
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §7Click to §bExpand the border of the world§7
       - §f§l| §7Current expansion level §e§l{current}/{max}
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
@@ -460,7 +459,6 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       lore_insufficient:
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §7Click to §bExpand the border of the world§7
       - §f§l| §7Current expansion level §e§l{current}/{max}
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7Cost §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}Points §c are missing.
@@ -468,11 +466,18 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       lore_max:
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §7Click to §bExpand the border of the world§7
-      - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7Current expansion level §e§l{current}/{max}
       - §f§l| §cCannot be expanded any further!
       - §8§m－－－－－－－－－－－－－－－－－－
+      lore_open_menu_hint_je:
+      - §e§l| §eLeft click §bOpen border expansion menu§7
+      lore_open_menu_hint_be:
+      - §e§l| §eClick §bOpen border expansion menu§7
+      lore_border_info:
+      - '§f§l| §7Current border center §fX: §e{x} §7/ §fZ: §e{z}'
+      - '§f§l| §7Current border size §e{size}'
+      lore_teleport_hint:
+      - §e§l| §eRight click§7 Teleport to border center surface
       lore_no_border:
       - §a There are no borders in this world.
     environment:

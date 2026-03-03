@@ -487,7 +487,6 @@ gui:
       # プレースホルダー: {current}, {max}, {cost}, {level_before}, {level_after}, {points}
       lore_upgrade:
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§7クリックして§bワールドのボーダーを拡張§7します"
         - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7コスト §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)"
@@ -496,7 +495,6 @@ gui:
       # プレースホルダー: {current}, {max}, {cost}, {level_before}, {level_after}, {points}, {shortage}
       lore_insufficient:
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§7クリックして§bワールドのボーダーを拡張§7します"
         - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7コスト §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}ポイント§c不足しています。"
@@ -505,11 +503,18 @@ gui:
       # プレースホルダー: {current}, {max}
       lore_max:
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§7クリックして§bワールドのボーダーを拡張§7します"
-        - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
         - "§f§l| §cこれ以上拡張できません！"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      lore_open_menu_hint_je:
+        - "§e§l| §e左クリック §bボーダー拡張メニュー§7を開く"
+      lore_open_menu_hint_be:
+        - "§e§l| §eクリック §bボーダー拡張メニュー§7を開く"
+      lore_border_info:
+        - "§f§l| §7現在のボーダー中心 §fX: §e{x} §7/ §fZ: §e{z}"
+        - "§f§l| §7現在のボーダーサイズ §e{size}"
+      lore_teleport_hint:
+        - "§e§l| §e右クリック§7 ボーダー中心の地表へテレポート"
       lore_no_border:
         - "§aこのワールドにボーダーはありません。"
     environment:
