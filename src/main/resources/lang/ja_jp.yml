@@ -1094,6 +1094,7 @@ gui:
     title_list: "プレイヤーのところに行く"
     world_item:
       current_world: "§f§l| §7現在のワールド §f{world}"
+      current_world_same: "§f§l| §7現在のワールド §6{world} §7(このワールド)"
       status: "§f§l| §7ステータス §e{status}"
       click_visit: "§e§l| §eクリックしてワールドにワープ"
       click_request: "§e§l| §eクリックしてワープ申請を送信"
@@ -1112,6 +1113,10 @@ gui:
       inactive_prefix: "  "
       desc_header: "§f§l| §f説明 "
       click_cycle: "§e§nクリックして切り替え"
+
+  invite:
+    target_head:
+      click_invite: "§e§l| §eクリック §7このプレイヤーを招待する"
 
   discovery:
     title: "ワールドディスカバリー"
@@ -1679,6 +1684,7 @@ messages:
   member_joined_notify: "§a{player} §fさんがワールド【§a{world}§f】のメンバーになりました"
   invite_sent_success: "§e{player} §fさんを「§a{world}§f」に招待しました！"
   invite_target_offline: "§c{player}さんは現在オフラインです"
+  invite_no_available_targets: "§c現在招待可能なプレイヤーがいません。"
   invite_queued_offline: "§7{player}さんはオフラインです。次回ログイン時に通知されます。"
   invite_not_in_myworld: "§c招待を送信するには、マイワールドにいる必要があります！"
   invite_not_member: "§cこのワールドのメンバーではないため、招待を送信できません"

@@ -2,9 +2,9 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -32,16 +32,13 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
         for (i in 0 until 27) inventory.setItem(i, grayPane)
 
         // Center: World Info (Context)
-        val worldItem = ItemStack(worldData.icon)
-        val worldMeta = worldItem.itemMeta
         val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
-        worldMeta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName)).decoration(TextDecoration.ITALIC, false))
-        val lore = mutableListOf<Component>()
-        lore.addAll(lang.getComponentList(player, "gui.member_request_confirm.lore", mapOf("world" to worldName)))
-        worldMeta.lore(lore)
-        worldItem.itemMeta = worldMeta
-        ItemTag.tagItem(worldItem, ItemTag.TYPE_GUI_INFO)
-        ItemTag.setWorldUuid(worldItem, worldData.uuid)
+        val worldItem = GuiHelper.createContextWorldIconItem(
+            plugin,
+            player,
+            worldData,
+            lang.getComponentList(player, "gui.member_request_confirm.lore", mapOf("world" to worldName))
+        )
         inventory.setItem(13, worldItem)
 
         // Confirm Button (Right side - 15)

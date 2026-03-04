@@ -36,30 +36,16 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         }
 
         val player = sender
-        val currentWorld = player.world
-        
-        // マイワールドであるかチェック (命名規則: my_world.{uuid})
-        if (!currentWorld.name.startsWith("my_world.")) {
+        val worldData = resolveCurrentWorldData(player) ?: run {
             player.sendMessage(lang.getMessage(player, "messages.invite_not_in_myworld"))
             return true
         }
 
-        val uuidStr = currentWorld.name.removePrefix("my_world.")
-        val worldUuid = try {
-            UUID.fromString(uuidStr)
-        } catch (e: Exception) {
-            player.sendMessage(lang.getMessage(player, "general.world_not_found"))
-            return true
-        }
-
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-        if (worldData == null) {
-            player.sendMessage(lang.getMessage(player, "general.world_not_found"))
-            return true
-        }
-
         // ワールドメンバーチェック
-        if (!worldData.members.contains(player.uniqueId)) {
+        val isMember = worldData.owner == player.uniqueId ||
+            worldData.moderators.contains(player.uniqueId) ||
+            worldData.members.contains(player.uniqueId)
+        if (!isMember) {
             player.sendMessage(lang.getMessage(player, "messages.invite_not_member"))
             return true
         }
@@ -70,9 +56,8 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
             return true
         }
 
-        // 引数チェック: /invite <player>
         if (args.isEmpty()) {
-            player.sendMessage("§c使用法: /invite <プレイヤー名>")
+            plugin.inviteGui.open(player)
             return true
         }
 
@@ -102,14 +87,14 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
             )
             val count = plugin.pendingDecisionManager.enqueueWorldInvite(
                 target,
-                worldUuid,
+                worldData.uuid,
                 player.uniqueId,
                 timeoutSeconds
             )
             plugin.pendingDecisionManager.sendPendingHint(target, count)
         } else {
             val expiry = System.currentTimeMillis() + (timeoutSeconds * 1000)
-            pendingInvites[target.uniqueId] = InviteInfo(worldUuid, expiry)
+            pendingInvites[target.uniqueId] = InviteInfo(worldData.uuid, expiry)
 
             // 対象へのメッセージ送信 (Adventure API)
             val inviteText = lang.getMessage(target, "messages.invite_text", mapOf("player" to player.name, "world" to worldData.name))
@@ -134,12 +119,34 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         return true
     }
 
+    private fun resolveCurrentWorldData(player: Player): WorldData? {
+        val currentWorld = player.world
+        plugin.worldConfigRepository.findByWorldName(currentWorld.name)?.let { return it }
+
+        if (!currentWorld.name.startsWith("my_world.")) {
+            return null
+        }
+
+        val uuidStr = currentWorld.name.removePrefix("my_world.")
+        val worldUuid = try {
+            UUID.fromString(uuidStr)
+        } catch (e: Exception) {
+            return null
+        }
+
+        return plugin.worldConfigRepository.findByUuid(worldUuid)
+    }
+
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String>? {
         if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) return emptyList()
         if (args.size == 1) {
             val search = args[0].lowercase()
             return Bukkit.getOnlinePlayers()
-                .filter { it.name.lowercase().startsWith(search) && it.name != sender.name }
+                .filter {
+                    it.name.lowercase().startsWith(search) &&
+                        it.name != sender.name &&
+                        plugin.playerStatsRepository.findByUuid(it.uniqueId).meetStatus != "BUSY"
+                }
                 .map { it.name }
         }
         return emptyList()

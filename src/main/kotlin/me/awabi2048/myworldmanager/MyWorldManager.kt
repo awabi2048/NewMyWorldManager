@@ -53,6 +53,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var visitGui: VisitGui
     lateinit var visitWorldGui: VisitWorldGui
     lateinit var meetGui: MeetGui
+    lateinit var inviteGui: InviteGui
     lateinit var playerWorldGui: PlayerWorldGui
     lateinit var pendingInteractionGui: PendingInteractionGui
     lateinit var userSettingsGui: UserSettingsGui
@@ -147,6 +148,7 @@ class MyWorldManager : JavaPlugin() {
         visitGui = VisitGui(this)
         visitWorldGui = VisitWorldGui(this)
         meetGui = MeetGui(this)
+        inviteGui = InviteGui(this)
         playerWorldGui = PlayerWorldGui(this)
         pendingInteractionGui = PendingInteractionGui(this)
         worldSettingsGui = WorldSettingsGui(this)
@@ -221,6 +223,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(VisitWorldListener(this), this)
         server.pluginManager.registerEvents(FavoriteListener(this), this)
         server.pluginManager.registerEvents(MeetListener(this), this)
+        server.pluginManager.registerEvents(InviteListener(this), this)
 
         server.pluginManager.registerEvents(AdminGuiListener(), this)
         server.pluginManager.registerEvents(AdminCommandListener(), this)

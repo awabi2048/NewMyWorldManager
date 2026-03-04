@@ -26,6 +26,7 @@ object ItemTag {
     const val TYPE_GUI_NAV_NEXT = "gui_nav_next"
     const val TYPE_GUI_BACK = "gui_back"
     const val TYPE_GUI_INVITE = "gui_invite"
+    const val TYPE_GUI_INVITE_TARGET_HEAD = "gui_invite_target_head"
     const val TYPE_GUI_DECORATION = "gui_decoration"
     const val TYPE_GUI_INFO = "gui_info"
     const val TYPE_GUI_PORTAL_TOGGLE_TEXT = "gui_portal_toggle_text"

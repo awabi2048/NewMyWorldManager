@@ -40,6 +40,11 @@ class MeetGui(private val plugin: MyWorldManager) {
         // マイワールドに滞在中で、且つ meetStatus が BUSY でないプレイヤーを抽出（自分以外）
         val targets = Bukkit.getOnlinePlayers().filter { target ->
             if (target.uniqueId == player.uniqueId) return@filter false
+
+            if (target.world.uid == player.world.uid) {
+                val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
+                return@filter stats.meetStatus != "BUSY"
+            }
             
             val worldName = target.world.name
             val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return@filter false
@@ -162,15 +167,21 @@ class MeetGui(private val plugin: MyWorldManager) {
         val world = target.world
         val worldName = world.name
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
+        val isSameWorld = target.world.uid == viewer.world.uid
         val displayWorldName = worldData?.name ?: run {
             val configMap = plugin.config.getConfigurationSection("world_display_names")
             configMap?.getString(worldName) ?: "???"
         }
 
-        lore.add(lang.getComponent(viewer, "gui.meet.world_item.current_world", mapOf("world" to displayWorldName)))
+        val currentWorldKey = if (isSameWorld && lang.hasKey(viewer, "gui.meet.world_item.current_world_same")) {
+            "gui.meet.world_item.current_world_same"
+        } else {
+            "gui.meet.world_item.current_world"
+        }
+        lore.add(lang.getComponent(viewer, currentWorldKey, mapOf("world" to displayWorldName)))
 
         // クリックしてワールドを訪れる/申請の表示判定
-        if (worldData != null) {
+        if (worldData != null && !isSameWorld) {
             val isMember = worldData.owner == viewer.uniqueId || 
                            worldData.moderators.contains(viewer.uniqueId) || 
                            worldData.members.contains(viewer.uniqueId)

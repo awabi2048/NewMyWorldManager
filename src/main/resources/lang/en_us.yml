@@ -982,6 +982,7 @@ gui:
     title_list: Go to Player's Place
     world_item:
       current_world: §f§l| §7Current World §f{world}
+      current_world_same: §f§l| §7Current World §6{world} §7(same world)
       status: §f§l| §7Status §e{status}
       click_visit: §e§l| §e§nClick to warp
       click_request: §e§l| §eClick to submit warp request
@@ -999,6 +1000,9 @@ gui:
       inactive_prefix: '  '
       desc_header: §f§l| §fDescription
       click_cycle: §e§nClick to switch
+  invite:
+    target_head:
+      click_invite: §e§l| §eClick §7invite this player
   discovery:
     title: Discovery
     world_item:
@@ -1516,6 +1520,7 @@ messages:
   member_joined_notify: §a{player} §fjoined world【§a{world}§f】 as a member.
   invite_sent_success: §eSent invite to {player} for world "§a{world}§f"!
   invite_target_offline: §cPlayer {player} is not online.
+  invite_no_available_targets: §cThere are currently no players available to invite.
   invite_queued_offline: §7{player} is offline. They will be notified on next login.
   invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
   invite_not_member: §cYou cannot send an invitation because you are not a member of this world

@@ -65,6 +65,10 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                      player.sendMessage(lang.getMessage(player, "messages.meet.busy"))
                      return
                 }
+
+                if (target.world.uid == player.world.uid) {
+                    return
+                }
                 
                 if (stats.meetStatus == "ASK_ME") {
                     // Send Request

@@ -22,7 +22,7 @@ commands:
     usage: /visitworld <検索キーワード>
   invite:
     description: Invite a player to your current world
-    usage: /invite <player>
+    usage: /invite [player]
 
   favorite:
     description: お気に入り登録したワールドの一覧を表示します。

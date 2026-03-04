@@ -1,7 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.model.WorldData
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
 
@@ -102,6 +104,34 @@ object GuiHelper {
         
         player.closeInventory()
         player.performCommand(command)
+    }
+
+    fun createContextWorldIconItem(
+        plugin: MyWorldManager,
+        player: Player,
+        worldData: WorldData,
+        lore: List<Component> = emptyList(),
+        attachWorldUuid: Boolean = true
+    ): org.bukkit.inventory.ItemStack {
+        val lang = plugin.languageManager
+        val item = org.bukkit.inventory.ItemStack(worldData.icon)
+        val meta = item.itemMeta ?: return item
+
+        val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
+        meta.displayName(
+            lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))
+                .decoration(TextDecoration.ITALIC, false)
+        )
+        if (lore.isNotEmpty()) {
+            meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+        }
+
+        item.itemMeta = meta
+        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
+        if (attachWorldUuid) {
+            ItemTag.setWorldUuid(item, worldData.uuid)
+        }
+        return item
     }
 
     /**

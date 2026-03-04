@@ -96,26 +96,15 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
                 
-                val worldUuid = worldData.uuid
-
                 if (worldData.publishLevel == PublishLevel.LOCKED) {
                     player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
                     player.closeInventory()
                     return
                 }
 
-                plugin.inviteSessionManager.startSession(player.uniqueId, worldUuid)
                 player.closeInventory()
 
-                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                    if (!openBedrockInviteInputForm(player)) {
-                        plugin.inviteSessionManager.endSession(player.uniqueId)
-                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                        plugin.playerWorldGui.open(player)
-                    }
-                } else {
-                    showInviteInputDialog(player)
-                }
+                plugin.inviteGui.open(player, showBackButton = true)
                 return
             }
 

@@ -143,10 +143,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
     }
 
     private fun createWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
-        val item = ItemStack(worldData.icon)
-        val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
-        meta.displayName(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldData.name)).decoration(TextDecoration.ITALIC, false))
         
                 val formattedDesc = if (worldData.description.isNotEmpty()) {
                         lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description))
@@ -162,8 +159,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                 val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
 
                 val separator = lang.getComponent(player, "gui.common.separator")
-
-                meta.lore(
+                val lore =
                         me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
                                 lang.getComponentList(
                                         player,
@@ -181,10 +177,13 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                                 ),
                                 separator
                         )
-                )
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        return item
+
+        return me.awabi2048.myworldmanager.util.GuiHelper.createContextWorldIconItem(
+                plugin,
+                player,
+                worldData,
+                lore
+        )
     }
 
     private fun createDecorationItem(material: Material, worldData: WorldData? = null): ItemStack {
