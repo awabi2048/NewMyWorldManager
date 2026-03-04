@@ -18,8 +18,11 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
+import org.bukkit.Color
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
+import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.block.BlockFace
 import org.bukkit.OfflinePlayer
@@ -34,6 +37,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerCommandPreprocessEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import io.papermc.paper.dialog.Dialog
@@ -54,6 +58,7 @@ class WorldSettingsListener : Listener {
 
         private val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         private val pendingExpansions = mutableMapOf<UUID, PendingExpansion>()
+        private val spawnPreviewTasks = mutableMapOf<UUID, BukkitTask>()
 
         data class PendingExpansion(
                 val worldData: WorldData,
@@ -1006,6 +1011,7 @@ class WorldSettingsListener : Listener {
                                                 plugin.settingsSessionManager
                                                         .getSession(player)
                                                         ?.setMetadata("spawn_set_both", isBedrock)
+                                                startSpawnPreview(player)
                                                 player.closeInventory()
                                         }
                                         ItemTag.TYPE_GUI_SETTING_ICON -> {
@@ -3027,14 +3033,237 @@ plugin.languageManager
 
         @EventHandler
         fun onWorldChange(event: PlayerChangedWorldEvent) {
+                stopSpawnPreview(event.player)
                 clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
         }
 
         @EventHandler
         fun onQuit(event: PlayerQuitEvent) {
+                stopSpawnPreview(event.player)
                 clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
+        }
+
+        private fun startSpawnPreview(player: Player) {
+                stopSpawnPreview(player)
+                spawnPreviewTasks[player.uniqueId] =
+                        Bukkit.getScheduler()
+                                .runTaskTimer(
+                                        plugin,
+                                        Runnable {
+                                                if (!player.isOnline) {
+                                                        stopSpawnPreview(player)
+                                                        return@Runnable
+                                                }
+                                                val session =
+                                                        plugin.settingsSessionManager.getSession(player)
+                                                if (session == null ||
+                                                                (session.action !=
+                                                                        SettingsAction.SET_SPAWN_GUEST &&
+                                                                        session.action !=
+                                                                                SettingsAction
+                                                                                        .SET_SPAWN_MEMBER)
+                                                ) {
+                                                        stopSpawnPreview(player)
+                                                        return@Runnable
+                                                }
+
+                                                val targetBlock = player.getTargetBlockExact(6) ?: return@Runnable
+                                                val spawnLoc =
+                                                        targetBlock.location.clone().add(0.5, 1.0, 0.5)
+                                                val yaw = normalizeToCardinalYaw(player.location.yaw)
+                                                val placeable = isSpawnAreaPlaceable(spawnLoc)
+                                                spawnSpawnPreview(player, spawnLoc, yaw, placeable)
+                                        },
+                                        0L,
+                                        10L
+                                )
+        }
+
+        private fun stopSpawnPreview(player: Player) {
+                spawnPreviewTasks.remove(player.uniqueId)?.cancel()
+        }
+
+        private fun normalizeToCardinalYaw(yawRaw: Float): Float {
+                var yaw = yawRaw
+                while (yaw < 0) yaw += 360
+                while (yaw >= 360) yaw -= 360
+
+                return when {
+                        yaw >= 45 && yaw < 135 -> 90.0f
+                        yaw >= 135 && yaw < 225 -> 180.0f
+                        yaw >= 225 && yaw < 315 -> 270.0f
+                        else -> 0.0f
+                }
+        }
+
+        private fun isSpawnAreaPlaceable(spawnLoc: Location): Boolean {
+                val feetBlock = spawnLoc.block
+                val headBlock = spawnLoc.clone().add(0.0, 1.0, 0.0).block
+                return isAirOrWater(feetBlock.type) && isAirOrWater(headBlock.type)
+        }
+
+        private fun isAirOrWater(material: Material): Boolean {
+                return material.isAir || material == Material.WATER
+        }
+
+        private fun spawnSpawnPreview(
+                player: Player,
+                spawnLoc: Location,
+                yaw: Float,
+                placeable: Boolean
+        ) {
+                val world = spawnLoc.world ?: return
+                val frameColor = if (placeable) Color.fromRGB(64, 255, 120) else Color.fromRGB(255, 80, 80)
+                val frameDust = Particle.DustOptions(frameColor, 0.5f)
+                val arrowDust = Particle.DustOptions(Color.fromRGB(80, 160, 255), 0.5f)
+
+                val feetBlockY = spawnLoc.blockY
+                spawnSpawnBlockOutline(
+                        player,
+                        spawnLoc.blockX,
+                        feetBlockY,
+                        spawnLoc.blockZ,
+                        frameDust,
+                        drawBottomFace = true,
+                        drawTopFace = false
+                )
+                spawnSpawnBlockOutline(
+                        player,
+                        spawnLoc.blockX,
+                        feetBlockY + 1,
+                        spawnLoc.blockZ,
+                        frameDust,
+                        drawBottomFace = false,
+                        drawTopFace = true
+                )
+
+                val rad = Math.toRadians(yaw.toDouble())
+                val forwardX = -kotlin.math.sin(rad)
+                val forwardZ = kotlin.math.cos(rad)
+                val arrowStart =
+                        Location(
+                                world,
+                                spawnLoc.x - forwardX * 0.5,
+                                spawnLoc.y + 0.15,
+                                spawnLoc.z - forwardZ * 0.5
+                        )
+                spawnDirectionArrow(player, arrowStart, yaw, arrowDust)
+        }
+
+        private fun spawnSpawnBlockOutline(
+                player: Player,
+                blockX: Int,
+                blockY: Int,
+                blockZ: Int,
+                dust: Particle.DustOptions,
+                drawBottomFace: Boolean,
+                drawTopFace: Boolean
+        ) {
+                val minX = blockX.toDouble()
+                val minY = blockY.toDouble()
+                val minZ = blockZ.toDouble()
+                val maxX = blockX + 1.0
+                val maxY = blockY + 1.0
+                val maxZ = blockZ + 1.0
+
+                if (drawBottomFace) {
+                        spawnLineWithTenParticles(player, minX, minY, minZ, maxX, minY, minZ, dust)
+                        spawnLineWithTenParticles(player, minX, minY, maxZ, maxX, minY, maxZ, dust)
+                        spawnLineWithTenParticles(player, minX, minY, minZ, minX, minY, maxZ, dust)
+                        spawnLineWithTenParticles(player, maxX, minY, minZ, maxX, minY, maxZ, dust)
+                }
+                if (drawTopFace) {
+                        spawnLineWithTenParticles(player, minX, maxY, minZ, maxX, maxY, minZ, dust)
+                        spawnLineWithTenParticles(player, minX, maxY, maxZ, maxX, maxY, maxZ, dust)
+                        spawnLineWithTenParticles(player, minX, maxY, minZ, minX, maxY, maxZ, dust)
+                        spawnLineWithTenParticles(player, maxX, maxY, minZ, maxX, maxY, maxZ, dust)
+                }
+
+                spawnLineWithTenParticles(player, minX, minY, minZ, minX, maxY, minZ, dust)
+                spawnLineWithTenParticles(player, maxX, minY, minZ, maxX, maxY, minZ, dust)
+                spawnLineWithTenParticles(player, minX, minY, maxZ, minX, maxY, maxZ, dust)
+                spawnLineWithTenParticles(player, maxX, minY, maxZ, maxX, maxY, maxZ, dust)
+        }
+
+        private fun spawnDirectionArrow(
+                player: Player,
+                start: Location,
+                yaw: Float,
+                dust: Particle.DustOptions
+        ) {
+                val rad = Math.toRadians(yaw.toDouble())
+                val forwardX = -kotlin.math.sin(rad)
+                val forwardZ = kotlin.math.cos(rad)
+
+                val tipX = start.x + forwardX * 1.0
+                val tipZ = start.z + forwardZ * 1.0
+                spawnLineWithTenParticles(player, start.x, start.y, start.z, tipX, start.y, tipZ, dust)
+
+                val baseX = tipX - forwardX * 0.4
+                val baseZ = tipZ - forwardZ * 0.4
+                val sideX = -forwardZ * 0.2
+                val sideZ = forwardX * 0.2
+
+                spawnLineWithFiveParticles(
+                        player,
+                        tipX,
+                        start.y,
+                        tipZ,
+                        baseX + sideX,
+                        start.y,
+                        baseZ + sideZ,
+                        dust
+                )
+                spawnLineWithFiveParticles(
+                        player,
+                        tipX,
+                        start.y,
+                        tipZ,
+                        baseX - sideX,
+                        start.y,
+                        baseZ - sideZ,
+                        dust
+                )
+        }
+
+        private fun spawnLineWithFiveParticles(
+                player: Player,
+                startX: Double,
+                startY: Double,
+                startZ: Double,
+                endX: Double,
+                endY: Double,
+                endZ: Double,
+                dust: Particle.DustOptions
+        ) {
+                for (i in 0..4) {
+                        val t = i.toDouble() / 4.0
+                        val x = startX + (endX - startX) * t
+                        val y = startY + (endY - startY) * t
+                        val z = startZ + (endZ - startZ) * t
+                        player.spawnParticle(Particle.DUST, x, y, z, 1, 0.0, 0.0, 0.0, 0.0, dust)
+                }
+        }
+
+        private fun spawnLineWithTenParticles(
+                player: Player,
+                startX: Double,
+                startY: Double,
+                startZ: Double,
+                endX: Double,
+                endY: Double,
+                endZ: Double,
+                dust: Particle.DustOptions
+        ) {
+                for (i in 0..9) {
+                        val t = i.toDouble() / 9.0
+                        val x = startX + (endX - startX) * t
+                        val y = startY + (endY - startY) * t
+                        val z = startZ + (endZ - startZ) * t
+                        player.spawnParticle(Particle.DUST, x, y, z, 1, 0.0, 0.0, 0.0, 0.0, dust)
+                }
         }
 
         private fun processImmediateExpansion(player: Player) {
@@ -3076,6 +3305,8 @@ player.sendMessage(
 
         @EventHandler
         fun onInteract(event: PlayerInteractEvent) {
+                if (event.hand != EquipmentSlot.HAND) return
+
                 val player = event.player
                 val settingsSession = plugin.settingsSessionManager.getSession(player) ?: return
                 val currentAction = settingsSession.action
@@ -3170,20 +3401,20 @@ player.sendMessage(
                         event.isCancelled = true
                         val loc = clickedBlock.location.clone().add(0.5, 1.0, 0.5)
 
-                        var yaw = player.location.yaw
-                        while (yaw < 0) yaw += 360
-                        while (yaw >= 360) yaw -= 360
-
-                        val normalizedYaw =
-                                when {
-                                        yaw >= 45 && yaw < 135 -> 90.0f
-                                        yaw >= 135 && yaw < 225 -> 180.0f
-                                        yaw >= 225 && yaw < 315 -> 270.0f
-                                        else -> 0.0f
-                                }
+                        val normalizedYaw = normalizeToCardinalYaw(player.location.yaw)
 
                         loc.yaw = normalizedYaw
                         loc.pitch = 0.0f
+
+                        if (!isSpawnAreaPlaceable(loc)) {
+                                player.sendMessage(
+                                        plugin.languageManager.getMessage(
+                                                player,
+                                                "error.spawn_set_blocked"
+                                        )
+                                )
+                                return
+                        }
 
                         val worldData =
                                 plugin.worldConfigRepository.findByUuid(settingsSession.worldUuid)
@@ -3216,6 +3447,7 @@ player.sendMessage(
                                         )
                                 }
                                 plugin.worldConfigRepository.save(worldData)
+                                stopSpawnPreview(player)
                                 plugin.worldSettingsGui.open(player, worldData)
                         }
                         return

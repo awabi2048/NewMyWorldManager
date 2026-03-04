@@ -2097,6 +2097,7 @@ error:
   world_creation_failed: "§c作成に失敗しました。"
   world_creation_in_progress: "§cワールド作成処理が進行中です。"
   world_load_failed: "§cワールドのロードに失敗しました。"
+  spawn_set_blocked: "§cその場所にはスポーンを設定できません。占有ブロック（足元/頭上）が空気または水の場所を選んでください。"
   world_not_public: "§cこのワールドは現在公開されていません。"
   like_sign:
     my_world_only: "§cLike看板はマイワールド内でのみ設置できます。"

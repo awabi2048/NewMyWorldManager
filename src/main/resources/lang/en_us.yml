@@ -1894,6 +1894,7 @@ error:
   world_creation_failed: §cWorld creation failed.
   world_creation_in_progress: §cWorld creation is in progress.
   world_load_failed: §cWorld load failed.
+  spawn_set_blocked: §cYou cannot set spawn there. Choose a location where both feet and head blocks are air or water.
   world_not_public: §cThis world is not currently public.
   like_sign:
     my_world_only: §cLike signboards can only be placed in My World.
