@@ -923,7 +923,9 @@ gui:
       mspt_reason_directory_not_found: World directory not found
       mspt_reason_load_failed: Could not verify world load state
       mspt_reason_metrics_not_found: MSPT metrics data not found
-      world_size_line: §f§l| §7World Size §8(Not Implemented)
+      world_size_line: §f§l| §7World Size §e{size}
+      world_size_measuring: §f§l| §7World Size §8(Measuring...)
+      world_size_unavailable: §f§l| §7World Size §cUnavailable
       action_archive: §e§l| §e§nShift + Right-Click §7Toggle Archive
       action_settings: §e§l| §b§nRight-Click§7 Settings
       action_warp: §e§l| §b§nLeft-Click §7Warp

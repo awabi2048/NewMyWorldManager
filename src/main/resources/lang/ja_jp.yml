@@ -1027,7 +1027,9 @@ gui:
       mspt_reason_directory_not_found: "ワールドディレクトリが見つからない"
       mspt_reason_load_failed: "ワールドの読み込み状態を確認できない"
       mspt_reason_metrics_not_found: "MSPT計測データが見つからない"
-      world_size_line: "§f§l| §7ワールドサイズ §8(未実装)"
+      world_size_line: "§f§l| §7ワールドサイズ §e{size}"
+      world_size_measuring: "§f§l| §7ワールドサイズ §8(計測中...)"
+      world_size_unavailable: "§f§l| §7ワールドサイズ §c取得不可"
       
       action_archive: "§e§l| §eShift + 右クリック§7 アーカイブ状態を切り替え"
       action_settings: "§e§l| §e右クリック§7 このワールドの設定を開く"

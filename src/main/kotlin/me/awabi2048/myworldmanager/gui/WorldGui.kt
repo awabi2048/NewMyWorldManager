@@ -13,12 +13,23 @@ import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import java.io.File
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /** 管理者用ワールド一覧GUI（ページネーション対応） フィルター、ソート、プレイヤーフィルター機能付き */
 class WorldGui(private val plugin: MyWorldManager) {
 
         private val repository = plugin.worldConfigRepository
         private val itemsPerPage = 36 // 2行目から5行目までの4行分
+        private val worldSizeCache = ConcurrentHashMap<String, WorldSizeCacheEntry>()
+        private val worldSizeInFlight = ConcurrentHashMap.newKeySet<String>()
+
+        private data class WorldSizeCacheEntry(
+                val sizeBytes: Long?,
+                val updatedAtMillis: Long,
+                val failed: Boolean
+        )
 
         /**
          * 指定されたページのGUIを開く
@@ -625,7 +636,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         mapOf("world" to data.name)
                                 )
                         else ""
-                val worldSizeLine = lang.getMessage(player, "gui.admin.world_item.world_size_line")
+                val worldSizeLine = buildWorldSizeLine(player, data)
                 val separator = lang.getComponent(player, "gui.common.separator")
 
                 return me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
@@ -664,6 +675,124 @@ class WorldGui(private val plugin: MyWorldManager) {
                         "RANDOM", "DEFAULT" -> lang.getMessage(player, "gui.admin.world_item.generation_type.random")
                         else -> lang.getMessage(player, "gui.admin.world_item.generation_type.unknown", mapOf("source" to sourceWorld))
                 }
+        }
+
+        private fun buildWorldSizeLine(player: Player, data: WorldData): String {
+                val lang = plugin.languageManager
+                val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
+                val now = System.currentTimeMillis()
+                val ttlMillis = worldSizeCacheTtlMillis()
+                val entry = worldSizeCache[worldFolderName]
+
+                if (entry != null) {
+                        val isFresh = now - entry.updatedAtMillis <= ttlMillis
+                        if (entry.sizeBytes != null) {
+                                if (!isFresh) {
+                                        scheduleWorldSizeRefresh(worldFolderName)
+                                }
+                                return lang.getMessage(
+                                        player,
+                                        "gui.admin.world_item.world_size_line",
+                                        mapOf("size" to formatWorldSize(entry.sizeBytes))
+                                )
+                        }
+
+                        if (isFresh && entry.failed) {
+                                return lang.getMessage(
+                                        player,
+                                        "gui.admin.world_item.world_size_unavailable"
+                                )
+                        }
+                }
+
+                scheduleWorldSizeRefresh(worldFolderName)
+                return lang.getMessage(player, "gui.admin.world_item.world_size_measuring")
+        }
+
+        private fun worldSizeCacheTtlMillis(): Long {
+                val cacheMinutes = plugin.config.getLong("world_size.cache_minutes", 10L)
+                return cacheMinutes.coerceAtLeast(1L) * 60_000L
+        }
+
+        private fun scheduleWorldSizeRefresh(worldFolderName: String) {
+                if (!worldSizeInFlight.add(worldFolderName)) {
+                        return
+                }
+
+                Bukkit.getScheduler()
+                        .runTaskAsynchronously(
+                                plugin,
+                                Runnable {
+                                        try {
+                                                val sizeBytes = calculateOverworldRegionSize(worldFolderName)
+                                                worldSizeCache[worldFolderName] =
+                                                        WorldSizeCacheEntry(
+                                                                sizeBytes = sizeBytes,
+                                                                updatedAtMillis =
+                                                                        System.currentTimeMillis(),
+                                                                failed = false
+                                                        )
+                                        } catch (_: Exception) {
+                                                worldSizeCache[worldFolderName] =
+                                                        WorldSizeCacheEntry(
+                                                                sizeBytes = null,
+                                                                updatedAtMillis =
+                                                                        System.currentTimeMillis(),
+                                                                failed = true
+                                                        )
+                                        } finally {
+                                                worldSizeInFlight.remove(worldFolderName)
+                                        }
+                                }
+                        )
+        }
+
+        private fun calculateOverworldRegionSize(worldFolderName: String): Long {
+                val worldFolder = File(Bukkit.getWorldContainer(), worldFolderName)
+                if (!worldFolder.exists() || !worldFolder.isDirectory) {
+                        throw IllegalStateException("world directory not found: $worldFolderName")
+                }
+
+                val targetDirs = arrayOf("region", "entities", "poi")
+                var totalBytes = 0L
+                for (dirName in targetDirs) {
+                        totalBytes += sumMcaFileSize(File(worldFolder, dirName))
+                }
+                return totalBytes
+        }
+
+        private fun sumMcaFileSize(directory: File): Long {
+                if (!directory.exists() || !directory.isDirectory) {
+                        return 0L
+                }
+
+                val mcaFiles =
+                        directory.listFiles { file ->
+                                file.isFile && file.extension.equals("mca", ignoreCase = true)
+                        } ?: return 0L
+
+                var totalBytes = 0L
+                for (mcaFile in mcaFiles) {
+                        totalBytes += mcaFile.length().coerceAtLeast(0L)
+                }
+                return totalBytes
+        }
+
+        private fun formatWorldSize(bytes: Long): String {
+                if (bytes < 1024L) {
+                        return "$bytes B"
+                }
+
+                val units = arrayOf("KB", "MB", "GB", "TB")
+                var value = bytes.toDouble()
+                var index = -1
+
+                while (value >= 1024.0 && index < units.lastIndex) {
+                        value /= 1024.0
+                        index++
+                }
+
+                return String.format(Locale.US, "%.1f %s", value, units[index])
         }
 
         private fun createNavButton(
