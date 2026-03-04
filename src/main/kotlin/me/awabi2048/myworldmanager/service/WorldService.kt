@@ -587,7 +587,10 @@ class WorldService(
     }
 
     /** ワールドをアーカイブする */
-    fun archiveWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
+    fun archiveWorld(
+            worldUuid: UUID,
+            isAutomaticTransition: Boolean = false
+    ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val worldData = repository.findByUuid(worldUuid)
         if (worldData == null) {
@@ -611,6 +614,8 @@ class WorldService(
             }
 
             worldData.isArchived = true
+            worldData.archivedAt = java.time.LocalDate.now().toString()
+            worldData.archiveTransitionType = if (isAutomaticTransition) "AUTO" else "MANUAL"
             repository.save(worldData)
             future.complete(true)
         } else {
@@ -689,7 +694,7 @@ class WorldService(
                 try {
                     val expireDate = java.time.LocalDate.parse(worldData.expireDate, dateFormatter)
                     if (expireDate.isBefore(today)) {
-                        archiveWorld(worldData.uuid)
+                        archiveWorld(worldData.uuid, true)
                         archivedCount++
                     }
                 } catch (e: Exception) {

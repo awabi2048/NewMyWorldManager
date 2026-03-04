@@ -909,17 +909,20 @@ gui:
         random: Random
         unknown: '{source}'
       expansion: §f§l| §7Expansion §e{level}
-      expires_at: §f§l| §7Multi-Archive §e{date} §8({days_remain})
-      created_at: §f§l| §7Created §e{date} §8({days_ago})
+      expires_at: §f§l| §7Multi-Archive §e{date} §8({days_remain}§8)
+      archived_at: §f§l| §7Archived On §e{date} §8({mode}§8)
+      created_at: §f§l| §7Created §e{date} §8({days_ago}§8)
       created_info_days: §7{days} days ago
       created_info_today: §7Today
-      expire_info_remaining: §7{days} days left
-      expire_info_overdue: §7{days} days overdue
+      expire_info_remaining: §7in {days} days
+      expire_info_overdue: §7{days} days ago
+      archive_mode_auto: Auto Switch
+      archive_mode_manual: Manual Switch
       mspt: '§f§l| §7MSPT {mspt}'
-      mspt_with_status: '§f§l| §7MSPT {mspt} §7({status})'
+      mspt_with_status: '§f§l| §7MSPT {mspt} §7({status}§7)'
       mspt_value_low: '§a< 0.1 §7ms'
       mspt_status_unloaded: §7Unloaded
-      mspt_error_with_reason: '§f§l| §7MSPT §cLoad Failed §7({reason})'
+      mspt_error_with_reason: '§f§l| §7MSPT §cLoad Failed §7({reason}§7)'
       mspt_reason_chiyogami_inactive: Chiyogami is disabled
       mspt_reason_directory_not_found: World directory not found
       mspt_reason_load_failed: Could not verify world load state

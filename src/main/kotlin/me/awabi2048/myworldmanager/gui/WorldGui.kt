@@ -539,12 +539,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                 try {
                         val dateTimeFormatter =
                                 java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                        val displayFormatter =
-                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
                         val createdAtDate =
                                 java.time.LocalDateTime.parse(data.createdAt, dateTimeFormatter)
                                         .toLocalDate()
-                        val createdAtDateStr = createdAtDate.format(displayFormatter)
+                        val createdAtDateStr = formatDateForPlayer(player, createdAtDate)
                         val daysSince =
                                 java.time.temporal.ChronoUnit.DAYS.between(
                                         createdAtDate,
@@ -577,41 +575,82 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 val formatter =
                                         java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
                                 val expireDate = java.time.LocalDate.parse(data.expireDate, formatter)
-                                val daysBetween =
-                                        java.time.temporal.ChronoUnit.DAYS.between(
-                                                java.time.LocalDate.now(),
-                                                expireDate
-                                        )
-                                val expireInfo =
-                                        if (daysBetween >= 0) {
+                                val today = java.time.LocalDate.now()
+                                val localizedExpireDate = formatDateForPlayer(player, expireDate)
+                                if (data.isArchived) {
+                                        val archiveDate = parseArchiveDate(data.archivedAt) ?: expireDate
+                                        val archiveMode = resolveArchiveMode(player, data, expireDate)
+                                        expireLine =
                                                 lang.getMessage(
                                                         player,
-                                                        "gui.admin.world_item.expire_info_remaining",
-                                                        mapOf("days" to daysBetween)
-                                                )
-                                        } else {
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.admin.world_item.expire_info_overdue",
+                                                        "gui.admin.world_item.archived_at",
                                                         mapOf(
-                                                                "days" to
-                                                                        java.lang.Math.abs(daysBetween)
+                                                                "date" to
+                                                                        formatDateForPlayer(
+                                                                                player,
+                                                                                archiveDate
+                                                                        ),
+                                                                "mode" to archiveMode
                                                         )
                                                 )
-                                        }
-                                expireLine =
-                                        lang.getMessage(
-                                                player,
-                                                "gui.admin.world_item.expires_at",
-                                                mapOf("date" to data.expireDate, "days_remain" to expireInfo)
-                                        )
+                                } else {
+                                        val daysBetween =
+                                                java.time.temporal.ChronoUnit.DAYS.between(
+                                                        today,
+                                                        expireDate
+                                                )
+                                        val expireInfo =
+                                                if (daysBetween >= 0) {
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.admin.world_item.expire_info_remaining",
+                                                                mapOf("days" to daysBetween)
+                                                        )
+                                                } else {
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.admin.world_item.expire_info_overdue",
+                                                                mapOf(
+                                                                        "days" to
+                                                                                kotlin.math.abs(daysBetween)
+                                                                )
+                                                        )
+                                                }
+                                        expireLine =
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.admin.world_item.expires_at",
+                                                        mapOf(
+                                                                "date" to localizedExpireDate,
+                                                                "days_remain" to expireInfo
+                                                        )
+                                                )
+                                }
                         } catch (_: Exception) {
-                                expireLine =
-                                        lang.getMessage(
-                                                player,
-                                                "gui.admin.world_item.expires_at",
-                                                mapOf("date" to data.expireDate, "days_remain" to "")
-                                        )
+                                if (data.isArchived) {
+                                        val archiveMode = resolveArchiveMode(player, data, null)
+                                        expireLine =
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.admin.world_item.archived_at",
+                                                        mapOf(
+                                                        "date" to
+                                                                        (data.archivedAt
+                                                                                ?: data.expireDate),
+                                                                "mode" to archiveMode
+                                                        )
+                                                )
+                                } else {
+                                        expireLine =
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.admin.world_item.expires_at",
+                                                        mapOf(
+                                                                "date" to data.expireDate,
+                                                                "days_remain" to ""
+                                                        )
+                                                )
+                                }
                         }
                 }
 
@@ -828,6 +867,57 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 return String.format(Locale.US, "%.1f %s", value, units[index])
+        }
+
+        private fun dateFormatterFor(player: Player): java.time.format.DateTimeFormatter {
+                val language =
+                        plugin.playerStatsRepository
+                                .findByUuid(player.uniqueId)
+                                .language
+                                .lowercase(Locale.ROOT)
+                return if (language == "ja_jp") {
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy年MM月dd日")
+                } else {
+                        java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH)
+                }
+        }
+
+        private fun formatDateForPlayer(player: Player, date: java.time.LocalDate): String {
+                return date.format(dateFormatterFor(player))
+        }
+
+        private fun parseArchiveDate(raw: String?): java.time.LocalDate? {
+                if (raw.isNullOrBlank()) {
+                        return null
+                }
+                return try {
+                        java.time.LocalDate.parse(
+                                raw,
+                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                        )
+                } catch (_: Exception) {
+                        null
+                }
+        }
+
+        private fun resolveArchiveMode(
+                player: Player,
+                data: WorldData,
+                expireDate: java.time.LocalDate?
+        ): String {
+                val lang = plugin.languageManager
+                val transition = data.archiveTransitionType?.uppercase(Locale.ROOT)
+                if (transition == "AUTO") {
+                        return lang.getMessage(player, "gui.admin.world_item.archive_mode_auto")
+                }
+                if (transition == "MANUAL") {
+                        return lang.getMessage(player, "gui.admin.world_item.archive_mode_manual")
+                }
+
+                if (expireDate != null && expireDate.isBefore(java.time.LocalDate.now())) {
+                        return lang.getMessage(player, "gui.admin.world_item.archive_mode_auto")
+                }
+                return lang.getMessage(player, "gui.admin.world_item.archive_mode_manual")
         }
 
         private fun createNavButton(
