@@ -1005,6 +1005,7 @@ gui:
       generation_type:
         convert: "変換"
         template: "テンプレート"
+        template_with_id: "テンプレート ({template_id})"
         seed: "シード指定"
         random: "ランダム生成"
         unknown: "{source}"
@@ -1074,8 +1075,7 @@ gui:
       created_asc: "§a作成日（古い順）"
       expire_asc: "§aアーカイブ予定（近い順）"
       expire_desc: "§aアーカイブ予定（遠い順）"
-      expansion_desc: "§a拡張レベル（高い順）"
-      expansion_asc: "§a拡張レベル（低い順）"
+      world_size_desc: "§aワールドサイズ（大きい順）"
       mspt_desc: "§aMSPT（高い順）"
 
 

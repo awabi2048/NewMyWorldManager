@@ -329,10 +329,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 AdminSortType.EXPIRE_ASC -> worlds.sortedBy { it.expireDate }
                                 AdminSortType.EXPIRE_DESC ->
                                         worlds.sortedByDescending { it.expireDate }
-                                AdminSortType.EXPANSION_DESC ->
-                                        worlds.sortedByDescending { it.borderExpansionLevel }
-                                AdminSortType.EXPANSION_ASC ->
-                                        worlds.sortedBy { it.borderExpansionLevel }
+                                AdminSortType.WORLD_SIZE_DESC ->
+                                        worlds.sortedByDescending { getWorldSizeForSort(it) }
                                 AdminSortType.MSPT_DESC ->
                                         worlds.sortedByDescending {
                                                 val worldFolderName =
@@ -668,12 +666,35 @@ class WorldGui(private val plugin: MyWorldManager) {
 
         private fun getGenerationMethodLabel(player: Player, sourceWorld: String): String {
                 val lang = plugin.languageManager
-                return when (sourceWorld.uppercase()) {
-                        "CONVERT" -> lang.getMessage(player, "gui.admin.world_item.generation_type.convert")
-                        "TEMPLATE" -> lang.getMessage(player, "gui.admin.world_item.generation_type.template")
-                        "SEED" -> lang.getMessage(player, "gui.admin.world_item.generation_type.seed")
-                        "RANDOM", "DEFAULT" -> lang.getMessage(player, "gui.admin.world_item.generation_type.random")
-                        else -> lang.getMessage(player, "gui.admin.world_item.generation_type.unknown", mapOf("source" to sourceWorld))
+                val normalized = sourceWorld.uppercase()
+                return when {
+                        normalized == "CONVERT" ->
+                                lang.getMessage(player, "gui.admin.world_item.generation_type.convert")
+                        normalized.startsWith("TEMPLATE") -> {
+                                val templateId = sourceWorld.substringAfter(':', "").trim()
+                                if (templateId.isNotEmpty()) {
+                                        lang.getMessage(
+                                                player,
+                                                "gui.admin.world_item.generation_type.template_with_id",
+                                                mapOf("template_id" to templateId)
+                                        )
+                                } else {
+                                        lang.getMessage(
+                                                player,
+                                                "gui.admin.world_item.generation_type.template"
+                                        )
+                                }
+                        }
+                        normalized == "SEED" ->
+                                lang.getMessage(player, "gui.admin.world_item.generation_type.seed")
+                        normalized == "RANDOM" || normalized == "DEFAULT" ->
+                                lang.getMessage(player, "gui.admin.world_item.generation_type.random")
+                        else ->
+                                lang.getMessage(
+                                        player,
+                                        "gui.admin.world_item.generation_type.unknown",
+                                        mapOf("source" to sourceWorld)
+                                )
                 }
         }
 
@@ -712,6 +733,20 @@ class WorldGui(private val plugin: MyWorldManager) {
         private fun worldSizeCacheTtlMillis(): Long {
                 val cacheMinutes = plugin.config.getLong("world_size.cache_minutes", 10L)
                 return cacheMinutes.coerceAtLeast(1L) * 60_000L
+        }
+
+        private fun getWorldSizeForSort(data: WorldData): Long {
+                val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
+                val entry = worldSizeCache[worldFolderName]
+                if (entry != null && entry.sizeBytes != null) {
+                        if (System.currentTimeMillis() - entry.updatedAtMillis > worldSizeCacheTtlMillis()) {
+                                scheduleWorldSizeRefresh(worldFolderName)
+                        }
+                        return entry.sizeBytes
+                }
+
+                scheduleWorldSizeRefresh(worldFolderName)
+                return -1L
         }
 
         private fun scheduleWorldSizeRefresh(worldFolderName: String) {

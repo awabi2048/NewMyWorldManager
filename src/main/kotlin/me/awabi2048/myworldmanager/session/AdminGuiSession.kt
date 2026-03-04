@@ -59,8 +59,7 @@ enum class AdminSortType(val displayKey: String) {
     CREATED_ASC("gui.admin.sort.created_asc"),       // 作成日（古い順）
     EXPIRE_ASC("gui.admin.sort.expire_asc"),         // アーカイブ予定日（近い順）
     EXPIRE_DESC("gui.admin.sort.expire_desc"),       // アーカイブ予定日（遠い順）
-    EXPANSION_DESC("gui.admin.sort.expansion_desc"), // 拡張レベル（高い順）
-    EXPANSION_ASC("gui.admin.sort.expansion_asc"),    // 拡張レベル（低い順）
+    WORLD_SIZE_DESC("gui.admin.sort.world_size_desc"), // ワールドサイズ（大きい順）
     MSPT_DESC("gui.admin.sort.mspt_desc")            // MSPT（高い順）
 }
 

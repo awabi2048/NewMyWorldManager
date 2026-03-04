@@ -904,6 +904,7 @@ gui:
       generation_type:
         convert: Converted
         template: Template
+        template_with_id: Template ({template_id})
         seed: Seed
         random: Random
         unknown: '{source}'
@@ -968,8 +969,7 @@ gui:
       created_asc: Created (Oldest)
       expire_asc: Expire Date (Soon)
       expire_desc: Expire Date (Later)
-      expansion_desc: Expansion (High)
-      expansion_asc: Expansion (Low)
+      world_size_desc: World Size (Largest)
       mspt_desc: MSPT (High)
   environment:
     title: Environment Settings

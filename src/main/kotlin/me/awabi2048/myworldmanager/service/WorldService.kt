@@ -166,7 +166,7 @@ class WorldService(
                         name = worldName,
                         description = "My World",
                         icon = org.bukkit.Material.GRASS_BLOCK,
-                        sourceWorld = "template",
+                        sourceWorld = "template:$templateName",
                         expireDate = expireDate.toString(),
                         owner = player.uniqueId,
                         members = mutableListOf(),
