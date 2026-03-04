@@ -522,19 +522,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 mapOf("method" to getGenerationMethodLabel(player, data.sourceWorld))
                         )
 
-                val expansionLine =
-                        if (data.sourceWorld != "CONVERT") {
-                                val expansionDisplay =
-                                        if (data.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL)
-                                                "Special"
-                                        else data.borderExpansionLevel.toString()
-                                lang.getMessage(
-                                        player,
-                                        "gui.admin.world_item.expansion",
-                                        mapOf("level" to expansionDisplay)
-                                )
-                        } else ""
-
                 var createdLine = ""
                 try {
                         val dateTimeFormatter =
@@ -687,7 +674,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         "status_line" to statusLine,
                                         "publish_line" to publishLine,
                                         "generation_line" to generationLine,
-                                        "expansion_line" to expansionLine,
                                         "created_line" to createdLine,
                                         "expire_line" to expireLine,
                                         "mspt_line" to msptLine,
@@ -739,21 +725,28 @@ class WorldGui(private val plugin: MyWorldManager) {
 
         private fun buildWorldSizeLine(player: Player, data: WorldData): String {
                 val lang = plugin.languageManager
-                val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
+                val cacheKey = worldSizeCacheKey(data)
                 val now = System.currentTimeMillis()
                 val ttlMillis = worldSizeCacheTtlMillis()
-                val entry = worldSizeCache[worldFolderName]
+                val entry = worldSizeCache[cacheKey]
+                val suffix =
+                        if (data.isArchived)
+                                lang.getMessage(player, "gui.admin.world_item.world_size_archived_suffix")
+                        else ""
 
                 if (entry != null) {
                         val isFresh = now - entry.updatedAtMillis <= ttlMillis
                         if (entry.sizeBytes != null) {
                                 if (!isFresh) {
-                                        scheduleWorldSizeRefresh(worldFolderName)
+                                        scheduleWorldSizeRefresh(data)
                                 }
                                 return lang.getMessage(
                                         player,
                                         "gui.admin.world_item.world_size_line",
-                                        mapOf("size" to formatWorldSize(entry.sizeBytes))
+                                        mapOf(
+                                                "size" to formatWorldSize(entry.sizeBytes),
+                                                "suffix" to suffix
+                                        )
                                 )
                         }
 
@@ -765,7 +758,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         }
                 }
 
-                scheduleWorldSizeRefresh(worldFolderName)
+                scheduleWorldSizeRefresh(data)
                 return lang.getMessage(player, "gui.admin.world_item.world_size_measuring")
         }
 
@@ -775,21 +768,27 @@ class WorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun getWorldSizeForSort(data: WorldData): Long {
-                val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
-                val entry = worldSizeCache[worldFolderName]
+                val cacheKey = worldSizeCacheKey(data)
+                val entry = worldSizeCache[cacheKey]
                 if (entry != null && entry.sizeBytes != null) {
                         if (System.currentTimeMillis() - entry.updatedAtMillis > worldSizeCacheTtlMillis()) {
-                                scheduleWorldSizeRefresh(worldFolderName)
+                                scheduleWorldSizeRefresh(data)
                         }
                         return entry.sizeBytes
                 }
 
-                scheduleWorldSizeRefresh(worldFolderName)
+                scheduleWorldSizeRefresh(data)
                 return -1L
         }
 
-        private fun scheduleWorldSizeRefresh(worldFolderName: String) {
-                if (!worldSizeInFlight.add(worldFolderName)) {
+        private fun worldSizeCacheKey(data: WorldData): String {
+                val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
+                return if (data.isArchived) "archived:$worldFolderName" else "active:$worldFolderName"
+        }
+
+        private fun scheduleWorldSizeRefresh(data: WorldData) {
+                val cacheKey = worldSizeCacheKey(data)
+                if (!worldSizeInFlight.add(cacheKey)) {
                         return
                 }
 
@@ -798,8 +797,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 plugin,
                                 Runnable {
                                         try {
-                                                val sizeBytes = calculateOverworldRegionSize(worldFolderName)
-                                                worldSizeCache[worldFolderName] =
+                                                val sizeBytes = calculateOverworldRegionSize(data)
+                                                worldSizeCache[cacheKey] =
                                                         WorldSizeCacheEntry(
                                                                 sizeBytes = sizeBytes,
                                                                 updatedAtMillis =
@@ -807,7 +806,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                                                 failed = false
                                                         )
                                         } catch (_: Exception) {
-                                                worldSizeCache[worldFolderName] =
+                                                worldSizeCache[cacheKey] =
                                                         WorldSizeCacheEntry(
                                                                 sizeBytes = null,
                                                                 updatedAtMillis =
@@ -815,14 +814,15 @@ class WorldGui(private val plugin: MyWorldManager) {
                                                                 failed = true
                                                         )
                                         } finally {
-                                                worldSizeInFlight.remove(worldFolderName)
+                                                worldSizeInFlight.remove(cacheKey)
                                         }
                                 }
                         )
         }
 
-        private fun calculateOverworldRegionSize(worldFolderName: String): Long {
-                val worldFolder = File(Bukkit.getWorldContainer(), worldFolderName)
+        private fun calculateOverworldRegionSize(data: WorldData): Long {
+                val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
+                val worldFolder = resolveWorldDirectory(data, worldFolderName)
                 if (!worldFolder.exists() || !worldFolder.isDirectory) {
                         throw IllegalStateException("world directory not found: $worldFolderName")
                 }
@@ -833,6 +833,19 @@ class WorldGui(private val plugin: MyWorldManager) {
                         totalBytes += sumMcaFileSize(File(worldFolder, dirName))
                 }
                 return totalBytes
+        }
+
+        private fun resolveWorldDirectory(data: WorldData, worldFolderName: String): File {
+                if (!data.isArchived) {
+                        return File(Bukkit.getWorldContainer(), worldFolderName)
+                }
+
+                val archiveRoot = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
+                val archivedFolder = File(archiveRoot, worldFolderName)
+                if (archivedFolder.exists()) {
+                        return archivedFolder
+                }
+                return File(Bukkit.getWorldContainer(), worldFolderName)
         }
 
         private fun sumMcaFileSize(directory: File): Long {
