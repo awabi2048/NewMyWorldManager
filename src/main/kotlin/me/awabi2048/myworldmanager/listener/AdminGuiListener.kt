@@ -140,7 +140,9 @@ class AdminGuiListener : Listener {
 
             // ページナビゲーション
             if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
-                val targetPage = ItemTag.getTargetPage(currentItem) ?: return
+                val direction = if (type == ItemTag.TYPE_GUI_NAV_NEXT) 1 else -1
+                val step = if (event.isShiftClick) 5 else 1
+                val targetPage = (session.currentPage + (direction * step)).coerceAtLeast(0)
                 plugin.soundManager.playClickSound(player, currentItem)
                 plugin.worldGui.open(player, targetPage)
                 return
@@ -189,7 +191,26 @@ class AdminGuiListener : Listener {
             if (type == ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO) {
                 val uuid = ItemTag.getWorldUuid(currentItem) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-                plugin.soundManager.playAdminClickSound(player)
+
+                if (event.click == org.bukkit.event.inventory.ClickType.MIDDLE) {
+                    sendWorldDirectoryCopyMessage(player, worldData)
+                    return
+                }
+
+                if (!event.isRightClick) {
+                    return
+                }
+
+                plugin.soundManager.playClickSound(player, currentItem)
+                if (event.isRightClick && event.isShiftClick) {
+                    if (worldData.isArchived) {
+                        plugin.adminCommandGui.openUnarchiveWorldConfirmation(player, worldData.name, uuid)
+                    } else {
+                        plugin.adminCommandGui.openArchiveWorldConfirmation(player, worldData.name, uuid)
+                    }
+                    return
+                }
+
                 plugin.settingsSessionManager.updateSessionAction(
                     player,
                     uuid,
@@ -206,7 +227,6 @@ class AdminGuiListener : Listener {
             // ワールドアイコンの処理
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-            val currentPage = session.currentPage
 
             if (event.isLeftClick) {
                 if (worldData.isArchived) {
@@ -234,25 +254,7 @@ class AdminGuiListener : Listener {
             } else if (event.click == org.bukkit.event.inventory.ClickType.MIDDLE) {
                 // ホイールクリック：UUIDコピーメッセージを送信（クリエイティブモードのみ）
                 if (player.gameMode == org.bukkit.GameMode.CREATIVE) {
-                    val bar = net.kyori.adventure.text.Component.text("§8§m－－－－－－－－－－－－－－－－－－")
-                    val header = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.internal_data_extracted", mapOf("world" to worldData.name)))
-                    
-                    val worldUuidText = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid"))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid_hover"))))
-                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(worldData.uuid.toString()))
-                    
-                    val ownerUuidText = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_owner_uuid"))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_owner_uuid_hover"))))
-                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(worldData.owner.toString()))
-
-                    player.sendMessage(bar)
-                    player.sendMessage(header)
-                    player.sendMessage(net.kyori.adventure.text.Component.empty())
-                    player.sendMessage(worldUuidText)
-                    player.sendMessage(ownerUuidText)
-                    player.sendMessage(bar)
-                    
-                    plugin.soundManager.playCopySound(player)
+                    sendWorldDirectoryCopyMessage(player, worldData)
                 }
             }
             return
@@ -381,5 +383,44 @@ class AdminGuiListener : Listener {
         )
         plugin.settingsSessionManager.endSession(player)
         plugin.worldGui.open(player)
+    }
+
+    private fun sendWorldDirectoryCopyMessage(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
+        if (player.gameMode != org.bukkit.GameMode.CREATIVE) {
+            return
+        }
+
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val lang = plugin.languageManager
+        val worldDirectory = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+        val bar = net.kyori.adventure.text.Component.text("§8§m－－－－－－－－－－－－－－－－－－")
+        val header = net.kyori.adventure.text.Component.text(
+            lang.getMessage(player, "messages.internal_data_extracted", mapOf("world" to worldData.name))
+        )
+
+        val worldDirectoryText = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid"))
+            .hoverEvent(
+                net.kyori.adventure.text.event.HoverEvent.showText(
+                    net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid_hover"))
+                )
+            )
+            .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(worldDirectory))
+
+        val ownerUuidText = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_owner_uuid"))
+            .hoverEvent(
+                net.kyori.adventure.text.event.HoverEvent.showText(
+                    net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_owner_uuid_hover"))
+                )
+            )
+            .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(worldData.owner.toString()))
+
+        player.sendMessage(bar)
+        player.sendMessage(header)
+        player.sendMessage(net.kyori.adventure.text.Component.empty())
+        player.sendMessage(worldDirectoryText)
+        player.sendMessage(ownerUuidText)
+        player.sendMessage(bar)
+
+        plugin.soundManager.playCopySound(player)
     }
 }

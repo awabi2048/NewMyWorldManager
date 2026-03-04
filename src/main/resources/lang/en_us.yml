@@ -87,6 +87,9 @@ gui:
     back: §7Back to Settings
     next_page: §aNext Page
     prev_page: §aPrev Page
+    page_info: '§f§l| §7Page §a{page}§7/{total_pages}'
+    page_shift_next: §e§l| §eShift + Click§7 Jump 5 pages forward
+    page_shift_prev: §e§l| §eShift + Click§7 Jump 5 pages back
     confirm_action: §eConfirmation of operation
     confirm: §aExecute
     confirm_desc: §7Click to execute
@@ -846,12 +849,14 @@ gui:
       display: §bCurrent World Info
       lore:
       - §8§m-----------------------
+      - §f§l| §7World Directory §8{world_directory}
       - §f§l| §7World §a{world}
       - §f§l| §7Owner §b{owner}
-      - §f§l| §7Status {status}
       - §f§l| §7Generation §e{generation}
       - §8§m-----------------------
-      - §e§nClick to open settings
+      - '{action_settings}'
+      - '{action_archive}'
+      - '{uuid_copy_hint}'
       - §8§m-----------------------
     portals:
       display: §bPortal Management
@@ -867,22 +872,29 @@ gui:
       page: '§7Page: §f{current} / {max}'
     world_item:
       lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
       - '{uuid_line}'
+      - '{world_name_line}'
       - '{owner_line}'
       - '{status_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
       - '{publish_line}'
       - '{generation_line}'
       - '{expansion_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
       - '{created_line}'
       - '{expire_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
       - '{mspt_line}'
-      - '{tag_line}'
+      - '{world_size_line}'
       - §8§m－－－－－－－－－－－－－－－－－－
       - '{action_warp}'
       - '{action_settings}'
       - '{action_archive}'
       - '{uuid_copy_hint}'
-      uuid: §f§l| §7UUID §8{uuid}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      uuid: §f§l| §7World Directory §8{uuid}
+      world_name_line: §f§l| §7World §a{world}
       owner: §f§l| §7Owner {owner}{status_color}
       status: §f§l| §7Status {status}
       status_archived: §cArchived
@@ -902,14 +914,20 @@ gui:
       created_info_today: §7Today
       expire_info_remaining: §7{days} days left
       expire_info_overdue: §7{days} days overdue
-      mspt: '§f§l| §7MSPT: §e{mspt} §7ms'
-      mspt_low: '§f§l| §7MSPT: §e< 0.1ms'
-      mspt_unloaded: '§f§l| §7MSPT: §cThis world is unloaded'
-      mspt_error: '§f§l| §7MSPT: §cCould not retrieve'
+      mspt: '§f§l| §7MSPT {mspt}'
+      mspt_with_status: '§f§l| §7MSPT {mspt} §7({status})'
+      mspt_value_low: '§a< 0.1 §7ms'
+      mspt_status_unloaded: §7Unloaded
+      mspt_error_with_reason: '§f§l| §7MSPT §cLoad Failed §7({reason})'
+      mspt_reason_chiyogami_inactive: Chiyogami is disabled
+      mspt_reason_directory_not_found: World directory not found
+      mspt_reason_load_failed: Could not verify world load state
+      mspt_reason_metrics_not_found: MSPT metrics data not found
+      world_size_line: §f§l| §7World Size §8(Not Implemented)
       action_archive: §e§l| §e§nShift + Right-Click §7Toggle Archive
       action_settings: §e§l| §b§nRight-Click§7 Settings
       action_warp: §e§l| §b§nLeft-Click §7Warp
-      uuid_copy_hint: §e§l| §8Middle-Click §7Copy UUID
+      uuid_copy_hint: §e§l| §eMiddle-Click §7Output to chat and copy directory name
     filter:
       archive:
         display: §eArchive Filter
@@ -1711,9 +1729,9 @@ messages:
   member_invite_declined: §cYou declined the member invitation.
   member_invite_declined_sender: §e{player}§c declined the member invitation.
   internal_data_extracted: §7Extracted internal data related to MyWorld §a【{world}】§7.
-  copy_world_uuid: §7- §b§nMyWorld UUID
+  copy_world_uuid: §7- §b§nMyWorld Directory Name
   copy_owner_uuid: §7- §b§nOwner UUID
-  copy_world_uuid_hover: Click to copy World UUID to clipboard
+  copy_world_uuid_hover: Click to copy World Directory Name to clipboard
   copy_owner_uuid_hover: Click to copy Owner UUID to clipboard
   custom_item:
     bottle_fill: '§a We bottled the air of the biome! (Biome: {biome})'

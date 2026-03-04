@@ -50,6 +50,10 @@ permissions:
     default: op
     children:
       myworldmanager.citizen: true
+      myworldmanager.admin.world_list: true
+  myworldmanager.admin.world_list:
+    description: Allows access to admin world list menu (/mwm list)
+    default: false
   myworldmanager.admin.bypass_world_limits:
     description: Bypass all MyWorld world count limits
     default: false

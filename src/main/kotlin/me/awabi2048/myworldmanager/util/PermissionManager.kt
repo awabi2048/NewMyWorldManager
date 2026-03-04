@@ -5,6 +5,7 @@ import org.bukkit.entity.Player
 
 object PermissionManager {
     const val ADMIN = "myworldmanager.admin"
+    const val ADMIN_WORLD_LIST = "myworldmanager.admin.world_list"
     const val ADMIN_BYPASS_WORLD_LIMITS = "myworldmanager.admin.bypass_world_limits"
     const val CITIZEN = "myworldmanager.citizen"
     const val TEST = "craftercrossing.test"

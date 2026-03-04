@@ -30,18 +30,37 @@ class WorldCommand(
             label: String,
             args: Array<out String>
     ): Boolean {
-        if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
-            PermissionManager.sendNoPermissionMessage(sender)
-            return true
-        }
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val subCommand = args.firstOrNull()?.lowercase()
 
         if (args.isEmpty()) {
+            if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+                PermissionManager.sendNoPermissionMessage(sender)
+                return true
+            }
             if (sender !is Player) {
                 sender.sendMessage(plugin.languageManager.getMessage("error.player_only"))
                 return true
             }
             plugin.adminCommandGui.open(sender)
+            return true
+        }
+
+        if (subCommand == "list") {
+            if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN_WORLD_LIST)) {
+                PermissionManager.sendNoPermissionMessage(sender)
+                return true
+            }
+            if (sender !is Player) {
+                sender.sendMessage(plugin.languageManager.getMessage("error.player_only"))
+                return true
+            }
+            plugin.worldGui.open(sender, page = 0, fromAdminMenu = true)
+            return true
+        }
+
+        if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+            PermissionManager.sendNoPermissionMessage(sender)
             return true
         }
 
@@ -488,18 +507,27 @@ class WorldCommand(
             args: Array<out String>
     ): List<String> {
         val list = mutableListOf<String>()
-        if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) return emptyList()
+        val hasAdmin = PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
+        val hasWorldListPermission =
+                PermissionManager.checkPermission(sender, PermissionManager.ADMIN_WORLD_LIST)
+        if (!hasAdmin && !hasWorldListPermission) return emptyList()
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
 
         when (args.size) {
             1 -> {
-                  list.addAll(listOf("create", "reload", "stats", "give"))
-                if (sender is org.bukkit.command.ConsoleCommandSender) {
-                    list.add("update-day")
-                    list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))
+                if (hasAdmin) {
+                    list.addAll(listOf("create", "reload", "stats", "give"))
+                    if (sender is org.bukkit.command.ConsoleCommandSender) {
+                        list.add("update-day")
+                        list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))
+                    }
+                }
+                if (hasWorldListPermission) {
+                    list.add("list")
                 }
             }
             2 -> {
+                if (!hasAdmin) return emptyList()
                 val sub = args[0].lowercase()
                 if (sub == "stats" || sub == "give" || sub == "create") {
                     list.addAll(Bukkit.getOnlinePlayers().map { it.name })
@@ -513,6 +541,7 @@ class WorldCommand(
                 }
             }
             3 -> {
+                if (!hasAdmin) return emptyList()
                 val sub = args[0].lowercase()
                 if (sub == "stats") {
                     list.addAll(listOf("points", "warp-slots", "world-slots"))
@@ -526,6 +555,7 @@ class WorldCommand(
                 }
             }
             4 -> {
+                if (!hasAdmin) return emptyList()
                 if (args[0].lowercase() == "stats") {
                     list.addAll(listOf("get", "set", "add", "remove"))
                 }
