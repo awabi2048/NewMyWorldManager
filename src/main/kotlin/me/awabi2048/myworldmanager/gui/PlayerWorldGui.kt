@@ -187,13 +187,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         createStatsButton(player, currentCreateCount, maxSlot, stats)
                 )
 
-                // 重大な設定の表示/非表示ボタン (Slot 6)
+                // 個人設定ボタン (Slot 6)
                 inventory.setItem(
                         footerStart + 6,
-                        createCriticalSettingsVisibilityButton(
-                                player,
-                                stats.criticalSettingsEnabled
-                        )
+                        createUserSettingsButton(player)
                 )
 
                 if (page > 0) {
@@ -334,33 +331,26 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 return item
         }
 
-        private fun createCriticalSettingsVisibilityButton(
-                player: Player,
-                isEnabled: Boolean
-        ): ItemStack {
+        private fun createUserSettingsButton(player: Player): ItemStack {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.RECOVERY_COMPASS)
+                val item = ItemStack(Material.WRITABLE_BOOK)
                 val meta = item.itemMeta ?: return item
                 meta.displayName(
                         lang.getComponent(
                                 player,
-                                "gui.user_settings.critical_settings_visibility.display"
+                                "gui.user_settings.button.display"
                         )
                 )
-
-                val status = if (isEnabled) lang.getMessage(player, "messages.status_visible")
-                else lang.getMessage(player, "messages.status_hidden")
 
                 meta.lore(
                         lang.getComponentList(
                                 player,
-                                "gui.user_settings.critical_settings_visibility.lore",
-                                mapOf("status" to status)
+                                "gui.user_settings.button.lore"
                         )
                 )
 
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY)
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_USER_SETTINGS_BUTTON)
                 return item
         }
 

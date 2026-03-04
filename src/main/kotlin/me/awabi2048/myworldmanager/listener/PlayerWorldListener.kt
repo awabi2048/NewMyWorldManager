@@ -147,6 +147,11 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 )
                 return
             }
+            if (type == ItemTag.TYPE_GUI_USER_SETTINGS_BUTTON) {
+                plugin.soundManager.playClickSound(player, currentItem, "player_world")
+                plugin.userSettingsGui.open(player, showBackButton = true)
+                return
+            }
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
             val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
@@ -278,7 +283,8 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
                 ItemTag.TYPE_GUI_RETURN -> {
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                    plugin.playerWorldGui.open(player)
+                    val currentPage = plugin.playerWorldSessionManager.getSession(player.uniqueId).currentPage
+                    plugin.playerWorldGui.open(player, currentPage)
                 }
             }
             return
