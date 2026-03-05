@@ -11,6 +11,7 @@ import java.util.*
 class SpotlightRepository(private val plugin: MyWorldManager) {
     private val file = File(plugin.dataFolder, "spotlight.yml")
     private var spotlightUuids = mutableListOf<UUID>()
+    private var spotlightDescription: String? = null
     private val limit = 10
 
     /**
@@ -22,10 +23,12 @@ class SpotlightRepository(private val plugin: MyWorldManager) {
             file.createNewFile()
             val config = YamlConfiguration.loadConfiguration(file)
             config.set("worlds", listOf<String>())
+            config.set("description", "")
             config.save(file)
         }
         val config = YamlConfiguration.loadConfiguration(file)
         val list = config.getStringList("worlds")
+        spotlightDescription = config.getString("description")?.trim()?.takeIf { it.isNotEmpty() }
         val loadedUuids = list.mapNotNull {
             try { UUID.fromString(it) } catch (e: Exception) { null }
         }
@@ -50,6 +53,7 @@ class SpotlightRepository(private val plugin: MyWorldManager) {
     private fun save() {
         val config = YamlConfiguration()
         config.set("worlds", spotlightUuids.map { it.toString() })
+        config.set("description", spotlightDescription)
         config.save(file)
     }
 
@@ -57,6 +61,17 @@ class SpotlightRepository(private val plugin: MyWorldManager) {
      * 全ての登録済みUUIDを取得する
      */
     fun findAll(): List<UUID> = spotlightUuids
+
+    fun getDescription(): String? = spotlightDescription
+
+    fun setDescription(description: String?) {
+        val normalized = description?.trim()?.takeIf { it.isNotEmpty() }
+        if (spotlightDescription == normalized) {
+            return
+        }
+        spotlightDescription = normalized
+        save()
+    }
 
     /**
      * 指定されたUUIDが登録されているかチェックする

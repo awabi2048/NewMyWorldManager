@@ -1144,7 +1144,7 @@ gui:
   discovery:
     title: "ワールドディスカバリー"
     world_item:
-      # プレースホルダー: {description}, {owner}, {status_color}, {favorites}, {visitors}, {tags}, {preview_hint}
+      # プレースホルダー: {description}, {owner}, {status_color}, {favorites}, {visitors}, {tags}, {warp_hint}, {preview_hint}, {member_request_hint}, {favorite_hint}
       lore:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "{description}"
@@ -1154,10 +1154,10 @@ gui:
         - "§f§l| §7最近の来訪者 §a{visitors}"
         - "{tags}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§e§l| §e左クリック §7ワープ"
+        - "{warp_hint}"
         - "{preview_hint}"
         - "{member_request_hint}"
-        - "§e§l| §eShift + 右クリック §7お気に入り登録/解除"
+        - "{favorite_hint}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
       lore_bedrock:
         - "§8§m－－－－－－－－－－－－－－－－－－"
@@ -1168,7 +1168,7 @@ gui:
         - "§f§l| §7最近の来訪者 §a{visitors}"
         - "{tags}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§e§l| §eクリック §7ワープ"
+        - "{warp_hint}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
       owner: "§f§l| §7オーナー {owner}{status_color}"
       tag: "§f§l| §7タグ §e{tags}"
@@ -1176,8 +1176,12 @@ gui:
       recent_visitors: "§f§l| §7最近訪れたプレイヤー §a{count}人"
       warp: "§e§l| §e左クリック§7 このワールドにワープ"
       preview: "§e§l| §e右クリック§7 プレビュー"
+      warp_hint: "§e§l| §e左クリック §7ワープ"
+      warp_hint_bedrock: "§e§l| §eクリック §7ワープ"
       preview_hint: "§e§l| §e右クリック §7プレビュー"
-      member_request_hint: "§e§l| §dShift + 左クリック §7参加申請を表示"
+      member_request_hint: "§e§l| §eShift + 左クリック §7参加申請を表示"
+      favorite_hint_add: "§e§l| §eShift + 右クリック §7お気に入りに登録"
+      favorite_hint_remove: "§e§l| §eShift + 右クリック §7お気に入りから削除"
       favorite_toggle: "§e§l| §dShift + 右クリック§7 お気に入りを切り替え"
       fav_add: "§e§l| §e右クリック§7 お気に入りに追加"
       fav_remove: "§e§l| §e右クリック§7 お気に入りを解除"
@@ -1204,11 +1208,21 @@ gui:
       lore:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§f§l| §7{current_prefix} §f{sort_name}"
-        - "  §8{sort_desc}"
+        - "  §f{sort_desc}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "{sort_list}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックして切り替え"
+      lore_spotlight_admin:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7選択中 §6{sort_name}"
+        - "  §f{sort_desc}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{sort_list}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§e§l| §e左右クリック §7ソートを切り替え"
+        - "§e§l| §eShift + 左クリック §7SPOTLIGHTの説明文を編集"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
       name: "§a並び替え方法の選択"
       click: "§e§nクリックして切り替え"
       type:
@@ -1237,10 +1251,10 @@ gui:
       click_reset: "§e§n右クリック§7 選択を解除"
     tag_filter:
       name: "タグフィルター"
-      # プレースホルダー: {prefix}, {tag}, {tag_list}, {click_left}, {click_right}
+      # プレースホルダー: {tag}, {tag_list}, {click_left}, {click_right}
       lore:
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§f§l| {prefix} §6{tag}"
+        - "§f§l| §7選択中 §6{tag}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "{tag_list}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
@@ -1249,7 +1263,7 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
       lore_bedrock:
         - "§8§m－－－－－－－－－－－－－－－－－－"
-        - "§f§l| {prefix} §6{tag}"
+        - "§f§l| §7選択中 §6{tag}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "{tag_list}"
         - "§8§m－－－－－－－－－－－－－－－－－－"
@@ -1260,9 +1274,13 @@ gui:
       inactive: "§7  "
       no_selection: "設定なし"
       all: "すべて"
-      click_left: "§e§n左クリック§7 フィルターを切り替え"
-      click_right: "§e§n右クリック§7 フィルターを解除"
-      click_bedrock: "§e§nクリック§7 フィルターを切り替え"
+      click_left: "§e§l| §e左クリック §7フィルターを切り替え"
+      click_right: "§e§l| §e右クリック §7フィルターを解除"
+      click_bedrock: "§e§l| §eクリック §7フィルターを切り替え"
+    spotlight_description_dialog:
+      title: "SPOTLIGHT説明文の編集"
+      body: "SPOTLIGHTソート中に表示する説明文を入力してください（最大{max}文字）。空欄でデフォルトに戻せます。"
+      input_label: "説明文"
     stats:
       name: "§f統計情報"
       # プレースホルダー: {sort}, {tag}, {count}, {desc}
@@ -1283,7 +1301,7 @@ gui:
       new: "公開日時が新しい順"
       favorites: "お気に入り登録数が多い順"
       spotlight: "運営によるピックアップ"
-      random: "表示するたびにランダムに入れ替わります"
+      random: "日替わりランダム"
     no_result: "§7条件に一致するワールドが見つかりませんでした"
 
     spotlight_empty:
@@ -1867,6 +1885,8 @@ messages:
   data_update_success: "§a全てのワールドデータ ({world_count}件) とプレイヤーデータ ({player_count}件) を最新の状態に更新しました。"
   spotlight_added: "§aマイワールド「{world}」をSPOTLIGHTに登録しました！"
   spotlight_removed: "§cマイワールド「{world}」をSPOTLIGHTから削除しました。"
+  discovery_spotlight_description_updated: "§aSPOTLIGHTの説明文を更新しました。"
+  discovery_spotlight_description_reset: "§aSPOTLIGHTの説明文をデフォルトに戻しました。"
   world_creation_started: "§eマイワールド「{world}」の作成を開始しました..."
   world_creation_success: "§aマイワールド「§a{world}§a」の作成に成功しました！"
   world_unloading_evacuation: "§cワールドがアンロードされたため、スポーン地点へ移動します。"
@@ -2062,6 +2082,7 @@ error:
   spotlight_not_owner: "§cあなたはこのワールドの所有者ではありません。"
   spotlight_already_registered: "§cこのワールドは既にSPOTLIGHTに登録されています。"
   spotlight_limit_reached: "§cこれ以上SPOTLIGHTに登録できません。"
+  discovery_spotlight_description_too_long: "§c説明文が長すぎます（最大{max}文字）。"
   member_request_owner_offline: "§cワールドオーナーがオフラインのため、申請できません"
   member_request_already_member: "§c既にこのワールドのメンバーです"
   console_only: "§cこのコマンドはコンソールからのみ実行可能です。"

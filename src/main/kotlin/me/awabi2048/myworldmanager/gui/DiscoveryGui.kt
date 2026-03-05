@@ -15,6 +15,7 @@ import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import java.time.LocalDate
 
 class DiscoveryGui(private val plugin: MyWorldManager) {
 
@@ -53,7 +54,12 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 plugin.worldConfigRepository.findByUuid(uuid)
                                         }.filter { it.sourceWorld != "CONVERT" }
                                 }
-                                DiscoverySort.RANDOM -> allWorlds.shuffled()
+                                DiscoverySort.RANDOM -> {
+                                        val seed = LocalDate.now().toEpochDay()
+                                        allWorlds
+                                                .sortedBy { it.uuid.toString() }
+                                                .shuffled(Random(seed))
+                                }
                         }
 
                 val totalPages =
@@ -193,6 +199,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 val favorites = data.favorite
                 val visitors = data.recentVisitors.sum()
+                val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
+                val isCurrentWorld = currentWorldData?.uuid == data.uuid
+                val isFavoritedByViewer = plugin.playerStatsRepository.findByUuid(player.uniqueId).favoriteWorlds.containsKey(data.uuid)
 
                 val formattedDesc = if (data.description.isNotEmpty()) {
                         lang.getMessage(player, "gui.common.world_desc", mapOf("description" to data.description))
@@ -207,8 +216,22 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         ""
                 }
 
-                val previewHint = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.preview_hint")
+                val warpHint = if (isBedrock) {
+                        lang.getMessage(player, "gui.discovery.world_item.warp_hint_bedrock")
+                } else if (isCurrentWorld) {
+                        ""
+                } else {
+                        lang.getMessage(player, "gui.discovery.world_item.warp_hint")
+                }
+                val previewHint = if (isCurrentWorld || isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.preview_hint")
                 val memberRequestHint = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
+                val favoriteHint = if (isBedrock) {
+                        ""
+                } else if (isFavoritedByViewer) {
+                        lang.getMessage(player, "gui.discovery.world_item.favorite_hint_remove")
+                } else {
+                        lang.getMessage(player, "gui.discovery.world_item.favorite_hint_add")
+                }
                 val loreKey = if (isBedrock) "gui.discovery.world_item.lore_bedrock" else "gui.discovery.world_item.lore"
 
                 val separator = lang.getComponent(player, "gui.common.separator")
@@ -226,8 +249,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 "favorites" to favorites,
                                                 "visitors" to visitors,
                                                 "tags" to tagNames,
+                                                "warp_hint" to warpHint,
                                                 "preview_hint" to previewHint,
-                                                "member_request_hint" to memberRequestHint
+                                                "member_request_hint" to memberRequestHint,
+                                                "favorite_hint" to favoriteHint
                                         )
                                 ),
                                 separator
@@ -247,20 +272,35 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 val currentPrefix = lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")
                 val sortName = lang.getMessage(player, "gui.discovery.sort.type.${currentSort.name.lowercase()}")
-                val sortDesc = lang.getMessage(player, "gui.discovery.sort_info.${currentSort.name.lowercase()}")
+                val sortDesc = getSortDescription(player, currentSort)
 
                 val sortList = DiscoverySort.values().joinToString("\n") { sort ->
                         val prefix = if (sort == currentSort) "§6» " else "§7  "
                         val color = if (sort == currentSort) "§e" else "§7"
                         val name = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
-                        "$prefix$color$name"
+                        val displayName = if (sort == currentSort) {
+                                val prefixCodes = Regex("^(?:§[0-9A-FK-ORa-fk-or])+").find(name)?.value.orEmpty()
+                                if (prefixCodes.isNotEmpty()) {
+                                        "$prefixCodes§l${name.removePrefix(prefixCodes)}"
+                                } else {
+                                        "§l$name"
+                                }
+                        } else {
+                                name
+                        }
+                        "$prefix$color$displayName"
                 }
 
                 meta.displayName(lang.getComponent(player, "gui.discovery.sort.display"))
+                val loreKey = if (currentSort == DiscoverySort.SPOTLIGHT && canManageSpotlight(player)) {
+                        "gui.discovery.sort.lore_spotlight_admin"
+                } else {
+                        "gui.discovery.sort.lore"
+                }
                 meta.lore(
                         lang.getComponentList(
                                 player,
-                                "gui.discovery.sort.lore",
+                                loreKey,
                                 mapOf(
                                         "current_prefix" to currentPrefix,
                                         "sort_name" to sortName,
@@ -286,7 +326,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 } else {
                         lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
                 }
-                val prefix = if (selectedTag != null) lang.getMessage(player, "gui.discovery.tag_filter.current_prefix") else ""
                 val clickLeft = if (isBedrock) lang.getMessage(player, "gui.discovery.tag_filter.click_bedrock") else lang.getMessage(player, "gui.discovery.tag_filter.click_left")
                 val clickRight = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.tag_filter.click_right")
                 val loreKey = if (isBedrock) "gui.discovery.tag_filter.lore_bedrock" else "gui.discovery.tag_filter.lore"
@@ -304,7 +343,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 player,
                                 loreKey,
                                 mapOf(
-                                        "prefix" to prefix,
                                         "tag" to tagName,
                                         "tag_list" to tagList,
                                         "click_left" to clickLeft,
@@ -316,6 +354,20 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_TAG)
                 return item
+        }
+
+        private fun canManageSpotlight(player: Player): Boolean {
+                return player.hasPermission("myworldmanager.admin")
+        }
+
+        private fun getSortDescription(player: Player, sort: DiscoverySort): String {
+                val lang = plugin.languageManager
+                if (sort != DiscoverySort.SPOTLIGHT) {
+                        return lang.getMessage(player, "gui.discovery.sort_info.${sort.name.lowercase()}")
+                }
+
+                return plugin.spotlightRepository.getDescription()
+                        ?: lang.getMessage(player, "gui.discovery.sort_info.spotlight")
         }
 
         private fun createSpotlightEmptyItem(player: Player): ItemStack {
