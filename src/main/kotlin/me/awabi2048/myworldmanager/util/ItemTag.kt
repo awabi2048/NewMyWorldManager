@@ -48,6 +48,7 @@ object ItemTag {
     const val TYPE_GUI_CREATION_TEMPLATE_ITEM = "gui_creation_template_item"
     const val TYPE_GUI_MEMBER_ITEM = "gui_member_item"
     const val TYPE_GUI_MEMBER_INVITE = "gui_member_invite"
+    const val TYPE_GUI_MEMBER_PENDING_INVITE = "gui_member_pending_invite"
     const val TYPE_GUI_SETTING_TAGS = "gui_setting_tags"
     const val TYPE_GUI_DISCOVERY_ITEM = "discovery_world_item"
     const val TYPE_GUI_DISCOVERY_SORT = "discovery_sort_button"

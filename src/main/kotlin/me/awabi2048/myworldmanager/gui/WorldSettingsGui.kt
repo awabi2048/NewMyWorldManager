@@ -1,8 +1,12 @@
 package me.awabi2048.myworldmanager.gui
 
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
@@ -18,8 +22,16 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.SkullMeta
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
+
+        private data class MemberManagementEntry(
+                val playerUuid: UUID,
+                val role: String? = null,
+                val pendingDecisionId: UUID? = null,
+                val pendingCreatedAt: Long? = null
+        )
 
         fun open(player: Player, worldData: WorldData, showBackButton: Boolean? = null, isPlayerWorldFlow: Boolean? = null, parentShowBackButton: Boolean? = null) {
                 val lang = plugin.languageManager
@@ -1260,18 +1272,52 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
                 scheduleGuiTransitionReset(plugin, player)
-                val allMembers = mutableListOf<Pair<java.util.UUID, String>>()
-                allMembers.add(worldData.owner to lang.getMessage(player, "role.owner"))
+
+                val allEntries = mutableListOf<MemberManagementEntry>()
+                allEntries.add(
+                        MemberManagementEntry(
+                                playerUuid = worldData.owner,
+                                role = lang.getMessage(player, "role.owner")
+                        )
+                )
                 worldData.moderators.forEach {
-                        allMembers.add(it to lang.getMessage(player, "role.moderator"))
+                        allEntries.add(
+                                MemberManagementEntry(
+                                        playerUuid = it,
+                                        role = lang.getMessage(player, "role.moderator")
+                                )
+                        )
                 }
                 worldData.members.forEach {
-                        allMembers.add(it to lang.getMessage(player, "role.member"))
+                        allEntries.add(
+                                MemberManagementEntry(
+                                        playerUuid = it,
+                                        role = lang.getMessage(player, "role.member")
+                                )
+                        )
+                }
+
+                val pendingInvites =
+                        plugin.pendingInteractionRepository
+                                .findByWorldAndType(worldData.uuid, PendingInteractionType.MEMBER_INVITE)
+                pendingInvites.forEach { invite ->
+                        allEntries.add(
+                                MemberManagementEntry(
+                                        playerUuid = invite.targetUuid,
+                                        pendingDecisionId = invite.id,
+                                        pendingCreatedAt = invite.createdAt
+                                )
+                        )
                 }
 
                 val itemsPerPage = 28
-                val startIndex = page * itemsPerPage
-                val currentPageMembers = allMembers.drop(startIndex).take(itemsPerPage)
+                val maxPage = ((allEntries.size - 1).coerceAtLeast(0)) / itemsPerPage
+                val currentPage = page.coerceIn(0, maxPage)
+                plugin.settingsSessionManager
+                        .getSession(player)
+                        ?.setMetadata("member_management_page", currentPage)
+                val startIndex = currentPage * itemsPerPage
+                val currentPageMembers = allEntries.drop(startIndex).take(itemsPerPage)
 
                 // 行数を計算 (ヘッダー+中身+フッター)
                 val contentRows =
@@ -1295,6 +1341,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 holder.inv = inventory
                                 inventory
                         }
+                inventory.clear()
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 for (i in 0..8) inventory.setItem(i, blackPane)
@@ -1304,42 +1351,50 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // メンバーリストの描画
                 val isAdminFlow = plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
-                @Suppress("UNUSED_VARIABLE") val isOwner = worldData.owner == player.uniqueId || isAdminFlow
-                currentPageMembers.forEachIndexed { index, pair ->
+                val canManageRoles = worldData.owner == player.uniqueId || isAdminFlow
+                currentPageMembers.forEachIndexed { index, entry ->
                         val row = index / 7
                         val col = index % 7
                         val slot = (row + 1) * 9 + (col + 1)
-                        inventory.setItem(
-                                slot,
-                                createMemberItem(
-                                        player,
-                                        pair.first,
-                                        pair.second,
-                                        worldData.owner == player.uniqueId || isAdminFlow
-                                )
-                        )
+                        val memberItem =
+                                if (entry.pendingDecisionId != null) {
+                                        createPendingInviteItem(
+                                                viewer = player,
+                                                targetUuid = entry.playerUuid,
+                                                decisionId = entry.pendingDecisionId,
+                                                createdAt = entry.pendingCreatedAt ?: 0L
+                                        )
+                                } else {
+                                        createMemberItem(
+                                                player,
+                                                entry.playerUuid,
+                                                entry.role ?: lang.getMessage(player, "role.member"),
+                                                canManageRoles
+                                        )
+                                }
+                        inventory.setItem(slot, memberItem)
                 }
 
                 // ナビゲーション
-                if (page > 0) {
+                if (currentPage > 0) {
                         inventory.setItem(
                                 footerStart + 1,
                                 me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
                                         plugin,
                                         player,
                                         "world_settings",
-                                        page - 1
+                                        currentPage - 1
                                 )
                         )
                 }
-                if (startIndex + itemsPerPage < allMembers.size) {
+                if (startIndex + itemsPerPage < allEntries.size) {
                         inventory.setItem(
                                 footerStart + 8,
                                 me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
                                         plugin,
                                         player,
                                         "world_settings",
-                                        page + 1
+                                        currentPage + 1
                                 )
                         )
                 }
@@ -1382,6 +1437,100 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 9 until footerStart) {
+                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
+                }
+
+                player.openInventory(inventory)
+        }
+
+        fun openMemberPendingInviteCancelConfirmation(
+                player: Player,
+                worldData: WorldData,
+                targetUuid: UUID,
+                decisionId: UUID
+        ) {
+                val lang = plugin.languageManager
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val title = lang.getMessage(player, "gui.member_management.pending_cancel_confirm.title")
+                val currentTitle =
+                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                                .plainText()
+                                .serialize(player.openInventory.title())
+                me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
+                        plugin,
+                        player,
+                        "world_settings",
+                        Component.text(title),
+                        WorldSettingsGuiHolder::class.java
+                )
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
+                        isGui = true
+                )
+                scheduleGuiTransitionReset(plugin, player)
+
+                val inventory =
+                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                                player.openInventory.topInventory
+                        } else {
+                                val holder = WorldSettingsGuiHolder()
+                                val inv = Bukkit.createInventory(holder, 27, Component.text(title))
+                                holder.inv = inv
+                                inv
+                        }
+
+                val item = ItemStack(Material.PLAYER_HEAD)
+                val meta = item.itemMeta as? SkullMeta ?: return
+                meta.owningPlayer = Bukkit.getOfflinePlayer(targetUuid)
+                meta.displayName(
+                        LegacyComponentSerializer.legacySection()
+                                .deserialize(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.pending_item.name",
+                                                mapOf("player" to targetName)
+                                        )
+                                )
+                                .decoration(TextDecoration.ITALIC, false)
+                )
+                meta.lore(
+                        listOf(
+                                lang.getComponent(
+                                        player,
+                                        "gui.member_management.pending_cancel_confirm.body",
+                                        mapOf("player" to targetName)
+                                )
+                        )
+                )
+                item.itemMeta = meta
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
+                ItemTag.setWorldUuid(item, targetUuid)
+                ItemTag.setString(item, "member_pending_invite_id", decisionId.toString())
+                inventory.setItem(13, item)
+
+                inventory.setItem(
+                        11,
+                        createItem(
+                                Material.LIME_WOOL,
+                                lang.getMessage(player, "gui.member_management.pending_cancel_confirm.cancel"),
+                                emptyList(),
+                                ItemTag.TYPE_GUI_CANCEL
+                        )
+                )
+                inventory.setItem(
+                        15,
+                        createItem(
+                                Material.RED_WOOL,
+                                lang.getMessage(player, "gui.member_management.pending_cancel_confirm.confirm"),
+                                emptyList(),
+                                ItemTag.TYPE_GUI_CONFIRM
+                        )
+                )
+
+                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+                for (i in 0 until inventory.size) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
@@ -1694,6 +1843,78 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, uuid)
                 
                 return item
+        }
+
+        private fun createPendingInviteItem(
+                viewer: Player,
+                targetUuid: UUID,
+                decisionId: UUID,
+                createdAt: Long
+        ): ItemStack {
+                val lang = plugin.languageManager
+                val target = Bukkit.getOfflinePlayer(targetUuid)
+                val isOnline = target.isOnline
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(viewer, "general.unknown"))
+
+                val item = ItemStack(Material.PLAYER_HEAD)
+                val meta = item.itemMeta as? SkullMeta ?: return item
+                meta.owningPlayer = target
+                meta.displayName(
+                        LegacyComponentSerializer.legacySection()
+                                .deserialize(
+                                        lang.getMessage(
+                                                viewer,
+                                                "gui.member_management.pending_item.name",
+                                                mapOf("player" to targetName)
+                                        )
+                                )
+                                .decoration(TextDecoration.ITALIC, false)
+                )
+
+                val statusKey =
+                        if (isOnline) {
+                                "gui.member_management.pending_item.status_online"
+                        } else {
+                                "gui.member_management.pending_item.status_offline"
+                        }
+                val clickKey =
+                        if (plugin.playerPlatformResolver.isBedrock(viewer)) {
+                                "gui.member_management.pending_item.click_bedrock"
+                        } else {
+                                "gui.member_management.pending_item.click_java"
+                        }
+                val lore =
+                        lang.getComponentList(
+                                viewer,
+                                "gui.member_management.pending_item.lore",
+                                mapOf(
+                                        "status" to lang.getMessage(viewer, statusKey),
+                                        "datetime" to formatPendingInviteDateTimeForPlayer(viewer, createdAt),
+                                        "click" to lang.getMessage(viewer, clickKey)
+                                )
+                        )
+                meta.lore(lore)
+                meta.setEnchantmentGlintOverride(true)
+
+                item.itemMeta = meta
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE)
+                ItemTag.setWorldUuid(item, targetUuid)
+                ItemTag.setString(item, "member_pending_invite_id", decisionId.toString())
+                return item
+        }
+
+        private fun formatPendingInviteDateTimeForPlayer(player: Player, timestamp: Long): String {
+                val dateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
+                return dateTime.format(pendingInviteDateTimeFormatterFor(player))
+        }
+
+        private fun pendingInviteDateTimeFormatterFor(player: Player): DateTimeFormatter {
+                val language = plugin.playerStatsRepository.findByUuid(player.uniqueId).language.lowercase(Locale.ROOT)
+                return if (language == "ja_jp") {
+                        DateTimeFormatter.ofPattern("yyyy/M/d H:mm")
+                } else {
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                }
         }
 
         fun openVisitorManagement(player: Player, worldData: WorldData, page: Int = 0) {
