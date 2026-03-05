@@ -200,11 +200,38 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 // 通常の左クリック：ワープ処理
                 val folderName = worldData.customWorldName ?: "my_world.$uuid"
                 if (Bukkit.getWorld(folderName) == null) {
+                    player.closeInventory()
                     player.sendMessage(lang.getMessage(player, "messages.world_loading"))
-                    if (!plugin.worldService.loadWorld(uuid)) {
-                        player.sendMessage(lang.getMessage(player, "error.load_failed"))
-                        return
-                    }
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        if (!player.isOnline) {
+                            return@Runnable
+                        }
+                        if (!plugin.worldService.loadWorld(uuid)) {
+                            player.sendMessage(lang.getMessage(player, "error.load_failed"))
+                            return@Runnable
+                        }
+
+                        val loadedWorld = Bukkit.getWorld(folderName)
+                        if (loadedWorld == null) {
+                            player.sendMessage(lang.getMessage(player, "general.world_not_found"))
+                            return@Runnable
+                        }
+
+                        val isMember = worldData.owner == player.uniqueId ||
+                                worldData.moderators.contains(player.uniqueId) ||
+                                worldData.members.contains(player.uniqueId)
+
+                        val spawnLocation = if (isMember) {
+                            worldData.spawnPosMember ?: loadedWorld.spawnLocation
+                        } else {
+                            worldData.spawnPosGuest ?: loadedWorld.spawnLocation
+                        }
+
+                        plugin.worldService.teleportToWorld(player, uuid, spawnLocation)
+                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                        plugin.soundManager.playClickSound(player, currentItem, "player_world")
+                    })
+                    return
                 }
 
                 val targetWorld = Bukkit.getWorld(folderName)
@@ -221,8 +248,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
                     plugin.worldService.teleportToWorld(player, uuid, spawnLocation)
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                    plugin.soundManager.playClickSound(player, currentItem, "player_world")
-
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
 
                     player.closeInventory()

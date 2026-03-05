@@ -1817,7 +1817,7 @@ messages:
   admin_warp_success: "§aワールド【{world}】にワープしました。"
   admin_warp_archived_error: "§cアーカイブ中のワールドには直接ワープできません。"
   portal_warp_success: "§aポータルを介して【{destination}】へ移動しました。"
-  world_loading: "§aワールドをロードしています..."
+  world_loading: "§aワールドをロード中です..."
   evacuated: "§cワールドがアンロードされたため、スポーン地点へ移動しました。"
   no_in_myworld: "§cマイワールド内に滞在している必要があります。"
   admin_player_filter_prompt: "§eフィルタリングするプレイヤー名を入力してください。"

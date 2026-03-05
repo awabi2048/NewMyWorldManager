@@ -973,10 +973,26 @@ class BedrockMenuService(
         }
 
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-        if (Bukkit.getWorld(folderName) == null && !plugin.worldService.loadWorld(worldData.uuid)) {
-            player.sendMessage(tr(player, "messages.world_load_failed"))
+        if (Bukkit.getWorld(folderName) == null) {
+            player.closeInventory()
+            player.sendMessage(tr(player, "messages.world_loading"))
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (!player.isOnline) {
+                    return@Runnable
+                }
+                if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                    player.sendMessage(tr(player, "messages.world_load_failed"))
+                    return@Runnable
+                }
+                completeWarpToWorld(player, worldData, folderName)
+            })
             return
         }
+
+        completeWarpToWorld(player, worldData, folderName)
+    }
+
+    private fun completeWarpToWorld(player: Player, worldData: WorldData, folderName: String) {
 
         val targetWorld = Bukkit.getWorld(folderName)
         if (targetWorld == null) {
