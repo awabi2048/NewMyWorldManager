@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferSource
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
+import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -108,33 +109,41 @@ class WorldSettingsListener : Listener {
                                 if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
                                                 type == ItemTag.TYPE_GUI_NAV_PREV
                                 ) {
-                                        val lore = item?.itemMeta?.lore() ?: return
-                                        lore.forEach { line ->
-                                                val plainLine =
-                                                        PlainTextComponentSerializer.plainText()
-                                                                .serialize(line)
-                                                if (plainLine.startsWith("PAGE_TARGET: ")) {
-                                                        val targetPage =
-                                                                plainLine
-                                                                        .removePrefix(
-                                                                                "PAGE_TARGET: "
-                                                                        )
-                                                                        .trim()
-                                                                        .toIntOrNull()
-                                                                        ?: return@forEach
-                                                        plugin.soundManager.playClickSound(
-                                                                player,
-                                                                item,
-                                                                "world_settings"
-                                                        )
-                                                        plugin.worldSettingsGui
-                                                                .openMemberManagement(
-                                                                        player,
-                                                                        worldData,
-                                                                        targetPage
-                                                                )
-                                                }
-                                        }
+                                        val targetPageFromTag = ItemTag.getTargetPage(item)
+                                        val targetPage =
+                                                if (targetPageFromTag != null) {
+                                                        targetPageFromTag
+                                                } else {
+                                                        val lore = item.itemMeta?.lore().orEmpty()
+                                                        lore.firstNotNullOfOrNull { line ->
+                                                                val plainLine =
+                                                                        PlainTextComponentSerializer
+                                                                                .plainText()
+                                                                                .serialize(line)
+                                                                if (plainLine.startsWith("PAGE_TARGET: ")) {
+                                                                        plainLine
+                                                                                .removePrefix("PAGE_TARGET: ")
+                                                                                .trim()
+                                                                                .toIntOrNull()
+                                                                } else {
+                                                                        null
+                                                                }
+                                                        }
+                                                } ?: return
+
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        val latestWorld =
+                                                plugin.worldConfigRepository.findByUuid(worldData.uuid)
+                                                        ?: return
+                                        plugin.worldSettingsGui.openMemberManagement(
+                                                player,
+                                                latestWorld,
+                                                targetPage
+                                        )
                                         return
                                 }
 
@@ -161,7 +170,7 @@ class WorldSettingsListener : Listener {
 
                                         if (plugin.playerPlatformResolver.isBedrock(player)) {
                                                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                                                plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                                                reopenMemberManagementLatest(player, worldData.uuid)
                                                 return
                                         }
 
@@ -195,6 +204,122 @@ class WorldSettingsListener : Listener {
                                                 type == ItemTag.TYPE_GUI_RETURN
                                 ) {
                                         handleCommandCancel()
+                                        return
+                                }
+
+                                if (type == ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE) {
+                                        if (!event.isLeftClick) {
+                                                return
+                                        }
+                                        if (!canCancelMemberInvite(player, worldData)) {
+                                                player.sendMessage(lang.getMessage(player, "general.no_permission"))
+                                                plugin.soundManager.playActionSound(
+                                                        player,
+                                                        "world_settings",
+                                                        "error"
+                                                )
+                                                return
+                                        }
+
+                                        val decisionId =
+                                                ItemTag.getString(item, "member_pending_invite_id")
+                                                        ?.let { raw ->
+                                                                runCatching { UUID.fromString(raw) }
+                                                                        .getOrNull()
+                                                        } ?: return
+                                        val interaction = plugin.pendingInteractionRepository.findById(decisionId)
+                                        if (
+                                                interaction == null ||
+                                                        interaction.type != PendingInteractionType.MEMBER_INVITE ||
+                                                        interaction.worldUuid != worldData.uuid
+                                        ) {
+                                                player.sendMessage(
+                                                        lang.getMessage(
+                                                                player,
+                                                                "messages.member_invite_cancel_not_found"
+                                                        )
+                                                )
+                                                reopenMemberManagementLatest(player, worldData.uuid)
+                                                return
+                                        }
+
+                                        val targetName =
+                                                PlayerNameUtil.getNameOrDefault(
+                                                        interaction.targetUuid,
+                                                        lang.getMessage(player, "general.unknown")
+                                                )
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        plugin.settingsSessionManager.updateSessionAction(
+                                                player,
+                                                worldData.uuid,
+                                                SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
+                                                isGui = true
+                                        )
+                                        plugin.settingsSessionManager
+                                                .getSession(player)
+                                                ?.setMetadata(
+                                                        "member_pending_invite_cancel_id",
+                                                        decisionId.toString()
+                                                )
+                                        player.closeInventory()
+
+                                        val title =
+                                                LegacyComponentSerializer.legacySection().deserialize(
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.member_management.pending_cancel_confirm.title"
+                                                        )
+                                                )
+                                        val bodyLines =
+                                                listOf(
+                                                        LegacyComponentSerializer.legacySection().deserialize(
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "gui.member_management.pending_cancel_confirm.body",
+                                                                        mapOf("player" to targetName)
+                                                                )
+                                                        )
+                                                )
+                                        val confirmAction =
+                                                "mwm:confirm/member_pending_invite_cancel/$decisionId"
+                                        DialogConfirmManager.showConfirmationByPreference(
+                                                player,
+                                                plugin,
+                                                title,
+                                                bodyLines,
+                                                confirmAction,
+                                                "mwm:confirm/cancel",
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.member_management.pending_cancel_confirm.confirm"
+                                                ),
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.member_management.pending_cancel_confirm.cancel"
+                                                ),
+                                                onBedrockConfirm = {
+                                                        handleBedrockDialogAction(
+                                                                player,
+                                                                worldData,
+                                                                confirmAction
+                                                        )
+                                                },
+                                                onBedrockCancel = {
+                                                        handleBedrockDialogCancel(player, worldData)
+                                                }
+                                        ) {
+                                                plugin.worldSettingsGui
+                                                        .openMemberPendingInviteCancelConfirmation(
+                                                                player,
+                                                                worldData,
+                                                                interaction.targetUuid,
+                                                                decisionId
+                                                        )
+                                        }
                                         return
                                 }
 
@@ -377,10 +502,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        plugin.worldSettingsGui.openMemberManagement(
-                                                player,
-                                                worldData
-                                        )
+                                        reopenMemberManagementLatest(player, worldData.uuid)
                                         // Updates session to MANAGE_MEMBERS
                                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
                                         plugin.soundManager.playClickSound(
@@ -422,10 +544,7 @@ class WorldSettingsListener : Listener {
                                                         )
                                                 )
                                         }
-                                        plugin.worldSettingsGui.openMemberManagement(
-                                                player,
-                                                worldData
-                                        )
+                                        reopenMemberManagementLatest(player, worldData.uuid)
                                 }
                         }
                         SettingsAction.MEMBER_TRANSFER_CONFIRM -> {
@@ -438,10 +557,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        plugin.worldSettingsGui.openMemberManagement(
-                                                player,
-                                                worldData
-                                        )
+                                        reopenMemberManagementLatest(player, worldData.uuid)
                                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
                                         plugin.soundManager.playClickSound(
                                                 player,
@@ -498,10 +614,37 @@ class WorldSettingsListener : Listener {
                                                 )
                                         )
 
-                                        plugin.worldSettingsGui.openMemberManagement(
+                                        reopenMemberManagementLatest(player, worldData.uuid)
+                                }
+                        }
+                        SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> {
+                                event.isCancelled = true
+                                if (event.clickedInventory != event.view.topInventory) return
+
+                                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                                        plugin.soundManager.playClickSound(
                                                 player,
-                                                worldData
+                                                item,
+                                                "world_settings"
                                         )
+                                        reopenMemberManagementLatest(player, worldData.uuid)
+                                        return
+                                }
+
+                                if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        val infoItem = event.inventory.getItem(13) ?: return
+                                        val decisionId =
+                                                ItemTag.getString(infoItem, "member_pending_invite_id")
+                                                        ?.let { raw ->
+                                                                runCatching { UUID.fromString(raw) }
+                                                                        .getOrNull()
+                                                        } ?: return
+                                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
                                 }
                         }
                         SettingsAction.MANAGE_VISITORS -> {
@@ -2543,14 +2686,7 @@ plugin.languageManager
                                 if (!player.isOnline) {
                                         return@sendCustomInputForm
                                 }
-                                val latestWorld =
-                                        plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                ?: return@sendCustomInputForm
-                                plugin.worldSettingsGui.openMemberManagement(
-                                        player,
-                                        latestWorld,
-                                        playSound = false
-                                )
+                                reopenMemberManagementLatest(player, worldUuid, playSound = false)
                         }
                 )
         }
@@ -2763,6 +2899,81 @@ plugin.languageManager
                 plugin.worldSettingsGui.open(player, worldData)
         }
 
+        private fun canCancelMemberInvite(player: Player, worldData: WorldData): Boolean {
+                return worldData.owner == player.uniqueId ||
+                        worldData.moderators.contains(player.uniqueId)
+        }
+
+        private fun reopenMemberManagementLatest(
+                player: Player,
+                worldUuid: UUID,
+                playSound: Boolean = false
+        ) {
+                val latestWorld = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
+                val page =
+                        (plugin.settingsSessionManager.getSession(player)
+                                ?.getMetadata("member_management_page") as? Int)
+                                ?.coerceAtLeast(0)
+                                ?: 0
+                player.closeInventory()
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                if (!player.isOnline) {
+                                        return@Runnable
+                                }
+                                plugin.worldSettingsGui.openMemberManagement(
+                                        player,
+                                        latestWorld,
+                                        page,
+                                        playSound
+                                )
+                        }
+                )
+        }
+
+        private fun cancelMemberInviteByDecisionId(
+                player: Player,
+                worldUuid: UUID,
+                decisionId: UUID
+        ) {
+                val lang = plugin.languageManager
+                val latestWorld = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
+                if (!canCancelMemberInvite(player, latestWorld)) {
+                        player.sendMessage(lang.getMessage(player, "general.no_permission"))
+                        reopenMemberManagementLatest(player, worldUuid)
+                        return
+                }
+
+                val interaction = plugin.pendingInteractionRepository.findById(decisionId)
+                if (
+                        interaction == null ||
+                                interaction.type != PendingInteractionType.MEMBER_INVITE ||
+                                interaction.worldUuid != worldUuid
+                ) {
+                        player.sendMessage(
+                                lang.getMessage(player, "messages.member_invite_cancel_not_found")
+                        )
+                        reopenMemberManagementLatest(player, worldUuid)
+                        return
+                }
+
+                plugin.pendingInteractionRepository.remove(decisionId)
+                val targetName =
+                        PlayerNameUtil.getNameOrDefault(
+                                interaction.targetUuid,
+                                lang.getMessage(player, "general.unknown")
+                        )
+                player.sendMessage(
+                        lang.getMessage(
+                                player,
+                                "messages.member_invite_cancelled",
+                                mapOf("player" to targetName)
+                        )
+                )
+                reopenMemberManagementLatest(player, worldUuid)
+        }
+
         private fun toggleMemberRole(player: Player, worldData: WorldData, memberId: UUID) {
                 val isModerator = worldData.moderators.contains(memberId)
                 if (isModerator) {
@@ -2777,7 +2988,7 @@ plugin.languageManager
                         }
                 }
                 plugin.worldConfigRepository.save(worldData)
-                plugin.worldSettingsGui.openMemberManagement(player, worldData, 0, false)
+                reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
         }
 
         private fun applyMemberInvite(
@@ -2805,11 +3016,7 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        plugin.worldSettingsGui.openMemberManagement(
-                                player,
-                                worldData,
-                                playSound = false
-                        )
+                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
                         return
                 }
 
@@ -2823,11 +3030,7 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        plugin.worldSettingsGui.openMemberManagement(
-                                player,
-                                worldData,
-                                playSound = false
-                        )
+                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
                         return
                 }
 
@@ -2839,11 +3042,7 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        plugin.worldSettingsGui.openMemberManagement(
-                                player,
-                                worldData,
-                                playSound = false
-                        )
+                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
                         return
                 }
 
@@ -2859,11 +3058,27 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        plugin.worldSettingsGui.openMemberManagement(
-                                player,
-                                worldData,
-                                playSound = false
+                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        return
+                }
+
+                if (
+                        plugin.pendingInteractionRepository.existsByTargetWorldAndType(
+                                target.uniqueId,
+                                worldData.uuid,
+                                PendingInteractionType.MEMBER_INVITE
                         )
+                ) {
+                        player.sendMessage(
+                                lang.getMessage(player, "messages.member_invite_already_sent")
+                        )
+                        player.playSound(
+                                player.location,
+                                org.bukkit.Sound.ENTITY_VILLAGER_NO,
+                                1.0f,
+                                1.0f
+                        )
+                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
                         return
                 }
 
@@ -2933,7 +3148,7 @@ plugin.languageManager
                                 )
                         )
 
-                        plugin.worldSettingsGui.open(player, worldData)
+                        reopenMemberManagementLatest(player, worldData.uuid)
                         return
                 }
 
@@ -2976,7 +3191,7 @@ plugin.languageManager
                         )
                 }
 
-                plugin.worldSettingsGui.open(player, worldData)
+                reopenMemberManagementLatest(player, worldData.uuid)
         }
 
         private fun resolveInviteTarget(inputName: String): OfflinePlayer? {
@@ -2985,35 +3200,50 @@ plugin.languageManager
                         return null
                 }
 
-                val configuredPrefix =
-                        plugin.config.getString("bedrock.player_name_prefix", "")?.trim().orEmpty()
-
-                val candidates = linkedSetOf(trimmedInput)
-                if (configuredPrefix.isNotEmpty()) {
-                        if (!trimmedInput.startsWith(configuredPrefix)) {
-                                candidates += "$configuredPrefix$trimmedInput"
-                        } else {
-                                val withoutPrefix = trimmedInput.removePrefix(configuredPrefix)
-                                if (withoutPrefix.isNotEmpty()) {
-                                        candidates += withoutPrefix
-                                }
-                        }
-                }
+                val candidates = buildInviteTargetCandidates(trimmedInput)
+                val lowerCandidates = candidates.map { it.lowercase(Locale.ROOT) }.toSet()
 
                 for (candidate in candidates) {
                         Bukkit.getPlayerExact(candidate)?.let { return it }
                 }
 
-                val lowerCandidates = candidates.map { it.lowercase(Locale.ROOT) }.toSet()
                 Bukkit.getOnlinePlayers().firstOrNull {
                         it.name.lowercase(Locale.ROOT) in lowerCandidates
                 }?.let { return it }
 
-                return Bukkit.getOfflinePlayers().firstOrNull { offline ->
+                Bukkit.getOfflinePlayers().firstOrNull { offline ->
                         val name = offline.name ?: return@firstOrNull false
                         name.lowercase(Locale.ROOT) in lowerCandidates &&
                                 (offline.hasPlayedBefore() || offline.isOnline)
+                }?.let { return it }
+
+                return plugin.playerStatsRepository.findAllFiles().firstNotNullOfOrNull { file ->
+                        val uuid = runCatching { UUID.fromString(file.nameWithoutExtension) }.getOrNull()
+                                ?: return@firstNotNullOfOrNull null
+                        val lastName = plugin.playerStatsRepository.findByUuid(uuid).lastName ?: return@firstNotNullOfOrNull null
+                        if (lastName.lowercase(Locale.ROOT) !in lowerCandidates) {
+                                return@firstNotNullOfOrNull null
+                        }
+                        Bukkit.getPlayer(uuid) ?: Bukkit.getOfflinePlayer(uuid)
                 }
+        }
+
+        private fun buildInviteTargetCandidates(inputName: String): LinkedHashSet<String> {
+                val configuredPrefix =
+                        plugin.config.getString("bedrock.player_name_prefix", "")?.trim().orEmpty()
+
+                val candidates = linkedSetOf(inputName)
+                if (configuredPrefix.isNotEmpty()) {
+                        if (!inputName.startsWith(configuredPrefix)) {
+                                candidates += "$configuredPrefix$inputName"
+                        } else {
+                                val withoutPrefix = inputName.removePrefix(configuredPrefix)
+                                if (withoutPrefix.isNotEmpty()) {
+                                        candidates += withoutPrefix
+                                }
+                        }
+                }
+                return candidates
         }
 
         private fun applyWorldInfoUpdate(
@@ -4199,8 +4429,7 @@ player.sendMessage(
 
             if (identifier == Key.key("mwm:settings/member_invite_cancel")) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-                plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                reopenMemberManagementLatest(player, session.worldUuid)
                 return
             }
             
@@ -4877,7 +5106,9 @@ player.sendMessage(
                         SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                         SettingsAction.MEMBER_REMOVE_CONFIRM,
-                        SettingsAction.MEMBER_TRANSFER_CONFIRM -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        SettingsAction.MEMBER_TRANSFER_CONFIRM,
+                        SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
+                                reopenMemberManagementLatest(player, worldData.uuid)
                         SettingsAction.RESET_EXPANSION_CONFIRM,
                         SettingsAction.DELETE_WORLD_CONFIRM,
                         SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
@@ -5029,7 +5260,7 @@ player.sendMessage(
                                         "member" to memberName
                                 )
                         )
-                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        reopenMemberManagementLatest(player, worldData.uuid)
                         return
                 }
 
@@ -5076,7 +5307,16 @@ player.sendMessage(
                                         mapOf("old_owner" to newOwnerName)
                                 )
                         )
-                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        reopenMemberManagementLatest(player, worldData.uuid)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/member_pending_invite_cancel/")) {
+                        val decisionIdStr =
+                                keyVal.substringAfter("confirm/member_pending_invite_cancel/")
+                        val decisionId =
+                                runCatching { UUID.fromString(decisionIdStr) }.getOrNull() ?: return
+                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
                         return
                 }
 
@@ -5108,7 +5348,10 @@ player.sendMessage(
                                 SettingsAction.ENV_CONFIRM -> plugin.environmentGui.open(player, worldData)
                                 SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                                 SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
-                                SettingsAction.MEMBER_REMOVE_CONFIRM, SettingsAction.MEMBER_TRANSFER_CONFIRM -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                                SettingsAction.MEMBER_REMOVE_CONFIRM,
+                                SettingsAction.MEMBER_TRANSFER_CONFIRM,
+                                SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
+                                        reopenMemberManagementLatest(player, worldData.uuid)
                                 SettingsAction.RESET_EXPANSION_CONFIRM,
                                 SettingsAction.DELETE_WORLD_CONFIRM,
                                 SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
@@ -5248,7 +5491,7 @@ player.sendMessage(
                                         "member" to memberName
                                 )
                         )
-                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        reopenMemberManagementLatest(player, worldData.uuid)
                         return
                 }
 
@@ -5292,7 +5535,17 @@ player.sendMessage(
                                         mapOf("old_owner" to newOwnerName)
                                 )
                         )
-                        plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        reopenMemberManagementLatest(player, worldData.uuid)
+                        return
+                }
+
+                if (keyVal.startsWith("confirm/member_pending_invite_cancel/")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        val decisionIdStr =
+                                keyVal.substringAfter("confirm/member_pending_invite_cancel/")
+                        val decisionId =
+                                runCatching { UUID.fromString(decisionIdStr) }.getOrNull() ?: return
+                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
                         return
                 }
 

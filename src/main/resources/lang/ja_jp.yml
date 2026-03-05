@@ -818,6 +818,26 @@ gui:
         - "§e§l| §eクリック §7権限を§b{next_role}§7に変更"
         - "§e§l| §e削除/譲渡は /myworld コマンドを使用"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+
+    pending_item:
+      name: "§e{player} §7(招待中)"
+      status_online: "§e招待中 §7(§aオンライン§7)"
+      status_offline: "§e招待中 §7(§cオフライン§7)"
+      click_java: "§e§l| §e左クリック §7招待を取り消す"
+      click_bedrock: "§e§l| §eクリック §7招待を取り消す"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§f§l| §7状態 {status}"
+        - "§f§l| §7送信日時 §f{datetime}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "{click}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+
+    pending_cancel_confirm:
+      title: "招待のキャンセル確認"
+      body: "§c{player}さんへのメンバー招待を取り消しますか？"
+      cancel: "§a戻る"
+      confirm: "§c実行"
     
     transfer_confirm:
       title: "オーナー権限の譲渡"
@@ -1721,6 +1741,7 @@ messages:
   invite_expired: "§c招待が見つからないか、期限切れです"
   invite_world_not_found: "§cワールドデータが見つかりませんでした"
   invite_already_member: "§c既にこのワールドのメンバーです"
+  member_invite_already_sent: "§cそのプレイヤーには既にメンバー招待を送信しています"
   invite_accepted_self: "§aワールド【{world}】のメンバーになりました！"
   invite_accepted_sender: "§e{player} §fさんがワールド【§a{world}§f】のメンバー招待を承諾しました"
   member_joined_notify: "§a{player} §fさんがワールド【§a{world}§f】のメンバーになりました"
@@ -1937,6 +1958,8 @@ messages:
   invite_declined: "§cワールド招待を辞退しました。"
   member_invite_declined: "§cメンバー招待を辞退しました。"
   member_invite_declined_sender: "§e{player}§c がメンバー招待を辞退しました。"
+  member_invite_cancelled: "§a{player}さんへのメンバー招待を取り消しました。"
+  member_invite_cancel_not_found: "§c対象の招待はすでに存在しません。"
   
   # 内部データコピー
 

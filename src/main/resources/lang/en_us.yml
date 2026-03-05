@@ -744,6 +744,24 @@ gui:
       - §e§l| §eShift+Left §cTransfer Ownership
       - §e§l| §eShift+Right §cRemove Member
       - §8§m-----------------------
+    pending_item:
+      name: §e{player} §7(Pending)
+      status_online: §ePending §7(§aOnline§7)
+      status_offline: §ePending §7(§cOffline§7)
+      click_java: §e§l| §eLeft-Click §7Open confirmation
+      click_bedrock: §e§l| §eClick §7Open confirmation
+      lore:
+      - §8§m-----------------------
+      - '§f§l| §7Status {status}'
+      - '§f§l| §7Sent At §f{datetime}'
+      - §8§m-----------------------
+      - '{click}'
+      - §8§m-----------------------
+    pending_cancel_confirm:
+      title: Cancel Invite Confirmation
+      body: §cCancel the member invite to {player}?
+      cancel: §aBack
+      confirm: §cCancel Invite
     transfer_confirm:
       title: Transfer Ownership
       lore:
@@ -1560,6 +1578,7 @@ messages:
   invite_expired: §cInvite not found or expired.
   invite_world_not_found: §cWorld data not found.
   invite_already_member: §cAlready a member of this world.
+  member_invite_already_sent: §cA member invite has already been sent to that player.
   invite_accepted_self: §aYou are now a member of world【{world}】!
   invite_accepted_sender: §e{player} §faccepted your invite to world【§a{world}§f】.
   member_joined_notify: §a{player} §fjoined world【§a{world}§f】 as a member.
@@ -1759,6 +1778,8 @@ messages:
   invite_declined: §cYou declined the world invite.
   member_invite_declined: §cYou declined the member invitation.
   member_invite_declined_sender: §e{player}§c declined the member invitation.
+  member_invite_cancelled: §aCancelled member invite to {player}.
+  member_invite_cancel_not_found: §cThat invite no longer exists.
   internal_data_extracted: §7Extracted internal data related to MyWorld §a【{world}】§7.
   copy_world_uuid: §7- §b§nMyWorld Directory Name
   copy_owner_uuid: §7- §b§nOwner UUID

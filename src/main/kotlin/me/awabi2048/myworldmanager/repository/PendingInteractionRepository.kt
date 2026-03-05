@@ -103,6 +103,22 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
     }
 
     @Synchronized
+    fun findByWorldAndType(worldUuid: UUID, type: PendingInteractionType): List<PendingInteraction> {
+        return cache.values
+            .filter { it.worldUuid == worldUuid && it.type == type }
+            .sortedBy { it.createdAt }
+    }
+
+    @Synchronized
+    fun existsByTargetWorldAndType(targetUuid: UUID, worldUuid: UUID, type: PendingInteractionType): Boolean {
+        return cache.values.any {
+            it.targetUuid == targetUuid &&
+                it.worldUuid == worldUuid &&
+                it.type == type
+        }
+    }
+
+    @Synchronized
     private fun save() {
         val config = YamlConfiguration()
         cache.values.forEach { interaction ->
