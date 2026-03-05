@@ -1,16 +1,27 @@
 package me.awabi2048.myworldmanager.listener
 
+import io.papermc.paper.dialog.Dialog
+import io.papermc.paper.event.player.PlayerCustomClickEvent
+import io.papermc.paper.registry.data.dialog.ActionButton
+import io.papermc.paper.registry.data.dialog.DialogBase
+import io.papermc.paper.registry.data.dialog.action.DialogAction
+import io.papermc.paper.registry.data.dialog.body.DialogBody
+import io.papermc.paper.registry.data.dialog.input.DialogInput
+import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
+import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
-import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -18,6 +29,10 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import java.util.*
 
 class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
+
+    companion object {
+        private const val SPOTLIGHT_DESCRIPTION_MAX_LENGTH = 100
+    }
 
     @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
@@ -45,6 +60,8 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
             "discovery_world_item", ItemTag.TYPE_GUI_WORLD_ITEM -> {
                 val uuid = ItemTag.getWorldUuid(item) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
+                val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
+                val isCurrentWorld = currentWorldData?.uuid == worldData.uuid
 
                 val isMember = worldData.owner == player.uniqueId || 
                               worldData.moderators.contains(player.uniqueId) ||
@@ -66,6 +83,10 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 }
 
                 if (event.isLeftClick) {
+                    if (!event.isShiftClick && isCurrentWorld) {
+                        return
+                    }
+
                     // アクセス判定
                     if (worldData.publishLevel != PublishLevel.PUBLIC && !isMember) {
                         player.sendMessage(lang.getMessage(player, "error.world_not_public"))
@@ -115,6 +136,10 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     
                     player.closeInventory()
                 } else if (event.isRightClick) {
+                    if (!event.isShiftClick && isCurrentWorld) {
+                        return
+                    }
+
                     if (event.isShiftClick) {
                         // Spotlight削除 (Shift + 右クリック)
                         if (session.sort == DiscoverySort.SPOTLIGHT && player.hasPermission("myworldmanager.admin")) {
@@ -217,6 +242,9 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         allTags[nextIndex]
                     }
                 } else if (event.isRightClick) {
+                    if (session.selectedTag == null) {
+                        return
+                    }
                     session.selectedTag = null
                 }
                 
@@ -224,6 +252,17 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 plugin.menuEntryRouter.openDiscovery(player)
             }
             ItemTag.TYPE_GUI_DISCOVERY_SORT -> {
+                if (!isBedrock &&
+                    event.isShiftClick &&
+                    event.isLeftClick &&
+                    session.sort == DiscoverySort.SPOTLIGHT &&
+                    canManageSpotlight(player)
+                ) {
+                    plugin.soundManager.playClickSound(player, item, "discovery")
+                    openSpotlightDescriptionDialog(player)
+                    return
+                }
+
                 val forward = if (isBedrock) true else event.isLeftClick
                 session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), forward)
                 plugin.soundManager.playClickSound(player, item, "discovery")
@@ -310,5 +349,125 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 }
             }
         }
+    }
+
+    @Suppress("UnstableApiUsage")
+    @EventHandler
+    fun onSpotlightDescriptionDialog(event: PlayerCustomClickEvent) {
+        val identifier = event.identifier
+        if (identifier != Key.key("mwm:discovery/spotlight_description_submit") &&
+            identifier != Key.key("mwm:discovery/spotlight_description_cancel")
+        ) {
+            return
+        }
+
+        val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
+        val player = conn.player
+        val lang = plugin.languageManager
+
+        if (!canManageSpotlight(player)) {
+            player.sendMessage(lang.getMessage(player, "general.no_permission"))
+            return
+        }
+
+        if (identifier == Key.key("mwm:discovery/spotlight_description_cancel")) {
+            DialogConfirmManager.safeCloseDialog(player)
+            plugin.soundManager.playClickSound(player, null, "discovery")
+            plugin.menuEntryRouter.openDiscovery(player)
+            return
+        }
+
+        val view = event.getDialogResponseView() ?: return
+        val input = view.getText("spotlight_description")?.toString().orEmpty().trim()
+        if (input.length > SPOTLIGHT_DESCRIPTION_MAX_LENGTH) {
+            player.sendMessage(
+                lang.getMessage(
+                    player,
+                    "error.discovery_spotlight_description_too_long",
+                    mapOf("max" to SPOTLIGHT_DESCRIPTION_MAX_LENGTH)
+                )
+            )
+            openSpotlightDescriptionDialog(player, input)
+            return
+        }
+
+        plugin.spotlightRepository.setDescription(input)
+        val messageKey = if (input.isEmpty()) {
+            "messages.discovery_spotlight_description_reset"
+        } else {
+            "messages.discovery_spotlight_description_updated"
+        }
+        player.sendMessage(lang.getMessage(player, messageKey))
+        plugin.soundManager.playClickSound(player, null, "discovery")
+        plugin.menuEntryRouter.openDiscovery(player)
+    }
+
+    private fun canManageSpotlight(player: Player): Boolean {
+        return player.hasPermission("myworldmanager.admin")
+    }
+
+    @Suppress("UnstableApiUsage")
+    private fun openSpotlightDescriptionDialog(player: Player, initialValue: String? = null) {
+        val lang = plugin.languageManager
+        val currentText = initialValue ?: plugin.spotlightRepository.getDescription().orEmpty()
+
+        val dialog = Dialog.create { builder ->
+            builder.empty()
+                .base(
+                    DialogBase.builder(
+                        Component.text(
+                            lang.getMessage(player, "gui.discovery.spotlight_description_dialog.title"),
+                            NamedTextColor.YELLOW
+                        )
+                    )
+                        .body(
+                            listOf(
+                                DialogBody.plainMessage(
+                                    Component.text(
+                                        lang.getMessage(
+                                            player,
+                                            "gui.discovery.spotlight_description_dialog.body",
+                                            mapOf("max" to SPOTLIGHT_DESCRIPTION_MAX_LENGTH)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                        .inputs(
+                            listOf(
+                                DialogInput.text(
+                                    "spotlight_description",
+                                    Component.text(
+                                        lang.getMessage(
+                                            player,
+                                            "gui.discovery.spotlight_description_dialog.input_label"
+                                        )
+                                    )
+                                )
+                                    .maxLength(SPOTLIGHT_DESCRIPTION_MAX_LENGTH)
+                                    .initial(currentText)
+                                    .build()
+                            )
+                        )
+                        .build()
+                )
+                .type(
+                    DialogType.confirmation(
+                        ActionButton.create(
+                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                            null,
+                            100,
+                            DialogAction.customClick(Key.key("mwm:discovery/spotlight_description_submit"), null)
+                        ),
+                        ActionButton.create(
+                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                            null,
+                            200,
+                            DialogAction.customClick(Key.key("mwm:discovery/spotlight_description_cancel"), null)
+                        )
+                    )
+                )
+        }
+        player.showDialog(dialog)
     }
 }

@@ -873,6 +873,7 @@ gui:
       total_count: '§7Results: §f{count}'
       page: '§7Page: §f{current} / {max}'
     world_item:
+      # Placeholders: {description}, {owner}, {status_color}, {favorites}, {visitors}, {tags}, {warp_hint}, {preview_hint}, {member_request_hint}, {favorite_hint}
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－
       - '{uuid_line}'
@@ -1040,10 +1041,10 @@ gui:
       - §f§l| §7Recent Visitors §a{visitors}
       - '{tags}'
       - §8§m-----------------------
-      - §e§l| §eLeft-Click §7Warp
+      - '{warp_hint}'
       - '{preview_hint}'
       - '{member_request_hint}'
-      - §e§l| §eShift + Right-Click §7Add/Remove Favorite
+      - '{favorite_hint}'
       - §8§m-----------------------
       lore_bedrock:
       - §8§m-----------------------
@@ -1054,16 +1055,20 @@ gui:
       - §f§l| §7Recent Visitors §a{visitors}
       - '{tags}'
       - §8§m-----------------------
-      - §e§l| §eClick §7Warp
+      - '{warp_hint}'
       - §8§m-----------------------
       owner: §f§l| §7Owner {owner}{status_color}
       tag: §f§l| §7Tags §e{tags}
       favorite: §f§l| §7Favorites §c{count}
       recent_visitors: §f§l| §7Recent Visitors §a{count}
       warp: §e§l| §e§nLeft-Click §7Warp
+      warp_hint: §e§l| §eLeft-Click §7Warp
+      warp_hint_bedrock: §e§l| §eClick §7Warp
       preview: §e§l| §eRight click§7 Preview
       preview_hint: §e§l| §eRight-Click §7Preview
-      member_request_hint: §e§l| §dShift + Left-Click §7Request Membership
+      member_request_hint: §e§l| §eShift + Left-Click §7Request Membership
+      favorite_hint_add: §e§l| §eShift + Right-Click §7Add to Favorites
+      favorite_hint_remove: §e§l| §eShift + Right-Click §7Remove from Favorites
       favorite_toggle: §e§l| §dShift + Right-Click§7 Toggle Favorite
       fav_add: §e§l| §e§nRight-Click §7Favorite
       fav_remove: §e§l| §e§nRight-Click §7Unfavorite
@@ -1090,11 +1095,21 @@ gui:
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7{current_prefix} §f{sort_name}
-      - '  §8{sort_desc}'
+      - '  §f{sort_desc}'
       - §8§m－－－－－－－－－－－－－－－－－－
       - '{sort_list}'
       - §8§m－－－－－－－－－－－－－－－－－－
       - §e§nClick to switch
+      lore_spotlight_admin:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Selected §6{sort_name}
+      - '  §f{sort_desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{sort_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft/Right-Click §7Switch sort order
+      - §e§l| §eShift + Left-Click §7Edit SPOTLIGHT description
+      - §8§m－－－－－－－－－－－－－－－－－－
       name: §aSelect Sort Order
       click: §e§nClick to cycle
       type:
@@ -1124,7 +1139,7 @@ gui:
       name: Tag Filter
       lore:
       - §8§m-----------------------
-      - §f§l| {prefix} §6{tag}
+      - §f§l| §7Selected §6{tag}
       - §8§m-----------------------
       - '{tag_list}'
       - §8§m-----------------------
@@ -1133,7 +1148,7 @@ gui:
       - §8§m-----------------------
       lore_bedrock:
       - §8§m-----------------------
-      - §f§l| {prefix} §6{tag}
+      - §f§l| §7Selected §6{tag}
       - §8§m-----------------------
       - '{tag_list}'
       - §8§m-----------------------
@@ -1144,9 +1159,13 @@ gui:
       inactive: '§7  '
       no_selection: No selection
       all: All
-      click_left: §e§nLeft Click§7 Toggle Filter
-      click_right: §e§nRight Click§7 Reset Filter
-      click_bedrock: §e§nClick§7 Toggle Filter
+      click_left: §e§l| §eLeft-Click §7Cycle filter
+      click_right: §e§l| §eRight-Click §7Clear filter
+      click_bedrock: §e§l| §eClick §7Cycle filter
+    spotlight_description_dialog:
+      title: Edit SPOTLIGHT Description
+      body: Enter the description shown while SPOTLIGHT sort is selected (max {max} chars). Leave empty to restore default.
+      input_label: Description
     stats:
       name: §fStatistics
       lore:
@@ -1166,7 +1185,7 @@ gui:
       new: Sorted by publication date
       favorites: Sorted by number of favorites
       spotlight: Hand-picked worlds by staff
-      random: Worlds are shuffled every time you see them
+      random: Daily random
     no_result: §7No worlds found matching the criteria
     spotlight_remove_confirm:
       title: Remove from SPOTLIGHT
@@ -1692,6 +1711,8 @@ messages:
   data_update_success: §aUpdated all world ({world_count}) and player ({player_count}) data.
   spotlight_added: §aRegistered world "{world}" to SPOTLIGHT!
   spotlight_removed: §cRemoved world "{world}" from SPOTLIGHT.
+  discovery_spotlight_description_updated: §aUpdated the SPOTLIGHT description.
+  discovery_spotlight_description_reset: §aReset the SPOTLIGHT description to default.
   world_creation_started: §e Started creating my world "{world}"...
   world_creation_success: §a My world “§a{world}§a” was successfully created!
   world_unloading_evacuation: §c The world has been unloaded, so move to the spawn point.
@@ -1859,6 +1880,7 @@ error:
   spotlight_not_owner: §cYou can only register worlds you own.
   spotlight_already_registered: §cThis world is already registered to SPOTLIGHT.
   spotlight_limit_reached: §cSPOTLIGHT slots are full.
+  discovery_spotlight_description_too_long: §cDescription is too long (max {max} chars).
   member_request_owner_offline: §cCannot send request because the owner is offline.
   member_request_already_member: §cYou are already a member of this world.
   console_only: §cThis command can only be executed from console.
