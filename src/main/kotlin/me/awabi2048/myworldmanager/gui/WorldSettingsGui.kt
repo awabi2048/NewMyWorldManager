@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.Component
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
@@ -1354,14 +1355,26 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 // メンバー招待ボタン
+                val canForceAddMember = PermissionManager.canForceAddMember(player)
+                val inviteLore =
+                        if (canForceAddMember) {
+                                listOf(
+                                        lang.getMessage(player, "gui.common.separator"),
+                                        lang.getMessage(player, "gui.member_management.invite.desc"),
+                                        lang.getMessage(player, "gui.common.separator"),
+                                        lang.getMessage(player, "gui.member_management.invite.click_normal"),
+                                        lang.getMessage(player, "gui.member_management.invite.click_force"),
+                                        lang.getMessage(player, "gui.common.separator")
+                                )
+                        } else {
+                                listOf(lang.getMessage(player, "gui.member_management.invite.desc"))
+                        }
                 inventory.setItem(
                         footerStart + 4,
                         createItem(
                                 Material.PAPER,
                                 lang.getMessage(player, "gui.member_management.invite.name"),
-                                listOf(
-                                        lang.getMessage(player, "gui.member_management.invite.desc")
-                                ),
+                                inviteLore,
                                 ItemTag.TYPE_GUI_MEMBER_INVITE
                         )
                 )

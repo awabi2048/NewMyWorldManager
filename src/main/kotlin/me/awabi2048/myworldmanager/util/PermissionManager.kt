@@ -7,6 +7,7 @@ object PermissionManager {
     const val ADMIN = "myworldmanager.admin"
     const val ADMIN_WORLD_LIST = "myworldmanager.admin.world_list"
     const val ADMIN_BYPASS_WORLD_LIMITS = "myworldmanager.admin.bypass_world_limits"
+    const val FORCE_ADD_MEMBER = "myworldmanager.force_add_member"
     const val CITIZEN = "myworldmanager.citizen"
     const val TEST = "craftercrossing.test"
 
@@ -41,5 +42,9 @@ object PermissionManager {
 
     fun canBypassWorldLimits(sender: CommandSender): Boolean {
         return sender.hasPermission(ADMIN_BYPASS_WORLD_LIMITS)
+    }
+
+    fun canForceAddMember(sender: CommandSender): Boolean {
+        return checkPermission(sender, FORCE_ADD_MEMBER)
     }
 }

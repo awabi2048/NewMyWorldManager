@@ -782,6 +782,8 @@ gui:
     invite:
       name: "§aメンバーを招待"
       desc: "§7クリックした後、名前を入力して招待します"
+      click_normal: "§e§l| §eクリック §7通常モードで実行"
+      click_force: "§e§l| §eShift+クリック §7強制追加モードで実行"
     remove_confirm:
       title: "確認"
       # Placeholder: {player}, {world}
@@ -1687,6 +1689,7 @@ messages:
   
   # 招待関連
   member_invite_input: "§e招待したいプレイヤーのIDを入力してください"
+  member_force_add_input: "§c強制追加モードです。追加したいプレイヤーのIDを入力してください"
   visit_target_input: "§e訪問したいプレイヤーのIDを入力してください"
   visitworld_query_input: "§e検索したいワールド名のキーワードを入力してください"
   visitworld_query_empty: "§c検索キーワードを入力してください。"
@@ -1704,6 +1707,8 @@ messages:
   invite_accepted_sender: "§e{player} §fさんがワールド【§a{world}§f】のメンバー招待を承諾しました"
   member_joined_notify: "§a{player} §fさんがワールド【§a{world}§f】のメンバーになりました"
   invite_sent_success: "§e{player} §fさんを「§a{world}§f」に招待しました！"
+  member_force_add_success: "§a{player} §fさんをワールド「§a{world}§f」に強制追加しました"
+  member_force_added_self: "§aワールド「§a{world}§a」のメンバーに強制追加されました"
   invite_target_offline: "§c{player}さんは現在オフラインです"
   invite_no_available_targets: "§c現在招待可能なプレイヤーがいません。"
   invite_queued_offline: "§7{player}さんはオフラインです。次回ログイン時に通知されます。"
