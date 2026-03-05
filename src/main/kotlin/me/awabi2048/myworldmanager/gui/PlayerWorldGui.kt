@@ -411,6 +411,17 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                if (pendingCount == 0) {
+                        val lore = meta.lore()
+                        if (!lore.isNullOrEmpty() && lore.size >= 5) {
+                                val pendingSectionStart = lore.size - 5
+                                val pendingSectionEnd = lore.size - 1
+                                meta.lore(
+                                        lore.filterIndexed { index, _ -> index !in pendingSectionStart until pendingSectionEnd }
+                                )
+                        }
+                }
+
                 if (pendingCount > 0) {
                         meta.setEnchantmentGlintOverride(true)
                 }

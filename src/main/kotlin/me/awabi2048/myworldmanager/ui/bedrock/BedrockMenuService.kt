@@ -747,6 +747,10 @@ class BedrockMenuService(
             }
 
             "open_pending_interactions" -> {
+                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
+                if (pendingCount == 0) {
+                    return
+                }
                 plugin.pendingInteractionGui.open(
                     player = player,
                     page = 0,
@@ -1236,6 +1240,16 @@ class BedrockMenuService(
                 )
             )
         )
+        if (pendingCount == 0) {
+            val lore = meta.lore()
+            if (!lore.isNullOrEmpty() && lore.size >= 5) {
+                val pendingSectionStart = lore.size - 5
+                val pendingSectionEnd = lore.size - 1
+                meta.lore(
+                    lore.filterIndexed { index, _ -> index !in pendingSectionStart until pendingSectionEnd }
+                )
+            }
+        }
         if (pendingCount > 0) {
             meta.setEnchantmentGlintOverride(true)
         }
