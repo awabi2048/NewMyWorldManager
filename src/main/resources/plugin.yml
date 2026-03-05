@@ -51,11 +51,15 @@ permissions:
     children:
       myworldmanager.citizen: true
       myworldmanager.admin.world_list: true
+      myworldmanager.force_add_member: true
   myworldmanager.admin.world_list:
     description: Allows access to admin world list menu (/mwm list)
     default: false
   myworldmanager.admin.bypass_world_limits:
     description: Bypass all MyWorld world count limits
+    default: false
+  myworldmanager.force_add_member:
+    description: Allows force adding members from member management
     default: false
   myworldmanager.citizen:
     description: Allows access to basic player commands

@@ -5,6 +5,8 @@ import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemoveSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
+import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
+import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferSource
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -143,7 +145,17 @@ class WorldSettingsListener : Listener {
                                                 "world_settings"
                                         )
 
-                                        if (openBedrockMemberInviteInputForm(player, worldData)) {
+                                        val forceAddMode =
+                                                PermissionManager.canForceAddMember(player) &&
+                                                        event.isShiftClick
+
+                                        if (
+                                                openBedrockMemberInviteInputForm(
+                                                        player,
+                                                        worldData,
+                                                        forceAddMode
+                                                )
+                                        ) {
                                                 return
                                         }
 
@@ -159,10 +171,21 @@ class WorldSettingsListener : Listener {
                                                 SettingsAction.MEMBER_INVITE,
                                                 isGui = true
                                         )
+                                        plugin.settingsSessionManager
+                                                .getSession(player)
+                                                ?.setMetadata(
+                                                        "member_invite_force_add_mode",
+                                                        forceAddMode
+                                                )
                                         player.closeInventory()
                                         Bukkit.getScheduler().runTask(
                                                 plugin,
-                                                Runnable { showMemberInviteDialog(player, worldData) }
+                                                Runnable {
+                                                        showMemberInviteDialog(
+                                                                player,
+                                                                forceAddMode
+                                                        )
+                                                }
                                         )
                                         return
                                 }
@@ -2487,7 +2510,11 @@ plugin.languageManager
                 )
         }
 
-        private fun openBedrockMemberInviteInputForm(player: Player, worldData: WorldData): Boolean {
+        private fun openBedrockMemberInviteInputForm(
+                player: Player,
+                worldData: WorldData,
+                forceAddMode: Boolean
+        ): Boolean {
                 if (!plugin.playerPlatformResolver.isBedrock(player)) {
                         return false
                 }
@@ -2510,7 +2537,7 @@ plugin.languageManager
                                 val latestWorld =
                                         plugin.worldConfigRepository.findByUuid(worldUuid)
                                                 ?: return@sendCustomInputForm
-                                applyMemberInvite(player, latestWorld, value)
+                                applyMemberInvite(player, latestWorld, value, forceAddMode)
                         },
                         onClosed = {
                                 if (!player.isOnline) {
@@ -2753,12 +2780,25 @@ plugin.languageManager
                 plugin.worldSettingsGui.openMemberManagement(player, worldData, 0, false)
         }
 
-        private fun applyMemberInvite(player: Player, worldData: WorldData, targetNameRaw: String) {
+        private fun applyMemberInvite(
+                player: Player,
+                worldData: WorldData,
+                targetNameRaw: String,
+                forceAddMode: Boolean = false
+        ) {
                 val lang = plugin.languageManager
                 val targetName = targetNameRaw.trim()
+                val useForceAddMode =
+                        forceAddMode && PermissionManager.canForceAddMember(player)
 
                 if (targetName.isEmpty()) {
-                        player.sendMessage(lang.getMessage(player, "messages.member_invite_input"))
+                        val inputMessageKey =
+                                if (useForceAddMode) {
+                                        "messages.member_force_add_input"
+                                } else {
+                                        "messages.member_invite_input"
+                                }
+                        player.sendMessage(lang.getMessage(player, inputMessageKey))
                         player.playSound(
                                 player.location,
                                 org.bukkit.Sound.ENTITY_VILLAGER_NO,
@@ -2827,6 +2867,76 @@ plugin.languageManager
                         return
                 }
 
+                if (useForceAddMode) {
+                        worldData.members.add(target.uniqueId)
+                        plugin.worldConfigRepository.save(worldData)
+                        Bukkit.getPluginManager().callEvent(
+                                MwmMemberAddedEvent(
+                                        worldUuid = worldData.uuid,
+                                        memberUuid = target.uniqueId,
+                                        memberName = target.name ?: targetName,
+                                        addedByUuid = player.uniqueId,
+                                        source = MwmMemberAddSource.FORCE_ADD
+                                )
+                        )
+
+                        if (target is Player && target.isOnline) {
+                                target.sendMessage(
+                                        lang.getMessage(
+                                                target,
+                                                "messages.member_force_added_self",
+                                                mapOf("world" to worldData.name)
+                                        )
+                                )
+                        }
+
+                        val targetDisplayName = target.name ?: targetName
+                        player.sendMessage(
+                                lang.getMessage(
+                                        player,
+                                        "messages.member_force_add_success",
+                                        mapOf(
+                                                "player" to targetDisplayName,
+                                                "world" to worldData.name
+                                        )
+                                )
+                        )
+
+                        val recipients = linkedSetOf<UUID>()
+                        recipients.add(worldData.owner)
+                        recipients.addAll(worldData.moderators)
+                        recipients.addAll(worldData.members)
+                        recipients.remove(target.uniqueId)
+
+                        recipients.forEach { memberUuid ->
+                                val memberPlayer = Bukkit.getPlayer(memberUuid) ?: return@forEach
+                                if (!memberPlayer.isOnline) {
+                                        return@forEach
+                                }
+                                memberPlayer.sendMessage(
+                                        lang.getMessage(
+                                                memberPlayer,
+                                                "messages.member_joined_notify",
+                                                mapOf(
+                                                        "player" to targetDisplayName,
+                                                        "world" to worldData.name
+                                                )
+                                        )
+                                )
+                        }
+
+                        plugin.macroManager.execute(
+                                "on_member_add",
+                                mapOf(
+                                        "world_uuid" to worldData.uuid.toString(),
+                                        "member" to targetDisplayName
+                                )
+                        )
+
+                        plugin.worldSettingsGui.open(player, worldData)
+                        return
+                }
+
                 val inviteText =
                         lang.getMessage(
                                 if (target is Player) target else player,
@@ -2870,46 +2980,40 @@ plugin.languageManager
         }
 
         private fun resolveInviteTarget(inputName: String): OfflinePlayer? {
-                Bukkit.getPlayerExact(inputName)?.let { return it }
+                val trimmedInput = inputName.trim()
+                if (trimmedInput.isEmpty()) {
+                        return null
+                }
 
                 val configuredPrefix =
                         plugin.config.getString("bedrock.player_name_prefix", "")?.trim().orEmpty()
-                if (configuredPrefix.isNotEmpty()) {
-                        if (!inputName.startsWith(configuredPrefix)) {
-                                Bukkit.getPlayerExact("$configuredPrefix$inputName")?.let { return it }
-                        } else {
-                                val withoutPrefix = inputName.removePrefix(configuredPrefix)
-                                if (withoutPrefix.isNotEmpty()) {
-                                        Bukkit.getPlayerExact(withoutPrefix)?.let { return it }
-                                }
-                        }
-                }
 
-                val lowerInput = inputName.lowercase(Locale.ROOT)
-                Bukkit.getOnlinePlayers().firstOrNull {
-                        it.name.lowercase(Locale.ROOT) == lowerInput
-                }?.let { return it }
-
-                val candidates = mutableListOf(inputName)
+                val candidates = linkedSetOf(trimmedInput)
                 if (configuredPrefix.isNotEmpty()) {
-                        if (!inputName.startsWith(configuredPrefix)) {
-                                candidates += "$configuredPrefix$inputName"
+                        if (!trimmedInput.startsWith(configuredPrefix)) {
+                                candidates += "$configuredPrefix$trimmedInput"
                         } else {
-                                val withoutPrefix = inputName.removePrefix(configuredPrefix)
+                                val withoutPrefix = trimmedInput.removePrefix(configuredPrefix)
                                 if (withoutPrefix.isNotEmpty()) {
                                         candidates += withoutPrefix
                                 }
                         }
                 }
 
-                for (candidate in candidates.distinct()) {
-                        val offline = Bukkit.getOfflinePlayer(candidate)
-                        if (offline.hasPlayedBefore()) {
-                                return offline
-                        }
+                for (candidate in candidates) {
+                        Bukkit.getPlayerExact(candidate)?.let { return it }
                 }
 
-                return null
+                val lowerCandidates = candidates.map { it.lowercase(Locale.ROOT) }.toSet()
+                Bukkit.getOnlinePlayers().firstOrNull {
+                        it.name.lowercase(Locale.ROOT) in lowerCandidates
+                }?.let { return it }
+
+                return Bukkit.getOfflinePlayers().firstOrNull { offline ->
+                        val name = offline.name ?: return@firstOrNull false
+                        name.lowercase(Locale.ROOT) in lowerCandidates &&
+                                (offline.hasPlayedBefore() || offline.isOnline)
+                }
         }
 
         private fun applyWorldInfoUpdate(
@@ -4086,7 +4190,10 @@ player.sendMessage(
                     plugin.settingsSessionManager.endSession(player)
                     return
                 }
-                applyMemberInvite(player, worldData, targetName)
+                val forceAddMode =
+                        (session.getMetadata("member_invite_force_add_mode") as? Boolean) ==
+                                true
+                applyMemberInvite(player, worldData, targetName, forceAddMode)
                 return
             }
 
@@ -4212,15 +4319,24 @@ player.sendMessage(
             player.showDialog(dialog)
         }
 
-        private fun showMemberInviteDialog(player: Player, worldData: WorldData) {
+        private fun showMemberInviteDialog(
+                player: Player,
+                forceAddMode: Boolean
+        ) {
              val lang = plugin.languageManager
+             val inviteInputMessageKey =
+                     if (forceAddMode) {
+                             "messages.member_force_add_input"
+                     } else {
+                             "messages.member_invite_input"
+                     }
              val dialog = Dialog.create { builder ->
                 builder.empty()
                     .base(
                         DialogBase.builder(Component.text(lang.getMessage(player, "gui.member_management.invite.name"), NamedTextColor.YELLOW))
                             .body(
                                 listOf(
-                                    DialogBody.plainMessage(Component.text(lang.getMessage(player, "messages.member_invite_input")))
+                                    DialogBody.plainMessage(Component.text(lang.getMessage(player, inviteInputMessageKey)))
                                 )
                             )
                             .inputs(

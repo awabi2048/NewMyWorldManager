@@ -718,6 +718,8 @@ gui:
     invite:
       name: §aInvite Member
       desc: §eClick and type name in chat
+      click_normal: §e§l| §eClick §7Run in normal mode
+      click_force: §e§l| §eShift+Click §7Run in force add mode
     remove_confirm:
       title: Confirm Removal
       lore:
@@ -1525,6 +1527,7 @@ messages:
   favorite_removed: §c Removed from favorites
   tag_max_reached: §cMax {limit} tags allowed.
   member_invite_input: §eType the player ID to invite.
+  member_force_add_input: §cForce add mode. Type the player ID to add immediately.
   visit_target_input: §eType the player ID to visit.
   visitworld_query_input: §eType a keyword for the world name you want to search.
   visitworld_query_empty: §cPlease enter a search keyword.
@@ -1542,6 +1545,8 @@ messages:
   invite_accepted_sender: §e{player} §faccepted your invite to world【§a{world}§f】.
   member_joined_notify: §a{player} §fjoined world【§a{world}§f】 as a member.
   invite_sent_success: §eSent invite to {player} for world "§a{world}§f"!
+  member_force_add_success: §aForce-added {player} to world "§a{world}§f".
+  member_force_added_self: §aYou were force-added as a member of world "§a{world}§a".
   invite_target_offline: §cPlayer {player} is not online.
   invite_no_available_targets: §cThere are currently no players available to invite.
   invite_queued_offline: §7{player} is offline. They will be notified on next login.

@@ -7,7 +7,8 @@ enum class MwmWarpReason {
 
 enum class MwmMemberAddSource {
     INVITE,
-    REQUEST_APPROVE
+    REQUEST_APPROVE,
+    FORCE_ADD
 }
 
 enum class MwmMemberRemoveSource {
