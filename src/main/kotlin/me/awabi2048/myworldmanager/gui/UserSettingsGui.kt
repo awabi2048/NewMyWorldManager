@@ -56,6 +56,19 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             lang.getMessageList(player, "gui.user_settings.language.lore", mapOf("language" to languageName)),
             ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE
         ))
+
+        // 3. Critical Settings Visibility
+        val criticalStatus = if (stats.criticalSettingsEnabled) {
+            lang.getMessage(player, "messages.status_visible")
+        } else {
+            lang.getMessage(player, "messages.status_hidden")
+        }
+        items.add(createItem(
+            Material.RECOVERY_COMPASS,
+            lang.getMessage(player, "gui.user_settings.critical_settings_visibility.display"),
+            lang.getMessageList(player, "gui.user_settings.critical_settings_visibility.lore", mapOf("status" to criticalStatus)),
+            ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY
+        ))
         
         // Calculate Size
         val itemsPerRow = 7

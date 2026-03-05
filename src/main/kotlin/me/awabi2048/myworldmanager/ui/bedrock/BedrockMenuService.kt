@@ -546,7 +546,15 @@ class BedrockMenuService(
             inventory.setItem(footerStart + 2, createCreationButtonItem(player))
         }
         inventory.setItem(footerStart + 4, createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint))
-        inventory.setItem(footerStart + 6, createCriticalVisibilityItem(player, stats.criticalSettingsEnabled))
+        inventory.setItem(
+            footerStart + 6,
+            createActionItem(
+                Material.WRITABLE_BOOK,
+                tr(player, "gui.user_settings.button.display"),
+                "open_settings",
+                lore = plugin.languageManager.getMessageList(player, "gui.user_settings.button.lore")
+            )
+        )
 
         if (showBackButton) {
             inventory.setItem(
@@ -698,8 +706,9 @@ class BedrockMenuService(
                         "gui.user_settings.language.lore",
                         mapOf("language" to languageName)
                     )
-            )
+                )
         )
+        inventory.setItem(12, createCriticalVisibilityItem(player, stats.criticalSettingsEnabled))
         if (showBackButton) {
             inventory.setItem(
                 22,
@@ -739,12 +748,7 @@ class BedrockMenuService(
                 player.sendMessage(tr(player, "messages.wizard_start"))
                 plugin.creationGui.openTypeSelection(player)
             }
-            "toggle_critical" -> {
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
-                plugin.playerStatsRepository.save(stats)
-                openPlayerWorld(player, holder.page, holder.showBackButton)
-            }
+            "open_settings" -> openSettings(player, holder.showBackButton, holder.page)
 
             "open_pending_interactions" -> {
                 val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
@@ -838,6 +842,12 @@ class BedrockMenuService(
 
             "cycle_language" -> {
                 cycleLanguage(stats)
+                plugin.playerStatsRepository.save(stats)
+                openSettings(player, holder.showBackButton, holder.returnPage)
+            }
+
+            "toggle_critical" -> {
+                stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
                 plugin.playerStatsRepository.save(stats)
                 openSettings(player, holder.showBackButton, holder.returnPage)
             }
