@@ -181,22 +181,7 @@ class MyWorldManager : JavaPlugin() {
         worldValidator = WorldValidator(this)
         soundManager = SoundManager(this)
 
-        // メニュー設定ファイルの初期化
-        val menusFolder = java.io.`File`(dataFolder, "menus")
-        if (!menusFolder.exists()) {
-            menusFolder.mkdirs()
-        }
-        listOf(
-                        "player_world",
-                        "creation",
-                        "world_settings",
-                        "visit",
-                        "favorite",
-                        "discovery",
-                        "portal",
-                        "admin_manage"
-                )
-                .forEach { menuId -> saveResourceIfNotExists("menus/$menuId.yml") }
+        // メニュー設定の初期化
         menuConfigManager = MenuConfigManager(this)
         menuConfigManager.initialize()
 
