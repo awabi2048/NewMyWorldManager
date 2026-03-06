@@ -9,7 +9,7 @@ import org.bukkit.entity.Player
 
 class FavoriteCommand(private val plugin: MyWorldManager) : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) {
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_FAVORITE)) {
             PermissionManager.sendNoPermissionMessage(sender)
             return true
         }

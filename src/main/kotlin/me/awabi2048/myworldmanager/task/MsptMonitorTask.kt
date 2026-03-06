@@ -91,14 +91,14 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
         // 登録ワールド名を取得（表示名）
         val registeredName = plugin.worldConfigRepository.findByWorldName(worldName)?.name ?: worldName
 
-        val clickableMessage = lang.getComponent(
-            null,
-            "messages.mspt_warning_chat",
-            mapOf("world" to registeredName, "mspt" to msptString)
-         ).clickEvent(ClickEvent.runCommand("/mwm_internal mspt-sort"))
-         .hoverEvent(HoverEvent.showText(Component.text("クリックしてMSPT順のワールド一覧を開く").color(NamedTextColor.GRAY)))
-
         Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { admin ->
+            val clickableMessage = lang.getComponent(
+                null,
+                "messages.mspt_warning_chat",
+                mapOf("world" to registeredName, "mspt" to msptString)
+            ).clickEvent(ClickEvent.runCommand(plugin.internalCommandTokenManager.buildCommand(admin, "mspt-sort")))
+             .hoverEvent(HoverEvent.showText(Component.text("クリックしてMSPT順のワールド一覧を開く").color(NamedTextColor.GRAY)))
+
             // クリック可能なチャットメッセージ
             admin.sendMessage(clickableMessage)
 

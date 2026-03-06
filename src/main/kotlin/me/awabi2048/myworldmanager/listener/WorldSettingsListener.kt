@@ -4183,6 +4183,8 @@ player.sendMessage(
                 val confirmHover = lang.getMessage(player, "messages.expand_confirm_hover")
                 val retryBtn = lang.getMessage(player, "messages.expand_retry_button")
                 val retryHover = lang.getMessage(player, "messages.expand_retry_hover")
+                val confirmCommand = plugin.internalCommandTokenManager.buildCommand(player, "expand_confirm")
+                val retryCommand = plugin.internalCommandTokenManager.buildCommand(player, "expand_retry")
 
                 val message = net.kyori.adventure.text.Component.text()
                         .append(net.kyori.adventure.text.Component.newline())
@@ -4191,11 +4193,11 @@ player.sendMessage(
                         .append(net.kyori.adventure.text.Component.newline())
                         .append(net.kyori.adventure.text.Component.text(confirmBtn)
                                 .hoverEvent(net.kyori.adventure.text.Component.text(confirmHover))
-                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal expand_confirm")))
+                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand(confirmCommand)))
                         .append(net.kyori.adventure.text.Component.text("   "))
                         .append(net.kyori.adventure.text.Component.text(retryBtn)
                                 .hoverEvent(net.kyori.adventure.text.Component.text(retryHover))
-                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/mwm_internal expand_retry")))
+                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand(retryCommand)))
                         .append(net.kyori.adventure.text.Component.newline())
                         .build()
 
@@ -4208,13 +4210,26 @@ player.sendMessage(
                 val message = event.message
                 if (!message.startsWith("/mwm_internal ")) return
 
-                val args = message.substring("/mwm_internal ".length).split(" ")
-                if (args.isEmpty()) return
+                val args = message.substring("/mwm_internal ".length).trim().split(Regex("\\s+"))
+                if (args.isEmpty() || args[0].isBlank()) return
 
                 event.isCancelled = true
                 val lang = plugin.languageManager
+                if (args.size < 2) {
+                        PermissionManager.sendNoPermissionMessage(player)
+                        return
+                }
 
-                when (args[0]) {
+                val action = args[0]
+                val token = args[1]
+                val payloadArgs = args.drop(2)
+
+                if (!plugin.internalCommandTokenManager.consume(player, action, token, payloadArgs)) {
+                        PermissionManager.sendNoPermissionMessage(player)
+                        return
+                }
+
+                when (action) {
                         "expand_confirm" -> {
                                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                                 if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
@@ -4291,10 +4306,10 @@ player.sendMessage(
                                 )
                         }
                         "memberrequest" -> {
-                                if (args.size < 3) return
-                                val key = args[1]
-                                val action = args[2] // "approve" or "reject"
-                                plugin.memberRequestManager.handleInternalCommand(player, key, action)
+                                if (payloadArgs.size < 2) return
+                                val key = payloadArgs[0]
+                                val requestAction = payloadArgs[1]
+                                plugin.memberRequestManager.handleInternalCommand(player, key, requestAction)
                         }
                 }
         }

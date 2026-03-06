@@ -17,7 +17,7 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) {
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MEET)) {
             PermissionManager.sendNoPermissionMessage(sender)
             return true
         }

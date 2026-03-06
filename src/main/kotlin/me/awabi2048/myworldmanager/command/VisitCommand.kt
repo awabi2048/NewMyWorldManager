@@ -31,7 +31,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         val lang = plugin.languageManager
-        if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) {
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_VISIT)) {
             PermissionManager.sendNoPermissionMessage(sender)
             return true
         }
@@ -191,7 +191,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
     }
 
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
-        if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) return emptyList()
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_VISIT)) return emptyList()
         if (sender !is Player) return emptyList()
         
         if (args.size == 1) {

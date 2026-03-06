@@ -9,6 +9,22 @@ object PermissionManager {
     const val ADMIN_BYPASS_WORLD_LIMITS = "myworldmanager.admin.bypass_world_limits"
     const val FORCE_ADD_MEMBER = "myworldmanager.force_add_member"
     const val CITIZEN = "myworldmanager.citizen"
+    const val COMMAND_DISCOVERY = "myworldmanager.command.discovery"
+    const val COMMAND_FAVORITE = "myworldmanager.command.favorite"
+    const val COMMAND_FINDWORLD = "myworldmanager.command.findworld"
+    const val COMMAND_INVITE = "myworldmanager.command.invite"
+    const val COMMAND_MEET = "myworldmanager.command.meet"
+    const val COMMAND_MYWORLD = "myworldmanager.command.myworld"
+    const val COMMAND_SETTINGS = "myworldmanager.command.settings"
+    const val COMMAND_VISIT = "myworldmanager.command.visit"
+    const val COMMAND_WORLDMENU = "myworldmanager.command.worldmenu"
+    const val COMMAND_MWM = "myworldmanager.command.mwm"
+    const val COMMAND_MWM_CREATE = "myworldmanager.command.mwm.create"
+    const val COMMAND_MWM_RELOAD = "myworldmanager.command.mwm.reload"
+    const val COMMAND_MWM_STATS = "myworldmanager.command.mwm.stats"
+    const val COMMAND_MWM_GIVE = "myworldmanager.command.mwm.give"
+    const val COMMAND_MWM_LIST = "myworldmanager.command.mwm.list"
+    const val COMMAND_MWM_INTERNAL = "myworldmanager.command.mwm_internal"
     const val TEST = "craftercrossing.test"
 
     /**
@@ -46,5 +62,9 @@ object PermissionManager {
 
     fun canForceAddMember(sender: CommandSender): Boolean {
         return checkPermission(sender, FORCE_ADD_MEMBER)
+    }
+
+    fun checkAnyPermission(sender: CommandSender, vararg permissions: String): Boolean {
+        return permissions.any { checkPermission(sender, it) }
     }
 }

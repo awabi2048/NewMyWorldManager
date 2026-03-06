@@ -32,9 +32,10 @@ class WorldCommand(
     ): Boolean {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val subCommand = args.firstOrNull()?.lowercase()
+        val hasGlobalPermission = PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM)
 
         if (args.isEmpty()) {
-            if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+            if (!hasGlobalPermission) {
                 PermissionManager.sendNoPermissionMessage(sender)
                 return true
             }
@@ -47,7 +48,7 @@ class WorldCommand(
         }
 
         if (subCommand == "list") {
-            if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN_WORLD_LIST)) {
+            if (!hasGlobalPermission && !PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)) {
                 PermissionManager.sendNoPermissionMessage(sender)
                 return true
             }
@@ -59,7 +60,7 @@ class WorldCommand(
             return true
         }
 
-        if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+        if (!hasGlobalPermission && !hasSubcommandPermission(sender, subCommand)) {
             PermissionManager.sendNoPermissionMessage(sender)
             return true
         }
@@ -67,7 +68,7 @@ class WorldCommand(
         when (args[0].lowercase()) {
             "create" -> {
                 val lang = plugin.languageManager
-                if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+                if (!hasGlobalPermission && !PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)) {
                     PermissionManager.sendNoPermissionMessage(sender)
                     return true
                 }
@@ -150,7 +151,7 @@ class WorldCommand(
             }
             "reload" -> {
                 val lang = plugin.languageManager
-                if (!PermissionManager.checkPermission(sender, PermissionManager.ADMIN)) {
+                if (!hasGlobalPermission && !PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)) {
                     PermissionManager.sendNoPermissionMessage(sender)
                     return true
                 }
@@ -173,7 +174,8 @@ class WorldCommand(
             "stats" -> {
                 val lang = plugin.languageManager
                 if (sender !is org.bukkit.command.ConsoleCommandSender &&
-                                !PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
+                                !hasGlobalPermission &&
+                                !PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
                 ) {
                     PermissionManager.sendNoPermissionMessage(sender)
                     return true
@@ -363,7 +365,8 @@ class WorldCommand(
             "give" -> {
                 val lang = plugin.languageManager
                 if (sender !is org.bukkit.command.ConsoleCommandSender &&
-                                !PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
+                                !hasGlobalPermission &&
+                                !PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
                 ) {
                     PermissionManager.sendNoPermissionMessage(sender)
                     return true
@@ -511,56 +514,59 @@ class WorldCommand(
             args: Array<out String>
     ): List<String> {
         val list = mutableListOf<String>()
-        val hasAdmin = PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
+        val hasGlobalPermission = PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM)
+        val hasCreatePermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
+        val hasReloadPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
+        val hasStatsPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
+        val hasGivePermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
         val hasWorldListPermission =
-                PermissionManager.checkPermission(sender, PermissionManager.ADMIN_WORLD_LIST)
-        if (!hasAdmin && !hasWorldListPermission) return emptyList()
+                hasGlobalPermission || PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
+        if (!hasGlobalPermission && !hasCreatePermission && !hasReloadPermission && !hasStatsPermission && !hasGivePermission && !hasWorldListPermission) return emptyList()
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
 
         when (args.size) {
             1 -> {
-                if (hasAdmin) {
-                    list.addAll(listOf("create", "reload", "stats", "give"))
-                    if (sender is org.bukkit.command.ConsoleCommandSender) {
-                        list.add("update-day")
-                        list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))
-                    }
+                if (hasCreatePermission) {
+                    list.add("create")
+                }
+                if (hasReloadPermission) {
+                    list.add("reload")
+                }
+                if (hasStatsPermission) {
+                    list.add("stats")
+                }
+                if (hasGivePermission) {
+                    list.add("give")
+                }
+                if (hasGlobalPermission && sender is org.bukkit.command.ConsoleCommandSender) {
+                    list.add("update-day")
+                    list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))
                 }
                 if (hasWorldListPermission) {
                     list.add("list")
                 }
             }
             2 -> {
-                if (!hasAdmin) return emptyList()
                 val sub = args[0].lowercase()
-                if (sub == "stats" || sub == "give" || sub == "create") {
+                if ((sub == "stats" && hasStatsPermission) ||
+                    (sub == "give" && hasGivePermission) ||
+                    (sub == "create" && hasCreatePermission)
+                ) {
                     list.addAll(Bukkit.getOnlinePlayers().map { it.name })
-                } else if (sub == "portals") {
-                    list.add("bind")
-                } else if (sub == "export") {
-                    val worlds: List<WorldData> = plugin.worldConfigRepository.findAll()
-                    list.addAll(worlds.map { it.uuid.toString() })
-                } else if (sub.equals("migrate-worlds", ignoreCase = true)) {
+                } else if (sub.equals("migrate-worlds", ignoreCase = true) && hasGlobalPermission) {
                     list.add("-data")
                 }
             }
             3 -> {
-                if (!hasAdmin) return emptyList()
                 val sub = args[0].lowercase()
-                if (sub == "stats") {
+                if (sub == "stats" && hasStatsPermission) {
                     list.addAll(listOf("points", "warp-slots", "world-slots"))
-                } else if (sub == "give") {
+                } else if (sub == "give" && hasGivePermission) {
                     list.addAll(CustomItem.values().map { it.id })
-                } else if (sub == "portals" && args[1].lowercase() == "bind") {
-                    val targets =
-                            plugin.config.getConfigurationSection("portal_targets")?.getKeys(false)
-                                    ?: emptySet()
-                    list.addAll(targets)
                 }
             }
             4 -> {
-                if (!hasAdmin) return emptyList()
-                if (args[0].lowercase() == "stats") {
+                if (args[0].lowercase() == "stats" && hasStatsPermission) {
                     list.addAll(listOf("get", "set", "add", "remove"))
                 }
             }
@@ -731,6 +737,17 @@ class WorldCommand(
         }
         sender.sendMessage(lang.getMessage("messages.migration_success", mapOf("count" to count)))
         plugin.worldConfigRepository.loadAll()
+    }
+
+    private fun hasSubcommandPermission(sender: CommandSender, subCommand: String?): Boolean {
+        return when (subCommand) {
+            "create" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
+            "reload" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
+            "stats" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
+            "give" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
+            "list" -> PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
+            else -> false
+        }
     }
 
     private fun processArchiveQueue(sender: CommandSender, targets: List<WorldData>, index: Int) {

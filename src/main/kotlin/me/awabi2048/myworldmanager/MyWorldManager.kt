@@ -82,6 +82,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var bedrockUiRoutingService: BedrockUiRoutingService
     lateinit var bedrockMenuService: BedrockMenuService
     lateinit var menuEntryRouter: MenuEntryRouter
+    lateinit var internalCommandTokenManager: InternalCommandTokenManager
 
     override fun onEnable() {
         // Serializationの登録
@@ -195,6 +196,10 @@ class MyWorldManager : JavaPlugin() {
         bedrockMenuService =
                 BedrockMenuService(this, bedrockUiRoutingService, floodgateFormBridge)
         menuEntryRouter = MenuEntryRouter(this, playerPlatformResolver, bedrockMenuService)
+        internalCommandTokenManager = InternalCommandTokenManager(this)
+        server.scheduler.runTaskTimer(this, Runnable {
+            internalCommandTokenManager.cleanupExpired()
+        }, 20L, 20L)
 
         inviteCommand = InviteCommand(this)
 
@@ -251,7 +256,7 @@ class MyWorldManager : JavaPlugin() {
             server.pluginManager.registerEvents(visitCmd, this)
         }
 
-        getCommand("visitworld")?.let {
+        getCommand("findworld")?.let {
             val visitWorldCmd = VisitWorldCommand(this)
             it.setExecutor(visitWorldCmd)
             it.setTabCompleter(visitWorldCmd)
@@ -297,6 +302,9 @@ class MyWorldManager : JavaPlugin() {
     override fun onDisable() {
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
+        }
+        if (::internalCommandTokenManager.isInitialized) {
+            internalCommandTokenManager.clearAll()
         }
 
         LogUtil.logWithSeparator(

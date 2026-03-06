@@ -26,7 +26,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
     private val pendingInvites = ConcurrentHashMap<UUID, InviteInfo>()
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) {
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_INVITE)) {
             PermissionManager.sendNoPermissionMessage(sender)
             return true
         }
@@ -107,7 +107,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
                 .append(Component.newline())
                 .append(Component.text(clickText, NamedTextColor.AQUA)
                     .decoration(TextDecoration.UNDERLINED, true)
-                     .clickEvent(ClickEvent.runCommand("/mwm_internal inviteaccept"))
+                    .clickEvent(ClickEvent.runCommand(plugin.internalCommandTokenManager.buildCommand(target, "inviteaccept")))
                     .hoverEvent(HoverEvent.showText(Component.text(hoverText))))
                 .build()
 
@@ -139,7 +139,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
     }
 
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String>? {
-        if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) return emptyList()
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_INVITE)) return emptyList()
         if (args.size == 1) {
             val search = args[0].lowercase()
             return Bukkit.getOnlinePlayers()

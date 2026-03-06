@@ -23,7 +23,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         label: String,
         args: Array<out String>
     ): Boolean {
-        if (!PermissionManager.checkPermission(sender, PermissionManager.CITIZEN)) {
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MYWORLD)) {
             PermissionManager.sendNoPermissionMessage(sender)
             return true
         }
@@ -101,6 +101,9 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         alias: String,
         args: Array<out String>
     ): List<String> {
+        if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MYWORLD)) {
+            return emptyList()
+        }
         if (sender !is Player) {
             return emptyList()
         }

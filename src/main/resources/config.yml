@@ -57,6 +57,9 @@ expansion:
 invite:
   timeout_seconds: 60
 
+chat_click:
+  timeout_seconds: 60
+
 # ワールド作成セッションのタイムアウト設定（秒）
 creation_session:
   timeout_seconds: 300
