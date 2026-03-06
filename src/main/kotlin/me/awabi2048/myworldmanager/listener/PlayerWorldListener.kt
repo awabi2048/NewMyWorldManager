@@ -13,6 +13,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -297,6 +298,17 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     plugin.soundManager.playClickSound(player, currentItem)
                     stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
                     plugin.playerStatsRepository.save(stats)
+                    plugin.userSettingsGui.open(player)
+                }
+                ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION -> {
+                    plugin.soundManager.playClickSound(player, currentItem)
+                    stats.tourNavigationMode = when (stats.tourNavigationMode) {
+                        TourNavigationMode.BOSSBAR_ONLY -> TourNavigationMode.ALL
+                        TourNavigationMode.ALL -> TourNavigationMode.NONE
+                        TourNavigationMode.NONE -> TourNavigationMode.BOSSBAR_ONLY
+                    }
+                    plugin.playerStatsRepository.save(stats)
+                    plugin.tourManager.refreshNavigation(player)
                     plugin.userSettingsGui.open(player)
                 }
 

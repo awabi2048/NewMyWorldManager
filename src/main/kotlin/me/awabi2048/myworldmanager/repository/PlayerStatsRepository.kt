@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.repository
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PlayerStats
+import me.awabi2048.myworldmanager.model.TourNavigationMode
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.UUID
@@ -63,6 +64,12 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         val loadedWorldDisplayOrder = config.getStringList("world_display_order")
             .mapNotNull { try { UUID.fromString(it) } catch (e: Exception) { null } }
 
+        val loadedTourSlotsByWorld = config.getConfigurationSection("tour_slots_by_world")?.let { section ->
+            section.getKeys(false).mapNotNull { key ->
+                runCatching { UUID.fromString(key) to section.getInt(key, 7) }.getOrNull()
+            }.toMap().toMutableMap()
+        } ?: mutableMapOf()
+
         // 存在しないワールドのUUIDを除去する（自動クリーンアップ）
         val existingRegisteredWarp = loadedRegisteredWarp.filter { uuid ->
             plugin.worldConfigRepository.findByUuid(uuid) != null
@@ -94,7 +101,11 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
                 if (config.getBoolean("meet_enabled", true)) "JOIN_ME" else "BUSY"
             },
             betaFeaturesEnabled = config.getBoolean("beta_features_enabled", false),
-            worldDisplayOrder = existingWorldDisplayOrder
+            worldDisplayOrder = existingWorldDisplayOrder,
+            tourSlotsByWorld = loadedTourSlotsByWorld,
+            tourNavigationMode = runCatching {
+                TourNavigationMode.valueOf(config.getString("tour_navigation_mode", TourNavigationMode.ALL.name)!!)
+            }.getOrDefault(TourNavigationMode.ALL)
         )
 
         // 変更があった場合は保存する
@@ -131,6 +142,12 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         config.set("critical_settings_enabled", stats.criticalSettingsEnabled)
         config.set("meet_status", stats.meetStatus)
         config.set("beta_features_enabled", stats.betaFeaturesEnabled)
+        config.set("tour_navigation_mode", stats.tourNavigationMode.name)
+
+        val tourSlotsSection = config.createSection("tour_slots_by_world")
+        stats.tourSlotsByWorld.forEach { (uuid, count) ->
+            tourSlotsSection.set(uuid.toString(), count)
+        }
 
         try {
             config.save(file)

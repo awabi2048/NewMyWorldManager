@@ -16,6 +16,7 @@ object PermissionManager {
     const val COMMAND_MEET = "myworldmanager.command.meet"
     const val COMMAND_MYWORLD = "myworldmanager.command.myworld"
     const val COMMAND_SETTINGS = "myworldmanager.command.settings"
+    const val COMMAND_TOUR = "myworldmanager.command.tour"
     const val COMMAND_VISIT = "myworldmanager.command.visit"
     const val COMMAND_WORLDMENU = "myworldmanager.command.worldmenu"
     const val COMMAND_MWM = "myworldmanager.command.mwm"

@@ -68,6 +68,17 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             lang.getMessageList(player, "gui.user_settings.critical_settings_visibility.lore", mapOf("status" to criticalStatus)),
             ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY
         ))
+
+        items.add(createItem(
+            Material.COMPASS,
+            lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
+            lang.getMessageList(
+                player,
+                "gui.user_settings.tour_navigation.lore",
+                mapOf("status" to lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${stats.tourNavigationMode.name.lowercase()}"))
+            ),
+            ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
+        ))
         
         // Calculate Size
         val itemsPerRow = 7

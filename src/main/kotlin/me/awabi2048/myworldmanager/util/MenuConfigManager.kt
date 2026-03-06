@@ -213,6 +213,19 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                                                     "back" to icon(Material.ARROW, Sound.UI_BUTTON_CLICK, 2.0f)
                                             )
                             ),
+                    "tour" to
+                            menuConfig(
+                                    openSound = Sound.BLOCK_CHEST_OPEN,
+                                    icons = mapOf(
+                                            "back" to icon(Material.REDSTONE, Sound.UI_BUTTON_CLICK, 2.0f),
+                                            "create" to icon(Material.NETHER_STAR, Sound.UI_BUTTON_CLICK, 2.0f),
+                                            "world" to icon(Material.GRASS_BLOCK, Sound.UI_BUTTON_CLICK, 1.5f),
+                                            "info" to icon(Material.REDSTONE_TORCH, Sound.UI_BUTTON_CLICK, 2.0f),
+                                            "tour" to icon(Material.WHITE_CARPET, Sound.UI_BUTTON_CLICK, 2.0f),
+                                            "sign" to icon(Material.OAK_SIGN, Sound.UI_BUTTON_CLICK, 2.0f),
+                                            "save" to icon(Material.LAVA_BUCKET, Sound.UI_BUTTON_CLICK, 1.5f)
+                                    )
+                            ),
                     "visit" to
                             menuConfig(
                                     openSound = Sound.BLOCK_CHEST_OPEN,

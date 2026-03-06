@@ -87,6 +87,9 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
 
             // アナウンスメッセージ送信
             plugin.worldService.sendAnnouncementMessage(player, worldData)
+            if (plugin.tourManager.hasValidTour(worldData)) {
+                plugin.tourManager.sendArrivalMessage(player, worldData)
+            }
 
             // 所有者への通知
             if (worldData.notificationEnabled) {

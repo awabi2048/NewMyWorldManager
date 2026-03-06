@@ -1416,6 +1416,14 @@ class WorldSettingsListener : Listener {
                                                 plugin.worldConfigRepository.save(worldData)
                                                 plugin.worldSettingsGui.open(player, worldData)
                                         }
+                                        ItemTag.TYPE_GUI_SETTING_TOUR -> {
+                                                plugin.soundManager.playClickSound(
+                                                        player,
+                                                        clickedItem,
+                                                        "world_settings"
+                                                )
+                                                plugin.tourGui.openEditMenu(player, worldData)
+                                        }
                                         ItemTag.TYPE_GUI_SETTING_CRITICAL -> {
                                                 plugin.soundManager.playClickSound(
                                                         player,

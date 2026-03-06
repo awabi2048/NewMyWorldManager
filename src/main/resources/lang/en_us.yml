@@ -1508,6 +1508,21 @@ gui:
       - ''
       - §e§nClick to toggle
       - §8§m－－－－－－－－－－－－－－－－－－
+    tour_navigation:
+      display: §bWorld tour navigation
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Switch how world tour navigation is shown.
+      - §7Messages are always displayed.
+      - ''
+      - §f§l| §7Current mode §b{status}
+      - ''
+      - §e§nClick to switch
+      - §8§m－－－－－－－－－－－－－－－－－－
+      mode:
+        bossbar_only: Bossbar only
+        all: All
+        none: None
     beta_features:
       display: §e Beta features (experimental features)
       lore:
@@ -1551,6 +1566,33 @@ gui:
     unlike_confirm:
       title: Cancel Like
       description: §cCancel Like?
+  tour_sign:
+    placement:
+      title: Place Tour Sign
+      description: §7Enter the Tour sign settings
+    edit_text:
+      title: Edit Tour Sign Display
+      description: §7Enter the sign name and description
+    input:
+      title: Sign Name
+      description: Description
+    button:
+      place: Place
+      cancel: Cancel
+  tour:
+    worldmenu:
+      display: §bWorld Tour
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Create and edit tours.
+      - §e§nClick to open
+      - §8§m－－－－－－－－－－－－－－－－－－
+    edit_text:
+      title: Edit Tour Display
+      description: §7Enter the tour name and description
+    input:
+      name: Tour Name
+      description: Description
 messages:
   world_name_prompt: §ePlease type the world name in chat.
   chat_input_cancel_hint: §7(Type §e{word} §7in chat to cancel)
@@ -1661,6 +1703,18 @@ messages:
     deleted: §cLike sign has been deleted.
     liked: §c❤ §aLiked!
     unliked: §cLike canceled.
+  tour_sign:
+    placed: §aPlaced a Tour sign!
+  tour:
+    available: §eTours are available in this world. §bClick to open
+    none_available: §7There are no available tours in this world right now.
+    started: §aStarted tour "{tour}"!
+    next_marker: '§eNext destination: §b{marker} §7(Tour: {tour})'
+    completed: §aCompleted tour "{tour}"!
+    stopped: §eTour stopped.
+    stopped_world_change: §eYou left the world, so the active tour was stopped.
+    cancelled_edited: §eThe active tour was cancelled because its route was updated.
+    cancelled_deleted: §eThe active tour was cancelled because it was deleted.
   expand_direction_prompt: §aLeft-click while facing the direction (NW, NE, SW, SE) you want to expand.
   expand_direction_prompt_bedrock: §aClick while facing the direction (NW, NE, SW, SE) you want to expand.
   expand_direction_selected: '§aDirection selected: {direction}'
@@ -1846,14 +1900,14 @@ custom_item:
     - §8§m－－－－－－－－－－－－－－－－－－
     - §e§l| §eUsed by right click
     - §8§m－－－－－－－－－－－－－－－－－－
-  like_sign:
-    name: §3Like sign
+  tour_sign:
+    name: §bTour Sign
     lore:
     - §8§m－－－－－－－－－－－－－－－－－－
-    - §7This is a signboard where visitors can press §c❤§7!
-    - §7 Can be installed in My World.
+    - §7A sign used as a world tour marker.
+    - §7Can be placed in your MyWorld.
     - §8§m－－－－－－－－－－－－－－－－－－
-    - §e§l| §eRight click to install
+    - §e§l| §eRight-click to place
     - §8§m－－－－－－－－－－－－－－－－－－
 biomes:
   plains: Plains
@@ -1968,3 +2022,9 @@ error:
     limit_reached: §cThere are already 10 Like signs installed in this world.
     title_required: §c Please enter a title.
     cooldown: §c Please wait a while and try again.
+  tour:
+    my_world_only: §cTour signs can only be placed in MyWorlds.
+    no_permission: §cYou do not have permission to edit this world.
+    title_required: §cPlease enter a name.
+    not_managed_world: §cThis is not a managed MyWorld.
+    not_enough_signs: §cAt least 2 Tour signs are required to save a tour.

@@ -20,7 +20,8 @@ object ItemTag {
     const val TYPE_BOTTLED_BIOME_AIR = "bottled_biome_air"
     const val TYPE_MOON_STONE = "moon_stone"
     const val TYPE_WORLD_SEED = "world_seed"
-    const val TYPE_LIKE_SIGN = "like_sign"
+    const val TYPE_TOUR_SIGN = "tour_sign"
+    const val TYPE_LIKE_SIGN = TYPE_TOUR_SIGN
 
     const val TYPE_GUI_NAV_PREV = "gui_nav_prev"
     const val TYPE_GUI_NAV_NEXT = "gui_nav_next"
@@ -64,6 +65,7 @@ object ItemTag {
     const val TYPE_GUI_USER_SETTING_NOTIFICATION = "gui_user_setting_notification"
     const val TYPE_GUI_USER_SETTING_LANGUAGE = "gui_user_setting_language"
     const val TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY = "gui_user_setting_critical_visibility"
+    const val TYPE_GUI_USER_SETTING_TOUR_NAVIGATION = "gui_user_setting_tour_navigation"
     const val TYPE_GUI_USER_SETTING_BETA_FEATURES = "gui_user_setting_beta_features"
     const val TYPE_GUI_USER_SETTING_MEET_ENABLED = "gui_user_setting_meet_enabled"
     const val TYPE_GUI_RETURN = "gui_return"
@@ -87,6 +89,17 @@ object ItemTag {
     const val TYPE_GUI_FAVORITE_LIST = "gui_favorite_list"
     const val TYPE_GUI_FAVORITE_TAG = "gui_favorite_tag"
     const val TYPE_GUI_MEMBER_REQUEST_CONFIRM = "gui_member_request_confirm"
+    const val TYPE_GUI_TOUR_ITEM = "gui_tour_item"
+    const val TYPE_GUI_TOUR_CURRENT_WORLD = "gui_tour_current_world"
+    const val TYPE_GUI_TOUR_CREATE = "gui_tour_create"
+    const val TYPE_GUI_TOUR_INFO = "gui_tour_info"
+    const val TYPE_GUI_TOUR_BACK = "gui_tour_back"
+    const val TYPE_GUI_TOUR_SAVE = "gui_tour_save"
+    const val TYPE_GUI_TOUR_DELETE = "gui_tour_delete"
+    const val TYPE_GUI_TOUR_EDIT_TEXT = "gui_tour_edit_text"
+    const val TYPE_GUI_TOUR_SIGN_ITEM = "gui_tour_sign_item"
+    const val TYPE_GUI_TOUR_ADD_SIGN = "gui_tour_add_sign"
+    const val TYPE_GUI_SETTING_TOUR = "gui_setting_tour"
     
     // 管理者GUIフィルター/ソート用タグ
     const val TYPE_GUI_ADMIN_FILTER_ARCHIVE = "gui_admin_filter_archive"

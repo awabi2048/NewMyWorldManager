@@ -104,6 +104,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val bottomRowStartSlot = inventorySize - 9
                 val backButtonSlot = if (isMemberLayout) 36 else 45
                 val worldInfoSlot = if (isMemberLayout) 22 else 49
+                val tourSettingSlot = if (isMemberLayout) 42 else 47
 
                 val infoSettingSlot = if (useModeratorCenteredLayout) 21 else 19
                 val iconSettingSlot = if (useModeratorCenteredLayout) 22 else 20
@@ -125,10 +126,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (currentShowBack) {
                         inventory.setItem(
                                 backButtonSlot,
-                                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
-                                        plugin,
-                                        player,
-                                        "world_settings"
+                                createItem(Material.REDSTONE, "§7戻る", listOf("§eクリックで戻る"), ItemTag.TYPE_GUI_RETURN)
+                        )
+                }
+
+                if (hasManagePermission && !isMemberLayout) {
+                        inventory.setItem(
+                                tourSettingSlot,
+                                createItem(
+                                        Material.PALE_OAK_BOAT,
+                                        lang.getMessage(player, "gui.tour.worldmenu.display"),
+                                        lang.getMessageList(player, "gui.tour.worldmenu.lore"),
+                                        ItemTag.TYPE_GUI_SETTING_TOUR
                                 )
                         )
                 }

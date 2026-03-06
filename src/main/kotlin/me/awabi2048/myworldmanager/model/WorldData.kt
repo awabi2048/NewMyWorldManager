@@ -40,7 +40,8 @@ data class WorldData(
     var fixedWeather: String? = null,
     var fixedBiome: String? = null,
     val partialBiomes: MutableList<PartialBiomeData> = mutableListOf(),
-    val likeSigns: MutableList<LikeSignData> = mutableListOf()
+    val tourSigns: MutableList<TourSignData> = mutableListOf(),
+    val tours: MutableList<TourData> = mutableListOf()
 ) : ConfigurationSerializable {
 
     override fun serialize(): Map<String, Any?> {
@@ -75,7 +76,8 @@ data class WorldData(
             "fixed_weather" to fixedWeather,
             "fixed_biome" to fixedBiome,
             "partial_biomes" to partialBiomes.map { mapOf("x" to it.x, "z" to it.z, "radius" to it.radius, "biome" to it.biome) },
-            "like_signs" to likeSigns.map { it.serialize() }
+            "tour_signs" to tourSigns.map { it.serialize() },
+            "tours" to tours.map { it.serialize() }
         )
     }
 
@@ -150,11 +152,21 @@ data class WorldData(
                     val biome = map["biome"] as? String ?: return@mapNotNull null
                     PartialBiomeData(x, z, radius, biome)
                 }?.toMutableList() ?: mutableListOf(),
-                likeSigns = (args["like_signs"] as? List<*>)?.mapNotNull {
+                tourSigns = (args["tour_signs"] as? List<*>)?.mapNotNull {
                     try {
                         @Suppress("UNCHECKED_CAST")
-                        LikeSignData.deserialize(it as Map<String, Any>)
-                    } catch (e: Exception) { null }
+                        TourSignData.deserialize(it as Map<String, Any>)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }?.toMutableList() ?: mutableListOf(),
+                tours = (args["tours"] as? List<*>)?.mapNotNull {
+                    try {
+                        @Suppress("UNCHECKED_CAST")
+                        TourData.deserialize(it as Map<String, Any>)
+                    } catch (e: Exception) {
+                        null
+                    }
                 }?.toMutableList() ?: mutableListOf()
             )
         }

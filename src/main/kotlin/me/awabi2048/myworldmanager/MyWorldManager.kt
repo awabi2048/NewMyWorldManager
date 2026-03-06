@@ -4,6 +4,8 @@ import me.awabi2048.myworldmanager.command.*
 import me.awabi2048.myworldmanager.gui.*
 import me.awabi2048.myworldmanager.listener.*
 import me.awabi2048.myworldmanager.model.LikeSignData
+import me.awabi2048.myworldmanager.model.TourData
+import me.awabi2048.myworldmanager.model.TourSignData
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.service.*
@@ -77,17 +79,22 @@ class MyWorldManager : JavaPlugin() {
     lateinit var msptMonitorTask: me.awabi2048.myworldmanager.task.MsptMonitorTask
     lateinit var inviteCommand: me.awabi2048.myworldmanager.command.InviteCommand
     lateinit var likeSignManager: me.awabi2048.myworldmanager.service.LikeSignManager
+    lateinit var tourManager: me.awabi2048.myworldmanager.service.TourManager
+    lateinit var tourSessionManager: TourSessionManager
     lateinit var playerPlatformResolver: PlayerPlatformResolver
     lateinit var floodgateFormBridge: FloodgateFormBridge
     lateinit var bedrockUiRoutingService: BedrockUiRoutingService
     lateinit var bedrockMenuService: BedrockMenuService
     lateinit var menuEntryRouter: MenuEntryRouter
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
+    lateinit var tourGui: TourGui
 
     override fun onEnable() {
         // Serializationの登録
         ConfigurationSerialization.registerClass(WorldData::class.java)
         ConfigurationSerialization.registerClass(LikeSignData::class.java)
+        ConfigurationSerialization.registerClass(TourSignData::class.java)
+        ConfigurationSerialization.registerClass(TourData::class.java)
 
         // 設定用フォルダの作成
         if (!dataFolder.exists()) {
@@ -134,6 +141,7 @@ class MyWorldManager : JavaPlugin() {
         worldUnloadService = WorldUnloadService(this)
         worldUnloadService.start()
         likeSignManager = LikeSignManager(this)
+        tourManager = TourManager(this)
 
         // MSPT監視タスクの開始
         msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
@@ -164,10 +172,12 @@ class MyWorldManager : JavaPlugin() {
         memberRequestConfirmGui = MemberRequestConfirmGui(this)
         memberRequestOwnerConfirmGui = MemberRequestOwnerConfirmGui(this)
         worldSeedConfirmGui = WorldSeedConfirmGui(this)
+        tourGui = TourGui(this)
 
         creationSessionManager = CreationSessionManager(this)
         inviteSessionManager = InviteSessionManager()
         macroManager = MacroManager(this)
+        tourSessionManager = TourSessionManager()
         // MemberInviteManagerの初期化に依存関係を渡す
         memberInviteManager = MemberInviteManager(this, worldConfigRepository, macroManager)
         memberRequestManager = MemberRequestManager(this)
@@ -237,8 +247,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)
         server.pluginManager.registerEvents(AnnouncementDialogManager(), this)
-        server.pluginManager.registerEvents(LikeSignListener(this), this)
-        server.pluginManager.registerEvents(LikeSignDialogManager(), this)
+        server.pluginManager.registerEvents(TourListener(this), this)
+        server.pluginManager.registerEvents(TourDialogManager(), this)
         server.pluginManager.registerEvents(BedrockInventoryListener(this), this)
 
         // コマンドの登録
@@ -275,6 +285,7 @@ class MyWorldManager : JavaPlugin() {
         getCommand("meet")?.setTabCompleter(meetCmd)
 
         getCommand("settings")?.setExecutor(SettingsCommand(this))
+        getCommand("tour")?.setExecutor(TourCommand(this))
 
         // 起動完了ログ
         LogUtil.logWithSeparator(

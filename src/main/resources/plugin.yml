@@ -44,6 +44,10 @@ commands:
     description: 個人設定メニューを開きます。
     usage: /<command>
     permission: myworldmanager.command.settings
+  tour:
+    description: 現在のワールドのツアー一覧を開きます。
+    usage: /<command>
+    permission: myworldmanager.command.tour
   mwm_internal:
     description: Internal command for MyWorldManager
     usage: ''
@@ -80,6 +84,7 @@ permissions:
       myworldmanager.command.meet: true
       myworldmanager.command.myworld: true
       myworldmanager.command.settings: true
+      myworldmanager.command.tour: true
       myworldmanager.command.visit: true
       myworldmanager.command.worldmenu: true
   myworldmanager.command.discovery:
@@ -102,6 +107,9 @@ permissions:
     default: false
   myworldmanager.command.settings:
     description: Allows use of /settings
+    default: false
+  myworldmanager.command.tour:
+    description: Allows use of /tour
     default: false
   myworldmanager.command.visit:
     description: Allows use of /visit

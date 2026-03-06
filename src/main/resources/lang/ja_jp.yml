@@ -1325,30 +1325,11 @@ gui:
       random: "日替わりランダム"
     no_result: "§7条件に一致するワールドが見つかりませんでした"
 
-    spotlight_empty:
-      name: "§7[空きスロット]"
-      lore_admin:
-        - "§7現在このスロットは空いています。"
-        - "§7クリックして、現在滞在中のワールドを"
-        - "§6SPOTLIGHT§7に登録します。"
-        - ""
-        - "§e§nクリックで登録"
-      lore_visitor:
-        - "§7現在このスロットは空いています。"
-        - "§7運営による新しいおすすめワールドの"
-        - "§7登場をお待ちください！"
-
     spotlight_remove_confirm:
       title: "SPOTLIGHTからの削除"
       lore:
         - "§fワールド「§a{world}§f」を"
         - "§6SPOTLIGHT§fから削除しますか？"
-
-  spotlight_confirm:
-    title: "SPOTLIGHTへの登録"
-    lore:
-      - "§fワールド「§a{world}§f」を"
-      - "§6SPOTLIGHT§fに登録しますか？"
 
   favorite:
     title: "お気に入りリスト"
@@ -1640,6 +1621,21 @@ gui:
         - ""
         - "§e§nクリックで切り替え"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+    tour_navigation:
+      display: "§bワールドツアーのナビゲーション"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7ワールドツアー中のナビ表示方法を切り替えます。"
+        - "§7メッセージは常に表示されます。"
+        - ""
+        - "§f§l| §7現在の設定 §b{status}"
+        - ""
+        - "§e§nクリックで切り替え"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+      mode:
+        bossbar_only: "ボスバーのみ"
+        all: "すべて"
+        none: "なし"
     beta_features:
       display: "§eベータ機能（実験的機能）"
       lore:
@@ -1707,6 +1703,35 @@ gui:
     unlike_confirm:
       title: "Likeの取り消し"
       description: "§cLikeを取り消しますか？"
+
+  tour_sign:
+    placement:
+      title: "Tour看板の設置"
+      description: "§7Tour看板の設定を入力してください"
+    edit_text:
+      title: "Tour看板の表示情報を変更"
+      description: "§7看板名と説明を入力してください"
+    input:
+      title: "看板名"
+      description: "説明文"
+    button:
+      place: "設置する"
+      cancel: "キャンセル"
+
+  tour:
+    worldmenu:
+      display: "§bワールドツアー"
+      lore:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7ツアーの作成・編集を行います。"
+        - "§e§nクリックで開く"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+    edit_text:
+      title: "ツアーの表示情報を変更"
+      description: "§7ツアー名と説明を入力してください"
+    input:
+      name: "ツアー名"
+      description: "説明文"
 
 # メッセージ
 messages:
@@ -1824,6 +1849,18 @@ messages:
     deleted: "§cLike看板を削除しました。"
     liked: "§c❤ §aLikeしました！"
     unliked: "§cLikeを取り消しました。"
+  tour_sign:
+    placed: "§aTour看板を設置しました！"
+  tour:
+    available: "§eこのワールドではツアーを開始できます。§bクリックで開く"
+    none_available: "§7このワールドでは現在ツアーを開始できません。"
+    started: "§aツアー「{tour}」を開始しました！"
+    next_marker: "§e次の目的地: §b{marker} §7(ツアー: {tour})"
+    completed: "§aツアー「{tour}」を完了しました！"
+    stopped: "§eツアーを終了しました。"
+    stopped_world_change: "§eワールドを離れたため、進行中のツアーを終了しました。"
+    cancelled_edited: "§e進行中のツアー内容が変更されたため、ツアーをキャンセルしました。"
+    cancelled_deleted: "§e進行中のツアーが削除されたため、ツアーをキャンセルしました。"
 
   # 拡張・削除・アーカイブ
   expand_direction_prompt: "§a拡張したい方角（北西・北東・南西・南東）を向いて左クリックしてください"
@@ -1990,20 +2027,6 @@ messages:
     partial_biome_applied: "§a周囲のバイオームを {biome} に変更しました！"
     world_seed_expanded: "§aマイワールドスロットを拡張しました！ 現在のスロット数: {slots}"
 
-  member_request_sent: "§aメンバー参加申請を送信しました"
-  member_request_received: "§eプレイヤー「§a{player}§e」からメンバー参加申請が届きました"
-  member_request_click_approve: "§a§l【承認画面を開く】"
-  member_request_click_reject: "§c§l【却下画面を開く】"
-  member_request_hover_approve: "§7クリックして承認/却下の確認画面を開きます"
-  member_request_hover_reject: "§7クリックして承認/却下の確認画面を開きます"
-  member_request_expired: "§c申請の有効期限が切れています"
-  member_request_approved: "§aメンバー参加申請が承認されました！"
-  member_request_rejected: "§cメンバー参加申請が却下されました"
-  member_request_is_owner: "§c自分のワールドには申請できません"
-  spotlight_added: "§aワールド「{world}」をSPOTLIGHTに登録しました！"
-  spotlight_removed: "§aワールド「{world}」をSPOTLIGHTから削除しました。"
-
-
 # 共通ステータス/ロール
 status:
   online: "オンライン"
@@ -2045,11 +2068,11 @@ custom_item:
       - "§8§m－－－－－－－－－－－－－－－－－－"
       - "§e§l| §e右クリックで使用"
       - "§8§m－－－－－－－－－－－－－－－－－－"
-  like_sign:
-    name: "§3Like看板"
+  tour_sign:
+    name: "§bTour看板"
     lore:
       - "§8§m－－－－－－－－－－－－－－－－－－"
-      - "§7訪問者が§c❤§7を押せる看板です！"
+      - "§7ワールドツアーのマーカーになる看板です。"
       - "§7マイワールド内に設置できます。"
       - "§8§m－－－－－－－－－－－－－－－－－－"
       - "§e§l| §e右クリックで設置"
@@ -2170,3 +2193,9 @@ error:
     limit_reached: "§cこのワールドには既に10個のLike看板が設置されています。"
     title_required: "§cタイトルを入力してください。"
     cooldown: "§cしばらく待ってからもう一度お試しください。"
+  tour:
+    my_world_only: "§cTour看板はマイワールド内でのみ設置できます。"
+    no_permission: "§cこのワールドを編集する権限がありません。"
+    title_required: "§c名前を入力してください。"
+    not_managed_world: "§cここは管理対象のマイワールドではありません。"
+    not_enough_signs: "§cツアーを保存するにはTour看板が2個以上必要です。"
