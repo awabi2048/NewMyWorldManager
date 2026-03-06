@@ -70,7 +70,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             return true
         }
 
-        val target = Bukkit.getPlayerExact(args[1])
+        val target = PlayerNameUtil.resolveOnlinePlayer(plugin, args[1])
         if (target == null || !target.isOnline) {
             sender.sendMessage(
                 plugin.languageManager.getMessage(

@@ -35,7 +35,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             return false
         }
 
-        val title = Component.text(lang.getMessage(player, "gui.meet.title_list"))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
             plugin,
             player,

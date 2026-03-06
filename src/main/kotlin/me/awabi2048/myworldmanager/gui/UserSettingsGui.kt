@@ -5,7 +5,6 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -30,7 +29,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
         
-        val title = Component.text(lang.getMessage(player, titleKey))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "user_settings", title, UserSettingsGuiHolder::class.java)
 
         plugin.settingsSessionManager.updateSessionAction(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.VIEW_SETTINGS, isGui = true)
@@ -95,12 +94,12 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         }
         
         // Place Items
-        items.forEachIndexed { index, item ->
-            val rowOffset = index / itemsPerRow
-            val colOffset = index % itemsPerRow
-            // Start at 2nd slot (index 1) of the content row
-            val slot = (rowOffset + 1) * 9 + 1 + colOffset
-            inventory.setItem(slot, item)
+        val itemRows = items.chunked(itemsPerRow)
+        itemRows.forEachIndexed { rowOffset, rowItems ->
+            rowItems.forEachIndexed { colOffset, item ->
+                val slot = (rowOffset + 1) * 9 + 1 + colOffset
+                inventory.setItem(slot, item)
+            }
         }
 
         // Back Button (Center of last row)

@@ -74,10 +74,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 val title =
-                        lang.getComponent(
-                                player,
-                                "gui.settings.title",
-                                mapOf("world" to worldData.name)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                                lang.getComponent(
+                                        player,
+                                        "gui.settings.title",
+                                        mapOf("world" to worldData.name)
+                                )
                         )
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                         plugin,
@@ -919,7 +921,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title),
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                         WorldSettingsGuiHolder::class.java
                 )
 
@@ -927,7 +929,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, Component.text(title))
+                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
 
                         }
 
@@ -988,7 +990,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title),
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                         WorldSettingsGuiHolder::class.java
                 )
 
@@ -996,7 +998,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, Component.text(title))
+                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
 
                         }
 
@@ -1063,7 +1065,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title),
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                         WorldSettingsGuiHolder::class.java
                 )
                 plugin.settingsSessionManager.updateSessionAction(
@@ -1080,7 +1082,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -1144,7 +1146,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title),
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                         WorldSettingsGuiHolder::class.java
                 )
                 plugin.settingsSessionManager.updateSessionAction(
@@ -1160,7 +1162,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -1261,7 +1263,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 plugin,
                                 player,
                                 "world_settings",
-                                Component.text(title),
+                                me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                                 WorldSettingsGuiHolder::class.java
                         )
                 }
@@ -1336,7 +1338,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         Bukkit.createInventory(
                                                 holder,
                                                 rowCount * 9,
-                                                Component.text(title)
+                                                me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                                         )
                                 holder.inv = inventory
                                 inventory
@@ -1460,7 +1462,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title),
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                         WorldSettingsGuiHolder::class.java
                 )
                 plugin.settingsSessionManager.updateSessionAction(
@@ -1476,7 +1478,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
-                                val inv = Bukkit.createInventory(holder, 27, Component.text(title))
+                                val inv = Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inv
                                 inv
                         }
@@ -1559,7 +1561,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title),
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                         WorldSettingsGuiHolder::class.java
                 )
                 plugin.settingsSessionManager.updateSessionAction(
@@ -1575,7 +1577,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -1672,7 +1674,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title),
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title),
                         WorldSettingsGuiHolder::class.java
                 )
                 plugin.settingsSessionManager.updateSessionAction(
@@ -1688,7 +1690,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -1924,7 +1926,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -1966,7 +1968,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         Bukkit.createInventory(
                                                 holder,
                                                 rowCount * 9,
-                                                Component.text(title)
+                                                me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                                         )
                                 holder.inv = inventory
                                 inventory
@@ -2061,7 +2063,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -2076,7 +2078,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -2316,7 +2318,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -2332,7 +2334,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -2429,7 +2431,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -2445,7 +2447,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -2606,7 +2608,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -2625,7 +2627,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -2677,7 +2679,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -2696,7 +2698,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -2748,7 +2750,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "world_settings",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -2767,7 +2769,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, Component.text(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
@@ -2824,7 +2826,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         plugin,
                         player,
                         "portal_manage",
-                        Component.text(title)
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
                 )
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -2848,7 +2850,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 45, Component.text(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }

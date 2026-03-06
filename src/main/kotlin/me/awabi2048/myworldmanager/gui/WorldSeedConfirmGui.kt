@@ -14,7 +14,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
 
     fun open(player: Player, currentSlots: Int, nextSlots: Int) {
         val lang = plugin.languageManager
-        val title = lang.getComponent(player, "gui.world_seed_confirm.title").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.world_seed_confirm.title"))
         player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
         val inventory = Bukkit.createInventory(null, 27, title)
 

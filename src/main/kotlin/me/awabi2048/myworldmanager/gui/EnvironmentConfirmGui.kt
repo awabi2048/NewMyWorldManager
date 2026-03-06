@@ -15,11 +15,12 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData, itemToConsume: ItemStack, cost: Int) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.common.confirmation")
+        val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                 plugin,
                 player,
                 "environment_confirm",
-                Component.text(title)
+                titleComponent
         )
 
         plugin.settingsSessionManager.updateSessionAction(
@@ -33,7 +34,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         session?.confirmItem = itemToConsume.clone()
 
         val holder = WorldSettingsGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 27, Component.text(title))
+        val inventory = Bukkit.createInventory(holder, 27, titleComponent)
         holder.inv = inventory
 
         // 背景

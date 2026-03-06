@@ -1,7 +1,10 @@
 package me.awabi2048.myworldmanager.util
 
 import com.google.gson.JsonParser
+import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Bukkit
+import org.bukkit.OfflinePlayer
+import org.bukkit.entity.Player
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -51,6 +54,73 @@ object PlayerNameUtil {
      */
     fun getNameOrDefault(uuid: UUID, default: String = "Unknown"): String {
         return getName(uuid) ?: default
+    }
+
+    fun buildSearchCandidates(plugin: MyWorldManager, inputName: String): LinkedHashSet<String> {
+        val trimmed = inputName.trim()
+        val configuredPrefix =
+            plugin.config.getString("bedrock.player_name_prefix", "")?.trim().orEmpty()
+
+        val candidates = linkedSetOf<String>()
+        if (trimmed.isEmpty()) {
+            return candidates
+        }
+
+        candidates += trimmed
+        if (configuredPrefix.isNotEmpty()) {
+            if (!trimmed.startsWith(configuredPrefix)) {
+                candidates += "$configuredPrefix$trimmed"
+            } else {
+                val withoutPrefix = trimmed.removePrefix(configuredPrefix)
+                if (withoutPrefix.isNotEmpty()) {
+                    candidates += withoutPrefix
+                }
+            }
+        }
+        return candidates
+    }
+
+    fun resolveOnlinePlayer(plugin: MyWorldManager, inputName: String): Player? {
+        val candidates = buildSearchCandidates(plugin, inputName)
+        if (candidates.isEmpty()) {
+            return null
+        }
+
+        for (candidate in candidates) {
+            Bukkit.getPlayerExact(candidate)?.let { return it }
+        }
+
+        val lowerCandidates = candidates.map { it.lowercase(Locale.ROOT) }.toSet()
+        return Bukkit.getOnlinePlayers().firstOrNull { online ->
+            online.name.lowercase(Locale.ROOT) in lowerCandidates
+        }
+    }
+
+    fun resolveOfflinePlayer(plugin: MyWorldManager, inputName: String): OfflinePlayer? {
+        resolveOnlinePlayer(plugin, inputName)?.let { return it }
+
+        val candidates = buildSearchCandidates(plugin, inputName)
+        if (candidates.isEmpty()) {
+            return null
+        }
+
+        val lowerCandidates = candidates.map { it.lowercase(Locale.ROOT) }.toSet()
+
+        Bukkit.getOfflinePlayers().firstOrNull { offline ->
+            val name = offline.name ?: return@firstOrNull false
+            name.lowercase(Locale.ROOT) in lowerCandidates &&
+                (offline.hasPlayedBefore() || offline.isOnline)
+        }?.let { return it }
+
+        return plugin.playerStatsRepository.findAllFiles().firstNotNullOfOrNull { file ->
+            val uuid = runCatching { UUID.fromString(file.nameWithoutExtension) }.getOrNull()
+                ?: return@firstNotNullOfOrNull null
+            val lastName = plugin.playerStatsRepository.findByUuid(uuid).lastName ?: return@firstNotNullOfOrNull null
+            if (lastName.lowercase(Locale.ROOT) !in lowerCandidates) {
+                return@firstNotNullOfOrNull null
+            }
+            Bukkit.getPlayer(uuid) ?: Bukkit.getOfflinePlayer(uuid)
+        }
     }
 
     /**

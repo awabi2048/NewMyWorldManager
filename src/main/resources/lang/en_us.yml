@@ -268,7 +268,7 @@ gui:
       lore:
       - '§fCurrent setting: {status}'
       - ''
-      - §eClick to switch
+      - §e§nClick to toggle
     destination_label: '§7Destination: '
     color:
       name: §eParticle Color
@@ -279,42 +279,42 @@ gui:
       - §7« {prev_color}
       - §7{next_color} »
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §eClick to change
+      - §e§nClick to change
       - §8§m－－－－－－－－－－－－－－－－－－
     remove:
       name: §cRemove Portal
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §7 Remove the installed portal.
-      - §eClick to run
+      - §e§nClick to run
       - §8§m－－－－－－－－－－－－－－－－－－
   portal_item:
     name: §bWorld Portal
     lore_unbound:
     - §8§m－－－－－－－－－－－－－－－－－－
-    - §e§l| §eRight click§7 Link current My World §b§7
-    - §e§l| §eShift + right click§7 Unlink§c§7
+    - §e§l| §eRight-Click §7Link the current My World
+    - §e§l| §eShift + Right-Click §7Unlink
     - §8§m－－－－－－－－－－－－－－－－－－
     lore_bound:
     - §8§m－－－－－－－－－－－－－－－－－－
     - §f§l| §bLink §f§n{destination}
     - §8§m－－－－－－－－－－－－－－－－－－
     - §fRight-click to install and create §dworld portal§f!
-    - §e§l| §eShift + right click§7 Unlink§c§7
+    - §e§l| §eShift + Right-Click §7Unlink
     - §8§m－－－－－－－－－－－－－－－－－－
   world_gate_item:
     name: §3World Gate
     lore_unbound:
     - §8§m------------------------------
-    - §e§l| §eShift + Right-Click§7 Bind current MyWorld
-    - §e§l| §eRight-Click§7 Select two points for range
+    - §e§l| §eShift + Right-Click §7Link the current My World
+    - §e§l| §eRight-Click §7Select two points for the area
     - §8§m------------------------------
     lore_bound:
     - §8§m------------------------------
     - §f§l| §bDestination §f§n{destination}
     - §8§m------------------------------
     - §fSelect two points, then right-click once more to place §3World Gate§f.
-    - §e§l| §eShift + Right-Click§7 Rebind destination
+    - §e§l| §eShift + Right-Click §7Reconfigure the link
     - §8§m------------------------------
   template_wizard:
     title: Template Creation Wizard
@@ -326,7 +326,7 @@ gui:
       - §fName {name}
       - ' §fID {id}'
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §eClick to configure
+      - §e§nClick to configure
       - §8§m－－－－－－－－－－－－－－－－－－
     desc_input:
       display: §eSet Template Description
@@ -336,7 +336,7 @@ gui:
       - §7Current settings
       - '{desc}'
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §eClick to configure
+      - §e§nClick to configure
       - §8§m－－－－－－－－－－－－－－－－－－
     icon_select:
       display: §eSelect Template Icon
@@ -345,7 +345,7 @@ gui:
       - §7 Set the template icon.
       - §7Current settings {icon}
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §eClick to configure
+      - §e§nClick to configure
       - §8§m－－－－－－－－－－－－－－－－－－
     origin_set:
       display: §eSet Origin Location
@@ -354,7 +354,7 @@ gui:
       - §7Set the origin that is the reference point for the spawn point and offset.
       - §7Current settings {origin}
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §eClick to configure
+      - §e§nClick to configure
       - §8§m－－－－－－－－－－－－－－－－－－
     save_confirm:
       display: §6Save and Register Template
@@ -363,7 +363,7 @@ gui:
       - §7 Save the template with the current settings.
       - §c *Existing files will be overwritten.
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §eClick to run
+      - §e§nClick to run
       - §8§m－－－－－－－－－－－－－－－－－－
   unarchive_confirm:
     title: §6Unarchive Confirmation
@@ -381,14 +381,14 @@ gui:
       - '§f§l| §7 coordinates: §f{x}, {y}, {z}'
       - §8§m－－－－－－－－－－－－－－－－－－
       - §e§l| §eLeft click §7Teleport to portal location
-      - §e§l| §eRight click§7 Remove portal
+      - §e§l| §eRight-Click §7Remove portal
       - §8§m－－－－－－－－－－－－－－－－－－
       lore_management:
       - §8§m－－－－－－－－－－－－－－－－－－
       - '§f§l| §7 coordinates: §f{x}, {y}, {z}'
       - §8§m－－－－－－－－－－－－－－－－－－
       - §e§l| §eLeft click §7Teleport to portal location
-      - §e§l| §eRight click§7 Remove portal
+      - §e§l| §eRight-Click §7Remove portal
       - §8§m－－－－－－－－－－－－－－－－－－
       lore_management_bedrock:
       - §8§m－－－－－－－－－－－－－－－－－－
@@ -473,14 +473,14 @@ gui:
       - §f§l| §cCannot be expanded any further!
       - §8§m－－－－－－－－－－－－－－－－－－
       lore_open_menu_hint_je:
-      - §e§l| §eLeft click §bOpen border expansion menu§7
+      - §e§l| §eLeft-Click §7Open the border expansion menu
       lore_open_menu_hint_be:
-      - §e§l| §eClick §bOpen border expansion menu§7
+      - §e§l| §eClick §7Open the border expansion menu
       lore_border_info:
       - '§f§l| §7Current border center §fX: §e{x} §7/ §fZ: §e{z}'
       - '§f§l| §7Current border size §e{size}'
       lore_teleport_hint:
-      - §e§l| §eRight click§7 Teleport to border center surface
+      - §e§l| §eRight-Click §7Teleport to the border center surface
       lore_no_border:
       - §a There are no borders in this world.
     environment:
@@ -501,8 +501,8 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       - '{level_list}'
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §e§l| §eLeft click§7 Previous
-      - §e§l| §eRight click§7 Next
+      - §e§l| §eLeft-Click §7Go to the previous page
+      - §e§l| §eRight-Click §7Go to the next page
       - §8§m－－－－－－－－－－－－－－－－－－
       lore_bedrock:
       - §8§m－－－－－－－－－－－－－－－－－－
@@ -524,7 +524,7 @@ gui:
       - §f§l| §b List of members
       - '{member_list}'
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §e§nClick to view list
+      - §e§nClick to view the list
       - §8§m－－－－－－－－－－－－－－－－－－
       role_owner: Owner
       role_moderator: Moderator
@@ -533,10 +533,10 @@ gui:
       list_item_member: '  {name_color}{player}'
       more_members: '  §7+{remaining} total (§a{online} online§7)'
       actions:
-        promote: §e§l| §eLeft click§7 Change to moderator
-        demote: §e§l| §eRight click§7 Change to member
-        remove: §e§l| §eShift + left click§c Remove from member
-        transfer: §e§l| §eShift + right click§c Transfer ownership
+        promote: §e§l| §eLeft-Click §7Change to moderator
+        demote: §e§l| §eRight-Click §7Change to member
+        remove: §e§l| §eShift + Left-Click §7Remove member
+        transfer: §e§l| §eShift + Right-Click §7Transfer ownership
       lore_actions_bedrock:
       - §e§l| §eClick §7Change role to §b{next_role}
       - §e§l| §eUse /myworld command §7for remove/transfer
@@ -573,7 +573,7 @@ gui:
       lore:
       - §f§l| §7Current visitors §e{count}
       - ''
-      - §e§nClick to view/manage
+      - §e§nClick to view
     notification:
       display: §aToggle Notifications
       'on': 'ON'
@@ -719,7 +719,7 @@ gui:
       name: §aInvite Member
       desc: §eClick and type name in chat
       click_normal: §e§l| §eClick §7Run in normal mode
-      click_force: §e§l| §eShift+Click §7Run in force add mode
+      click_force: §e§l| §eShift + Click §7Run in force add mode
     remove_confirm:
       title: Confirm Removal
       lore:
@@ -740,9 +740,9 @@ gui:
       - §f§l| §7Rank §f{role}
       - §8§m-----------------------
       lore_actions:
-      - §e§l| §eLeft-Click §7Change to §b{next_role}
-      - §e§l| §eShift+Left §cTransfer Ownership
-      - §e§l| §eShift+Right §cRemove Member
+      - §e§l| §eLeft-Click §7Change role to {next_role}
+      - §e§l| §eShift + Left-Click §7Transfer ownership
+      - §e§l| §eShift + Right-Click §7Remove member
       - §8§m-----------------------
     pending_item:
       name: §e{player} §7(Pending)
@@ -786,8 +786,8 @@ gui:
       confirm: §cKick
       confirm_desc: §7Eject player from world
     item:
-      kick: §e§l| §cRight-Click Kick
-      kick_bedrock: §e§l| §cClick Kick
+      kick: §e§nClick to kick
+      kick_bedrock: §e§nClick to kick
   tag_editor:
     title: Tag Editor
     status_active: §aActive
@@ -801,7 +801,7 @@ gui:
       - §7Validate and update integrity of all
       - §7world and player data.
       - ''
-      - §e§nClick to Confirm
+      - §e§nClick to confirm
       confirm_title: Update Data Confirmation
     repair_templates:
       display: §eRepair Templates
@@ -809,20 +809,20 @@ gui:
       - §7Detect missing template worlds and
       - §7attempt to regenerate them.
       - ''
-      - §e§nClick to Confirm
+      - §e§nClick to confirm
       confirm_title: Repair Templates Confirmation
     create_template:
       display: §aCreate Template
       lore:
       - §7Open the Template Creation Wizard.
       - ''
-      - §e§nClick to Start
+      - §e§nClick to start
     archive:
       display: §cExecute Archive
       lore:
       - §7Batch archive all expired worlds.
       - ''
-      - §e§nClick to Confirm
+      - §e§nClick to confirm
       confirm_title: Batch Archive Confirmation
     convert:
       display: §6Convert World
@@ -843,14 +843,14 @@ gui:
       - §7and revert it to a normal world.
       - §7(World data is NOT deleted)
       - ''
-      - §e§nClick to Confirm
+      - §e§nClick to confirm
       confirm_title: Unlink Confirmation
     export:
       display: §bExport World
       lore:
       - §7Export current world as ZIP archive.
       - ''
-      - §e§nClick to Confirm
+      - §e§nClick to confirm
       confirm_title: Export Confirmation
       target_world: §f§l| §7Target World §b{world}
     archive_world:
@@ -864,7 +864,7 @@ gui:
       lore:
       - §7View and manage all worlds.
       - ''
-      - §e§nClick to Open
+      - §e§nClick to open
     current_world:
       display: §bCurrent World Info
       lore:
@@ -883,7 +883,7 @@ gui:
       lore:
       - §7View list of placed portals.
       - ''
-      - §e§nClick to Open
+      - §e§nClick to open
   admin:
     title: Manage All Worlds
     info:
@@ -951,9 +951,9 @@ gui:
       world_size_measuring: §f§l| §7World Size §8(Measuring...)
       world_size_unavailable: §f§l| §7World Size §cUnavailable
       world_size_archived_suffix: §8 (Archived)
-      action_archive: §e§l| §e§nShift + Right-Click §7Toggle Archive
-      action_settings: §e§l| §b§nRight-Click§7 Settings
-      action_warp: §e§l| §b§nLeft-Click §7Warp
+      action_archive: §e§l| §eShift + Right-Click §7Toggle archive
+      action_settings: §e§l| §eRight-Click §7Open world settings
+      action_warp: §e§l| §eLeft-Click §7Warp to this world
       uuid_copy_hint: §e§l| §eMiddle-Click §7Output to chat and copy directory name
     filter:
       archive:
@@ -975,8 +975,8 @@ gui:
         - §f§l| §7Filter type §f{type}
         - §f§l| §7Target player §b{player}
         - §8§m－－－－－－－－－－－－－－－－－－
-        - §e§nLeft click§7 Change type
-        - §e§nRight click§7 Set Player
+        - §e§l| §eLeft-Click §7Change type
+        - §e§l| §eRight-Click §7Set player
         - §8§m－－－－－－－－－－－－－－－－－－
         none: No Filter
         owner: Owner Worlds
@@ -986,7 +986,7 @@ gui:
         click_left: §e§l §eLeft-Click §7Change Filter Type
         click_right: §e§l §eRight-Click §7Set Player
       click_cycle: §e§nClick to cycle
-      click_lr: §e§nLeft/Right-Click §7to change
+      click_lr: §e§l| §eLeft/Right-Click §7Change
     sort:
       display: §eSort Order
       created_desc: Created (Newest)
@@ -1010,8 +1010,8 @@ gui:
     weather:
       display: §bWeather Settings
       current: '§f§l| §7Current Weather: §b{weather}'
-      click_cycle: §e§nLeft click§7 to switch
-      click_confirm: §d§nRight click§7 to confirm/consume points
+      click_cycle: §e§l| §eLeft-Click §7Switch
+      click_confirm: §e§l| §eRight-Click §7Confirm and consume points
       cost: '§f§l| §7Cost: §6🛖 §e{cost}'
       desc: §7The weather will be fixed to the selected setting.
     biome:
@@ -1028,13 +1028,13 @@ gui:
       current_world: §f§l| §7Current World §f{world}
       current_world_same: §f§l| §7Current World §6{world} §7(same world)
       status: §f§l| §7Status §e{status}
-      click_visit: §e§l| §e§nClick to warp
-      click_request: §e§l| §eClick to submit warp request
+      click_visit: §e§l| §eClick §7Warp to this world
+      click_request: §e§l| §eClick §7Send warp request
     status_button:
       display: §aStatus Settings
       current: '§f§l| §7Current Status: §e{status}'
       next: '§f§l| §7Next Status: §7{next_status}'
-      click: §e§nClick to Toggle
+      click: §e§nClick to toggle
   meet_settings:
     title: /meet settings
     status_selector:
@@ -1043,10 +1043,10 @@ gui:
       active_prefix: '§6» '
       inactive_prefix: '  '
       desc_header: §f§l| §fDescription
-      click_cycle: §e§nClick to switch
+      click_cycle: §e§nClick to toggle
   invite:
     target_head:
-      click_invite: §e§l| §eClick §7invite this player
+      click_invite: §e§l| §eClick §7Invite this player
   discovery:
     title: Discovery
     world_item:
@@ -1079,18 +1079,18 @@ gui:
       tag: §f§l| §7Tags §e{tags}
       favorite: §f§l| §7Favorites §c{count}
       recent_visitors: §f§l| §7Recent Visitors §a{count}
-      warp: §e§l| §e§nLeft-Click §7Warp
-      warp_hint: §e§l| §eLeft-Click §7Warp
-      warp_hint_bedrock: §e§l| §eClick §7Warp
-      preview: §e§l| §eRight click§7 Preview
-      preview_hint: §e§l| §eRight-Click §7Preview
+      warp: §e§l| §eLeft-Click §7Warp to this world
+      warp_hint: §e§l| §eLeft-Click §7Warp to this world
+      warp_hint_bedrock: §e§l| §eClick §7Warp to this world
+      preview: §e§l| §eRight-Click §7Show preview
+      preview_hint: §e§l| §eRight-Click §7Show preview
       member_request_hint: §e§l| §eShift + Left-Click §7Request Membership
-      favorite_hint_add: §e§l| §eShift + Right-Click §7Add to Favorites
-      favorite_hint_remove: §e§l| §eShift + Right-Click §7Remove from Favorites
-      favorite_toggle: §e§l| §dShift + Right-Click§7 Toggle Favorite
-      fav_add: §e§l| §e§nRight-Click §7Favorite
-      fav_remove: §e§l| §e§nRight-Click §7Unfavorite
-      spotlight_remove: §e§l| §eShift + right click§c Remove from SPOTLIGHT
+      favorite_hint_add: §e§l| §eShift + Right-Click §7Add to favorites
+      favorite_hint_remove: §e§l| §eShift + Right-Click §7Remove from favorites
+      favorite_toggle: §e§l| §eShift + Right-Click §7Toggle favorite
+      fav_add: §e§l| §eRight-Click §7Add to favorites
+      fav_remove: §e§l| §eRight-Click §7Remove from favorites
+      spotlight_remove: §e§l| §eShift + Right-Click §7Remove from SPOTLIGHT
     spotlight_empty:
       name: §7[Empty slot]
       lore_admin:
@@ -1117,7 +1117,7 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       - '{sort_list}'
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §e§nClick to switch
+      - §e§nClick to toggle
       lore_spotlight_admin:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7Selected §6{sort_name}
@@ -1144,8 +1144,8 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       - '{tag_list}'
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §e§nLeft click§7 Next
-      - §e§nRight click§7 Deselect
+      - §e§l| §eLeft-Click §7Go to the next option
+      - §e§l| §eRight-Click §7Clear the selection
       - §8§m－－－－－－－－－－－－－－－－－－
       current: §f§l| Current Tag §6{tag}
       none: §fNone
@@ -1219,7 +1219,21 @@ gui:
     - §7Registered worlds will be displayed
   favorite:
     title: Favorite Worlds
-    empty_message: §7No favorites yet.
+    empty_message: §7No favorites match the current filter.
+    empty_message_no_favorites: §7No favorites yet.
+    current_world:
+      name: §bCurrent World
+      world_name: '§f§l| §7World Name §a{world}'
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{world_line}'
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
     world_item:
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－
@@ -1238,11 +1252,11 @@ gui:
       favorite: §f§l| §7Favorites §c{count}
       recent_visitors: §f§l| §7Recent Visitors §a{count}
       tag: §f§l| §7Tags §e{tags}
-      warp: §e§l| §eLeft click§7 Warp
-      warp_bedrock: §e§l| §eClick§7 Warp
-      unfavorite: §cRight-Click to remove
+      warp: §e§l| §eLeft click §7Warp to this world
+      warp_bedrock: §e§l| §eClick §7Warp to this world
+      unfavorite: §e§l| §eShift + Right-Click §7Remove from favorites
       archived_label: §c§l[ARCHIVED]
-      unfavorite_archived: §cClick to remove
+      unfavorite_archived: §e§nClick to remove from favorites
     info:
       display: §fStatistics
       lore:
@@ -1273,7 +1287,7 @@ gui:
         lore_remove: §7Remove this world from your favorites.
         lore_restricted_owner: §cYou cannot favorite your own world.
         lore_restricted_not_managed: §cThis location cannot be favorited.
-        click: §e§nClick to Toggle
+        click: §e§nClick to toggle
       list:
         name: §dView Favorite List
         lore:
@@ -1379,10 +1393,10 @@ gui:
       tag: §f§l| §7tag §b{tags}
       favorite: §f§l| §7Favorite §c{count}
       recent_visitors: §f§l| §7Recent Visitors §a{count}
-      warp: §e§l| §eLeft click§7 Warp
-      warp_bedrock: §e§l| §eClick§7 Warp
-      fav_add: §e§l| §eRight click§7 Add to Favorites§a
-      fav_remove: §e§l| §cRight click§7 Remove favorites§c
+      warp: §e§l| §eLeft click §7Warp to this world
+      warp_bedrock: §e§l| §eClick §7Warp to this world
+      fav_add: §e§l| §eRight click §7Add to favorites
+      fav_remove: §e§l| §eRight click §7Remove from favorites
   visitworld:
     input:
       title: Visit World Search
@@ -1419,9 +1433,9 @@ gui:
       favorite: §f§l| §7Favorite §c{count}
       recent_visitors: §f§l| §7Recently visited players §a{count} people
       tag: §f§l| §7tag §e{tags}
-      warp: §e§l| §eLeft click§7 Warp to this world§b
-      warp_bedrock: §e§l| §eClick§7 Warp to this world§b
-      settings: §e§l| §eRight click§7 Open world settings
+      warp: §e§l| §eLeft click §7Warp to this world to this world
+      warp_bedrock: §e§l| §eClick §7Warp to this world
+      settings: §e§l| §eRight click §7Open world settings
       settings_bedrock: §7Open world settings from /worldmenu
       expired: §c§nThis world has been archived
       expires_at: §f§l| §7Days until archive §f{days} days §8(archived to {date})
@@ -1464,18 +1478,21 @@ gui:
     notification:
       display: §aVisitor notification
       lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
       - §7When someone visits your world
-      - §7 Set whether to send notifications.
+      - §7set whether notifications are sent.
       - ''
       - §f§l| §7Current state {status}
       - ''
-      - §e§nClick to switch
+      - §e§nClick to toggle
+      - §8§m－－－－－－－－－－－－－－－－－－
     language:
       display: §aLanguage settings
       format: §f{language}
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §7 Change the display language of menus and messages.
+      - §7Change the display language of menus and messages.
+      - ''
       - '§f§l| §7Current setting: §f{language}'
       - ''
       - §e§nClick next
@@ -1484,11 +1501,12 @@ gui:
       display: §aShow critical settings
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §7 in the world management menu
-      - §7 Set whether to display the "Critical Settings" icon.
+      - §7Set whether the "Critical Settings" icon
+      - §7is shown in the world management menu.
+      - ''
       - §f§l| §7Current setting {status}
       - ''
-      - §e§nClick to switch
+      - §e§nClick to toggle
       - §8§m－－－－－－－－－－－－－－－－－－
     beta_features:
       display: §e Beta features (experimental features)
@@ -1502,7 +1520,7 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7Current state {status}
       - §8§m－－－－－－－－－－－－－－－－－－
-      - §e§nClick to switch
+      - §e§nClick to toggle
       - §8§m－－－－－－－－－－－－－－－－－－
     button:
       display: §6Personal settings

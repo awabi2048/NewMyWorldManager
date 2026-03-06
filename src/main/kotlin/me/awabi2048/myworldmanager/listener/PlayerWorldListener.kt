@@ -14,6 +14,7 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -415,7 +416,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        val target = Bukkit.getPlayerExact(targetName)
+        val target = PlayerNameUtil.resolveOnlinePlayer(plugin, targetName)
         if (target == null) {
             plugin.inviteSessionManager.endSession(player.uniqueId)
             player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))

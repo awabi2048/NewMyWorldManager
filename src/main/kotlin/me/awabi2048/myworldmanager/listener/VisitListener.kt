@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.VisitGui
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -114,7 +115,8 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                         
                         // 表示更新
                         val targetPlayerName = title.substringBefore(lang.getMessage(player, "gui.visit.title").replace("{player}", ""))
-                        val targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName)
+                        val targetPlayer = PlayerNameUtil.resolveOfflinePlayer(plugin, targetPlayerName)
+                            ?: return
                         plugin.menuEntryRouter.openVisitMenu(player, targetPlayer)
                     }
                 }

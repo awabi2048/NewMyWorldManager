@@ -15,10 +15,11 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.favorite.remove_confirm.title")
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", Component.text(title))
+        val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", titleComponent)
         
         val holder = FavoriteConfirmGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 27, Component.text(title))
+        val inventory = Bukkit.createInventory(holder, 27, titleComponent)
         holder.inv = inventory
 
         // Decoration

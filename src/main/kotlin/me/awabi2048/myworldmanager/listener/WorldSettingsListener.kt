@@ -3195,55 +3195,7 @@ plugin.languageManager
         }
 
         private fun resolveInviteTarget(inputName: String): OfflinePlayer? {
-                val trimmedInput = inputName.trim()
-                if (trimmedInput.isEmpty()) {
-                        return null
-                }
-
-                val candidates = buildInviteTargetCandidates(trimmedInput)
-                val lowerCandidates = candidates.map { it.lowercase(Locale.ROOT) }.toSet()
-
-                for (candidate in candidates) {
-                        Bukkit.getPlayerExact(candidate)?.let { return it }
-                }
-
-                Bukkit.getOnlinePlayers().firstOrNull {
-                        it.name.lowercase(Locale.ROOT) in lowerCandidates
-                }?.let { return it }
-
-                Bukkit.getOfflinePlayers().firstOrNull { offline ->
-                        val name = offline.name ?: return@firstOrNull false
-                        name.lowercase(Locale.ROOT) in lowerCandidates &&
-                                (offline.hasPlayedBefore() || offline.isOnline)
-                }?.let { return it }
-
-                return plugin.playerStatsRepository.findAllFiles().firstNotNullOfOrNull { file ->
-                        val uuid = runCatching { UUID.fromString(file.nameWithoutExtension) }.getOrNull()
-                                ?: return@firstNotNullOfOrNull null
-                        val lastName = plugin.playerStatsRepository.findByUuid(uuid).lastName ?: return@firstNotNullOfOrNull null
-                        if (lastName.lowercase(Locale.ROOT) !in lowerCandidates) {
-                                return@firstNotNullOfOrNull null
-                        }
-                        Bukkit.getPlayer(uuid) ?: Bukkit.getOfflinePlayer(uuid)
-                }
-        }
-
-        private fun buildInviteTargetCandidates(inputName: String): LinkedHashSet<String> {
-                val configuredPrefix =
-                        plugin.config.getString("bedrock.player_name_prefix", "")?.trim().orEmpty()
-
-                val candidates = linkedSetOf(inputName)
-                if (configuredPrefix.isNotEmpty()) {
-                        if (!inputName.startsWith(configuredPrefix)) {
-                                candidates += "$configuredPrefix$inputName"
-                        } else {
-                                val withoutPrefix = inputName.removePrefix(configuredPrefix)
-                                if (withoutPrefix.isNotEmpty()) {
-                                        candidates += withoutPrefix
-                                }
-                        }
-                }
-                return candidates
+                return PlayerNameUtil.resolveOfflinePlayer(plugin, inputName)
         }
 
         private fun applyWorldInfoUpdate(

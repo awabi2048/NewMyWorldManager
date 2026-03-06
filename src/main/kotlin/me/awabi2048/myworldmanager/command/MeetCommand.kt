@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.command
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -40,7 +41,7 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
             val requesterUuid = try {
                  java.util.UUID.fromString(targetName)
             } catch (e: Exception) {
-                Bukkit.getPlayer(targetName)?.uniqueId
+                PlayerNameUtil.resolveOnlinePlayer(plugin, targetName)?.uniqueId
             } ?: return true
             
             // Validate request

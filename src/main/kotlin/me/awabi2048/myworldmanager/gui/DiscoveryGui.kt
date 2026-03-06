@@ -68,10 +68,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val currentPage = page.coerceIn(0, totalPages - 1)
 
                 val titleKey = "gui.discovery.title"
-                val title =
-                        lang.getComponent(player, titleKey)
-                                .color(NamedTextColor.GOLD)
-                                .decorate(TextDecoration.BOLD)
+                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
                 val inventory =
                         if (player.openInventory.topInventory.holder is DiscoveryGuiHolder) {
                                 player.openInventory.topInventory

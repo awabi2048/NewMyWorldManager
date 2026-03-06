@@ -37,7 +37,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
         val pageWorlds = worlds.drop(startIndex).take(itemsPerPage)
 
         val lang = plugin.languageManager
-        val title = lang.getComponent(player, "gui.visitworld.title", mapOf("query" to query))
+        val title = GuiHelper.inventoryTitle(lang.getComponent(player, "gui.visitworld.title", mapOf("query" to query)))
 
         GuiHelper.playMenuSoundIfTitleChanged(
             plugin,

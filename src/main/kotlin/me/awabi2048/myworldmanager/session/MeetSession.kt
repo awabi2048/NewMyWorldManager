@@ -4,7 +4,8 @@ import java.util.*
 
 data class MeetSession(
     val playerUuid: UUID,
-    var showBackButton: Boolean = false
+    var showBackButton: Boolean = false,
+    var currentPage: Int = 0
 )
 
 class MeetSessionManager {

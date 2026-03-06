@@ -78,7 +78,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         )
                         return
                 }
-                val title = lang.getComponent(player, titleKey).color(net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY).decorate(net.kyori.adventure.text.format.TextDecoration.BOLD)
+                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
 
                 if (!suppressSound) {
                         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(

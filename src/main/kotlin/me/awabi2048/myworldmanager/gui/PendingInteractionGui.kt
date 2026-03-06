@@ -37,7 +37,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val pageEntries = entries.drop(start).take(itemsPerPage)
 
         val holder = PendingInteractionHolder(currentPage, returnPage, showBackButton, fromBedrockMenu)
-        val inventory = Bukkit.createInventory(holder, 54, plugin.languageManager.getComponent(player, "gui.pending_list.title"))
+        val inventory = Bukkit.createInventory(holder, 54, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(plugin.languageManager.getComponent(player, "gui.pending_list.title")))
         holder.inv = inventory
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -175,7 +175,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val actorName = PlayerNameUtil.getNameOrDefault(entry.actorUuid, plugin.languageManager.getMessage(player, "general.unknown"))
         val typeLabel = typeLabel(player, entry.type)
 
-        val title = Component.text(plugin.languageManager.getMessage(player, "gui.pending_list.confirm.title"))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(plugin.languageManager.getMessage(player, "gui.pending_list.confirm.title"))
         val body = listOf(
             Component.text(
                 plugin.languageManager.getMessage(

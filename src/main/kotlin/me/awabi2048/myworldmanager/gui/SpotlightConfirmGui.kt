@@ -16,7 +16,7 @@ class SpotlightConfirmGui(private val plugin: MyWorldManager) {
 
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
-        val title = lang.getComponent(player, "gui.spotlight_confirm.title").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.spotlight_confirm.title"))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "spotlight_confirm", title, null)
         val inventory = Bukkit.createInventory(null, 27, title)
 

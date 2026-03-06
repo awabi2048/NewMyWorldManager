@@ -61,7 +61,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 )
                 val rowCount = neededDataRows + 2
                 val targetName = PlayerNameUtil.getNameOrDefault(targetPlayer.uniqueId, "Unknown")
-                val titleComp = lang.getComponent(player, titleKey, mapOf("player" to targetName))
+                val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey, mapOf("player" to targetName)))
 
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                         plugin,

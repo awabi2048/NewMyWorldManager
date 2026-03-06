@@ -111,7 +111,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
 
                 val titleStr = lang.getMessage(player, titleKey)
-                val title = Component.text(titleStr)
+                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(titleStr)
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                         plugin,
                         player,

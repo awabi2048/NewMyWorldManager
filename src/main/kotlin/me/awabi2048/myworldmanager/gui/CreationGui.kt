@@ -51,7 +51,7 @@ class CreationGui(private val plugin: MyWorldManager) {
              player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
              return
         }
-        val title = Component.text(lang.getMessage(player, titleKey))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
         val inventory = Bukkit.createInventory(null, 45, title)
 
@@ -98,7 +98,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
-        val title = Component.text(lang.getMessage(player, titleKey))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
         
         val templates = plugin.templateRepository.findAll()
@@ -151,7 +151,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
-        val title = Component.text(lang.getMessage(player, titleKey))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
         
         val inventory = Bukkit.createInventory(null, 45, title)

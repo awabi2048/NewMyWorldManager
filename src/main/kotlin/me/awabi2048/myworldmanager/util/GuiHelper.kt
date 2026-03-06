@@ -3,11 +3,22 @@ package me.awabi2048.myworldmanager.util
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
 
 object GuiHelper {
+    fun inventoryTitle(title: String): Component {
+        return Component.text(title, NamedTextColor.DARK_GRAY)
+            .decoration(TextDecoration.ITALIC, false)
+    }
+
+    fun inventoryTitle(title: Component): Component {
+        return title.color(NamedTextColor.DARK_GRAY)
+            .decoration(TextDecoration.ITALIC, false)
+    }
+
     /**
      * Plays the menu open sound only if the menu title is different from the currently open inventory's title,
      * OR if the inventory holder class is different.

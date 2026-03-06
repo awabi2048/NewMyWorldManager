@@ -21,7 +21,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
     fun open(player: Player) {
         val lang = plugin.languageManager
-        val title = lang.getComponent(player, titleKey).color(NamedTextColor.DARK_GRAY).decorate(TextDecoration.BOLD)
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
         
         plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_MENU, isGui = true)

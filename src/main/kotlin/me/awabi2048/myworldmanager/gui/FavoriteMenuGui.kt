@@ -4,8 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -16,7 +15,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData?) {
         val lang = plugin.languageManager
         val titleKey = "gui.favorite.favorite_menu.title"
-        val title = lang.getComponent(player, titleKey).color(NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD)
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", title, FavoriteMenuGuiHolder::class.java)
         
         val holder = FavoriteMenuGuiHolder()
@@ -71,7 +70,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.COMPASS)
         val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.other_worlds.name").color(NamedTextColor.GREEN).decorate(TextDecoration.BOLD))
+        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.favorite_menu.other_worlds.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         
         val lore = lang.getComponentList(player, "gui.favorite.favorite_menu.other_worlds.lore")
         meta.lore(lore)
@@ -88,7 +87,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         if (worldData == null) {
             val item = ItemStack(Material.BARRIER)
             val meta = item.itemMeta ?: return item
-            meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted"))
+            meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
             meta.lore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed")))
             item.itemMeta = meta
             ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -98,7 +97,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         if (worldData.owner == player.uniqueId) {
             val item = ItemStack(Material.BARRIER)
             val meta = item.itemMeta ?: return item
-            meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted"))
+            meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
             meta.lore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_owner")))
             item.itemMeta = meta
             ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -115,7 +114,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val nameKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.name_remove" else "gui.favorite.favorite_menu.toggle.name_add"
         val loreKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.lore_remove" else "gui.favorite.favorite_menu.toggle.lore_add"
         
-        meta.displayName(lang.getComponent(player, nameKey))
+        meta.displayName(lang.getComponent(player, nameKey).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         val lore = mutableListOf<Component>()
         lore.add(lang.getComponent(player, loreKey))
         lore.add(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.click"))
@@ -131,7 +130,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.BOOK)
         val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.list.name").color(NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD))
+        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.favorite_menu.list.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         
         val lore = lang.getComponentList(player, "gui.favorite.favorite_menu.list.lore")
         meta.lore(lore)
@@ -145,45 +144,45 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
     private fun createWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
         val lang = plugin.languageManager
         
-                val formattedDesc = if (worldData.description.isNotEmpty()) {
-                        lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description))
-                } else ""
-
-                val owner = Bukkit.getOfflinePlayer(worldData.owner)
-                val onlineColor = lang.getMessage(player, "publish_level.color.online")
-                val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-                val statusColor = if (owner.isOnline) onlineColor else offlineColor
-                val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
-                
-                val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite))
-                val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
-
-                val separator = lang.getComponent(player, "gui.common.separator")
-                val lore =
-                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
-                                lang.getComponentList(
-                                        player,
-                                        "gui.favorite.world_item.lore",
-                                        mapOf(
-                                                "description" to formattedDesc,
-                                                "owner_line" to ownerLine,
-                                                "favorite_line" to favoriteLine,
-                                                "visitor_line" to visitorLine,
-                                                "tag_line" to "", 
-                                                "warp_line" to "",
-                                                "archived_line" to "",
-                                                "unfavorite_line" to ""
-                                        )
-                                ),
-                                separator
-                        )
-
-        return me.awabi2048.myworldmanager.util.GuiHelper.createContextWorldIconItem(
-                plugin,
+        val item = ItemStack(worldData.icon)
+        val meta = item.itemMeta ?: return item
+        val owner = Bukkit.getOfflinePlayer(worldData.owner)
+        val formattedDesc = if (worldData.description.isNotEmpty()) {
+            lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description))
+        } else ""
+        val onlineColor = lang.getMessage(player, "publish_level.color.online")
+        val offlineColor = lang.getMessage(player, "publish_level.color.offline")
+        val statusColor = if (owner.isOnline) onlineColor else offlineColor
+        val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
+        val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite))
+        val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
+        val tagLine = if (worldData.tags.isNotEmpty()) {
+            val tagNames = worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
+            lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to tagNames))
+        } else ""
+        val separator = lang.getComponent(player, "gui.common.separator")
+        val lore = me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
+            lang.getComponentList(
                 player,
-                worldData,
-                lore
+                "gui.favorite.current_world.lore",
+                mapOf(
+                    "world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
+                    "description" to formattedDesc,
+                    "owner_line" to ownerLine,
+                    "favorite_line" to favoriteLine,
+                    "visitor_line" to visitorLine,
+                    "tag_line" to tagLine
+                )
+            ),
+            separator
         )
+
+        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.current_world.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
+        meta.lore(lore)
+        item.itemMeta = meta
+        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
+        ItemTag.setWorldUuid(item, worldData.uuid)
+        return item
     }
 
     private fun createDecorationItem(material: Material, worldData: WorldData? = null): ItemStack {

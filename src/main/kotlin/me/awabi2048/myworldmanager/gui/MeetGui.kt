@@ -4,14 +4,12 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.bukkit.plugin.java.JavaPlugin
 
 class MeetGui(private val plugin: MyWorldManager) {
     
@@ -20,8 +18,8 @@ class MeetGui(private val plugin: MyWorldManager) {
         10, 11, 12, 13, 14, 15, 16,
         19, 20, 21, 22, 23, 24, 25,
         28, 29, 30, 31, 32, 33, 34,
-        37, 38, 39, 40, 41, 42, 43
     )
+    private val itemsPerPage = playerSlots.size
 
     fun open(player: Player, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
@@ -57,66 +55,53 @@ class MeetGui(private val plugin: MyWorldManager) {
         }.sortedBy { it.name }
 
         // 対象プレイヤーがいない場合でも、設定ボタンを表示するためにメニューは開く
-        val userCount = targets.size
-        val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6
-        val title = Component.text(lang.getMessage(player, titleKey))
+        val totalPages = if (targets.isEmpty()) 1 else (targets.size + itemsPerPage - 1) / itemsPerPage
+        val currentPage = session.currentPage.coerceIn(0, totalPages - 1)
+        session.currentPage = currentPage
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title, MeetGuiHolder::class.java)
         
         val holder = MeetGuiHolder()
-        val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
+        val inventory = Bukkit.createInventory(holder, 45, title)
         holder.inv = inventory
 
-        // 背景
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
 
-        // 1行目と最終行は黒色
         for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in (rowCount - 1) * 9 until rowCount * 9) inventory.setItem(i, blackPane)
-        
-        // その他は灰色で埋める
-        for (i in 9 until (rowCount - 1) * 9) {
+        for (i in 36 until 45) inventory.setItem(i, blackPane)
+        for (i in 9 until 36) {
             inventory.setItem(i, greyPane)
         }
 
         // プレイヤーの配置
-        targets.forEachIndexed { index, target ->
-            if (index < playerSlots.size) {
-                val slot = playerSlots[index]
-                if (slot < inventory.size) {
-                    inventory.setItem(slot, createTargetHead(target, player, plugin))
-                }
-            }
+        val pageTargets = targets.drop(currentPage * itemsPerPage).take(itemsPerPage)
+        pageTargets.forEachIndexed { index, target ->
+            inventory.setItem(playerSlots[index], createTargetHead(target, player, plugin))
+        }
+
+        if (pageTargets.isEmpty()) {
+            inventory.setItem(22, createEmptyItem(player))
         }
         
-        // ステータス変更ボタン (最下段 5スロット目 -> index: (rowCount-1)*9 + 4)
-        val statusSlot = (rowCount - 1) * 9 + 4
+        val statusSlot = 40
         
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val currentStatus = stats.meetStatus
         val statusNameKey = "general.status.${currentStatus.lowercase()}"
         val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
-        
-        // Next status for display
-        val nextStatus = when (currentStatus) {
-            "JOIN_ME" -> "ASK_ME"
-            "ASK_ME" -> "BUSY"
-            else -> "JOIN_ME"
-        }
-        val nextStatusNameKey = "general.status.${nextStatus.lowercase()}"
-        val nextStatusName = if (lang.hasKey(player, nextStatusNameKey)) lang.getMessage(player, nextStatusNameKey) else nextStatus
 
         val statusLore = mutableListOf<String>()
+        statusLore.add(lang.getMessage(player, "gui.common.separator"))
         statusLore.add(lang.getMessage(player, "gui.meet.status_button.current", mapOf("status" to statusName)))
-        statusLore.add(lang.getMessage(player, "gui.meet.status_button.next", mapOf("next_status" to nextStatusName)))
-        statusLore.add("")
         statusLore.add(lang.getMessage(player, "gui.meet.status_button.click"))
+        statusLore.add(lang.getMessage(player, "gui.common.separator"))
 
         val statusItem = ItemStack(Material.PLAYER_HEAD)
         val statusMeta = statusItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta
         if (statusMeta != null) {
             statusMeta.owningPlayer = player
-            statusMeta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.meet.status_button.display")).decoration(TextDecoration.ITALIC, false))
+            statusMeta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.meet.status_button.display", mapOf("player" to player.name))).decoration(TextDecoration.ITALIC, false))
             statusMeta.lore(statusLore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
             statusItem.itemMeta = statusMeta
         }
@@ -124,10 +109,16 @@ class MeetGui(private val plugin: MyWorldManager) {
         
         inventory.setItem(statusSlot, statusItem)
 
+        if (currentPage > 0) {
+            inventory.setItem(37, me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "meet", currentPage - 1))
+        }
+        if (currentPage < totalPages - 1) {
+            inventory.setItem(43, me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(plugin, player, "meet", currentPage + 1))
+        }
+
         // 戻るボタン
         if (session.showBackButton) {
-            val backButtonSlot = (rowCount - 1) * 9
-            inventory.setItem(backButtonSlot, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"))
+            inventory.setItem(36, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"))
         }
 
         player.openInventory(inventory)
@@ -137,9 +128,22 @@ class MeetGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.REDSTONE)
         val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.common.return").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+        meta.displayName(lang.getComponent(player, "gui.common.return").decorate(TextDecoration.BOLD))
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
+        return item
+    }
+
+    private fun createEmptyItem(viewer: Player): ItemStack {
+        val item = ItemStack(Material.QUARTZ)
+        val meta = item.itemMeta ?: return item
+        meta.displayName(
+            LegacyComponentSerializer.legacySection().deserialize(
+                plugin.languageManager.getMessage(viewer, "gui.meet.empty_message")
+            ).decoration(TextDecoration.ITALIC, false)
+        )
+        item.itemMeta = meta
+        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         return item
     }
 

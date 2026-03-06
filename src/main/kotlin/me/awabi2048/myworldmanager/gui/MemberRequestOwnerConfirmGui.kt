@@ -17,7 +17,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
 
     fun open(player: Player, info: MemberRequestInfo, key: String) {
         val lang = plugin.languageManager
-        val title = lang.getComponent(player, "gui.member_request_owner_confirm.title").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "member_request_owner_confirm", title, null)
         
         val holder = MemberRequestOwnerConfirmHolder()

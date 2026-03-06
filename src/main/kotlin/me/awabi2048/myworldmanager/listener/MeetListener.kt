@@ -27,6 +27,14 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
             event.isCancelled = true
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
 
+            if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
+                val targetPage = ItemTag.getTargetPage(currentItem) ?: 0
+                plugin.meetSessionManager.getSession(player.uniqueId).currentPage = targetPage
+                plugin.soundManager.playClickSound(player, currentItem, "meet")
+                plugin.menuEntryRouter.openMeet(player)
+                return
+            }
+
             if (type == ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE) {
                 plugin.soundManager.playClickSound(player, currentItem, "meet")
                 // Cycle status: JOIN_ME -> ASK_ME -> BUSY
@@ -38,6 +46,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                 }
                 stats.meetStatus = newStatus
                 plugin.playerStatsRepository.save(stats)
+                plugin.meetSessionManager.getSession(player.uniqueId).currentPage = 0
                 
                 // Refresh
                 plugin.menuEntryRouter.openMeet(player)

@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
@@ -62,7 +63,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         }
 
         val targetName = args[0]
-        val target = Bukkit.getPlayerExact(targetName)
+        val target = PlayerNameUtil.resolveOnlinePlayer(plugin, targetName)
 
         if (target == null) {
             player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))

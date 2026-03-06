@@ -186,7 +186,11 @@ class WorldCommand(
                     return true
                 }
 
-                val targetOffline = Bukkit.getOfflinePlayer(args[1])
+                val targetOffline = PlayerNameUtil.resolveOfflinePlayer(plugin, args[1])
+                if (targetOffline == null) {
+                    sender.sendMessage(lang.getMessage(sender as? Player, "general.player_not_found"))
+                    return true
+                }
                 val field = args[2].lowercase()
                 val action = args[3].lowercase()
                 val value = if (args.size >= 5) args[4].toIntOrNull() else null

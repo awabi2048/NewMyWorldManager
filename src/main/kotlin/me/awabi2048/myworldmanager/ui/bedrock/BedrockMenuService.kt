@@ -500,7 +500,7 @@ class BedrockMenuService(
             Bukkit.createInventory(
                 holder,
                 rowCount * 9,
-                Component.text(tr(player, "gui.player_world.title"))
+                me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, "gui.player_world.title"))
             )
         holder.inv = inventory
 
@@ -577,7 +577,7 @@ class BedrockMenuService(
             Bukkit.createInventory(
                 holder,
                 27,
-                Component.text(tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)))
+                me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)))
             )
         holder.inv = inventory
 
@@ -659,7 +659,7 @@ class BedrockMenuService(
 
     private fun openSettingsInventory(player: Player, showBackButton: Boolean, returnPage: Int) {
         val holder = BedrockSettingsHolder(showBackButton, returnPage)
-        val title = Component.text(tr(player, "gui.user_settings.title"))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, "gui.user_settings.title"))
         val inventory = Bukkit.createInventory(holder, 27, title)
         holder.inv = inventory
 

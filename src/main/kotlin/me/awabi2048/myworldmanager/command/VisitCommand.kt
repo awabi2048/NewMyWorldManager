@@ -13,6 +13,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -152,7 +153,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             return
         }
 
-        val target = resolveTargetPlayer(targetName)
+        val target = PlayerNameUtil.resolveOfflinePlayer(plugin, targetName)
 
         if (target == null) {
             player.sendMessage("§cプレイヤー「$targetName」が見つかりませんでした。")
@@ -172,13 +173,6 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         }
 
         plugin.menuEntryRouter.openVisitMenu(player, target)
-    }
-
-    private fun resolveTargetPlayer(targetName: String): org.bukkit.OfflinePlayer? {
-        Bukkit.getPlayerExact(targetName)?.let { return it }
-
-        val offlinePlayer = Bukkit.getOfflinePlayer(targetName)
-        return if (offlinePlayer.hasPlayedBefore()) offlinePlayer else null
     }
 
     private fun collectVisitableWorlds(player: Player, targetUuid: UUID): List<WorldData> {

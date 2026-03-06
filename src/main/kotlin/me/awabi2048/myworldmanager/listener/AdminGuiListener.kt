@@ -13,6 +13,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.session.PlayerFilterType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -218,7 +219,7 @@ class AdminGuiListener : Listener {
                     isGui = true,
                     isAdminFlow = true
                 )
-                plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
+                openWorldSettingsFromAdmin(plugin, player, worldData)
                 return
             }
             
@@ -234,9 +235,7 @@ class AdminGuiListener : Listener {
                     return
                 }
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.worldService.teleportToWorld(player, uuid, runMacro = false)
-                player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
-                player.closeInventory()
+                warpFromAdminList(plugin, player, worldData)
             } else if (event.isRightClick) {
                 plugin.soundManager.playClickSound(player, currentItem)
                 if (event.isShiftClick) {
@@ -249,7 +248,7 @@ class AdminGuiListener : Listener {
                 } else {
                     // 右クリック: ワールド設定メニューを開く
                     plugin.settingsSessionManager.updateSessionAction(player, uuid, SettingsAction.VIEW_SETTINGS, isGui = true, isAdminFlow = true)
-                    plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
+                    openWorldSettingsFromAdmin(plugin, player, worldData)
                 }
             } else if (event.click == org.bukkit.event.inventory.ClickType.MIDDLE) {
                 // ホイールクリック：UUIDコピーメッセージを送信（クリエイティブモードのみ）
@@ -366,7 +365,13 @@ class AdminGuiListener : Listener {
 
     private fun applyAdminPlayerFilter(plugin: MyWorldManager, player: Player, targetNameRaw: String) {
         val targetName = targetNameRaw.trim()
-        val offlinePlayer = Bukkit.getOfflinePlayer(targetName)
+        val offlinePlayer = PlayerNameUtil.resolveOfflinePlayer(plugin, targetName)
+        if (offlinePlayer == null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "general.player_not_found"))
+            plugin.settingsSessionManager.endSession(player)
+            plugin.worldGui.open(player)
+            return
+        }
 
         val adminSession = plugin.adminGuiSessionManager.getSession(player.uniqueId)
         adminSession.playerFilter = offlinePlayer.uniqueId
@@ -422,5 +427,52 @@ class AdminGuiListener : Listener {
         player.sendMessage(bar)
 
         plugin.soundManager.playCopySound(player)
+    }
+
+    private fun warpFromAdminList(plugin: MyWorldManager, player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
+        val lang = plugin.languageManager
+        val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+        if (Bukkit.getWorld(folderName) == null) {
+            player.closeInventory()
+            player.sendMessage(lang.getMessage(player, "messages.world_loading"))
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (!player.isOnline) {
+                    return@Runnable
+                }
+                if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                    player.sendMessage(lang.getMessage(player, "error.load_failed"))
+                    return@Runnable
+                }
+                plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false)
+                player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
+            })
+            return
+        }
+
+        plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false)
+        player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
+        player.closeInventory()
+    }
+
+    private fun openWorldSettingsFromAdmin(plugin: MyWorldManager, player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
+        val lang = plugin.languageManager
+        val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+        if (!worldData.isArchived && Bukkit.getWorld(folderName) == null) {
+            player.closeInventory()
+            player.sendMessage(lang.getMessage(player, "messages.world_loading"))
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (!player.isOnline) {
+                    return@Runnable
+                }
+                if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                    player.sendMessage(lang.getMessage(player, "error.load_failed"))
+                    return@Runnable
+                }
+                plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
+            })
+            return
+        }
+
+        plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
     }
 }

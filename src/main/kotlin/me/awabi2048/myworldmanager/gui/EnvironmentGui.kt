@@ -15,11 +15,12 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.environment.title")
+        val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                 plugin,
                 player,
                 "environment",
-                Component.text(title)
+                titleComponent
         )
         val currentTitle =
                 net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
@@ -38,7 +39,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     player.openInventory.topInventory
                 } else {
                     val holder = WorldSettingsGuiHolder()
-                    val inventory = Bukkit.createInventory(holder, 45, Component.text(title))
+                    val inventory = Bukkit.createInventory(holder, 45, titleComponent)
                     holder.inv = inventory
                     inventory
                 }

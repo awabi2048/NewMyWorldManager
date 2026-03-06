@@ -41,7 +41,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         session.portalPage = safePage
 
         val lang = plugin.languageManager
-        val titleComp = lang.getComponent(player, "gui.admin_portals.title").color(NamedTextColor.DARK_GRAY).decorate(TextDecoration.BOLD)
+        val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.admin_portals.title"))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_portals", titleComp)
         val inventory = Bukkit.createInventory(null, 54, titleComp)
 

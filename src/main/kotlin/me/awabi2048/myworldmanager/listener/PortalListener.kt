@@ -322,7 +322,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val remainingPoints = (currentPoints - requiredPoints).coerceAtLeast(0)
 
         val holder = WorldGateConfirmHolder()
-        val inventory = Bukkit.createInventory(holder, 27, Component.text(lang.getMessage(player, "messages.world_gate_confirm_title")))
+        val inventory = Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "messages.world_gate_confirm_title")))
         holder.inv = inventory
 
         val pane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)

@@ -5,7 +5,6 @@ import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -16,7 +15,7 @@ import org.bukkit.inventory.ItemStack
 
 class FavoriteGui(private val plugin: MyWorldManager) {
 
-        private val itemsPerPage = 36 // 2行目から5行目までの4行分
+        private val itemsPerPage = 27 // 2行目から4行目までの3行分
 
         fun open(
                 player: Player,
@@ -36,7 +35,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val favWorldUuids = stats.favoriteWorlds.keys
                 val selectedTag = session.selectedTag
 
-                val allWorlds =
+                val resolvedWorlds =
                         favWorldUuids.mapNotNull { uuid ->
                                 val data = plugin.worldConfigRepository.findByUuid(uuid)
                                 if (data == null) {
@@ -45,9 +44,10 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 } else {
                                         data
                                 }
-                        }.filter { worldData ->
-                                selectedTag == null || worldData.tags.contains(selectedTag)
                         }
+                val allWorlds = resolvedWorlds.filter { worldData ->
+                                selectedTag == null || worldData.tags.contains(selectedTag)
+                         }
                 if (allWorlds.size != favWorldUuids.size) {
                         plugin.playerStatsRepository.save(stats)
                 }
@@ -64,12 +64,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         )
                         return
                 }
-                val title =
-                        Component.text(
-                                lang.getMessage(player, titleKey),
-                                NamedTextColor.LIGHT_PURPLE,
-                                TextDecoration.BOLD
-                        )
+                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
                         plugin,
                         player,
@@ -78,9 +73,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         FavoriteGuiHolder::class.java
                 )
 
-                // お気に入りがない場合は5行、ある場合は6行
-                val inventorySize = if (allWorlds.isEmpty()) 45 else 54
-                val footerStart = if (allWorlds.isEmpty()) 36 else 45
+                val inventorySize = 45
+                val footerStart = 36
 
                 val holder = FavoriteGuiHolder()
                 val inventory = Bukkit.createInventory(holder, inventorySize, title)
@@ -109,13 +103,19 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 if (allWorlds.isEmpty()) {
                         val emptyItem = ItemStack(Material.QUARTZ)
                         val emptyMeta = emptyItem.itemMeta
+                        val emptyMessageKey =
+                                if (resolvedWorlds.isEmpty()) {
+                                        "gui.favorite.empty_message_no_favorites"
+                                } else {
+                                        "gui.favorite.empty_message"
+                                }
                         emptyMeta?.displayName(
-                                lang.getComponent(player, "gui.favorite.empty_message")
+                                lang.getComponent(player, emptyMessageKey)
                                         .decoration(TextDecoration.ITALIC, false)
                         )
                         emptyItem.itemMeta = emptyMeta
                         ItemTag.tagItem(emptyItem, ItemTag.TYPE_GUI_INFO)
-                        inventory.setItem(22, emptyItem) // 5行GUIの中央
+                        inventory.setItem(22, emptyItem)
                 }
 
                 if (currentPage > 0) {
@@ -182,11 +182,22 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 }
                 inventory.setItem(footerStart, returnItem)
 
-                val background =
+                val whiteBackground =
+                        createDecorationItem(Material.WHITE_STAINED_GLASS_PANE, returnToWorld)
+                for (row in 1..3) {
+                        for (col in 0..8) {
+                                val slot = row * 9 + col
+                                if (inventory.getItem(slot) == null) {
+                                        inventory.setItem(slot, whiteBackground)
+                                }
+                        }
+                }
+
+                val borderBackground =
                         createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)
                 for (slot in 0 until inventory.size) {
                         if (inventory.getItem(slot) == null) {
-                                inventory.setItem(slot, background)
+                                inventory.setItem(slot, borderBackground)
                         }
                 }
 
@@ -209,7 +220,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 player,
                                 "gui.common.world_item_name",
                                 mapOf("world" to worldName)
-                        )
+                        ).decoration(TextDecoration.ITALIC, false)
                 )
 
                 val formattedDesc = if (data.description.isNotEmpty()) {
@@ -286,7 +297,6 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val meta = item.itemMeta ?: return item
                 meta.displayName(
                         lang.getComponent(player, "gui.common.return")
-                                .color(NamedTextColor.YELLOW)
                                 .decorate(TextDecoration.BOLD)
                 )
                 if (returnToWorld != null) {
@@ -338,7 +348,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 player,
                                 "gui.favorite.player_icon.name",
                                 mapOf("player" to PlayerNameUtil.getNameOrDefault(player.uniqueId, lang.getMessage(player, "general.unknown")))
-                        )
+                        ).decoration(TextDecoration.ITALIC, false)
                 )
 
                 val lore = mutableListOf<Component>()
@@ -401,7 +411,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         "$tagPrefix$tagColor$name"
                 }
 
-                meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
+                meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name").decoration(TextDecoration.ITALIC, false))
                 meta.lore(
                         lang.getComponentList(
                                 player,
