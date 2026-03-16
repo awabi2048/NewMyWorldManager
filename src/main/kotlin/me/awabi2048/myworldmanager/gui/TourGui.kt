@@ -20,11 +20,11 @@ class TourGui(private val plugin: MyWorldManager) {
     private val pageSlots = listOf(10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43)
 
     fun openVisitorMenu(player: Player, worldData: WorldData, page: Int = 0) {
-        openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text("ツアー一覧")), VisitorTourHolder(worldData.uuid, page), page, true, null)
+        openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, "gui.tour.menu.visitor_title"))), VisitorTourHolder(worldData.uuid, page), page, true, null)
     }
 
     fun openStartSelectionMenu(player: Player, worldData: WorldData, signUuid: java.util.UUID) {
-        openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text("起点ツアー選択")), StartSelectionHolder(worldData.uuid, signUuid), 0, false, signUuid)
+        openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, "gui.tour.menu.start_selection_title"))), StartSelectionHolder(worldData.uuid, signUuid), 0, false, signUuid)
     }
 
     private fun openPagedTourMenu(player: Player, worldData: WorldData, title: Component, holder: BaseHolder, page: Int, showWorldIcon: Boolean, filterSignUuid: java.util.UUID?) {
@@ -49,10 +49,11 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openEditMenu(player: Player, worldData: WorldData, page: Int = 0) {
+        val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
         val rows = (((minOf(pageSlots.size, maxOf(7, tours.size)) + 6) / 7) + 2).coerceIn(3, 6)
         val holder = EditTourHolder(worldData.uuid, page)
-        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text("ツアー編集")))
+        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.edit_title"))))
         holder.inv = inventory
         fillBase(inventory)
         val safePage = page.coerceAtLeast(0)
@@ -61,55 +62,63 @@ class TourGui(private val plugin: MyWorldManager) {
             val col = index % 7 + 1
             inventory.setItem(row * 9 + col, createEditTourItem(player, worldData, tour))
         }
-        inventory.setItem(inventory.size - 9, createSimpleItem(Material.REDSTONE, "§7戻る", emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
-        if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) inventory.setItem(inventory.size - 7, createSimpleItem(Material.NETHER_STAR, "§bツアーを新規作成", listOf(separator(player), "§7新しいツアーを作成します", separator(player), "§e§nクリックで作成"), ItemTag.TYPE_GUI_TOUR_CREATE))
+        inventory.setItem(inventory.size - 9, createSimpleItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
+        if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) inventory.setItem(inventory.size - 7, createSimpleItem(Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), listOf(separator(player), lang.getMessage(player, "gui.tour.menu.create.description"), separator(player), lang.getMessage(player, "gui.tour.menu.create.action")), ItemTag.TYPE_GUI_TOUR_CREATE))
         inventory.setItem(inventory.size - 5, createCurrentWorldItem(player, worldData))
-        inventory.setItem(inventory.size - 3, createSimpleItem(Material.REDSTONE_TORCH, "§eInfo", listOf(separator(player), "§7Tour看板を登録して", "§7ワールド観光ルートを作成します。", "§7起点は右クリック、編集はShift+右クリックです。", separator(player)), ItemTag.TYPE_GUI_TOUR_INFO))
+        inventory.setItem(inventory.size - 3, createSimpleItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), listOf(separator(player)) + lang.getMessageList(player, "gui.tour.menu.info.lore") + listOf(separator(player)), ItemTag.TYPE_GUI_TOUR_INFO))
         player.openInventory(inventory)
     }
 
     fun openSingleEditMenu(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
+        val lang = plugin.languageManager
         val signRows = ((tour.signUuids.size + 1 + 6) / 7).coerceAtLeast(1).coerceAtMost(4)
         val rows = (signRows + 2).coerceAtMost(6)
         val holder = SingleTourHolder(worldData.uuid, tour.uuid, isNew)
-        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text("ツアー編集: ${tour.name}")))
+        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.single_edit_title", mapOf("tour" to tour.name)))))
         holder.inv = inventory
         fillBase(inventory)
         val slots = mutableListOf<Int>()
         repeat(signRows) { row -> slots.addAll((1..7).map { (row + 1) * 9 + it }) }
-        tour.signUuids.take(28).forEachIndexed { index, signUuid -> plugin.tourManager.getSign(worldData, signUuid)?.let { inventory.setItem(slots[index], createSignItem(player, it, "§e§nクリックで削除")) } }
-        if (tour.signUuids.size < 28) inventory.setItem(slots[tour.signUuids.size], createSimpleItem(Material.YELLOW_STAINED_GLASS_PANE, "§e§nクリックで経由地点を追加", emptyList(), ItemTag.TYPE_GUI_TOUR_ADD_SIGN))
+        tour.signUuids.take(28).forEachIndexed { index, signUuid -> plugin.tourManager.getSign(worldData, signUuid)?.let { inventory.setItem(slots[index], createSignItem(player, it, lang.getMessage(player, "gui.tour.menu.remove_sign_action"))) } }
+        if (tour.signUuids.size < 28) inventory.setItem(slots[tour.signUuids.size], createSimpleItem(Material.YELLOW_STAINED_GLASS_PANE, lang.getMessage(player, "gui.tour.menu.add_sign_button"), emptyList(), ItemTag.TYPE_GUI_TOUR_ADD_SIGN))
         val bottom = inventory.size - 9
-        inventory.setItem(bottom, createSimpleItem(Material.REDSTONE, "§7戻る", emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
-        inventory.setItem(bottom + 2, createSimpleItem(Material.NAME_TAG, "§e表示情報を変更", listOf(separator(player), "§e§l| §e左クリック §7名前と説明を変更", "§e§l| §e右クリック §7アイコンを変更", separator(player)), ItemTag.TYPE_GUI_TOUR_EDIT_TEXT))
-        inventory.setItem(bottom + 4, createSimpleItem(Material.LIME_WOOL, "§a保存", listOf("§e§nクリックで保存"), ItemTag.TYPE_GUI_TOUR_SAVE))
-        inventory.setItem(bottom + 6, createSimpleItem(Material.LAVA_BUCKET, "§cツアーを削除", listOf("§e§nクリックで実行"), ItemTag.TYPE_GUI_TOUR_DELETE))
+        inventory.setItem(bottom, createSimpleItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
+        inventory.setItem(bottom + 2, createSimpleItem(Material.NAME_TAG, lang.getMessage(player, "gui.tour.menu.edit_text.display"), listOf(separator(player)) + lang.getMessageList(player, "gui.tour.menu.edit_text.lore") + listOf(separator(player)), ItemTag.TYPE_GUI_TOUR_EDIT_TEXT))
+        inventory.setItem(bottom + 4, createSimpleItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"), listOf(lang.getMessage(player, "gui.tour.menu.save.action")), ItemTag.TYPE_GUI_TOUR_SAVE))
+        inventory.setItem(bottom + 6, createSimpleItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"), listOf(lang.getMessage(player, "gui.tour.menu.delete.action")), ItemTag.TYPE_GUI_TOUR_DELETE))
         player.openInventory(inventory)
     }
 
-    fun openAddSignMenu(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
-        val holder = AddSignHolder(worldData.uuid, tour.uuid, isNew)
-        val signCount = worldData.tourSigns.size.coerceAtMost(28)
-        val rows = (((maxOf(signCount, 7) + 6) / 7) + 2).coerceIn(3, 6)
-        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text("看板を追加")))
+    fun openAddSignMenu(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false, page: Int = 0) {
+        val lang = plugin.languageManager
+        val safePage = page.coerceAtLeast(0)
+        val holder = AddSignHolder(worldData.uuid, tour.uuid, isNew, safePage)
+        val pageCount = worldData.tourSigns.drop(safePage * pageSlots.size).take(pageSlots.size).size
+        val contentRows = maxOf(1, ((maxOf(pageCount, 7) + 6) / 7))
+        val rows = (contentRows + 2).coerceIn(3, 6)
+        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.add_sign_title"))))
         holder.inv = inventory
         fillBase(inventory)
-        worldData.tourSigns.sortedBy { it.createdAt }.take((rows - 2) * 7).forEachIndexed { index, sign ->
+        worldData.tourSigns.sortedBy { it.createdAt }.drop(safePage * pageSlots.size).take((rows - 2) * 7).forEachIndexed { index, sign ->
             val row = index / 7 + 1
             val col = index % 7 + 1
-            inventory.setItem(row * 9 + col, createSignItem(player, sign, "§e§nクリックで追加", Material.PALE_OAK_SIGN))
+            inventory.setItem(row * 9 + col, createSignItem(player, sign, lang.getMessage(player, "gui.tour.menu.add_sign_action"), Material.PALE_OAK_SIGN))
         }
-        inventory.setItem(inventory.size - 9, createSimpleItem(Material.REDSTONE, "§7戻る", emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
+        val footerStart = inventory.size - 9
+        inventory.setItem(footerStart, createSimpleItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
+        if (safePage > 0) inventory.setItem(footerStart + 1, GuiHelper.createPrevPageItem(plugin, player, "tour_add_sign", safePage - 1))
+        if ((safePage + 1) * pageSlots.size < worldData.tourSigns.size) inventory.setItem(footerStart + 7, GuiHelper.createNextPageItem(plugin, player, "tour_add_sign", safePage + 1))
         player.openInventory(inventory)
     }
 
     fun openDeleteConfirm(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
+        val lang = plugin.languageManager
         val holder = DeleteTourHolder(worldData.uuid, tour.uuid, isNew)
-        val inventory = Bukkit.createInventory(holder, 27, GuiHelper.inventoryTitle(Component.text("ツアー削除確認")))
+        val inventory = Bukkit.createInventory(holder, 27, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))))
         holder.inv = inventory
         fillBase(inventory)
-        inventory.setItem(11, createSimpleItem(Material.LIME_WOOL, "§a削除する", listOf("§c元に戻せません"), ItemTag.TYPE_GUI_CONFIRM))
-        inventory.setItem(15, createSimpleItem(Material.RED_WOOL, "§cキャンセル", listOf("§eクリックで戻る"), ItemTag.TYPE_GUI_CANCEL))
+        inventory.setItem(11, createSimpleItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_CONFIRM))
+        inventory.setItem(15, createSimpleItem(Material.RED_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel_action")), ItemTag.TYPE_GUI_CANCEL))
         player.openInventory(inventory)
     }
 
@@ -143,10 +152,19 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     private fun createTourItem(player: Player, worldData: WorldData, tour: TourData, editing: Boolean): ItemStack {
+        val lang = plugin.languageManager
         val current = plugin.tourSessionManager.get(player.uniqueId)?.let { it.tourUuid == tour.uuid && it.worldUuid == worldData.uuid } == true
-        val countLine = if (tour.completedCount == 0) "§f§l| §7訪問者 §7まだいません" else "§f§l| §7訪問者 §a${tour.completedCount}人"
-        val action = if (editing) "§e§nクリックでこのツアーを編集" else if (current) "§bツアー中！" else "§e§nクリックでこのツアーを開始"
-        val item = createSimpleItem(Material.PALE_OAK_BOAT, tour.name, listOf(separator(player), normalizeDescription(tour.description), countLine, separator(player), action), ItemTag.TYPE_GUI_TOUR_ITEM)
+        val countLine = if (tour.completedCount == 0) {
+            lang.getMessage(player, "gui.tour.menu.tour_item.visitors_none")
+        } else {
+            lang.getMessage(player, "gui.tour.menu.tour_item.visitors_count", mapOf("count" to tour.completedCount.toString()))
+        }
+        val action = when {
+            editing -> lang.getMessage(player, "gui.tour.menu.tour_item.action_edit")
+            current -> lang.getMessage(player, "gui.tour.menu.tour_item.action_current")
+            else -> lang.getMessage(player, "gui.tour.menu.tour_item.action_start")
+        }
+        val item = createSimpleItem(tour.icon, tour.name, listOf(separator(player), normalizeDescription(tour.description), countLine, separator(player), action), ItemTag.TYPE_GUI_TOUR_ITEM)
         ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
         return item
     }
@@ -186,7 +204,7 @@ class TourGui(private val plugin: MyWorldManager) {
     class VisitorTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()
     class EditTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()
     class SingleTourHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean) : BaseHolder()
-    class AddSignHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean) : BaseHolder()
+    class AddSignHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean, val page: Int) : BaseHolder()
     class DeleteTourHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean) : BaseHolder()
     class StartSelectionHolder(val worldUuid: java.util.UUID, val signUuid: java.util.UUID) : BaseHolder()
 }

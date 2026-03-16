@@ -10,6 +10,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.TourManager
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -40,6 +41,10 @@ class TourDialogManager : Listener {
             }
             if (!plugin.tourManager.canManage(worldData, player.uniqueId)) {
                 player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.no_permission"))
+                return
+            }
+            if (!plugin.tourManager.canPlaceSign(worldData)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.limit_reached", mapOf("limit" to TourManager.MAX_SIGNS_PER_WORLD.toString())))
                 return
             }
             placement[player.uniqueId] = PlacementSession(worldData.uuid, block.x, block.y, block.z, blockFace.name, hand)
@@ -113,6 +118,10 @@ class TourDialogManager : Listener {
                     return
                 }
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                if (!plugin.tourManager.canPlaceSign(worldData)) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.limit_reached", mapOf("limit" to TourManager.MAX_SIGNS_PER_WORLD.toString())))
+                    return
+                }
                 plugin.tourManager.createTourSign(worldData, player, player.world.getBlockAt(session.x, session.y, session.z), runCatching { BlockFace.valueOf(session.blockFace) }.getOrDefault(BlockFace.NORTH), title, view.getText("description")?.toString().orEmpty())
                 val item = if (session.hand == EquipmentSlot.HAND) player.inventory.itemInMainHand else player.inventory.itemInOffHand
                 item.amount -= 1

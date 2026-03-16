@@ -1597,6 +1597,55 @@ gui:
       - §7Create and edit tours.
       - §e§nClick to open
       - §8§m－－－－－－－－－－－－－－－－－－
+    menu:
+      visitor_title: Tour List
+      start_selection_title: Select Start Tour
+      edit_title: Edit Tours
+      single_edit_title: 'Edit Tour: {tour}'
+      add_sign_title: Add Signs
+      back: §7Back
+      add_sign_button: §e§nClick to add a waypoint
+      add_sign_action: §e§nClick to add
+      remove_sign_action: §e§nClick to remove
+      create:
+        display: §bCreate New Tour
+        description: §7Create a new tour.
+        action: §e§nClick to create
+      info:
+        display: §eInfo
+        lore:
+        - §7Register Tour signs to build
+        - §7a sightseeing route in this world.
+        - §7Right-click to start, Shift+right-click to edit.
+      edit_text:
+        display: §eEdit Display Info
+        lore:
+        - §e§l| §eLeft-click §7Edit name and description
+        - §e§l| §eRight-click §7Change icon
+      save:
+        display: §aSave
+        action: §e§nClick to save
+      delete:
+        display: §cDelete Tour
+        action: §e§nClick to run
+      delete_confirm:
+        title: Confirm Tour Deletion
+        confirm: §aDelete
+        warning: §cThis cannot be undone
+        cancel: §cCancel
+        cancel_action: §eClick to go back
+        body_line1: §cThis tour will be deleted.
+        body_line2: §7This action cannot be undone.
+      discard_new:
+        title: Unsaved Tour
+        body_line1: §cThis new tour has not been saved.
+        body_line2: §7Return without saving?
+      tour_item:
+        visitors_none: §f§l| §7Visitors §7none yet
+        visitors_count: '§f§l| §7Visitors §a{count}'
+        action_edit: §e§nClick to edit this tour
+        action_current: §bTour in progress!
+        action_start: §e§nClick to start this tour
     edit_text:
       title: Edit Tour Display
       description: §7Enter the tour name and description
@@ -2039,6 +2088,7 @@ error:
   tour:
     my_world_only: §cTour signs can only be placed in MyWorlds.
     no_permission: §cYou do not have permission to edit this world.
+    limit_reached: '§cNo more Tour signs can be placed in this world. (Limit: {limit})'
     title_required: §cPlease enter a name.
     not_managed_world: §cThis is not a managed MyWorld.
     not_enough_signs: §cAt least 2 Tour signs are required to save a tour.

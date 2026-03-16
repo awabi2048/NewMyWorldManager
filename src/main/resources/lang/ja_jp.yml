@@ -1731,6 +1731,55 @@ gui:
         - "§7ツアーの作成・編集を行います。"
         - "§e§nクリックで開く"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+    menu:
+      visitor_title: "ツアー一覧"
+      start_selection_title: "起点ツアー選択"
+      edit_title: "ツアー編集"
+      single_edit_title: "ツアー編集: {tour}"
+      add_sign_title: "看板を追加"
+      back: "§7戻る"
+      add_sign_button: "§e§nクリックで経由地点を追加"
+      add_sign_action: "§e§nクリックで追加"
+      remove_sign_action: "§e§nクリックで削除"
+      create:
+        display: "§bツアーを新規作成"
+        description: "§7新しいツアーを作成します"
+        action: "§e§nクリックで作成"
+      info:
+        display: "§eInfo"
+        lore:
+          - "§7Tour看板を登録して"
+          - "§7ワールド観光ルートを作成します。"
+          - "§7起点は右クリック、編集はShift+右クリックです。"
+      edit_text:
+        display: "§e表示情報を変更"
+        lore:
+          - "§e§l| §e左クリック §7名前と説明を変更"
+          - "§e§l| §e右クリック §7アイコンを変更"
+      save:
+        display: "§a保存"
+        action: "§e§nクリックで保存"
+      delete:
+        display: "§cツアーを削除"
+        action: "§e§nクリックで実行"
+      delete_confirm:
+        title: "ツアー削除確認"
+        confirm: "§a削除する"
+        warning: "§c元に戻せません"
+        cancel: "§cキャンセル"
+        cancel_action: "§eクリックで戻る"
+        body_line1: "§cこのツアーを削除します。"
+        body_line2: "§7この操作は元に戻せません。"
+      discard_new:
+        title: "未保存ツアー"
+        body_line1: "§cこの新規ツアーは保存されていません。"
+        body_line2: "§7保存せずに戻りますか？"
+      tour_item:
+        visitors_none: "§f§l| §7訪問者 §7まだいません"
+        visitors_count: "§f§l| §7訪問者 §a{count}人"
+        action_edit: "§e§nクリックでこのツアーを編集"
+        action_current: "§bツアー中！"
+        action_start: "§e§nクリックでこのツアーを開始"
     edit_text:
       title: "ツアーの表示情報を変更"
       description: "§7ツアー名と説明を入力してください"
@@ -2205,6 +2254,7 @@ error:
   tour:
     my_world_only: "§cTour看板はマイワールド内でのみ設置できます。"
     no_permission: "§cこのワールドを編集する権限がありません。"
+    limit_reached: "§cこのワールドにはこれ以上Tour看板を設置できません。(上限: {limit})"
     title_required: "§c名前を入力してください。"
     not_managed_world: "§cここは管理対象のマイワールドではありません。"
     not_enough_signs: "§cツアーを保存するにはTour看板が2個以上必要です。"

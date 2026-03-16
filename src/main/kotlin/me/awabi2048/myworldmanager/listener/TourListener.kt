@@ -144,11 +144,15 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             ItemTag.TYPE_GUI_TOUR_BACK -> {
                 plugin.soundManager.playClickSound(player, item, "tour")
                 if (holder.isNew) {
+                    val lang = plugin.languageManager
                     DialogConfirmManager.showConfirmationByPreference(
                         player = player,
                         plugin = plugin,
-                        title = Component.text("未保存ツアー"),
-                        bodyLines = listOf(Component.text("§cこの新規ツアーは保存されていません。"), Component.text("§7保存せずに戻りますか？")),
+                        title = Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.title")),
+                        bodyLines = listOf(
+                            Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.body_line1")),
+                            Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.body_line2"))
+                        ),
                         confirmActionId = "mwm:tour/discard_new",
                         cancelActionId = "mwm:tour/discard_new_cancel",
                         onBedrockConfirm = {
@@ -186,11 +190,15 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             }
             ItemTag.TYPE_GUI_TOUR_DELETE -> {
                 plugin.soundManager.playClickSound(player, item, "tour")
+                val lang = plugin.languageManager
                 DialogConfirmManager.showConfirmationByPreference(
                     player = player,
                     plugin = plugin,
-                    title = Component.text("ツアー削除確認"),
-                    bodyLines = listOf(Component.text("§cこのツアーを削除します。"), Component.text("§7この操作は元に戻せません。")),
+                    title = Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title")),
+                    bodyLines = listOf(
+                        Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1")),
+                        Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"))
+                    ),
                     confirmActionId = "mwm:tour/delete_confirm",
                     cancelActionId = "mwm:tour/delete_cancel",
                     onBedrockConfirm = {
@@ -234,6 +242,11 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
                 plugin.soundManager.playClickSound(player, item, "tour")
                 plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
             }
+            ItemTag.TYPE_GUI_NAV_NEXT, ItemTag.TYPE_GUI_NAV_PREV -> {
+                plugin.soundManager.playClickSound(player, item, "tour")
+                val page = ItemTag.getTargetPage(item) ?: 0
+                plugin.tourGui.openAddSignMenu(player, worldData, session.draft, holder.isNew, page)
+            }
             ItemTag.TYPE_GUI_TOUR_SIGN_ITEM -> {
                 plugin.soundManager.playClickSound(player, item, "tour")
                 val signUuid = ItemTag.getString(item, "tour_sign_uuid")?.let(UUID::fromString) ?: return
@@ -247,6 +260,11 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
     fun onBlockBreak(event: BlockBreakEvent) {
         val worldData = plugin.worldConfigRepository.findByWorldName(event.block.world.name) ?: return
         val signData = plugin.tourManager.findSignFromBlock(worldData, event.block) ?: return
+        if (!plugin.tourManager.isWorldMember(worldData, event.player.uniqueId)) {
+            event.isCancelled = true
+            event.player.sendMessage(plugin.languageManager.getMessage(event.player, "error.tour.no_permission"))
+            return
+        }
         event.isDropItems = false
         plugin.tourManager.breakTourSign(worldData, signData.uuid, event.block.location)
     }

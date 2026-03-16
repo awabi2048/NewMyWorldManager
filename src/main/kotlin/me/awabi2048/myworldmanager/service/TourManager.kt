@@ -57,6 +57,8 @@ class TourManager(private val plugin: MyWorldManager) {
         return stats.tourSlotsByWorld[worldData.uuid] ?: DEFAULT_TOUR_LIMIT
     }
 
+    fun canPlaceSign(worldData: WorldData): Boolean = worldData.tourSigns.size < MAX_SIGNS_PER_WORLD
+
     fun validTours(worldData: WorldData): List<TourData> = worldData.tours.filter { it.signUuids.size >= 2 }
 
     fun hasValidTour(worldData: WorldData): Boolean = validTours(worldData).isNotEmpty()
