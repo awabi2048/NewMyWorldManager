@@ -56,6 +56,7 @@ import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 import io.papermc.paper.connection.PlayerGameConnection
 import net.kyori.adventure.text.format.NamedTextColor
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
+import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 
 class WorldSettingsListener : Listener {
 
@@ -319,6 +320,81 @@ class WorldSettingsListener : Listener {
                                                                 interaction.targetUuid,
                                                                 decisionId
                                                         )
+                                        }
+                                        return
+                                }
+
+                                if (type == ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST) {
+                                        if (!event.isLeftClick) {
+                                                return
+                                        }
+
+                                        val decisionId =
+                                                ItemTag.getString(item, "member_pending_invite_id")
+                                                        ?.let { raw -> runCatching { UUID.fromString(raw) }.getOrNull() }
+                                                        ?: return
+                                        val interaction = plugin.pendingInteractionRepository.findById(decisionId)
+                                        if (
+                                                interaction == null ||
+                                                        interaction.type != PendingInteractionType.MEMBER_REQUEST ||
+                                                        interaction.worldUuid != worldData.uuid
+                                        ) {
+                                                player.sendMessage(lang.getMessage(player, "messages.myworld_pending_none"))
+                                                reopenMemberManagementLatest(player, worldData.uuid)
+                                                return
+                                        }
+
+                                        val requestorName =
+                                                PlayerNameUtil.getNameOrDefault(
+                                                        interaction.actorUuid,
+                                                        lang.getMessage(player, "general.unknown")
+                                                )
+                                        val title =
+                                                LegacyComponentSerializer.legacySection().deserialize(
+                                                        lang.getMessage(player, "gui.member_request_owner_confirm.title")
+                                                )
+                                        val bodyLines =
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.member_request_owner_confirm.lore",
+                                                        mapOf("player" to requestorName)
+                                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                                        plugin.settingsSessionManager.updateSessionAction(
+                                                player,
+                                                worldData.uuid,
+                                                SettingsAction.MEMBER_REQUEST_OWNER_CONFIRM,
+                                                isGui = true
+                                        )
+                                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                                        val approveAction = "mwm:confirm/member_request_owner_approve/$decisionId"
+                                        val rejectAction = "mwm:confirm/member_request_owner_reject/$decisionId"
+                                        DialogConfirmManager.showConfirmationByPreference(
+                                                player,
+                                                plugin,
+                                                title,
+                                                bodyLines,
+                                                approveAction,
+                                                rejectAction,
+                                                lang.getMessage(player, "gui.member_request_owner_confirm.confirm"),
+                                                lang.getMessage(player, "gui.member_request_owner_confirm.reject"),
+                                                onBedrockConfirm = {
+                                                        handleBedrockDialogAction(player, worldData, approveAction)
+                                                },
+                                                onBedrockCancel = {
+                                                        handleBedrockDialogAction(player, worldData, rejectAction)
+                                                }
+                                        ) {
+                                                plugin.memberRequestOwnerConfirmGui.open(
+                                                        player,
+                                                        me.awabi2048.myworldmanager.service.MemberRequestInfo(
+                                                                requestorUuid = interaction.actorUuid,
+                                                                worldUuid = interaction.worldUuid,
+                                                                ownerUuid = interaction.targetUuid,
+                                                                decisionId = interaction.id,
+                                                                createdAt = interaction.createdAt
+                                                        ),
+                                                        interaction.id.toString()
+                                                )
                                         }
                                         return
                                 }
@@ -3160,24 +3236,42 @@ plugin.languageManager
                         return
                 }
 
-                val inviteText =
-                        lang.getMessage(
-                                if (target is Player) target else player,
-                                "messages.member_invite_text",
-                                mapOf(
-                                        "player" to player.name,
-                                        "world" to worldData.name
-                                )
-                        )
-                val count = plugin.pendingDecisionManager.enqueueMemberInvite(
+                val invite = plugin.memberInviteManager.addInvite(
                         target.uniqueId,
                         worldData.uuid,
                         player.uniqueId
                 )
+                val count = plugin.pendingDecisionManager.getPersistentPendingCount(target.uniqueId)
 
                 if (target is Player && target.isOnline) {
-                        target.sendMessage(inviteText)
-                        plugin.pendingDecisionManager.sendPendingHint(target, count)
+                        if (plugin.playerPlatformResolver.isBedrock(target)) {
+                                target.sendMessage(
+                                        lang.getMessage(
+                                                target,
+                                                "messages.member_invite_text",
+                                                mapOf(
+                                                        "player" to player.name,
+                                                        "world" to worldData.name
+                                                )
+                                        )
+                                )
+                                plugin.pendingDecisionManager.sendPendingHint(target, count)
+                        } else {
+                                target.sendMessage(
+                                        ClickableInviteMessageFactory.create(
+                                                plugin = plugin,
+                                                target = target,
+                                                messageKey = "messages.member_invite_text",
+                                                clickTextKey = "messages.member_invite_click_text",
+                                                hoverTextKey = "messages.member_invite_hover",
+                                                placeholders = mapOf(
+                                                        "player" to player.name,
+                                                        "world" to worldData.name
+                                                ),
+                                                arguments = listOf("/myworld", "pending_open", invite.id.toString())
+                                        )
+                                )
+                        }
                 }
                 player.sendMessage(
                         lang.getMessage(
@@ -4276,7 +4370,11 @@ player.sendMessage(
                                 plugin.inviteCommand.handleAccept(player)
                         }
                         "memberinviteaccept" -> {
-                                val invite = plugin.memberInviteManager.getInvite(player.uniqueId)
+                                val inviteId =
+                                        payloadArgs.firstOrNull()
+                                                ?.takeIf { it != "0" }
+                                                ?.let { raw -> runCatching { UUID.fromString(raw) }.getOrNull() }
+                                val invite = plugin.memberInviteManager.getInvite(player.uniqueId, inviteId)
                                 if (invite == null) {
                                         player.sendMessage(lang.getMessage(player, "error.invite_expired"))
                                         return
@@ -4290,6 +4388,15 @@ player.sendMessage(
                                 }
 
                                 val senderName = PlayerNameUtil.getNameOrDefault(invite.senderUuid, "Unknown")
+                                plugin.settingsSessionManager.updateSessionAction(
+                                        player,
+                                        invite.worldUuid,
+                                        SettingsAction.MEMBER_INVITE,
+                                        isGui = false
+                                )
+                                plugin.settingsSessionManager
+                                        .getSession(player)
+                                        ?.setMetadata("member_invite_accept_id", invite.id.toString())
                                 val title = Component.text(
                                         lang.getMessage(player, "gui.member_invite_accept_confirm.title")
                                 )
@@ -4415,9 +4522,15 @@ player.sendMessage(
                 plugin.worldSettingsGui.open(player, worldData)
             }
 
+            val keyValue = identifier.value()
             if (identifier == Key.key("mwm:confirm/member_invite_accept")) {
                 DialogConfirmManager.safeCloseDialog(player)
-                plugin.memberInviteManager.handleMemberInviteAccept(player)
+                val decisionId = plugin.settingsSessionManager
+                        .getSession(player)
+                        ?.getMetadata("member_invite_accept_id")
+                        ?.toString()
+                        ?.let { raw -> runCatching { UUID.fromString(raw) }.getOrNull() }
+                plugin.memberInviteManager.handleMemberInviteAccept(player, decisionId)
                 return
             }
 
@@ -4428,7 +4541,7 @@ player.sendMessage(
             }
 
             // Dialog Confirmation Handler (Environment & Visitor Kick)
-            val keyVal = identifier.value()
+            val keyVal = keyValue
             if (keyVal.startsWith("mwm:confirm/")) {
                 
                 // Cancel
@@ -5325,7 +5438,8 @@ player.sendMessage(
                                 SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                                 SettingsAction.MEMBER_REMOVE_CONFIRM,
                                 SettingsAction.MEMBER_TRANSFER_CONFIRM,
-                                SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
+                                SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
+                                SettingsAction.MEMBER_REQUEST_OWNER_CONFIRM ->
                                         reopenMemberManagementLatest(player, worldData.uuid)
                                 SettingsAction.RESET_EXPANSION_CONFIRM,
                                 SettingsAction.DELETE_WORLD_CONFIRM,

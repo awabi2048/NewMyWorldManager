@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 import me.awabi2048.myworldmanager.util.PlayerTag
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
@@ -87,15 +88,21 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     player.sendMessage(lang.getMessage(player, "general.meet_request.sent", mapOf("player" to target.name)))
 
                     target.sendMessage(lang.getMessage(target, "general.meet_request.received", mapOf("player" to player.name)))
+                    val result = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, target.world.uid, 60)
                     if (plugin.playerPlatformResolver.isBedrock(target)) {
-                        val count = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, 60)
-                        plugin.pendingDecisionManager.sendPendingHint(target, count)
+                        plugin.pendingDecisionManager.sendPendingHint(target, result.count)
                     } else {
-                        me.awabi2048.myworldmanager.command.MeetCommand.pendingRequests[target.uniqueId] = player.uniqueId
-                        val acceptText = net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.accept_button"))
-                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/meet accept ${player.uniqueId}"))
-                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(lang.getMessage(target, "general.meet_request.hover_accept"))))
-                        target.sendMessage(acceptText)
+                        target.sendMessage(
+                            ClickableInviteMessageFactory.create(
+                                plugin = plugin,
+                                target = target,
+                                messageKey = "general.meet_request.received",
+                                clickTextKey = "general.meet_request.accept_button",
+                                hoverTextKey = "general.meet_request.hover_accept",
+                                placeholders = mapOf("player" to player.name),
+                                arguments = listOf("/myworld", "pending_open", result.id.toString())
+                            )
+                        )
                     }
                     return
                 }

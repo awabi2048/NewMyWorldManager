@@ -45,8 +45,8 @@ general:
   meet_request:
     sent: §aWarp request sent to {player}.
     received: §e{player} wants to visit you.
-    accept_button: §a§l【Accept】
-    hover_accept: §7Click to accept the warp
+    accept_button: §a§l【Review Request!】
+    hover_accept: §7Click to review this request!
     accepted: §a Warp allowed
     accepted_by_target: §a{target} has given permission to warp!
   language:
@@ -1332,16 +1332,21 @@ gui:
   pending_list:
     title: Pending Invites & Requests
     type:
+      world_invite: World Invite
       member_invite: Member Invite
       member_request: Membership Request
+      meet_request: Warp Request
     item:
-      name: '§e{type}'
-      lore:
-      - '§f§l| §7World §a{world}'
-      - '§f§l| §7Player §b{player}'
-      - '§f§l| §7Received §f{datetime}'
-      - ''
-      - §e§nClick to accept/deny
+      name: '§e{player} §7({type})'
+      type_line: '§f§l| §7Type §e{type}'
+      world_line: '§f§l| §7World §a{world}'
+      status_line: '§f§l| §7Status {status}'
+      received_line: '§f§l| §7Received §f{datetime}'
+      status_online: '§aOnline'
+      status_offline: '§cOffline'
+      action_review: '§e§l| §eClick §7to open accept/deny'
+      action_cancel_java: '§e§l| §eLeft click §7to cancel invite'
+      action_cancel_bedrock: '§e§l| §eClick §7to cancel invite'
     empty:
       name: §7No pending entries
       lore:
@@ -1650,20 +1655,21 @@ messages:
   invite_queued_offline: §7{player} is offline. They will be notified on next login.
   invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
   invite_not_member: §cYou cannot send an invitation because you are not a member of this world
-  invite_hover: Click to join the world
+  invite_hover: Click to review this invite!
   invite_text: '{player} invited you to "{world}"!'
-  invite_click_text: «Click here to warp»
-  member_invite_text: '{player} invited you to join "{world}" as a member.'
+  invite_click_text: «Click here to review»
+  member_invite_text: '{player} invited you to join "{world}" as a member!'
+  member_invite_click_text: «Click here to review»
   member_invite_click: «Click to accept»
-  member_invite_hover: Click to accept the member invitation
-  member_request_sent: §aMember request sent successfully
-  member_request_received: §d{player} wants to join your world as a member
+  member_invite_hover: Click to review the member invite!
+  member_request_sent: §aYour membership request has been sent!
+  member_request_received: §d{player} would love to join your world as a member!
   member_request_click_approve: §a[Approve]
   member_request_click_reject: §c[Reject]
   member_request_hover_approve: Click to approve
   member_request_hover_reject: Click to reject
-  member_request_approved: §aYour member request has been approved
-  member_request_rejected: §cYour member request has been rejected
+  member_request_approved: §aYour member request has been approved!
+  member_request_rejected: §cYour member request was declined.
   member_request_expired: §cThe request has expired
   visitor_notified: §e{player} §fvisited your world!
   kicked: §cYou have been kicked from this world.
@@ -1843,8 +1849,9 @@ messages:
   myworld_command_bedrock_only: §cThis subcommand is available for Bedrock players only.
   myworld_target_not_member: §cTarget player is not a member of this world.
   myworld_owner_remove_forbidden: §cYou cannot remove the owner.
-  myworld_pending_hint: '§eYou have pending invites/requests. Open /myworld and check the player icon. §7(Pending: {count})'
-  myworld_pending_none: §cNo pending invites/requests to process.
+  myworld_pending_hint: '§eYou have invites or requests waiting for you! Open /myworld and check the player icon. §7(Pending: {count})'
+  myworld_pending_none: §cThere is nothing waiting for you right now.
+  myworld_pending_open_list: '§eYou have a few notifications waiting! Please choose one from the list.'
   myworld_pending_remaining: '§eThere are still pending invites/requests. §7(Remaining: {count})'
   myworld_pending_login_notice: '§eYou have {count} pending invites/requests. Latest: §b{datetime}'
   invite_declined: §cYou declined the world invite.
