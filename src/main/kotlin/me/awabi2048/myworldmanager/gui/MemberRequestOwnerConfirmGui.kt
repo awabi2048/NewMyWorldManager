@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -34,7 +35,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         for (i in 0 until 27) inventory.setItem(i, grayPane)
 
         // 情報
-        val requestorName = Bukkit.getPlayer(info.requestorUuid)?.name ?: "Unknown"
+        val requestorName = PlayerNameUtil.getNameOrDefault(info.requestorUuid, lang.getMessage(player, "general.unknown"))
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.title"))

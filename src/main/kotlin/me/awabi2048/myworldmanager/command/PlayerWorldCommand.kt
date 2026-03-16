@@ -14,6 +14,7 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
+import java.util.UUID
 
 class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCompleter {
 
@@ -38,19 +39,45 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             return true
         }
 
+        val sub = args[0].lowercase()
+        if (sub == "pending_open") {
+            if (args.size < 2) {
+                sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_none"))
+                return true
+            }
+            val decisionId = runCatching { UUID.fromString(args[1]) }.getOrNull()
+            if (decisionId == null) {
+                sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_none"))
+                return true
+            }
+            plugin.pendingInteractionGui.openDecision(sender, decisionId)
+            return true
+        }
+
         if (!plugin.playerPlatformResolver.isBedrock(sender)) {
             sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_command_bedrock_only"))
             return true
         }
 
-        val sub = args[0].lowercase()
         if (sub != "transfer" && sub != "remove_member" && sub != "accept" && sub != "deny") {
             sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_command_usage"))
             return true
         }
 
         if (sub == "accept" || sub == "deny") {
-            plugin.pendingDecisionManager.resolveLatest(sender, sub == "accept")
+            val singlePending = plugin.pendingDecisionManager.getSinglePendingCandidate(sender.uniqueId)
+            if (singlePending == null) {
+                val pendingCount = plugin.pendingDecisionManager.getPendingCount(sender.uniqueId)
+                if (pendingCount < 1) {
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_none"))
+                } else {
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_open_list"))
+                    plugin.pendingInteractionGui.open(sender)
+                }
+                return true
+            }
+
+            plugin.pendingInteractionGui.openDecision(sender, singlePending.id, intendedAction = sub == "accept")
             return true
         }
 
@@ -112,10 +139,18 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         }
 
         return when (args.size) {
-            1 -> listOf("transfer", "remove_member", "accept", "deny")
-                .filter { it.startsWith(args[0].lowercase()) }
+            1 -> {
+                val commands = mutableListOf("transfer", "remove_member")
+                if (plugin.pendingDecisionManager.getSinglePendingCandidate(sender.uniqueId) != null) {
+                    commands += listOf("accept", "deny")
+                }
+                commands.filter { it.startsWith(args[0].lowercase()) }
+            }
             2 -> {
                 val sub = args[0].lowercase()
+                if (sub == "accept" || sub == "deny") {
+                    return emptyList()
+                }
                 val currentWorld = plugin.worldConfigRepository.findByWorldName(sender.world.name) ?: return emptyList()
                 if (currentWorld.owner != sender.uniqueId) {
                     return emptyList()

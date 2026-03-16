@@ -3,13 +3,9 @@ package me.awabi2048.myworldmanager.command
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
+import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.event.ClickEvent
-import net.kyori.adventure.text.event.HoverEvent
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -17,13 +13,8 @@ import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCompleter {
-
-    // 招待データを保持する。Key: 被招待者のUUID, Value: 招待情報
-    data class InviteInfo(val worldUuid: UUID, val expiry: Long)
-    private val pendingInvites = ConcurrentHashMap<UUID, InviteInfo>()
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_INVITE)) {
@@ -86,32 +77,31 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
                     mapOf("player" to player.name, "world" to worldData.name)
                 )
             )
-            val count = plugin.pendingDecisionManager.enqueueWorldInvite(
+            val result = plugin.pendingDecisionManager.enqueueWorldInvite(
                 target,
                 worldData.uuid,
                 player.uniqueId,
                 timeoutSeconds
             )
-            plugin.pendingDecisionManager.sendPendingHint(target, count)
+            plugin.pendingDecisionManager.sendPendingHint(target, result.count)
         } else {
-            val expiry = System.currentTimeMillis() + (timeoutSeconds * 1000)
-            pendingInvites[target.uniqueId] = InviteInfo(worldData.uuid, expiry)
-
-            // 対象へのメッセージ送信 (Adventure API)
-            val inviteText = lang.getMessage(target, "messages.invite_text", mapOf("player" to player.name, "world" to worldData.name))
-            val clickText = lang.getMessage(target, "messages.invite_click_text")
-            val hoverText = lang.getMessage(target, "messages.invite_hover")
-
-            val inviteMessage = Component.text()
-                .append(Component.text(inviteText))
-                .append(Component.newline())
-                .append(Component.text(clickText, NamedTextColor.AQUA)
-                    .decoration(TextDecoration.UNDERLINED, true)
-                    .clickEvent(ClickEvent.runCommand(plugin.internalCommandTokenManager.buildCommand(target, "inviteaccept")))
-                    .hoverEvent(HoverEvent.showText(Component.text(hoverText))))
-                .build()
-
-            target.sendMessage(inviteMessage)
+            val result = plugin.pendingDecisionManager.enqueueWorldInvite(
+                target,
+                worldData.uuid,
+                player.uniqueId,
+                timeoutSeconds
+            )
+            target.sendMessage(
+                ClickableInviteMessageFactory.create(
+                    plugin = plugin,
+                    target = target,
+                    messageKey = "messages.invite_text",
+                    clickTextKey = "messages.invite_click_text",
+                    hoverTextKey = "messages.invite_hover",
+                    placeholders = mapOf("player" to player.name, "world" to worldData.name),
+                    arguments = listOf("/myworld", "pending_open", result.id.toString())
+                )
+            )
         }
 
         // 実行者へのメッセージ送信
@@ -153,22 +143,13 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         return emptyList()
     }
 
-    /**
-     * 内部的な招待受理コマンドの処理
-     */
     fun handleAccept(player: Player) {
-        val lang = plugin.languageManager
-        val info = pendingInvites[player.uniqueId]
-        
-        if (info == null || System.currentTimeMillis() > info.expiry) {
-            pendingInvites.remove(player.uniqueId)
-            player.sendMessage(lang.getMessage(player, "error.invite_expired"))
+        val latestInvite = plugin.pendingDecisionManager.getPendingEntries(player.uniqueId)
+            .firstOrNull { it.type == me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.WORLD_INVITE }
+        if (latestInvite == null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.invite_expired"))
             return
         }
-
-        pendingInvites.remove(player.uniqueId)
-        
-        plugin.worldService.teleportToWorld(player, info.worldUuid)
-        player.sendMessage(lang.getMessage(player, "messages.warp_invite_success"))
+        plugin.pendingInteractionGui.openDecision(player, latestInvite.id)
     }
 }

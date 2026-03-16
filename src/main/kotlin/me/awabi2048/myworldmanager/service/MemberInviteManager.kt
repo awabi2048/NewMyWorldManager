@@ -38,9 +38,12 @@ class MemberInviteManager(
         )
     }
 
-    fun getInvite(targetUuid: UUID): MemberInviteInfo? {
+    fun getInvite(targetUuid: UUID, decisionId: UUID? = null): MemberInviteInfo? {
         val interaction = plugin.pendingInteractionRepository.findByTarget(targetUuid)
-            .firstOrNull { it.type == me.awabi2048.myworldmanager.model.PendingInteractionType.MEMBER_INVITE }
+            .firstOrNull {
+                it.type == me.awabi2048.myworldmanager.model.PendingInteractionType.MEMBER_INVITE &&
+                    (decisionId == null || it.id == decisionId)
+            }
             ?: return null
         return MemberInviteInfo(
             id = interaction.id,
@@ -54,9 +57,9 @@ class MemberInviteManager(
         plugin.pendingInteractionRepository.remove(decisionId)
     }
 
-    fun handleMemberInviteAccept(player: Player) {
+    fun handleMemberInviteAccept(player: Player, decisionId: UUID? = null) {
         val lang = languageManager
-        val info = getInvite(player.uniqueId)
+        val info = getInvite(player.uniqueId, decisionId)
         if (info == null) {
             player.sendMessage(lang.getMessage(player, "error.invite_expired"))
             return

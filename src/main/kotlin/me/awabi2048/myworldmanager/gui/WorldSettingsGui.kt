@@ -30,7 +30,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val playerUuid: UUID,
                 val role: String? = null,
                 val pendingDecisionId: UUID? = null,
-                val pendingCreatedAt: Long? = null
+                val pendingCreatedAt: Long? = null,
+                val pendingType: PendingInteractionType? = null
         )
 
         fun open(player: Player, worldData: WorldData, showBackButton: Boolean? = null, isPlayerWorldFlow: Boolean? = null, parentShowBackButton: Boolean? = null) {
@@ -1316,7 +1317,22 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 MemberManagementEntry(
                                         playerUuid = invite.targetUuid,
                                         pendingDecisionId = invite.id,
-                                        pendingCreatedAt = invite.createdAt
+                                        pendingCreatedAt = invite.createdAt,
+                                        pendingType = PendingInteractionType.MEMBER_INVITE
+                                )
+                        )
+                }
+
+                val pendingRequests =
+                        plugin.pendingInteractionRepository
+                                .findByWorldAndType(worldData.uuid, PendingInteractionType.MEMBER_REQUEST)
+                pendingRequests.forEach { request ->
+                        allEntries.add(
+                                MemberManagementEntry(
+                                        playerUuid = request.actorUuid,
+                                        pendingDecisionId = request.id,
+                                        pendingCreatedAt = request.createdAt,
+                                        pendingType = PendingInteractionType.MEMBER_REQUEST
                                 )
                         )
                 }
@@ -1367,13 +1383,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val row = index / 7
                         val col = index % 7
                         val slot = (row + 1) * 9 + (col + 1)
-                        val memberItem =
-                                if (entry.pendingDecisionId != null) {
-                                        createPendingInviteItem(
+                                val memberItem =
+                                        if (entry.pendingDecisionId != null) {
+                                        createPendingItem(
                                                 viewer = player,
                                                 targetUuid = entry.playerUuid,
                                                 decisionId = entry.pendingDecisionId,
-                                                createdAt = entry.pendingCreatedAt ?: 0L
+                                                createdAt = entry.pendingCreatedAt ?: 0L,
+                                                pendingType = entry.pendingType ?: PendingInteractionType.MEMBER_INVITE
                                         )
                                 } else {
                                         createMemberItem(
@@ -1856,59 +1873,42 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return item
         }
 
-        private fun createPendingInviteItem(
+        private fun createPendingItem(
                 viewer: Player,
                 targetUuid: UUID,
                 decisionId: UUID,
-                createdAt: Long
+                createdAt: Long,
+                pendingType: PendingInteractionType
         ): ItemStack {
-                val lang = plugin.languageManager
-                val target = Bukkit.getOfflinePlayer(targetUuid)
-                val isOnline = target.isOnline
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(viewer, "general.unknown"))
-
-                val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta as? SkullMeta ?: return item
-                meta.owningPlayer = target
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(
-                                        lang.getMessage(
-                                                viewer,
-                                                "gui.member_management.pending_item.name",
-                                                mapOf("player" to targetName)
-                                        )
+                val worldName =
+                        plugin.worldConfigRepository
+                                .findByUuid(
+                                        plugin.settingsSessionManager.getSession(viewer)?.worldUuid
+                                                ?: return ItemStack(Material.BARRIER)
                                 )
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-
-                val statusKey =
-                        if (isOnline) {
-                                "gui.member_management.pending_item.status_online"
-                        } else {
-                                "gui.member_management.pending_item.status_offline"
-                        }
-                val clickKey =
-                        if (plugin.playerPlatformResolver.isBedrock(viewer)) {
-                                "gui.member_management.pending_item.click_bedrock"
-                        } else {
-                                "gui.member_management.pending_item.click_java"
-                        }
-                val lore =
-                        lang.getComponentList(
-                                viewer,
-                                "gui.member_management.pending_item.lore",
-                                mapOf(
-                                        "status" to lang.getMessage(viewer, statusKey),
-                                        "datetime" to formatPendingInviteDateTimeForPlayer(viewer, createdAt),
-                                        "click" to lang.getMessage(viewer, clickKey)
-                                )
+                                ?.name
+                                ?: plugin.languageManager.getMessage(viewer, "general.unknown")
+                val item =
+                        PendingInteractionItemFactory.createItem(
+                                plugin = plugin,
+                                viewer = viewer,
+                                subjectUuid = targetUuid,
+                                type =
+                                        when (pendingType) {
+                                                PendingInteractionType.MEMBER_INVITE -> me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_INVITE
+                                                PendingInteractionType.MEMBER_REQUEST -> me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_REQUEST
+                                        },
+                                worldName = worldName,
+                                createdAt = createdAt,
+                                decisionId = decisionId,
+                                actionMode = PendingInteractionActionMode.CANCEL,
+                                itemTagType =
+                                        if (pendingType == PendingInteractionType.MEMBER_INVITE) {
+                                                ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE
+                                        } else {
+                                                ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST
+                                        }
                         )
-                meta.lore(lore)
-                meta.setEnchantmentGlintOverride(true)
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE)
                 ItemTag.setWorldUuid(item, targetUuid)
                 ItemTag.setString(item, "member_pending_invite_id", decisionId.toString())
                 return item
