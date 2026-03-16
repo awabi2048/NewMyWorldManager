@@ -744,6 +744,10 @@ gui:
       - §e§l| §eShift + Left-Click §7Transfer ownership
       - §e§l| §eShift + Right-Click §7Remove member
       - §8§m-----------------------
+      lore_actions_bedrock:
+      - §e§l| §eClick §7Change role to {next_role}
+      - §e§l| §eUse /myworld command §7for remove/transfer
+      - §8§m-----------------------
     pending_item:
       name: §e{player} §7(Pending)
       status_online: §ePending §7(§aOnline§7)
@@ -1024,6 +1028,7 @@ gui:
   meet:
     title: Visit {player}
     title_list: Go to Player's Place
+    empty_message: §7No players are available to display.
     world_item:
       current_world: §f§l| §7Current World §f{world}
       current_world_same: §f§l| §7Current World §6{world} §7(same world)
@@ -1730,6 +1735,7 @@ messages:
   expand_retry_button: §c§l[Retry Selection]
   expand_retry_hover: §7Click to clear the preview and pick a direction again
   expand_complete: '§aExpansion complete! §7{level_before} §f→ §e§l{level_after} §7(Remaining: §6🛖 §e{remaining}§7)'
+  expansion_reset_complete: §aExpansion reset. Refunded §6🛖 §e{points} §apoints.
   expansion_reset_success: §aExpansion reset. Refunded §6🛖 §e{points} §apoints.
   world_delete_start: §cDeleting world "{world}"...
   world_delete_success: §aDeleted world and refunded §6🛖 §e{points} §apoints.
@@ -1976,6 +1982,7 @@ biomes:
   end_highlands: End Highlands
   end_barrens: End Barrens
 error:
+  player_only: §cThis command can only be executed by a player.
   spotlight_not_in_myworld: §cYou must be in the target MyWorld to register it.
   spotlight_not_owner: §cYou can only register worlds you own.
   spotlight_already_registered: §cThis world is already registered to SPOTLIGHT.

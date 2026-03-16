@@ -1878,6 +1878,7 @@ messages:
   expand_retry_button: "§c§l【方角を選び直す】"
   expand_retry_hover: "§7クリックしてボーダープレビューを消去し、方角を選択し直します"
   expand_complete: "§aワールドの拡張が完了しました！ §7{level_before} §f→ §e§l{level_after} §7(残りポイント §6🛖 §e{remaining}§7)"
+  expansion_reset_complete: "§a拡張段階を初期化し、§6🛖 §e{points} §aポイントを返還しました。"
   expansion_reset_success: "§a拡張段階を初期化し、§6🛖 §e{points} §aポイントを返還しました。"
   world_delete_start: "§cワールド「{world}」を削除しています..."
   world_delete_success: "§aワールドを削除し、合計 §6🛖 §e{points} §aポイントを返還しました。"
@@ -2147,6 +2148,7 @@ biomes:
   end_barrens: "エンドの痩せた地"
 
 error:
+  player_only: "§cこのコマンドはプレイヤーのみ実行可能です。"
   spotlight_not_in_myworld: "§cMyWorldワールド内にいる必要があります。"
   spotlight_not_owner: "§cあなたはこのワールドの所有者ではありません。"
   spotlight_already_registered: "§cこのワールドは既にSPOTLIGHTに登録されています。"
