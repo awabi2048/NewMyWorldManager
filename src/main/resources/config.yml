@@ -187,3 +187,7 @@ bedrock:
     mode: "auto"
     # Form送信失敗後、再試行までInventoryを使うクールダウン時間（分）
     form_failure_cooldown_minutes: 10
+
+# ワープ設定
+warp:
+  load_wait_ticks: 10

@@ -55,17 +55,19 @@ class VisitWorldListener(private val plugin: MyWorldManager) : Listener {
 
                 if (isBedrock) {
                     plugin.soundManager.playClickSound(player, currentItem, "visit")
-                    plugin.worldService.teleportToWorld(player, uuid)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     player.closeInventory()
+                    plugin.worldService.teleportToWorld(player, uuid) {
+                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                    }
                     return
                 }
 
                 if (event.isLeftClick) {
                     plugin.soundManager.playClickSound(player, currentItem, "visit")
-                    plugin.worldService.teleportToWorld(player, uuid)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     player.closeInventory()
+                    plugin.worldService.teleportToWorld(player, uuid) {
+                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                    }
                     return
                 }
 

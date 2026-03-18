@@ -76,9 +76,10 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     }
 
                     plugin.soundManager.playClickSound(player, item, "discovery")
-                    plugin.worldService.teleportToWorld(player, uuid)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     player.closeInventory()
+                    plugin.worldService.teleportToWorld(player, uuid) {
+                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                    }
                     return
                 }
 
@@ -131,10 +132,10 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
 
                     // ワープ
                     plugin.soundManager.playClickSound(player, item, "discovery")
-                    plugin.worldService.teleportToWorld(player, uuid)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                    
                     player.closeInventory()
+                    plugin.worldService.teleportToWorld(player, uuid) {
+                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                    }
                 } else if (event.isRightClick) {
                     if (!event.isShiftClick && isCurrentWorld) {
                         return

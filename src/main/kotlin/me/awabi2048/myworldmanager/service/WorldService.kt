@@ -413,12 +413,14 @@ class WorldService(
             worldUuid: UUID,
             location: Location? = null,
             runMacro: Boolean = true,
-            reason: MwmWarpReason = MwmWarpReason.DIRECT
+            reason: MwmWarpReason = MwmWarpReason.DIRECT,
+            afterTeleported: (() -> Unit)? = null
     ) {
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
+        val needsLoad = Bukkit.getWorld(folderName) == null
 
-        if (Bukkit.getWorld(folderName) == null) {
+        if (needsLoad) {
             player.closeInventory()
             if (!loadWorld(worldUuid)) return
         }
@@ -449,27 +451,43 @@ class WorldService(
             targetLoc.world = world
         }
 
-        player.teleport(targetLoc)
+        val executeTeleport = Runnable {
+            if (!player.isOnline) {
+                return@Runnable
+            }
 
-        plugin.soundManager.playTeleportSound(player)
+            player.teleport(targetLoc)
 
-        Bukkit.getPluginManager().callEvent(
-                MwmWorldWarpedEvent(
-                        playerUuid = player.uniqueId,
-                        playerName = player.name,
-                        worldUuid = worldUuid,
-                        toLocation = targetLoc.clone(),
-                        reason = reason
-                )
-        )
+            plugin.soundManager.playTeleportSound(player)
 
-        // マクロ実行
-        if (runMacro) {
-            plugin.macroManager.execute(
-                    "on_join",
-                    mapOf("player" to player.name, "world_uuid" to worldUuid.toString())
+            Bukkit.getPluginManager().callEvent(
+                    MwmWorldWarpedEvent(
+                            playerUuid = player.uniqueId,
+                            playerName = player.name,
+                            worldUuid = worldUuid,
+                            toLocation = targetLoc.clone(),
+                            reason = reason
+                    )
             )
+
+            // マクロ実行
+            if (runMacro) {
+                plugin.macroManager.execute(
+                        "on_join",
+                        mapOf("player" to player.name, "world_uuid" to worldUuid.toString())
+                )
+            }
+
+            afterTeleported?.invoke()
         }
+
+        if (needsLoad) {
+            val waitTicks = plugin.config.getLong("warp.load_wait_ticks", 10L).coerceAtLeast(0L)
+            Bukkit.getScheduler().runTaskLater(plugin, executeTeleport, waitTicks)
+            return
+        }
+
+        executeTeleport.run()
 
         // 最終アクセス日時の更新などはaccessControlListener等で行うのが良いかもしれないが、
         // 明示的にここで更新する手もある。

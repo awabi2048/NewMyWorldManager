@@ -292,8 +292,9 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         when (decision) {
             is WorldInviteDecision -> {
                 if (accept) {
-                    plugin.worldService.teleportToWorld(target, decision.worldUuid)
-                    target.sendMessage(plugin.languageManager.getMessage(target, "messages.warp_invite_success"))
+                    plugin.worldService.teleportToWorld(target, decision.worldUuid) {
+                        target.sendMessage(plugin.languageManager.getMessage(target, "messages.warp_invite_success"))
+                    }
                 } else {
                     target.sendMessage(plugin.languageManager.getMessage(target, "messages.invite_declined"))
                 }
@@ -418,29 +419,30 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             return
         }
 
-        plugin.worldService.teleportToWorld(requester, worldData.uuid)
-        target.sendMessage(
-            plugin.languageManager.getMessage(
-                target,
-                "messages.meet.request_accepted",
-                mapOf("player" to requester.name)
+        plugin.worldService.teleportToWorld(requester, worldData.uuid) {
+            target.sendMessage(
+                plugin.languageManager.getMessage(
+                    target,
+                    "messages.meet.request_accepted",
+                    mapOf("player" to requester.name)
+                )
             )
-        )
-        requester.sendMessage(
-            plugin.languageManager.getMessage(
-                requester,
-                "messages.meet.request_accepted_by_target",
-                mapOf("player" to target.name)
+            requester.sendMessage(
+                plugin.languageManager.getMessage(
+                    requester,
+                    "messages.meet.request_accepted_by_target",
+                    mapOf("player" to target.name)
+                )
             )
-        )
 
-        val isMember =
-            worldData.owner == requester.uniqueId ||
-                worldData.moderators.contains(requester.uniqueId) ||
-                worldData.members.contains(requester.uniqueId)
-        if (!isMember) {
-            worldData.recentVisitors[0]++
-            plugin.worldConfigRepository.save(worldData)
+            val isMember =
+                worldData.owner == requester.uniqueId ||
+                    worldData.moderators.contains(requester.uniqueId) ||
+                    worldData.members.contains(requester.uniqueId)
+            if (!isMember) {
+                worldData.recentVisitors[0]++
+                plugin.worldConfigRepository.save(worldData)
+            }
         }
     }
 }

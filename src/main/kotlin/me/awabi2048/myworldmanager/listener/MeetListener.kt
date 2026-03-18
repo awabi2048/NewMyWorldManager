@@ -124,18 +124,19 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
 
                 if (worldData.publishLevel == PublishLevel.PUBLIC || isMember) {
                     plugin.soundManager.playClickSound(player, currentItem, "meet")
-                    plugin.worldService.teleportToWorld(player, worldData.uuid)
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                    
-                    target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
+                    player.closeInventory()
+                    plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
 
-                    if (!isMember) {
-                        if (PlayerTag.shouldCountVisit(player, worldData.uuid)) {
-                            worldData.recentVisitors[0]++
-                            plugin.worldConfigRepository.save(worldData)
+                        target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
+
+                        if (!isMember) {
+                            if (PlayerTag.shouldCountVisit(player, worldData.uuid)) {
+                                worldData.recentVisitors[0]++
+                                plugin.worldConfigRepository.save(worldData)
+                            }
                         }
                     }
-                    player.closeInventory()
                 } else {
                     player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                     plugin.soundManager.playActionSound(player, "meet", "access_denied")

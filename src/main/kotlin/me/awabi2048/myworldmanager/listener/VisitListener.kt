@@ -56,9 +56,10 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                         }
 
                         plugin.soundManager.playClickSound(player, currentItem)
-                        plugin.worldService.teleportToWorld(player, uuid)
-                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                         player.closeInventory()
+                        plugin.worldService.teleportToWorld(player, uuid) {
+                            player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                        }
                         return
                     }
 
@@ -76,10 +77,10 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                         }
 
                         plugin.soundManager.playClickSound(player, currentItem)
-                        plugin.worldService.teleportToWorld(player, uuid)
-                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                        
                         player.closeInventory()
+                        plugin.worldService.teleportToWorld(player, uuid) {
+                            player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                        }
                     } else if (event.isRightClick) {
                         // お気に入り処理
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)

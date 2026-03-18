@@ -204,57 +204,19 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 if (Bukkit.getWorld(folderName) == null) {
                     player.closeInventory()
                     player.sendMessage(lang.getMessage(player, "messages.world_loading"))
-                    Bukkit.getScheduler().runTask(plugin, Runnable {
-                        if (!player.isOnline) {
-                            return@Runnable
-                        }
-                        if (!plugin.worldService.loadWorld(uuid)) {
-                            player.sendMessage(lang.getMessage(player, "error.load_failed"))
-                            return@Runnable
-                        }
-
-                        val loadedWorld = Bukkit.getWorld(folderName)
-                        if (loadedWorld == null) {
-                            player.sendMessage(lang.getMessage(player, "general.world_not_found"))
-                            return@Runnable
-                        }
-
-                        val isMember = worldData.owner == player.uniqueId ||
-                                worldData.moderators.contains(player.uniqueId) ||
-                                worldData.members.contains(player.uniqueId)
-
-                        val spawnLocation = if (isMember) {
-                            worldData.spawnPosMember ?: loadedWorld.spawnLocation
-                        } else {
-                            worldData.spawnPosGuest ?: loadedWorld.spawnLocation
-                        }
-
-                        plugin.worldService.teleportToWorld(player, uuid, spawnLocation)
+                    plugin.worldService.teleportToWorld(player, uuid) {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                         plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                    })
+                        player.closeInventory()
+                    }
                     return
                 }
 
-                val targetWorld = Bukkit.getWorld(folderName)
-                if (targetWorld != null) {
-                    val isMember = worldData.owner == player.uniqueId ||
-                            worldData.moderators.contains(player.uniqueId) ||
-                            worldData.members.contains(player.uniqueId)
-
-                    val spawnLocation = if (isMember) {
-                        worldData.spawnPosMember ?: targetWorld.spawnLocation
-                    } else {
-                        worldData.spawnPosGuest ?: targetWorld.spawnLocation
-                    }
-
-                    plugin.worldService.teleportToWorld(player, uuid, spawnLocation)
+                player.closeInventory()
+                plugin.worldService.teleportToWorld(player, uuid) {
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
-
                     player.closeInventory()
-                } else {
-                    player.sendMessage(lang.getMessage(player, "general.world_not_found"))
                 }
             } else if (!isBedrock && event.isRightClick) {
 

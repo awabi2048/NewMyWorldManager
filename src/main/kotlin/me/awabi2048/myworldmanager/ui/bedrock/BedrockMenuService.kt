@@ -976,43 +976,19 @@ class BedrockMenuService(
         if (Bukkit.getWorld(folderName) == null) {
             player.closeInventory()
             player.sendMessage(tr(player, "messages.world_loading"))
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (!player.isOnline) {
-                    return@Runnable
-                }
-                if (!plugin.worldService.loadWorld(worldData.uuid)) {
-                    player.sendMessage(tr(player, "messages.world_load_failed"))
-                    return@Runnable
-                }
-                completeWarpToWorld(player, worldData, folderName)
-            })
+            plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                completeWarpToWorld(player, worldData)
+            }
             return
         }
 
-        completeWarpToWorld(player, worldData, folderName)
+        player.closeInventory()
+        plugin.worldService.teleportToWorld(player, worldData.uuid) {
+            completeWarpToWorld(player, worldData)
+        }
     }
 
-    private fun completeWarpToWorld(player: Player, worldData: WorldData, folderName: String) {
-
-        val targetWorld = Bukkit.getWorld(folderName)
-        if (targetWorld == null) {
-            player.sendMessage(tr(player, "messages.world_not_found"))
-            return
-        }
-
-        val isMember =
-            worldData.owner == player.uniqueId ||
-                worldData.moderators.contains(player.uniqueId) ||
-                worldData.members.contains(player.uniqueId)
-
-        val spawnLocation =
-            if (isMember) {
-                worldData.spawnPosMember ?: targetWorld.spawnLocation
-            } else {
-                worldData.spawnPosGuest ?: targetWorld.spawnLocation
-            }
-
-        plugin.worldService.teleportToWorld(player, worldData.uuid, spawnLocation)
+    private fun completeWarpToWorld(player: Player, worldData: WorldData) {
         player.sendMessage(tr(player, "messages.warp_success", mapOf("world" to worldData.name)))
         player.closeInventory()
     }
