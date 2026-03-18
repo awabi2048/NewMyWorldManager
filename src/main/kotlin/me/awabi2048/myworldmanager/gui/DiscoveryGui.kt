@@ -5,8 +5,8 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.DiscoverySort
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -80,9 +80,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         }
 
                 // 背景
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                val whitePane = createDecorationItem(Material.WHITE_STAINED_GLASS_PANE)
+                val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
+                val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+                val whitePane = GuiItemFactory.decoration(Material.WHITE_STAINED_GLASS_PANE)
 
                 // Clear content area if reusing
                 if (player.openInventory.topInventory == inventory) {
@@ -466,16 +466,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 )
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
-                return item
-        }
-
-        private fun createDecorationItem(material: Material): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(Component.empty())
-                meta.isHideTooltip = true
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
                 return item
         }
 

@@ -12,6 +12,8 @@ import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset
+import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.Component
@@ -2222,29 +2224,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 loreLines: List<String>,
                 tag: String
         ): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-
-                // 装飾を指定しない (LegacyComponentSerializerにおまかせする)
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(name)
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-
-                val loreComponents =
-                        loreLines.map {
-                                LegacyComponentSerializer.legacySection()
-                                        .deserialize(it)
-                                        .decoration(TextDecoration.ITALIC, false)
-                        }
-                meta.lore(loreComponents)
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, tag)
-                item.itemMeta = meta
-                ItemTag.tagItem(item, tag)
-                return item
+                return GuiItemFactory.textItem(material, name, loreLines, tag)
         }
 
         private data class BorderInfo(
@@ -2294,20 +2274,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 loreComponents: List<Component>,
                 tag: String
         ): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(name)
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-
-                meta.lore(loreComponents.map { it.decoration(TextDecoration.ITALIC, false) })
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, tag)
-                return item
+                return GuiItemFactory.item(material, name, loreComponents, tag)
         }
 
         fun openTagEditor(player: Player, worldData: WorldData) {
@@ -2960,12 +2927,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         private fun createDecorationItem(material: Material): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(Component.empty())
-                meta.isHideTooltip = true
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-                return item
+                return GuiItemFactory.decoration(material)
         }
 }

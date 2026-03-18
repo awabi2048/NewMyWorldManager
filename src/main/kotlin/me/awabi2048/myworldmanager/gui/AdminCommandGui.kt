@@ -3,10 +3,9 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
@@ -29,12 +28,12 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(null, 45, title)
 
         // 背景 (黒の板ガラス)
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in 36..44) inventory.setItem(i, blackPane)
 
         // 背景 (灰色の板ガラス)
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
         for (i in 0 until inventory.size) {
             if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
         }
@@ -326,11 +325,11 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         
         // 背景
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in 18..26) inventory.setItem(i, blackPane)
         
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
         for (i in 9..17) {
              if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
         }
@@ -365,22 +364,6 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     }
 
     private fun createItem(material: Material, name: String, lore: List<String>, tagType: String): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
-        item.itemMeta = meta
-        ItemTag.tagItem(item, tagType)
-        return item
-    }
-
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        return item
+        return GuiItemFactory.textItem(material, name, lore, tagType)
     }
 }

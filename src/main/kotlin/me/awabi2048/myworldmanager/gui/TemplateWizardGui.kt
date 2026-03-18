@@ -4,9 +4,9 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.CustomItem
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -46,8 +46,8 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
         // 装飾用
         // 装飾用
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
         
         for (i in 0..53) {
             if (i < 9 || i >= 45) {
@@ -131,23 +131,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
     }
 
     private fun createSettingItem(material: Material, display: String, lore: List<Component>, id: String): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(display).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore)
-        item.itemMeta = meta
-        ItemTag.tagItem(item, id)
-        return item
-    }
-
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        return item
+        return GuiItemFactory.item(material, display, lore, id)
     }
 
     fun getSession(uuid: UUID) = sessions[uuid]

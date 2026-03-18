@@ -4,10 +4,10 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -134,16 +134,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        return item
-    }
-
     fun openConfirmation(player: Player, session: WorldCreationSession) {
         val lang = plugin.languageManager
         val titleKey = "gui.creation.title_confirm"
@@ -206,8 +196,8 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun setupHeaderFooter(inventory: org.bukkit.inventory.Inventory, rowCount: Int) {
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-        val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+        val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
 
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in (rowCount - 1) * 9 until rowCount * 9) inventory.setItem(i, blackPane)
@@ -225,7 +215,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
-        val item = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val item = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
 
         for (i in 0 until inventory.size) {
             if (inventory.getItem(i) == null) {
@@ -235,15 +225,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun createItem(material: Material, name: String, tag: String, lore: List<Component>): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore)
-        
-        item.itemMeta = meta
-        ItemTag.tagItem(item, tag)
-        return item
+        return GuiItemFactory.item(material, name, lore, tag)
     }
 
     private fun cleanWorldName(name: String): String {

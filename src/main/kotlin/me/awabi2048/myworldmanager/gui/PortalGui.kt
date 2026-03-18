@@ -2,12 +2,11 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Color
@@ -46,8 +45,8 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         
         val inventory = Bukkit.createInventory(null, 27, titleComponent)
 
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-        val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+        val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
 
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in 18..26) inventory.setItem(i, blackPane)
@@ -207,25 +206,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
     }
 
     private fun createItem(material: Material, name: String, lore: List<Component>, type: String): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore)
-        
-        item.itemMeta = meta
-        ItemTag.tagItem(item, type)
-        return item
-    }
-
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        return item
+        return GuiItemFactory.item(material, name, lore, type)
     }
 
     private fun getWoolColor(color: Color): Material {

@@ -10,6 +10,7 @@ import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.text.Component
@@ -432,13 +433,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun createDecorationItem(material: Material): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(Component.empty())
-                meta.isHideTooltip = true
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-                return item
+                return GuiItemFactory.decoration(material)
         }
 
         private fun dateFormatterFor(player: Player): DateTimeFormatter {

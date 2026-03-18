@@ -2,9 +2,9 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -51,40 +51,46 @@ object PendingInteractionItemFactory {
             ).decoration(TextDecoration.ITALIC, false)
         )
 
-        val lore = mutableListOf<Component>()
-        lore += lang.getComponent(viewer, "gui.common.separator")
-        lore += lang.getComponent(
-            viewer,
-            "gui.pending_list.item.type_line",
-            mapOf("type" to typeLabel(plugin, viewer, type))
-        )
-        lore += lang.getComponent(
-            viewer,
-            "gui.pending_list.item.world_line",
-            mapOf("world" to worldName)
-        )
-        lore += lang.getComponent(
-            viewer,
-            "gui.pending_list.item.status_line",
-            mapOf(
-                "status" to lang.getMessage(
-                    viewer,
-                    if (isOnline) "gui.pending_list.item.status_online" else "gui.pending_list.item.status_offline"
+        val lore = GuiLoreBuilder(lang, viewer)
+            .componentBlock(
+                listOf(
+                    lang.getComponent(
+                        viewer,
+                        "gui.pending_list.item.type_line",
+                        mapOf("type" to typeLabel(plugin, viewer, type))
+                    ),
+                    lang.getComponent(
+                        viewer,
+                        "gui.pending_list.item.world_line",
+                        mapOf("world" to worldName)
+                    ),
+                    lang.getComponent(
+                        viewer,
+                        "gui.pending_list.item.status_line",
+                        mapOf(
+                            "status" to lang.getMessage(
+                                viewer,
+                                if (isOnline) "gui.pending_list.item.status_online" else "gui.pending_list.item.status_offline"
+                            )
+                        )
+                    ),
+                    lang.getComponent(
+                        viewer,
+                        "gui.pending_list.item.received_line",
+                        mapOf("datetime" to formatDateTime(plugin, viewer, createdAt))
+                    ),
                 )
             )
-        )
-        lore += lang.getComponent(
-            viewer,
-            "gui.pending_list.item.received_line",
-            mapOf("datetime" to formatDateTime(plugin, viewer, createdAt))
-        )
-        lore += lang.getComponent(viewer, "gui.common.separator")
-        lore += lang.getComponent(
-            viewer,
-            actionLineKey(plugin, viewer, actionMode),
-            mapOf("type" to typeLabel(plugin, viewer, type))
-        )
-        lore += lang.getComponent(viewer, "gui.common.separator")
+            .componentBlock(
+                listOf(
+                    lang.getComponent(
+                        viewer,
+                        actionLineKey(plugin, viewer, actionMode),
+                        mapOf("type" to typeLabel(plugin, viewer, type))
+                    )
+                )
+            )
+            .build()
         meta.lore(lore)
         meta.setEnchantmentGlintOverride(true)
 
