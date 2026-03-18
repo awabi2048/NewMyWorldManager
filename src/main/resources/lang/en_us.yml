@@ -1830,6 +1830,7 @@ messages:
   portal_unbind_success: §ePortal binding removed.
   portal_place_success: §aWorld portal placed successfully.
   portal_broken: §eWorld portal has been broken.
+  error.portal_place_in_world_gate: §cYou cannot place a world portal inside a world gate.
   world_gate_bind_success: §aWorld gate bound to "{destination}".
   world_gate_unbind_success: §a World gate link has been removed.
   world_gate_select_first: §eRight-click a block to select point 1 for the world gate.

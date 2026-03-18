@@ -1982,6 +1982,7 @@ messages:
   portal_unbind_success: "§eポータルの紐づけを解除しました"
   portal_place_success: "§aワールドポータルを設置しました"
   portal_broken: "§eワールドポータルが破壊されました"
+  error.portal_place_in_world_gate: "§cワールドゲートの内部にはワールドポータルを設置できません。"
   world_gate_bind_success: "§aこのワールドゲートを「{destination}」に紐づけました"
   world_gate_unbind_success: "§aワールドゲートのリンクを解除しました。"
   world_gate_select_first: "§eワールドゲートの1点目を右クリックで選択してください。"

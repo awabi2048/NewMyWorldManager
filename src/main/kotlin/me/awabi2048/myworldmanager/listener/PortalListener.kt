@@ -236,7 +236,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onAnyRightClickForPortalMenu(event: PlayerInteractEvent) {
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
 
@@ -259,7 +259,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         PortalGui(plugin).open(player, portal)
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onAnyRightClickForGateMenu(event: PlayerInteractEvent) {
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
 
@@ -682,6 +682,15 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             return
         }
         if (!ItemTag.isType(item, ItemTag.TYPE_PORTAL)) return
+
+        val existingPortal = plugin.portalRepository.findByContainingLocation(event.block.location)
+        if (existingPortal?.isGate() == true) {
+            event.isCancelled = true
+            event.player.sendMessage(
+                plugin.languageManager.getMessage(event.player, "error.portal_place_in_world_gate")
+            )
+            return
+        }
         
         val lang = plugin.languageManager
         val worldUuid = PortalItemUtil.getBoundWorldUuid(item)
