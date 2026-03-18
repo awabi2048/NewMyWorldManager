@@ -2482,19 +2482,20 @@ class WorldSettingsListener : Listener {
                                                                                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                                                                                         stats.lastArchiveActionAt = now
                                                                                         plugin.playerStatsRepository.save(stats)
-                                                                                        player.sendMessage(
-                                                                                                plugin.languageManager
-                                                                                                        .getMessage(
-                                                                                                                player,
-                                                                                                                "messages.unarchive_success"
-                                                                                                        )
-                                                                                        )
                                                                                         plugin.worldService
                                                                                                 .teleportToWorld(
                                                                                                         player,
                                                                                                         worldData
                                                                                                                 .uuid
-                                                                                                 )
+                                                                                                ) {
+                                                                                                        player.sendMessage(
+                                                                                                                plugin.languageManager
+                                                                                                                        .getMessage(
+                                                                                                                                player,
+                                                                                                                                "messages.unarchive_success"
+                                                                                                                        )
+                                                                                                        )
+                                                                                                }
                                                                                 } else {
                                                                                         player.sendMessage(
 plugin.languageManager
@@ -3924,6 +3925,7 @@ player.sendMessage(
         private fun teleportToBorderCenterSurface(player: Player, worldData: WorldData): Boolean {
                 val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 var world = Bukkit.getWorld(worldName)
+                val needsLoad = world == null
                 if (world == null) {
                         if (!plugin.worldService.loadWorld(worldData.uuid)) {
                                 return false
@@ -3946,8 +3948,17 @@ player.sendMessage(
                                 player.location.yaw,
                                 player.location.pitch
                         )
-                player.teleport(target)
-                plugin.soundManager.playTeleportSound(player)
+                val doTeleport = Runnable {
+                        player.teleport(target)
+                        plugin.soundManager.playTeleportSound(player)
+                }
+
+                if (needsLoad) {
+                        val waitTicks = plugin.config.getLong("warp.load_wait_ticks", 10L).coerceAtLeast(0L)
+                        Bukkit.getScheduler().runTaskLater(plugin, doTeleport, waitTicks)
+                } else {
+                        doTeleport.run()
+                }
                 return true
         }
 
@@ -5138,13 +5149,14 @@ player.sendMessage(
                                                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                                                         stats.lastArchiveActionAt = now
                                                         plugin.playerStatsRepository.save(stats)
-                                                        player.sendMessage(
-                                                                plugin.languageManager.getMessage(
-                                                                        player,
-                                                                        "messages.unarchive_success"
+                                                        plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                                                                player.sendMessage(
+                                                                        plugin.languageManager.getMessage(
+                                                                                player,
+                                                                                "messages.unarchive_success"
+                                                                        )
                                                                 )
-                                                        )
-                                                        plugin.worldService.teleportToWorld(player, worldData.uuid)
+                                                        }
                                                 } else {
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(

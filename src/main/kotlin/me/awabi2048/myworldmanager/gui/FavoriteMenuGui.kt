@@ -2,8 +2,9 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -29,8 +30,12 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             isGui = true
         )
 
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, worldData)
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, worldData)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
+        if (worldData != null) {
+            ItemTag.setWorldUuid(blackPane, worldData.uuid)
+            ItemTag.setWorldUuid(grayPane, worldData.uuid)
+        }
 
         // 背景配置
         for (i in 0 until 45) {
@@ -115,9 +120,10 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val loreKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.lore_remove" else "gui.favorite.favorite_menu.toggle.lore_add"
         
         meta.displayName(lang.getComponent(player, nameKey).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-        val lore = mutableListOf<Component>()
-        lore.add(lang.getComponent(player, loreKey))
-        lore.add(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.click"))
+        val lore = GuiLoreBuilder(lang, player)
+            .componentBlock(listOf(lang.getComponent(player, loreKey)))
+            .componentBlock(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.click")))
+            .build()
         meta.lore(lore)
         
         item.itemMeta = meta
@@ -182,17 +188,6 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         ItemTag.setWorldUuid(item, worldData.uuid)
-        return item
-    }
-
-    private fun createDecorationItem(material: Material, worldData: WorldData? = null): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        if (worldData != null) ItemTag.setWorldUuid(item, worldData.uuid)
         return item
     }
 

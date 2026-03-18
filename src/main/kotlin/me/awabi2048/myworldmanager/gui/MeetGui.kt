@@ -2,6 +2,8 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -65,8 +67,8 @@ class MeetGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(holder, 45, title)
         holder.inv = inventory
 
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-        val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+        val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
 
         for (i in 0..8) inventory.setItem(i, blackPane)
         for (i in 36 until 45) inventory.setItem(i, blackPane)
@@ -91,18 +93,17 @@ class MeetGui(private val plugin: MyWorldManager) {
         val statusNameKey = "general.status.${currentStatus.lowercase()}"
         val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
 
-        val statusLore = mutableListOf<String>()
-        statusLore.add(lang.getMessage(player, "gui.common.separator"))
-        statusLore.add(lang.getMessage(player, "gui.meet.status_button.current", mapOf("status" to statusName)))
-        statusLore.add(lang.getMessage(player, "gui.meet.status_button.click"))
-        statusLore.add(lang.getMessage(player, "gui.common.separator"))
+        val statusLore = GuiLoreBuilder(lang, player)
+            .block(listOf(lang.getMessage(player, "gui.meet.status_button.current", mapOf("status" to statusName))))
+            .action(lang.getMessage(player, "gui.meet.status_button.click"))
+            .build()
 
         val statusItem = ItemStack(Material.PLAYER_HEAD)
         val statusMeta = statusItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta
         if (statusMeta != null) {
             statusMeta.owningPlayer = player
             statusMeta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.meet.status_button.display", mapOf("player" to player.name))).decoration(TextDecoration.ITALIC, false))
-            statusMeta.lore(statusLore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
+            statusMeta.lore(statusLore)
             statusItem.itemMeta = statusMeta
         }
         ItemTag.tagItem(statusItem, ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE)
@@ -209,28 +210,6 @@ class MeetGui(private val plugin: MyWorldManager) {
         
         // タグ付け
         ItemTag.tagItem(item, "gui_meet_target_head")
-        return item
-    }
-
-    private fun createItem(material: Material, name: String, loreLines: List<String>, tag: String): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(loreLines.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
-        
-        item.itemMeta = meta
-        ItemTag.tagItem(item, tag)
-        return item
-    }
-
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
     }
 

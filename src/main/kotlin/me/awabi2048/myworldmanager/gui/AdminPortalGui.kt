@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.AdminGuiSession
 import me.awabi2048.myworldmanager.session.PortalSortType
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -46,7 +47,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(null, 54, titleComp)
 
         // 1行目を黒の板ガラスで敷き詰める
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
         for (i in 0..8) inventory.setItem(i, blackPane)
 
         // ポータルアイテムの配置
@@ -87,7 +88,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         }
 
         // 背景
-        val background = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val background = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
         for (slot in 0 until inventory.size) {
             if (inventory.getItem(slot) == null) {
                 inventory.setItem(slot, background)
@@ -191,13 +192,4 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        return item
-    }
 }

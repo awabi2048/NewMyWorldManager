@@ -79,19 +79,21 @@ class AdminGuiListener : Listener {
                         if (portal.worldUuid != null) {
                             plugin.portalManager.addIgnorePlayer(player)
                             plugin.portalManager.addPortalGrace(player, portalUuid, 15)
-                            plugin.worldService.teleportToWorld(player, portal.worldUuid!!, portal.getCenterLocation(), runMacro = false)
+                            plugin.worldService.teleportToWorld(player, portal.worldUuid!!, portal.getCenterLocation(), runMacro = false) {
+                                player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
+                            }
                         } else if (portal.targetWorldName != null) {
                             val targetWorld = Bukkit.getWorld(portal.targetWorldName!!)
                             if (targetWorld != null) {
                                 plugin.portalManager.addIgnorePlayer(player)
                                 plugin.portalManager.addPortalGrace(player, portalUuid, 15)
                                 player.teleport(targetWorld.spawnLocation)
+                                player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
                             } else {
                                 player.sendMessage(lang.getMessage(player, "general.world_not_found"))
                                 return
                             }
                         }
-                        player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
                         player.closeInventory()
                     } else if (event.isRightClick) {
                         // 撤去
@@ -435,23 +437,16 @@ class AdminGuiListener : Listener {
         if (Bukkit.getWorld(folderName) == null) {
             player.closeInventory()
             player.sendMessage(lang.getMessage(player, "messages.world_loading"))
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (!player.isOnline) {
-                    return@Runnable
-                }
-                if (!plugin.worldService.loadWorld(worldData.uuid)) {
-                    player.sendMessage(lang.getMessage(player, "error.load_failed"))
-                    return@Runnable
-                }
-                plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false)
+            plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
                 player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
-            })
+            }
             return
         }
 
-        plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false)
-        player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
         player.closeInventory()
+        plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
+            player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
+        }
     }
 
     private fun openWorldSettingsFromAdmin(plugin: MyWorldManager, player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {

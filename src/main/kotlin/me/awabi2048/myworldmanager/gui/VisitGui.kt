@@ -3,8 +3,8 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
@@ -75,9 +75,10 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val inventory = Bukkit.createInventory(holder, rowCount * 9, titleComp)
                 holder.inv = inventory
 
-                val blackPane =
-                        createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)
-                val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)
+                val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+                if (returnToWorld != null) ItemTag.setWorldUuid(blackPane, returnToWorld.uuid)
+                val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
+                if (returnToWorld != null) ItemTag.setWorldUuid(greyPane, returnToWorld.uuid)
 
                 for (i in 0..8) inventory.setItem(i, blackPane)
                 for (i in (rowCount - 1) * 9 until rowCount * 9) inventory.setItem(i, blackPane)
@@ -197,31 +198,15 @@ class VisitGui(private val plugin: MyWorldManager) {
 
         private fun createBackButton(player: Player, returnToWorld: WorldData): ItemStack {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.REDSTONE)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
+                val item = GuiItemFactory.item(
+                        Material.REDSTONE,
                         lang.getComponent(player, "gui.common.return")
                                 .color(NamedTextColor.YELLOW)
-                                .decorate(TextDecoration.BOLD)
+                                .decorate(TextDecoration.BOLD),
+                        listOf(lang.getComponent(player, "gui.common.return_desc")),
+                        ItemTag.TYPE_GUI_RETURN
                 )
-                meta.lore(listOf(lang.getComponent(player, "gui.common.return_desc")))
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
                 ItemTag.setWorldUuid(item, returnToWorld.uuid)
-                return item
-        }
-
-        private fun createDecorationItem(
-                material: Material,
-                returnToWorld: WorldData? = null
-        ): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(Component.empty())
-                meta.isHideTooltip = true
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-                if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
                 return item
         }
 

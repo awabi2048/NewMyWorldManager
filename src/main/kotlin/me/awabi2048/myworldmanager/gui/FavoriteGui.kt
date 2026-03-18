@@ -3,8 +3,9 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -87,8 +88,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
 
-                val blackPane =
-                        createDecorationItem(Material.BLACK_STAINED_GLASS_PANE, returnToWorld)
+                val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+                if (returnToWorld != null) ItemTag.setWorldUuid(blackPane, returnToWorld.uuid)
                 for (i in 0..8) inventory.setItem(i, blackPane)
                 for (i in footerStart until inventorySize) inventory.setItem(i, blackPane)
 
@@ -182,8 +183,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 }
                 inventory.setItem(footerStart, returnItem)
 
-                val whiteBackground =
-                        createDecorationItem(Material.WHITE_STAINED_GLASS_PANE, returnToWorld)
+                val whiteBackground = GuiItemFactory.decoration(Material.WHITE_STAINED_GLASS_PANE)
+                if (returnToWorld != null) ItemTag.setWorldUuid(whiteBackground, returnToWorld.uuid)
                 for (row in 1..3) {
                         for (col in 0..8) {
                                 val slot = row * 9 + col
@@ -193,8 +194,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         }
                 }
 
-                val borderBackground =
-                        createDecorationItem(Material.GRAY_STAINED_GLASS_PANE, returnToWorld)
+                val borderBackground = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
+                if (returnToWorld != null) ItemTag.setWorldUuid(borderBackground, returnToWorld.uuid)
                 for (slot in 0 until inventory.size) {
                         if (inventory.getItem(slot) == null) {
                                 inventory.setItem(slot, borderBackground)
@@ -293,17 +294,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
         private fun createBackButton(player: Player, returnToWorld: WorldData?): ItemStack {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.REDSTONE)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
+                val item = GuiItemFactory.item(
+                        Material.REDSTONE,
                         lang.getComponent(player, "gui.common.return")
-                                .decorate(TextDecoration.BOLD)
+                                .decorate(TextDecoration.BOLD),
+                        if (returnToWorld != null) listOf(lang.getComponent(player, "gui.common.return_desc")) else emptyList(),
+                        ItemTag.TYPE_GUI_RETURN
                 )
-                if (returnToWorld != null) {
-                        meta.lore(listOf(lang.getComponent(player, "gui.common.return_desc")))
-                }
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
                 if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
                 return item
         }
@@ -351,34 +348,21 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         ).decoration(TextDecoration.ITALIC, false)
                 )
 
-                val lore = mutableListOf<Component>()
-                lore.add(lang.getComponent(player, "gui.common.separator"))
-                lore.add(
-                        lang.getComponent(
-                                player,
-                                "gui.favorite.player_icon.lore_count",
-                                mapOf("count" to totalCount)
+                val lore = GuiLoreBuilder(lang, player)
+                        .componentBlock(
+                                listOf(
+                                        lang.getComponent(
+                                                player,
+                                                "gui.favorite.player_icon.lore_count",
+                                                mapOf("count" to totalCount)
+                                        )
+                                )
                         )
-                )
-                lore.add(lang.getComponent(player, "gui.common.separator"))
+                        .build()
 
                 meta.lore(lore)
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-                return item
-        }
-
-        private fun createDecorationItem(
-                material: Material,
-                returnToWorld: WorldData? = null
-        ): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(Component.empty())
-                meta.isHideTooltip = true
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-                if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
                 return item
         }
 

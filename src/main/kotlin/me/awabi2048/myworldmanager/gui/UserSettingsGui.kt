@@ -3,10 +3,8 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -90,8 +88,8 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         holder.inv = inventory
 
         // Fill Background
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
         
         // Top and Bottom Rows (Black)
         for (i in 0 until 9) inventory.setItem(i, blackPane)
@@ -123,25 +121,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     private fun createItem(material: Material, name: String, loreLines: List<String>, tag: String): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(loreLines.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
-        
-        item.itemMeta = meta
-        ItemTag.tagItem(item, tag)
-        return item
-    }
-
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        return item
+        return GuiItemFactory.textItem(material, name, loreLines, tag)
     }
 
     class UserSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {

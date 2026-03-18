@@ -236,7 +236,30 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onAnyRightClickForPortalMenu(event: PlayerInteractEvent) {
+        if (event.action != Action.RIGHT_CLICK_BLOCK) return
+
+        val player = event.player
+        if (player.isSneaking) return
+        if (event.hand != EquipmentSlot.HAND) return
+
+        val clickedBlock = event.clickedBlock ?: return
+        val handItem = player.inventory.itemInMainHand
+
+        if (ItemTag.isType(handItem, ItemTag.TYPE_WORLD_GATE) || ItemTag.isType(handItem, ItemTag.TYPE_PORTAL)) {
+            return
+        }
+
+        val portal = plugin.portalRepository.findByLocation(clickedBlock.location) ?: return
+        if (portal.isGate()) return
+        if (!canOpenPortalMenu(player, portal)) return
+
+        event.isCancelled = true
+        PortalGui(plugin).open(player, portal)
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onAnyRightClickForGateMenu(event: PlayerInteractEvent) {
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
 
@@ -251,12 +274,16 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        val portal = plugin.portalRepository.findByContainingLocation(clickedBlock.location)
-        if (portal != null && (portal.ownerUuid == player.uniqueId || player.hasPermission("myworldmanager.admin"))) {
-            if (!portal.isGate()) return
-            event.isCancelled = true
-            PortalGui(plugin).open(player, portal)
-        }
+        val portal = plugin.portalRepository.findByContainingLocation(clickedBlock.location) ?: return
+        if (!portal.isGate()) return
+        if (!canOpenPortalMenu(player, portal)) return
+
+        event.isCancelled = true
+        PortalGui(plugin).open(player, portal)
+    }
+
+    private fun canOpenPortalMenu(player: org.bukkit.entity.Player, portal: PortalData): Boolean {
+        return portal.ownerUuid == player.uniqueId || player.hasPermission("myworldmanager.admin")
     }
 
     private fun showWorldGateConfirm(player: org.bukkit.entity.Player) {
@@ -655,6 +682,15 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             return
         }
         if (!ItemTag.isType(item, ItemTag.TYPE_PORTAL)) return
+
+        val existingPortal = plugin.portalRepository.findByContainingLocation(event.block.location)
+        if (existingPortal?.isGate() == true) {
+            event.isCancelled = true
+            event.player.sendMessage(
+                plugin.languageManager.getMessage(event.player, "error.portal_place_in_world_gate")
+            )
+            return
+        }
         
         val lang = plugin.languageManager
         val worldUuid = PortalItemUtil.getBoundWorldUuid(item)
