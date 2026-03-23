@@ -134,7 +134,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val decisionId = runCatching { UUID.fromString(idStr) }.getOrNull() ?: return true
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
-            openBedrockDecisionForm(player, decisionId, holder)
+            openBedrockDecisionForm(player, decisionId)
         } else {
             openJavaDecisionDialog(player, decisionId, holder.page)
         }
@@ -142,11 +142,12 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     }
 
     fun handleDialogResponse(player: Player, identifier: Key): Boolean {
-        val value = identifier.value()
+        val value = identifier.asString()
         if (!value.startsWith("mwm:pending/")) {
             return false
         }
 
+        DialogConfirmManager.safeCloseDialog(player)
         val payload = value.removePrefix("mwm:pending/")
         val parts = payload.split("/")
         if (parts.size < 3) {
@@ -155,26 +156,14 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
 
         val action = parts[0]
         val id = runCatching { UUID.fromString(parts[1]) }.getOrNull() ?: return true
-        val page = parts[2].toIntOrNull() ?: 0
         val accept = action == "accept"
         plugin.pendingDecisionManager.resolveById(player, id, accept)
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (player.isOnline) {
-                open(player, page)
-            }
-        })
         return true
     }
 
     fun openDecision(player: Player, decisionId: UUID, page: Int = 0, intendedAction: Boolean? = null) {
         if (plugin.playerPlatformResolver.isBedrock(player)) {
-            openBedrockDecisionForm(
-                player,
-                decisionId,
-                PendingInteractionHolder(page, 0, false, false),
-                intendedAction,
-                false
-            )
+            openBedrockDecisionForm(player, decisionId, intendedAction)
         } else {
             openJavaDecisionDialog(player, decisionId, page, intendedAction)
         }
@@ -240,9 +229,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     private fun openBedrockDecisionForm(
         player: Player,
         decisionId: UUID,
-        holder: PendingInteractionHolder,
-        intendedAction: Boolean? = null,
-        reopenListOnClose: Boolean = true
+        intendedAction: Boolean? = null
     ) {
         val entry = plugin.pendingDecisionManager.getPendingEntry(player.uniqueId, decisionId)
             ?: run {
@@ -295,17 +282,10 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                     } else if (index == 0) {
                         plugin.pendingDecisionManager.resolveById(player, decisionId, intendedAction)
                     }
-                    if (reopenListOnClose && player.isOnline) {
-                        open(player, holder.page, holder.returnPage, holder.showBackButton, holder.fromBedrockMenu)
-                    }
                 })
             },
             onClosed = {
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (reopenListOnClose && player.isOnline) {
-                        open(player, holder.page, holder.returnPage, holder.showBackButton, holder.fromBedrockMenu)
-                    }
-                })
+                // 何もしない: 承諾/拒否後も一覧へ戻さず閉じる
             }
         )
 
