@@ -50,6 +50,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
                 sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_none"))
                 return true
             }
+            plugin.soundManager.playChatClickSound(sender)
             plugin.pendingInteractionGui.openDecision(sender, decisionId)
             return true
         }

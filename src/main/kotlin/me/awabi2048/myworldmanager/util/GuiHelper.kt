@@ -7,6 +7,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
+import org.bukkit.inventory.Inventory
 
 object GuiHelper {
     fun inventoryTitle(title: String): Component {
@@ -78,6 +79,24 @@ object GuiHelper {
                 session.isGuiTransition = false
             }
         }, 5L)
+    }
+
+    fun applyConfirmationFrame(inventory: Inventory) {
+        val blackPane = GuiItemFactory.decoration(org.bukkit.Material.BLACK_STAINED_GLASS_PANE)
+        val grayPane = GuiItemFactory.decoration(org.bukkit.Material.GRAY_STAINED_GLASS_PANE)
+
+        for (slot in 0 until inventory.size) {
+            inventory.setItem(slot, grayPane)
+        }
+
+        for (slot in 0..8) {
+            inventory.setItem(slot, blackPane)
+        }
+
+        val footerStart = inventory.size - 9
+        for (slot in footerStart until inventory.size) {
+            inventory.setItem(slot, blackPane)
+        }
     }
 
     /*

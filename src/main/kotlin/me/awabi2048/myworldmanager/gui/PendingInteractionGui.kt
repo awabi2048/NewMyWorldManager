@@ -142,23 +142,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     }
 
     fun handleDialogResponse(player: Player, identifier: Key): Boolean {
-        val value = identifier.asString()
-        if (!value.startsWith("mwm:pending/")) {
-            return false
-        }
-
-        DialogConfirmManager.safeCloseDialog(player)
-        val payload = value.removePrefix("mwm:pending/")
-        val parts = payload.split("/")
-        if (parts.size < 3) {
-            return true
-        }
-
-        val action = parts[0]
-        val id = runCatching { UUID.fromString(parts[1]) }.getOrNull() ?: return true
-        val accept = action == "accept"
-        plugin.pendingDecisionManager.resolveById(player, id, accept)
-        return true
+        return false
     }
 
     fun openDecision(player: Player, decisionId: UUID, page: Int = 0, intendedAction: Boolean? = null) {
@@ -181,48 +165,55 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val actorName = PlayerNameUtil.getNameOrDefault(entry.actorUuid, plugin.languageManager.getMessage(player, "general.unknown"))
         val typeLabel = typeLabel(player, entry.type)
 
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(plugin.languageManager.getMessage(player, "gui.pending_list.confirm.title"))
-        val body = listOf(
-            Component.text(
-                plugin.languageManager.getMessage(
-                    player,
-                    "gui.pending_list.confirm.body",
-                    mapOf(
-                        "type" to typeLabel,
-                        "player" to actorName,
-                        "world" to worldName,
-                        "datetime" to formatDateTime(entry.createdAt)
-                    )
-                )
-            )
+        val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
+        val center = PendingInteractionItemFactory.createItem(
+            plugin = plugin,
+            viewer = player,
+            subjectUuid = entry.actorUuid,
+            type = entry.type,
+            worldName = worldName,
+            createdAt = entry.createdAt,
+            decisionId = decisionId,
+            actionMode = PendingInteractionActionMode.REVIEW,
+            itemTagType = ItemTag.TYPE_GUI_INFO
         )
 
-        if (intendedAction == null) {
-            DialogConfirmManager.showSimpleConfirmationDialog(
-                player,
-                plugin,
-                title,
-                body,
-                "mwm:pending/accept/$decisionId/$page",
-                "mwm:pending/deny/$decisionId/$page",
-                plugin.languageManager.getMessage(player, "gui.pending_list.confirm.accept"),
-                plugin.languageManager.getMessage(player, "gui.pending_list.confirm.deny")
-            )
-            return
-        }
-
-        DialogConfirmManager.showSimpleConfirmationDialog(
+        val confirmLabel = plugin.languageManager.getMessage(
             player,
-            plugin,
-            title,
-            body,
-            if (intendedAction) "mwm:pending/accept/$decisionId/$page" else "mwm:pending/deny/$decisionId/$page",
-            "mwm:confirm/cancel",
-            plugin.languageManager.getMessage(
-                player,
-                if (intendedAction) "gui.pending_list.confirm.accept" else "gui.pending_list.confirm.deny"
-            ),
-            plugin.languageManager.getMessage(player, "gui.common.cancel")
+            if (intendedAction == false) "gui.pending_list.confirm.deny" else "gui.pending_list.confirm.accept"
+        )
+        val cancelLabel = plugin.languageManager.getMessage(
+            player,
+            if (intendedAction == null) "gui.pending_list.confirm.deny" else "gui.common.cancel"
+        )
+        val confirmAction = intendedAction ?: true
+
+        val confirmItem = GuiItemFactory.item(
+            org.bukkit.Material.LIME_CONCRETE,
+            confirmLabel,
+            emptyList(),
+            ItemTag.TYPE_GUI_CONFIRM
+        )
+        val cancelItem = GuiItemFactory.item(
+            org.bukkit.Material.RED_CONCRETE,
+            cancelLabel,
+            emptyList(),
+            ItemTag.TYPE_GUI_CANCEL
+        )
+
+        plugin.confirmationMenuGui.open(
+            player = player,
+            menuId = "pending_list",
+            title = title,
+            centerItem = center,
+            confirmItem = confirmItem,
+            cancelItem = cancelItem,
+            onConfirm = { plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction) },
+            onCancel = {
+                if (intendedAction == null) {
+                    plugin.pendingDecisionManager.resolveById(player, decisionId, false)
+                }
+            }
         )
     }
 
@@ -242,56 +233,56 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val actorName = PlayerNameUtil.getNameOrDefault(entry.actorUuid, plugin.languageManager.getMessage(player, "general.unknown"))
         val typeLabel = typeLabel(player, entry.type)
 
-        val buttons = if (intendedAction == null) {
-            listOf(
-                plugin.languageManager.getMessage(player, "gui.pending_list.confirm.accept"),
-                plugin.languageManager.getMessage(player, "gui.pending_list.confirm.deny"),
-                plugin.languageManager.getMessage(player, "gui.common.cancel")
-            )
-        } else {
-            listOf(
-                plugin.languageManager.getMessage(
-                    player,
-                    if (intendedAction) "gui.pending_list.confirm.accept" else "gui.pending_list.confirm.deny"
-                ),
-                plugin.languageManager.getMessage(player, "gui.common.cancel")
-            )
-        }
-
-        val opened = plugin.floodgateFormBridge.sendSimpleForm(
-            player = player,
-            title = plugin.languageManager.getMessage(player, "gui.pending_list.confirm.title"),
-            content = plugin.languageManager.getMessage(
-                player,
-                "gui.pending_list.confirm.body",
-                mapOf(
-                    "type" to typeLabel,
-                    "player" to actorName,
-                    "world" to worldName,
-                    "datetime" to formatDateTime(entry.createdAt)
-                )
-            ),
-            buttons = buttons,
-            onSelect = { index ->
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (intendedAction == null) {
-                        when (index) {
-                            0 -> plugin.pendingDecisionManager.resolveById(player, decisionId, true)
-                            1 -> plugin.pendingDecisionManager.resolveById(player, decisionId, false)
-                        }
-                    } else if (index == 0) {
-                        plugin.pendingDecisionManager.resolveById(player, decisionId, intendedAction)
-                    }
-                })
-            },
-            onClosed = {
-                // 何もしない: 承諾/拒否後も一覧へ戻さず閉じる
-            }
+        val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
+        val center = PendingInteractionItemFactory.createItem(
+            plugin = plugin,
+            viewer = player,
+            subjectUuid = entry.actorUuid,
+            type = entry.type,
+            worldName = worldName,
+            createdAt = entry.createdAt,
+            decisionId = decisionId,
+            actionMode = PendingInteractionActionMode.REVIEW,
+            itemTagType = ItemTag.TYPE_GUI_INFO
         )
 
-        if (!opened) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
-        }
+        val confirmLabel = plugin.languageManager.getMessage(
+            player,
+            if (intendedAction == false) "gui.pending_list.confirm.deny" else "gui.pending_list.confirm.accept"
+        )
+        val cancelLabel = plugin.languageManager.getMessage(
+            player,
+            if (intendedAction == null) "gui.pending_list.confirm.deny" else "gui.common.cancel"
+        )
+        val confirmAction = intendedAction ?: true
+
+        val confirmItem = GuiItemFactory.item(
+            org.bukkit.Material.LIME_CONCRETE,
+            confirmLabel,
+            emptyList(),
+            ItemTag.TYPE_GUI_CONFIRM
+        )
+        val cancelItem = GuiItemFactory.item(
+            org.bukkit.Material.RED_CONCRETE,
+            cancelLabel,
+            emptyList(),
+            ItemTag.TYPE_GUI_CANCEL
+        )
+
+        plugin.confirmationMenuGui.open(
+            player = player,
+            menuId = "pending_list",
+            title = title,
+            centerItem = center,
+            confirmItem = confirmItem,
+            cancelItem = cancelItem,
+            onConfirm = { plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction) },
+            onCancel = {
+                if (intendedAction == null) {
+                    plugin.pendingDecisionManager.resolveById(player, decisionId, false)
+                }
+            }
+        )
     }
 
     private fun createEntryItem(player: Player, entry: PendingDecisionManager.PendingEntryView): ItemStack {

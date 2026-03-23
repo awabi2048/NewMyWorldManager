@@ -19,18 +19,10 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "member_request", titleComponent)
 
         val holder = MemberRequestConfirmGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 27, titleComponent)
+        val inventory = Bukkit.createInventory(holder, 45, titleComponent)
         holder.inv = inventory
 
-        // Decoration
-        val grayPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-        val grayMeta = grayPane.itemMeta
-        grayMeta?.displayName(Component.empty())
-        grayMeta?.isHideTooltip = true
-        grayPane.itemMeta = grayMeta
-        ItemTag.tagItem(grayPane, ItemTag.TYPE_GUI_DECORATION)
-
-        for (i in 0 until 27) inventory.setItem(i, grayPane)
+        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         // Center: World Info (Context)
         val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
@@ -40,25 +32,25 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
             worldData,
             lang.getComponentList(player, "gui.member_request_confirm.lore", mapOf("world" to worldName))
         )
-        inventory.setItem(13, worldItem)
+        inventory.setItem(22, worldItem)
 
-        // Confirm Button (Right side - 15)
+        // Confirm Button
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
         val confirmMeta = confirmItem.itemMeta
         confirmMeta?.displayName(Component.text(lang.getMessage(player, "gui.member_request_confirm.confirm")))
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
         ItemTag.setWorldUuid(confirmItem, worldData.uuid)
-        inventory.setItem(15, confirmItem)
+        inventory.setItem(20, confirmItem)
 
-        // Cancel Button (Left side - 11)
+        // Cancel Button
         val cancelItem = ItemStack(Material.RED_CONCRETE)
         val cancelMeta = cancelItem.itemMeta
         cancelMeta?.displayName(Component.text(lang.getMessage(player, "gui.member_request_confirm.cancel")))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
         ItemTag.setWorldUuid(cancelItem, worldData.uuid)
-        inventory.setItem(11, cancelItem)
+        inventory.setItem(24, cancelItem)
 
         player.openInventory(inventory)
     }

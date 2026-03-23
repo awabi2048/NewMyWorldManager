@@ -16,29 +16,8 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.world_seed_confirm.title"))
         player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
-        val inventory = Bukkit.createInventory(null, 27, title)
-
-        // 背景
-        val blackPane = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
-        blackPane.itemMeta = blackPane.itemMeta.apply {
-            displayName(Component.empty())
-            isHideTooltip = true
-        }
-        ItemTag.tagItem(blackPane, ItemTag.TYPE_GUI_DECORATION)
-
-        val grayPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-        grayPane.itemMeta = grayPane.itemMeta.apply {
-            displayName(Component.empty())
-            isHideTooltip = true
-        }
-        ItemTag.tagItem(grayPane, ItemTag.TYPE_GUI_DECORATION)
-
-        // 1行目: 黒
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        // 2行目: 灰
-        for (i in 9..17) inventory.setItem(i, grayPane)
-        // 3行目: 黒
-        for (i in 18..26) inventory.setItem(i, blackPane)
+        val inventory = Bukkit.createInventory(null, 45, title)
+        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         // 情報
         val infoItem = ItemStack(Material.PAPER)
@@ -46,23 +25,23 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         infoMeta.displayName(lang.getComponent(player, "gui.world_seed_confirm.title"))
         infoMeta.lore(lang.getComponentList(player, "gui.world_seed_confirm.lore", mapOf("current" to currentSlots, "next" to nextSlots)))
         infoItem.itemMeta = infoMeta
-        inventory.setItem(13, infoItem)
+        inventory.setItem(22, infoItem)
 
-        // はい (11)
+        // はい
         val yesItem = ItemStack(Material.LIME_CONCRETE)
         val yesMeta = yesItem.itemMeta
         yesMeta.displayName(lang.getComponent(player, "gui.common.confirm"))
         yesItem.itemMeta = yesMeta
         ItemTag.tagItem(yesItem, "world_seed_confirm_yes")
-        inventory.setItem(11, yesItem)
+        inventory.setItem(20, yesItem)
 
-        // いいえ (15)
+        // いいえ
         val noItem = ItemStack(Material.RED_CONCRETE)
         val noMeta = noItem.itemMeta
         noMeta.displayName(lang.getComponent(player, "gui.common.cancel"))
         noItem.itemMeta = noMeta
         ItemTag.tagItem(noItem, "world_seed_confirm_no")
-        inventory.setItem(15, noItem)
+        inventory.setItem(24, noItem)
 
         player.openInventory(inventory)
     }

@@ -114,11 +114,12 @@ class TourGui(private val plugin: MyWorldManager) {
     fun openDeleteConfirm(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
         val lang = plugin.languageManager
         val holder = DeleteTourHolder(worldData.uuid, tour.uuid, isNew)
-        val inventory = Bukkit.createInventory(holder, 27, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))))
+        val inventory = Bukkit.createInventory(holder, 45, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))))
         holder.inv = inventory
         fillBase(inventory)
-        inventory.setItem(11, createSimpleItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_CONFIRM))
-        inventory.setItem(15, createSimpleItem(Material.RED_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel_action")), ItemTag.TYPE_GUI_CANCEL))
+        inventory.setItem(22, createSimpleItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete_confirm.title"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1"), lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"), lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_INFO))
+        inventory.setItem(20, createSimpleItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_CONFIRM))
+        inventory.setItem(24, createSimpleItem(Material.RED_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel_action")), ItemTag.TYPE_GUI_CANCEL))
         player.openInventory(inventory)
     }
 

@@ -123,6 +123,7 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
 
     fun handleInternalCommand(player: Player, key: String, type: String) {
         val decisionId = runCatching { UUID.fromString(key) }.getOrNull() ?: return
+        plugin.soundManager.playChatClickSound(player)
         when (type) {
             "approve" -> plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, true)
             "reject" -> plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, false)

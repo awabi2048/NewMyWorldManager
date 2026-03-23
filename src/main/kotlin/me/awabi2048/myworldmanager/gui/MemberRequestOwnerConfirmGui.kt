@@ -22,17 +22,10 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "member_request_owner_confirm", title, null)
         
         val holder = MemberRequestOwnerConfirmHolder()
-        val inventory = Bukkit.createInventory(holder, 27, title)
+        val inventory = Bukkit.createInventory(holder, 45, title)
         holder.inv = inventory
 
-        // 背景
-        val grayPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-        grayPane.itemMeta = grayPane.itemMeta?.apply {
-            displayName(Component.empty())
-            isHideTooltip = true
-        }
-        ItemTag.tagItem(grayPane, ItemTag.TYPE_GUI_DECORATION)
-        for (i in 0 until 27) inventory.setItem(i, grayPane)
+        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         // 情報
         val requestorName = PlayerNameUtil.getNameOrDefault(info.requestorUuid, lang.getMessage(player, "general.unknown"))
@@ -41,25 +34,25 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         infoMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
         infoMeta.lore(lang.getComponentList(player, "gui.member_request_owner_confirm.lore", mapOf("player" to requestorName)))
         infoItem.itemMeta = infoMeta
-        inventory.setItem(13, infoItem)
+        inventory.setItem(22, infoItem)
 
-        // 承認 (11)
+        // 承認
         val yesItem = ItemStack(Material.LIME_CONCRETE)
         val yesMeta = yesItem.itemMeta
         yesMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.confirm"))
         yesItem.itemMeta = yesMeta
         ItemTag.tagItem(yesItem, "member_request_owner_yes")
         ItemTag.setString(yesItem, "key", key)
-        inventory.setItem(11, yesItem)
+        inventory.setItem(20, yesItem)
 
-        // 却下 (15)
+        // 却下
         val noItem = ItemStack(Material.RED_CONCRETE)
         val noMeta = noItem.itemMeta
         noMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.reject"))
         noItem.itemMeta = noMeta
         ItemTag.tagItem(noItem, "member_request_owner_no")
         ItemTag.setString(noItem, "key", key)
-        inventory.setItem(15, noItem)
+        inventory.setItem(24, noItem)
 
         player.openInventory(inventory)
     }

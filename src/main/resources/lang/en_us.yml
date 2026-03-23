@@ -46,7 +46,7 @@ general:
     sent: §aWarp request sent to {player}.
     received: §e{player} wants to visit you.
     accept_button: §a§l【Review Request!】
-    hover_accept: §7Click to review this request!
+    hover_accept: §7Review this request!
     accepted: §a Warp allowed
     accepted_by_target: §a{target} has given permission to warp!
   language:
@@ -92,9 +92,9 @@ gui:
     page_shift_prev: §e§l| §eShift + Click§7 Jump 5 pages back
     confirm_action: §eConfirmation of operation
     confirm: §aExecute
-    confirm_desc: §7Click to execute
+    confirm_desc: §7Execute
     cancel: §cCancel
-    cancel_desc: §7Click to cancel
+    cancel_desc: §7Cancel
     separator: §8§m-----------------------
     status_display: '§7Status: {color}{status}'
     return: §eBack
@@ -104,6 +104,17 @@ gui:
     world_desc: §f{description}
     confirmation: Confirmation
     confirm_warning: §cThis action involves important changes!
+
+  archive:
+    confirm_title: Batch Archive Confirmation
+    question: §cArchive this world?
+    warning:
+      - §7Expired worlds will be archived in a batch.
+      - §7This action cannot be undone.
+    confirm: §cArchive
+    confirm_desc: §7Archive this world
+    cancel: §aCancel
+    cancel_desc: §7Return to previous screen
 
   bedrock:
     player_world:
@@ -1349,7 +1360,7 @@ gui:
       received_line: '§f§l| §7Received §f{datetime}'
       status_online: '§aOnline'
       status_offline: '§cOffline'
-      action_review: '§e§l| §eClick §7to open accept/deny'
+      action_review: '§7Open accept/deny screen'
       action_cancel_java: '§e§l| §eLeft click §7to cancel invite'
       action_cancel_bedrock: '§e§l| §eClick §7to cancel invite'
     empty:
@@ -1709,19 +1720,19 @@ messages:
   invite_queued_offline: §7{player} is offline. They will be notified on next login.
   invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
   invite_not_member: §cYou cannot send an invitation because you are not a member of this world
-  invite_hover: Click to review this invite!
+  invite_hover: Review this invite!
   invite_text: '{player} invited you to "{world}"!'
-  invite_click_text: «Click here to review»
+  invite_click_text: «Review»
   member_invite_text: '{player} invited you to join "{world}" as a member!'
-  member_invite_click_text: «Click here to review»
-  member_invite_click: «Click to accept»
-  member_invite_hover: Click to review the member invite!
+  member_invite_click_text: «Review»
+  member_invite_click: «Accept»
+  member_invite_hover: Review the member invite!
   member_request_sent: §aYour membership request has been sent!
   member_request_received: §d{player} would love to join your world as a member!
   member_request_click_approve: §a[Approve]
   member_request_click_reject: §c[Reject]
-  member_request_hover_approve: Click to approve
-  member_request_hover_reject: Click to reject
+  member_request_hover_approve: Approve
+  member_request_hover_reject: Reject
   member_request_approved: §aYour member request has been approved!
   member_request_rejected: §cYour member request was declined.
   member_request_expired: §cThe request has expired
@@ -1766,7 +1777,7 @@ messages:
   tour_sign:
     placed: §aPlaced a Tour sign!
   tour:
-    available: §eTours are available in this world. §bClick to open
+    available: §eTours are available in this world. §bOpen tour
     none_available: §7There are no available tours in this world right now.
     started: §aStarted tour "{tour}"!
     next_marker: '§eNext destination: §b{marker} §7(Tour: {tour})'
@@ -1780,9 +1791,9 @@ messages:
   expand_direction_selected: '§aDirection selected: {direction}'
   expand_confirm_chat: §aPreviewing world border. Confirm expansion with these details?
   expand_confirm_button: §a§l[Confirm Expansion]
-  expand_confirm_hover: §7Click to spend points and execute expansion
+  expand_confirm_hover: §7Spend points and execute expansion
   expand_retry_button: §c§l[Retry Selection]
-  expand_retry_hover: §7Click to clear the preview and pick a direction again
+  expand_retry_hover: §7Clear the preview and pick a direction again
   expand_complete: '§aExpansion complete! §7{level_before} §f→ §e§l{level_after} §7(Remaining: §6🛖 §e{remaining}§7)'
   expansion_reset_complete: §aExpansion reset. Refunded §6🛖 §e{points} §apoints.
   expansion_reset_success: §aExpansion reset. Refunded §6🛖 §e{points} §apoints.

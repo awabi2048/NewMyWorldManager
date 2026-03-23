@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
@@ -154,7 +155,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         }
         showDialogOrGuiConfirmation(player, player.uniqueId, action, title, confirmId) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, mode == WorldService.ConversionMode.NORMAL)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -172,7 +173,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/unlink"
         ) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -192,7 +193,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             extraInfo
         ) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -210,7 +211,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/archive_all"
         ) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -228,7 +229,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/update_data"
         ) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -246,7 +247,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/repair_templates"
         ) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -266,7 +267,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             extraInfo
         ) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -286,7 +287,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             extraInfo
         ) {
             me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-            val inventory = Bukkit.createInventory(null, 27, title)
+            val inventory = Bukkit.createInventory(null, 45, title)
             setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
             player.openInventory(inventory)
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
@@ -323,23 +324,15 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
     private fun setupConfirmationGui(inventory: Inventory, player: Player, isDanger: Boolean, extraInfo: List<String> = emptyList()) {
         val lang = plugin.languageManager
-        
-        // 背景
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 18..26) inventory.setItem(i, blackPane)
-        
-        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        for (i in 9..17) {
-             if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-        }
+
+        GuiHelper.applyConfirmationFrame(inventory)
 
         // メイン情報
         val infoLore = extraInfo.toMutableList()
         infoLore.add("")
         infoLore.add(lang.getMessage(player, "gui.common.confirm_warning"))
         
-        inventory.setItem(13, createItem(
+        inventory.setItem(22, createItem(
             Material.PAPER,
             lang.getMessage(player, "gui.common.confirmation"),
             infoLore,
@@ -347,7 +340,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         ))
 
         // 実行ボタン
-        inventory.setItem(15, createItem(
+        inventory.setItem(20, createItem(
             if (isDanger) Material.RED_WOOL else Material.LIME_WOOL,
             lang.getMessage(player, "gui.common.confirm"),
             listOf(lang.getMessage(player, "gui.common.confirm_desc")),
@@ -355,7 +348,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         ))
 
         // キャンセルボタン
-        inventory.setItem(11, createItem(
+        inventory.setItem(24, createItem(
             Material.GREEN_WOOL, // キャンセルは安全な色で
             lang.getMessage(player, "gui.common.cancel"),
             listOf(lang.getMessage(player, "gui.common.cancel_desc")),

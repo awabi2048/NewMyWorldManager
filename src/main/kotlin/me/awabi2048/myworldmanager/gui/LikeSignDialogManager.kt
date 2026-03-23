@@ -14,6 +14,8 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.LikeSignData
 import me.awabi2048.myworldmanager.model.LikeSignDisplayType
 import me.awabi2048.myworldmanager.service.LikeSignManager
+import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -240,19 +242,48 @@ class LikeSignDialogManager : Listener {
             unlikeSessions[player.uniqueId] = session
 
             val title = Component.text(lang.getMessage(player, "gui.like_sign.unlike_confirm.title"), NamedTextColor.RED)
-            val bodyLines = listOf(
-                Component.text(lang.getMessage(player, "gui.like_sign.unlike_confirm.description"))
+            val center = GuiItemFactory.item(
+                org.bukkit.Material.RED_DYE,
+                lang.getMessage(player, "gui.like_sign.unlike_confirm.title"),
+                listOf(Component.text(lang.getMessage(player, "gui.like_sign.unlike_confirm.description"))),
+                ItemTag.TYPE_GUI_INFO
+            )
+            val confirmItem = GuiItemFactory.item(
+                org.bukkit.Material.LIME_CONCRETE,
+                lang.getMessage(player, "gui.common.confirm"),
+                emptyList(),
+                ItemTag.TYPE_GUI_CONFIRM
+            )
+            val cancelItem = GuiItemFactory.item(
+                org.bukkit.Material.RED_CONCRETE,
+                lang.getMessage(player, "gui.common.cancel"),
+                emptyList(),
+                ItemTag.TYPE_GUI_CANCEL
             )
 
-            DialogConfirmManager.showConfirmationByPreference(
-                player,
-                plugin,
-                title,
-                bodyLines,
-                "mwm:like_sign/unlike",
-                "mwm:like_sign/unlike_cancel"
-            ) {
-            }
+            plugin.confirmationMenuGui.open(
+                player = player,
+                menuId = "like_sign",
+                title = title,
+                centerItem = center,
+                confirmItem = confirmItem,
+                cancelItem = cancelItem,
+                onConfirm = {
+                    val session = unlikeSessions.remove(player.uniqueId) ?: return@open
+                    val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return@open
+                    val sign = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid) ?: return@open
+                    if (sign.hasLiked(player.uniqueId)) {
+                        sign.removeLike(player.uniqueId)
+                        plugin.worldConfigRepository.save(worldData)
+                        plugin.likeSignManager.refreshSignDisplay(sign, worldData)
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.unliked"))
+                        player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
+                    }
+                },
+                onCancel = {
+                    unlikeSessions.remove(player.uniqueId)
+                }
+            )
         }
     }
 

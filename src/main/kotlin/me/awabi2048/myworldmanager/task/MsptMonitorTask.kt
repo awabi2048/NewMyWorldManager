@@ -97,7 +97,7 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
                 "messages.mspt_warning_chat",
                 mapOf("world" to registeredName, "mspt" to msptString)
             ).clickEvent(ClickEvent.runCommand(plugin.internalCommandTokenManager.buildCommand(admin, "mspt-sort")))
-             .hoverEvent(HoverEvent.showText(Component.text("クリックしてMSPT順のワールド一覧を開く").color(NamedTextColor.GRAY)))
+             .hoverEvent(HoverEvent.showText(Component.text("MSPT順のワールド一覧を開く").color(NamedTextColor.GRAY)))
 
             // クリック可能なチャットメッセージ
             admin.sendMessage(clickableMessage)

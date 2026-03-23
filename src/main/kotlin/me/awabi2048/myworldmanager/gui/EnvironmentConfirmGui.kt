@@ -34,18 +34,10 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         session?.confirmItem = itemToConsume.clone()
 
         val holder = WorldSettingsGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 27, titleComponent)
+        val inventory = Bukkit.createInventory(holder, 45, titleComponent)
         holder.inv = inventory
 
-        // 背景
-        val grayPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-        val grayMeta = grayPane.itemMeta
-        grayMeta?.displayName(Component.empty())
-        grayMeta?.isHideTooltip = true
-        grayPane.itemMeta = grayMeta
-        ItemTag.tagItem(grayPane, ItemTag.TYPE_GUI_DECORATION)
-
-        for (i in 0 until 27) inventory.setItem(i, grayPane)
+        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         // 中央: 消費アイテム情報
         val displayItem = itemToConsume.clone()
@@ -61,23 +53,23 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         meta.lore(lore)
         displayItem.itemMeta = meta
         ItemTag.tagItem(displayItem, ItemTag.TYPE_GUI_INFO)
-        inventory.setItem(13, displayItem)
+        inventory.setItem(22, displayItem)
 
-        // 確定ボタン (スロット15)
+        // 確定ボタン
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
         val confirmMeta = confirmItem.itemMeta
         confirmMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.confirm")))
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
-        inventory.setItem(15, confirmItem)
+        inventory.setItem(20, confirmItem)
 
-        // キャンセルボタン (スロット11)
+        // キャンセルボタン
         val cancelItem = ItemStack(Material.RED_CONCRETE)
         val cancelMeta = cancelItem.itemMeta
         cancelMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.cancel")))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
-        inventory.setItem(11, cancelItem)
+        inventory.setItem(24, cancelItem)
 
         player.openInventory(inventory)
     }

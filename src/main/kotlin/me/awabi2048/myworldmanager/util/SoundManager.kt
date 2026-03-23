@@ -142,6 +142,10 @@ class SoundManager(private val plugin: MyWorldManager) {
             player.playSound(player.location, sound, 1.0f, pitch)
         }
     }
+
+    fun playChatClickSound(player: Player) {
+        playGlobalClickSound(player)
+    }
     
     /**
      * グローバルクリック音の設定を取得する

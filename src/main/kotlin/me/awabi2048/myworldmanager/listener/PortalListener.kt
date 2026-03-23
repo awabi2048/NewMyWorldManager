@@ -349,18 +349,10 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val remainingPoints = (currentPoints - requiredPoints).coerceAtLeast(0)
 
         val holder = WorldGateConfirmHolder()
-        val inventory = Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "messages.world_gate_confirm_title")))
+        val inventory = Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "messages.world_gate_confirm_title")))
         holder.inv = inventory
 
-        val pane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-        val paneMeta = pane.itemMeta
-        paneMeta?.displayName(Component.empty())
-        paneMeta?.isHideTooltip = true
-        pane.itemMeta = paneMeta
-        ItemTag.tagItem(pane, ItemTag.TYPE_GUI_DECORATION)
-        for (i in 0 until inventory.size) {
-            inventory.setItem(i, pane)
-        }
+        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         val infoItem = ItemStack(Material.BOOK)
         val infoMeta = infoItem.itemMeta
@@ -384,21 +376,21 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         )
         infoItem.itemMeta = infoMeta
         ItemTag.tagItem(infoItem, ItemTag.TYPE_GUI_INFO)
-        inventory.setItem(13, infoItem)
+        inventory.setItem(22, infoItem)
 
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
         val confirmMeta = confirmItem.itemMeta
         confirmMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.confirm")))
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
-        inventory.setItem(11, confirmItem)
+        inventory.setItem(20, confirmItem)
 
         val cancelItem = ItemStack(Material.RED_CONCRETE)
         val cancelMeta = cancelItem.itemMeta
         cancelMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.cancel")))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
-        inventory.setItem(15, cancelItem)
+        inventory.setItem(24, cancelItem)
 
         player.openInventory(inventory)
     }

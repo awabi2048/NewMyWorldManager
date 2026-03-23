@@ -4344,6 +4344,7 @@ player.sendMessage(
 
                 when (action) {
                         "expand_confirm" -> {
+                                plugin.soundManager.playChatClickSound(player)
                                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                                 if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
                                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
@@ -4358,6 +4359,7 @@ player.sendMessage(
                                 }
                         }
                         "expand_retry" -> {
+                                plugin.soundManager.playChatClickSound(player)
                                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                                 if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
                                         clearBorderPreview(player)
@@ -4373,14 +4375,17 @@ player.sendMessage(
                         }
                         "mspt-sort" -> {
                                 if (!player.isOp) return
+                                plugin.soundManager.playChatClickSound(player)
                                 val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
                                 session.sortBy = me.awabi2048.myworldmanager.session.AdminSortType.MSPT_DESC
                                 plugin.worldGui.open(player, 0, false, true)
                         }
                         "inviteaccept" -> {
+                                plugin.soundManager.playChatClickSound(player)
                                 plugin.inviteCommand.handleAccept(player)
                         }
                         "memberinviteaccept" -> {
+                                plugin.soundManager.playChatClickSound(player)
                                 val inviteId =
                                         payloadArgs.firstOrNull()
                                                 ?.takeIf { it != "0" }
@@ -4408,27 +4413,38 @@ player.sendMessage(
                                 plugin.settingsSessionManager
                                         .getSession(player)
                                         ?.setMetadata("member_invite_accept_id", invite.id.toString())
-                                val title = Component.text(
-                                        lang.getMessage(player, "gui.member_invite_accept_confirm.title")
+                                val title = Component.text(lang.getMessage(player, "gui.member_invite_accept_confirm.title"))
+                                val center = me.awabi2048.myworldmanager.util.GuiItemFactory.playerHead(
+                                        Bukkit.getOfflinePlayer(invite.senderUuid),
+                                        Component.text(senderName),
+                                        lang.getComponentList(
+                                                player,
+                                                "gui.member_invite_accept_confirm.lore",
+                                                mapOf("world" to worldData.name, "player" to senderName)
+                                        ),
+                                        me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_INFO
                                 )
-                                val bodyLines = lang.getMessageList(
-                                        player,
-                                        "gui.member_invite_accept_confirm.lore",
-                                        mapOf(
-                                                "world" to worldData.name,
-                                                "player" to senderName
-                                        )
-                                ).map { Component.text(it) }
-
-                                DialogConfirmManager.showSimpleConfirmationDialog(
-                                        player,
-                                        plugin,
-                                        title,
-                                        bodyLines,
-                                        "mwm:confirm/member_invite_accept",
-                                        "mwm:confirm/member_invite_accept_cancel",
+                                val confirmItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+                                        Material.LIME_CONCRETE,
                                         lang.getMessage(player, "gui.member_invite_accept_confirm.confirm"),
-                                        lang.getMessage(player, "gui.member_invite_accept_confirm.cancel")
+                                        emptyList(),
+                                        me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CONFIRM
+                                )
+                                val cancelItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+                                        Material.RED_CONCRETE,
+                                        lang.getMessage(player, "gui.member_invite_accept_confirm.cancel"),
+                                        emptyList(),
+                                        me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CANCEL
+                                )
+                                plugin.confirmationMenuGui.open(
+                                        player = player,
+                                        menuId = "member_invite_accept",
+                                        title = title,
+                                        centerItem = center,
+                                        confirmItem = confirmItem,
+                                        cancelItem = cancelItem,
+                                        onConfirm = { plugin.memberInviteManager.handleMemberInviteAccept(player, invite.id) },
+                                        onCancel = { }
                                 )
                         }
                         "memberrequest" -> {
@@ -4812,62 +4828,67 @@ player.sendMessage(
             
             val titleKey = "gui.environment.$type.display" // e.g. gui.environment.gravity.display
             val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.YELLOW)
-            
-            val bodyLines = listOf(
-                Component.text(lang.getMessage(player, "gui.common.confirm_action")),
-                Component.text(lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost)))
-            )
-            
-            DialogConfirmManager.showSimpleConfirmationDialog(
-                player,
-                plugin,
+
+            val centerMaterial = when (type) {
+                "gravity" -> Material.FEATHER
+                "weather" -> Material.WHITE_WOOL
+                "biome" -> Material.GRASS_BLOCK
+                else -> Material.PAPER
+            }
+            val centerItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+                centerMaterial,
                 title,
-                bodyLines,
-                "mwm:confirm/env_change/$type",
-                "mwm:confirm/cancel",
+                listOf(
+                    Component.text(lang.getMessage(player, "gui.common.confirm_action")),
+                    Component.text(lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost)))
+                ),
+                me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_INFO
+            )
+            val confirmItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+                Material.LIME_CONCRETE,
                 lang.getMessage(player, "gui.common.confirm"),
+                emptyList(),
+                me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CONFIRM
+            )
+            val cancelItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+                Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.common.cancel"),
-                onBedrockConfirm = {
-                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
-                                ?: return@showSimpleConfirmationDialog
-                        handleBedrockDialogAction(player, worldData, "mwm:confirm/env_change/$type")
+                emptyList(),
+                me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CANCEL
+            )
+
+            plugin.confirmationMenuGui.open(
+                player = player,
+                menuId = "environment_confirm",
+                title = title,
+                centerItem = centerItem,
+                confirmItem = confirmItem,
+                cancelItem = cancelItem,
+                onConfirm = {
+                    val worldData = plugin.worldConfigRepository.findByUuid(
+                        plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@open
+                    ) ?: return@open
+                    val session = plugin.settingsSessionManager.getSession(player) ?: return@open
+                    val confirmItem = session.confirmItem ?: return@open
+                    if (ItemTag.isType(confirmItem, ItemTag.TYPE_MOON_STONE)) {
+                        executeGravityChange(player, worldData, confirmItem)
+                    } else if (ItemTag.isType(confirmItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
+                        executeBiomeChange(player, worldData, confirmItem)
+                    }
                 },
-                onBedrockCancel = {
-                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
-                                ?: return@showSimpleConfirmationDialog
-                        handleBedrockDialogCancel(player, worldData)
+                onCancel = {
+                    val worldData = plugin.worldConfigRepository.findByUuid(
+                        plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@open
+                    ) ?: return@open
+                    plugin.soundManager.playClickSound(player, null, "world_settings")
+                    plugin.environmentGui.open(player, worldData)
                 }
             )
         }
         
         private fun showVisitorKickConfirmDialog(player: Player, targetName: String, targetUuid: UUID) {
-            val lang = plugin.languageManager
-            val title = Component.text(lang.getMessage(player, "gui.visitor_management.kick"), NamedTextColor.RED)
-            
-            val bodyLines = listOf(
-                Component.text(lang.getMessage(player, "gui.visitor_management.kick_confirm", mapOf("player" to targetName)))
-            )
-            
-            DialogConfirmManager.showSimpleConfirmationDialog(
-                player,
-                plugin,
-                title,
-                bodyLines,
-                "mwm:confirm/visitor_kick/$targetUuid",
-                "mwm:confirm/cancel",
-                "KICK",
-                "Cancel",
-                onBedrockConfirm = {
-                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
-                                ?: return@showSimpleConfirmationDialog
-                        handleBedrockDialogAction(player, worldData, "mwm:confirm/visitor_kick/$targetUuid")
-                },
-                onBedrockCancel = {
-                        val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@showSimpleConfirmationDialog)
-                                ?: return@showSimpleConfirmationDialog
-                        handleBedrockDialogCancel(player, worldData)
-                }
-            )
+            val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return) ?: return
+            plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, targetUuid)
         }
         
         @EventHandler
@@ -5294,31 +5315,7 @@ player.sendMessage(
                 }
 
                 if (keyVal == "confirm/delete_world_step1") {
-                        val title = LegacyComponentSerializer.legacySection().deserialize(
-                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.title")
-                        )
-                        val bodyLines = plugin.languageManager
-                                .getMessageList(player, "gui.confirm.delete_2.lore")
-                                .map { LegacyComponentSerializer.legacySection().deserialize(it) }
-                        DialogConfirmManager.showSimpleConfirmationDialog(
-                                player,
-                                plugin,
-                                title,
-                                bodyLines,
-                                "mwm:confirm/delete_world",
-                                "mwm:confirm/cancel",
-                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.confirm_btn"),
-                                plugin.languageManager.getMessage(player, "gui.common.cancel"),
-                                onBedrockConfirm = {
-                                        handleBedrockDialogAction(player, worldData, "mwm:confirm/delete_world")
-                                },
-                                onBedrockCancel = {
-                                        handleBedrockDialogCancel(player, worldData)
-                                },
-                                onBedrockFallback = {
-                                        plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
-                                }
-                        )
+                        plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
                         return
                 }
 
@@ -5536,22 +5533,7 @@ player.sendMessage(
 
                 if (identifier == Key.key("mwm:confirm/delete_world_step1")) {
                         DialogConfirmManager.safeCloseDialog(player)
-                        val title = LegacyComponentSerializer.legacySection().deserialize(
-                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.title")
-                        )
-                        val bodyLines = plugin.languageManager
-                                .getMessageList(player, "gui.confirm.delete_2.lore")
-                                .map { LegacyComponentSerializer.legacySection().deserialize(it) }
-                        DialogConfirmManager.showSimpleConfirmationDialog(
-                                player,
-                                plugin,
-                                title,
-                                bodyLines,
-                                "mwm:confirm/delete_world",
-                                "mwm:confirm/cancel",
-                                plugin.languageManager.getMessage(player, "gui.confirm.delete_2.confirm_btn"),
-                                plugin.languageManager.getMessage(player, "gui.common.cancel")
-                        )
+                        plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
                         return
                 }
 

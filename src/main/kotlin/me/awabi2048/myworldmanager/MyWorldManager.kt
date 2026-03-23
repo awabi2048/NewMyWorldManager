@@ -69,6 +69,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var memberRequestConfirmGui: MemberRequestConfirmGui
     lateinit var memberRequestOwnerConfirmGui: MemberRequestOwnerConfirmGui
     lateinit var worldSeedConfirmGui: WorldSeedConfirmGui
+    lateinit var confirmationMenuGui: ConfirmationMenuGui
     lateinit var languageManager: LanguageManager
     lateinit var worldTagManager: WorldTagManager
     lateinit var previewSessionManager: PreviewSessionManager
@@ -172,6 +173,7 @@ class MyWorldManager : JavaPlugin() {
         memberRequestConfirmGui = MemberRequestConfirmGui(this)
         memberRequestOwnerConfirmGui = MemberRequestOwnerConfirmGui(this)
         worldSeedConfirmGui = WorldSeedConfirmGui(this)
+        confirmationMenuGui = ConfirmationMenuGui(this)
         tourGui = TourGui(this)
 
         creationSessionManager = CreationSessionManager(this)
@@ -241,6 +243,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(CustomItemListener(this), this)
         server.pluginManager.registerEvents(MemberRequestConfirmListener(this), this)
         server.pluginManager.registerEvents(MemberRequestOwnerConfirmListener(this), this)
+        server.pluginManager.registerEvents(ConfirmationMenuListener(), this)
         server.pluginManager.registerEvents(WorldSeedListener(this), this)
         server.pluginManager.registerEvents(TemplateWizardListener(), this)
         server.pluginManager.registerEvents(ItemConversionListener(this), this)

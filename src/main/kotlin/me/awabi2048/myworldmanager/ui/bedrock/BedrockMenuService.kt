@@ -100,22 +100,8 @@ class BedrockMenuService(
         onConfirm: () -> Unit,
         onCancel: () -> Unit
     ): Boolean {
-        val lang = plugin.languageManager
-        return openSimpleConfirmationForm(
-            player = player,
-            title = lang.getMessage(player, "gui.favorite.remove_confirm.title"),
-            bodyLines =
-                lang.getMessageList(
-                    player,
-                    "gui.favorite.remove_confirm.lore",
-                    mapOf("world" to worldData.name)
-                ),
-            confirmLabel = lang.getMessage(player, "gui.favorite.remove_confirm.confirm"),
-            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
-            failureReason = "favorite_remove_confirm_form_open_failed",
-            onConfirm = onConfirm,
-            onCancel = onCancel
-        )
+        plugin.favoriteConfirmGui.open(player, worldData)
+        return true
     }
 
     fun openSpotlightConfirm(
@@ -124,22 +110,8 @@ class BedrockMenuService(
         onConfirm: () -> Unit,
         onCancel: () -> Unit
     ): Boolean {
-        val lang = plugin.languageManager
-        return openSimpleConfirmationForm(
-            player = player,
-            title = lang.getMessage(player, "gui.spotlight_confirm.title"),
-            bodyLines =
-                lang.getMessageList(
-                    player,
-                    "gui.spotlight_confirm.lore",
-                    mapOf("world" to worldData.name)
-                ),
-            confirmLabel = lang.getMessage(player, "gui.common.confirm"),
-            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
-            failureReason = "spotlight_add_confirm_form_open_failed",
-            onConfirm = onConfirm,
-            onCancel = onCancel
-        )
+        plugin.spotlightConfirmGui.open(player, worldData)
+        return true
     }
 
     fun openSpotlightRemoveConfirm(
@@ -148,22 +120,8 @@ class BedrockMenuService(
         onConfirm: () -> Unit,
         onCancel: () -> Unit
     ): Boolean {
-        val lang = plugin.languageManager
-        return openSimpleConfirmationForm(
-            player = player,
-            title = lang.getMessage(player, "gui.discovery.spotlight_remove_confirm.title"),
-            bodyLines =
-                lang.getMessageList(
-                    player,
-                    "gui.discovery.spotlight_remove_confirm.lore",
-                    mapOf("world" to worldData.name)
-                ),
-            confirmLabel = lang.getMessage(player, "gui.common.confirm"),
-            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
-            failureReason = "spotlight_remove_confirm_form_open_failed",
-            onConfirm = onConfirm,
-            onCancel = onCancel
-        )
+        plugin.spotlightRemoveConfirmGui.open(player, worldData)
+        return true
     }
 
     fun openMemberRequestConfirm(
@@ -172,22 +130,8 @@ class BedrockMenuService(
         onConfirm: () -> Unit,
         onCancel: () -> Unit
     ): Boolean {
-        val lang = plugin.languageManager
-        return openSimpleConfirmationForm(
-            player = player,
-            title = lang.getMessage(player, "gui.member_request_confirm.title"),
-            bodyLines =
-                lang.getMessageList(
-                    player,
-                    "gui.member_request_confirm.lore",
-                    mapOf("world" to worldData.name)
-                ),
-            confirmLabel = lang.getMessage(player, "gui.member_request_confirm.confirm"),
-            cancelLabel = lang.getMessage(player, "gui.member_request_confirm.cancel"),
-            failureReason = "member_request_confirm_form_open_failed",
-            onConfirm = onConfirm,
-            onCancel = onCancel
-        )
+        plugin.memberRequestConfirmGui.open(player, worldData)
+        return true
     }
 
     fun openWorldSeedConfirm(
@@ -197,22 +141,8 @@ class BedrockMenuService(
         onConfirm: () -> Unit,
         onCancel: () -> Unit
     ): Boolean {
-        val lang = plugin.languageManager
-        return openSimpleConfirmationForm(
-            player = player,
-            title = lang.getMessage(player, "gui.world_seed_confirm.title"),
-            bodyLines =
-                lang.getMessageList(
-                    player,
-                    "gui.world_seed_confirm.lore",
-                    mapOf("current" to currentSlots, "next" to nextSlots)
-                ),
-            confirmLabel = lang.getMessage(player, "gui.common.confirm"),
-            cancelLabel = lang.getMessage(player, "gui.common.cancel"),
-            failureReason = "world_seed_confirm_form_open_failed",
-            onConfirm = onConfirm,
-            onCancel = onCancel
-        )
+        plugin.worldSeedConfirmGui.open(player, currentSlots, nextSlots)
+        return true
     }
 
     fun handleInventoryClick(event: InventoryClickEvent) {

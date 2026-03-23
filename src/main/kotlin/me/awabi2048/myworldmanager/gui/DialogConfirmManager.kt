@@ -35,52 +35,6 @@ object DialogConfirmManager {
         onBedrockCancel: (() -> Unit)? = null,
         onGuiFallback: () -> Unit
     ) {
-        if (isNativeDialogEnabled(player, plugin)) {
-            showSimpleConfirmationDialog(
-                player,
-                plugin,
-                title,
-                bodyLines,
-                confirmActionId,
-                cancelActionId,
-                confirmText,
-                cancelText
-            )
-            return
-        }
-
-        if (onBedrockConfirm != null && plugin.bedrockUiRoutingService.shouldUseForm(player)) {
-            val confirmLabel = confirmText ?: plugin.languageManager.getMessage(player, "gui.common.confirm")
-            val cancelLabel = cancelText ?: plugin.languageManager.getMessage(player, "gui.common.cancel")
-            val opened =
-                plugin.floodgateFormBridge.sendSimpleForm(
-                    player = player,
-                    title = PlainTextComponentSerializer.plainText().serialize(title),
-                    content =
-                        bodyLines.joinToString("\n") {
-                            PlainTextComponentSerializer.plainText().serialize(it)
-                        },
-                    buttons = listOf(confirmLabel, cancelLabel),
-                    onSelect = { index ->
-                        if (index == 0) {
-                            onBedrockConfirm()
-                        } else {
-                            onBedrockCancel?.invoke()
-                        }
-                    },
-                    onClosed = {
-                        onBedrockCancel?.invoke()
-                    }
-                )
-
-            if (opened) {
-                plugin.bedrockUiRoutingService.clearFormFailure(player)
-                return
-            }
-
-            plugin.bedrockUiRoutingService.markFormFailure(player, "dialog_confirm:$confirmActionId")
-        }
-
         onGuiFallback()
     }
 

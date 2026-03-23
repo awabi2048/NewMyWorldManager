@@ -938,12 +938,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
-
+                                val holder = WorldSettingsGuiHolder()
+                                val inv = Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                holder.inv = inv
+                                inv
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 val infoItem =
                         createItem(
@@ -953,31 +957,26 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
-                inventory.setItem(13, infoItem)
+                inventory.setItem(22, infoItem)
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.archive.cancel"),
-                                listOf(lang.getMessage(player, "gui.archive.cancel_desc")),
-                                ItemTag.TYPE_GUI_CANCEL
-                        )
-                )
-                inventory.setItem(
-                        15,
-                        createItem(
-                                Material.RED_WOOL,
                                 lang.getMessage(player, "gui.archive.confirm"),
                                 listOf(lang.getMessage(player, "gui.archive.confirm_desc")),
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
+                inventory.setItem(
+                        24,
+                        createItem(
+                                Material.RED_WOOL,
+                                lang.getMessage(player, "gui.archive.cancel"),
+                                listOf(lang.getMessage(player, "gui.archive.cancel_desc")),
+                                ItemTag.TYPE_GUI_CANCEL
+                        )
+                )
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
@@ -1007,19 +1006,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
-                                Bukkit.createInventory(WorldSettingsGuiHolder(), 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
-
+                                val holder = WorldSettingsGuiHolder()
+                                val inv = Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                holder.inv = inv
+                                inv
                         }
 
-                // 背景
-                val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 18..26) inventory.setItem(i, blackPane)
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
-                // 情報
                 val infoItem =
                         createItem(
                                 Material.PAPER,
@@ -1028,11 +1025,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
-                inventory.setItem(13, infoItem)
+                inventory.setItem(22, infoItem)
 
-                // 実行 (15)
                 inventory.setItem(
-                        15,
+                        20,
                         createItem(
                                 Material.LIME_CONCRETE,
                                 lang.getMessage(player, "gui.common.confirm"),
@@ -1041,9 +1037,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                // キャンセル (11)
                 inventory.setItem(
-                        11,
+                        24,
                         createItem(
                                 Material.RED_CONCRETE,
                                 lang.getMessage(player, "gui.common.cancel"),
@@ -1051,11 +1046,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 9..17) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
@@ -1502,14 +1492,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 scheduleGuiTransitionReset(plugin, player)
 
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
-                                val inv = Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                val inv = Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inv
                                 inv
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 val item = ItemStack(Material.PLAYER_HEAD)
                 val meta = item.itemMeta as? SkullMeta ?: return
@@ -1538,10 +1530,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
                 ItemTag.setWorldUuid(item, targetUuid)
                 ItemTag.setString(item, "member_pending_invite_id", decisionId.toString())
-                inventory.setItem(13, item)
+                inventory.setItem(22, item)
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.member_management.pending_cancel_confirm.cancel"),
@@ -1550,7 +1542,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
                 inventory.setItem(
-                        15,
+                        24,
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(player, "gui.member_management.pending_cancel_confirm.confirm"),
@@ -1558,11 +1550,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 player.openInventory(inventory)
         }
@@ -1600,15 +1587,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 scheduleGuiTransitionReset(plugin, player)
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 val lore = lang.getComponentList(
                         player,
@@ -1635,10 +1624,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, targetUuid) // 削除対象のUUIDを保存
-                inventory.setItem(13, infoItem)
+                inventory.setItem(22, infoItem)
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(
@@ -1655,7 +1644,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
                 inventory.setItem(
-                        15,
+                        24,
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(
@@ -1672,10 +1661,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 player.openInventory(inventory)
         }
@@ -1713,15 +1698,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 scheduleGuiTransitionReset(plugin, player)
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 val lore = lang.getComponentList(
                         player,
@@ -1744,10 +1731,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, targetUuid)
-                inventory.setItem(13, infoItem)
+                inventory.setItem(22, infoItem)
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(
@@ -1764,7 +1751,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
                 inventory.setItem(
-                        15,
+                        24,
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(
@@ -1780,11 +1767,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 player.openInventory(inventory)
         }
@@ -2084,18 +2066,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 scheduleGuiTransitionReset(plugin, player)
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
 
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
+
                 inventory.setItem(
-                        13,
+                        22,
                         createItem(
                                 Material.PAPER,
                                 lang.getMessage(
@@ -2116,7 +2100,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(
@@ -2133,7 +2117,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
                 inventory.setItem(
-                        15,
+                        24,
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(
@@ -2149,11 +2133,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 player.openInventory(inventory)
         }
@@ -2305,15 +2284,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 scheduleGuiTransitionReset(plugin, player)
 
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 // 背景
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -2598,15 +2579,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 val lore = lang.getComponentList(player, "gui.confirm.reset_expansion.lore")
                 val infoItem =
@@ -2617,10 +2600,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
-                inventory.setItem(13, infoItem)
+                inventory.setItem(22, infoItem)
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.common.cancel"),
@@ -2629,7 +2612,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
                 inventory.setItem(
-                        15,
+                        24,
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(player, "gui.common.confirm"),
@@ -2637,11 +2620,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
@@ -2669,15 +2647,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 val lore = lang.getComponentList(player, "gui.confirm.delete_1.lore")
                 val infoItem =
@@ -2688,10 +2668,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
-                inventory.setItem(13, infoItem)
+                inventory.setItem(22, infoItem)
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.common.cancel"),
@@ -2700,7 +2680,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
                 inventory.setItem(
-                        15,
+                        24,
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(player, "gui.confirm.delete_1.next"),
@@ -2708,11 +2688,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_SETTING_DELETE_WORLD
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
@@ -2740,15 +2715,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
                 val inventory =
-                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
                 val lore = lang.getComponentList(player, "gui.confirm.delete_2.lore")
                 val infoItem =
@@ -2759,10 +2736,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
-                inventory.setItem(13, infoItem)
+                inventory.setItem(22, infoItem)
 
                 inventory.setItem(
-                        11,
+                        20,
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.common.cancel"),
@@ -2771,7 +2748,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
                 inventory.setItem(
-                        15,
+                        24,
                         createItem(
                                 Material.RED_WOOL,
                                 lang.getMessage(player, "gui.confirm.delete_2.confirm_btn"),
@@ -2779,11 +2756,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
-
-                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-                }
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
