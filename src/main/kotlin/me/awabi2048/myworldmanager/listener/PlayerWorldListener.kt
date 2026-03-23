@@ -15,6 +15,7 @@ import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.key.Key
@@ -398,11 +399,15 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        if (target == player) {
-            plugin.inviteSessionManager.endSession(player.uniqueId)
-            player.sendMessage(lang.getMessage(player, "messages.invite_self_error"))
-            plugin.playerWorldGui.open(player)
-            return
+        when (val reason = InviteTargetResolver.getRejectionReason(plugin, player, worldData, target)) {
+            null -> Unit
+            else -> {
+                plugin.inviteSessionManager.endSession(player.uniqueId)
+                val messageKey = InviteTargetResolver.getRejectionMessageKey(reason) ?: return
+                player.sendMessage(lang.getMessage(player, messageKey, mapOf("player" to target.name)))
+                plugin.playerWorldGui.open(player)
+                return
+            }
         }
 
         plugin.inviteSessionManager.endSession(player.uniqueId)

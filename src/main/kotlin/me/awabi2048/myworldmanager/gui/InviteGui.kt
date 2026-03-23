@@ -1,9 +1,11 @@
 package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -21,16 +23,23 @@ class InviteGui(private val plugin: MyWorldManager) {
     )
 
     fun collectAvailableTargets(viewer: Player): List<Player> {
-        return Bukkit.getOnlinePlayers().filter { target ->
-            target.uniqueId != viewer.uniqueId &&
-                target.world.uid != viewer.world.uid &&
-                plugin.playerStatsRepository.findByUuid(target.uniqueId).meetStatus != "BUSY"
-        }.sortedBy { it.name }
+        val currentWorldData = plugin.worldConfigRepository.findByWorldName(viewer.world.name)
+        return InviteTargetResolver.collectAvailableTargets(plugin, viewer, currentWorldData)
     }
 
     fun open(player: Player, showBackButton: Boolean = false): Boolean {
         val lang = plugin.languageManager
-        val targets = collectAvailableTargets(player)
+        val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
+        if (currentWorldData == null) {
+            player.sendMessage(lang.getMessage(player, "messages.invite_not_in_myworld"))
+            return false
+        }
+        if (currentWorldData.publishLevel == PublishLevel.LOCKED) {
+            player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
+            return false
+        }
+
+        val targets = InviteTargetResolver.collectAvailableTargets(plugin, player, currentWorldData)
         if (targets.isEmpty()) {
             player.sendMessage(lang.getMessage(player, "messages.invite_no_available_targets"))
             return false
@@ -65,23 +74,20 @@ class InviteGui(private val plugin: MyWorldManager) {
             inventory.setItem(slot, createTargetHead(target, player))
         }
 
-        val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
-        if (currentWorldData != null) {
-            val statusLore = listOf(
-                lang.getComponent(player, "gui.common.separator"),
-                lang.getComponent(player, "gui.meet.world_item.current_world", mapOf("world" to currentWorldData.name)),
-                lang.getComponent(player, "gui.common.separator")
+        val statusLore = listOf(
+            lang.getComponent(player, "gui.common.separator"),
+            lang.getComponent(player, "gui.meet.world_item.current_world", mapOf("world" to currentWorldData.name)),
+            lang.getComponent(player, "gui.common.separator")
+        )
+        inventory.setItem(
+            statusSlot,
+            me.awabi2048.myworldmanager.util.GuiHelper.createContextWorldIconItem(
+                plugin,
+                player,
+                currentWorldData,
+                statusLore
             )
-            inventory.setItem(
-                statusSlot,
-                me.awabi2048.myworldmanager.util.GuiHelper.createContextWorldIconItem(
-                    plugin,
-                    player,
-                    currentWorldData,
-                    statusLore
-                )
-            )
-        }
+        )
 
         if (showBackButton) {
             val backButtonSlot = (rowCount - 1) * 9

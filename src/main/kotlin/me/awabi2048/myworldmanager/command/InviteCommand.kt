@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
@@ -61,9 +62,13 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
             return true
         }
 
-        if (target.uniqueId == player.uniqueId) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_self_error"))
-            return true
+        when (val reason = InviteTargetResolver.getRejectionReason(plugin, player, worldData, target)) {
+            null -> Unit
+            else -> {
+                val messageKey = InviteTargetResolver.getRejectionMessageKey(reason) ?: return true
+                player.sendMessage(lang.getMessage(player, messageKey, mapOf("player" to target.name)))
+                return true
+            }
         }
 
         // 招待の有効期限を設定
@@ -130,14 +135,21 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
 
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String>? {
         if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_INVITE)) return emptyList()
+        if (sender !is Player) return emptyList()
         if (args.size == 1) {
+            val worldData = resolveCurrentWorldData(sender) ?: return emptyList()
+            if (worldData.publishLevel == PublishLevel.LOCKED) {
+                return emptyList()
+            }
+            val isMember = worldData.owner == sender.uniqueId ||
+                worldData.moderators.contains(sender.uniqueId) ||
+                worldData.members.contains(sender.uniqueId)
+            if (!isMember) {
+                return emptyList()
+            }
             val search = args[0].lowercase()
-            return Bukkit.getOnlinePlayers()
-                .filter {
-                    it.name.lowercase().startsWith(search) &&
-                        it.name != sender.name &&
-                        plugin.playerStatsRepository.findByUuid(it.uniqueId).meetStatus != "BUSY"
-                }
+            return InviteTargetResolver.collectAvailableTargets(plugin, sender, worldData)
+                .filter { it.name.lowercase().startsWith(search) }
                 .map { it.name }
         }
         return emptyList()

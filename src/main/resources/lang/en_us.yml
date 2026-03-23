@@ -1708,6 +1708,10 @@ messages:
   invite_expired: §cInvite not found or expired.
   invite_world_not_found: §cWorld data not found.
   invite_already_member: §cAlready a member of this world.
+  invite_already_sent: §cAn invite has already been sent to that player.
+  invite_same_world_error: §c{player} is already in the same world, so they cannot be invited.
+  invite_busy_error: §c{player} is currently not accepting invites.
+  invite_member_error: §c{player} is already a world member, so they cannot be invited.
   member_invite_already_sent: §cA member invite has already been sent to that player.
   invite_accepted_self: §aYou are now a member of world【{world}】!
   invite_accepted_sender: §e{player} §faccepted your invite to world【§a{world}§f】.
@@ -1717,6 +1721,7 @@ messages:
   member_force_added_self: §aYou were force-added as a member of world "§a{world}§a".
   invite_target_offline: §cPlayer {player} is not online.
   invite_no_available_targets: §cThere are currently no players available to invite.
+  invite_target_not_available: §cThat player cannot be invited right now.
   invite_queued_offline: §7{player} is offline. They will be notified on next login.
   invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
   invite_not_member: §cYou cannot send an invitation because you are not a member of this world
@@ -2063,6 +2068,11 @@ error:
   internal_error: §cInternal error occurred.
   invalid_item_id: §cInvalid Item ID.
   invite_already_member: §cAlready a member of this world.
+  invite_already_sent: §cAn invite has already been sent to that player.
+  invite_same_world_error: §c{player} is already in the same world, so they cannot be invited.
+  invite_busy_error: §c{player} is currently not accepting invites.
+  invite_member_error: §c{player} is already a world member, so they cannot be invited.
+  invite_target_not_available: §cThat player cannot be invited right now.
   invite_expired: §cInvite not found or expired.
   invite_locked_error: §cYou cannot invite players to a locked world.
   invite_world_not_found: §cWorld data not found.
