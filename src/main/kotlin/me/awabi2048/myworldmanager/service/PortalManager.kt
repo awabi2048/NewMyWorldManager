@@ -12,13 +12,15 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.Particle
+import org.bukkit.World
+import org.bukkit.WorldCreator
 import org.bukkit.entity.Display
-import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
-import org.bukkit.persistence.PersistentDataType
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 
 class PortalManager(private val plugin: MyWorldManager) {
     data class GateRefundResult(val points: Int, val percent: Int, val ownerUuid: UUID)
@@ -30,11 +32,8 @@ class PortalManager(private val plugin: MyWorldManager) {
     private val activeDisplayWorlds = ConcurrentHashMap.newKeySet<String>()
     private val portalDisplayKey = NamespacedKey(plugin, "portal_display_id")
     private val warpCooldowns = ConcurrentHashMap<UUID, Long>()
-    private val entityWarpCooldowns = ConcurrentHashMap<UUID, Long>()
     private val ignorePlayers = ConcurrentHashMap.newKeySet<UUID>()
-    private val ignoreEntities = ConcurrentHashMap.newKeySet<UUID>()
     private val portalGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> Expiry)
-    private val entityGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // EntityUUID -> (PortalUUID -> Expiry)
     private val portalCache = ConcurrentHashMap<String, ConcurrentHashMap<Long, PortalData>>() // WorldName -> BlockKey -> PortalData
     private val gateCache = ConcurrentHashMap<String, MutableList<PortalData>>() // WorldName -> Gate portals
 
@@ -158,26 +157,11 @@ class PortalManager(private val plugin: MyWorldManager) {
     }
 
     /**
-     * 指定したエンティティの一時的なワープ判定を無効化する
-     */
-    private fun addIgnoreEntity(entity: Entity) {
-        ignoreEntities.add(entity.uniqueId)
-    }
-
-    /**
      * 指定したポータルに対して、プレイヤーのテレポート猶予期間を設定する
      */
     fun addPortalGrace(player: Player, portalUuid: UUID, seconds: Long) {
         val playerGrace = portalGracePeriods.computeIfAbsent(player.uniqueId) { ConcurrentHashMap() }
         playerGrace[portalUuid] = System.currentTimeMillis() + (seconds * 1000)
-    }
-
-    /**
-     * 指定したポータルに対して、エンティティのテレポート猶予期間を設定する
-     */
-    private fun addEntityGrace(entity: Entity, portalUuid: UUID, seconds: Long) {
-        val entityGrace = entityGracePeriods.computeIfAbsent(entity.uniqueId) { ConcurrentHashMap() }
-        entityGrace[portalUuid] = System.currentTimeMillis() + (seconds * 1000)
     }
 
     private fun updatePortalVisualsAndCache() {
@@ -300,23 +284,6 @@ class PortalManager(private val plugin: MyWorldManager) {
         portalGracePeriods.forEach { (_, graces) ->
             graces.entries.removeIf { it.value < now }
         }
-        entityWarpCooldowns.entries.removeIf { now - it.value > 60_000L }
-
-        // エンティティの猶予期間をクリア
-        entityGracePeriods.forEach { (_, graces) ->
-            graces.entries.removeIf { it.value < now }
-        }
-
-        // 無効化エンティティのクリーンアップ
-        val entityIterator = ignoreEntities.iterator()
-        while (entityIterator.hasNext()) {
-            val entityUuid = entityIterator.next()
-            val entity = Bukkit.getEntity(entityUuid)
-            if (entity == null || !entity.isValid) {
-                entityIterator.remove()
-                entityGracePeriods.remove(entityUuid)
-            }
-        }
 
         // ignorePlayersの解除判定 (ポータル判定範囲外に出たら解除)
         val playerIterator = ignorePlayers.iterator()
@@ -332,6 +299,86 @@ class PortalManager(private val plugin: MyWorldManager) {
             if (!isPlayerInAnyPortal(player)) {
                 playerIterator.remove()
             }
+        }
+    }
+
+    fun teleportPlayerToPortalLocation(player: Player, portal: PortalData, afterTeleported: (() -> Unit)? = null): Boolean {
+        return teleportPlayerWithLoadWait(player, portal.worldName, {
+            buildPortalEntryLocation(player, portal, it)
+        }, afterTeleported)
+    }
+
+    fun teleportPlayerToWorldSpawn(
+        player: Player,
+        targetWorldName: String,
+        afterTeleported: (() -> Unit)? = null
+    ): Boolean {
+        return teleportPlayerWithLoadWait(player, targetWorldName, { it.spawnLocation }, afterTeleported)
+    }
+
+    private fun buildPortalEntryLocation(player: Player, portal: PortalData, world: World): Location {
+        val entry = if (portal.isGate()) {
+            Location(
+                world,
+                (portal.getMinX() + portal.getMaxX() + 1) / 2.0,
+                (portal.getMinY() + portal.getMaxY()) / 2.0,
+                (portal.getMinZ() + portal.getMaxZ() + 1) / 2.0
+            )
+        } else {
+            Location(world, portal.x + 0.5, portal.y.toDouble(), portal.z + 0.5)
+        }
+
+        entry.add(0.0, 1.0, 0.0)
+        entry.yaw = player.location.yaw
+        entry.pitch = player.location.pitch
+        return entry
+    }
+
+    private fun teleportPlayerWithLoadWait(
+        player: Player,
+        targetWorldName: String,
+        locationProvider: (World) -> Location,
+        afterTeleported: (() -> Unit)? = null
+    ): Boolean {
+        val loadedWorld = loadWorldByName(targetWorldName) ?: return false
+        val (targetWorld, loadedNow) = loadedWorld
+        val waitTicks = plugin.config.getLong("warp.load_wait_ticks", 10L).coerceAtLeast(0L)
+
+        val doTeleport = Runnable {
+            if (!player.isOnline) {
+                return@Runnable
+            }
+            player.teleport(locationProvider(targetWorld))
+            afterTeleported?.invoke()
+        }
+
+        if (loadedNow) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
+            Bukkit.getScheduler().runTaskLater(plugin, doTeleport, waitTicks)
+        } else {
+            doTeleport.run()
+        }
+
+        return true
+    }
+
+    private fun loadWorldByName(worldName: String): Pair<World, Boolean>? {
+        val loaded = Bukkit.getWorld(worldName)
+        if (loaded != null) {
+            return loaded to false
+        }
+
+        val worldDirectory = File(plugin.server.worldContainer, worldName)
+        if (!worldDirectory.exists()) {
+            return null
+        }
+
+        return try {
+            val created = plugin.server.createWorld(WorldCreator(worldName)) ?: return null
+            created to true
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Failed to load world by name: $worldName", e)
+            null
         }
     }
 
@@ -445,30 +492,14 @@ class PortalManager(private val plugin: MyWorldManager) {
             if (gates.isEmpty()) continue
             val world = Bukkit.getWorld(worldName) ?: continue
 
-            for (entity in world.entities) {
-                if (!entity.isValid || entity.isDead) continue
+            for (player in world.players) {
+                if (!player.isOnline || player.isDead) continue
+                if (player.isSneaking) continue
 
-                var isInAnyGate = false
                 for (gate in gates) {
-                    if (!gate.containsLocation(entity.location)) continue
-                    if (entity is TextDisplay && entity.persistentDataContainer.has(portalDisplayKey, PersistentDataType.STRING)) continue
-
-                    isInAnyGate = true
-                    if (entity is Player && entity.isSneaking) {
-                        break
-                    }
-                    if (!ignoreEntities.contains(entity.uniqueId)) {
-                        if (entity is Player) {
-                            executeWarp(entity, gate)
-                        } else {
-                            executeEntityWarp(entity, gate)
-                        }
-                    }
+                    if (!gate.containsLocation(player.location)) continue
+                    executeWarp(player, gate)
                     break
-                }
-
-                if (!isInAnyGate) {
-                    ignoreEntities.remove(entity.uniqueId)
                 }
             }
         }
@@ -530,6 +561,11 @@ class PortalManager(private val plugin: MyWorldManager) {
                 return
             }
 
+            val folderName = plugin.worldService.getWorldFolderName(destData)
+            if (Bukkit.getWorld(folderName) == null) {
+                player.sendMessage(lang.getMessage(player, "messages.world_loading"))
+            }
+
             // ワープ実行
             plugin.worldService.teleportToWorld(
                 player,
@@ -551,53 +587,17 @@ class PortalManager(private val plugin: MyWorldManager) {
                 */
         } else if (portal.targetWorldName != null) {
             // 外部ワールドへのワープ
-            val targetWorld = Bukkit.getWorld(portal.targetWorldName!!)
-            if (targetWorld == null) return
-
-            player.teleport(targetWorld.spawnLocation)
+            val targetWorldName = portal.targetWorldName!!
+            if (!teleportPlayerToWorldSpawn(player, targetWorldName)) {
+                player.sendMessage(lang.getMessage(player, "general.world_not_found"))
+                return
+            }
             warpCooldowns[player.uniqueId] = System.currentTimeMillis()
-            
+
             val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
             player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to displayName)))
          }
      }
-
-    private fun executeEntityWarp(entity: Entity, portal: PortalData) {
-        val now = System.currentTimeMillis()
-        val lastWarp = entityWarpCooldowns[entity.uniqueId] ?: 0L
-        if (now - lastWarp < 1000L) return
-
-        if (ignoreEntities.contains(entity.uniqueId)) return
-
-        val entityGrace = entityGracePeriods[entity.uniqueId]
-        if (entityGrace != null) {
-            val expiry = entityGrace[portal.id]
-            if (expiry != null && expiry > now) return
-        }
-
-        if (portal.worldUuid != null) {
-            val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!) ?: return
-            if (destData.publishLevel == PublishLevel.LOCKED) return
-
-            if (!plugin.worldService.loadWorld(destData.uuid)) return
-            val targetWorld = Bukkit.getWorld(plugin.worldService.getWorldFolderName(destData)) ?: return
-            val targetLoc = destData.spawnPosGuest ?: targetWorld.spawnLocation
-            if (targetLoc.world == null) {
-                targetLoc.world = targetWorld
-            }
-
-            entity.teleport(targetLoc)
-            entityWarpCooldowns[entity.uniqueId] = now
-            addIgnoreEntity(entity)
-            addEntityGrace(entity, portal.id, 5L)
-        } else if (portal.targetWorldName != null) {
-            val targetWorld = Bukkit.getWorld(portal.targetWorldName!!) ?: return
-            entity.teleport(targetWorld.spawnLocation)
-            entityWarpCooldowns[entity.uniqueId] = now
-            addIgnoreEntity(entity)
-            addEntityGrace(entity, portal.id, 5L)
-        }
-    }
 
       /**
        * ポータルの TextDisplay を削除
