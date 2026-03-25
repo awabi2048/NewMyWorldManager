@@ -2507,20 +2507,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // 削除ボタン
+                val ownerStats = plugin.playerStatsRepository.findByUuid(worldData.owner)
+                val canDeleteWorld = ownerStats.unlockedWorldSlot > 0
                 val deleteLore = lang.getComponentList(
                     player,
-                    "gui.critical.delete_world.lore",
-                    mapOf("points" to refund, "percent" to percent)
+                    if (canDeleteWorld) "gui.critical.delete_world.lore" else "gui.critical.delete_world.lore_unavailable_slot",
+                    mapOf(
+                        "points" to refund,
+                        "percent" to percent,
+                        "slots" to ownerStats.unlockedWorldSlot
+                    )
                 )
+                val deleteDisplayName = if (canDeleteWorld) {
+                        lang.getMessage(player, "gui.critical.delete_world.display")
+                } else {
+                        "§8§m${lang.getMessage(player, "gui.critical.delete_world.display")}"
+                }
 
                 val deleteSlot = if (isExpansionEnabled || hasSpecialExpansion) 24 else 20
                 inventory.setItem(
                         deleteSlot,
                         createItemComponent(
                                 Material.LAVA_BUCKET,
-                                lang.getMessage(player, "gui.critical.delete_world.display"),
+                                deleteDisplayName,
                                 deleteLore,
-                                ItemTag.TYPE_GUI_SETTING_DELETE_WORLD
+                                if (canDeleteWorld) ItemTag.TYPE_GUI_SETTING_DELETE_WORLD else ItemTag.TYPE_GUI_INFO
                         )
                 )
 

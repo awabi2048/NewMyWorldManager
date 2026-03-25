@@ -566,6 +566,7 @@ class WorldService(
                 val deleted = folder.deleteRecursively()
                 if (deleted) {
                     repository.delete(worldUuid)
+                    reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
 
                     Bukkit.getPluginManager().callEvent(
                             MwmWorldDeletedEvent(
@@ -588,6 +589,7 @@ class WorldService(
             } else {
                 // フォルダがない場合もデータだけ削除
                 repository.delete(worldUuid)
+                reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
                 Bukkit.getPluginManager().callEvent(
                         MwmWorldDeletedEvent(
                                 worldUuid = worldUuid,
@@ -602,6 +604,20 @@ class WorldService(
             future.complete(false)
         }
         return future
+    }
+
+    private fun reduceOwnerSlotOnDeleteIfEnabled(ownerUuid: UUID) {
+        if (!plugin.config.getBoolean("deletion.reduce_owner_slot", false)) {
+            return
+        }
+
+        val ownerStats = playerStatsRepository.findByUuid(ownerUuid)
+        if (ownerStats.unlockedWorldSlot <= 0) {
+            return
+        }
+
+        ownerStats.unlockedWorldSlot--
+        playerStatsRepository.save(ownerStats)
     }
 
     /** ワールドをアーカイブする */

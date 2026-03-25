@@ -2157,6 +2157,11 @@ class WorldSettingsListener : Listener {
                                                 }
                                         }
                                         ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> {
+                                                if (!canOwnerExecuteDelete(worldData)) {
+                                                        sendDeleteUnavailableMessage(player)
+                                                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                                        return
+                                                }
                                                 plugin.soundManager.playClickSound(
                                                         player,
                                                         item,
@@ -2315,6 +2320,11 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
+                                        if (!canOwnerExecuteDelete(worldData)) {
+                                                sendDeleteUnavailableMessage(player)
+                                                plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                                return
+                                        }
                                         val refundRate =
                                                 plugin.config.getDouble(
                                                         "critical_settings.refund_percentage",
@@ -2322,11 +2332,6 @@ class WorldSettingsListener : Listener {
                                                 )
                                         val refund =
                                                 (worldData.cumulativePoints * refundRate).toInt()
-
-                                        val stats =
-                                                plugin.playerStatsRepository.findByUuid(
-                                                        player.uniqueId
-                                                )
 
                                         player.closeInventory()
                                         player.sendMessage(
@@ -2344,17 +2349,6 @@ class WorldSettingsListener : Listener {
                                                                         plugin,
                                                                         Runnable {
                                                                                 if (success) {
-                                                                                         // 設定に応じてスロットを削減
-                                                                                         if (plugin.config.getBoolean("deletion.reduce_owner_slot", false)) {
-                                                                                                 if (stats.unlockedWorldSlot > 0) {
-                                                                                                         stats.unlockedWorldSlot--
-                                                                                                 }
-                                                                                         }
-
-                                                                                         plugin.playerStatsRepository
-                                                                                                 .save(
-                                                                                                         stats
-                                                                                                 )
                                                                                          player.sendMessage(
                                                                                                  plugin.languageManager
                                                                                                          .getMessage(
@@ -5131,6 +5125,11 @@ player.sendMessage(
         }
 
         private fun handleDeleteWorldConfirm(player: Player, worldData: WorldData) {
+                if (!canOwnerExecuteDelete(worldData)) {
+                        sendDeleteUnavailableMessage(player)
+                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        return
+                }
                 val worldName = worldData.name
                 if (plugin.worldService.deleteWorld(worldData.uuid).get()) {
                         player.sendMessage(
@@ -5147,6 +5146,20 @@ player.sendMessage(
                         player.sendMessage(plugin.languageManager.getMessage("error.delete_failed"))
                         plugin.worldSettingsGui.open(player, worldData)
                 }
+        }
+
+        private fun canOwnerExecuteDelete(worldData: WorldData): Boolean {
+                val ownerStats = plugin.playerStatsRepository.findByUuid(worldData.owner)
+                return ownerStats.unlockedWorldSlot > 0
+        }
+
+        private fun sendDeleteUnavailableMessage(player: Player) {
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.world_delete_unavailable_slot"
+                        )
+                )
         }
 
         private fun handleUnarchiveWorldConfirm(player: Player, worldData: WorldData) {
@@ -5315,6 +5328,11 @@ player.sendMessage(
                 }
 
                 if (keyVal == "confirm/delete_world_step1") {
+                        if (!canOwnerExecuteDelete(worldData)) {
+                                sendDeleteUnavailableMessage(player)
+                                plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                return
+                        }
                         plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
                         return
                 }
@@ -5533,12 +5551,22 @@ player.sendMessage(
 
                 if (identifier == Key.key("mwm:confirm/delete_world_step1")) {
                         DialogConfirmManager.safeCloseDialog(player)
+                        if (!canOwnerExecuteDelete(worldData)) {
+                                sendDeleteUnavailableMessage(player)
+                                plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                return
+                        }
                         plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
                         return
                 }
 
                 if (identifier == Key.key("mwm:confirm/delete_world")) {
                         DialogConfirmManager.safeCloseDialog(player)
+                        if (!canOwnerExecuteDelete(worldData)) {
+                                sendDeleteUnavailableMessage(player)
+                                plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                return
+                        }
                         handleDeleteWorldConfirm(player, worldData)
                         return
                 }

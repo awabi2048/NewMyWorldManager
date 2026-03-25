@@ -671,6 +671,14 @@ gui:
       - §8§m-----------------------
       - ''
       - §4§lClick to DELETE (Irreversible)
+      lore_unavailable_slot:
+      - §8§m-----------------------
+      - §7Deletes the world permanently.
+      - §7This action is irreversible.
+      - §8§m-----------------------
+      - §cCannot execute delete with current owner slot expansion.
+      - '§f§l| §7Owner slot expansion: §e{slots}'
+      - §8§m-----------------------
   confirm:
     reset_expansion:
       title: Confirm Reset
@@ -1805,6 +1813,7 @@ messages:
   world_delete_start: §cDeleting world "{world}"...
   world_delete_success: §aDeleted world and refunded §6🛖 §e{points} §apoints.
   world_delete_fail: §cFailed to delete world.
+  world_delete_unavailable_slot: §cCannot delete world because owner's slot expansion is 0.
   archive_start: §eArchiving world...
   archive_success: §cWorld "{world}" has been archived.
   archive_cooldown: §cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)

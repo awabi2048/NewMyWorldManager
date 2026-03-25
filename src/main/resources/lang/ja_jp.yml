@@ -726,6 +726,15 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§4§lクリックして削除を実行（この操作は取り消せません）"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      # Placeholder: {slots}
+      lore_unavailable_slot:
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§7ワールドを完全に削除します。"
+        - "§7この操作は取り消せません。"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
+        - "§c現在の上限拡張値では削除を実行できません。"
+        - "§f§l| §7オーナーの上限拡張値: §e{slots}"
+        - "§8§m－－－－－－－－－－－－－－－－－－"
 
   confirm:
     reset_expansion:
@@ -1948,6 +1957,7 @@ messages:
   world_delete_start: "§cワールド「{world}」を削除しています..."
   world_delete_success: "§aワールドを削除し、合計 §6🛖 §e{points} §aポイントを返還しました。"
   world_delete_fail: "§cワールドの削除に失敗しました。"
+  world_delete_unavailable_slot: "§cオーナーの上限拡張値が0のため、ワールド削除は実行できません。"
   archive_start: "§eワールドをアーカイブしています..."
   archive_success: "§cワールド「{world}」をアーカイブしました。"
   archive_cooldown: "§c前回のアーカイブ/復旧操作から {cooldown_hours} 時間が経過するまで実行できません。（残り約 {hours_remaining} 時間）"
