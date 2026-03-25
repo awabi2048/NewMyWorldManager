@@ -66,12 +66,32 @@ class GuiLoreBuilder(
     }
 
     fun singleAction(action: String): GuiLoreBuilder {
-        return rawAction("§e§n$action", false)
+        return rawAction(
+            languageManager.getMessage(
+                player,
+                "gui.common.action_single",
+                mapOf("action" to action)
+            ),
+            false
+        )
     }
 
     fun multiActions(actions: List<GuiLoreAction>): GuiLoreBuilder {
         if (actions.isNotEmpty()) {
-            addSection(actions.map { legacy("§e§l| §e${it.operation ?: ""} §7${it.action}".trim()) })
+            addSection(
+                actions.map {
+                    legacy(
+                        languageManager.getMessage(
+                            player,
+                            "gui.common.action_multi",
+                            mapOf(
+                                "operation" to (it.operation ?: ""),
+                                "action" to it.action
+                            )
+                        )
+                    )
+                }
+            )
         }
         return this
     }
@@ -91,7 +111,17 @@ class GuiLoreBuilder(
     fun warning(text: String): GuiLoreBuilder {
         val normalized = text.trim()
         if (normalized.isNotEmpty()) {
-            addSection(listOf(legacy(if (normalized.startsWith("§")) normalized else "§c§n※ $normalized")))
+            addSection(
+                listOf(
+                    legacy(
+                        languageManager.getMessage(
+                            player,
+                            "gui.common.warning",
+                            mapOf("content" to normalized)
+                        )
+                    )
+                )
+            )
         }
         return this
     }

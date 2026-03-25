@@ -108,6 +108,9 @@ gui:
     cancel: "§cキャンセル"
     cancel_desc: "§7中断します"
     separator: "§8§m－－－－－－－－－－－－－－－－－－"
+    action_single: "§e§nクリックして{action}"
+    action_multi: "§e§l| §e{operation} §7{action}"
+    warning: "§c§n※ {content}"
     status_display: "§7ステータス: {color}{status}"
     return: "§e戻る"
     return_desc: "§7前のメニューに戻る"
@@ -439,6 +442,11 @@ gui:
   
   settings:
     title: "ワールド設定({world})"
+    common:
+      must_be_in_world: "この設定を変更するにはワールド内にいる必要があります"
+    click:
+      left: "左クリック"
+      right: "右クリック"
     info:
       display: "§aワールド情報の設定"
       lore:
@@ -453,6 +461,15 @@ gui:
         - "§e§nクリックしてフォームを開く"
         - "§7ワールド名と説明文をまとめて編集します"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        summary_je:
+          - "§7クリック後、チャット欄に入力して設定します"
+        summary_be:
+          - "§7ワールド名と説明文をまとめて編集します"
+      action:
+        open_editor: "ワールド情報を編集"
+      left_action: "ワールド名を変更"
+      right_action: "ワールド説明を変更"
     spawn:
       display: "§aスポーン地点の設定"
       type:
@@ -474,6 +491,18 @@ gui:
         - "§7クリックした地点をゲスト/メンバー両方に設定します"
         - "§e※設定時のプレイヤーの向きが保存されます"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        description_je:
+          - "§7クリック後、設定したい地点のブロックを"
+          - "§7クリックして決定します。"
+          - "§e※設定時のプレイヤーの向きが保存されます"
+        description_be:
+          - "§7クリックした地点をゲスト/メンバー両方に設定します"
+          - "§e※設定時のプレイヤーの向きが保存されます"
+      action:
+        set_guest: "ゲスト用スポーン地点を設定"
+        set_member: "メンバー用スポーン地点を設定"
+        set_both: "ゲスト/メンバー共通スポーン地点を設定"
     error:
       must_be_in_world_lore: "§c※この設定を変更するにはワールド内にいる必要があります"
     icon:
@@ -483,6 +512,14 @@ gui:
         - "§7クリックした後、インベントリ内のアイテムを"
         - "§7クリックしてアイコンを設定します"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        current:
+          - "§f§l| §7現在のアイコン {current_icon}"
+        description:
+          - "§7クリックした後、インベントリ内のアイテムを"
+          - "§7クリックしてアイコンを設定します"
+      action:
+        start_selection: "アイコンを設定"
     tags:
       display: "§aワールドタグの設定"
       # プレースホルダー: {tags_list}
@@ -495,6 +532,12 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
       lore_empty: "  §fなし"
       lore_item: "  §6・{tag}"
+      blocks:
+        summary:
+          - "§f§l| §7設定中のタグ"
+          - "{tags_list}"
+      action:
+        edit: "タグを編集"
     expand:
       display: "§6ワールドの拡張"
       cost: "§f§l| §7必要ポイント §6🛖 §e{cost}"
@@ -531,6 +574,27 @@ gui:
         - "§e§l| §e右クリック §7ボーダー中心の地表へテレポート"
       lore_no_border:
         - "§aこのワールドにボーダーはありません。"
+      blocks:
+        status_upgrade:
+          - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
+          - "§f§l| §7コスト §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)"
+          - "§f§l| §7あなたの所有ポイント §6🛖 §e{points}"
+        status_insufficient:
+          - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
+          - "§f§l| §7コスト §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}ポイント§c不足しています。"
+          - "§f§l| §7あなたの所有ポイント §6🛖 §e{points}"
+        status_max:
+          - "§f§l| §7現在の拡張レベル §e§l{current}/{max}"
+          - "§f§l| §cこれ以上拡張できません！"
+        no_border:
+          - "§aこのワールドにボーダーはありません。"
+        border_info:
+          - "§f§l| §7現在のボーダー中心 §fX: §e{x} §7/ §fZ: §e{z}"
+          - "§f§l| §7現在のボーダーサイズ §e{size}"
+      action:
+        open_menu_je: "ボーダー拡張メニューを開く"
+        open_menu_be: "ボーダー拡張メニューを開く"
+        teleport_center: "ボーダー中心の地表へテレポート"
     environment:
       display: "§aワールド環境の設定"
       lore:
@@ -540,6 +604,12 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックで表示"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        summary:
+          - "§7ワールドのバイオーム、天気、重力を"
+          - "§7変更することができます。"
+      action:
+        open: "表示"
     publish:
       display: "§6公開レベルの変更"
       # プレースホルダー: {current_color}, {current_level}, {level_list}, {description}
@@ -564,6 +634,16 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
       active_prefix: "§6» "
       inactive_prefix: "  "
+      blocks:
+        current:
+          - "§f§l| §7現在の設定 {current_color}{current_level}"
+          - "{description}"
+        level_list:
+          - "{level_list}"
+      action:
+        previous: "前のページへ移動"
+        next: "次のページへ移動"
+        cycle_bedrock: "次の公開レベルへ"
     member:
       display: "§6メンバーの管理"
       # プレースホルダー: {count}, {member_list}
@@ -582,6 +662,13 @@ gui:
       list_item: "  {debug_color}[{role_color}{role}{debug_color}] {name_color}{player}"
       list_item_member: "  {name_color}{player}"
       more_members: "  §7+{remaining}人 (§a{online}人オンライン§7)"
+      blocks:
+        summary:
+          - "§f§l| §7現在のメンバー数 §b{count}人"
+          - "§f§l| §bメンバーの一覧"
+          - "{member_list}"
+      action:
+        open_list: "一覧を表示"
       actions:
         promote: "§e§l| §e左クリック §7モデレーターに変更する"
         demote: "§e§l| §e右クリック §7メンバーに変更する"
@@ -624,6 +711,11 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックで一覧を表示"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        summary:
+          - "§f§l| §7現在ワールドを訪れているプレイヤー §e{count}人"
+      action:
+        open: "一覧を表示"
     notification:
       display: "§a訪問通知の切り替え"
       "on": "オン"
@@ -639,6 +731,14 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックで切り替え"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        summary:
+          - "§f§l| §7現在の設定 {color}{status}"
+          - "§7オンの場合、メンバー以外の訪問者が"
+          - "§7来た際にメンバー全員に通知します"
+          - "§7個人設定からオフにすることもできます"
+      action:
+        toggle: "切り替え"
     announcement:
       display: "§aプレイヤー案内の設定"
       # プレースホルダー: {message_preview}
@@ -660,6 +760,18 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
       preview_header: "§f§l| §7現在の案内メッセージ"
       preview_footer: "§e§nクリックして編集・リセット"
+      blocks:
+        summary_je:
+          - "§7訪問者に向けて表示する"
+          - "§7案内メッセージを設定します。"
+          - "{message_preview}"
+        summary_be:
+          - "§7案内メッセージの編集・リセットを行います"
+          - "{message_preview}"
+      action:
+        set_message: "メッセージを設定"
+        reset_message: "設定をリセット"
+        open_menu_bedrock: "操作メニューを開く"
     critical:
       display: "§c§n重大な設定"
       lore:
@@ -669,6 +781,12 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックで表示"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        summary:
+          - "§cワールドの削除や、拡張の初期化など"
+          - "§c取り返しのつかない操作を行います。"
+      action:
+        open: "表示"
     portals:
       display: "§b設置済みポータルの管理"
       lore:
@@ -678,6 +796,12 @@ gui:
         - "§8§m－－－－－－－－－－－－－－－－－－"
         - "§e§nクリックで表示"
         - "§8§m－－－－－－－－－－－－－－－－－－"
+      blocks:
+        summary:
+          - "§7ワールド内に設置されているポータルを"
+          - "§7一括で管理・確認します。"
+      action:
+        open: "表示"
 
   critical:
     title: "重大な設定"

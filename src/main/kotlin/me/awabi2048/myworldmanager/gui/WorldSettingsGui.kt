@@ -13,6 +13,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreAction
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -147,23 +148,38 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // ワールド名・説明変更
                 if (hasManagePermission) {
+                        val infoLoreBuilder = GuiLoreBuilder(lang, player)
+                        if (isBedrock) {
+                                infoLoreBuilder
+                                        .block(lang.getMessageList(player, "gui.settings.info.blocks.summary_be"))
+                                        .singleAction(lang.getMessage(player, "gui.settings.info.action.open_editor"))
+                        } else {
+                                infoLoreBuilder
+                                        .multiActions(
+                                                listOf(
+                                                        GuiLoreAction(
+                                                                lang.getMessage(player, "gui.settings.click.left"),
+                                                                lang.getMessage(player, "gui.settings.info.left_action")
+                                                        ),
+                                                        GuiLoreAction(
+                                                                lang.getMessage(player, "gui.settings.click.right"),
+                                                                lang.getMessage(player, "gui.settings.info.right_action")
+                                                        )
+                                                )
+                                        )
+                                        .block(lang.getMessageList(player, "gui.settings.info.blocks.summary_je"))
+                        }
+
                         inventory.setItem(
                                 infoSettingSlot,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "info",
                                                 Material.NAME_TAG
                                         ),
                                         lang.getMessage(player, "gui.settings.info.display"),
-                                        lang.getMessageList(
-                                                player,
-                                                if (isBedrock) {
-                                                        "gui.settings.info.lore_bedrock"
-                                                } else {
-                                                        "gui.settings.info.lore"
-                                                }
-                                        ),
+                                        infoLoreBuilder.build(),
                                         ItemTag.TYPE_GUI_SETTING_INFO
                                 )
                         )
@@ -174,21 +190,32 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val isInWorld = player.world.name == targetWorldName
                 val warningLore =
                         if (!isInWorld)
-                                lang.getMessage(player, "gui.settings.error.must_be_in_world_lore")
+                                lang.getMessage(player, "gui.settings.common.must_be_in_world")
                         else null
 
                 // アイコン変更
                 if (hasManagePermission) {
+                        val iconLore =
+                                GuiLoreBuilder(lang, player)
+                                        .block(lang.getMessageList(player, "gui.settings.icon.blocks.description"))
+                                        .singleAction(
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.settings.icon.action.start_selection"
+                                                )
+                                        )
+                                        .build()
+
                         inventory.setItem(
                                 iconSettingSlot,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "icon",
                                                 Material.ANVIL
                                         ),
                                         lang.getMessage(player, "gui.settings.icon.display"),
-                                        lang.getMessageList(player, "gui.settings.icon.lore"),
+                                        iconLore,
                                         ItemTag.TYPE_GUI_SETTING_ICON
                                 )
                         )
@@ -196,31 +223,58 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // スポーン位置変更
                 if (hasManagePermission) {
-                        val lore =
-                                lang.getMessageList(
-                                                player,
-                                                if (isBedrock) {
-                                                        "gui.settings.spawn.lore_bedrock"
-                                                } else {
-                                                        "gui.settings.spawn.lore"
-                                                }
+                        val spawnLoreBuilder =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        if (isBedrock) {
+                                                                "gui.settings.spawn.blocks.description_be"
+                                                        } else {
+                                                                "gui.settings.spawn.blocks.description_je"
+                                                        }
+                                                )
                                         )
-                                        .toMutableList()
+
                         if (!isInWorld && warningLore != null) {
-                                lore.add("")
-                                lore.add(warningLore)
+                                spawnLoreBuilder.warning(warningLore)
+                        }
+
+                        if (isBedrock) {
+                                spawnLoreBuilder.singleAction(
+                                        lang.getMessage(player, "gui.settings.spawn.action.set_both")
+                                )
+                        } else {
+                                spawnLoreBuilder.multiActions(
+                                        listOf(
+                                                GuiLoreAction(
+                                                        lang.getMessage(player, "gui.settings.click.left"),
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.settings.spawn.action.set_guest"
+                                                        )
+                                                ),
+                                                GuiLoreAction(
+                                                        lang.getMessage(player, "gui.settings.click.right"),
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.settings.spawn.action.set_member"
+                                                        )
+                                                )
+                                        )
+                                )
                         }
 
                         inventory.setItem(
                                 spawnSettingSlot,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "spawn",
                                                 Material.COMPASS
                                         ),
                                         lang.getMessage(player, "gui.settings.spawn.display"),
-                                        lore,
+                                        spawnLoreBuilder.build(),
                                         ItemTag.TYPE_GUI_SETTING_SPAWN
                                 )
                         )
@@ -243,15 +297,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         (baseCost * Math.pow(multiplier, currentLevel.toDouble()))
                                                 .toInt()
                                 }
-                        val expansionLore = mutableListOf<net.kyori.adventure.text.Component>()
-                        val separator = lang.getMessage(player, "gui.common.separator")
+                        val expansionLoreBuilder = GuiLoreBuilder(lang, player)
 
                         if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
-                                expansionLore.addAll(
-                                        lang.getComponentList(
+                                expansionLoreBuilder.block(
+                                        lang.getMessageList(
                                                 player,
-                                                "gui.settings.expand.lore_no_border",
-                                                mapOf()
+                                                "gui.settings.expand.blocks.no_border"
                                         )
                                 )
                         } else {
@@ -260,10 +312,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         if (stats.worldPoint < cost) {
                                                 // Insufficient points
                                                 val insufficient = cost - stats.worldPoint
-                                                expansionLore.addAll(
-                                                        lang.getComponentList(
+                                                expansionLoreBuilder.block(
+                                                        lang.getMessageList(
                                                                 player,
-                                                                "gui.settings.expand.lore_insufficient",
+                                                                "gui.settings.expand.blocks.status_insufficient",
                                                                 mapOf(
                                                                         "current" to currentLevel,
                                                                         "max" to maxLevel,
@@ -277,10 +329,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 )
                                         } else {
                                                 // Able to upgrade
-                                                expansionLore.addAll(
-                                                        lang.getComponentList(
+                                                expansionLoreBuilder.block(
+                                                        lang.getMessageList(
                                                                 player,
-                                                                "gui.settings.expand.lore_upgrade",
+                                                                "gui.settings.expand.blocks.status_upgrade",
                                                                 mapOf(
                                                                         "current" to currentLevel,
                                                                         "max" to maxLevel,
@@ -294,10 +346,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         }
                                 } else {
                                         // Max level
-                                        expansionLore.addAll(
-                                                lang.getComponentList(
+                                        expansionLoreBuilder.block(
+                                                lang.getMessageList(
                                                         player,
-                                                        "gui.settings.expand.lore_max",
+                                                        "gui.settings.expand.blocks.status_max",
                                                         mapOf("current" to currentLevel, "max" to maxLevel)
                                                 )
                                         )
@@ -305,23 +357,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                                 val showOpenMenuHint = isInWorld && currentLevel < maxLevel
                                 if (showOpenMenuHint) {
-                                        val openMenuHintKey =
-                                                if (isBedrock) {
-                                                        "gui.settings.expand.lore_open_menu_hint_be"
-                                                } else {
-                                                        "gui.settings.expand.lore_open_menu_hint_je"
-                                                }
-                                        expansionLore.addAll(
-                                                2,
-                                                lang.getComponentList(player, openMenuHintKey)
+                                        expansionLoreBuilder.singleAction(
+                                                lang.getMessage(
+                                                        player,
+                                                        if (isBedrock) {
+                                                                "gui.settings.expand.action.open_menu_be"
+                                                        } else {
+                                                                "gui.settings.expand.action.open_menu_je"
+                                                        }
+                                                )
                                         )
                                 }
 
                                 val borderInfo = buildCurrentBorderInfo(worldData, currentLevel)
-                                expansionLore.addAll(
-                                        lang.getComponentList(
+                                expansionLoreBuilder.block(
+                                        lang.getMessageList(
                                                 player,
-                                                "gui.settings.expand.lore_border_info",
+                                                "gui.settings.expand.blocks.border_info",
                                                 mapOf(
                                                         "x" to formatDecimal(borderInfo.centerX),
                                                         "z" to formatDecimal(borderInfo.centerZ),
@@ -330,25 +382,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 )
                                 if (!isBedrock && isInWorld) {
-                                        expansionLore.addAll(
-                                                lang.getComponentList(
-                                                        player,
-                                                        "gui.settings.expand.lore_teleport_hint"
+                                        expansionLoreBuilder.multiActions(
+                                                listOf(
+                                                        GuiLoreAction(
+                                                                lang.getMessage(player, "gui.settings.click.right"),
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "gui.settings.expand.action.teleport_center"
+                                                                )
+                                                        )
                                                 )
                                         )
                                 }
-                                expansionLore.add(
-                                        LegacyComponentSerializer.legacySection()
-                                                .deserialize(separator)
-                                                .decoration(TextDecoration.ITALIC, false)
-                                )
-
                                 if (!isInWorld && warningLore != null) {
-                                        expansionLore.add(
-                                                LegacyComponentSerializer.legacySection()
-                                                        .deserialize(warningLore)
-                                                        .decoration(TextDecoration.ITALIC, false)
-                                        )
+                                        expansionLoreBuilder.warning(warningLore)
                                 }
                         }
 
@@ -361,7 +408,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.FILLED_MAP
                                         ),
                                         lang.getMessage(player, "gui.settings.expand.display"),
-                                        expansionLore,
+                                        expansionLoreBuilder.build(),
                                         ItemTag.TYPE_GUI_SETTING_EXPAND
                                 )
                         )
@@ -423,20 +470,54 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val configKey = worldData.publishLevel.name.lowercase()
                         val description = lang.getMessage(player, "publish_level.description.$configKey")
 
-                        val publishLore = lang.getComponentList(
-                                player,
-                                if (isBedrock) {
-                                        "gui.settings.publish.lore_bedrock"
-                                } else {
-                                        "gui.settings.publish.lore"
-                                },
-                                mapOf(
-                                        "current_color" to currentColor,
-                                        "current_level" to currentLevelName,
-                                        "level_list" to levelList,
-                                        "description" to description
+                        val publishLoreBuilder =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.publish.blocks.current",
+                                                        mapOf(
+                                                                "current_color" to currentColor,
+                                                                "current_level" to currentLevelName,
+                                                                "description" to description
+                                                        )
+                                                )
+                                        )
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.publish.blocks.level_list",
+                                                        mapOf("level_list" to levelList)
+                                                )
+                                        )
+
+                        if (isBedrock) {
+                                publishLoreBuilder.singleAction(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.settings.publish.action.cycle_bedrock"
+                                        )
                                 )
-                        ).toMutableList()
+                        } else {
+                                publishLoreBuilder.multiActions(
+                                        listOf(
+                                                GuiLoreAction(
+                                                        lang.getMessage(player, "gui.settings.click.left"),
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.settings.publish.action.previous"
+                                                        )
+                                                ),
+                                                GuiLoreAction(
+                                                        lang.getMessage(player, "gui.settings.click.right"),
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.settings.publish.action.next"
+                                                        )
+                                                )
+                                        )
+                                )
+                        }
 
                         inventory.setItem(
                                 24,
@@ -447,7 +528,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.OAK_DOOR
                                         ),
                                         lang.getMessage(player, "gui.settings.publish.display"),
-                                        publishLore,
+                                        publishLoreBuilder.build(),
                                         ItemTag.TYPE_GUI_SETTING_PUBLISH
                                 )
                         )
@@ -520,14 +601,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 displayList
                         }
 
-                        val memberLore = lang.getComponentList(
-                                player,
-                                "gui.settings.member.lore",
-                                mapOf(
-                                        "count" to totalCount,
-                                        "member_list" to memberListString
-                                )
-                        )
+                        val memberLore =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.member.blocks.summary",
+                                                        mapOf(
+                                                                "count" to totalCount,
+                                                                "member_list" to memberListString
+                                                        )
+                                                )
+                                        )
+                                        .singleAction(
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.settings.member.action.open_list"
+                                                )
+                                        )
+                                        .build()
 
                         inventory.setItem(
                                 25,
@@ -561,11 +653,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 }
                         }
 
-                        val tagLore = lang.getComponentList(
-                                player,
-                                "gui.settings.tags.lore",
-                                mapOf("tags_list" to tagsList)
-                        )
+                        val tagLore =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.tags.blocks.summary",
+                                                        mapOf("tags_list" to tagsList)
+                                                )
+                                        )
+                                        .singleAction(
+                                                lang.getMessage(player, "gui.settings.tags.action.edit")
+                                        )
+                                        .build()
 
                         inventory.setItem(
                                 tagsSettingSlot,
@@ -595,15 +695,47 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ""
                         }
 
-                        val adLore = lang.getComponentList(
-                                player,
-                                if (isBedrock) {
-                                        "gui.settings.announcement.lore_bedrock"
-                                } else {
-                                        "gui.settings.announcement.lore"
-                                },
-                                mapOf("message_preview" to messagePreview)
-                        )
+                        val announcementLoreBuilder =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        if (isBedrock) {
+                                                                "gui.settings.announcement.blocks.summary_be"
+                                                        } else {
+                                                                "gui.settings.announcement.blocks.summary_je"
+                                                        },
+                                                        mapOf("message_preview" to messagePreview)
+                                                )
+                                        )
+
+                        if (isBedrock) {
+                                announcementLoreBuilder.singleAction(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.settings.announcement.action.open_menu_bedrock"
+                                        )
+                                )
+                        } else {
+                                announcementLoreBuilder.multiActions(
+                                        listOf(
+                                                GuiLoreAction(
+                                                        lang.getMessage(player, "gui.settings.click.left"),
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.settings.announcement.action.set_message"
+                                                        )
+                                                ),
+                                                GuiLoreAction(
+                                                        lang.getMessage(player, "gui.settings.click.right"),
+                                                        lang.getMessage(
+                                                                player,
+                                                                "gui.settings.announcement.action.reset_message"
+                                                        )
+                                                )
+                                        )
+                                )
+                        }
 
                         inventory.setItem(
                                 announcementSettingSlot,
@@ -617,7 +749,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 player,
                                                 "gui.settings.announcement.display"
                                         ),
-                                        adLore,
+                                        announcementLoreBuilder.build(),
                                         ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT
                                 )
                         )
@@ -634,14 +766,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         lang.getMessage(player, "gui.settings.notification.on")
                                 else lang.getMessage(player, "gui.settings.notification.off")
 
-                        val notificationLore = lang.getComponentList(
-                                player,
-                                "gui.settings.notification.lore",
-                                mapOf(
-                                        "color" to statusColor,
-                                        "status" to statusText
-                                )
-                        )
+                        val notificationLore =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.notification.blocks.summary",
+                                                        mapOf(
+                                                                "color" to statusColor,
+                                                                "status" to statusText
+                                                        )
+                                                )
+                                        )
+                                        .singleAction(
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.settings.notification.action.toggle"
+                                                )
+                                        )
+                                        .build()
 
                         inventory.setItem(
                                 notificationSettingSlot,
@@ -670,23 +813,30 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // スロット32: 環境設定 (オーナーのみ)
                 if (isOwner && !isBedrock) {
-                        val lore =
-                                lang.getMessageList(player, "gui.settings.environment.lore")
-                                        .toMutableList()
+                        val environmentLoreBuilder =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.environment.blocks.summary"
+                                                )
+                                        )
                         if (!isInWorld && warningLore != null) {
-                                lore.add("")
-                                lore.add(warningLore)
+                                environmentLoreBuilder.warning(warningLore)
                         }
+                        environmentLoreBuilder.singleAction(
+                                lang.getMessage(player, "gui.settings.environment.action.open")
+                        )
                         inventory.setItem(
                                 32,
-                                createItem(
+                                createItemComponent(
                                         plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "environment",
                                                 Material.GRASS_BLOCK
                                         ),
                                         lang.getMessage(player, "gui.settings.environment.display"),
-                                        lore,
+                                        environmentLoreBuilder.build(),
                                         ItemTag.TYPE_GUI_SETTING_ENVIRONMENT
                                 )
                         )
@@ -696,13 +846,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // スロット33: 重大な設定 (オーナーのみ)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 if (isOwner && stats.criticalSettingsEnabled) {
-                        val lore =
-                                lang.getComponentList(player, "gui.settings.critical.lore")
-                                        .toMutableList()
+                        val criticalLoreBuilder =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.critical.blocks.summary"
+                                                )
+                                        )
                         if (!isInWorld && warningLore != null) {
-                                lore.add(net.kyori.adventure.text.Component.empty())
-                                lore.add(LegacyComponentSerializer.legacySection().deserialize(warningLore))
+                                criticalLoreBuilder.warning(warningLore)
                         }
+                        criticalLoreBuilder.singleAction(
+                                lang.getMessage(player, "gui.settings.critical.action.open")
+                        )
                         inventory.setItem(
                                 33,
                                 createItemComponent(
@@ -712,7 +869,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.TNT
                                         ),
                                         lang.getMessage(player, "gui.settings.critical.display"),
-                                        lore,
+                                        criticalLoreBuilder.build(),
                                         ItemTag.TYPE_GUI_SETTING_CRITICAL
                                 )
                         )
@@ -857,11 +1014,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                                 ?: emptyList()
                 if (hasManagePermission && visitors.isNotEmpty()) {
-                        val visitorLore = lang.getComponentList(
-                                player,
-                                "gui.settings.visitors.lore",
-                                mapOf("count" to visitors.size)
-                        )
+                        val visitorLore =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.visitors.blocks.summary",
+                                                        mapOf("count" to visitors.size)
+                                                )
+                                        )
+                                        .singleAction(
+                                                lang.getMessage(player, "gui.settings.visitors.action.open")
+                                        )
+                                        .build()
 
                         inventory.setItem(
                                 51,
@@ -886,7 +1051,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         it.worldName == targetWorldName
                                 }
                 if (hasPortals) {
-                        val portalLore = lang.getComponentList(player, "gui.settings.portals.lore")
+                        val portalLore =
+                                GuiLoreBuilder(lang, player)
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.portals.blocks.summary"
+                                                )
+                                        )
+                                        .singleAction(
+                                                lang.getMessage(player, "gui.settings.portals.action.open")
+                                        )
+                                        .build()
                         inventory.setItem(
                                 52,
                                 createItemComponent(
