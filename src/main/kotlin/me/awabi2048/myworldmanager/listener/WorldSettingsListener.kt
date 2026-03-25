@@ -2019,20 +2019,28 @@ class WorldSettingsListener : Listener {
                                                                 "world_settings"
                                                         )
                                                         plugin.portalManager.addIgnorePlayer(player)
-                                                        player.teleport(
-                                                                portal.getCenterLocation()
-                                                                        .add(0.0, 1.0, 0.0)
-                                                        )
-                                                        plugin.soundManager.playTeleportSound(
-                                                                player
-                                                        )
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "messages.warp_generic"
-                                                                )
-                                                        )
                                                         player.closeInventory()
+                                                        val teleported = plugin.portalManager
+                                                                .teleportPlayerToPortalLocation(player, portal) {
+                                                                        plugin.soundManager.playTeleportSound(
+                                                                                player
+                                                                        )
+                                                                        player.sendMessage(
+                                                                                lang.getMessage(
+                                                                                        player,
+                                                                                        "messages.warp_generic"
+                                                                                )
+                                                                        )
+                                                                }
+                                                        if (!teleported) {
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "general.world_not_found"
+                                                                        )
+                                                                )
+                                                                return
+                                                        }
                                                 }
                                         }
                                 } else if (type == ItemTag.TYPE_GUI_CANCEL) {

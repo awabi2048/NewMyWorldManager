@@ -76,25 +76,31 @@ class AdminGuiListener : Listener {
                     if (event.isLeftClick) {
                         // テレポート
                         plugin.soundManager.playClickSound(player, currentItem)
+                        player.closeInventory()
                         if (portal.worldUuid != null) {
                             plugin.portalManager.addIgnorePlayer(player)
                             plugin.portalManager.addPortalGrace(player, portalUuid, 15)
+                            val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
+                            if (destData != null && Bukkit.getWorld(plugin.worldService.getWorldFolderName(destData)) == null) {
+                                player.sendMessage(lang.getMessage(player, "messages.world_loading"))
+                            }
                             plugin.worldService.teleportToWorld(player, portal.worldUuid!!, portal.getCenterLocation(), runMacro = false) {
                                 player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
                             }
                         } else if (portal.targetWorldName != null) {
-                            val targetWorld = Bukkit.getWorld(portal.targetWorldName!!)
-                            if (targetWorld != null) {
-                                plugin.portalManager.addIgnorePlayer(player)
-                                plugin.portalManager.addPortalGrace(player, portalUuid, 15)
-                                player.teleport(targetWorld.spawnLocation)
+                            plugin.portalManager.addIgnorePlayer(player)
+                            plugin.portalManager.addPortalGrace(player, portalUuid, 15)
+                            val teleported = plugin.portalManager.teleportPlayerToWorldSpawn(
+                                player,
+                                portal.targetWorldName!!
+                            ) {
                                 player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
-                            } else {
+                            }
+                            if (!teleported) {
                                 player.sendMessage(lang.getMessage(player, "general.world_not_found"))
                                 return
                             }
                         }
-                        player.closeInventory()
                     } else if (event.isRightClick) {
                         // 撤去
                         val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
