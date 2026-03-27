@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import org.bukkit.Bukkit
+import org.bukkit.Sound
 import org.bukkit.entity.Player
 import java.util.UUID
 
@@ -26,13 +27,13 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
             worldData.moderators.contains(requestor.uniqueId) ||
             worldData.members.contains(requestor.uniqueId)
         ) {
-            requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_already_member"))
+            requestor.sendMessage(languageManager.getMessage(requestor, "error.member_request_already_member"))
             return
         }
 
         requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_sent"))
 
-        val count = plugin.pendingDecisionManager.enqueueMemberRequest(ownerUuid, worldUuid, requestor.uniqueId)
+        plugin.pendingDecisionManager.enqueueMemberRequest(ownerUuid, worldUuid, requestor.uniqueId)
 
         val owner = Bukkit.getPlayer(ownerUuid)
         if (owner != null && owner.isOnline) {
@@ -40,10 +41,12 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
                 languageManager.getMessage(
                     owner,
                     "messages.member_request_received",
-                    mapOf("player" to requestor.name)
+                    mapOf("player" to requestor.name, "world" to worldData.name)
                 )
             )
-            plugin.pendingDecisionManager.sendPendingHint(owner, count)
+            owner.sendMessage(
+                languageManager.getMessage(owner, "messages.member_request_check_world_management")
+            )
             plugin.soundManager.playActionSound(owner, "member_request", "received")
         }
     }
@@ -93,6 +96,31 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
         if (requestor != null && requestor.isOnline) {
             requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_approved"))
             plugin.soundManager.playActionSound(requestor, "member_request", "approved")
+        }
+
+        val recipients = linkedSetOf<UUID>()
+        recipients.add(worldData.owner)
+        recipients.addAll(worldData.moderators)
+        recipients.addAll(worldData.members)
+        recipients.remove(requestorUuid)
+        recipients.remove(player.uniqueId)
+
+        recipients.forEach { memberUuid ->
+            val memberPlayer = Bukkit.getPlayer(memberUuid) ?: return@forEach
+            if (!memberPlayer.isOnline) {
+                return@forEach
+            }
+            memberPlayer.sendMessage(
+                languageManager.getMessage(
+                    memberPlayer,
+                    "messages.member_joined_notify",
+                    mapOf(
+                        "player" to (requestor?.name ?: requestorUuid.toString()),
+                        "world" to worldData.name
+                    )
+                )
+            )
+            memberPlayer.playSound(memberPlayer.location, Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
         }
 
         player.sendMessage(

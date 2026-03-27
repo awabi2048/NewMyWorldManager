@@ -627,6 +627,8 @@ gui:
       blocks:
         summary:
         - §f§l| §7Current number of members §b{count}
+        - §f§l| §7Pending requests §e{pending_request_count}
+        - §f§l| §7Pending member invites §e{pending_invite_count}
         - §f§l| §bMember list
         - '{member_list}'
       action:
@@ -1495,6 +1497,8 @@ gui:
       action_review: '§7Open accept/deny screen'
       action_cancel_java: '§e§l| §eLeft click §7to cancel invite'
       action_cancel_bedrock: '§e§l| §eClick §7to cancel invite'
+      action_review_request_java: '§e§l| §eLeft click §7to review the request'
+      action_review_request_bedrock: '§e§l| §eClick §7to review the request'
     empty:
       name: §7No pending entries
       lore:
@@ -1865,7 +1869,8 @@ messages:
   member_invite_click: «Accept»
   member_invite_hover: Review the member invite!
   member_request_sent: §aYour membership request has been sent!
-  member_request_received: §d{player} would love to join your world as a member!
+  member_request_received: '§d{player} wants to join world "{world}" as a member!'
+  member_request_check_world_management: §eYou can review it from the world management menu.
   member_request_click_approve: §a[Approve]
   member_request_click_reject: §c[Reject]
   member_request_hover_approve: Approve

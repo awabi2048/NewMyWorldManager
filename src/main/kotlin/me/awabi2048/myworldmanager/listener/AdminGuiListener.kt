@@ -51,6 +51,7 @@ class AdminGuiListener : Listener {
         // ポータル管理GUIの判定
         if (lang.isKeyMatch(title, "gui.admin_portals.title")) {
             event.isCancelled = true
+            if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return
 
@@ -141,6 +142,7 @@ class AdminGuiListener : Listener {
         // 管理者用ワールド管理
         if (lang.isKeyMatch(title, "gui.admin.title")) {
             event.isCancelled = true
+            if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             if (currentItem.type == Material.AIR) return
 

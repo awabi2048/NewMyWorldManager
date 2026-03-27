@@ -99,7 +99,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     if (event.isShiftClick) {
                         // Member Request (Shift + Left Click)
                         if (isMember) {
-                            player.sendMessage(lang.getMessage(player, "messages.member_request_already_member"))
+                            player.sendMessage(lang.getMessage(player, "error.member_request_already_member"))
                             return
                         }
 

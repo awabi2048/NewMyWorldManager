@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.gui.MemberRequestConfirmGui
+import me.awabi2048.myworldmanager.gui.MemberRequestOwnerConfirmGui
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -27,6 +29,13 @@ class GlobalMenuListener(private val plugin: MyWorldManager) : Listener {
         // ただし、通常のチェストを開いているときなどに誤爆しないように、MyWorldManagerのGUIかどうかの判定が必要。
         
         val holder = event.view.topInventory.holder
+
+        if (
+            holder is MemberRequestConfirmGui.MemberRequestConfirmGuiHolder ||
+                holder is MemberRequestOwnerConfirmGui.MemberRequestOwnerConfirmHolder
+        ) {
+            return
+        }
         
         // Holderによる判定 (MyWorldManagerのGUIは専用のHolderを持つ場合があるが、全てではないかもしれない)
         // 現状の実装を見ると、WorldSettingsGuiHolder, DiscoveryGuiHolderなどがある。

@@ -85,7 +85,7 @@ object PendingInteractionItemFactory {
                 listOf(
                     lang.getComponent(
                         viewer,
-                        actionLineKey(plugin, viewer, actionMode),
+                        actionLineKey(plugin, viewer, actionMode, type),
                         mapOf("type" to typeLabel(plugin, viewer, type))
                     )
                 )
@@ -103,12 +103,19 @@ object PendingInteractionItemFactory {
     private fun actionLineKey(
         plugin: MyWorldManager,
         viewer: Player,
-        actionMode: PendingInteractionActionMode
+        actionMode: PendingInteractionActionMode,
+        type: PendingDecisionManager.PendingType
     ): String {
         return when (actionMode) {
             PendingInteractionActionMode.REVIEW -> "gui.pending_list.item.action_review"
             PendingInteractionActionMode.CANCEL -> {
-                if (plugin.playerPlatformResolver.isBedrock(viewer)) {
+                if (type == PendingDecisionManager.PendingType.MEMBER_REQUEST) {
+                    if (plugin.playerPlatformResolver.isBedrock(viewer)) {
+                        "gui.pending_list.item.action_review_request_bedrock"
+                    } else {
+                        "gui.pending_list.item.action_review_request_java"
+                    }
+                } else if (plugin.playerPlatformResolver.isBedrock(viewer)) {
                     "gui.pending_list.item.action_cancel_bedrock"
                 } else {
                     "gui.pending_list.item.action_cancel_java"

@@ -601,6 +601,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 displayList
                         }
 
+                        val pendingInviteCount =
+                                plugin.pendingInteractionRepository
+                                        .findByWorldAndType(worldData.uuid, PendingInteractionType.MEMBER_INVITE)
+                                        .size
+                        val pendingRequestCount =
+                                plugin.pendingInteractionRepository
+                                        .findByWorldAndType(worldData.uuid, PendingInteractionType.MEMBER_REQUEST)
+                                        .size
+
                         val memberLore =
                                 GuiLoreBuilder(lang, player)
                                         .block(
@@ -609,7 +618,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         "gui.settings.member.blocks.summary",
                                                         mapOf(
                                                                 "count" to totalCount,
-                                                                "member_list" to memberListString
+                                                                "member_list" to memberListString,
+                                                                "pending_request_count" to pendingRequestCount,
+                                                                "pending_invite_count" to pendingInviteCount
                                                         )
                                                 )
                                         )

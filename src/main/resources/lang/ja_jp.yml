@@ -665,6 +665,8 @@ gui:
       blocks:
         summary:
           - "§f§l| §7現在のメンバー数 §b{count}人"
+          - "§f§l| §7参加申請中 §e{pending_request_count}件"
+          - "§f§l| §7メンバー招待中 §e{pending_invite_count}件"
           - "§f§l| §bメンバーの一覧"
           - "{member_list}"
       action:
@@ -1820,6 +1822,8 @@ gui:
       action_review: "§7承諾/辞退画面を開く"
       action_cancel_java: "§e§l| §e左クリック §7招待を取り消す"
       action_cancel_bedrock: "§e§l| §eクリック §7招待を取り消す"
+      action_review_request_java: "§e§l| §e左クリック §7申請内容を確認する"
+      action_review_request_bedrock: "§e§l| §eクリック §7申請内容を確認する"
     empty:
       name: "§7未処理の通知はありません"
       lore:
@@ -2005,7 +2009,8 @@ messages:
   member_invite_click: "§e§n§l承諾する"
   member_invite_hover: "メンバー招待を確認します！"
   member_request_sent: "§aワールドメンバーへの参加申請を送りました！"
-  member_request_received: "§d{player}さんがワールドメンバーとして参加したいようです！"
+  member_request_received: "§d{player}さんがワールド「{world}」に参加したいようです！"
+  member_request_check_world_management: "§eワールドの管理メニューから確認できます"
   member_request_click_approve: "§a【承認】"
   member_request_click_reject: "§c【却下】"
   member_request_hover_approve: "承認します"

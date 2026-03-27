@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.gui.MemberRequestOwnerConfirmGui
 import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -12,12 +13,16 @@ class MemberRequestOwnerConfirmListener(private val plugin: MyWorldManager) : Li
     @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
+        event.view.topInventory.holder as? MemberRequestOwnerConfirmGui.MemberRequestOwnerConfirmHolder ?: return
+
+        event.isCancelled = true
+        if (event.clickedInventory != event.view.topInventory) return
+
         val item = event.currentItem ?: return
         val tag = ItemTag.getType(item) ?: return
 
         when (tag) {
             "member_request_owner_yes" -> {
-                event.isCancelled = true
                 val key = ItemTag.getString(item, "key") ?: return
                 val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
                 plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, true)
@@ -25,7 +30,6 @@ class MemberRequestOwnerConfirmListener(private val plugin: MyWorldManager) : Li
                 plugin.soundManager.playClickSound(player, item)
             }
             "member_request_owner_no" -> {
-                event.isCancelled = true
                 val key = ItemTag.getString(item, "key") ?: return
                 val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
                 plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, false)
