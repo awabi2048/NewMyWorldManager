@@ -586,7 +586,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        val infoItem = event.inventory.getItem(13) ?: return
+                                        val infoItem = event.inventory.getItem(22) ?: return
                                         val memberId = ItemTag.getWorldUuid(infoItem)
 
                                         if (memberId != null) {
@@ -640,7 +640,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        val infoItem = event.inventory.getItem(13) ?: return
+                                        val infoItem = event.inventory.getItem(22) ?: return
                                         val newOwnerId = ItemTag.getWorldUuid(infoItem) ?: return
 
                                         val oldOwnerId = worldData.owner
@@ -713,7 +713,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        val infoItem = event.inventory.getItem(13) ?: return
+                                        val infoItem = event.inventory.getItem(22) ?: return
                                         val decisionId =
                                                 ItemTag.getString(infoItem, "member_pending_invite_id")
                                                         ?.let { raw ->
@@ -845,7 +845,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        val infoItem = event.inventory.getItem(13) ?: return
+                                        val infoItem = event.inventory.getItem(22) ?: return
                                         val visitorUuid = ItemTag.getWorldUuid(infoItem) ?: return
                                         val visitor = Bukkit.getPlayer(visitorUuid)
 
@@ -1177,38 +1177,22 @@ class WorldSettingsListener : Listener {
                                                 if (openBedrockWorldInfoInputForm(player, worldData)) {
                                                         return
                                                 }
-
-                                                val isDescriptionInput = event.isRightClick
-
-                                                if (
-                                                        openBedrockSettingTextInputForm(
-                                                                player,
-                                                                worldData,
-                                                                isDescriptionInput
-                                                        )
-                                                ) {
-                                                        return
-                                                }
-                                                
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                                     plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                                                     plugin.worldSettingsGui.open(player, worldData)
                                                     return
                                                 }
 
-                                                if (isDescriptionInput) {
-                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.CHANGE_DESCRIPTION)
-                                                } else {
-                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
-                                                }
+                                                plugin.settingsSessionManager.updateSessionAction(
+                                                        player,
+                                                        worldData.uuid,
+                                                        SettingsAction.RENAME_WORLD,
+                                                        isGui = true
+                                                )
 
                                                 player.closeInventory()
                                                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                                                    if (isDescriptionInput) {
-                                                        showDescriptionDialog(player, worldData)
-                                                    } else {
-                                                        showRenameDialog(player, worldData)
-                                                    }
+                                                        showWorldInfoDialog(player, worldData)
                                                 })
 
                                         }
@@ -3312,12 +3296,14 @@ plugin.languageManager
                 val lang = plugin.languageManager
                 var updated = false
 
-                if (newName.length < 3 || newName.length > 16) {
-                        player.sendMessage(lang.getMessage(player, "messages.world_name_invalid"))
-                } else if (worldData.name != newName) {
-                        worldData.name = newName
-                        updated = true
-                        player.sendMessage(lang.getMessage(player, "messages.world_name_change"))
+                if (newName.isNotBlank()) {
+                        if (newName.length < 3 || newName.length > 16) {
+                                player.sendMessage(lang.getMessage(player, "messages.world_name_invalid"))
+                        } else if (worldData.name != newName) {
+                                worldData.name = newName
+                                updated = true
+                                player.sendMessage(lang.getMessage(player, "messages.world_name_change"))
+                        }
                 }
 
                 if (worldData.description != newDescription) {
@@ -4467,54 +4453,15 @@ player.sendMessage(
             val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
             val player = conn.player
             
-            // Rename World
-            if (identifier == Key.key("mwm:settings/rename_submit")) {
-
+            if (identifier == Key.key("mwm:settings/world_info_submit")) {
                 val view = event.getDialogResponseView() ?: return
-                val newNameAny = view.getText("world_name") ?: return
-                val newName = newNameAny.toString()
-
-                
-                // Validate Name
-                // Logic copied from DialogTestListener/WorldValidator
-                val error = plugin.worldValidator.validateName(newName)
-                if (error != null) {
-                    player.sendMessage("§c$error")
-                    // Ideally re-open dialog, but for now close
-                    return
-                }
-                
-                val session = plugin.settingsSessionManager.getSession(player) ?: run {
-                    plugin.logger.info("[MWM-Debug] Session is null")
-                    return
-                }
-                plugin.logger.info("[MWM-Debug] Session found. Action: ${session.action}")
-
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
-                    plugin.logger.info("[MWM-Debug] WorldData not found")
-                    return
-                }
-
-                applyWorldNameUpdate(player, worldData, newName)
-                return
-            }
-            
-            // Change Description
-            if (identifier == Key.key("mwm:settings/desc_submit")) {
-                val view = event.getDialogResponseView() ?: return
-                val newDescAny = view.getText("world_desc") ?: ""
-                val newDesc = newDescAny.toString()
-                
-                // Description validation? usually loosely allowed, max length maybe
-                 if (newDesc.length > 100) {
-                     player.sendMessage("§cDescription too long (max 100 chars)")
-                     return
-                 }
+                val newName = view.getText("world_name")?.toString().orEmpty().trim()
+                val newDesc = view.getText("world_desc")?.toString().orEmpty().trim()
 
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
 
-                applyWorldDescriptionUpdate(player, worldData, newDesc)
+                applyWorldInfoUpdate(player, worldData, newName, newDesc)
                 return
             }
 
@@ -4621,45 +4568,29 @@ player.sendMessage(
         
 
         
-        private fun showRenameDialog(player: Player, worldData: WorldData) {
+        private fun showWorldInfoDialog(player: Player, worldData: WorldData) {
+             val lang = plugin.languageManager
              val dialog = Dialog.create { builder ->
                 builder.empty()
-                    .base(DialogBase.builder(Component.text("ワールド名の変更", NamedTextColor.YELLOW))
+                    .base(DialogBase.builder(Component.text(lang.getMessage(player, "gui.bedrock.input.info_form.title"), NamedTextColor.YELLOW))
                         .body(listOf(
-                            DialogBody.plainMessage(Component.text("新しいワールド名を入力してください。")),
+                            DialogBody.plainMessage(Component.text(lang.getMessage(player, "gui.settings.info.dialog.body"))),
                         ))
                         .inputs(listOf(
-                            DialogInput.text("world_name", Component.text("New World Name"))
+                            DialogInput.text("world_name", Component.text(lang.getMessage(player, "gui.bedrock.input.rename.label")))
                                 .initial(worldData.name)
-                                .build()
-                        ))
-                        .build()
-                    )
-                    .type(DialogType.confirmation(
-                        ActionButton.create(Component.text("Submit", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/rename_submit"), null)),
-                        ActionButton.create(Component.text("Cancel", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/cancel"), null))
-                    ))
-            }
-            player.showDialog(dialog)
-        }
-        
-        private fun showDescriptionDialog(player: Player, worldData: WorldData) {
-             val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(DialogBase.builder(Component.text("説明文の変更", NamedTextColor.YELLOW))
-                        .body(listOf(
-                            DialogBody.plainMessage(Component.text("新しい説明文を入力してください。")),
-                        ))
-                        .inputs(listOf(
-                            DialogInput.text("world_desc", Component.text("New Description"))
+                                .maxLength(16)
+                                .build(),
+                            DialogInput.text("world_desc", Component.text(lang.getMessage(player, "gui.bedrock.input.description.label")))
                                 .initial(worldData.description)
+                                .maxLength(100)
                                 .build()
                         ))
                         .build()
                     )
                     .type(DialogType.confirmation(
-                        ActionButton.create(Component.text("Submit", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/desc_submit"), null)),
-                        ActionButton.create(Component.text("Cancel", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/cancel"), null))
+                        ActionButton.create(Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/world_info_submit"), null)),
+                        ActionButton.create(Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/cancel"), null))
                     ))
             }
             player.showDialog(dialog)

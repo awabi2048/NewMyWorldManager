@@ -155,18 +155,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .singleAction(lang.getMessage(player, "gui.settings.info.action.open_editor"))
                         } else {
                                 infoLoreBuilder
-                                        .multiActions(
-                                                listOf(
-                                                        GuiLoreAction(
-                                                                lang.getMessage(player, "gui.settings.click.left"),
-                                                                lang.getMessage(player, "gui.settings.info.left_action")
-                                                        ),
-                                                        GuiLoreAction(
-                                                                lang.getMessage(player, "gui.settings.click.right"),
-                                                                lang.getMessage(player, "gui.settings.info.right_action")
-                                                        )
-                                                )
-                                        )
+                                        .singleAction(lang.getMessage(player, "gui.settings.info.action.open_editor"))
                                         .block(lang.getMessageList(player, "gui.settings.info.blocks.summary_je"))
                         }
 

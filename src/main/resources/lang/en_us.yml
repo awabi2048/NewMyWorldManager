@@ -424,10 +424,9 @@ gui:
     info:
       display: §aWorld Info Settings
       lore:
-      - §e§l| §e§nLeft-Click §aChange Name
-      - §e§l| §e§nRight-Click §aChange Description
+      - §e§l| §eClick §aEdit world name and description together
       - ''
-      - §eType in chat to set
+      - §7Click to edit both fields in a dialog.
       lore_bedrock:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §e§nClick to open form
@@ -435,13 +434,13 @@ gui:
       - §8§m－－－－－－－－－－－－－－－－－－
       blocks:
         summary_je:
-        - §7After clicking, type in chat to apply.
+        - §7Click to edit both fields in a dialog.
         summary_be:
         - §7Edit world name and description together.
       action:
         open_editor: Edit world info
-      left_action: Change world name
-      right_action: Change world description
+      dialog:
+        body: You can edit the world name and description together. Leave the world name blank to keep it unchanged, and leave the description blank to clear it.
     spawn:
       display: §aSet Spawn Point
       type:
