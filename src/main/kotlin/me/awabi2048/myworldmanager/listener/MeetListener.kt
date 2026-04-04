@@ -4,7 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
-import me.awabi2048.myworldmanager.util.PlayerTag
+
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -129,13 +129,6 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
 
                         target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
-
-                        if (!isMember) {
-                            if (PlayerTag.shouldCountVisit(player, worldData.uuid)) {
-                                worldData.recentVisitors[0]++
-                                plugin.worldConfigRepository.save(worldData)
-                            }
-                        }
                     }
                 } else {
                     player.sendMessage(lang.getMessage(player, "error.world_not_public"))

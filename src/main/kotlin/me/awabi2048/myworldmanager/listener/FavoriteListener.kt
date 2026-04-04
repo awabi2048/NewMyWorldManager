@@ -118,10 +118,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 player.closeInventory()
                 plugin.worldService.teleportToWorld(player, uuid) {
-                    if (!isMember) {
-                        worldData.recentVisitors[0]++
-                        plugin.worldConfigRepository.save(worldData)
-                    }
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                 }
                 return
@@ -140,10 +136,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 player.closeInventory()
                 plugin.worldService.teleportToWorld(player, uuid) {
-                    if (!isMember) {
-                        worldData.recentVisitors[0]++
-                        plugin.worldConfigRepository.save(worldData)
-                    }
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                 }
             } else if (event.isRightClick) {
