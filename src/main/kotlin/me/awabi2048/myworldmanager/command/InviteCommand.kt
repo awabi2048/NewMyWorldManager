@@ -6,8 +6,6 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
-import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -55,7 +53,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         }
 
         val targetName = args[0]
-        val target = PlayerNameUtil.resolveOnlinePlayer(plugin, targetName)
+        val target = plugin.playerVisibilityService.resolveVisibleOnlinePlayer(player, targetName)
 
         if (target == null) {
             player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))

@@ -66,8 +66,11 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
                        worldData.moderators.contains(player.uniqueId)
 
         if (!isMember) {
+            val owner = org.bukkit.Bukkit.getPlayer(worldData.owner)
+            val shouldExposeVisit = owner == null || !owner.isOnline || plugin.playerVisibilityService.isVisibleTo(owner, player)
+
             // 訪問者統計の更新 (同日の重複カウント防止)
-            val firstVisitToday = PlayerTag.shouldCountVisit(player, worldData.uuid)
+            val firstVisitToday = shouldExposeVisit && PlayerTag.shouldCountVisit(player, worldData.uuid)
             if (firstVisitToday) {
                 worldData.recentVisitors[0]++
                 plugin.worldConfigRepository.save(worldData)
@@ -93,13 +96,14 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
 
             // 所有者への通知
             if (worldData.notificationEnabled) {
-                val owner = org.bukkit.Bukkit.getPlayer(worldData.owner)
                 if (owner != null && owner.isOnline) {
-                    val lang = plugin.languageManager
-                    owner.sendMessage(lang.getMessage(owner, "messages.visitor_notified", mapOf(
-                        "player" to player.name,
-                        "world" to worldData.name
-                    )))
+                    if (plugin.playerVisibilityService.isVisibleTo(owner, player)) {
+                        val lang = plugin.languageManager
+                        owner.sendMessage(lang.getMessage(owner, "messages.visitor_notified", mapOf(
+                            "player" to player.name,
+                            "world" to worldData.name
+                        )))
+                    }
                 }
             }
         }

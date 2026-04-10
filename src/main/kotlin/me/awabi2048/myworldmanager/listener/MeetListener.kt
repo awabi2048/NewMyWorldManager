@@ -67,6 +67,12 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
 
+                if (!plugin.playerVisibilityService.isVisibleTo(player, target)) {
+                    player.sendMessage(lang.getMessage(player, "error.target_offline"))
+                    player.closeInventory()
+                    return
+                }
+
                 val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
 
                 // Check Status
@@ -128,7 +134,9 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     plugin.worldService.teleportToWorld(player, worldData.uuid) {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
 
-                        target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
+                        if (worldData.notificationEnabled && plugin.playerVisibilityService.isVisibleTo(target, player)) {
+                            target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
+                        }
                     }
                 } else {
                     player.sendMessage(lang.getMessage(player, "error.world_not_public"))

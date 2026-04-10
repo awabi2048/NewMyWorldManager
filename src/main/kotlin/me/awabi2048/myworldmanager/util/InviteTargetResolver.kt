@@ -4,7 +4,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
-import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 object InviteTargetResolver {
@@ -38,7 +37,7 @@ object InviteTargetResolver {
             return emptyList()
         }
 
-        return Bukkit.getOnlinePlayers()
+        return plugin.playerVisibilityService.getVisibleOnlinePlayers(viewer)
             .filter { target -> getRejectionReason(plugin, viewer, worldData, target) == null }
             .sortedBy { it.name }
     }
@@ -49,7 +48,7 @@ object InviteTargetResolver {
         worldData: WorldData?,
         inputName: String
     ): Player? {
-        val target = PlayerNameUtil.resolveOnlinePlayer(plugin, inputName) ?: return null
+        val target = plugin.playerVisibilityService.resolveVisibleOnlinePlayer(viewer, inputName) ?: return null
         return if (getRejectionReason(plugin, viewer, worldData, target) == null) target else null
     }
 

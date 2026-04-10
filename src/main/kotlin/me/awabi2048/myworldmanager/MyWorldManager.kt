@@ -83,6 +83,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var tourManager: me.awabi2048.myworldmanager.service.TourManager
     lateinit var tourSessionManager: TourSessionManager
     lateinit var playerPlatformResolver: PlayerPlatformResolver
+    lateinit var playerVisibilityService: PlayerVisibilityService
     lateinit var floodgateFormBridge: FloodgateFormBridge
     lateinit var bedrockUiRoutingService: BedrockUiRoutingService
     lateinit var bedrockMenuService: BedrockMenuService
@@ -202,6 +203,7 @@ class MyWorldManager : JavaPlugin() {
         adminGuiSessionManager = AdminGuiSessionManager()
 
         playerPlatformResolver = PlayerPlatformResolver(this)
+        playerVisibilityService = PlayerVisibilityService(this)
         floodgateFormBridge = FloodgateFormBridge(this)
         bedrockUiRoutingService =
                 BedrockUiRoutingService(this, playerPlatformResolver, floodgateFormBridge)

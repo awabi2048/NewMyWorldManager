@@ -196,7 +196,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         
         if (args.size == 1) {
             val search = args[0].lowercase()
-            return Bukkit.getOnlinePlayers()
+            return plugin.playerVisibilityService.getVisibleOnlinePlayers(sender)
                 .filter { target ->
                     target != sender && collectVisitableWorlds(sender, target.uniqueId).isNotEmpty()
                 }

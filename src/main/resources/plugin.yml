@@ -4,6 +4,7 @@ main: me.awabi2048.myworldmanager.MyWorldManager
 api-version: '1.21'
 authors: [awabi2048]
 description: ""
+softdepend: [PremiumVanish]
 commands:
   mwm:
     description: MyWorldManager main command
