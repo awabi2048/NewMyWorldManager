@@ -4,7 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
-import me.awabi2048.myworldmanager.util.PlayerTag
+
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -62,6 +62,12 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
             if (type == "gui_meet_target_head") {
                 val skullMeta = currentItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return
                 val target = skullMeta.owningPlayer?.player ?: run {
+                    player.sendMessage(lang.getMessage(player, "error.target_offline"))
+                    player.closeInventory()
+                    return
+                }
+
+                if (!plugin.playerVisibilityService.isVisibleTo(player, target)) {
                     player.sendMessage(lang.getMessage(player, "error.target_offline"))
                     player.closeInventory()
                     return
@@ -128,13 +134,8 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                     plugin.worldService.teleportToWorld(player, worldData.uuid) {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
 
-                        target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
-
-                        if (!isMember) {
-                            if (PlayerTag.shouldCountVisit(player, worldData.uuid)) {
-                                worldData.recentVisitors[0]++
-                                plugin.worldConfigRepository.save(worldData)
-                            }
+                        if (worldData.notificationEnabled && plugin.playerVisibilityService.isVisibleTo(target, player)) {
+                            target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
                         }
                     }
                 } else {

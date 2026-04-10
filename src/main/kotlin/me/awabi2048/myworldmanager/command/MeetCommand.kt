@@ -2,8 +2,6 @@ package me.awabi2048.myworldmanager.command
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.PermissionManager
-import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -36,8 +34,8 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
             val targetName = args[1]
             val requesterUuid = try {
                  java.util.UUID.fromString(targetName)
-            } catch (e: Exception) {
-                PlayerNameUtil.resolveOnlinePlayer(plugin, targetName)?.uniqueId
+             } catch (e: Exception) {
+                plugin.playerVisibilityService.resolveVisibleOnlinePlayer(sender, targetName)?.uniqueId
             } ?: return true
             
             val pendingRequest = plugin.pendingDecisionManager.getPendingEntries(sender.uniqueId)

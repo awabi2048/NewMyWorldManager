@@ -435,14 +435,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                 )
             )
 
-            val isMember =
-                worldData.owner == requester.uniqueId ||
-                    worldData.moderators.contains(requester.uniqueId) ||
-                    worldData.members.contains(requester.uniqueId)
-            if (!isMember) {
-                worldData.recentVisitors[0]++
-                plugin.worldConfigRepository.save(worldData)
-            }
+            // 訪問者統計はAccessControlListenerで一元管理
         }
     }
 }

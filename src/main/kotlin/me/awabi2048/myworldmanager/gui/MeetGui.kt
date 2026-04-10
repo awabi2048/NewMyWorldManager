@@ -40,6 +40,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         // マイワールドに滞在中で、且つ meetStatus が BUSY でないプレイヤーを抽出（自分以外）
         val targets = Bukkit.getOnlinePlayers().filter { target ->
             if (target.uniqueId == player.uniqueId) return@filter false
+            if (!plugin.playerVisibilityService.isVisibleTo(player, target)) return@filter false
 
             if (target.world.uid == player.world.uid) {
                 val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
