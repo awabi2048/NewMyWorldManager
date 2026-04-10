@@ -2080,7 +2080,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         private fun pendingInviteDateTimeFormatterFor(player: Player): DateTimeFormatter {
-                val language = plugin.playerStatsRepository.findByUuid(player.uniqueId).language.lowercase(Locale.ROOT)
+                val language = plugin.languageManager.resolveLocale(player).lowercase(Locale.ROOT)
                 return if (language == "ja_jp") {
                         DateTimeFormatter.ofPattern("yyyy/M/d H:mm")
                 } else {

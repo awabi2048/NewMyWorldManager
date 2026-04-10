@@ -134,7 +134,7 @@ object PendingInteractionItemFactory {
     }
 
     private fun formatDateTime(plugin: MyWorldManager, player: Player, timestamp: Long): String {
-        val language = plugin.playerStatsRepository.findByUuid(player.uniqueId).language.lowercase(Locale.ROOT)
+        val language = plugin.languageManager.resolveLocale(player).lowercase(Locale.ROOT)
         val formatter = if (language == "ja_jp") {
             DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
         } else {

@@ -92,7 +92,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             favoriteWorlds = existingFavoriteWorlds,
             lastOnline = config.getString("last_online"),
             lastName = config.getString("last_name"),
-            language = config.getString("language", "ja_jp") ?: "ja_jp",
+            language = "ja_jp",
             visitorNotificationEnabled = config.getBoolean("visitor_notification_enabled", true),
             criticalSettingsEnabled = config.getBoolean("critical_settings_enabled", true),
             meetStatus = if (config.contains("meet_status")) {
@@ -137,7 +137,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         
         config.set("last_online", stats.lastOnline)
         config.set("last_name", stats.lastName)
-        config.set("language", stats.language)
+        config.set("language", null)
         config.set("visitor_notification_enabled", stats.visitorNotificationEnabled)
         config.set("critical_settings_enabled", stats.criticalSettingsEnabled)
         config.set("meet_status", stats.meetStatus)
