@@ -250,11 +250,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 }
                 ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE -> {
                     plugin.soundManager.playClickSound(player, currentItem)
-                    val supported = lang.getSupportedLanguages()
-                    val currentIndex = supported.indexOf(stats.language)
-                    val nextIndex = (currentIndex + 1) % supported.size
-                    stats.language = supported[nextIndex]
-                    plugin.playerStatsRepository.save(stats)
                     plugin.userSettingsGui.open(player)
                 }
                 ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY -> {

@@ -1,8 +1,10 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.CCSystem
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import java.io.File
@@ -51,29 +53,31 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     private fun getLangName(player: Player?): String {
-        return if (player != null) {
-            // CC-Systemが有効で、use_cc_system設定が有効な場合、CC-Systemから言語設定を取得
-            val useCCSystem = plugin.config.getBoolean("use_cc_system", false)
-            val isCCSystemAvailable = CCSystemUtil.isCCSystemAvailable()
+        if (player == null) {
+            return "ja_jp"
+        }
 
-            if (useCCSystem && isCCSystemAvailable) {
-                val lang = CCSystemUtil.getPlayerLanguageFromCCSystem(player)
-                (lang ?: plugin.playerStatsRepository.findByUuid(player.uniqueId).language).lowercase()
-            } else {
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                stats.language.lowercase()
-            }
-        } else {
-            (plugin.config.getString("language", "ja_jp") ?: "ja_jp").lowercase()
+        val ccSystemPlugin = Bukkit.getPluginManager().getPlugin("CC-System")
+        if (ccSystemPlugin != null && ccSystemPlugin.isEnabled) {
+            return CCSystem.getAPI().getPlayerLanguage(player).lowercase()
+        }
+
+        val raw = player.locale.lowercase().replace('-', '_')
+        return when {
+            raw == "ja_jp" -> "ja_jp"
+            raw == "en_us" -> "en_us"
+            raw.startsWith("ja") -> "ja_jp"
+            raw.startsWith("en") -> "en_us"
+            else -> "ja_jp"
         }
     }
 
-    private fun getFallbackLangName(): String {
-        return (plugin.config.getString("fallback_language", "ja_jp") ?: "ja_jp").lowercase()
+    private fun getLanguageCandidates(lang: String): List<String> {
+        return linkedSetOf(lang.lowercase(), "ja_jp").toList()
     }
 
-    private fun getLanguageCandidates(lang: String): List<String> {
-        return linkedSetOf(lang.lowercase(), getFallbackLangName(), "ja_jp").toList()
+    fun resolveLocale(player: Player?): String {
+        return getLangName(player)
     }
 
     private fun hasAnyLanguageConfig(lang: String): Boolean {

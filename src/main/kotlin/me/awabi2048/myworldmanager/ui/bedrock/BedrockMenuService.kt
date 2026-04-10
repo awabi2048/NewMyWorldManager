@@ -349,12 +349,10 @@ class BedrockMenuService(
                 tr(
                     player,
                     "gui.bedrock.settings.button.language",
-                    mapOf("language" to languageDisplay(player, stats.language))
+                    mapOf("language" to languageDisplay(player, plugin.languageManager.resolveLocale(player)))
                 ),
                 Material.WRITABLE_BOOK
             ) {
-            cycleLanguage(stats)
-            plugin.playerStatsRepository.save(stats)
             openSettings(player, showBackButton, returnPage)
         }
 
@@ -607,7 +605,7 @@ class BedrockMenuService(
         }
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val languageName = languageDisplay(player, stats.language)
+        val languageName = languageDisplay(player, plugin.languageManager.resolveLocale(player))
         val notifyStatus = statusText(player, stats.visitorNotificationEnabled)
 
         inventory.setItem(
@@ -771,8 +769,6 @@ class BedrockMenuService(
             }
 
             "cycle_language" -> {
-                cycleLanguage(stats)
-                plugin.playerStatsRepository.save(stats)
                 openSettings(player, holder.showBackButton, holder.returnPage)
             }
 
@@ -968,17 +964,6 @@ class BedrockMenuService(
         }
     }
 
-    private fun cycleLanguage(stats: me.awabi2048.myworldmanager.model.PlayerStats) {
-        val supported = plugin.languageManager.getSupportedLanguages()
-        if (supported.isEmpty()) {
-            return
-        }
-
-        val current = supported.indexOf(stats.language)
-        val next = if (current == -1) 0 else (current + 1) % supported.size
-        stats.language = supported[next]
-    }
-
     private fun languageDisplay(player: Player, languageKey: String): String {
         val message = runCatching {
             plugin.languageManager.getMessage(player, "general.language.$languageKey")
@@ -995,7 +980,7 @@ class BedrockMenuService(
     }
 
     private fun dateFormatterFor(player: Player): DateTimeFormatter {
-        val language = plugin.playerStatsRepository.findByUuid(player.uniqueId).language.lowercase(Locale.ROOT)
+        val language = plugin.languageManager.resolveLocale(player).lowercase(Locale.ROOT)
         return if (language == "ja_jp") {
             DateTimeFormatter.ofPattern("yyyy年MM月dd日")
         } else {

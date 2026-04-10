@@ -115,9 +115,6 @@ class MyWorldManager : JavaPlugin() {
         // templates.ymlがなければコピー
         saveResourceIfNotExists("templates.yml")
 
-        // CC-System連携の初期化
-        CCSystemUtil.initialize()
-
         // 言語設定の初期化
         languageManager = LanguageManager(this)
         worldTagManager = WorldTagManager(this)

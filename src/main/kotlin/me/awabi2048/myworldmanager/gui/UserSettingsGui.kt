@@ -46,7 +46,8 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         ))
 
         // 2. Language
-        val languageName = lang.getMessage(player, "general.language.${stats.language}")
+        val currentLocale = lang.resolveLocale(player)
+        val languageName = lang.getMessage(player, "general.language.$currentLocale")
         items.add(createItem(
             Material.WRITABLE_BOOK,
             lang.getMessage(player, "gui.user_settings.language.display"),

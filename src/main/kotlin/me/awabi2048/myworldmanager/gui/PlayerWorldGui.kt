@@ -437,7 +437,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun dateFormatterFor(player: Player): DateTimeFormatter {
-                val language = plugin.playerStatsRepository.findByUuid(player.uniqueId).language.lowercase(Locale.ROOT)
+                val language = plugin.languageManager.resolveLocale(player).lowercase(Locale.ROOT)
                 return if (language == "ja_jp") {
                         DateTimeFormatter.ofPattern("yyyy年MM月dd日")
                 } else {
