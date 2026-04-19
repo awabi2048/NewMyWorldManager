@@ -1,0 +1,40 @@
+custom_item:
+  empty_biome_bottle:
+    name: §fEmpty Biome Bottle (WIP)
+    lore:
+    - §8§m-----------------------
+    - §7Use in a specific biome to capture its air!
+    - §7The bottled air can be used for §6Biome Settings§7 in MyWorld.
+    - §8§m-----------------------
+  bottled_biome_air:
+    name: §fBottled Biome Atmosphere【{biome}】
+    lore:
+    - §8§m-----------------------
+    - §7§oFilled with dense biome air.
+    - §7Can be used for §6Biome Settings§7 in MyWorld!
+    - §8§m-----------------------
+  moon_stone:
+    name: §fMoon Stone
+    lore:
+    - §8§m-----------------------
+    - §7§oA seemingly normal stone, yet undeniably from the moon.
+    - §7Can be used for §bGravity Settings§7 in MyWorld!
+    - §8§m-----------------------
+  world_seed:
+    name: §dWorld Seed
+    lore:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - By using §7, §bMy World Slot§7
+    - §7 can be extended by one!
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §eUsed by right click
+    - §8§m－－－－－－－－－－－－－－－－－－
+  tour_sign:
+    name: §bTour Sign
+    lore:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §7A sign used as a world tour marker.
+    - §7Can be placed in your MyWorld.
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §eRight-click to place
+    - §8§m－－－－－－－－－－－－－－－－－－

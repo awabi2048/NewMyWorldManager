@@ -1,0 +1,539 @@
+gui:
+  settings:
+    title: ワールド設定({world})
+    common:
+      must_be_in_world: この設定を変更するにはワールド内にいる必要があります
+    click:
+      left: 左クリック
+      right: 右クリック
+    info:
+      display: §aワールド情報の設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eクリック §7ワールド名と説明文をまとめて編集
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7クリック後、ダイアログでまとめて編集します
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックしてフォームを開く
+      - §7ワールド名と説明文をまとめて編集します
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary_je:
+        - §7クリック後、ダイアログでまとめて編集します
+        summary_be:
+        - §7ワールド名と説明文をまとめて編集します
+      action:
+        open_editor: ワールド情報を編集
+      dialog:
+        body: ワールド名と説明文をまとめて編集できます。ワールド名が空欄なら変更なし、説明文が空欄なら説明なしになります。
+    spawn:
+      display: §aスポーン地点の設定
+      type:
+        guest: ゲスト用
+        member: メンバー用
+        both: ゲスト/メンバー共通
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §e左クリック §7ゲスト用スポーン地点を設定
+      - §e§l| §e右クリック §7メンバー用スポーン地点を設定
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7クリック後、設定したい地点のブロックを
+      - §7クリックして決定します。
+      - §e※設定時のプレイヤーの向きが保存されます
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで設定を開始
+      - §7クリックした地点をゲスト/メンバー両方に設定します
+      - §e※設定時のプレイヤーの向きが保存されます
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        description_je:
+        - §7クリック後、設定したい地点のブロックを
+        - §7クリックして決定します。
+        - §e※設定時のプレイヤーの向きが保存されます
+        description_be:
+        - §7クリックした地点をゲスト/メンバー両方に設定します
+        - §e※設定時のプレイヤーの向きが保存されます
+      action:
+        set_guest: ゲスト用スポーン地点を設定
+        set_member: メンバー用スポーン地点を設定
+        set_both: ゲスト/メンバー共通スポーン地点を設定
+    error:
+      must_be_in_world_lore: §c※この設定を変更するにはワールド内にいる必要があります
+    icon:
+      display: §aワールドアイコンの変更
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7クリックした後、インベントリ内のアイテムを
+      - §7クリックしてアイコンを設定します
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        current:
+        - §f§l| §7現在のアイコン {current_icon}
+        description:
+        - §7クリックした後、インベントリ内のアイテムを
+        - §7クリックしてアイコンを設定します
+      action:
+        start_selection: アイコンを設定
+    tags:
+      display: §aワールドタグの設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7設定中のタグ
+      - '{tags_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックしてタグを編集
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_empty: '  §fなし'
+      lore_item: '  §6・{tag}'
+      blocks:
+        summary:
+        - §f§l| §7設定中のタグ
+        - '{tags_list}'
+      action:
+        edit: タグを編集
+    expand:
+      display: §6ワールドの拡張
+      cost: §f§l| §7必要ポイント §6🛖 §e{cost}
+      lore_upgrade:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の拡張レベル §e§l{current}/{max}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7コスト §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+      - §f§l| §7あなたの所有ポイント §6🛖 §e{points}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_insufficient:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の拡張レベル §e§l{current}/{max}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7コスト §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}ポイント§c不足しています。
+      - §f§l| §7あなたの所有ポイント §6🛖 §e{points}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_max:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の拡張レベル §e§l{current}/{max}
+      - §f§l| §cこれ以上拡張できません！
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_open_menu_hint_je:
+      - §e§l| §e左クリック §7ボーダー拡張メニューを開く
+      lore_open_menu_hint_be:
+      - §e§l| §eクリック §7ボーダー拡張メニューを開く
+      lore_border_info:
+      - '§f§l| §7現在のボーダー中心 §fX: §e{x} §7/ §fZ: §e{z}'
+      - §f§l| §7現在のボーダーサイズ §e{size}
+      lore_teleport_hint:
+      - §e§l| §e右クリック §7ボーダー中心の地表へテレポート
+      lore_no_border:
+      - §aこのワールドにボーダーはありません。
+      blocks:
+        status_upgrade:
+        - §f§l| §7現在の拡張レベル §e§l{current}/{max}
+        - §f§l| §7コスト §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+        - §f§l| §7あなたの所有ポイント §6🛖 §e{points}
+        status_insufficient:
+        - §f§l| §7現在の拡張レベル §e§l{current}/{max}
+        - §f§l| §7コスト §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}ポイント§c不足しています。
+        - §f§l| §7あなたの所有ポイント §6🛖 §e{points}
+        status_max:
+        - §f§l| §7現在の拡張レベル §e§l{current}/{max}
+        - §f§l| §cこれ以上拡張できません！
+        no_border:
+        - §aこのワールドにボーダーはありません。
+        border_info:
+        - '§f§l| §7現在のボーダー中心 §fX: §e{x} §7/ §fZ: §e{z}'
+        - §f§l| §7現在のボーダーサイズ §e{size}
+      action:
+        open_menu_je: ボーダー拡張メニューを開く
+        open_menu_be: ボーダー拡張メニューを開く
+        teleport_center: ボーダー中心の地表へテレポート
+    environment:
+      display: §aワールド環境の設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7ワールドのバイオーム、天気、重力を
+      - §7変更することができます。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで表示
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary:
+        - §7ワールドのバイオーム、天気、重力を
+        - §7変更することができます。
+      action:
+        open: 表示
+    publish:
+      display: §6公開レベルの変更
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の設定 {current_color}{current_level}
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{level_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §e左クリック §7前のページへ移動
+      - §e§l| §e右クリック §7次のページへ移動
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の設定 {current_color}{current_level}
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{level_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで次の公開レベルへ
+      - §8§m－－－－－－－－－－－－－－－－－－
+      active_prefix: '§6» '
+      inactive_prefix: '  '
+      blocks:
+        current:
+        - §f§l| §7現在の設定 {current_color}{current_level}
+        - '{description}'
+        level_list:
+        - '{level_list}'
+      action:
+        previous: 前のページへ移動
+        next: 次のページへ移動
+        cycle_bedrock: 次の公開レベルへ
+    member:
+      display: §6メンバーの管理
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在のメンバー数 §b{count}人
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §bメンバーの一覧
+      - '{member_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで一覧を表示
+      - §8§m－－－－－－－－－－－－－－－－－－
+      role_owner: オーナー
+      role_moderator: モデレーター
+      role_member: メンバー
+      list_item: '  {debug_color}[{role_color}{role}{debug_color}] {name_color}{player}'
+      list_item_member: '  {name_color}{player}'
+      more_members: '  §7+{remaining}人 (§a{online}人オンライン§7)'
+      blocks:
+        summary:
+        - §f§l| §7現在のメンバー数 §b{count}人
+        - §f§l| §7参加申請中 §e{pending_request_count}件
+        - §f§l| §7メンバー招待中 §e{pending_invite_count}件
+        - §f§l| §bメンバーの一覧
+        - '{member_list}'
+      action:
+        open_list: 一覧を表示
+      actions:
+        promote: §e§l| §e左クリック §7モデレーターに変更する
+        demote: §e§l| §e右クリック §7メンバーに変更する
+        remove: §e§l| §eShift + 左クリック §7メンバーから削除する
+        transfer: §e§l| §eShift + 右クリック §7オーナー権限を移譲する
+    main_info:
+      name: §f【§a{world}§f】
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §f{description}
+      - §f§l| §7オーナー §b{owner}
+      - §f§l| §7拡張レベル §e§l{level}§7/{max_level}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7作成日 §e{created_at_date_formatted} §8({created_days_ago})
+      - §f§l| §7自動アーカイブまで §6{days_until_archive}日 §8({archive_date} にアーカイブ)
+      - '§f§l| §7メンバー §f{member_count}人 §8(オンライン: {online_count}人)'
+      - §f§l| §7公開レベル {publish_color}{publish_level}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7お気に入り数 §c{favorites}
+      - §f§l| §7最近訪れたプレイヤー §b{visitors}人
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_special:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §f{description}
+      - §f§l| §7オーナー §b{owner}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7作成日 §e{created_at_date_formatted} §8({created_days_ago})
+      - '§f§l| §7メンバー §f{member_count}人 §8(オンライン: {online_count}人)'
+      - §f§l| §7公開レベル {publish_color}{publish_level}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7お気に入り数 §c{favorites}
+      - §f§l| §7最近訪れたプレイヤー §b{visitors}人
+      - §8§m－－－－－－－－－－－－－－－－－－
+    visitors:
+      display: §a訪問中のプレイヤー一覧
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在ワールドを訪れているプレイヤー §e{count}人
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで一覧を表示
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary:
+        - §f§l| §7現在ワールドを訪れているプレイヤー §e{count}人
+      action:
+        open: 一覧を表示
+    notification:
+      display: §a訪問通知の切り替え
+      'on': オン
+      'off': オフ
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の設定 {color}{status}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7オンの場合、メンバー以外の訪問者が
+      - §7来た際にメンバー全員に通知します
+      - §7個人設定からオフにすることもできます
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで切り替え
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary:
+        - §f§l| §7現在の設定 {color}{status}
+        - §7オンの場合、メンバー以外の訪問者が
+        - §7来た際にメンバー全員に通知します
+        - §7個人設定からオフにすることもできます
+      action:
+        toggle: 切り替え
+    announcement:
+      display: §aプレイヤー案内の設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7訪問者に向けて表示する
+      - §7案内メッセージを設定します。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §e左クリック §7メッセージを設定
+      - §e§l| §e右クリック §7設定をリセット
+      - '{message_preview}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7案内メッセージの編集・リセットを行います
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで操作メニューを開く
+      - '{message_preview}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      preview_header: §f§l| §7現在の案内メッセージ
+      preview_footer: §e§nクリックして編集・リセット
+      blocks:
+        summary_je:
+        - §7訪問者に向けて表示する
+        - §7案内メッセージを設定します。
+        - '{message_preview}'
+        summary_be:
+        - §7案内メッセージの編集・リセットを行います
+        - '{message_preview}'
+      action:
+        set_message: メッセージを設定
+        reset_message: 設定をリセット
+        open_menu_bedrock: 操作メニューを開く
+    critical:
+      display: §c§n重大な設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §cワールドの削除や、拡張の初期化など
+      - §c取り返しのつかない操作を行います。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで表示
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary:
+        - §cワールドの削除や、拡張の初期化など
+        - §c取り返しのつかない操作を行います。
+      action:
+        open: 表示
+    portals:
+      display: §b設置済みポータルの管理
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7ワールド内に設置されているポータルを
+      - §7一括で管理・確認します。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで表示
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary:
+        - §7ワールド内に設置されているポータルを
+        - §7一括で管理・確認します。
+      action:
+        open: 表示
+  user_settings:
+    title: 個人設定
+    notification:
+      display: §a訪問者の通知
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7誰かがあなたのワールドを訪れたときに
+      - §7通知を送信するかどうかを設定します。
+      - ''
+      - §f§l| §7現在の状態 {status}
+      - ''
+      - §e§nクリックで切り替え
+      - §8§m－－－－－－－－－－－－－－－－－－
+    language:
+      display: §a言語設定
+      format: §f{language}
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7メニューやメッセージの表示言語を変更します。
+      - ''
+      - '§f§l| §7現在の設定: §f{language}'
+      - ''
+      - §e§nクリックで次へ
+      - §8§m－－－－－－－－－－－－－－－－－－
+    critical_settings_visibility:
+      display: §a重大な設定の表示
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7ワールド管理メニュー内の
+      - §7「重大な設定」アイコンを表示するか設定します。
+      - ''
+      - §f§l| §7現在の設定 {status}
+      - ''
+      - §e§nクリックで切り替え
+      - §8§m－－－－－－－－－－－－－－－－－－
+    tour_navigation:
+      display: §bワールドツアーのナビゲーション
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7ワールドツアー中のナビ表示方法を切り替えます。
+      - §7メッセージは常に表示されます。
+      - ''
+      - §f§l| §7現在の設定 §b{status}
+      - ''
+      - §e§nクリックで切り替え
+      - §8§m－－－－－－－－－－－－－－－－－－
+      mode:
+        bossbar_only: ボスバーのみ
+        all: すべて
+        none: なし
+    beta_features:
+      display: §eベータ機能（実験的機能）
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7開発中の機能を有効化します。
+      - §7現在は、従来のチャット入力の代わりに
+      - §7新しいダイアログ入力を使用します。
+      - §c※ 1.21.8より古いクライアントでは動作しないため、
+      - §c将来的にサポート終了予定です！
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の状態 {status}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで切り替え
+      - §8§m－－－－－－－－－－－－－－－－－－
+    button:
+      display: §6個人設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7表示言語や通知などを変更します。
+      - §e§nクリックで開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+  environment:
+    title: 環境設定
+    gravity:
+      display: §e重力の設定
+      current: '§f§l| §7現在の倍率: §6{multiplier}'
+      click_hint: §e§n月の石§7を持った状態でクリックで変更
+      cost: §f§l| §7必要ポイント §6🛖 §e{cost}
+      options:
+        zero: 無重力 (x0.0)
+        moon: 月 (x0.17)
+        mars: 火星 (x0.38)
+        earth: 地球 (x1.0)
+    weather:
+      display: §b天候の設定
+      current: '§f§l| §7現在の天候: §b{weather}'
+      click_cycle: §e§l| §e左クリック §7切り替える
+      click_confirm: §e§l| §e右クリック §7確定してポイントを消費
+      cost: §f§l| §7必要ポイント §6🛖 §e{cost}
+      desc: §7設定した天候で固定されます。
+    biome:
+      display: §aバイオームの設定
+      current: '§f§l| §7現在のバイオーム: §a{biome}'
+      click_hint: §e§nバイオームの瓶§7を持った状態でクリックで変更
+      click_bottle_hint: §7バイオーム入りの瓶を持ってクリックしてください
+      cost: §f§l| §7必要ポイント §6🛖 §e{cost}
+      desc: §7ワールド全体のバイオームを変更します。
+  member_management:
+    title: ワールドメンバーの管理
+    invite:
+      name: §aメンバーを招待
+      desc: §7クリックした後、名前を入力して招待します
+      click_normal: §e§l| §eクリック §7通常モードで実行
+      click_force: §e§l| §eShift + クリック §7強制追加モードで実行
+    remove_confirm:
+      title: 確認
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §c本当に削除しますか？
+      - §f§l| §7プレイヤー §f{player}
+      - §f§l| §7ワールド §f{world}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §c※§c§nメンバーから削除すると、このワールドへのアクセス権限が失われます
+      - §8§m－－－－－－－－－－－－－－－－－－
+      cancel: §aキャンセル
+      cancel_desc: §7メンバー一覧に戻る
+      confirm: §c削除する
+      confirm_desc: §7このプレイヤーをワールドメンバーから削除します
+    item:
+      last_online_label: 最終オンライン
+      lore_info:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{last_online}'
+      - §f§l| §7権限 §f{role}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_actions:
+      - §e§l| §e左クリック §7権限を{next_role}に変更する
+      - §e§l| §eShift + 左クリック §7オーナー権限を譲渡
+      - §e§l| §eShift + 右クリック §7ワールドメンバーから削除
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_actions_bedrock:
+      - §e§l| §eクリック §7権限を{next_role}に変更する
+      - §e§l| §eクリック §7削除/譲渡は /myworld コマンドを使用
+      - §8§m－－－－－－－－－－－－－－－－－－
+    pending_item:
+      name: §e{player} §7(招待中)
+      status_online: §e招待中 §7(§aオンライン§7)
+      status_offline: §e招待中 §7(§cオフライン§7)
+      click_java: §7招待を取り消す
+      click_bedrock: §7招待を取り消す
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7状態 {status}
+      - §f§l| §7送信日時 §f{datetime}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{click}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+    pending_cancel_confirm:
+      title: 招待のキャンセル確認
+      body: §c{player}さんへのメンバー招待を取り消しますか？
+      cancel: §a戻る
+      confirm: §c実行
+    transfer_confirm:
+      title: オーナー権限の譲渡
+      lore:
+      - §c本当にオーナー権限を譲渡しますか？
+      - §f§l| §7新しいオーナー §f{player}
+      - §f§l| §7対象ワールド §f{world}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §c※§c§n譲渡すると、あなたはこのワールドのオーナーではなくなります
+      - §8§m－－－－－－－－－－－－－－－－－－
+      cancel: §aキャンセル
+      cancel_desc: §7メンバー一覧に戻る
+      confirm: §c譲渡する
+      confirm_desc: §dこのプレイヤーにオーナー権限を譲渡します
+  visitor_management:
+    title: 訪問中のプレイヤー
+    no_visitors: §7現在、このワールドに訪問者はいません。
+    kick_confirm:
+      title: 確認
+      question: §c本当にキックしますか？
+      player: §f§l| §7プレイヤー §f{player}
+      cancel: §aキャンセル
+      cancel_desc: §7一覧に戻る
+      confirm: §cキックする
+      confirm_desc: §7このプレイヤーをワールドから追い出します
+    item:
+      kick: §e§nクリックでキックする
+      kick_bedrock: §e§nクリックでキックする
+  tag_editor:
+    title: ワールドタグの編集
+    status_active: §a有効
+    status_inactive: §c無効
+    click_toggle: §e§nクリックで切り替え

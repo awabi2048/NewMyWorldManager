@@ -1,0 +1,207 @@
+gui:
+  admin:
+    title: Manage All Worlds
+    info:
+      display: §fStatistics
+      total_count: '§7Results: §f{count}'
+      page: '§7Page: §f{current} / {max}'
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{uuid_line}'
+      - '{world_name_line}'
+      - '{owner_line}'
+      - '{status_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{publish_line}'
+      - '{generation_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{created_line}'
+      - '{expire_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{mspt_line}'
+      - '{world_size_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{action_warp}'
+      - '{action_settings}'
+      - '{action_archive}'
+      - '{uuid_copy_hint}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      uuid: §f§l| §7World Directory §8{uuid}
+      world_name_line: §f§l| §7World §a{world}
+      owner: §f§l| §7Owner {owner}{status_color}
+      status: §f§l| §7Status {status}
+      status_archived: §cArchived
+      status_active: §bActive
+      publish: §f§l| §7Publish {color}{level}
+      generation: §f§l| §7Generation §e{method}
+      generation_type:
+        convert: Converted
+        template: Template
+        template_with_id: Template ({template_id})
+        seed: Seed
+        random: Random
+        unknown: '{source}'
+      expansion: §f§l| §7Expansion §e{level}
+      expires_at: §f§l| §7Multi-Archive §e{date} §8({days_remain}§8)
+      archived_at: §f§l| §7Archived On §e{date} §8({mode}§8)
+      created_at: §f§l| §7Created §e{date} §8({days_ago}§8)
+      created_info_days: §7{days} days ago
+      created_info_today: §7Today
+      expire_info_remaining: §7in {days} days
+      expire_info_overdue: §7{days} days ago
+      archive_mode_auto: Auto Switch
+      archive_mode_manual: Manual Switch
+      mspt: §f§l| §7MSPT {mspt}
+      mspt_with_status: §f§l| §7MSPT {mspt} §7({status}§7)
+      mspt_value_low: §a< 0.1 §7ms
+      mspt_status_unloaded: §7Unloaded
+      mspt_error_with_reason: §f§l| §7MSPT §cLoad Failed §7({reason}§7)
+      mspt_reason_chiyogami_inactive: Chiyogami is disabled
+      mspt_reason_directory_not_found: World directory not found
+      mspt_reason_load_failed: Could not verify world load state
+      mspt_reason_metrics_not_found: MSPT metrics data not found
+      world_size_line: §f§l| §7World Size §e{size}{suffix}
+      world_size_measuring: §f§l| §7World Size §8(Measuring...)
+      world_size_unavailable: §f§l| §7World Size §cUnavailable
+      world_size_archived_suffix: §8 (Archived)
+      action_archive: §e§l| §eShift + Right-Click §7Toggle archive
+      action_settings: §e§l| §eRight-Click §7Open world settings
+      action_warp: §e§l| §eLeft-Click §7Warp to this world
+      uuid_copy_hint: §e§l| §eMiddle-Click §7Output to chat and copy directory name
+    filter:
+      archive:
+        display: §eArchive Filter
+        all: All
+        active: Active Only
+        archived: Archived Only
+      publish:
+        display: §ePublish Filter
+        all: All
+        public: Public Only
+        friend: Limited Only
+        private: Private Only
+        locked: Locked Only
+      player:
+        display: §ePlayer Filter
+        lore:
+        - §8§m－－－－－－－－－－－－－－－－－－
+        - §f§l| §7Filter type §f{type}
+        - §f§l| §7Target player §b{player}
+        - §8§m－－－－－－－－－－－－－－－－－－
+        - §e§l| §eLeft-Click §7Change type
+        - §e§l| §eRight-Click §7Set player
+        - §8§m－－－－－－－－－－－－－－－－－－
+        none: No Filter
+        owner: Owner Worlds
+        member: Member Worlds
+        current_type: §f§l §7Filter Type §f{type}
+        current_player: §f§l §7Target Player §b{player}
+        click_left: §e§l §eLeft-Click §7Change Filter Type
+        click_right: §e§l §eRight-Click §7Set Player
+      click_cycle: §e§nClick to cycle
+      click_lr: §e§l| §eLeft/Right-Click §7Change
+    sort:
+      display: §eSort Order
+      created_desc: Created (Newest)
+      created_asc: Created (Oldest)
+      expire_asc: Expire Date (Soon)
+      expire_desc: Expire Date (Later)
+      world_size_desc: World Size (Largest)
+      mspt_desc: MSPT (High)
+  admin_menu:
+    title: Admin Menu
+    update_data:
+      display: §eUpdate Data
+      lore:
+      - §7Validate and update integrity of all
+      - §7world and player data.
+      - ''
+      - §e§nClick to confirm
+      confirm_title: Update Data Confirmation
+    repair_templates:
+      display: §eRepair Templates
+      lore:
+      - §7Detect missing template worlds and
+      - §7attempt to regenerate them.
+      - ''
+      - §e§nClick to confirm
+      confirm_title: Repair Templates Confirmation
+    create_template:
+      display: §aCreate Template
+      lore:
+      - §7Open the Template Creation Wizard.
+      - ''
+      - §e§nClick to start
+    archive:
+      display: §cExecute Archive
+      lore:
+      - §7Batch archive all expired worlds.
+      - ''
+      - §e§nClick to confirm
+      confirm_title: Batch Archive Confirmation
+    convert:
+      display: §6Convert World
+      lore:
+      - §7Register current world under MyWorld management.
+      - ''
+      - §e§nLeft Click§7 Convert in Normal Mode
+      - §7(Rename directory for standard management)
+      - ''
+      - §e§nRight Click§7 Convert in Admin Mode
+      - §7(Keep current structure, apply management only)
+      confirm_normal: Convert Confirmation (Normal)
+      confirm_admin: Convert Confirmation (Admin)
+    unlink:
+      display: §cUnlink World
+      lore:
+      - §7Remove MyWorld configuration for this world
+      - §7and revert it to a normal world.
+      - §7(World data is NOT deleted)
+      - ''
+      - §e§nClick to confirm
+      confirm_title: Unlink Confirmation
+    export:
+      display: §bExport World
+      lore:
+      - §7Export current world as ZIP archive.
+      - ''
+      - §e§nClick to confirm
+      confirm_title: Export Confirmation
+      target_world: §f§l| §7Target World §b{world}
+    archive_world:
+      confirm_title: Check archive
+      target_world: §f§l| §7Target world §b{world}
+    unarchive_world:
+      confirm_title: Confirmation of unarchiving
+      target_world: §f§l| §7Target world §b{world}
+    info:
+      display: §aWorld List
+      lore:
+      - §7View and manage all worlds.
+      - ''
+      - §e§nClick to open
+    current_world:
+      display: §bCurrent World Info
+      lore:
+      - §8§m-----------------------
+      - §f§l| §7World Directory §8{world_directory}
+      - §f§l| §7World §a{world}
+      - §f§l| §7Owner §b{owner}
+      - §f§l| §7Generation §e{generation}
+      - §8§m-----------------------
+      - '{action_settings}'
+      - '{action_archive}'
+      - '{uuid_copy_hint}'
+      - §8§m-----------------------
+    portals:
+      display: §bPortal Management
+      lore:
+      - §7View list of placed portals.
+      - ''
+      - §e§nClick to open
+  unarchive_confirm:
+    title: §6Unarchive Confirmation
+    lore:
+    - §fThis world is currently archived.
+    - §fDo you want to unarchive and warp?

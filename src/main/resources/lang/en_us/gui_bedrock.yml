@@ -1,0 +1,160 @@
+gui:
+  bedrock:
+    player_world:
+      title: My Worlds [BE]
+      page_content: Page {current}/{total}
+      archived_prefix: '[A] '
+      button:
+        prev: < Prev
+        next: Next >
+        settings: Settings
+        current_world: Current World
+        return: Return
+        close: Close
+    world_action:
+      title: 'World: {world}'
+      content:
+        owner: 'Owner: {owner}'
+        status: 'Status: {status}'
+        publish: 'Publish: {publish}'
+      status:
+        archived: ARCHIVED
+        active: ACTIVE
+      button:
+        warp: Warp
+        cycle_publish: Cycle Publish ({level})
+        archive: Archive
+        unarchive: Unarchive
+        advanced_settings: Advanced Settings GUI
+        back_to_worlds: Back to Worlds
+        settings: Settings
+        return: Return
+        close: Close
+    settings:
+      title: User Settings [BE]
+      form_content: Single-tap menu for Bedrock
+      button:
+        notification: 'Visitor Notification: {status}'
+        language: 'Language: {language}'
+        critical: 'Critical Menu: {status}'
+        beta: 'Beta Features: {status}'
+        back_to_worlds: Back to Worlds
+        return: Return
+        close: Close
+    world_item:
+      publish: 'Publish: {publish}'
+      favorite: 'Favorite: {favorite}'
+      open_actions: Tap to open actions
+    input:
+      info_form:
+        title: Edit World Info
+      rename:
+        title: Rename World
+        label: New World Name
+        placeholder: Enter world name
+      description:
+        title: Change Description
+        label: New Description
+        placeholder: Enter description
+      member_invite:
+        title: Invite Member
+        label: Player Name
+        placeholder: Enter player name
+      creation_name:
+        title: Enter World Name
+        label: World Name
+        placeholder: Type world name
+      creation_seed:
+        title: Enter Seed Value
+        label: Seed (optional)
+        placeholder: Type seed or text
+      admin_player_filter:
+        title: Player Filter
+        label: Target Player Name
+        placeholder: Type player name
+      template_wizard_name:
+        title: Enter Template Name
+        label: Template Name
+        placeholder: Type template name
+      template_wizard_desc:
+        title: Enter Template Description
+        label: Template Description
+        placeholder: Type description
+      announcement_menu:
+        title: Announcement
+        content: Choose an action
+        edit: Edit
+        reset: Reset
+      announcement_edit:
+        title: Edit Announcement ({max_lines} lines / {max_length} chars)
+        label: Line {line}
+        placeholder: Leave blank to skip this line
+      info_selector:
+        title: Select Input
+        content: Choose what to edit
+        rename: World Name
+        description: Description
+  player_world:
+    title: My world list
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{publish_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{expires_at_line}'
+      - '{expired_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_action}'
+      - '{settings_action}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7Owner §f{owner}
+      publish: §f§l| §7Public setting §b{level}{status_color}
+      favorite: §f§l| §7Favorite §c{count}
+      recent_visitors: §f§l| §7Recently visited players §a{count} people
+      tag: §f§l| §7tag §e{tags}
+      warp: §e§l| §eLeft click §7Warp to this world to this world
+      warp_bedrock: §e§l| §eClick §7Warp to this world
+      settings: §e§l| §eRight click §7Open world settings
+      settings_bedrock: §7Open world settings from /worldmenu
+      expired: §c§nThis world has been archived
+      expires_at: §f§l| §7Days until archive §f{days} days §8(archived to {date})
+    creation_button:
+      display: §a§lCreate a new My World
+      lore:
+      - §7 Create a new My World.
+      - §7You can freely set the template and disclosure range.
+      - ''
+      - §e§nClick to start creating
+    stats_button:
+      display: §e{player}
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7World Point §6{icon} {point}
+      - §7These points can be used to create a new My World, expand it, etc.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7 World Slot §a§l{current_occupied}§7/{unlocked}
+      - §7This is the number of slots that can be used to create a new My World.
+      - §7 Can be released by using "World Seed"
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Pending invites/requests §e{pending_count}
+      - §f§l| §7Latest received §b{latest_pending_at}
+      - §e§nClick to open the pending list
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bypass:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7World Point §6{icon} {point}
+      - §7These points can be used to create a new My World, expand it, etc.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7 World Count §a§l{current_occupied}
+      - §7You have permission to bypass world count limits.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Pending invites/requests §e{pending_count}
+      - §f§l| §7Latest received §b{latest_pending_at}
+      - §e§nClick to open the pending list
+      - §8§m－－－－－－－－－－－－－－－－－－

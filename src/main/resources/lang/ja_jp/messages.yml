@@ -1,0 +1,279 @@
+messages:
+  world_name_prompt: §eワールド名を入力してください
+  chat_input_cancel_hint: §7(キャンセルするにはチャットで §e{word} §7と入力してください)
+  wizard_cancel_word: §7(キャンセルするにはチャットで §e{word} §7と入力してください)
+  unlink_success: §aワールドの紐づけを解除しました。
+  unlink_failed: §c解除に失敗しました。
+  unlink_not_myworld: §cこのワールドはマイワールドではありません。
+  world_desc_prompt: §eワールド説明文を入力してください
+  world_name_change: §aワールド名を変更しました！
+  world_name_invalid: §cワールド名は3〜16文字で入力してください
+  world_desc_change: §aワールド説明を変更しました！
+  publish_updated: '§a公開設定を更新しました: {level}'
+  icon_prompt: §eインベントリ内のアイテムをクリックして、アイコンを設定します
+  icon_changed: §aワールドアイコンを「{icon}」に変更しました！
+  icon_cancelled: §cアイコン設定をキャンセルしました
+  operation_cancelled: §c操作をキャンセルしました。
+  insufficient_points: §cポイントが不足しています。
+  creation_insufficient_points: §cポイントが不足しています。
+  invalid_biome_data: §cバイオームデータが不適切です。
+  creation_cancelled: §cマイワールドの作成をキャンセルしました。
+  creation_success: §aワールド作成完了！
+  creation_failed: §c作成に失敗しました。
+  world_not_found: §cワールドが見つかりませんでした。
+  spawn_set_start: §e{type}スポーン地点の設定を開始しました。設置したい場所を向いてクリックしてください。
+  spawn_set_start_bedrock: §e{type}スポーン地点の設定を開始しました。設置したい場所を向いてクリックしてください。
+  spawn_guest_set: §aゲスト用のスポーン位置を設定しました！
+  spawn_member_set: §aメンバー用のスポーン位置を設定しました！
+  spawn_both_set: §aゲスト/メンバー共通のスポーン位置を設定しました！
+  favorite_removed: §cお気に入りを解除しました
+  tag_max_reached: §cタグは最大{limit}個まで設定可能です
+  member_invite_input: §e招待したいプレイヤーのIDを入力してください
+  member_force_add_input: §c強制追加モードです。追加したいプレイヤーのIDを入力してください
+  visit_target_input: §e訪問したいプレイヤーのIDを入力してください
+  visitworld_query_input: §e検索したいワールド名のキーワードを入力してください
+  visitworld_query_empty: §c検索キーワードを入力してください。
+  visitworld_no_result: §c「{query}」に一致する公開ワールドが見つかりませんでした。
+  member_deleted: §cメンバーを削除しました
+  owner_transferred: §a{old_owner}さんへオーナー権限を譲渡しました。
+  owner_transfer_failed_limit: §c譲渡先のプレイヤーのワールドスロットがいっぱいです
+  invite_locked_error: §c閉鎖中のワールドには招待できません
+  portal_dest_locked: §cこのポータルの先は現在閉鎖されています！
+  portal_warped: §aポータルで「{destination}」へワープしました！
+  invite_expired: §c招待が見つからないか、期限切れです
+  invite_world_not_found: §cワールドデータが見つかりませんでした
+  invite_already_member: §c既にこのワールドのメンバーです
+  invite_already_sent: §cそのプレイヤーには既に招待を送信しています
+  invite_same_world_error: §c{player}さんはすでに同じワールドにいるため、招待できません
+  invite_busy_error: §c{player}さんは現在招待を受け付けていません
+  invite_member_error: §c{player}さんはワールドメンバーになっているため、招待できません
+  member_invite_already_sent: §cそのプレイヤーには既にメンバー招待を送信しています
+  invite_accepted_self: §aワールド【{world}】のメンバーになりました！
+  invite_accepted_sender: §e{player} §fさんがワールド【§a{world}§f】のメンバー招待を承諾しました
+  member_joined_notify: §a{player} §fさんがワールド【§a{world}§f】のメンバーになりました
+  invite_sent_success: §e{player} §fさんを「§a{world}§f」に招待しました！
+  member_force_add_success: §a{player} §fさんをワールド「§a{world}§f」に強制追加しました
+  member_force_added_self: §aワールド「§a{world}§a」のメンバーに強制追加されました
+  invite_target_offline: §c{player}さんは現在オフラインです
+  invite_no_available_targets: §c現在招待可能なプレイヤーがいません。
+  invite_target_not_available: §cそのプレイヤーは現在招待できません
+  invite_queued_offline: §7{player}さんはオフラインです。次回ログイン時に通知されます。
+  invite_not_in_myworld: §c招待を送信するには、マイワールドにいる必要があります！
+  invite_not_member: §cこのワールドのメンバーではないため、招待を送信できません
+  invite_hover: 招待内容を確認します！
+  invite_text: '{player}さんがあなたを【{world}】に招待しました！'
+  invite_click_text: §e§n§l確認する
+  member_invite_text: '{player}さんがあなたを「{world}」のメンバーに招待してくれました！'
+  member_invite_click_text: §e§n§l確認する
+  member_invite_click: §e§n§l承諾する
+  member_invite_hover: メンバー招待を確認します！
+  member_request_sent: §aワールドメンバーへの参加申請を送りました！
+  member_request_received: §d{player}さんがワールド「{world}」に参加したいようです！
+  member_request_check_world_management: §eワールドの管理メニューから確認できます
+  member_request_click_approve: §a【承認】
+  member_request_click_reject: §c【却下】
+  member_request_hover_approve: 承認します
+  member_request_hover_reject: 却下します
+  member_request_approved: §aワールドメンバー参加の申請が承認されました！
+  member_request_rejected: §cワールドメンバー参加の申請は見送りになりました。
+  member_request_expired: §c申請の有効期限が切れました
+  visitor_notified: §a{player} §fさんが【§a{world}§f】を訪れました
+  kicked: §cこのワールドからキックされました
+  kicked_success: §c{player}さんをキックしました
+  admin_player_filter_set: §aフィルター対象のプレイヤーを「{player}」に設定しました。
+  announcement_prompt: §7設定する案内メッセージをチャット欄に入力してください。§6exit§7と入力して編集を終了します。
+  announcement_set: §a案内メッセージを設定しました！
+  announcement_reset: §e案内メッセージをリセットしました。
+  announcement_invalid_length: §cメッセージが長すぎます。（{max_lines}行まで、各行{max_length}文字まで）
+  announcement_blocked_string: '§c禁止文字列が含まれています: {string}'
+  announcement_preview: §7«案内プレビュー» {message}
+  bedrock_option_unavailable: §cこの機能は統合版インベントリUIでは利用できません。
+  bedrock_form_unavailable: §c統合版フォームを開けませんでした。
+  env_gravity_changed: '§a重力を「{gravity}」に変更しました（倍率: {multiplier}）'
+  env_weather_changed: §a天候を「{weather}」に規定しました
+  env_biome_changed: §aバイオームを「{biome}」に変更しました
+  env_cost_paid: §6🛖 §e{cost} §aポイントを消費しました。{remaining_info}
+  env_cost_paid_remaining: '(残り: §6🛖 §e{remaining})'
+  creation_start: §aワールドを作成しています...
+  creation_seed_prompt: §a生成に使用するシード値をチャットに入力してください。
+  wizard_input_mode_ended: §e入力モードを終了しました。
+  wizard_name_set: '§aテンプレート名を設定しました: {name} (ID: {id})'
+  wizard_desc_set: §a説明文を設定しました。
+  wizard_icon_prompt: §e[MyWorldManager] アイコンにするアイテムをクリックしてください。
+  wizard_origin_set: §a原点位置を設定しました。
+  wizard_id_missing: §cIDが設定されていません。
+  wizard_id_exists: §cそのIDは既に存在します。
+  wizard_registered: §aテンプレート「{template}」を登録しました！
+  oage_ganbaru_messages:
+  - §eおあげちゃんがワールドを拡げてくれています...§7「よいしょ！」
+  - §eおあげちゃんが境界線を押し広げています！
+  - §eおあげちゃんが新しい土地を開拓しています...
+  oage_ganbaru_default: §e拡張の準備をしています...
+  like_sign:
+    placed: §aLike看板を設置しました！
+    saved: §aLike看板を更新しました！
+    deleted: §cLike看板を削除しました。
+    liked: §c❤ §aLikeしました！
+    unliked: §cLikeを取り消しました。
+  tour_sign:
+    placed: §aTour看板を設置しました！
+  tour:
+    available: §eこのワールドではツアーを開始できます。§bツアーを開く
+    none_available: §7このワールドでは現在ツアーを開始できません。
+    started: §aツアー「{tour}」を開始しました！
+    next_marker: '§e次の目的地: §b{marker} §7(ツアー: {tour})'
+    completed: §aツアー「{tour}」を完了しました！
+    stopped: §eツアーを終了しました。
+    stopped_world_change: §eワールドを離れたため、進行中のツアーを終了しました。
+    cancelled_edited: §e進行中のツアー内容が変更されたため、ツアーをキャンセルしました。
+    cancelled_deleted: §e進行中のツアーが削除されたため、ツアーをキャンセルしました。
+  expand_direction_prompt: §a拡張したい方角（北西・北東・南西・南東）を向いて左クリックしてください
+  expand_direction_prompt_bedrock: §a拡張したい方角（北西・北東・南西・南東）を向いてクリックしてください
+  expand_direction_selected: '§a指定した方角: {direction}'
+  expand_confirm_chat: §a変更後のワールドボーダーのプレビューを表示しています。この内容で拡張しますか？
+  expand_confirm_button: §a§l【拡張を確定する】
+  expand_confirm_hover: §7ポイントを消費して拡張を実行します
+  expand_retry_button: §c§l【方角を選び直す】
+  expand_retry_hover: §7ボーダープレビューを消去し、方角を選択し直します
+  expand_complete: §aワールドの拡張が完了しました！ §7{level_before} §f→ §e§l{level_after} §7(残りポイント §6🛖 §e{remaining}§7)
+  expansion_reset_complete: §a拡張段階を初期化し、§6🛖 §e{points} §aポイントを返還しました。
+  expansion_reset_success: §a拡張段階を初期化し、§6🛖 §e{points} §aポイントを返還しました。
+  world_delete_start: §cワールド「{world}」を削除しています...
+  world_delete_success: §aワールドを削除し、合計 §6🛖 §e{points} §aポイントを返還しました。
+  world_delete_fail: §cワールドの削除に失敗しました。
+  world_delete_unavailable_slot: §cオーナーの上限拡張値が0のため、ワールド削除は実行できません。
+  archive_start: §eワールドをアーカイブしています...
+  archive_success: §cワールド「{world}」をアーカイブしました。
+  archive_cooldown: §c前回のアーカイブ/復旧操作から {cooldown_hours} 時間が経過するまで実行できません。（残り約 {hours_remaining} 時間）
+  archive_failed: §cワールドのアーカイブに失敗しました。
+  preview_start: §aテンプレート「{template}」のプレビューを開始しました… §7(Shiftキーで中断可能)
+  preview_end: §eプレビューが終了しました。
+  preview_cancel: §eプレビューをキャンセルしました。
+  preview_restored: §eプレビュー中に遊離したため、元の位置に復帰しました。
+  preview_archived: §cこのワールドは現在アーカイブされているため、プレビューできません。
+  unarchive_start: §eワールドをアーカイブから復旧しています...
+  unarchive_success: §aワールドを復旧しました。
+  unarchive_cooldown: §c前回のアーカイブ/復旧操作から {cooldown_hours} 時間が経過するまで実行できません。（残り約 {hours_remaining} 時間）
+  archive_access_denied: §cこのワールドは現在アーカイブされているため、アクセスできません。
+  unknown_world: 未知のワールド
+  item_not_found_hand: §cアイテムを手に持っていません。
+  admin_update_data_start: §eプレイヤーデータを更新しています...
+  admin_repair_template_none_missing: §a欠損しているテンプレートディレクトリはありません。
+  admin_repair_template_start: §e欠損しているテンプレートの修復を開始します ({count}件)...
+  admin_repair_template_progress: §7- {template} を生成中... ({path})
+  admin_repair_template_success: §a  -> {template} の生成に成功しました。
+  admin_repair_template_complete: §a修復処理が完了しました。
+  admin_convert_start: §eワールドの変換を開始します。しばらくお待ちください...
+  admin_convert_success: '§a現在のワールド ''{world}'' をMyWorldとして登録しました。(UUID: {uuid})'
+  admin_convert_success_normal: §aディレクトリが標準形式にリネームされ、通常のマイワールド管理が適用されます。
+  admin_convert_success_admin: §a設定ファイルのみ生成されました。管理用ワールドとして扱われます。
+  warp_success: §aワールド【{world}】にワープしました。
+  warp_invite_success: §a招待されたワールドにワープしました。
+  warp_generic: §aワールドにワープしました。
+  admin_warp_success: §aワールド【{world}】にワープしました。
+  admin_warp_archived_error: §cアーカイブ中のワールドには直接ワープできません。
+  portal_warp_success: §aポータルを介して【{destination}】へ移動しました。
+  world_loading: §aワールドをロード中です...
+  evacuated: §cワールドがアンロードされたため、スポーン地点へ移動しました。
+  no_in_myworld: §cマイワールド内に滞在している必要があります。
+  admin_player_filter_prompt: §eフィルタリングするプレイヤー名を入力してください。
+  favorite_added: §bこのワールドをお気に入りに追加しました！
+  portal_removed: §aポータルを撤去しました
+  portal_bind_success: §aこのポータルを「{destination}」に紐づけました
+  portal_unbind_success: §eポータルの紐づけを解除しました
+  portal_place_success: §aワールドポータルを設置しました
+  portal_broken: §eワールドポータルが破壊されました
+  error.portal_place_in_world_gate: §cワールドゲートの内部にはワールドポータルを設置できません。
+  world_gate_bind_success: §aこのワールドゲートを「{destination}」に紐づけました
+  world_gate_unbind_success: §aワールドゲートのリンクを解除しました。
+  world_gate_select_first: §eワールドゲートの1点目を右クリックで選択してください。
+  world_gate_select_second: §eワールドゲートの2点目を右クリックで選択してください。
+  world_gate_point_selected: '§a{point}点目を選択: §f({x}, {y}, {z})'
+  world_gate_confirm_place: §e3回目の右クリックでワールドゲートを設置します。
+  world_gate_confirm_title: §6ワールドゲート設置確認
+  world_gate_confirm_body:
+  - §f次の範囲でワールドゲートを設置します。
+  - '§7最小: §f({min_x}, {min_y}, {min_z})'
+  - '§7最大: §f({max_x}, {max_y}, {max_z})'
+  - '§7消費ポイント: §6🛖 §e{required}'
+  - '§7現在ポイント: §6🛖 §e{current}'
+  - '§7設置後ポイント: §6🛖 §e{remaining}'
+  world_gate_place_cancelled: §eワールドゲートの設置をキャンセルしました。
+  world_gate_place_success: §aワールドゲートを設置しました
+  world_gate_removed_refund: '§aワールドゲートを撤去しました。設置者 §e{owner} §aに §6🛖 §e{points} §aポイントを返還しました。(返還率: §e{percent}%§a)'
+  world_gate_world_mismatch: §c同じワールド内の2点を選択してください。1点目を再設定しました。
+  world_created_warp: §a作成されたワールドに移動しました
+  status_on: オン
+  status_off: オフ
+  status_visible: §a表示中
+  status_hidden: §c非表示
+  wizard_start: §aワールド作成ウィザードを開始します。
+  wizard_name_prompt: §eまずは作成するワールドの名前を入力してください。
+  wizard_seed_prompt: §e生成に使用するシード値を入力してください。
+  creation_timeout: §c長時間操作がなかったため、ワールド作成セッションがタイムアウトしました。
+  wizard_started_for: §a{player} に対してワールド作成ウィザードを開始しました。
+  reload_success: §aMyWorldManager の設定を再読み込みしました。
+  daily_update_success: '§aデイリーメンテナンスを完了しました。（統計更新: {updated}件, アーカイブ: {archived}件）'
+  data_update_success: §a全てのワールドデータ ({world_count}件) とプレイヤーデータ ({player_count}件) を最新の状態に更新しました。
+  spotlight_added: §aマイワールド「{world}」をSPOTLIGHTに登録しました！
+  spotlight_removed: §cマイワールド「{world}」をSPOTLIGHTから削除しました。
+  discovery_spotlight_description_updated: §aSPOTLIGHTの説明文を更新しました。
+  discovery_spotlight_description_reset: §aSPOTLIGHTの説明文をデフォルトに戻しました。
+  world_creation_started: §eマイワールド「{world}」の作成を開始しました...
+  world_creation_success: §aマイワールド「§a{world}§a」の作成に成功しました！
+  world_unloading_evacuation: §cワールドがアンロードされたため、スポーン地点へ移動します。
+  mspt_warning_chat: §c【WARNING】 §fワールド「§a{world}§f」のMSPTが§e{mspt}ms§fに達しています。§7(負荷が高い可能性があります)
+  meet:
+    busy: §c対象のプレイヤーは現在取り込み中です。
+    request_accepted: §e{player}§aのワープ申請を許可しました
+    request_accepted_by_target: §e{player}§aにワープ申請が許可されました！
+    request_denied: §cワープ申請を却下しました。
+    request_denied_by_target: §c{player}さんにワープ申請を却下されました。
+    not_in_valid_world: §c有効なワールド内にいません。
+    requester_offline: §c申請したプレイヤーがオフラインになりました。
+    no_pending_request: §c保留中の申請が見つかりませんでした。
+  invalid_field: §c無効な項目名です。
+  invalid_action: §c無効な操作名です (get, set, add, remove)。
+  value_required: §c値を指定してください。
+  value_negative: §c負の値は設定できません。
+  stats_get: '§e{player} §7の §b{key}§7: {value}'
+  stats_set: §a{player} の {key} を {value} §aに設定しました。
+  stats_add: §a{player} の {key} に {value} §aを加算しました。
+  stats_remove: §a{player} の {key} から {value} §aを減算しました。
+  stats_remove_error: '§cエラー: 減算後の値が負になります。（現在の値: {value}）'
+  give_success: §a{player} に {item} を {amount}個 付与しました。
+  give_inventory_full: §e{player} のインベントリが満杯だったため、{item} を {amount}個 足元にドロップしました。
+  migration_file_not_found: §c移行元のファイル ({file}) が見つかりませんでした。
+  migration_error: '§cエラー: {error} の移行に失敗しました。'
+  migration_success: '§a移行が完了しました。項目数: {count}'
+  migration_archive_start: '§e{count}件のワールドがアーカイブ対象です。処理を開始します（推定: {eta}秒）'
+  migration_archive_progress: '§7アーカイブ進捗: {current}/{total} - {world}'
+  migration_archive_complete: §aアーカイブ処理が完了しました（{count}件）
+  migration_folder_not_found: '§c[Error] ワールドフォルダが見つからないためスキップしました: {path} (ID: {id})'
+  usage_create: '§c使用法: /mwm create <プレイヤー名>'
+  usage_stats: '§c使用法: /mwm stats <プレイヤー名> <項目> <get/set/add/remove> [値]'
+  usage_stats_fields: '§7項目: points, warp-slots, world-slots'
+  usage_give: '§c使用法: /mwm give <プレイヤー名> <アイテムID> [個数]'
+  myworld_command_usage: '§c使用法: /myworld accept | deny | transfer <プレイヤー> | remove_member <プレイヤー>'
+  myworld_command_bedrock_only: §cこのサブコマンドは統合版プレイヤー専用です。
+  myworld_target_not_member: §c対象プレイヤーはこのワールドのメンバーではありません。
+  myworld_owner_remove_forbidden: §cオーナーをメンバー削除することはできません。
+  myworld_pending_hint: '§e確認したい招待や申請があります！ /myworld からプレイヤーアイコンを開いて見てみてくださいね。 §7(保留: {count}件)'
+  myworld_pending_none: §c今は確認できる招待や申請はありません。
+  myworld_pending_open_list: §e確認したい通知がいくつかあります！ 一覧から選んでみてくださいね。
+  myworld_pending_remaining: '§e未処理の招待/申請がまだあります。 §7(残り: {count}件)'
+  myworld_pending_login_notice: '§e未処理の招待/申請が {count} 件あります。最新受信: §b{datetime}'
+  invite_declined: §cワールド招待を辞退しました。
+  member_invite_declined: §cメンバー招待を辞退しました。
+  member_invite_declined_sender: §e{player}§c がメンバー招待を辞退しました。
+  member_invite_cancelled: §a{player}さんへのメンバー招待を取り消しました。
+  member_invite_cancel_not_found: §c対象の招待はすでに存在しません。
+  internal_data_extracted: §7マイワールド§a【{world}】§7に関する内部データを抽出しました。
+  copy_world_uuid: §7- §b§nマイワールドのディレクトリ名
+  copy_owner_uuid: §7- §b§nオーナーのUUID
+  copy_world_uuid_hover: クリックしてワールドディレクトリ名をクリップボードにコピー
+  copy_owner_uuid_hover: クリックしてオーナーUUIDをクリップボードにコピー
+  custom_item:
+    bottle_fill: '§aバイオームの空気を瓶に詰めました！（バイオーム: {biome}）'
+    partial_biome_applied: §a周囲のバイオームを {biome} に変更しました！
+    world_seed_expanded: '§aマイワールドスロットを拡張しました！ 現在のスロット数: {slots}'

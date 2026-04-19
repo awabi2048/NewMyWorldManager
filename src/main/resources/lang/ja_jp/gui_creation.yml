@@ -1,0 +1,124 @@
+gui:
+  creation:
+    title_type: ワールドタイプを選択
+    title_template: テンプレートを選択
+    title_confirm: 最終確認
+    dialog:
+      name_title: ワールド名の入力
+      seed_title: シード値の入力
+    type:
+      template:
+        name: テンプレートから作成
+        lore:
+        - 用意されたテンプレートからワールドを作成します。
+      seed:
+        name: シード値を指定
+        lore:
+        - シード値を指定してワールドを生成します。
+      random:
+        name: ランダム生成
+        lore:
+        - ワールドをランダムに生成します。
+      cost: §f§l| §7必要ポイント §6🛖 §e{cost}
+      points: §f§l| §7所持ポイント §6🛖 §e{points}
+      available: §a作成可能です！
+      insufficient: §cポイントが足りません。(§6🛖 §e{shortage}不足)
+    insufficient: §cポイントが足りません。(§6🛖 §e{shortage}不足)
+    limit_reached: '§cワールド作成数の上限に達しています。(現在: {current}/{max})'
+    limit_reached_total: §cサーバー全体のワールド作成数が上限（{max}）に達しています。
+    command_limit_reached_total: §c[Warning] サーバー全体のワールド作成数が上限（{max}）に達しているため、作成できません。
+    command_limit_reached: '§c[Warning] 対象プレイヤー（{player}）のワールド作成数が上限に達しているため、作成できません。(現在: {current}/{max})'
+    template_item:
+      preview_hint: §7右クリックでプレビュー
+    confirm:
+      name: この内容で確定して作成
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7ワールド名 §a{name}
+      - §f§l| §7作成方法 §e{type}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{template}'
+      - '{seed}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7消費ポイント §6🛖 §e{cost}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      template_line: §f§l| §7テンプレート §f{template}
+      seed_line: §f§l| §7シード値 §f{seed}
+      name_label: ワールド名
+      type_label: 作成方法
+      cost_label: 消費ポイント
+      select_action: アクションを選択
+      action_create: 作成する
+      action_preview: テンプレートをプレビュー
+      action_back: 戻る
+      action_cancel: 中断する
+      proceed_button: 実行
+      cancel_button: 閉じる
+  template_wizard:
+    title: テンプレート作成ウィザード
+    name_input:
+      display: §eテンプレート名・IDの設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7テンプレートの表示名とIDを設定します。
+      - ' §f名前 {name}'
+      - ' §fID {id}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで設定
+      - §8§m－－－－－－－－－－－－－－－－－－
+    desc_input:
+      display: §eテンプレート説明文の設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7テンプレートの説明文を設定します。
+      - §7現在の設定
+      - '{desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで設定
+      - §8§m－－－－－－－－－－－－－－－－－－
+    icon_select:
+      display: §eテンプレートアイコンの選択
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7テンプレートのアイコンを設定します。
+      - §7現在の設定 {icon}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで設定
+      - §8§m－－－－－－－－－－－－－－－－－－
+    origin_set:
+      display: §e原点座標の設定
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7スポーン地点やオフセットの基準となる原点を設定します。
+      - §7現在の設定 {origin}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで設定
+      - §8§m－－－－－－－－－－－－－－－－－－
+    save_confirm:
+      display: §6テンプレートを保存・登録
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7現在の設定でテンプレートを保存します。
+      - §c※既存のファイルは上書きされます。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで実行
+      - §8§m－－－－－－－－－－－－－－－－－－
+  world_seed_confirm:
+    title: ワールドの種の使用
+    lore:
+    - §dワールドの種§fを使用しますか？
+    - ''
+    - '§7現在のマイワールドスロット: §a{current}'
+    - '§7使用後のマイワールドスロット: §a{next}'
+    - ''
+    - §7スロットを拡張すると、作成できる
+    - §7マイワールドの数が増えます。
+  announcement_dialog:
+    title: 案内メッセージの編集
+    line_label: 行{number}
+    help: 訪問者に表示する案内メッセージを入力してください
+    max_lines: 最大{max}行まで設定できます
+    max_length: 1行あたり最大{max}文字まで入力できます
+    save: 保存
+    cancel: キャンセル
+    reset: リセット

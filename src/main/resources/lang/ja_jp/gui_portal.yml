@@ -1,0 +1,129 @@
+gui:
+  portal:
+    title: ポータルの設定
+    id_format: '§8PORTAL_ID: {id}'
+    toggle_text:
+      name: §a浮遊テキストの表示
+      lore:
+      - '§f現在の設定: {status}'
+      - ''
+      - §e§nクリックで切り替え
+    destination_label: '§7行き先 '
+    color:
+      name: §eパーティクルの色
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7現在の色 {color}
+      - ''
+      - §7« {prev_color}
+      - §7{next_color} »
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで変更
+      - §8§m－－－－－－－－－－－－－－－－－－
+    remove:
+      name: §cポータルを撤去する
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7設置されたポータルを撤去します。
+      - §e§nクリックで実行
+      - §8§m－－－－－－－－－－－－－－－－－－
+  portal_item:
+    name: §bワールドポータル
+    lore_unbound:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §e右クリック §7現在のマイワールドをリンクする
+    - §e§l| §eShift + 右クリック §7リンクを解除する
+    - §8§m－－－－－－－－－－－－－－－－－－
+    lore_bound:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §f§l| §bリンク先 §f§n{destination}
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §f右クリックで設置して§dワールドポータル§f作成します！
+    - §e§l| §eShift + 右クリック §7リンクを解除する
+    - §8§m－－－－－－－－－－－－－－－－－－
+  world_gate_item:
+    name: §3ワールドゲート
+    lore_unbound:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §eShift + 右クリック §7現在のマイワールドをリンクする
+    - §e§l| §e右クリック §7範囲指定の2点を選択する
+    - §8§m－－－－－－－－－－－－－－－－－－
+    lore_bound:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §f§l| §bリンク先 §f§n{destination}
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §f右クリックで2点選択し、3回目で§3ワールドゲート§fを設置します
+    - §e§l| §eShift + 右クリック §7リンク先を再設定する
+    - §8§m－－－－－－－－－－－－－－－－－－
+  admin_portals:
+    title: ポータルの遠隔管理
+    portal_item:
+      name: '§bポータル: §f{id}'
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7所有者: §f{owner}'
+      - '§f§l| §7設置ワールド: §f{world}'
+      - '§f§l| §7座標: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §e左クリック §7ポータルの位置にテレポート
+      - §e§l| §e右クリック §7ポータルを撤去
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_management:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7座標: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §e左クリック §7ポータルの位置にテレポート
+      - §e§l| §e右クリック §7ポータルを撤去
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_management_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7座標: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eクリック §7ポータルの位置にテレポート
+      - §8§m－－－－－－－－－－－－－－－－－－
+    sort:
+      display: §e並び替え方法
+      created_desc: 設置日（新しい順）
+      created_asc: 設置日（古い順）
+  invite:
+    target_head:
+      click_invite: §e§l| §eクリック §7このプレイヤーを招待する
+  visit:
+    input:
+      title: 訪問先プレイヤーの入力
+      label: プレイヤー名
+      placeholder: プレイヤー名を入力
+    title: '{player}のワールド'
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_line}'
+      - '{fav_action_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7オーナー §b{owner}{status_color}
+      tag: §f§l| §7タグ §b{tags}
+      favorite: §f§l| §7お気に入り §c{count}
+      recent_visitors: §f§l| §7最近の来訪者 §a{count}
+      warp: §e§l| §e左クリック §7このワールドへワープ
+      warp_bedrock: §e§l| §eクリック §7このワールドへワープ
+      fav_add: §e§l| §e右クリック §7お気に入りに追加
+      fav_remove: §e§l| §e右クリック §7お気に入りを解除
+  visitworld:
+    input:
+      title: 訪問ワールド検索
+      label: 検索キーワード
+      placeholder: ワールド名で検索
+    title: 'ワールド検索: {query}'
+    info:
+      name: §6検索情報
+      query: §f§l| §7検索キーワード §f{query}
+      hit: §f§l| §7ヒット件数 §a{hit}
+      shown: §f§l| §7表示件数 §b{shown}
+      page: §f§l| §7ページ §e{current}/{total}

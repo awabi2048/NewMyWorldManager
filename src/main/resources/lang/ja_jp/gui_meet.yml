@@ -1,0 +1,52 @@
+gui:
+  meet:
+    title: '{player}のところに行く'
+    title_list: プレイヤーのところに行く
+    empty_message: §7表示できるプレイヤーはいません
+    world_item:
+      current_world: §f§l| §7現在のワールド §f{world}
+      current_world_same: §f§l| §7現在のワールド §6{world} §7(このワールド)
+      status: §f§l| §7ステータス §e{status}
+      click_visit: §e§l| §eクリック §7このワールドへワープ
+      click_request: §e§l| §eクリック §7ワープ申請を送信
+    status_button:
+      display: §e{player}
+      current: §f§l| §7現在のステータス §e{status}
+      next: §f§l| §7次のステータス §7{next_status}
+      click: §e§nクリックで切り替え
+  meet_settings:
+    title: /meet 設定
+    status_selector:
+      display: §aステータス設定
+      current: §f§l| §7現在のステータス §e{status}
+      active_prefix: '§6» '
+      inactive_prefix: '  '
+      desc_header: '§f§l| §f説明 '
+      click_cycle: §e§nクリックで切り替え
+  member_request_confirm:
+    title: メンバー参加申請の確認
+    confirm: §a申請を送信
+    cancel: §cキャンセル
+    lore:
+    - §fワールド「§a{world}§f」のオーナーに
+    - §dメンバー参加申請§fを送信しますか？
+    - ''
+    - §7オーナーが承認すると、メンバーとして参加できます。
+  member_request_owner_confirm:
+    title: メンバー参加申請の承認
+    confirm: §a承認する
+    reject: §c却下する
+    lore:
+    - §fプレイヤー「§a{player}§f」からの
+    - §dメンバー参加申請§fを承認しますか？
+    - ''
+    - §7承認すると、このプレイヤーはワールドのメンバーになります。
+  member_invite_accept_confirm:
+    title: メンバー招待の確認
+    confirm: §a承諾する
+    cancel: §c辞退する
+    lore:
+    - §fプレイヤー「§a{player}§f」からの
+    - §dメンバー招待§fを承諾しますか？
+    - ''
+    - '§7対象ワールド: §a{world}'

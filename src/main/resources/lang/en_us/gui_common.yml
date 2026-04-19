@@ -1,0 +1,266 @@
+gui:
+  common:
+    back: §7Back to Settings
+    next_page: §aNext Page
+    prev_page: §aPrev Page
+    page_info: §f§l| §7Page §a{page}§7/{total_pages}
+    page_shift_next: §e§l| §eShift + Click§7 Jump 5 pages forward
+    page_shift_prev: §e§l| §eShift + Click§7 Jump 5 pages back
+    confirm_action: §eConfirmation of operation
+    confirm: §aExecute
+    confirm_desc: §7Execute
+    cancel: §cCancel
+    cancel_desc: §7Cancel
+    separator: §8§m-----------------------
+    action_single: §e§nClick to {action}
+    action_multi: §e§l| §e{operation} §7{action}
+    warning: §c§n* {content}
+    status_display: '§7Status: {color}{status}'
+    return: §eBack
+    return_desc: §7Return to the previous menu
+    world_item_name: §f【§a{world}§f】
+    world_item_name_simple: §f「§a{world}§f」
+    world_desc: §f{description}
+    confirmation: Confirmation
+    confirm_warning: §cThis action involves important changes!
+  archive:
+    confirm_title: Batch Archive Confirmation
+    question: §cArchive this world?
+    warning:
+    - §7Expired worlds will be archived in a batch.
+    - §7This action cannot be undone.
+    confirm: §cArchive
+    confirm_desc: §7Archive this world
+    cancel: §aCancel
+    cancel_desc: §7Return to previous screen
+  confirm:
+    reset_expansion:
+      title: Confirm Reset
+      lore:
+      - §cAre you sure you want to reset?
+      - §7Expansion level will be reset and points refunded.
+      - §7World border will return to initial size.
+    delete_1:
+      title: Delete Confirm (1/2)
+      lore:
+      - §cAre you sure you want to DELETE?
+      - §7All data will be lost forever.
+      - §7※ There will be a final confirmation.
+      next: §cProceed
+    delete_2:
+      title: Final Confirmation (2/2)
+      lore:
+      - §4§lARE YOU POSITIVE?
+      - '§c§lWARNING: This is the final step.'
+      confirm_btn: §4§l【CONFIRM DELETE】
+  critical:
+    title: Critical Settings
+    reset_expansion:
+      display: §c§nReset Expansion
+      lore:
+      - §f§l| §7Current level §e§l{level}
+      - ''
+      - §f§l| §7Refund points §6🛖 §e{points}
+      - ''
+      - §e§nClick to reset (Irreversible)
+      lore_unavailable:
+      - §cCannot reset (not expanded)
+    archive_world:
+      display: §6§nArchive World
+      lore:
+      - §8§m-----------------------
+      - §7Archives the world.
+      - §7Archived worlds cannot be accessed by players,
+      - §7but data is preserved.
+      - §8§m-----------------------
+      - §e§nClick to archive
+      - §8§m-----------------------
+      lore_cooldown:
+      - §8§m-----------------------
+      - §7Archives the world.
+      - §7Archived worlds cannot be accessed by players,
+      - §7but data is preserved.
+      - §8§m-----------------------
+      - §cCannot perform until {cooldown_hours}h has passed since last action.
+      - §8(About {hours_remaining}h remaining)
+      - §8§m-----------------------
+    delete_world:
+      display: §4§l§nDelete World
+      lore:
+      - §7Deletes the world permanently.
+      - §7This action is irreversible.
+      - ''
+      - §8§m-----------------------
+      - '§f§l| §7Refund points: §6🛖 §e{points}'
+      - §8({percent}% of total spent points returned)
+      - §8§m-----------------------
+      - ''
+      - §4§lClick to DELETE (Irreversible)
+      lore_unavailable_slot:
+      - §8§m-----------------------
+      - §7Deletes the world permanently.
+      - §7This action is irreversible.
+      - §8§m-----------------------
+      - §cCannot execute delete with current owner slot expansion.
+      - '§f§l| §7Owner slot expansion: §e{slots}'
+      - §8§m-----------------------
+  expansion:
+    method_title: Select Expansion Method
+    confirm_title: Expansion Confirmation
+    center_expand:
+      name: §aExpand from Center
+      lore:
+      - §7Expands the world border
+      - §7while keeping the current center.
+    direction_expand:
+      name: §aSpecify Direction
+      lore:
+      - §7Expands towards a specific corner
+      - §7relative to your current position.
+      - §e(Requires direction selection after)
+    confirm_info: §aExpansion Summary
+    method: §f§l| §7Method {method}
+    method_center: Center
+    method_direction: §f§l| §7Direction {direction}
+    cost: §f§l| §7Cost §6🛖 §e{cost}
+    warning: §eThis action is irreversible!
+    execute: §aExpand World
+    execute_desc: §7Spend points to expand
+    cancel: §cCancel
+    cancel_desc: §7Back to selection
+  pending_list:
+    title: Pending Invites & Requests
+    type:
+      world_invite: World Invite
+      member_invite: Member Invite
+      member_request: Membership Request
+      meet_request: Warp Request
+    item:
+      name: §e{player} §7({type})
+      type_line: §f§l| §7Type §e{type}
+      world_line: §f§l| §7World §a{world}
+      status_line: §f§l| §7Status {status}
+      received_line: §f§l| §7Received §f{datetime}
+      status_online: §aOnline
+      status_offline: §cOffline
+      action_review: §7Open accept/deny screen
+      action_cancel_java: §e§l| §eLeft click §7to cancel invite
+      action_cancel_bedrock: §e§l| §eClick §7to cancel invite
+      action_review_request_java: §e§l| §eLeft click §7to review the request
+      action_review_request_bedrock: §e§l| §eClick §7to review the request
+    empty:
+      name: §7No pending entries
+      lore:
+      - §8There are no invites/requests to process right now.
+    confirm:
+      title: Pending Entry Confirmation
+      body: '§7Type: §e{type}
+
+        §7Player: §b{player}
+
+        §7World: §a{world}
+
+        §7Received: §f{datetime}
+
+
+        §fProcess this entry?'
+      accept: §aAccept
+      deny: §cDeny
+  like_sign:
+    placement:
+      title: Installation of Like signboard
+      description: §7Please enter the Like sign settings
+    edit:
+      title: Edit Like sign
+      current_likes: §7Current number of likes
+    display_type:
+      sign: signboard
+      hologram: hologram
+    input:
+      title: title
+      description: Explanatory text
+      display_type: Display format
+    button:
+      place: install
+      cancel: cancel
+      save: keep
+      delete: delete
+    unlike_confirm:
+      title: Cancel Like
+      description: §cCancel Like?
+  tour_sign:
+    placement:
+      title: Place Tour Sign
+      description: §7Enter the Tour sign settings
+    edit_text:
+      title: Edit Tour Sign Display
+      description: §7Enter the sign name and description
+    input:
+      title: Sign Name
+      description: Description
+    button:
+      place: Place
+      cancel: Cancel
+  tour:
+    worldmenu:
+      display: §bWorld Tour
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Create and edit tours.
+      - §e§nClick to open
+      - §8§m－－－－－－－－－－－－－－－－－－
+    menu:
+      visitor_title: Tour List
+      start_selection_title: Select Start Tour
+      edit_title: Edit Tours
+      single_edit_title: 'Edit Tour: {tour}'
+      add_sign_title: Add Signs
+      back: §7Back
+      add_sign_button: §e§nClick to add a waypoint
+      add_sign_action: §e§nClick to add
+      remove_sign_action: §e§nClick to remove
+      create:
+        display: §bCreate New Tour
+        description: §7Create a new tour.
+        action: §e§nClick to create
+      info:
+        display: §eInfo
+        lore:
+        - §7Register Tour signs to build
+        - §7a sightseeing route in this world.
+        - §7Right-click to start, Shift+right-click to edit.
+      edit_text:
+        display: §eEdit Display Info
+        lore:
+        - §e§l| §eLeft-click §7Edit name and description
+        - §e§l| §eRight-click §7Change icon
+      save:
+        display: §aSave
+        action: §e§nClick to save
+      delete:
+        display: §cDelete Tour
+        action: §e§nClick to run
+      delete_confirm:
+        title: Confirm Tour Deletion
+        confirm: §aDelete
+        warning: §cThis cannot be undone
+        cancel: §cCancel
+        cancel_action: §eClick to go back
+        body_line1: §cThis tour will be deleted.
+        body_line2: §7This action cannot be undone.
+      discard_new:
+        title: Unsaved Tour
+        body_line1: §cThis new tour has not been saved.
+        body_line2: §7Return without saving?
+      tour_item:
+        visitors_none: §f§l| §7Visitors §7none yet
+        visitors_count: §f§l| §7Visitors §a{count}
+        action_edit: §e§nClick to edit this tour
+        action_current: §bTour in progress!
+        action_start: §e§nClick to start this tour
+    edit_text:
+      title: Edit Tour Display
+      description: §7Enter the tour name and description
+    input:
+      name: Tour Name
+      description: Description

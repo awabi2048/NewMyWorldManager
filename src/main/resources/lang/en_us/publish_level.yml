@@ -1,0 +1,24 @@
+publish_level:
+  public: Public
+  friend: Limited
+  private: Private
+  locked: Locked
+  description:
+    public: §fAnyone can visit. Listed in the discovery menu.
+    friend: §fAnyone can visit, but not listed in discovery menu.
+    private: §fOnly invited players can visit.
+    locked: §fNon-members cannot visit, and portal warp is disabled.
+  color:
+    public: §a
+    friend: §e
+    private: §c
+    locked: §c
+    owner: §6
+    moderator: §b
+    member: §f
+    online: §a
+    offline: §c
+    active: §a
+    inactive: §7
+    uuid: §8
+    debug: §8

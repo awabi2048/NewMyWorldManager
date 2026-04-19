@@ -1,0 +1,104 @@
+general:
+  prefix: '§7[§aMyWorldManager§7] '
+  no_permission: §cYou do not have permission.
+  player_only: §cThis command can only be executed by a player.
+  world_not_found: §cWorld not found.
+  player_not_found: §cPlayer not found.
+  unknown: Unknown
+  direction:
+    north_west: North West
+    north_east: North East
+    south_west: South West
+    south_east: South East
+    unknown: Unknown
+  commands:
+    settings:
+      description: Opens the user settings menu.
+  status:
+    join_me: Join Me
+    ask_me: Ask Me
+    busy: Busy
+    description:
+      join_me: §fAnyone can warp to your location.
+      ask_me: §fOnly players you approve can warp.
+      busy: §fNot shown in /meet menu, and no one can warp.
+  meet_request:
+    sent: §aWarp request sent to {player}.
+    received: §e{player} wants to visit you.
+    accept_button: §a§l【Review Request!】
+    hover_accept: §7Review this request!
+    accepted: §a Warp allowed
+    accepted_by_target: §a{target} has given permission to warp!
+  language:
+    ja_jp: Japanese
+    en_us: English
+status:
+  online: Online
+  offline: Offline
+error:
+  player_only: §cThis command can only be executed by a player.
+  spotlight_not_in_myworld: §cYou must be in the target MyWorld to register it.
+  spotlight_not_owner: §cYou can only register worlds you own.
+  spotlight_already_registered: §cThis world is already registered to SPOTLIGHT.
+  spotlight_limit_reached: §cSPOTLIGHT slots are full.
+  discovery_spotlight_description_too_long: §cDescription is too long (max {max} chars).
+  member_request_owner_offline: §cCannot send request because the owner is offline.
+  member_request_already_member: §cYou are already a member of this world.
+  console_only: §cThis command can only be executed from console.
+  custom_item:
+    item_not_found_hand: §cItem not found in hand.
+    no_permission: §cYou do not have permission to change the biome.
+    world_seed_limit_reached: '§cCannot expand slots further. (Limit: {limit})'
+  delete_failed: §cFailed to delete world.
+  expand_failed: §cExpansion failed (World might not be loaded).
+  expand_insufficient_points: '§cInsufficient points. (Required: §6🛖 §e{cost}§c)'
+  favorite_limit_reached: §cYou have reached the favorite limit ({limit}).
+  internal_error: §cInternal error occurred.
+  invalid_item_id: §cInvalid Item ID.
+  invite_already_member: §cAlready a member of this world.
+  invite_already_sent: §cAn invite has already been sent to that player.
+  invite_same_world_error: §c{player} is already in the same world, so they cannot be invited.
+  invite_busy_error: §c{player} is currently not accepting invites.
+  invite_member_error: §c{player} is already a world member, so they cannot be invited.
+  invite_target_not_available: §cThat player cannot be invited right now.
+  invite_expired: §cInvite not found or expired.
+  invite_locked_error: §cYou cannot invite players to a locked world.
+  invite_world_not_found: §cWorld data not found.
+  load_failed: §cFailed to load world.
+  max_expansion_reached: §cWorld is already at max level.
+  migration_disabled: §cMigration command is disabled. Set '{config_key}' to true in config.yml.
+  no_portals_found: §cNo portals found.
+  player_not_found: §cPlayer not found.
+  portal_bind_invalid_publish: §cOnly Public or Limited worlds can be bound.
+  portal_bind_myworld_only: §cPortals can only be bound inside a MyWorld.
+  portal_dest_locked: §cThe destination of this portal is currently locked.
+  portal_not_bound: §cThis portal is not yet bound to a world.
+  world_gate_bind_required: §cBind destination first with Shift+Right-Click before selecting points.
+  world_gate_item_required: §cHold a world gate item before confirming placement.
+  world_gate_insufficient_points: '§cInsufficient points. (Required: §6🛖 §e{required}§c / Current: §6🛖 §e{current}§c / Short: §6🛖 §e{shortage}§c)'
+  preview_template_not_found: §cTemplate not found.
+  preview_world_load_failed: §cFailed to load preview world.
+  target_not_in_myworld: §cTarget player is not in a MyWorld.
+  target_offline: §cTarget player is offline.
+  unarchive_failed: §cFailed to restore world.
+  unknown_subcommand: §cUnknown subcommand.
+  unlink_not_myworld: §cThis world is not a MyWorld.
+  world_already_exists: §cWorld already exists.
+  world_creation_failed: §cWorld creation failed.
+  world_creation_in_progress: §cWorld creation is in progress.
+  world_load_failed: §cWorld load failed.
+  spawn_set_blocked: §cYou cannot set spawn there. Choose a location where both feet and head blocks are air or water.
+  world_not_public: §cThis world is not currently public.
+  like_sign:
+    my_world_only: §cLike signboards can only be placed in My World.
+    no_permission: §c You do not have the authority to place Like signs in this world.
+    limit_reached: §cThere are already 10 Like signs installed in this world.
+    title_required: §c Please enter a title.
+    cooldown: §c Please wait a while and try again.
+  tour:
+    my_world_only: §cTour signs can only be placed in MyWorlds.
+    no_permission: §cYou do not have permission to edit this world.
+    limit_reached: '§cNo more Tour signs can be placed in this world. (Limit: {limit})'
+    title_required: §cPlease enter a name.
+    not_managed_world: §cThis is not a managed MyWorld.
+    not_enough_signs: §cAt least 2 Tour signs are required to save a tour.

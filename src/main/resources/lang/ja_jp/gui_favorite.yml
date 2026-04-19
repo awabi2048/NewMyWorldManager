@@ -1,0 +1,86 @@
+gui:
+  favorite:
+    title: お気に入りリスト
+    empty_message: §7フィルターに一致するお気に入りはありません
+    empty_message_no_favorites: §7まだお気に入りがありません
+    current_world:
+      name: §b現在のワールド
+      world_name: §f§l| §7ワールド名 §a{world}
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{world_line}'
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_line}'
+      - '{archived_line}'
+      - '{unfavorite_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7オーナー §b{owner}{status_color}
+      favorite: §f§l| §7お気に入り §c{count}
+      recent_visitors: §f§l| §7最近の来訪者 §a{count}
+      tag: §f§l| §7タグ §e{tags}
+      warp: §e§l| §e左クリック §7このワールドへワープ
+      warp_bedrock: §e§l| §eクリック §7このワールドへワープ
+      unfavorite: §e§l| §eShift + 右クリック §7お気に入りを解除
+      archived_label: §c【アーカイブされています】
+      unfavorite_archived: §e§nクリックでお気に入りを解除
+    info:
+      display: §f統計情報
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7登録中 §f{count}件
+      - §7表示中 §a{current_page}§7/{max_page}ページ
+      - §8§m－－－－－－－－－－－－－－－－－－
+      count: §7登録中 §f{count}件
+      page: §7表示中 §a{current}§7/{max}ページ
+    player_icon:
+      name: §b{player}
+      lore_count: §f§l| §7お気に入りしたワールド数 §a{count} §7個
+    favorite_menu:
+      title: お気に入りメニュー
+      other_worlds:
+        name: §aこのプレイヤーのほかのワールド
+        lore:
+        - ''
+        - §7このワールドのオーナーが所有する
+        - §7ほかのワールド一覧を表示します。
+        - ''
+        - §e§nクリックで表示
+      toggle:
+        name_add: §bお気に入りに追加
+        name_remove: §cお気に入りから削除
+        name_restricted: §7お気に入り登録不可
+        lore_add: §7このワールドをお気に入りリストに追加します。
+        lore_remove: §7このワールドをお気に入りリストから削除します。
+        lore_restricted_owner: §c自分のワールドはお気に入り登録できません。
+        lore_restricted_not_managed: §cこの場所はお気に入り登録できません。
+        click: §e§nクリックで切り替え
+      list:
+        name: §dお気に入り一覧
+        lore:
+        - §7あなたが登録したお気に入りワールドの
+        - §7一覧を表示します。
+        - ''
+        - §e§nクリックで表示
+    remove_confirm:
+      title: お気に入り解除の確認
+      lore:
+      - §fワールド「§a{world}§f」を
+      - §cお気に入りから解除§fしますか？
+      - ''
+      - §7解除すると、お気に入りリストから削除されます。

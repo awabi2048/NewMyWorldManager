@@ -1,0 +1,228 @@
+gui:
+  admin:
+    title: マイワールドの管理
+    info:
+      display: §f統計情報
+      total_count: §f§l| §7検索結果 §b{count}件
+      page: '§7表示中: §a{page}§7/{total_pages} ページ'
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{uuid_line}'
+      - '{world_name_line}'
+      - '{owner_line}'
+      - '{status_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{publish_line}'
+      - '{generation_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{created_line}'
+      - '{expire_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{mspt_line}'
+      - '{world_size_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{action_warp}'
+      - '{action_settings}'
+      - '{action_archive}'
+      - '{uuid_copy_hint}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      uuid: §f§l| §7ワールドディレクトリ §8{uuid}
+      world_name_line: §f§l| §7ワールド名 §a{world}
+      owner: §f§l| §7オーナー {owner}{status_color}
+      status: §f§l| §7状態 {status}
+      status_archived: §cアーカイブ済み
+      status_active: §bアクティブ
+      publish: §f§l| §7公開レベル {color}{level}
+      generation: §f§l| §7生成方法 §e{method}
+      generation_type:
+        convert: 変換
+        template: テンプレート
+        template_with_id: テンプレート ({template_id})
+        seed: シード指定
+        random: ランダム生成
+        unknown: '{source}'
+      expansion: §f§l| §7拡張レベル §e{level}
+      expires_at: §f§l| §7自動アーカイブ予定 §e{date} §8({days_remain}§8)
+      archived_at: §f§l| §7アーカイブ実施日 §e{date} §8({mode}§8)
+      created_at: §f§l| §7作成日 §e{date} §8({days_ago}§8)
+      created_info_days: §7{days}日前
+      created_info_today: §7今日
+      expire_info_remaining: §7{days}日後
+      expire_info_overdue: §7{days}日前
+      archive_mode_auto: 自動切り替え
+      archive_mode_manual: 手動切り替え
+      mspt: §f§l| §7MSPT {mspt}
+      mspt_with_status: §f§l| §7MSPT {mspt} §7({status}§7)
+      mspt_value_low: §a0.1§7 ms未満
+      mspt_status_unloaded: §7アンロード中
+      mspt_error_with_reason: §f§l| §7MSPT §c読み込み失敗 §7({reason}§7)
+      mspt_reason_chiyogami_inactive: Chiyogamiが無効
+      mspt_reason_directory_not_found: ワールドディレクトリが見つからない
+      mspt_reason_load_failed: ワールドの読み込み状態を確認できない
+      mspt_reason_metrics_not_found: MSPT計測データが見つからない
+      world_size_line: §f§l| §7ワールドサイズ §e{size}{suffix}
+      world_size_measuring: §f§l| §7ワールドサイズ §8(計測中...)
+      world_size_unavailable: §f§l| §7ワールドサイズ §c取得不可
+      world_size_archived_suffix: ' §8(アーカイブ中)'
+      action_archive: §e§l| §eShift + 右クリック §7アーカイブ状態を切り替え
+      action_settings: §e§l| §e右クリック §7ワールド設定を開く
+      action_warp: §e§l| §e左クリック §7このワールドへワープ
+      uuid_copy_hint: §e§l| §eホイールクリック §7チャット欄に出力してディレクトリ名をコピー
+    filter:
+      archive:
+        display: §eアーカイブフィルター
+        all: すべて表示
+        active: アクティブのみ
+        archived: アーカイブのみ
+      publish:
+        display: §e公開レベルフィルター
+        all: すべて表示
+        public: 公開のみ
+        friend: 限定公開のみ
+        private: 非公開のみ
+        locked: 封鎖中のみ
+      player:
+        display: §eプレイヤーフィルター
+        lore:
+        - §8§m－－－－－－－－－－－－－－－－－－
+        - §f§l| §7フィルタータイプ §f{type}
+        - §f§l| §7対象プレイヤー §b{player}
+        - §8§m－－－－－－－－－－－－－－－－－－
+        - §e§l| §e左クリック §7タイプを変更
+        - §e§l| §e右クリック §7プレイヤーを設定
+        - §8§m－－－－－－－－－－－－－－－－－－
+        none: フィルターなし
+        owner: オーナーのワールド
+        member: メンバーのワールド
+        current_type: §f§l| §7フィルタータイプ §f{type}
+        current_player: §f§l| §7対象プレイヤー §b{player}
+        click_left: §e§l| §e左クリック §7タイプを変更
+        click_right: §e§l| §e右クリック §7プレイヤーを設定
+      click_cycle: §e§nクリックで切り替え
+      click_lr: §e§l| §e左/右クリック §7変更
+    sort:
+      display: §eソート方法
+      created_desc: §a作成日（新しい順）
+      created_asc: §a作成日（古い順）
+      expire_asc: §aアーカイブ予定（近い順）
+      expire_desc: §aアーカイブ予定（遠い順）
+      world_size_desc: §aワールドサイズ（大きい順）
+      mspt_desc: §aMSPT（高い順）
+  admin_menu:
+    title: 管理者メニュー
+    update_data:
+      display: §eデータ更新
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7全ワールド・プレイヤーデータの整合性を確認し、
+      - §7修復・更新を行います。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで確認画面を開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+      confirm_title: データ更新の確認
+    repair_templates:
+      display: §eテンプレート修復
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7欠損しているテンプレートワールドを検出し、
+      - §7再生成を試みます。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで確認画面を開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+      confirm_title: テンプレート修復の確認
+    create_template:
+      display: §aテンプレート作成
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7テンプレート作成ウィザードを開きます。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで開始
+      - §8§m－－－－－－－－－－－－－－－－－－
+    archive:
+      display: §cアーカイブ実行
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7期限切れのワールドを一括アーカイブします。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで確認画面を開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+      confirm_title: 一括アーカイブの確認
+    convert:
+      display: §6ワールド変換
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7現在のワールドをMyWorld管理下に登録します。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l §e左クリック§7 Normalモードで変換
+      - §7(ディレクトリをリネームして標準管理)
+      - §e§l §e右クリック§7 Adminモードで変換
+      - §7(現在の構成を維持して管理のみ適用)
+      - §8§m－－－－－－－－－－－－－－－－－－
+      confirm_normal: 変換確認 (Normal)
+      confirm_admin: 変換確認 (Admin)
+    unlink:
+      display: §c紐づけ解除
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7現在のワールドのマイワールド設定を削除し、
+      - §7通常のワールドに戻します。
+      - §7(ワールドデータ自体は削除されません)
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで確認画面を開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+      confirm_title: 紐づけ解除の確認
+    export:
+      display: §bワールドのエクスポート
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7現在のワールドをZIP形式でエクスポートします。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで確認画面を開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+      confirm_title: エクスポート確認
+      target_world: §f§l| §7対象ワールド §b{world}
+    archive_world:
+      confirm_title: アーカイブの確認
+      target_world: §f§l| §7対象ワールド §b{world}
+    unarchive_world:
+      confirm_title: アーカイブ解除の確認
+      target_world: §f§l| §7対象ワールド §b{world}
+    info:
+      display: §aワールド一覧
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7全ワールドの一覧を表示・管理します。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+    current_world:
+      display: §b現在のワールド情報
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7ワールドディレクトリ §8{world_directory}
+      - §f§l| §7ワールド名 §a{world}
+      - §f§l| §7オーナー §b{owner}
+      - §f§l| §7生成方法 §e{generation}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{action_settings}'
+      - '{action_archive}'
+      - '{uuid_copy_hint}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+    portals:
+      display: §bポータル管理
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7設置済みポータルの一覧を表示します。
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+  unarchive_confirm:
+    title: §6アーカイブ解除の確認
+    lore:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §fこのワールドは現在アーカイブされています。
+    - §f解除してワープしますか？
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§nクリックで解除してワープ
+    - §8§m－－－－－－－－－－－－－－－－－－

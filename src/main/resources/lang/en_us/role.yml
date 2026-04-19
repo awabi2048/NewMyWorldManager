@@ -1,0 +1,4 @@
+role:
+  owner: Owner
+  moderator: Moderator
+  member: Member

@@ -1,0 +1,521 @@
+gui:
+  settings:
+    title: 'World Settings: {world}'
+    common:
+      must_be_in_world: You must be in this world to change this setting.
+    click:
+      left: Left-Click
+      right: Right-Click
+    info:
+      display: §aWorld Info Settings
+      lore:
+      - §e§l| §eClick §aEdit world name and description together
+      - ''
+      - §7Click to edit both fields in a dialog.
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to open form
+      - §7Edit world name and description together.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary_je:
+        - §7Click to edit both fields in a dialog.
+        summary_be:
+        - §7Edit world name and description together.
+      action:
+        open_editor: Edit world info
+      dialog:
+        body: You can edit the world name and description together. Leave the world name blank to keep it unchanged, and leave the description blank to clear it.
+    spawn:
+      display: §aSet Spawn Point
+      type:
+        guest: Guest
+        member: Member
+        both: Guest/Member Shared
+      lore:
+      - '§7Left-Click: Set Guest Spawn'
+      - '§7Right-Click: Set Member Spawn'
+      - ''
+      - §eClick a block after selection
+      - §eto set the location and direction.
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to start setting
+      - §7Set both guest/member spawn to the clicked point.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        description_je:
+        - §7After clicking, select a block
+        - §7to set spawn location.
+        - §e* Player facing direction is saved.
+        description_be:
+        - §7Set both guest/member spawn to the clicked point.
+        - §e* Player facing direction is saved.
+      action:
+        set_guest: Set guest spawn
+        set_member: Set member spawn
+        set_both: Set shared spawn
+    error:
+      must_be_in_world_lore: §c *You must be in the world to change this setting
+    icon:
+      display: §aChange World Icon
+      lore:
+      - §7Click to enter change mode.
+      - §7Then, click an item in your inventory
+      - §7to set it as the icon.
+      blocks:
+        current:
+        - §f§l| §7Current icon {current_icon}
+        description:
+        - §7Click to enter change mode.
+        - §7Then, click an item in your inventory
+        - §7to set it as the icon.
+      action:
+        start_selection: Set icon
+    tags:
+      display: §aWorld Tag Settings
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Tag being set
+      - '{tags_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to edit tag
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_empty: '  §fNone'
+      lore_item: '  §6- {tag}'
+      blocks:
+        summary:
+        - §f§l| §7Current tags
+        - '{tags_list}'
+      action:
+        edit: Edit tags
+    expand:
+      display: §aExpand World
+      cost: §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+      lore_upgrade:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current expansion level §e§l{current}/{max}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+      - §f§l| §7Points you own §6🛖 §e{points}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_insufficient:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current expansion level §e§l{current}/{max}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Cost §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage}Points §c are missing.
+      - §f§l| §7Points you own §6🛖 §e{points}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_max:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current expansion level §e§l{current}/{max}
+      - §f§l| §cCannot be expanded any further!
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_open_menu_hint_je:
+      - §e§l| §eLeft-Click §7Open the border expansion menu
+      lore_open_menu_hint_be:
+      - §e§l| §eClick §7Open the border expansion menu
+      lore_border_info:
+      - '§f§l| §7Current border center §fX: §e{x} §7/ §fZ: §e{z}'
+      - §f§l| §7Current border size §e{size}
+      lore_teleport_hint:
+      - §e§l| §eRight-Click §7Teleport to the border center surface
+      lore_no_border:
+      - §a There are no borders in this world.
+      blocks:
+        status_upgrade:
+        - §f§l| §7Current expansion level §e§l{current}/{max}
+        - §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+        - §f§l| §7Points you own §6🛖 §e{points}
+        status_insufficient:
+        - §f§l| §7Current expansion level §e§l{current}/{max}
+        - §f§l| §7Cost §6🛖 §c§n{cost}§r §8({level_before} → {level_after}) §c§n{shortage} points missing.
+        - §f§l| §7Points you own §6🛖 §e{points}
+        status_max:
+        - §f§l| §7Current expansion level §e§l{current}/{max}
+        - §f§l| §cCannot be expanded any further!
+        no_border:
+        - §aThere are no borders in this world.
+        border_info:
+        - '§f§l| §7Current border center §fX: §e{x} §7/ §fZ: §e{z}'
+        - §f§l| §7Current border size §e{size}
+      action:
+        open_menu_je: Open border expansion menu
+        open_menu_be: Open border expansion menu
+        teleport_center: Teleport to border center surface
+    environment:
+      display: §a World environment settings
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 World biome, weather, and gravity
+      - §7 can be changed.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to view
+      - §8§m－－－－－－－－－－－－－－－－－－
+      blocks:
+        summary:
+        - §7World biome, weather, and gravity
+        - §7can be changed.
+      action:
+        open: View
+    publish:
+      display: §6Change Publish Level
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current setting {current_color}{current_level}
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{level_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft-Click §7Go to the previous page
+      - §e§l| §eRight-Click §7Go to the next page
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current setting {current_color}{current_level}
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{level_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to cycle next level
+      - §8§m－－－－－－－－－－－－－－－－－－
+      active_prefix: '§6» '
+      inactive_prefix: '  '
+      blocks:
+        current:
+        - §f§l| §7Current setting {current_color}{current_level}
+        - '{description}'
+        level_list:
+        - '{level_list}'
+      action:
+        previous: Go to previous page
+        next: Go to next page
+        cycle_bedrock: Cycle to next publish level
+    member:
+      display: §6Member Management
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current number of members §b{count} people
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §b List of members
+      - '{member_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to view the list
+      - §8§m－－－－－－－－－－－－－－－－－－
+      role_owner: Owner
+      role_moderator: Moderator
+      role_member: Member
+      list_item: '  {debug_color}[{role_color}{role}{debug_color}] {name_color}{player}'
+      list_item_member: '  {name_color}{player}'
+      more_members: '  §7+{remaining} total (§a{online} online§7)'
+      blocks:
+        summary:
+        - §f§l| §7Current number of members §b{count}
+        - §f§l| §7Pending requests §e{pending_request_count}
+        - §f§l| §7Pending member invites §e{pending_invite_count}
+        - §f§l| §bMember list
+        - '{member_list}'
+      action:
+        open_list: View member list
+      actions:
+        promote: §e§l| §eLeft-Click §7Change to moderator
+        demote: §e§l| §eRight-Click §7Change to member
+        remove: §e§l| §eShift + Left-Click §7Remove member
+        transfer: §e§l| §eShift + Right-Click §7Transfer ownership
+      lore_actions_bedrock:
+      - §e§l| §eClick §7Change role to §b{next_role}
+      - §e§l| §eUse /myworld command §7for remove/transfer
+      - §8§m－－－－－－－－－－－－－－－－－－
+    main_info:
+      name: §f【§a{world}§f】
+      lore:
+      - §8§m-----------------------
+      - §f§l| §f{description}
+      - §f§l| §7Owner §b{owner}
+      - §f§l| §7Expansion §e§l{level}§7/{max_level}
+      - §8§m-----------------------
+      - §f§l| §7Archive in §6{days_until_archive} days §8({archive_date})
+      - §f§l| §7Members §f{member_count} §8({online_count} online)
+      - §f§l| §7Publish Level {publish_color}{publish_level}
+      - §8§m-----------------------
+      - §f§l| §7Favorites §c{favorites}
+      - §f§l| §7Recent Visitors §b{visitors}
+      - §8§m-----------------------
+      lore_special:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §f{description}
+      - §f§l| §7Owner §b{owner}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Creation date §e{created_at_date_formatted} §8({created_days_ago})
+      - '§f§l| §7 members §f{member_count} people §8(Online: {online_count} people)'
+      - §f§l| §7Public level {publish_color}{publish_level}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Number of favorites §c{favorites}
+      - §f§l| §7Recently visited players §b{visitors} people
+      - §8§m－－－－－－－－－－－－－－－－－－
+    visitors:
+      display: §aVisitor Management
+      lore:
+      - §f§l| §7Current visitors §e{count}
+      - ''
+      - §e§nClick to view
+      blocks:
+        summary:
+        - §f§l| §7Current visitors §e{count}
+      action:
+        open: View list
+    notification:
+      display: §aToggle Notifications
+      'on': 'ON'
+      'off': 'OFF'
+      lore:
+      - '§f§l| §7Current: {color}{status}'
+      - ''
+      - §7When ON, members will be notified
+      - §7when a guest visits the world.
+      - ''
+      - §e§nClick to toggle
+      blocks:
+        summary:
+        - '§f§l| §7Current: {color}{status}'
+        - §7When ON, members will be notified
+        - §7when a guest visits the world.
+      action:
+        toggle: Toggle
+    announcement:
+      display: §aPlayer Announcement
+      lore:
+      - §7Set a message to display
+      - §7to visitors upon arrival.
+      - ''
+      - §e§nLeft-Click§7 Set Message
+      - §e§nRight-Click§7 Reset Message
+      - '{message_preview}'
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Edit or reset messages from a Bedrock form menu.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to open menu
+      - '{message_preview}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      preview_header: §f§l| §e§nCurrent Message
+      preview_footer: §e§nClick to edit/reset
+      blocks:
+        summary_je:
+        - §7Set a message to display
+        - §7to visitors upon arrival.
+        - '{message_preview}'
+        summary_be:
+        - §7Edit or reset messages from a Bedrock form menu.
+        - '{message_preview}'
+      action:
+        set_message: Set message
+        reset_message: Reset setting
+        open_menu_bedrock: Open action menu
+    critical:
+      display: §c§nCritical Settings
+      lore:
+      - §cPerform irreversible actions
+      - §clike deleting the world.
+      - ''
+      - §e§nClick to view
+      blocks:
+        summary:
+        - §cPerform irreversible actions
+        - §clike deleting the world.
+      action:
+        open: View
+    portals:
+      display: §bManage Placed Portals
+      lore:
+      - §7Manage and check portals
+      - §7placed within the world.
+      - ''
+      - §e§nClick to view
+      blocks:
+        summary:
+        - §7Manage and check portals
+        - §7placed within the world.
+      action:
+        open: View
+  user_settings:
+    title: Personal settings
+    notification:
+      display: §aVisitor notification
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7When someone visits your world
+      - §7set whether notifications are sent.
+      - ''
+      - §f§l| §7Current state {status}
+      - ''
+      - §e§nClick to toggle
+      - §8§m－－－－－－－－－－－－－－－－－－
+    language:
+      display: §aLanguage settings
+      format: §f{language}
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Change the display language of menus and messages.
+      - ''
+      - '§f§l| §7Current setting: §f{language}'
+      - ''
+      - §e§nClick next
+      - §8§m－－－－－－－－－－－－－－－－－－
+    critical_settings_visibility:
+      display: §aShow critical settings
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Set whether the "Critical Settings" icon
+      - §7is shown in the world management menu.
+      - ''
+      - §f§l| §7Current setting {status}
+      - ''
+      - §e§nClick to toggle
+      - §8§m－－－－－－－－－－－－－－－－－－
+    tour_navigation:
+      display: §bWorld tour navigation
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Switch how world tour navigation is shown.
+      - §7Messages are always displayed.
+      - ''
+      - §f§l| §7Current mode §b{status}
+      - ''
+      - §e§nClick to switch
+      - §8§m－－－－－－－－－－－－－－－－－－
+      mode:
+        bossbar_only: Bossbar only
+        all: All
+        none: None
+    beta_features:
+      display: §e Beta features (experimental features)
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Enables features under development.
+      - §7Now instead of traditional chat input
+      - §7 Use new dialog input.
+      - §c* It does not work on clients older than 1.21.8, so
+      - §cSupport will be discontinued in the future!
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current state {status}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to toggle
+      - §8§m－－－－－－－－－－－－－－－－－－
+    button:
+      display: §6Personal settings
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Change display language, notifications, etc.
+      - §e§nClick to open
+      - §8§m－－－－－－－－－－－－－－－－－－
+  environment:
+    title: Environment Settings
+    gravity:
+      display: §eGravity Settings
+      current: '§f§l| §7Current Multiplier: §6{multiplier}'
+      click_hint: Change by clicking while holding §e§nMoon Stone§7
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
+      options:
+        zero: Zero Gravity (x0.0)
+        moon: Moon (x0.17)
+        mars: Mars (x0.38)
+        earth: Earth (x1.0)
+    weather:
+      display: §bWeather Settings
+      current: '§f§l| §7Current Weather: §b{weather}'
+      click_cycle: §e§l| §eLeft-Click §7Switch
+      click_confirm: §e§l| §eRight-Click §7Confirm and consume points
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
+      desc: §7The weather will be fixed to the selected setting.
+    biome:
+      display: §aBiome Settings
+      current: '§f§l| §7Current Biome: §a{biome}'
+      click_hint: Change by clicking while holding §e§nbiome bottle§7
+      click_bottle_hint: §7Click with a Bottled Biome Air to apply.
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
+      desc: §7Changes the biome for the entire world.
+  member_management:
+    title: Member Management
+    invite:
+      name: §aInvite Member
+      desc: §eClick and type name in chat
+      click_normal: §e§l| §eClick §7Run in normal mode
+      click_force: §e§l| §eShift + Click §7Run in force add mode
+    remove_confirm:
+      title: Confirm Removal
+      lore:
+      - §cReally remove?
+      - §f§l| §7Player §f{player}
+      - §f§l| §7World §f{world}
+      - ''
+      - §c※ They will lose access to this world.
+      cancel: §aCancel
+      cancel_desc: §7Back to list
+      confirm: §cRemove
+      confirm_desc: §7Revoke membership
+    item:
+      last_online_label: Last Online
+      lore_info:
+      - §8§m-----------------------
+      - '{last_online}'
+      - §f§l| §7Rank §f{role}
+      - §8§m-----------------------
+      lore_actions:
+      - §e§l| §eLeft-Click §7Change role to {next_role}
+      - §e§l| §eShift + Left-Click §7Transfer ownership
+      - §e§l| §eShift + Right-Click §7Remove member
+      - §8§m-----------------------
+      lore_actions_bedrock:
+      - §e§l| §eClick §7Change role to {next_role}
+      - §e§l| §eUse /myworld command §7for remove/transfer
+      - §8§m-----------------------
+    pending_item:
+      name: §e{player} §7(Pending)
+      status_online: §ePending §7(§aOnline§7)
+      status_offline: §ePending §7(§cOffline§7)
+      click_java: §e§l| §eLeft-Click §7Open confirmation
+      click_bedrock: §e§l| §eClick §7Open confirmation
+      lore:
+      - §8§m-----------------------
+      - §f§l| §7Status {status}
+      - §f§l| §7Sent At §f{datetime}
+      - §8§m-----------------------
+      - '{click}'
+      - §8§m-----------------------
+    pending_cancel_confirm:
+      title: Cancel Invite Confirmation
+      body: §cCancel the member invite to {player}?
+      cancel: §aBack
+      confirm: §cCancel Invite
+    transfer_confirm:
+      title: Transfer Ownership
+      lore:
+      - §cReally transfer ownership?
+      - §f§l| §7New Owner §f{player}
+      - §f§l| §7Target World §f{world}
+      - ''
+      - §c※ You will lose ownership of this world.
+      cancel: §aCancel
+      cancel_desc: §7Back to list
+      confirm: §cTransfer
+      confirm_desc: §dTransfer ownership to this player
+  visitor_management:
+    title: Manage Visitors
+    no_visitors: §cThere are currently no visitors in this world.
+    kick_confirm:
+      title: 'Confirm Kick: {player}'
+      question: §cReally kick?
+      player: §f§l| §7Player §f{player}
+      cancel: §aCancel
+      cancel_desc: §7Back to list
+      confirm: §cKick
+      confirm_desc: §7Eject player from world
+    item:
+      kick: §e§nClick to kick
+      kick_bedrock: §e§nClick to kick
+  tag_editor:
+    title: Tag Editor
+    status_active: §aActive
+    status_inactive: §cInactive
+    click_toggle: §e§nClick to toggle

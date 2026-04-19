@@ -1,0 +1,129 @@
+gui:
+  portal:
+    title: Portal Settings
+    id_format: '§8PORTAL_ID: {id}'
+    toggle_text:
+      name: §aToggle Floating Text
+      lore:
+      - '§fCurrent setting: {status}'
+      - ''
+      - §e§nClick to toggle
+    destination_label: '§7Destination: '
+    color:
+      name: §eParticle Color
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Current color {color}
+      - ''
+      - §7« {prev_color}
+      - §7{next_color} »
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to change
+      - §8§m－－－－－－－－－－－－－－－－－－
+    remove:
+      name: §cRemove Portal
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Remove the installed portal.
+      - §e§nClick to run
+      - §8§m－－－－－－－－－－－－－－－－－－
+  portal_item:
+    name: §bWorld Portal
+    lore_unbound:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §e§l| §eRight-Click §7Link the current My World
+    - §e§l| §eShift + Right-Click §7Unlink
+    - §8§m－－－－－－－－－－－－－－－－－－
+    lore_bound:
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §f§l| §bLink §f§n{destination}
+    - §8§m－－－－－－－－－－－－－－－－－－
+    - §fRight-click to install and create §dworld portal§f!
+    - §e§l| §eShift + Right-Click §7Unlink
+    - §8§m－－－－－－－－－－－－－－－－－－
+  world_gate_item:
+    name: §3World Gate
+    lore_unbound:
+    - §8§m------------------------------
+    - §e§l| §eShift + Right-Click §7Link the current My World
+    - §e§l| §eRight-Click §7Select two points for the area
+    - §8§m------------------------------
+    lore_bound:
+    - §8§m------------------------------
+    - §f§l| §bDestination §f§n{destination}
+    - §8§m------------------------------
+    - §fSelect two points, then right-click once more to place §3World Gate§f.
+    - §e§l| §eShift + Right-Click §7Reconfigure the link
+    - §8§m------------------------------
+  admin_portals:
+    title: Remote portal management
+    portal_item:
+      name: '§b Portal: §f{id}'
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7Owner: §f{owner}'
+      - '§f§l| §7Placed world: §f{world}'
+      - '§f§l| §7 coordinates: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft click §7Teleport to portal location
+      - §e§l| §eRight-Click §7Remove portal
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_management:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7 coordinates: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft click §7Teleport to portal location
+      - §e§l| §eRight-Click §7Remove portal
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_management_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7 coordinates: §f{x}, {y}, {z}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eClick §7Teleport to portal location
+      - §8§m－－－－－－－－－－－－－－－－－－
+    sort:
+      display: §e Sorting method
+      created_desc: Installation date (newest first)
+      created_asc: Installation date (oldest first)
+  invite:
+    target_head:
+      click_invite: §e§l| §eClick §7Invite this player
+  visit:
+    input:
+      title: Visit Target Player
+      label: Player Name
+      placeholder: Enter player name
+    title: '{player}''s world'
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_line}'
+      - '{fav_action_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7Owner §b{owner}{status_color}
+      tag: §f§l| §7tag §b{tags}
+      favorite: §f§l| §7Favorite §c{count}
+      recent_visitors: §f§l| §7Recent Visitors §a{count}
+      warp: §e§l| §eLeft click §7Warp to this world
+      warp_bedrock: §e§l| §eClick §7Warp to this world
+      fav_add: §e§l| §eRight click §7Add to favorites
+      fav_remove: §e§l| §eRight click §7Remove from favorites
+  visitworld:
+    input:
+      title: Visit World Search
+      label: Search Keyword
+      placeholder: Search by world name
+    title: 'World Search: {query}'
+    info:
+      name: §6Search Info
+      query: §f§l| §7Query §f{query}
+      hit: §f§l| §7Hits §a{hit}
+      shown: §f§l| §7Shown §b{shown}
+      page: §f§l| §7Page §e{current}/{total}

@@ -1,0 +1,104 @@
+general:
+  prefix: '§7[§aMyWorldManager§7] '
+  no_permission: §c権限がありません。
+  player_only: §cこのコマンドはプレイヤーのみ実行可能です。
+  world_not_found: §cワールドが見つかりませんでした。
+  player_not_found: §cプレイヤーが見つかりませんでした。
+  unknown: 不明
+  direction:
+    north_west: 北西
+    north_east: 北東
+    south_west: 南西
+    south_east: 南東
+    unknown: 不明
+  commands:
+    settings:
+      description: 個人設定メニューを表示します。
+  status:
+    join_me: Join Me
+    ask_me: Ask Me
+    busy: Busy
+    description:
+      join_me: §f誰でもあなたのいるワールドにワープできます。
+      ask_me: §f許可を出したプレイヤーのみワープできます。
+      busy: §f/meetメニューに表示されず、ワープもできません。
+  meet_request:
+    sent: §a{player}にワープ申請を送りました！
+    received: §e{player}さんがあなたのいるワールドに訪れたいそうです！
+    accept_button: §a§l【申請を確認する！】
+    hover_accept: §7申請内容を確認します！
+    accepted: §aワープを許可しました
+    accepted_by_target: §a{target}さんがワープを許可しました！
+  language:
+    ja_jp: 日本語
+    en_us: English
+status:
+  online: オンライン
+  offline: オフライン
+error:
+  player_only: §cこのコマンドはプレイヤーのみ実行可能です。
+  spotlight_not_in_myworld: §cMyWorldワールド内にいる必要があります。
+  spotlight_not_owner: §cあなたはこのワールドの所有者ではありません。
+  spotlight_already_registered: §cこのワールドは既にSPOTLIGHTに登録されています。
+  spotlight_limit_reached: §cこれ以上SPOTLIGHTに登録できません。
+  discovery_spotlight_description_too_long: §c説明文が長すぎます（最大{max}文字）。
+  member_request_owner_offline: §cワールドオーナーがオフラインのため、申請できません
+  member_request_already_member: §c既にこのワールドのメンバーです
+  console_only: §cこのコマンドはコンソールからのみ実行可能です。
+  custom_item:
+    item_not_found_hand: §cアイテムを手に持っていません。
+    no_permission: §c変更する権限がありません。
+    world_seed_limit_reached: '§cこれ以上スロットを拡張できません。(上限: {limit})'
+  delete_failed: §cワールドの削除に失敗しました。
+  expand_failed: §c拡張に失敗しました。(ワールドがロードされていない可能性があります)
+  expand_insufficient_points: '§cポイントが不足しています。(必要: §6🛖 §e{cost}§c)'
+  favorite_limit_reached: §cお気に入り登録数が上限({limit})に達しています。
+  internal_error: §c内部エラーが発生しました。
+  invalid_item_id: §c無効なアイテムIDです。
+  invite_already_member: §c既にこのワールドのメンバーです
+  invite_already_sent: §cそのプレイヤーには既に招待を送信しています
+  invite_same_world_error: §c{player}さんはすでに同じワールドにいるため、招待できません
+  invite_busy_error: §c{player}さんは現在招待を受け付けていません
+  invite_member_error: §c{player}さんはワールドメンバーになっているため、招待できません
+  invite_target_not_available: §cそのプレイヤーは現在招待できません
+  invite_expired: §c招待が見つからないか、期限切れです
+  invite_locked_error: §c閉鎖中のワールドには招待できません
+  invite_world_not_found: §cワールドデータが見つかりませんでした
+  load_failed: §cワールドのロードに失敗しました。
+  max_expansion_reached: §cこのワールドは既に最大レベルです。
+  migration_disabled: §c移行コマンドが無効です。config.ymlの「{config_key}」をtrueに設定してください。
+  no_portals_found: §cポータルが見つかりませんでした。
+  player_not_found: §cプレイヤーが見つかりませんでした。
+  portal_bind_invalid_publish: §c公開か限定公開のワールドのみ紐づけ可能です。
+  portal_bind_myworld_only: §cポータルはマイワールド内でのみ紐づけ可能です。
+  portal_dest_locked: §cこのポータルの先は現在閉鎖されています！
+  portal_not_bound: §cこのポータルはまだワールドに紐づけられていません。
+  world_gate_bind_required: §cワールドゲートを使うには、先にShift+右クリックでワールドを紐づけてください。
+  world_gate_item_required: §cワールドゲートアイテムを手に持った状態で確認してください。
+  world_gate_insufficient_points: '§cポイントが不足しています。(必要: §6🛖 §e{required}§c / 現在: §6🛖 §e{current}§c / 不足: §6🛖 §e{shortage}§c)'
+  preview_template_not_found: §cテンプレートが見つかりませんでした。
+  preview_world_load_failed: §cプレビュー用ワールドのロードに失敗しました。
+  target_not_in_myworld: §c対象のプレイヤーはマイワールド内にいません。
+  target_offline: §c対象のプレイヤーはオフラインです
+  unarchive_failed: §cワールドの復旧に失敗しました。
+  unknown_subcommand: §c不明なサブコマンドです。
+  unlink_not_myworld: §cこのワールドはマイワールドではありません。
+  world_already_exists: §cそのワールドは既に存在します。
+  world_creation_failed: §c作成に失敗しました。
+  world_creation_in_progress: §cワールド作成処理が進行中です。
+  world_load_failed: §cワールドのロードに失敗しました。
+  spawn_set_blocked: §cその場所にはスポーンを設定できません。占有ブロック（足元/頭上）が空気または水の場所を選んでください。
+  world_not_public: §cこのワールドは現在公開されていません。
+  like_sign:
+    my_world_only: §cLike看板はマイワールド内でのみ設置できます。
+    no_permission: §cこのワールドにLike看板を設置する権限がありません。
+    limit_reached: §cこのワールドには既に10個のLike看板が設置されています。
+    title_required: §cタイトルを入力してください。
+    cooldown: §cしばらく待ってからもう一度お試しください。
+  tour:
+    my_world_only: §cTour看板はマイワールド内でのみ設置できます。
+    no_permission: §cこのワールドを編集する権限がありません。
+    limit_reached: '§cこのワールドにはこれ以上Tour看板を設置できません。(上限: {limit})'
+    title_required: §c名前を入力してください。
+    not_managed_world: §cここは管理対象のマイワールドではありません。
+    not_enough_signs: §cツアーを保存するにはTour看板が2個以上必要です。

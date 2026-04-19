@@ -1,0 +1,59 @@
+biomes:
+  plains: Plains
+  sunflower_plains: Sunflower Plains
+  snowy_plains: Snowy Plains
+  ice_spikes: Ice Spikes
+  desert: Desert
+  swamp: Swamp
+  mangrove_swamp: Mangrove Swamp
+  forest: Forest
+  flower_forest: Flower Forest
+  birch_forest: Birch Forest
+  old_growth_birch_forest: Old Growth Birch Forest
+  dark_forest: Dark Forest
+  jungle: Jungle
+  sparse_jungle: Sparse Jungle
+  bamboo_jungle: Bamboo Jungle
+  river: River
+  frozen_river: Frozen River
+  beach: Beach
+  snowy_beach: Snowy Beach
+  stony_shore: Stony Shore
+  mountains: Mountains
+  stony_peaks: Stony Peaks
+  jagged_peaks: Jagged Peaks
+  frozen_peaks: Frozen Peaks
+  meadow: Meadow
+  cherry_grove: Cherry Grove
+  grove: Grove
+  snowy_slopes: Snowy Slopes
+  taiga: Taiga
+  snowy_taiga: Snowy Taiga
+  old_growth_pine_taiga: Old Growth Pine Taiga
+  old_growth_spruce_taiga: Old Growth Spruce Taiga
+  savanna: Savanna
+  savanna_plateau: Savanna Plateau
+  windswept_savanna: Windswept Savanna
+  badlands: Badlands
+  wooded_badlands: Wooded Badlands
+  eroded_badlands: Eroded Badlands
+  deep_ocean: Deep Ocean
+  ocean: Ocean
+  warm_ocean: Warm Ocean
+  lukewarm_ocean: Lukewarm Ocean
+  cold_ocean: Cold Ocean
+  frozen_ocean: Frozen Ocean
+  mushroom_fields: Mushroom Fields
+  dripstone_caves: Dripstone Caves
+  lush_caves: Lush Caves
+  deep_dark: Deep Dark
+  nether_wastes: Nether Wastes
+  soul_sand_valley: Soul Sand Valley
+  crimson_forest: Crimson Forest
+  warped_forest: Warped Forest
+  basalt_deltas: Basalt Deltas
+  the_end: The End
+  small_end_islands: Small End Islands
+  end_midlands: End Midlands
+  end_highlands: End Highlands
+  end_barrens: End Barrens

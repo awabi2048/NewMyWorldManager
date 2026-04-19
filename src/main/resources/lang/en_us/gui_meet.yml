@@ -1,0 +1,52 @@
+gui:
+  meet:
+    title: Visit {player}
+    title_list: Go to Player's Place
+    empty_message: §7No players are available to display.
+    world_item:
+      current_world: §f§l| §7Current World §f{world}
+      current_world_same: §f§l| §7Current World §6{world} §7(same world)
+      status: §f§l| §7Status §e{status}
+      click_visit: §e§l| §eClick §7Warp to this world
+      click_request: §e§l| §eClick §7Send warp request
+    status_button:
+      display: §aStatus Settings
+      current: '§f§l| §7Current Status: §e{status}'
+      next: '§f§l| §7Next Status: §7{next_status}'
+      click: §e§nClick to toggle
+  meet_settings:
+    title: /meet settings
+    status_selector:
+      display: §aStatus settings
+      current: §f§l| §7Current status §e{status}
+      active_prefix: '§6» '
+      inactive_prefix: '  '
+      desc_header: §f§l| §fDescription
+      click_cycle: §e§nClick to toggle
+  member_request_confirm:
+    title: Member Request Confirmation
+    confirm: §aSend Request
+    cancel: §cCancel
+    lore:
+    - §fSend a §dmember request§f to
+    - §fthe owner of "§a{world}§f"?
+    - ''
+    - §7If the owner approves, you will become a member.
+  member_request_owner_confirm:
+    title: Member Request Approval
+    confirm: §aApprove
+    reject: §cReject
+    lore:
+    - §fApprove the §dmember request§f from
+    - §fplayer "§a{player}§f"?
+    - ''
+    - §7If approved, they will become a member of this world.
+  member_invite_accept_confirm:
+    title: Member Invite Confirmation
+    confirm: §aAccept
+    cancel: §cDecline
+    lore:
+    - §fAccept the §dmember invite§f from
+    - §fplayer "§a{player}§f"?
+    - ''
+    - '§7Target world: §a{world}'
