@@ -10,6 +10,8 @@ import me.awabi2048.myworldmanager.MyWorldManager
 
 class LanguageManager(private val plugin: MyWorldManager) {
     private val serializer = LegacyComponentSerializer.legacySection()
+    private val sourceId: String
+        get() = plugin.name
 
     init {
         loadAllLanguages()
@@ -36,7 +38,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessage(player: Player?, key: String): String {
-        return CCSystem.getAPI().getI18nString(player, key).replace('&', '§')
+        return CCSystem.getAPI().getI18nString(sourceId, player, key).replace('&', '§')
     }
 
     fun getMessage(key: String): String {
@@ -44,7 +46,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessage(player: Player?, key: String, placeholders: Map<String, Any>): String {
-        return CCSystem.getAPI().getI18nString(player, key, placeholders).replace('&', '§')
+        return CCSystem.getAPI().getI18nString(sourceId, player, key, placeholders).replace('&', '§')
     }
 
     fun getMessage(key: String, placeholders: Map<String, Any>): String {
@@ -70,11 +72,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun hasKey(player: Player?, key: String): Boolean {
-        return CCSystem.getAPI().hasI18nKey(key)
+        return CCSystem.getAPI().hasI18nKey(sourceId, key)
     }
 
     fun hasKey(lang: String, key: String): Boolean {
-        return CCSystem.getAPI().hasI18nKey(key)
+        return CCSystem.getAPI().hasI18nKey(sourceId, key)
     }
 
     fun getMessageStrict(player: Player?, key: String): String? {
@@ -86,7 +88,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessageList(player: Player?, key: String): List<String> {
-        return CCSystem.getAPI().getI18nStringList(player, key).map { it.replace('&', '§') }
+        return CCSystem.getAPI().getI18nStringList(sourceId, player, key).map { it.replace('&', '§') }
     }
 
     fun getMessageList(key: String): List<String> {
@@ -94,11 +96,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessageListDraft(lang: String, key: String): List<String> {
-        return CCSystem.getAPI().getI18nStringList(lang, key).map { it.replace('&', '§') }
+        return CCSystem.getAPI().getI18nStringList(sourceId, lang, key).map { it.replace('&', '§') }
     }
 
     fun getMessageList(player: Player?, key: String, placeholders: Map<String, Any>): List<String> {
-        return CCSystem.getAPI().getI18nStringList(player, key, placeholders).map { it.replace('&', '§') }
+        return CCSystem.getAPI().getI18nStringList(sourceId, player, key, placeholders).map { it.replace('&', '§') }
     }
 
     fun getMessageList(key: String, placeholders: Map<String, Any>): List<String> {
@@ -120,11 +122,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun isKeyMatch(title: String, key: String): Boolean {
-        return CCSystem.getAPI().isI18nKeyMatch(title, key)
+        return CCSystem.getAPI().isI18nKeyMatch(sourceId, title, key)
     }
 
     fun isKeyStartWith(title: String, key: String): Boolean {
-        return CCSystem.getAPI().isI18nKeyStartWith(title, key)
+        return CCSystem.getAPI().isI18nKeyStartWith(sourceId, title, key)
     }
 
     private fun featureByFile(): Map<String, String> {

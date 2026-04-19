@@ -228,6 +228,10 @@ gui:
         demote: §e§l| §e右クリック §7メンバーに変更する
         remove: §e§l| §eShift + 左クリック §7メンバーから削除する
         transfer: §e§l| §eShift + 右クリック §7オーナー権限を移譲する
+      lore_actions_bedrock:
+      - §e§l| §eClick §7Change role to §b{next_role}
+      - §e§l| §eUse /myworld command §7for remove/transfer
+      - §8§m－－－－－－－－－－－－－－－－－－
     main_info:
       name: §f【§a{world}§f】
       lore:

@@ -277,3 +277,4 @@ messages:
     bottle_fill: '§aバイオームの空気を瓶に詰めました！（バイオーム: {biome}）'
     partial_biome_applied: §a周囲のバイオームを {biome} に変更しました！
     world_seed_expanded: '§aマイワールドスロットを拡張しました！ 現在のスロット数: {slots}'
+  member_request_is_owner: §cYou cannot request membership to your own world
