@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.command.*
 import me.awabi2048.myworldmanager.gui.*
 import me.awabi2048.myworldmanager.listener.*
@@ -19,6 +20,8 @@ import me.awabi2048.myworldmanager.util.*
 import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import java.io.File
+import java.util.jar.JarFile
 
 class MyWorldManager : JavaPlugin() {
 
@@ -92,6 +95,8 @@ class MyWorldManager : JavaPlugin() {
     lateinit var tourGui: TourGui
 
     override fun onEnable() {
+        ensureCCSystemAvailable()
+
         // Serializationの登録
         ConfigurationSerialization.registerClass(WorldData::class.java)
         ConfigurationSerialization.registerClass(LikeSignData::class.java)
@@ -109,8 +114,7 @@ class MyWorldManager : JavaPlugin() {
         if (!langFolder.exists()) {
             langFolder.mkdirs()
         }
-        saveResourceIfNotExists("lang/ja_jp.yml")
-        saveResourceIfNotExists("lang/en_us.yml")
+        saveSplitLanguageResources()
 
         // templates.ymlがなければコピー
         saveResourceIfNotExists("templates.yml")
@@ -313,6 +317,7 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
         }
@@ -374,6 +379,35 @@ class MyWorldManager : JavaPlugin() {
         val file = java.io.File(dataFolder, resourcePath)
         if (!file.exists()) {
             saveResource(resourcePath, false)
+        }
+    }
+
+    private fun ensureCCSystemAvailable() {
+        val ccSystemPlugin = server.pluginManager.getPlugin("CC-System")
+        if (ccSystemPlugin == null || !ccSystemPlugin.isEnabled) {
+            throw IllegalStateException("CC-System が有効化されていないため MyWorldManager を起動できません")
+        }
+        CCSystem.getAPI()
+    }
+
+    private fun saveSplitLanguageResources() {
+        val codeSource = runCatching {
+            File(javaClass.protectionDomain.codeSource.location.toURI())
+        }.getOrNull() ?: return
+        if (!codeSource.isFile) {
+            return
+        }
+
+        JarFile(codeSource).use { jar ->
+            jar.entries().asSequence()
+                .filter { !it.isDirectory && it.name.startsWith("lang/") && it.name.endsWith(".yml") }
+                .forEach { entry ->
+                    val file = File(dataFolder, entry.name)
+                    if (!file.exists()) {
+                        file.parentFile?.mkdirs()
+                        saveResource(entry.name, false)
+                    }
+                }
         }
     }
 }

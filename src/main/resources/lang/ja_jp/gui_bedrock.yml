@@ -1,0 +1,160 @@
+gui:
+  bedrock:
+    player_world:
+      title: マイワールド [BE]
+      page_content: ページ {current}/{total}
+      archived_prefix: '[A] '
+      button:
+        prev: 前のページ
+        next: 次のページ
+        settings: 個人設定
+        current_world: 現在のワールド
+        return: 戻る
+        close: 閉じる
+    world_action:
+      title: 'ワールド: {world}'
+      content:
+        owner: 'オーナー: {owner}'
+        status: '状態: {status}'
+        publish: '公開: {publish}'
+      status:
+        archived: アーカイブ中
+        active: アクティブ
+      button:
+        warp: ワープ
+        cycle_publish: 公開設定切替 ({level})
+        archive: アーカイブ
+        unarchive: 復旧
+        advanced_settings: 詳細設定 GUI
+        back_to_worlds: ワールド一覧に戻る
+        settings: 個人設定
+        return: 戻る
+        close: 閉じる
+    settings:
+      title: 個人設定 [BE]
+      form_content: 統合版向けのクイック設定
+      button:
+        notification: '訪問通知: {status}'
+        language: '言語: {language}'
+        critical: '重大設定: {status}'
+        beta: 'ベータ機能: {status}'
+        back_to_worlds: ワールド一覧に戻る
+        return: 戻る
+        close: 閉じる
+    world_item:
+      publish: '公開: {publish}'
+      favorite: 'お気に入り: {favorite}'
+      open_actions: タップして操作を開く
+    input:
+      info_form:
+        title: ワールド情報の編集
+      rename:
+        title: ワールド名の変更
+        label: 新しいワールド名
+        placeholder: ワールド名を入力
+      description:
+        title: 説明文の変更
+        label: 新しい説明文
+        placeholder: 説明文を入力
+      member_invite:
+        title: メンバー招待
+        label: 招待するプレイヤー名
+        placeholder: プレイヤー名を入力
+      creation_name:
+        title: ワールド名の入力
+        label: ワールド名
+        placeholder: ワールド名を入力
+      creation_seed:
+        title: シード値の入力
+        label: シード値（空欄可）
+        placeholder: シード値または文字列を入力
+      admin_player_filter:
+        title: プレイヤーフィルター
+        label: 対象プレイヤー名
+        placeholder: プレイヤー名を入力
+      template_wizard_name:
+        title: テンプレート名の入力
+        label: テンプレート名
+        placeholder: テンプレート名を入力
+      template_wizard_desc:
+        title: テンプレート説明の入力
+        label: テンプレート説明
+        placeholder: 説明文を入力
+      announcement_menu:
+        title: 案内メッセージ
+        content: 操作を選択してください
+        edit: 編集
+        reset: リセット
+      announcement_edit:
+        title: 案内メッセージ編集 ({max_lines}行/{max_length}文字)
+        label: '{line}行目'
+        placeholder: 空欄で行をスキップ
+      info_selector:
+        title: 編集項目の選択
+        content: 変更したい項目を選んでください
+        rename: ワールド名
+        description: 説明文
+  player_world:
+    title: マイワールドの一覧
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{publish_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{expires_at_line}'
+      - '{expired_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_action}'
+      - '{settings_action}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7オーナー §f{owner}
+      publish: §f§l| §7公開設定 §b{level}{status_color}
+      favorite: §f§l| §7お気に入り §c{count}
+      recent_visitors: §f§l| §7最近訪れたプレイヤー §a{count}人
+      tag: §f§l| §7タグ §e{tags}
+      warp: §e§l| §e左クリック §7このワールドへワープ
+      warp_bedrock: §e§l| §eクリック §7このワールドへワープ
+      settings: §e§l| §e右クリック §7ワールド設定を開く
+      settings_bedrock: §7ワールド設定は /worldmenu から開けます
+      expired: §c§nこのワールドはアーカイブされています
+      expires_at: §f§l| §7アーカイブまでの日数 §f{days}日 §8({date} にアーカイブ)
+    creation_button:
+      display: §a§lマイワールドを新規作成
+      lore:
+      - §7新しいマイワールドを作成します。
+      - §7テンプレートや公開範囲を自由に設定可能です。
+      - ''
+      - §e§nクリックで作成を開始
+    stats_button:
+      display: §e{player}
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7ワールドポイント §6{icon} {point}
+      - §7マイワールドの新規作成や、拡張などに使えるポイントです
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7ワールドスロット §a§l{current_occupied}§7/{unlocked}
+      - §7新規にマイワールドを作成することができる枠数です
+      - §7「ワールドの種」を使用することで解放することができます
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7未処理の招待/申請 §e{pending_count}件
+      - §f§l| §7最新受信日時 §b{latest_pending_at}
+      - §e§nクリックで招待/申請一覧を開く
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bypass:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7ワールドポイント §6{icon} {point}
+      - §7マイワールドの新規作成や、拡張などに使えるポイントです
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7ワールド数 §a§l{current_occupied}
+      - §7上限を貫通する権限が付与されています
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7未処理の招待/申請 §e{pending_count}件
+      - §f§l| §7最新受信日時 §b{latest_pending_at}
+      - §e§nクリックで招待/申請一覧を開く
+      - §8§m－－－－－－－－－－－－－－－－－－

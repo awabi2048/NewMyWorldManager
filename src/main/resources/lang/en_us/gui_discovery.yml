@@ -1,0 +1,171 @@
+gui:
+  discovery:
+    title: Discovery
+    world_item:
+      lore:
+      - §8§m-----------------------
+      - '{description}'
+      - §8§m-----------------------
+      - §f§l| §7Owner {owner}{status_color}
+      - §f§l| §7Favorites §c{favorites}
+      - §f§l| §7Recent Visitors §a{visitors}
+      - '{tags}'
+      - §8§m-----------------------
+      - '{warp_hint}'
+      - '{preview_hint}'
+      - '{member_request_hint}'
+      - '{favorite_hint}'
+      - §8§m-----------------------
+      lore_bedrock:
+      - §8§m-----------------------
+      - '{description}'
+      - §8§m-----------------------
+      - §f§l| §7Owner {owner}{status_color}
+      - §f§l| §7Favorites §c{favorites}
+      - §f§l| §7Recent Visitors §a{visitors}
+      - '{tags}'
+      - §8§m-----------------------
+      - '{warp_hint}'
+      - §8§m-----------------------
+      owner: §f§l| §7Owner {owner}{status_color}
+      tag: §f§l| §7Tags §e{tags}
+      favorite: §f§l| §7Favorites §c{count}
+      recent_visitors: §f§l| §7Recent Visitors §a{count}
+      warp: §e§l| §eLeft-Click §7Warp to this world
+      warp_hint: §e§l| §eLeft-Click §7Warp to this world
+      warp_hint_bedrock: §e§l| §eClick §7Warp to this world
+      preview: §e§l| §eRight-Click §7Show preview
+      preview_hint: §e§l| §eRight-Click §7Show preview
+      member_request_hint: §e§l| §eShift + Left-Click §7Request Membership
+      favorite_hint_add: §e§l| §eShift + Right-Click §7Add to favorites
+      favorite_hint_remove: §e§l| §eShift + Right-Click §7Remove from favorites
+      favorite_toggle: §e§l| §eShift + Right-Click §7Toggle favorite
+      fav_add: §e§l| §eRight-Click §7Add to favorites
+      fav_remove: §e§l| §eRight-Click §7Remove from favorites
+      spotlight_remove: §e§l| §eShift + Right-Click §7Remove from SPOTLIGHT
+    spotlight_empty:
+      name: §7[Empty slot]
+      lore_admin:
+      - §7This slot is currently vacant.
+      - §7Click to view the world you are currently in.
+      - Register with §6SPOTLIGHT§7.
+      - ''
+      - §e§nClick to register
+      lore_admin_bedrock:
+      - §7This slot is currently vacant.
+      - §7Register your current world to §6SPOTLIGHT§7.
+      - ''
+      - §e§nClick to register
+      lore_visitor:
+      - §7This slot is currently vacant.
+      - New recommended worlds managed by §7
+      - Please wait for §7 to appear!
+    sort:
+      display: §aSelecting the sorting method
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7{current_prefix} §f{sort_name}
+      - '  §f{sort_desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{sort_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to toggle
+      lore_spotlight_admin:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Selected §6{sort_name}
+      - '  §f{sort_desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{sort_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft/Right-Click §7Switch sort order
+      - §e§l| §eShift + Left-Click §7Edit SPOTLIGHT description
+      - §8§m－－－－－－－－－－－－－－－－－－
+      name: §aSelect Sort Order
+      click: §e§nClick to cycle
+      type:
+        hot: Popular
+        new: New
+        favorites: Favorites
+        spotlight: Spotlight
+        random: Random
+    tag_select:
+      display: §aSelect Tag
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| Selected tag §6{tag}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{tag_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §eLeft-Click §7Go to the next option
+      - §e§l| §eRight-Click §7Clear the selection
+      - §8§m－－－－－－－－－－－－－－－－－－
+      current: §f§l| Current Tag §6{tag}
+      none: §fNone
+      active: §a» {tag}
+      inactive: §8- {tag}
+      click_next: §e§nLeft-Click §7Next
+      click_reset: §e§nRight-Click §7Reset
+    tag_filter:
+      name: Tag Filter
+      lore:
+      - §8§m-----------------------
+      - §f§l| §7Selected §6{tag}
+      - §8§m-----------------------
+      - '{tag_list}'
+      - §8§m-----------------------
+      - '{click_left}'
+      - '{click_right}'
+      - §8§m-----------------------
+      lore_bedrock:
+      - §8§m-----------------------
+      - §f§l| §7Selected §6{tag}
+      - §8§m-----------------------
+      - '{tag_list}'
+      - §8§m-----------------------
+      - '{click_left}'
+      - §8§m-----------------------
+      current_prefix: Selected
+      active: '§e» '
+      inactive: '§7  '
+      no_selection: No selection
+      all: All
+      click_left: §e§l| §eLeft-Click §7Cycle filter
+      click_right: §e§l| §eRight-Click §7Clear filter
+      click_bedrock: §e§l| §eClick §7Cycle filter
+    spotlight_description_dialog:
+      title: Edit SPOTLIGHT Description
+      body: Enter the description shown while SPOTLIGHT sort is selected (max {max} chars). Leave empty to restore default.
+      input_label: Description
+    stats:
+      name: §fStatistics
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7 Sorting order: §b{sort}'
+      - '§f§l| §7 Tag: §b{tag}'
+      - §f§l| §7Search results §b{count}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7{desc}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      sort: '§f§l| §7 Sorting order: §b{sort}'
+      tag: '§f§l| §7 Tag: §b{tag}'
+      count: §f§l| §7Search results §b{count}
+      desc: §7 Displaying worlds that match the conditions
+    sort_info:
+      hot: Sorted by recent visitors
+      new: Sorted by publication date
+      favorites: Sorted by number of favorites
+      spotlight: Hand-picked worlds by staff
+      random: Daily random
+    no_result: §7No worlds found matching the criteria
+    spotlight_remove_confirm:
+      title: Remove from SPOTLIGHT
+      lore:
+      - §fDo you want to remove
+      - §fworld "§a{world}§f" from §6SPOTLIGHT§f?
+  spotlight_confirm:
+    title: Register to SPOTLIGHT
+    lore:
+    - §fDo you want to register
+    - §fworld "§a{world}§f" to §6SPOTLIGHT§f?
+    - ''
+    - §7Registered worlds will be displayed

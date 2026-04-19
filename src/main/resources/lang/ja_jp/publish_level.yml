@@ -1,0 +1,24 @@
+publish_level:
+  public: 公開
+  friend: 限定公開
+  private: 非公開
+  locked: 封鎖中
+  description:
+    public: §f誰でも訪問可能です。ディスカバリーメニューに掲載されます。
+    friend: §f誰でも訪問可能ですが、ディスカバリーメニューには掲載されません。
+    private: §fメンバーが招待した人のみ訪問可能です。
+    locked: §fメンバー以外は訪問できず、ポータルからのワープもできません。
+  color:
+    public: §a
+    friend: §e
+    private: §c
+    locked: §c
+    owner: §6
+    moderator: §b
+    member: §f
+    online: §a
+    offline: §c
+    active: §a
+    inactive: §7
+    uuid: §8
+    debug: §8

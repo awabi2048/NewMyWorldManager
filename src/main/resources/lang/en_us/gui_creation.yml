@@ -1,0 +1,124 @@
+gui:
+  creation:
+    title_type: 'Create World: Select Type'
+    title_template: 'Create World: Select Template'
+    title_confirm: 'Create World: Confirmation'
+    dialog:
+      name_title: Enter World Name
+      seed_title: Enter Seed Value
+    type:
+      template:
+        name: From Template
+        lore:
+        - Create a world from the provided template.
+      seed:
+        name: Specify Seed
+        lore:
+        - Generate a world by specifying a seed value.
+      random:
+        name: Random
+        lore:
+        - Generate a world randomly.
+      cost: '§f§l| §7Cost: §6🛖 §e{cost}'
+      points: '§f§l| §7Your Points: §6🛖 §e{points}'
+      available: §aAvailable
+      insufficient: §cInsufficient points (§6🛖 §e{shortage} short)
+    insufficient: §cInsufficient points (§6🛖 §e{shortage} short)
+    limit_reached: §cYou have reached the limit of world creation. ({current}/{max})
+    limit_reached_total: §cThe server-wide limit for world creation ({limit}) has been reached.
+    command_limit_reached_total: §c[Warning] The number of worlds created on the entire server has reached the upper limit ({max}), so it cannot be created.
+    command_limit_reached: '§c[Warning] The target player ({player}) cannot create a world because the number of worlds he can create has reached the upper limit. (Currently: {current}/{max})'
+    template_item:
+      preview_hint: §7Right-Click to Preview
+    confirm:
+      name: Confirm and Create
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7World name §a{name}
+      - §f§l| §7Creation method §e{type}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{template}'
+      - '{seed}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7Consumption points §6🛖 §e{cost}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      template_line: §f§l| §7Template §f{template}
+      seed_line: §f§l| §7 Seed value §f{seed}
+      name_label: World Name
+      type_label: Creation Type
+      cost_label: Cost
+      select_action: Select Action
+      action_create: Create World
+      action_preview: Preview Template
+      action_back: Back
+      action_cancel: Cancel
+      proceed_button: Proceed
+      cancel_button: Close
+  template_wizard:
+    title: Template Creation Wizard
+    name_input:
+      display: §eSet Template Name/ID
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Set the display name and ID of the template.
+      - §fName {name}
+      - ' §fID {id}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
+    desc_input:
+      display: §eSet Template Description
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Set the template description.
+      - §7Current settings
+      - '{desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
+    icon_select:
+      display: §eSelect Template Icon
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Set the template icon.
+      - §7Current settings {icon}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
+    origin_set:
+      display: §eSet Origin Location
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Set the origin that is the reference point for the spawn point and offset.
+      - §7Current settings {origin}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to configure
+      - §8§m－－－－－－－－－－－－－－－－－－
+    save_confirm:
+      display: §6Save and Register Template
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7 Save the template with the current settings.
+      - §c *Existing files will be overwritten.
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nClick to run
+      - §8§m－－－－－－－－－－－－－－－－－－
+  world_seed_confirm:
+    title: Using world seeds
+    lore:
+    - Do you want to use §d world seed §f?
+    - ''
+    - '§7Current My World Slot: §a{current}'
+    - 'My world slot after using §7: §a{next}'
+    - ''
+    - By expanding the §7 slot, you can create
+    - §7 The number of My Worlds will increase.
+  announcement_dialog:
+    title: Edit Welcome Message
+    line_label: Line {number}
+    help: Enter the welcome message to be displayed to visitors
+    max_lines: You can set up to {max} lines
+    max_length: You can enter up to {max} characters per line
+    save: Save
+    cancel: Cancel
+    reset: Reset

@@ -1,0 +1,86 @@
+gui:
+  favorite:
+    title: Favorite Worlds
+    empty_message: §7No favorites match the current filter.
+    empty_message_no_favorites: §7No favorites yet.
+    current_world:
+      name: §bCurrent World
+      world_name: §f§l| §7World Name §a{world}
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{world_line}'
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{owner_line}'
+      - '{favorite_line}'
+      - '{visitor_line}'
+      - '{tag_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_line}'
+      - '{archived_line}'
+      - '{unfavorite_line}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7Owner §b{owner}{status_color}
+      favorite: §f§l| §7Favorites §c{count}
+      recent_visitors: §f§l| §7Recent Visitors §a{count}
+      tag: §f§l| §7Tags §e{tags}
+      warp: §e§l| §eLeft click §7Warp to this world
+      warp_bedrock: §e§l| §eClick §7Warp to this world
+      unfavorite: §e§l| §eShift + Right-Click §7Remove from favorites
+      archived_label: §c§l[ARCHIVED]
+      unfavorite_archived: §e§nClick to remove from favorites
+    info:
+      display: §fStatistics
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7Registered §f{count} items
+      - §7Displaying §a{current_page}§7/{max_page} page
+      - §8§m－－－－－－－－－－－－－－－－－－
+      count: §7Favorites §f{count}
+      page: §7Page §a{current}§7/{max}
+    player_icon:
+      name: §b{player}
+      lore_count: '§f§l| §7Favorited Worlds: §a{count}'
+    favorite_menu:
+      title: Favorite Menu
+      other_worlds:
+        name: §aOther Worlds of this Player
+        lore:
+        - §7View other worlds owned by
+        - §7the owner of this world.
+        - ''
+        - §e§nClick to View
+        - §e§nClick to View
+      toggle:
+        name_add: §bAdd to Favorites
+        name_remove: §cRemove from Favorites
+        name_restricted: §7Cannot Favorite
+        lore_add: §7Add this world to your favorites.
+        lore_remove: §7Remove this world from your favorites.
+        lore_restricted_owner: §cYou cannot favorite your own world.
+        lore_restricted_not_managed: §cThis location cannot be favorited.
+        click: §e§nClick to toggle
+      list:
+        name: §dView Favorite List
+        lore:
+        - §7View the list of worlds you
+        - §7have added to your favorites.
+        - ''
+        - §e§nClick to View
+    remove_confirm:
+      title: Confirmation of cancellation of favorites
+      lore:
+      - §fWorld "§a{world}§f"
+      - §cRemove from favorites§f?
+      - ''
+      - If you cancel §7, it will be removed from your favorites list.

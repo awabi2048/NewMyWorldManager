@@ -1,0 +1,280 @@
+messages:
+  world_name_prompt: §ePlease type the world name in chat.
+  chat_input_cancel_hint: §7(Type §e{word} §7in chat to cancel)
+  wizard_cancel_word: cancel
+  unlink_success: §aWorld unlinked successfully.
+  unlink_failed: §cFailed to unlink world.
+  unlink_not_myworld: §cThis world is not a MyWorld.
+  world_desc_prompt: §ePlease type the world description in chat.
+  world_name_change: §aWorld name changed.
+  world_name_invalid: §cName must be 3-16 characters.
+  world_desc_change: §aDescription changed.
+  publish_updated: '§aPublish updated: {level}'
+  icon_prompt: §eClick an item in your inventory to set as icon.
+  icon_changed: §aWorld icon changed to "{icon}".
+  icon_cancelled: §eIcon change cancelled.
+  operation_cancelled: §c operation canceled.
+  insufficient_points: You don't have enough §c points.
+  creation_insufficient_points: §cInsufficient points.
+  invalid_biome_data: §c Biome data is incorrect.
+  creation_cancelled: §c Creation of My World has been canceled.
+  creation_success: §a World creation completed!
+  creation_failed: §c creation failed.
+  world_not_found: §c World not found.
+  spawn_set_start: §aSetting spawn point for {type}. Left-click a block while facing the desired direction.
+  spawn_set_start_bedrock: §aSetting spawn point for {type}. Click a block while facing the desired direction.
+  spawn_guest_set: §aGuest spawn point set.
+  spawn_member_set: §aMember spawn point set.
+  spawn_both_set: §aShared guest/member spawn point set.
+  favorite_removed: §c Removed from favorites
+  tag_max_reached: §cMax {limit} tags allowed.
+  member_invite_input: §eType the player ID to invite.
+  member_force_add_input: §cForce add mode. Type the player ID to add immediately.
+  visit_target_input: §eType the player ID to visit.
+  visitworld_query_input: §eType a keyword for the world name you want to search.
+  visitworld_query_empty: §cPlease enter a search keyword.
+  visitworld_no_result: §cNo public world matched "{query}".
+  member_deleted: §aMember removed.
+  owner_transferred: Ownership has been transferred to §a{old_owner}.
+  owner_transfer_failed_limit: §cTarget player has no available world slots.
+  invite_locked_error: §cYou cannot invite players to a locked world.
+  portal_dest_locked: §cThe destination of this portal is currently locked.
+  portal_warped: §aWarped to "{destination}" via portal.
+  invite_expired: §cInvite not found or expired.
+  invite_world_not_found: §cWorld data not found.
+  invite_already_member: §cAlready a member of this world.
+  invite_already_sent: §cAn invite has already been sent to that player.
+  invite_same_world_error: §c{player} is already in the same world, so they cannot be invited.
+  invite_busy_error: §c{player} is currently not accepting invites.
+  invite_member_error: §c{player} is already a world member, so they cannot be invited.
+  member_invite_already_sent: §cA member invite has already been sent to that player.
+  invite_accepted_self: §aYou are now a member of world【{world}】!
+  invite_accepted_sender: §e{player} §faccepted your invite to world【§a{world}§f】.
+  member_joined_notify: §a{player} §fjoined world【§a{world}§f】 as a member.
+  invite_sent_success: §eSent invite to {player} for world "§a{world}§f"!
+  member_force_add_success: §aForce-added {player} to world "§a{world}§f".
+  member_force_added_self: §aYou were force-added as a member of world "§a{world}§a".
+  invite_target_offline: §cPlayer {player} is not online.
+  invite_no_available_targets: §cThere are currently no players available to invite.
+  invite_target_not_available: §cThat player cannot be invited right now.
+  invite_queued_offline: §7{player} is offline. They will be notified on next login.
+  invite_not_in_myworld: §cYou must be in a MyWorld to send an invitation.
+  invite_not_member: §cYou cannot send an invitation because you are not a member of this world
+  invite_hover: Review this invite!
+  invite_text: '{player} invited you to "{world}"!'
+  invite_click_text: «Review»
+  member_invite_text: '{player} invited you to join "{world}" as a member!'
+  member_invite_click_text: «Review»
+  member_invite_click: «Accept»
+  member_invite_hover: Review the member invite!
+  member_request_sent: §aYour membership request has been sent!
+  member_request_received: §d{player} wants to join world "{world}" as a member!
+  member_request_check_world_management: §eYou can review it from the world management menu.
+  member_request_click_approve: §a[Approve]
+  member_request_click_reject: §c[Reject]
+  member_request_hover_approve: Approve
+  member_request_hover_reject: Reject
+  member_request_approved: §aYour member request has been approved!
+  member_request_rejected: §cYour member request was declined.
+  member_request_expired: §cThe request has expired
+  visitor_notified: §e{player} §fvisited your world!
+  kicked: §cYou have been kicked from this world.
+  kicked_success: §aKicked {player}.
+  admin_player_filter_set: §aPlayer filter set to {player}.
+  announcement_prompt: §eEnter announcement message in chat. (& for colors, 'cancel' to abort)
+  announcement_set: §aAnnouncement message set!
+  announcement_reset: §eAnnouncement message reset.
+  announcement_invalid_length: §cMessage is too long. (Max {max_lines} lines, {max_length} chars per line)
+  announcement_blocked_string: '§cMessage contains blocked string: {string}'
+  announcement_preview: §7[Preview] {message}
+  bedrock_option_unavailable: §cThis feature is not available in Bedrock inventory UI.
+  bedrock_form_unavailable: §cFailed to open Bedrock form UI.
+  env_gravity_changed: '§aGravity has been changed to "{gravity}" (Magnification: {multiplier})'
+  env_weather_changed: §a Weather has been specified as "{weather}"
+  env_biome_changed: Changed §a biome to "{biome}"
+  env_cost_paid: §6🛖 §e{cost} §a points were spent. {remaining_info}
+  env_cost_paid_remaining: '(Remaining: §6🛖 §e{remaining})'
+  creation_start: §a Creating world...
+  creation_seed_prompt: Please enter the seed value to be used for §a generation in the chat.
+  wizard_input_mode_ended: §e Exited input mode.
+  wizard_name_set: '§a Template name set: {name} (ID: {id})'
+  wizard_desc_set: §a Explanation text has been set.
+  wizard_icon_prompt: §e[MyWorldManager] Click on the item you want to make into an icon.
+  wizard_origin_set: §a The origin position has been set.
+  wizard_id_missing: §cID is not set.
+  wizard_id_exists: §c That ID already exists.
+  wizard_registered: §a template “{template}” has been registered!
+  oage_ganbaru_messages:
+  - §eOage is expanding the world... §7"Heave-ho!"
+  - §eOage is pushing the boundaries!
+  - §eOage is developing new lands...
+  oage_ganbaru_default: §ePreparing for expansion...
+  like_sign:
+    placed: §aLike signboard has been installed!
+    saved: §aLike signboard has been updated!
+    deleted: §cLike sign has been deleted.
+    liked: §c❤ §aLiked!
+    unliked: §cLike canceled.
+  tour_sign:
+    placed: §aPlaced a Tour sign!
+  tour:
+    available: §eTours are available in this world. §bOpen tour
+    none_available: §7There are no available tours in this world right now.
+    started: §aStarted tour "{tour}"!
+    next_marker: '§eNext destination: §b{marker} §7(Tour: {tour})'
+    completed: §aCompleted tour "{tour}"!
+    stopped: §eTour stopped.
+    stopped_world_change: §eYou left the world, so the active tour was stopped.
+    cancelled_edited: §eThe active tour was cancelled because its route was updated.
+    cancelled_deleted: §eThe active tour was cancelled because it was deleted.
+  expand_direction_prompt: §aLeft-click while facing the direction (NW, NE, SW, SE) you want to expand.
+  expand_direction_prompt_bedrock: §aClick while facing the direction (NW, NE, SW, SE) you want to expand.
+  expand_direction_selected: '§aDirection selected: {direction}'
+  expand_confirm_chat: §aPreviewing world border. Confirm expansion with these details?
+  expand_confirm_button: §a§l[Confirm Expansion]
+  expand_confirm_hover: §7Spend points and execute expansion
+  expand_retry_button: §c§l[Retry Selection]
+  expand_retry_hover: §7Clear the preview and pick a direction again
+  expand_complete: '§aExpansion complete! §7{level_before} §f→ §e§l{level_after} §7(Remaining: §6🛖 §e{remaining}§7)'
+  expansion_reset_complete: §aExpansion reset. Refunded §6🛖 §e{points} §apoints.
+  expansion_reset_success: §aExpansion reset. Refunded §6🛖 §e{points} §apoints.
+  world_delete_start: §cDeleting world "{world}"...
+  world_delete_success: §aDeleted world and refunded §6🛖 §e{points} §apoints.
+  world_delete_fail: §cFailed to delete world.
+  world_delete_unavailable_slot: §cCannot delete world because owner's slot expansion is 0.
+  archive_start: §eArchiving world...
+  archive_success: §cWorld "{world}" has been archived.
+  archive_cooldown: §cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)
+  archive_failed: §cFailed to archive world.
+  preview_start: §aPreviewing template "{template}"... §7(Press Shift to cancel)
+  preview_end: §ePreview ended.
+  preview_cancel: §ePreview cancelled.
+  preview_restored: §eYou were restored to your original position after disconnecting during preview.
+  preview_archived: §cThis world is currently archived and cannot be previewed.
+  unarchive_start: §eRestoring world from archive...
+  unarchive_success: §aWorld restored from archive.
+  unarchive_cooldown: §cCannot perform until {cooldown_hours}h has passed since last archive/restore action. (About {hours_remaining}h remaining)
+  archive_access_denied: §cAccess denied. This world is archived.
+  unknown_world: unknown world
+  item_not_found_hand: §c You don't have any items in hand.
+  admin_update_data_start: §e Updating player data...
+  admin_repair_template_none_missing: §a There are no missing template directories.
+  admin_repair_template_start: §eStarting repair of missing templates ({count})...
+  admin_repair_template_progress: §7- Generating {template}... ({path})
+  admin_repair_template_success: Successfully generated §a -> {template}.
+  admin_repair_template_complete: §a Repair process completed.
+  admin_convert_start: §e Start converting the world. Please wait...
+  admin_convert_success: '§aCurrent world ''{world}'' has been registered as MyWorld. (UUID: {uuid})'
+  admin_convert_success_normal: The §a directory will be renamed to standard format and normal My World management will be applied.
+  admin_convert_success_admin: Only the §a configuration file was generated. It is treated as an administrative world.
+  warp_success: §aWarped to world "{world}".
+  warp_invite_success: §aWarped to the invited world.
+  warp_generic: §aWarped to world.
+  admin_warp_success: §a§l[Admin] §aWarped to world "{world}".
+  admin_warp_archived_error: §cCannot warp to archived world. Please restore it first.
+  portal_warp_success: §aSuccessfully moved to "{destination}" via portal.
+  world_loading: §aLoading world...
+  evacuated: §cWorld unloaded. Moving to spawn.
+  no_in_myworld: §cYou must be in a MyWorld to do this.
+  admin_player_filter_prompt: §eType the player name to filter.
+  favorite_added: §bAdded to favorites!
+  portal_removed: §aPortal removed.
+  portal_bind_success: §aPortal bound to "{destination}".
+  portal_unbind_success: §ePortal binding removed.
+  portal_place_success: §aWorld portal placed successfully.
+  portal_broken: §eWorld portal has been broken.
+  error.portal_place_in_world_gate: §cYou cannot place a world portal inside a world gate.
+  world_gate_bind_success: §aWorld gate bound to "{destination}".
+  world_gate_unbind_success: §a World gate link has been removed.
+  world_gate_select_first: §eRight-click a block to select point 1 for the world gate.
+  world_gate_select_second: §eRight-click a block to select point 2 for the world gate.
+  world_gate_point_selected: '§aPoint {point} selected: §f({x}, {y}, {z})'
+  world_gate_confirm_place: §eRight-click once more to place the world gate.
+  world_gate_confirm_title: §6Confirm World Gate Placement
+  world_gate_confirm_body:
+  - §fThe world gate will be placed in this region.
+  - '§7Min: §f({min_x}, {min_y}, {min_z})'
+  - '§7Max: §f({max_x}, {max_y}, {max_z})'
+  - '§7Cost: §6🛖 §e{required}'
+  - '§7Current: §6🛖 §e{current}'
+  - '§7After Place: §6🛖 §e{remaining}'
+  world_gate_place_cancelled: §eWorld gate placement was cancelled.
+  world_gate_place_success: §aWorld gate placed successfully.
+  world_gate_removed_refund: '§aWorld gate removed. Refunded §6🛖 §e{points} §ato owner §e{owner}§a. (Rate: §e{percent}%§a)'
+  world_gate_world_mismatch: §cPlease select both points in the same world. Point 1 was reset.
+  world_created_warp: §aMoved to the created world.
+  status_on: 'ON'
+  status_off: 'OFF'
+  status_visible: §aVisible
+  status_hidden: §cHidden
+  wizard_start: §aStarting creation wizard.
+  wizard_name_prompt: §ePlease type the world name.
+  wizard_seed_prompt: §ePlease type a seed value.
+  creation_timeout: §cWorld creation session timed out due to inactivity.
+  wizard_started_for: §aWizard started for {player}.
+  reload_success: §aReloaded MyWorldManager configuration.
+  daily_update_success: '§aCompleted daily maintenance. (Updated: {updated}, Archived: {archived})'
+  data_update_success: §aUpdated all world ({world_count}) and player ({player_count}) data.
+  spotlight_added: §aRegistered world "{world}" to SPOTLIGHT!
+  spotlight_removed: §cRemoved world "{world}" from SPOTLIGHT.
+  discovery_spotlight_description_updated: §aUpdated the SPOTLIGHT description.
+  discovery_spotlight_description_reset: §aReset the SPOTLIGHT description to default.
+  world_creation_started: §e Started creating my world "{world}"...
+  world_creation_success: §a My world “§a{world}§a” was successfully created!
+  world_unloading_evacuation: §c The world has been unloaded, so move to the spawn point.
+  mspt_warning_chat: §c [WARNING] §f The MSPT of world "§a{world}§f" has reached §e{mspt}ms§f. §7(Load may be high)
+  meet:
+    busy: §cThe target player is currently busy.
+    request_accepted: §aAccepted warp request from §e{player}§a.
+    request_accepted_by_target: §aWarp request was accepted by §e{player}§a!
+    request_denied: §cWarp request denied.
+    request_denied_by_target: §cYour warp request was denied by {player}.
+    not_in_valid_world: §cYou are not in a valid world.
+    requester_offline: §cRequester is no longer online.
+    no_pending_request: §cNo pending request found.
+  invalid_field: §cInvalid field name.
+  invalid_action: §cInvalid action (get, set, add, remove).
+  value_required: §cPlease specify a value.
+  value_negative: §cValue cannot be negative.
+  stats_get: '§b{key} §7of §e{player}§7: {value}'
+  stats_set: §aSet {key} of {player} to {value}.
+  stats_add: §aAdded {value} to {key} of {player}.
+  stats_remove: §aRemoved {value} from {key} of {player}.
+  stats_remove_error: '§cError: Resulting value would be negative. (Current: {value})'
+  give_success: §aGave {amount}x {item} to {player}.
+  give_inventory_full: §e{player}'s inventory was full, so {amount}x {item} was dropped at their feet.
+  migration_file_not_found: §cSource file ({file}) not found.
+  migration_error: '§cError: Migration failed for {error}.'
+  migration_success: §aMigration successful. Migrated {count} items.
+  migration_archive_start: '§e{count} worlds need archiving. Starting process (ETA: {eta}s)'
+  migration_archive_progress: '§7Archive progress: {current}/{total} - {world}'
+  migration_archive_complete: §aArchive complete ({count} worlds)
+  migration_folder_not_found: '§c[Error] World folder not found, skipping: {path} (ID: {id})'
+  usage_create: '§cUsage: /mwm create <player>'
+  usage_stats: '§cUsage: /mwm stats <player> <field> <action> [value]'
+  usage_stats_fields: '§7Fields: points, warp-slots, world-slots'
+  usage_give: '§cUsage: /mwm give <player> <item_id> [amount]'
+  myworld_command_usage: '§cUsage: /myworld accept | deny | transfer <player> | remove_member <player>'
+  myworld_command_bedrock_only: §cThis subcommand is available for Bedrock players only.
+  myworld_target_not_member: §cTarget player is not a member of this world.
+  myworld_owner_remove_forbidden: §cYou cannot remove the owner.
+  myworld_pending_hint: '§eYou have invites or requests waiting for you! Open /myworld and check the player icon. §7(Pending: {count})'
+  myworld_pending_none: §cThere is nothing waiting for you right now.
+  myworld_pending_open_list: §eYou have a few notifications waiting! Please choose one from the list.
+  myworld_pending_remaining: '§eThere are still pending invites/requests. §7(Remaining: {count})'
+  myworld_pending_login_notice: '§eYou have {count} pending invites/requests. Latest: §b{datetime}'
+  invite_declined: §cYou declined the world invite.
+  member_invite_declined: §cYou declined the member invitation.
+  member_invite_declined_sender: §e{player}§c declined the member invitation.
+  member_invite_cancelled: §aCancelled member invite to {player}.
+  member_invite_cancel_not_found: §cThat invite no longer exists.
+  internal_data_extracted: §7Extracted internal data related to MyWorld §a【{world}】§7.
+  copy_world_uuid: §7- §b§nMyWorld Directory Name
+  copy_owner_uuid: §7- §b§nOwner UUID
+  copy_world_uuid_hover: Click to copy World Directory Name to clipboard
+  copy_owner_uuid_hover: Click to copy Owner UUID to clipboard
+  custom_item:
+    bottle_fill: '§a We bottled the air of the biome! (Biome: {biome})'
+    partial_biome_applied: §aThe surrounding biome has been changed to {biome}!
+    world_seed_expanded: '§a My World slot has been expanded! Current number of slots: {slots}'
+  member_request_is_owner: §cYou cannot request membership to your own world

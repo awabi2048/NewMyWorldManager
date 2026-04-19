@@ -1,0 +1,171 @@
+gui:
+  discovery:
+    title: ワールドディスカバリー
+    world_item:
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7オーナー {owner}{status_color}
+      - §f§l| §7お気に入り §c{favorites}
+      - §f§l| §7最近の来訪者 §a{visitors}
+      - '{tags}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_hint}'
+      - '{preview_hint}'
+      - '{member_request_hint}'
+      - '{favorite_hint}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{description}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7オーナー {owner}{status_color}
+      - §f§l| §7お気に入り §c{favorites}
+      - §f§l| §7最近の来訪者 §a{visitors}
+      - '{tags}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{warp_hint}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      owner: §f§l| §7オーナー {owner}{status_color}
+      tag: §f§l| §7タグ §e{tags}
+      favorite: §f§l| §7お気に入り §c{count}
+      recent_visitors: §f§l| §7最近訪れたプレイヤー §a{count}人
+      warp: §e§l| §e左クリック §7このワールドへワープ
+      preview: §e§l| §e右クリック §7プレビューを表示
+      warp_hint: §e§l| §e左クリック §7このワールドへワープ
+      warp_hint_bedrock: §e§l| §eクリック §7このワールドへワープ
+      preview_hint: §e§l| §e右クリック §7プレビューを表示
+      member_request_hint: §e§l| §eShift + 左クリック §7参加申請を表示
+      favorite_hint_add: §e§l| §eShift + 右クリック §7お気に入りに追加
+      favorite_hint_remove: §e§l| §eShift + 右クリック §7お気に入りを解除
+      favorite_toggle: §e§l| §eShift + 右クリック §7お気に入りを切り替える
+      fav_add: §e§l| §e右クリック §7お気に入りに追加
+      fav_remove: §e§l| §e右クリック §7お気に入りを解除
+      spotlight_remove: §e§l| §eShift + 右クリック §7SPOTLIGHTから削除する
+    spotlight_empty:
+      name: §7« 未登録のSPOTLIGHT »
+      lore_admin:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7現在このスロットにはワールドが登録されていません。
+      - §e§l| §e左クリック §7現在のマイワールドを登録
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_admin_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7現在このスロットにはワールドが登録されていません。
+      - §e§l| §eクリック §7現在のマイワールドを登録
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_visitor:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7現在このスロットにはワールドが登録されていません。
+      - §8§m－－－－－－－－－－－－－－－－－－
+    sort:
+      display: §a並び替え方法の選択
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7{current_prefix} §f{sort_name}
+      - '  §f{sort_desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{sort_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§nクリックで切り替え
+      lore_spotlight_admin:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7選択中 §6{sort_name}
+      - '  §f{sort_desc}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{sort_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §e左右クリック §7ソートを切り替え
+      - §e§l| §eShift + 左クリック §7SPOTLIGHTの説明文を編集
+      - §8§m－－－－－－－－－－－－－－－－－－
+      name: §a並び替え方法の選択
+      click: §e§nクリックで切り替え
+      type:
+        hot: §cHOT
+        new: §aNEW
+        favorites: §eFAVORITES
+        spotlight: §6SPOTLIGHT
+        random: §bRANDOM
+    tag_select:
+      display: §aタグの選択
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| 選択中のタグ §6{tag}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{tag_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §e§l| §e左クリック §7次へ進む
+      - §e§l| §e右クリック §7選択を解除
+      - §8§m－－－－－－－－－－－－－－－－－－
+      current: §f§l| 選択中のタグ §6{tag}
+      none: §fなし
+      active: §a» {tag}
+      inactive: §8- {tag}
+      click_next: §e§l| §e左クリック §7次へ進む
+      click_reset: §e§l| §e右クリック §7選択を解除
+    tag_filter:
+      name: タグフィルター
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7選択中 §6{tag}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{tag_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{click_left}'
+      - '{click_right}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      lore_bedrock:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §f§l| §7選択中 §6{tag}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{tag_list}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '{click_left}'
+      - §8§m－－－－－－－－－－－－－－－－－－
+      current_prefix: 選択中
+      active: '§e» '
+      inactive: '§7  '
+      no_selection: 設定なし
+      all: すべて
+      click_left: §e§l| §e左クリック §7フィルターを切り替え
+      click_right: §e§l| §e右クリック §7フィルターを解除
+      click_bedrock: §e§l| §eクリック §7フィルターを切り替え
+    spotlight_description_dialog:
+      title: SPOTLIGHT説明文の編集
+      body: SPOTLIGHTソート中に表示する説明文を入力してください（最大{max}文字）。空欄でデフォルトに戻せます。
+      input_label: 説明文
+    stats:
+      name: §f統計情報
+      lore:
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - '§f§l| §7並び順: §b{sort}'
+      - '§f§l| §7タグ: §b{tag}'
+      - §f§l| §7検索結果 §b{count}件
+      - §8§m－－－－－－－－－－－－－－－－－－
+      - §7{desc}
+      - §8§m－－－－－－－－－－－－－－－－－－
+      sort: '§f§l| §7並び順: §b{sort}'
+      tag: '§f§l| §7タグ: §b{tag}'
+      count: §f§l| §7検索結果 §b{count}件
+      desc: §7条件に一致するワールドを表示しています
+    sort_info:
+      hot: 直近の来訪者が多い順
+      new: 公開日時が新しい順
+      favorites: お気に入り登録数が多い順
+      spotlight: 運営によるピックアップ
+      random: 日替わりランダム
+    no_result: §7条件に一致するワールドが見つかりませんでした
+    spotlight_remove_confirm:
+      title: SPOTLIGHTからの削除
+      lore:
+      - §fワールド「§a{world}§f」を
+      - §6SPOTLIGHT§fから削除しますか？
+  spotlight_confirm:
+    title: SPOTLIGHTへの登録
+    lore:
+    - §fワールド「§a{world}§f」を
+    - §6SPOTLIGHT§fに登録しますか？
+    - ''
+    - §7登録するとディスカバリーメニューの最上位に
+    - §7優先的に表示されるようになります。
