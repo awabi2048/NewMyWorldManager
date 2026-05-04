@@ -17,6 +17,7 @@ import org.bukkit.Location
 import org.bukkit.WorldCreator
 import org.bukkit.WorldType
 import org.bukkit.entity.Player
+import java.util.concurrent.CompletableFuture
 
 class WorldService(
         private val plugin: MyWorldManager,
@@ -402,6 +403,64 @@ class WorldService(
         return plugin.server.unloadWorld(world, save)
     }
 
+    private fun unloadWorldAfterEvacuation(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
+        val future = CompletableFuture<Boolean>()
+        val worldData = repository.findByUuid(worldUuid)
+        if (worldData == null) {
+            future.complete(false)
+            return future
+        }
+
+        val folderName = getWorldFolderName(worldData)
+        val world = Bukkit.getWorld(folderName)
+        if (world == null) {
+            future.complete(true)
+            return future
+        }
+
+        val players = world.players.toList()
+        if (players.isEmpty()) {
+            future.complete(plugin.server.unloadWorld(world, save))
+            return future
+        }
+
+        val evacuationLocation = getEvacuationLocation()
+        evacuationLocation.chunk.load()
+
+        for (player in players) {
+            if (!player.isOnline || player.world.name != folderName) continue
+            player.teleport(evacuationLocation)
+            player.sendMessage(
+                    plugin.languageManager.getMessage(
+                            player,
+                            "messages.world_unloading_evacuation"
+                    )
+            )
+        }
+
+        val waitTicks =
+                plugin.config.getLong("world_unload.evacuation_wait_ticks", 5L).coerceAtLeast(1L)
+        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            val currentWorld = Bukkit.getWorld(folderName)
+            if (currentWorld == null) {
+                future.complete(true)
+                return@Runnable
+            }
+
+            if (currentWorld.players.isNotEmpty()) {
+                plugin.logger.warning(
+                        "[MyWorldManager] Failed to unload $folderName: players remain after evacuation."
+                )
+                future.complete(false)
+                return@Runnable
+            }
+
+            future.complete(plugin.server.unloadWorld(currentWorld, save))
+        }, waitTicks)
+
+        return future
+    }
+
     /** ワールドフォルダ名を取得する（my_world.UUID または customWorldName） */
     fun getWorldFolderName(worldData: WorldData): String {
         return worldData.customWorldName ?: "my_world.${worldData.uuid}"
@@ -536,14 +595,18 @@ class WorldService(
     /** ワールドを完全に削除する */
     fun deleteWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
-        if (unloadWorld(worldUuid, false)) { // セーブせずにアンロード
+        unloadWorldAfterEvacuation(worldUuid, false).thenAccept { unloaded ->
+            if (!unloaded) {
+                future.complete(false)
+                return@thenAccept
+            }
+
             val worldData = repository.findByUuid(worldUuid)
             if (worldData == null) {
                 future.complete(false)
-                return future
+                return@thenAccept
             }
 
-            // ポイント返還処理
             val stats = playerStatsRepository.findByUuid(worldData.owner)
             val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
             val refund = (worldData.cumulativePoints * refundRate).toInt()
@@ -555,57 +618,35 @@ class WorldService(
 
             val folderName = getWorldFolderName(worldData)
             val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
-            
             val folder = if (worldData.isArchived) {
                 File(archiveFolder, folderName)
             } else {
                 File(Bukkit.getWorldContainer(), folderName)
             }
 
-            if (folder.exists()) {
-                val deleted = folder.deleteRecursively()
-                if (deleted) {
-                    repository.delete(worldUuid)
-                    reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
-
-                    Bukkit.getPluginManager().callEvent(
-                            MwmWorldDeletedEvent(
-                                    worldUuid = worldUuid,
-                                    ownerUuid = worldData.owner,
-                                    refundPoints = refund,
-                                    wasArchived = worldData.isArchived
-                            )
-                    )
-
-                    // マクロ実行
-                    plugin.macroManager.execute(
-                            "on_world_delete",
-                            mapOf("world_uuid" to worldUuid.toString())
-                    )
-                    future.complete(true)
-                } else {
-                    future.complete(false)
-                }
-            } else {
-                // フォルダがない場合もデータだけ削除
-                repository.delete(worldUuid)
-                reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
-                Bukkit.getPluginManager().callEvent(
-                        MwmWorldDeletedEvent(
-                                worldUuid = worldUuid,
-                                ownerUuid = worldData.owner,
-                                refundPoints = refund,
-                                wasArchived = worldData.isArchived
-                        )
-                )
-                future.complete(true)
+            if (folder.exists() && !folder.deleteRecursively()) {
+                future.complete(false)
+                return@thenAccept
             }
-        } else {
-            future.complete(false)
+
+            repository.delete(worldUuid)
+            reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
+            Bukkit.getPluginManager().callEvent(
+                    MwmWorldDeletedEvent(
+                            worldUuid = worldUuid,
+                            ownerUuid = worldData.owner,
+                            refundPoints = refund,
+                            wasArchived = worldData.isArchived
+                    )
+            )
+            plugin.macroManager.execute(
+                    "on_world_delete",
+                    mapOf("world_uuid" to worldUuid.toString())
+            )
+            future.complete(true)
         }
         return future
     }
-
     private fun reduceOwnerSlotOnDeleteIfEnabled(ownerUuid: UUID) {
         if (!plugin.config.getBoolean("deletion.reduce_owner_slot", false)) {
             return
@@ -631,7 +672,13 @@ class WorldService(
             future.complete(false)
             return future
         }
-        if (unloadWorld(worldUuid, true)) {
+
+        unloadWorldAfterEvacuation(worldUuid, true).thenAccept { unloaded ->
+            if (!unloaded) {
+                future.complete(false)
+                return@thenAccept
+            }
+
             val folderName = getWorldFolderName(worldData)
             val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
             if (!archiveFolder.exists()) archiveFolder.mkdirs()
@@ -639,12 +686,10 @@ class WorldService(
             val sourceFile = File(plugin.server.worldContainer, folderName)
             val targetFile = File(archiveFolder, folderName)
 
-            if (sourceFile.exists()) {
-                if (!sourceFile.renameTo(targetFile)) {
-                    plugin.logger.severe("Failed to move world directory to archive: $folderName")
-                    future.complete(false)
-                    return future
-                }
+            if (sourceFile.exists() && !sourceFile.renameTo(targetFile)) {
+                plugin.logger.severe("Failed to move world directory to archive: $folderName")
+                future.complete(false)
+                return@thenAccept
             }
 
             worldData.isArchived = true
@@ -652,8 +697,6 @@ class WorldService(
             worldData.archiveTransitionType = if (isAutomaticTransition) "AUTO" else "MANUAL"
             repository.save(worldData)
             future.complete(true)
-        } else {
-            future.complete(false)
         }
         return future
     }

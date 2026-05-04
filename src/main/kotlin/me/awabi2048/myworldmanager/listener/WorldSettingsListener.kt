@@ -5070,20 +5070,24 @@ player.sendMessage(
                         return
                 }
                 val worldName = worldData.name
-                if (plugin.worldService.deleteWorld(worldData.uuid).get()) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        "messages.delete_success",
-                                        mapOf("world" to worldName)
-                                )
-                        )
-                        plugin.soundManager.playActionSound(player, "creation", "delete")
-                        plugin.settingsSessionManager.endSession(player)
-                        player.closeInventory()
-                } else {
-                        player.sendMessage(plugin.languageManager.getMessage("error.delete_failed"))
-                        plugin.worldSettingsGui.open(player, worldData)
+                plugin.worldService.deleteWorld(worldData.uuid).thenAccept { success ->
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                                if (success) {
+                                        player.sendMessage(
+                                                plugin.languageManager.getMessage(
+                                                        player,
+                                                        "messages.delete_success",
+                                                        mapOf("world" to worldName)
+                                                )
+                                        )
+                                        plugin.soundManager.playActionSound(player, "creation", "delete")
+                                        plugin.settingsSessionManager.endSession(player)
+                                        player.closeInventory()
+                                } else {
+                                        player.sendMessage(plugin.languageManager.getMessage("error.delete_failed"))
+                                        plugin.worldSettingsGui.open(player, worldData)
+                                }
+                        })
                 }
         }
 
