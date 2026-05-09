@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.util.BiomeResolver
 import org.bukkit.Bukkit
 import org.bukkit.attribute.Attribute
 import org.bukkit.event.EventHandler
@@ -80,7 +81,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         val biomeStr = worldData.fixedBiome
         var baseBiome: org.bukkit.block.Biome? = null
         if (biomeStr != null) {
-            baseBiome = try { org.bukkit.block.Biome.valueOf(biomeStr) } catch (e: Exception) { null }
+            baseBiome = BiomeResolver.match(biomeStr)
         }
         
         val chunk = event.chunk
@@ -129,7 +130,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
             val chunkMaxZ = chunkMinZ + 15
             
             worldData.partialBiomes.forEach { partial ->
-                val pDataBiome = try { org.bukkit.block.Biome.valueOf(partial.biome) } catch (e: Exception) { return@forEach }
+                val pDataBiome = BiomeResolver.match(partial.biome) ?: return@forEach
                 
                 // Simple bounding box check to optimize
                 if (partial.x + partial.radius < chunkMinX || partial.x - partial.radius > chunkMaxX ||

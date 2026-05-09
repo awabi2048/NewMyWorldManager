@@ -125,7 +125,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         inventory.setItem(40, createItem(
             Material.NETHER_STAR,
             "§bMyWorldManager",
-            listOf("§7Version: " + plugin.description.version, "§7Author: awabi2048"),
+            listOf("§7Version: " + plugin.pluginMeta.version, "§7Author: awabi2048"),
             ItemTag.TYPE_GUI_INFO
         ))
 

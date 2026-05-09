@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package me.awabi2048.myworldmanager.task
 
 import me.awabi2048.myworldmanager.MyWorldManager

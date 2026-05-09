@@ -403,7 +403,7 @@ class WorldCommand(
 
                 // インベントリに追加を試みる
                 val result = targetPlayer.inventory.addItem(item)
-                val displayName = item.itemMeta?.displayName ?: customItem.id
+                val displayName = item.itemMeta?.displayName() ?: customItem.id
                 
                 // インベントリがいっぱいで、アイテムがドロップされたかどうかを確認
                 if (result.isNotEmpty()) {

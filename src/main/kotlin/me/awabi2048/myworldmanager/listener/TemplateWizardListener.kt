@@ -1,3 +1,5 @@
+@file:Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
+
 package me.awabi2048.myworldmanager.listener
 
 import io.papermc.paper.connection.PlayerGameConnection

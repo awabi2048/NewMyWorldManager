@@ -1,3 +1,5 @@
+@file:Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD", "UNNECESSARY_SAFE_CALL")
+
 package me.awabi2048.myworldmanager.listener
 
 import java.util.UUID
@@ -13,6 +15,7 @@ import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -4068,7 +4071,7 @@ player.sendMessage(
                 }
 
                 try {
-                        org.bukkit.block.Biome.valueOf(biomeId.uppercase())
+                        BiomeResolver.match(biomeId) ?: throw IllegalArgumentException()
                         worldData.fixedBiome = biomeId.uppercase()
                         worldData.partialBiomes.clear()
                         stats.worldPoint -= cost
@@ -4154,7 +4157,7 @@ player.sendMessage(
                 val biomeStr = worldData.fixedBiome ?: return
                 val biome =
                         try {
-                                org.bukkit.block.Biome.valueOf(biomeStr)
+                                BiomeResolver.match(biomeStr) ?: throw IllegalArgumentException()
                         } catch (e: Exception) {
                                 return
                         }
@@ -4993,7 +4996,7 @@ player.sendMessage(
                 }
 
                 try {
-                        org.bukkit.block.Biome.valueOf(biomeId.uppercase())
+                        BiomeResolver.match(biomeId) ?: throw IllegalArgumentException()
                         worldData.fixedBiome = biomeId.uppercase()
                         worldData.partialBiomes.clear()
                         stats.worldPoint -= cost

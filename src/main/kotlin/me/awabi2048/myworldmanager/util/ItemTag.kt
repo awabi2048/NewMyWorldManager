@@ -135,11 +135,11 @@ object ItemTag {
             ItemFlag.HIDE_ENCHANTS,
             ItemFlag.HIDE_DESTROYS,
             ItemFlag.HIDE_PLACED_ON,
-            ItemFlag.HIDE_ADDITIONAL_TOOLTIP,
             ItemFlag.HIDE_DYE,
             ItemFlag.HIDE_ARMOR_TRIM,
             ItemFlag.HIDE_STORED_ENCHANTS
         )
+        ItemMetaCompat.hideAdditionalTooltip(meta)
     }
 
     fun getType(item: ItemStack): String? {

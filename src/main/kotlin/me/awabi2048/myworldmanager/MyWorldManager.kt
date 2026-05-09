@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager
 
 import com.awabi2048.ccsystem.CCSystem
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.command.*
 import me.awabi2048.myworldmanager.gui.*
 import me.awabi2048.myworldmanager.listener.*
@@ -31,6 +32,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var creationSessionManager: CreationSessionManager
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
+    private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
 
@@ -133,6 +135,13 @@ class MyWorldManager : JavaPlugin() {
         directoryManager.checkDirectories()
 
         playerStatsRepository = PlayerStatsRepository(this)
+        worldPointApiService = MyWorldManagerApi.WorldPointService { playerUuid, amount ->
+            require(amount >= 0) { "amount must be non-negative" }
+            val stats = playerStatsRepository.findByUuid(playerUuid)
+            stats.worldPoint += amount
+            playerStatsRepository.save(stats)
+            stats.worldPoint
+        }.also { MyWorldManagerApi.registerWorldPointService(it) }
         portalRepository = PortalRepository(this)
         spotlightRepository = SpotlightRepository(this)
         pendingInteractionRepository = PendingInteractionRepository(this)
@@ -297,7 +306,7 @@ class MyWorldManager : JavaPlugin() {
         LogUtil.logWithSeparator(
                 logger,
                 listOf(
-                        "MyWorldManager ${description.version} has been enabled!",
+                        "MyWorldManager ${pluginMeta.version} has been enabled!",
                         "Developed by awabi2048"
                 )
         )
@@ -317,6 +326,8 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
+        worldPointApiService = null
         runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
@@ -327,7 +338,7 @@ class MyWorldManager : JavaPlugin() {
 
         LogUtil.logWithSeparator(
                 logger,
-                listOf("MyWorldManager ${description.version} has been disabled.", "Goodbye!")
+                listOf("MyWorldManager ${pluginMeta.version} has been disabled.", "Goodbye!")
         )
     }
 

@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -94,9 +95,8 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
 
-                val targetBiome = try {
-                    org.bukkit.block.Biome.valueOf(biomeId.uppercase())
-                } catch (e: IllegalArgumentException) {
+                val targetBiome = BiomeResolver.match(biomeId)
+                if (targetBiome == null) {
                     player.sendMessage("§cInvalid biome data.")
                     return
                 }
