@@ -58,6 +58,8 @@ import net.kyori.adventure.key.Key
 import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 import io.papermc.paper.connection.PlayerGameConnection
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.event.HoverEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 
@@ -966,10 +968,22 @@ class WorldSettingsListener : Listener {
                                                         "messages.expand_direction_prompt"
                                                 }
                                         player.sendMessage(
-                                                plugin.languageManager.getMessage(
-                                                        player,
-                                                        promptKey
-                                                )
+                                                Component.text()
+                                                        .append(
+                                                                Component.text(
+                                                                        plugin.languageManager.getMessage(
+                                                                                player,
+                                                                                promptKey
+                                                                        )
+                                                                )
+                                                        )
+                                                        .append(Component.newline())
+                                                        .append(
+                                                                Component.text("§7ワールド設定メニューを開いてキャンセルします。")
+                                                                        .clickEvent(ClickEvent.runCommand("/worldmenu"))
+                                                                        .hoverEvent(HoverEvent.showText(Component.text("§aクリックで開く")))
+                                                        )
+                                                        .build()
                                         )
                                 } else if (type == ItemTag.TYPE_GUI_CANCEL ||
                                                 type == ItemTag.TYPE_GUI_BACK ||
@@ -1229,11 +1243,23 @@ class WorldSettingsListener : Listener {
                                                         )
 
                                                 player.sendMessage(
-                                                        plugin.languageManager.getMessage(
-                                                                player,
-                                                                if (isBedrock) "messages.spawn_set_start_bedrock" else "messages.spawn_set_start",
-                                                                mapOf("type" to typeName)
-                                                        )
+                                                        Component.text()
+                                                                .append(
+                                                                        Component.text(
+                                                                                plugin.languageManager.getMessage(
+                                                                                        player,
+                                                                                        if (isBedrock) "messages.spawn_set_start_bedrock" else "messages.spawn_set_start",
+                                                                                        mapOf("type" to typeName)
+                                                                                )
+                                                                        )
+                                                                )
+                                                                .append(Component.newline())
+                                                                .append(
+                                                                        Component.text("§7ワールド設定メニューを開いてキャンセルします。")
+                                                                                .clickEvent(ClickEvent.runCommand("/worldmenu"))
+                                                                                .hoverEvent(HoverEvent.showText(Component.text("§aクリックで開く")))
+                                                                )
+                                                                .build()
                                                 )
                                                 plugin.settingsSessionManager.updateSessionAction(
                                                         player,
@@ -3487,11 +3513,7 @@ plugin.languageManager
         private fun isSpawnAreaPlaceable(spawnLoc: Location): Boolean {
                 val feetBlock = spawnLoc.block
                 val headBlock = spawnLoc.clone().add(0.0, 1.0, 0.0).block
-                return isAirOrWater(feetBlock.type) && isAirOrWater(headBlock.type)
-        }
-
-        private fun isAirOrWater(material: Material): Boolean {
-                return material.isAir || material == Material.WATER
+                return feetBlock.isPassable && headBlock.isPassable
         }
 
         private fun spawnSpawnPreview(
@@ -3650,6 +3672,69 @@ plugin.languageManager
                         val z = startZ + (endZ - startZ) * t
                         player.spawnParticle(Particle.DUST, x, y, z, 1, 0.0, 0.0, 0.0, 0.0, dust)
                 }
+        }
+
+        private fun spawnLineWithTenParticlesWax(
+                player: Player,
+                startX: Double,
+                startY: Double,
+                startZ: Double,
+                endX: Double,
+                endY: Double,
+                endZ: Double,
+                particle: Particle
+        ) {
+                for (i in 0..9) {
+                        val t = i.toDouble() / 9.0
+                        val x = startX + (endX - startX) * t
+                        val y = startY + (endY - startY) * t
+                        val z = startZ + (endZ - startZ) * t
+                        player.spawnParticle(particle, x, y, z, 1, 0.0, 0.0, 0.0, 0.0)
+                }
+        }
+
+        private fun spawnSpawnBlockOutlineWax(
+                player: Player,
+                blockX: Int,
+                blockY: Int,
+                blockZ: Int,
+                particle: Particle,
+                drawBottomFace: Boolean,
+                drawTopFace: Boolean
+        ) {
+                val minX = blockX.toDouble()
+                val minY = blockY.toDouble()
+                val minZ = blockZ.toDouble()
+                val maxX = blockX + 1.0
+                val maxY = blockY + 1.0
+                val maxZ = blockZ + 1.0
+
+                if (drawBottomFace) {
+                        spawnLineWithTenParticlesWax(player, minX, minY, minZ, maxX, minY, minZ, particle)
+                        spawnLineWithTenParticlesWax(player, minX, minY, maxZ, maxX, minY, maxZ, particle)
+                        spawnLineWithTenParticlesWax(player, minX, minY, minZ, minX, minY, maxZ, particle)
+                        spawnLineWithTenParticlesWax(player, maxX, minY, minZ, maxX, minY, maxZ, particle)
+                }
+                if (drawTopFace) {
+                        spawnLineWithTenParticlesWax(player, minX, maxY, minZ, maxX, maxY, minZ, particle)
+                        spawnLineWithTenParticlesWax(player, minX, maxY, maxZ, maxX, maxY, maxZ, particle)
+                        spawnLineWithTenParticlesWax(player, minX, maxY, minZ, minX, maxY, maxZ, particle)
+                        spawnLineWithTenParticlesWax(player, maxX, maxY, minZ, maxX, maxY, maxZ, particle)
+                }
+
+                spawnLineWithTenParticlesWax(player, minX, minY, minZ, minX, maxY, minZ, particle)
+                spawnLineWithTenParticlesWax(player, maxX, minY, minZ, maxX, maxY, minZ, particle)
+                spawnLineWithTenParticlesWax(player, minX, minY, maxZ, minX, maxY, maxZ, particle)
+                spawnLineWithTenParticlesWax(player, maxX, minY, maxZ, maxX, maxY, maxZ, particle)
+        }
+
+        private fun showSpawnConfirmEffect(player: Player, spawnLoc: Location, isGuest: Boolean) {
+                val waxParticle = if (isGuest) Particle.WAX_ON else Particle.WAX_OFF
+                val blockY = spawnLoc.blockY
+                spawnSpawnBlockOutlineWax(player, spawnLoc.blockX, blockY, spawnLoc.blockZ, waxParticle,
+                        drawBottomFace = true, drawTopFace = false)
+                spawnSpawnBlockOutlineWax(player, spawnLoc.blockX, blockY + 1, spawnLoc.blockZ, waxParticle,
+                        drawBottomFace = false, drawTopFace = true)
         }
 
         private fun startBorderDirectionPreview(player: Player) {
@@ -3913,6 +3998,7 @@ player.sendMessage(
                                 }
                                 plugin.worldConfigRepository.save(worldData)
                                 stopSpawnPreview(player)
+                                showSpawnConfirmEffect(player, loc, currentAction == SettingsAction.SET_SPAWN_GUEST || setBoth)
                                 plugin.worldSettingsGui.open(player, worldData)
                         }
                         return

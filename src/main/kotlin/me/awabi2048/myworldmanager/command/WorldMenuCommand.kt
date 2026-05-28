@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.command
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -39,9 +40,25 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
             return true
         }
 
+        // ブロック入力中のアクションをキャンセル
+        cancelBlockInputAction(player)
+
         // GUIを開く
         val showBackButton = args.contains("-menu")
         plugin.menuEntryRouter.openWorldSettings(player, worldData, showBackButton)
         return true
+    }
+
+    private fun cancelBlockInputAction(player: Player) {
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
+        val blockInputActions = setOf(
+                SettingsAction.SET_SPAWN_GUEST,
+                SettingsAction.SET_SPAWN_MEMBER,
+                SettingsAction.EXPAND_DIRECTION_WAIT,
+                SettingsAction.EXPAND_DIRECTION_CONFIRM
+        )
+        if (session.action in blockInputActions) {
+            player.sendMessage("§c設定をキャンセルしました")
+        }
     }
 }
