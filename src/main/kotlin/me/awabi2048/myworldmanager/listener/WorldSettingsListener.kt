@@ -3463,7 +3463,7 @@ plugin.languageManager
                                                 spawnSpawnPreview(player, spawnLoc, yaw, placeable)
                                         },
                                         0L,
-                                        10L
+                                        2L
                                 )
         }
 
@@ -3677,7 +3677,7 @@ plugin.languageManager
                                                 spawnBorderDirectionArrows(player)
                                         },
                                         0L,
-                                        10L
+                                        2L
                                 )
         }
 
@@ -3687,20 +3687,22 @@ plugin.languageManager
 
         private fun spawnBorderDirectionArrows(player: Player) {
                 val center = player.location
-                val yaw = normalizeToCardinalYaw(center.yaw)
-                val rad = Math.toRadians(yaw.toDouble())
-                val forwardX = -kotlin.math.sin(rad)
-                val forwardZ = kotlin.math.cos(rad)
-                val rightX = kotlin.math.cos(rad)
-                val rightZ = kotlin.math.sin(rad)
+                var yaw = center.yaw
+                while (yaw < -180) yaw += 360
+                while (yaw >= 180) yaw -= 360
+
+                val (dirX, dirZ) = when {
+                        yaw >= 0 && yaw < 90 -> -1.0 to 1.0    // SOUTH_WEST
+                        yaw >= 90 && yaw < 180 -> -1.0 to -1.0  // NORTH_WEST
+                        yaw >= -90 && yaw < 0 -> 1.0 to 1.0     // SOUTH_EAST
+                        else -> 1.0 to -1.0                      // NORTH_EAST
+                }
+
                 val offset = 1.35
                 val y = center.y + 1.0
                 val dust = Particle.DustOptions(Color.AQUA, 0.5f)
 
-                spawnBorderDirectionArrow(player, center, y, forwardX - rightX, forwardZ - rightZ, offset, dust)
-                spawnBorderDirectionArrow(player, center, y, forwardX + rightX, forwardZ + rightZ, offset, dust)
-                spawnBorderDirectionArrow(player, center, y, -forwardX - rightX, -forwardZ - rightZ, offset, dust)
-                spawnBorderDirectionArrow(player, center, y, -forwardX + rightX, -forwardZ + rightZ, offset, dust)
+                spawnBorderDirectionArrow(player, center, y, dirX, dirZ, offset, dust)
         }
 
         private fun spawnBorderDirectionArrow(
