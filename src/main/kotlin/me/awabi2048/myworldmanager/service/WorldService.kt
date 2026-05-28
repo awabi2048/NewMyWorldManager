@@ -491,7 +491,7 @@ class WorldService(
         }
 
         // スポーン地点の決定
-        val targetLoc =
+        val selectedLoc =
                 location
                         ?: if (worldData.spawnPosMember != null &&
                                         (worldData.owner == player.uniqueId ||
@@ -505,10 +505,9 @@ class WorldService(
                             world.spawnLocation
                         }
 
-        // ワールド参照の補完(アーカイブ復帰直後など、参照がnullになっている場合があるため)
-        if (targetLoc.world == null) {
-            targetLoc.world = world
-        }
+        // 再ロード後の保存済みLocationは停止済みの古いWorldを保持している場合があるため、現在のWorldへ差し替える。
+        val targetLoc = selectedLoc.clone()
+        targetLoc.world = world
 
         val executeTeleport = Runnable {
             if (!player.isOnline) {
