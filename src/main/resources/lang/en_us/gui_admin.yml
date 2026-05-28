@@ -4,7 +4,7 @@ gui:
     info:
       display: §fStatistics
       total_count: '§7Results: §f{count}'
-      page: '§7Page: §f{current} / {max}'
+      page: '§7Page: §f{page} / {total_pages}'
     world_item:
       lore:
       - §8§m－－－－－－－－－－－－－－－－－－

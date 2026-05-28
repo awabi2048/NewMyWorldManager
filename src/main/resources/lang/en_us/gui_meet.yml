@@ -10,7 +10,7 @@ gui:
       click_visit: §e§l| §eClick §7Warp to this world
       click_request: §e§l| §eClick §7Send warp request
     status_button:
-      display: §aStatus Settings
+      display: §a{player}
       current: '§f§l| §7Current Status: §e{status}'
       next: '§f§l| §7Next Status: §7{next_status}'
       click: §e§nClick to toggle

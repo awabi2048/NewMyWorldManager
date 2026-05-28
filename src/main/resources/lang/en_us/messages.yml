@@ -1,7 +1,7 @@
 messages:
   world_name_prompt: §ePlease type the world name in chat.
   chat_input_cancel_hint: §7(Type §e{word} §7in chat to cancel)
-  wizard_cancel_word: cancel
+  wizard_cancel_word: §7(Type §e{word} §7in chat to cancel)
   unlink_success: §aWorld unlinked successfully.
   unlink_failed: §cFailed to unlink world.
   unlink_not_myworld: §cThis world is not a MyWorld.
@@ -77,7 +77,7 @@ messages:
   member_request_approved: §aYour member request has been approved!
   member_request_rejected: §cYour member request was declined.
   member_request_expired: §cThe request has expired
-  visitor_notified: §e{player} §fvisited your world!
+  visitor_notified: §e{player} §fvisited §a{world}§f!
   kicked: §cYou have been kicked from this world.
   kicked_success: §aKicked {player}.
   admin_player_filter_set: §aPlayer filter set to {player}.
