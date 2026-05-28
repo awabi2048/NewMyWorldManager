@@ -91,7 +91,7 @@ gui:
         edit: Edit tags
     expand:
       display: §aExpand World
-      cost: §f§l| §7Cost §6🛖 §e{cost} §7({level_before} §f→ §e§l{level_after}§7)
+      cost: §f§l| §7Cost §6🛖 §e{cost}
       lore_upgrade:
       - §8§m－－－－－－－－－－－－－－－－－－
       - §f§l| §7Current expansion level §e§l{current}/{max}
@@ -504,7 +504,7 @@ gui:
     title: Manage Visitors
     no_visitors: §cThere are currently no visitors in this world.
     kick_confirm:
-      title: 'Confirm Kick: {player}'
+      title: Confirm Kick
       question: §cReally kick?
       player: §f§l| §7Player §f{player}
       cancel: §aCancel

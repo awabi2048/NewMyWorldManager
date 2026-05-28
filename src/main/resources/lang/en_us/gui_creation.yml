@@ -25,7 +25,7 @@ gui:
       insufficient: §cInsufficient points (§6🛖 §e{shortage} short)
     insufficient: §cInsufficient points (§6🛖 §e{shortage} short)
     limit_reached: §cYou have reached the limit of world creation. ({current}/{max})
-    limit_reached_total: §cThe server-wide limit for world creation ({limit}) has been reached.
+    limit_reached_total: §cThe server-wide limit for world creation ({max}) has been reached.
     command_limit_reached_total: §c[Warning] The number of worlds created on the entire server has reached the upper limit ({max}), so it cannot be created.
     command_limit_reached: '§c[Warning] The target player ({player}) cannot create a world because the number of worlds he can create has reached the upper limit. (Currently: {current}/{max})'
     template_item:
