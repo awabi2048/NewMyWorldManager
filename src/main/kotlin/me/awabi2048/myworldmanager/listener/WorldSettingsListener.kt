@@ -66,6 +66,7 @@ class WorldSettingsListener : Listener {
         private val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         private val pendingExpansions = mutableMapOf<UUID, PendingExpansion>()
         private val spawnPreviewTasks = mutableMapOf<UUID, BukkitTask>()
+        private val borderDirectionPreviewTasks = mutableMapOf<UUID, BukkitTask>()
 
         data class PendingExpansion(
                 val worldData: WorldData,
@@ -101,6 +102,7 @@ class WorldSettingsListener : Listener {
 
                 // 蜈ｱ騾壹Γ繧ｽ繝・ラ: 繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺ｨ繧ｯ繝ｪ繝・け髻ｳ
                 fun handleCommandCancel() {
+                        stopBorderDirectionPreview(player)
                         plugin.soundManager.playClickSound(player, item, "world_settings")
                         plugin.worldSettingsGui.open(player, worldData)
                 }
@@ -955,6 +957,7 @@ class WorldSettingsListener : Listener {
                                                 "world_settings"
                                         )
                                         session.action = SettingsAction.EXPAND_DIRECTION_WAIT
+                                        startBorderDirectionPreview(player)
                                         player.closeInventory()
                                         val promptKey =
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
@@ -2579,6 +2582,7 @@ plugin.languageManager
                                 }
 
                                 latestSession.action = SettingsAction.EXPAND_DIRECTION_WAIT
+                                startBorderDirectionPreview(player)
                                 player.sendMessage(
                                         lang.getMessage(player, "messages.expand_direction_prompt_bedrock")
                                 )
@@ -3414,6 +3418,7 @@ plugin.languageManager
         @EventHandler
         fun onWorldChange(event: PlayerChangedWorldEvent) {
                 stopSpawnPreview(event.player)
+                stopBorderDirectionPreview(event.player)
                 clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
         }
@@ -3421,6 +3426,7 @@ plugin.languageManager
         @EventHandler
         fun onQuit(event: PlayerQuitEvent) {
                 stopSpawnPreview(event.player)
+                stopBorderDirectionPreview(event.player)
                 clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
         }
@@ -3646,6 +3652,82 @@ plugin.languageManager
                 }
         }
 
+        private fun startBorderDirectionPreview(player: Player) {
+                stopBorderDirectionPreview(player)
+                borderDirectionPreviewTasks[player.uniqueId] =
+                        Bukkit.getScheduler()
+                                .runTaskTimer(
+                                        plugin,
+                                        Runnable {
+                                                if (!player.isOnline) {
+                                                        stopBorderDirectionPreview(player)
+                                                        return@Runnable
+                                                }
+
+                                                val session =
+                                                        plugin.settingsSessionManager.getSession(player)
+                                                if (session == null ||
+                                                                session.action !=
+                                                                        SettingsAction.EXPAND_DIRECTION_WAIT
+                                                ) {
+                                                        stopBorderDirectionPreview(player)
+                                                        return@Runnable
+                                                }
+
+                                                spawnBorderDirectionArrows(player)
+                                        },
+                                        0L,
+                                        10L
+                                )
+        }
+
+        private fun stopBorderDirectionPreview(player: Player) {
+                borderDirectionPreviewTasks.remove(player.uniqueId)?.cancel()
+        }
+
+        private fun spawnBorderDirectionArrows(player: Player) {
+                val center = player.location
+                val yaw = normalizeToCardinalYaw(center.yaw)
+                val rad = Math.toRadians(yaw.toDouble())
+                val forwardX = -kotlin.math.sin(rad)
+                val forwardZ = kotlin.math.cos(rad)
+                val rightX = kotlin.math.cos(rad)
+                val rightZ = kotlin.math.sin(rad)
+                val offset = 1.35
+                val y = center.y + 1.0
+                val dust = Particle.DustOptions(Color.AQUA, 0.5f)
+
+                spawnBorderDirectionArrow(player, center, y, forwardX - rightX, forwardZ - rightZ, offset, dust)
+                spawnBorderDirectionArrow(player, center, y, forwardX + rightX, forwardZ + rightZ, offset, dust)
+                spawnBorderDirectionArrow(player, center, y, -forwardX - rightX, -forwardZ - rightZ, offset, dust)
+                spawnBorderDirectionArrow(player, center, y, -forwardX + rightX, -forwardZ + rightZ, offset, dust)
+        }
+
+        private fun spawnBorderDirectionArrow(
+                player: Player,
+                center: Location,
+                y: Double,
+                directionX: Double,
+                directionZ: Double,
+                offset: Double,
+                dust: Particle.DustOptions
+        ) {
+                val length = kotlin.math.sqrt(directionX * directionX + directionZ * directionZ)
+                if (length <= 0.0) return
+
+                val normalizedX = directionX / length
+                val normalizedZ = directionZ / length
+                val start =
+                        Location(
+                                center.world,
+                                center.x + normalizedX * offset - normalizedX * 0.5,
+                                y,
+                                center.z + normalizedZ * offset - normalizedZ * 0.5
+                        )
+                val yaw = Math.toDegrees(kotlin.math.atan2(-normalizedX, normalizedZ)).toFloat()
+                spawnDirectionArrow(player, start, yaw, dust)
+        }
+
         private fun processImmediateExpansion(player: Player) {
                 val pending = pendingExpansions.remove(player.uniqueId) ?: return
                 pending.task.cancel()
@@ -3720,6 +3802,7 @@ player.sendMessage(
 
                                 settingsSession.expansionDirection = direction
                                 settingsSession.action = SettingsAction.EXPAND_DIRECTION_CONFIRM
+                                stopBorderDirectionPreview(player)
 
                                 val worldData =
                                         plugin.worldConfigRepository.findByUuid(
@@ -4355,6 +4438,7 @@ player.sendMessage(
                                 if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
                                         clearBorderPreview(player)
                                         session.action = SettingsAction.EXPAND_DIRECTION_WAIT
+                                        startBorderDirectionPreview(player)
                                         val promptKey =
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                                         "messages.expand_direction_prompt_bedrock"
