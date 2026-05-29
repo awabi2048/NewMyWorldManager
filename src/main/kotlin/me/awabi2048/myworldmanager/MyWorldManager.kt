@@ -2,6 +2,11 @@ package me.awabi2048.myworldmanager
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.internal.MemberManagerAdapter
+import me.awabi2048.myworldmanager.api.internal.TemplateRepositoryAdapter
+import me.awabi2048.myworldmanager.api.internal.WorldRepositoryAdapter
+import me.awabi2048.myworldmanager.api.internal.WorldServiceAdapter
+import me.awabi2048.myworldmanager.api.internal.WorldTagServiceAdapter
 import me.awabi2048.myworldmanager.command.*
 import me.awabi2048.myworldmanager.gui.*
 import me.awabi2048.myworldmanager.listener.*
@@ -224,6 +229,12 @@ class MyWorldManager : JavaPlugin() {
         server.scheduler.runTaskTimer(this, Runnable {
             internalCommandTokenManager.cleanupExpired()
         }, 20L, 20L)
+
+        MyWorldManagerApi.registerWorldService(WorldServiceAdapter(this))
+        MyWorldManagerApi.registerWorldRepository(WorldRepositoryAdapter(this))
+        MyWorldManagerApi.registerTemplateRepository(TemplateRepositoryAdapter(this))
+        MyWorldManagerApi.registerMemberManager(MemberManagerAdapter(this))
+        MyWorldManagerApi.registerWorldTagService(WorldTagServiceAdapter(this))
 
         inviteCommand = InviteCommand(this)
 
