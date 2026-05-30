@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
@@ -155,22 +156,18 @@ class CreationGui(private val plugin: MyWorldManager) {
             WorldCreationType.TEMPLATE -> {
                 val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
                 val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
-                "§f❙ §7テンプレート §b$displayName"
+                CCSystem.getAPI().createLoreSubDataLine("テンプレート", displayName)
             }
-            WorldCreationType.SEED -> "§f❙ §7シード値 §b${session.inputSeedString ?: ""}"
-            WorldCreationType.RANDOM -> "§f❙ §7生成方法 §bランダム"
-            null -> "§f❙ §7生成方法 §b${lang.getMessage(player, "general.unknown")}"
+            WorldCreationType.SEED -> CCSystem.getAPI().createLoreSubDataLine("シード値", session.inputSeedString ?: "")
+            WorldCreationType.RANDOM -> CCSystem.getAPI().createLoreSubDataLine("生成方法", "ランダム")
+            null -> CCSystem.getAPI().createLoreSubDataLine("生成方法", lang.getMessage(player, "general.unknown"))
         }
 
-        val separator = lang.getComponent(player, "gui.common.separator")
-            .decoration(TextDecoration.ITALIC, false)
-        val infoLore = listOf(
-            separator,
-            LegacyComponentSerializer.legacySection().deserialize("§f❙ §7ワールド名 §e$cleanedName")
-                .decoration(TextDecoration.ITALIC, false),
-            LegacyComponentSerializer.legacySection().deserialize(generationLine)
-                .decoration(TextDecoration.ITALIC, false),
-            separator
+        val infoLore = CCSystem.getAPI().buildLore(
+            listOf(
+                CCSystem.getAPI().createLoreDataLine("ワールド名", cleanedName, "§e"),
+                generationLine
+            )
         )
 
         inventory.setItem(22, createItem(Material.PAPER, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_INFO, infoLore))

@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.CCSystem
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -60,7 +61,7 @@ class GuiLoreBuilder(
 
     fun data(entries: List<Pair<String, String>>): GuiLoreBuilder {
         if (entries.isNotEmpty()) {
-            addSection(entries.map { (name, value) -> legacy("§f§l| §7$name $value") })
+            addSection(entries.map { (name, value) -> legacy(CCSystem.getAPI().createLoreDataLine(name, value)) })
         }
         return this
     }
@@ -81,14 +82,7 @@ class GuiLoreBuilder(
             addSection(
                 actions.map {
                     legacy(
-                        languageManager.getMessage(
-                            player,
-                            "gui.common.action_multi",
-                            mapOf(
-                                "operation" to (it.operation ?: ""),
-                                "action" to it.action
-                            )
-                        )
+                        CCSystem.getAPI().createLoreActionLine(it.operation ?: "", it.action)
                     )
                 }
             )
@@ -114,11 +108,7 @@ class GuiLoreBuilder(
             addSection(
                 listOf(
                     legacy(
-                        languageManager.getMessage(
-                            player,
-                            "gui.common.warning",
-                            mapOf("content" to normalized)
-                        )
+                        CCSystem.getAPI().createLoreWarningLine(normalized)
                     )
                 )
             )
@@ -127,8 +117,9 @@ class GuiLoreBuilder(
     }
 
     fun separator(): Component {
-        return languageManager.getComponent(player, "gui.common.separator")
-            .decoration(TextDecoration.ITALIC, false)
+        return CCSystem.getAPI().createLoreSeparatorComponent(
+            sections.flatMap { it.lines }
+        )
     }
 
     fun build(): List<Component> {
