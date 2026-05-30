@@ -23,10 +23,13 @@ import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockUiRoutingService
 import me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
 import me.awabi2048.myworldmanager.util.*
+import org.bukkit.Bukkit
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.util.UUID
 import java.util.jar.JarFile
 
 class MyWorldManager : JavaPlugin() {
@@ -159,6 +162,8 @@ class MyWorldManager : JavaPlugin() {
         worldUnloadService.start()
         likeSignManager = LikeSignManager(this)
         tourManager = TourManager(this)
+
+        loadWorldsFromPreviousShutdown()
 
         // MSPT監視タスクの開始
         msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
@@ -347,10 +352,49 @@ class MyWorldManager : JavaPlugin() {
             internalCommandTokenManager.clearAll()
         }
 
+        saveLoadedWorldsForShutdown()
+
         LogUtil.logWithSeparator(
                 logger,
                 listOf("MyWorldManager ${pluginMeta.version} has been disabled.", "Goodbye!")
         )
+    }
+
+    private fun loadWorldsFromPreviousShutdown() {
+        val file = File(dataFolder, "data/loaded_worlds_at_shutdown.yml")
+        if (!file.exists()) return
+
+        val yaml = YamlConfiguration.loadConfiguration(file)
+        val uuids = yaml.getStringList("uuids").mapNotNull {
+            runCatching { UUID.fromString(it) }.getOrNull()
+        }
+
+        uuids.forEach { uuid ->
+            runCatching { worldService.loadWorld(uuid) }
+        }
+
+        file.delete()
+        logger.info("Loaded ${uuids.size} MyWorld(s) from previous shutdown")
+    }
+
+    private fun saveLoadedWorldsForShutdown() {
+        if (!::worldConfigRepository.isInitialized) return
+
+        val loadedWorldUuids = Bukkit.getWorlds()
+            .filter { it.players.isNotEmpty() }
+            .mapNotNull { worldConfigRepository.findByWorldName(it.name) }
+            .map { it.uuid }
+            .distinct()
+
+        if (loadedWorldUuids.isEmpty()) return
+
+        val dataDir = File(dataFolder, "data")
+        if (!dataDir.exists()) dataDir.mkdirs()
+
+        val yaml = YamlConfiguration()
+        yaml.set("uuids", loadedWorldUuids.map { it.toString() })
+        yaml.set("timestamp", System.currentTimeMillis())
+        yaml.save(File(dataDir, "loaded_worlds_at_shutdown.yml"))
     }
 
     /** 設定ファイルとリポジトリのデータを再読み込みする（再起動と同等の処理） */

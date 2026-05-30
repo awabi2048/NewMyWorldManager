@@ -364,11 +364,7 @@ class WorldService(
 
         return try {
             val creator = WorldCreator(folderName)
-            // creator.environment(worldData.environment) // Missing in WorldData
             plugin.server.createWorld(creator)
-
-            // 最終ロード時刻の更新
-            // worldData.lastLoaded = now.format(formatter) // Missing in WorldData
             repository.save(worldData)
 
             true
