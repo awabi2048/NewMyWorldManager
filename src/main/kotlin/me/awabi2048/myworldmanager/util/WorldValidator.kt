@@ -6,16 +6,11 @@ class WorldValidator(private val plugin: JavaPlugin) {
 
     fun validateName(name: String): String? {
         val minLength = plugin.config.getInt("world_name.min_length", 3)
-        val maxLength = plugin.config.getInt("world_name.max_length", 16)
         val blockedStrings = plugin.config.getStringList("validation.blocked_strings")
 
         if (name.length < minLength) {
             return "ワールド名は${minLength}文字以上である必要があります。"
         }
-        if (name.length > maxLength) {
-            return "ワールド名は${maxLength}文字以下である必要があります。"
-        }
-
         if (blockedStrings.any { name.contains(it, ignoreCase = true) }) {
             return "ワールド名に使用できない文字列が含まれています。"
         }

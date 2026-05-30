@@ -102,8 +102,12 @@ class CreationGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
         
         val templates = plugin.templateRepository.findAll()
+        if (templates.isEmpty()) {
+            player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
+            return
+        }
         val worldsPerRow = 7
-        val neededDataRows = if (templates.isEmpty()) 1 else (templates.size + worldsPerRow - 1) / worldsPerRow
+        val neededDataRows = (templates.size + worldsPerRow - 1) / worldsPerRow
         val rowCount = (neededDataRows + 2).coerceIn(3, 6)
         
         val inventory = Bukkit.createInventory(null, rowCount * 9, title)
@@ -115,8 +119,6 @@ class CreationGui(private val plugin: MyWorldManager) {
             val row = index / worldsPerRow
             val col = index % worldsPerRow
             val slot = (row + 1) * 9 + 1 + col
-            val previewHint = lang.getMessage(player, "gui.creation.template_item.preview_hint")
-            
             val lore = mutableListOf<Component>()
             val desc = template.description // formatted in repo? assuming list of strings
             desc.forEach { line ->
@@ -145,53 +147,54 @@ class CreationGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
         
         val inventory = Bukkit.createInventory(null, 45, title)
-        val config = plugin.config
         
-        setupHeaderFooter(inventory, 5)
-
-        val typeName = when(session.creationType) {
-            WorldCreationType.TEMPLATE -> lang.getMessage(player, "gui.creation.type.template.name")
-            WorldCreationType.SEED -> lang.getMessage(player, "gui.creation.type.seed.name")
-            WorldCreationType.RANDOM -> lang.getMessage(player, "gui.creation.type.random.name")
-            else -> lang.getMessage(player, "general.unknown")
-        }
-
-        val cost = when(session.creationType) {
-            WorldCreationType.TEMPLATE -> config.getInt("creation_cost.template", 0)
-            WorldCreationType.SEED -> config.getInt("creation_cost.seed", 100)
-            WorldCreationType.RANDOM -> config.getInt("creation_cost.random", 50)
-            else -> 0
-        }
+        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
-        
-        val templateLine = if (session.creationType == WorldCreationType.TEMPLATE) {
-            val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
-            val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
-            lang.getMessage(player, "gui.creation.confirm.template_line", mapOf("template" to displayName))
-        } else ""
+        val generationLine = when (session.creationType) {
+            WorldCreationType.TEMPLATE -> {
+                val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
+                val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
+                "§f❙ §7テンプレート §b$displayName"
+            }
+            WorldCreationType.SEED -> "§f❙ §7シード値 §b${session.inputSeedString ?: ""}"
+            WorldCreationType.RANDOM -> "§f❙ §7生成方法 §bランダム"
+            null -> "§f❙ §7生成方法 §b${lang.getMessage(player, "general.unknown")}"
+        }
 
-        val seedLine = if (session.creationType == WorldCreationType.SEED) {
-            lang.getMessage(player, "gui.creation.confirm.seed_line", mapOf("seed" to (session.inputSeedString ?: "")))
-        } else ""
+        val separator = lang.getComponent(player, "gui.common.separator")
+            .decoration(TextDecoration.ITALIC, false)
+        val infoLore = listOf(
+            separator,
+            LegacyComponentSerializer.legacySection().deserialize("§f❙ §7ワールド名 §e$cleanedName")
+                .decoration(TextDecoration.ITALIC, false),
+            LegacyComponentSerializer.legacySection().deserialize(generationLine)
+                .decoration(TextDecoration.ITALIC, false),
+            separator
+        )
 
-        val infoLore = lang.getComponentList(
-            player,
-            "gui.creation.confirm.lore",
-            mapOf(
-                "name" to cleanedName,
-                "type" to typeName,
-                "cost" to cost,
-                "template" to templateLine,
-                "seed" to seedLine
+        inventory.setItem(22, createItem(Material.PAPER, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_INFO, infoLore))
+
+        inventory.setItem(
+            20,
+            createItem(
+                Material.LIME_CONCRETE,
+                lang.getMessage(player, "gui.common.confirm"),
+                ItemTag.TYPE_GUI_CONFIRM,
+                listOf(lang.getComponent(player, "gui.common.confirm_desc").decoration(TextDecoration.ITALIC, false))
             )
         )
 
-        inventory.setItem(22, createItem(Material.BOOK, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_CONFIRM, infoLore))
-        
-        inventory.setItem(40, createBackButton(player))
+        inventory.setItem(
+            24,
+            createItem(
+                Material.RED_CONCRETE,
+                lang.getMessage(player, "gui.common.cancel"),
+                ItemTag.TYPE_GUI_CANCEL,
+                listOf(lang.getComponent(player, "gui.common.cancel_desc").decoration(TextDecoration.ITALIC, false))
+            )
+        )
 
-        fillBackground(inventory)
         player.openInventory(inventory)
     }
 
