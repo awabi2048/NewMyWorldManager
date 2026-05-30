@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -2337,22 +2338,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .decoration(TextDecoration.ITALIC, false)
                 )
 
-                val lore = mutableListOf<String>()
-                val separator = lang.getMessage(viewer, "gui.common.separator")
+                val lines = mutableListOf<String>()
 
-                lore.add(separator)
                 val statusText =
                         if (isOnline) lang.getMessage(viewer, "status.online")
                         else lang.getMessage(viewer, "status.offline")
                 val statusColor = if (isOnline) onlineColor else offlineColor
-                lore.add(
+                lines.add(
                         lang.getMessage(
                                 viewer,
                                 "gui.common.status_display",
                                 mapOf("color" to statusColor, "status" to statusText)
                         )
                 )
-                lore.add(separator)
 
                 if (canKick) {
                         val kickKey =
@@ -2361,11 +2359,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 } else {
                                         "gui.visitor_management.item.kick"
                                 }
-                        lore.add(lang.getMessage(viewer, kickKey))
-                        lore.add(separator)
+                        lines.add(lang.getMessage(viewer, kickKey))
                 }
 
-                meta.lore(lore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
+                val lore = CCSystem.getAPI().buildLore(lines)
+                meta.lore(lore)
                 item.itemMeta = meta
 
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_VISITOR_ITEM)

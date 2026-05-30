@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
@@ -661,32 +662,34 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 )
                         else ""
                 val worldSizeLine = buildWorldSizeLine(player, data)
-                val separator = lang.getComponent(player, "gui.common.separator")
 
-                return me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
-                        lang.getComponentList(
-                                player,
-                                "gui.admin.world_item.lore",
-                                mapOf(
-                                        "uuid_line" to firstLine,
-                                        "world_name_line" to worldNameLine,
-                                        "owner_line" to ownerLine,
-                                        "status_line" to statusLine,
-                                        "publish_line" to publishLine,
-                                        "generation_line" to generationLine,
-                                        "created_line" to createdLine,
-                                        "expire_line" to expireLine,
-                                        "mspt_line" to msptLine,
-                                        "world_size_line" to worldSizeLine,
-                                        "tag_line" to "",
-                                        "action_warp" to actionWarp,
-                                        "action_settings" to actionSettings,
-                                        "action_archive" to actionArchive,
-                                        "uuid_copy_hint" to uuidCopyHint
-                                )
-                        ),
-                        separator
+                val lines = lang.getMessageList(
+                        player,
+                        "gui.admin.world_item.lore",
+                        mapOf(
+                                "uuid_line" to firstLine,
+                                "world_name_line" to worldNameLine,
+                                "owner_line" to ownerLine,
+                                "status_line" to statusLine,
+                                "publish_line" to publishLine,
+                                "generation_line" to generationLine,
+                                "created_line" to createdLine,
+                                "expire_line" to expireLine,
+                                "mspt_line" to msptLine,
+                                "world_size_line" to worldSizeLine,
+                                "tag_line" to "",
+                                "action_warp" to actionWarp,
+                                "action_settings" to actionSettings,
+                                "action_archive" to actionArchive,
+                                "uuid_copy_hint" to uuidCopyHint
+                        )
                 )
+                    .filter { line ->
+                        val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
+                        !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
+                    }
+                    .filter { it.isNotBlank() }
+                return CCSystem.getAPI().buildLore(lines)
         }
 
         private fun getGenerationMethodLabel(player: Player, sourceWorld: String): String {

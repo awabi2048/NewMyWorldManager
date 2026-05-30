@@ -10,6 +10,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import com.awabi2048.ccsystem.CCSystem
 
 class FavoriteMenuGui(private val plugin: MyWorldManager) {
 
@@ -166,22 +167,20 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             val tagNames = worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
             lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to tagNames))
         } else ""
-        val separator = lang.getComponent(player, "gui.common.separator")
-        val lore = me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
-            lang.getComponentList(
-                player,
-                "gui.favorite.current_world.lore",
-                mapOf(
-                    "world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
-                    "description" to formattedDesc,
-                    "owner_line" to ownerLine,
-                    "favorite_line" to favoriteLine,
-                    "visitor_line" to visitorLine,
-                    "tag_line" to tagLine
-                )
-            ),
-            separator
-        )
+        val lines = lang.getMessageList(player, "gui.favorite.current_world.lore", mapOf(
+            "world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
+            "description" to formattedDesc,
+            "owner_line" to ownerLine,
+            "favorite_line" to favoriteLine,
+            "visitor_line" to visitorLine,
+            "tag_line" to tagLine
+        ))
+            .filter { line ->
+                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
+                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
+            }
+            .filter { it.isNotBlank() }
+        val lore = CCSystem.getAPI().buildLore(lines)
 
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.current_world.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         meta.lore(lore)

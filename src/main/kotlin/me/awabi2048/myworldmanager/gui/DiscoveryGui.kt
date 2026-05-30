@@ -15,6 +15,7 @@ import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import com.awabi2048.ccsystem.CCSystem
 import java.time.LocalDate
 
 class DiscoveryGui(private val plugin: MyWorldManager) {
@@ -231,30 +232,25 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 }
                 val loreKey = if (isBedrock) "gui.discovery.world_item.lore_bedrock" else "gui.discovery.world_item.lore"
 
-                val separator = lang.getComponent(player, "gui.common.separator")
-
-                meta.lore(
-                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
-                                lang.getComponentList(
-                                        player,
-                                        loreKey,
-                                        mapOf(
-                                                "description" to formattedDesc,
-                                                "owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")),
-
-                                                "status_color" to ownerColor,
-                                                "favorites" to favorites,
-                                                "visitors" to visitors,
-                                                "tags" to tagNames,
-                                                "warp_hint" to warpHint,
-                                                "preview_hint" to previewHint,
-                                                "member_request_hint" to memberRequestHint,
-                                                "favorite_hint" to favoriteHint
-                                        )
-                                ),
-                                separator
-                        )
-                )
+                val lines = lang.getMessageList(player, loreKey, mapOf(
+                        "description" to formattedDesc,
+                        "owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")),
+                        "status_color" to ownerColor,
+                        "favorites" to favorites,
+                        "visitors" to visitors,
+                        "tags" to tagNames,
+                        "warp_hint" to warpHint,
+                        "preview_hint" to previewHint,
+                        "member_request_hint" to memberRequestHint,
+                        "favorite_hint" to favoriteHint
+                ))
+                    .filter { line ->
+                        val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
+                        !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
+                    }
+                    .filter { it.isNotBlank() }
+                val lore = CCSystem.getAPI().buildLore(lines)
+                meta.lore(lore)
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)

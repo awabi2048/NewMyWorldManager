@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -74,10 +75,8 @@ class InviteGui(private val plugin: MyWorldManager) {
             inventory.setItem(slot, createTargetHead(target, player))
         }
 
-        val statusLore = listOf(
-            lang.getComponent(player, "gui.common.separator"),
-            lang.getComponent(player, "gui.meet.world_item.current_world", mapOf("world" to currentWorldData.name)),
-            lang.getComponent(player, "gui.common.separator")
+        val statusLore = CCSystem.getAPI().buildLore(
+            listOf(lang.getMessage(player, "gui.meet.world_item.current_world", mapOf("world" to currentWorldData.name)))
         )
         inventory.setItem(
             statusSlot,

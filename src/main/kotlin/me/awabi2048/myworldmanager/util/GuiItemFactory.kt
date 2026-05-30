@@ -67,12 +67,13 @@ class GuiLoreBuilder(
     }
 
     fun singleAction(action: String): GuiLoreBuilder {
+        val template = languageManager.getMessage(
+            player,
+            "lore.action_single",
+            mapOf("action" to action)
+        )
         return rawAction(
-            languageManager.getMessage(
-                player,
-                "gui.common.action_single",
-                mapOf("action" to action)
-            ),
+            CCSystem.getAPI().createLoreSingleActionLine(template),
             false
         )
     }
