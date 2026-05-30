@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -160,14 +161,13 @@ class MeetGui(private val plugin: MyWorldManager) {
         // 名前を色分けしたComponentに変換
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize("$colorCode${target.name}").decoration(TextDecoration.ITALIC, false))
 
-        val lore = mutableListOf<Component>()
-        lore.add(lang.getComponent(viewer, "gui.common.separator"))
+        val lines = mutableListOf<String>()
 
         // Status
         val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
         val statusKey = "general.status.${stats.meetStatus.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else stats.meetStatus
-        lore.add(lang.getComponent(viewer, "gui.meet.world_item.status", mapOf("status" to statusName)))
+        lines.add(lang.getMessage(viewer, "gui.meet.world_item.status", mapOf("status" to statusName)))
 
         // 現在のワールド名取得
         val world = target.world
@@ -184,28 +184,27 @@ class MeetGui(private val plugin: MyWorldManager) {
         } else {
             "gui.meet.world_item.current_world"
         }
-        lore.add(lang.getComponent(viewer, currentWorldKey, mapOf("world" to displayWorldName)))
+        lines.add(lang.getMessage(viewer, currentWorldKey, mapOf("world" to displayWorldName)))
 
         // クリックしてワールドを訪れる/申請の表示判定
         if (worldData != null && !isSameWorld) {
             val isMember = worldData.owner == viewer.uniqueId || 
                            worldData.moderators.contains(viewer.uniqueId) || 
                            worldData.members.contains(viewer.uniqueId)
-                           
+                            
             // Logic based on status
             if (stats.meetStatus == "JOIN_ME") {
                 // Anyone can join if public
                 if (worldData.publishLevel == PublishLevel.PUBLIC || isMember) {
-                    lore.add(lang.getComponent(viewer, "gui.meet.world_item.click_visit"))
+                    lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_visit"))
                 }
             } else if (stats.meetStatus == "ASK_ME") {
                 // Request needed
-                lore.add(lang.getComponent(viewer, "gui.meet.world_item.click_request"))
+                lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_request"))
             }
         }
 
-        lore.add(lang.getComponent(viewer, "gui.common.separator"))
-
+        val lore = CCSystem.getAPI().buildLore(lines)
         meta.lore(lore)
         item.itemMeta = meta
         

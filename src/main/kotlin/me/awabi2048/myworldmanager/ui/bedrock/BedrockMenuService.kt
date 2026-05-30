@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.ui.bedrock
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
@@ -1080,9 +1081,8 @@ class BedrockMenuService(
 
         val warpAction = tr(player, "gui.player_world.world_item.warp_bedrock")
         val settingsAction = ""
-        val separator = plugin.languageManager.getComponent(player, "gui.common.separator")
-        val loreLines =
-            plugin.languageManager.getComponentList(
+
+        val lines = plugin.languageManager.getMessageList(
                 player,
                 "gui.player_world.world_item.lore",
                 mapOf(
@@ -1098,7 +1098,12 @@ class BedrockMenuService(
                     "settings_action" to settingsAction
                 )
             )
-        meta.lore(GuiHelper.cleanupLore(loreLines, separator))
+            .filter { line ->
+                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
+                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
+            }
+            .filter { it.isNotBlank() }
+        meta.lore(CCSystem.getAPI().buildLore(lines))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")

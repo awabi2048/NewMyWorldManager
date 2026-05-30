@@ -14,6 +14,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
+import com.awabi2048.ccsystem.CCSystem
 import java.util.Locale
 
 class VisitWorldGui(private val plugin: MyWorldManager) {
@@ -228,25 +229,22 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             ""
         }
 
-        val separator = lang.getComponent(viewer, "gui.common.separator")
-        meta.lore(
-            me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
-                lang.getComponentList(
-                    viewer,
-                    "gui.visit.world_item.lore",
-                    mapOf(
-                        "description" to formattedDesc,
-                        "owner_line" to ownerLine,
-                        "favorite_line" to favoriteLine,
-                        "visitor_line" to visitorLine,
-                        "tag_line" to tagLine,
-                        "warp_line" to warpLine,
-                        "fav_action_line" to favActionLine
-                    )
-                ),
-                separator
-            )
-        )
+        val lines = lang.getMessageList(viewer, "gui.visit.world_item.lore", mapOf(
+            "description" to formattedDesc,
+            "owner_line" to ownerLine,
+            "favorite_line" to favoriteLine,
+            "visitor_line" to visitorLine,
+            "tag_line" to tagLine,
+            "warp_line" to warpLine,
+            "fav_action_line" to favActionLine
+        ))
+            .filter { line ->
+                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
+                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
+            }
+            .filter { it.isNotBlank() }
+        val lore = CCSystem.getAPI().buildLore(lines)
+        meta.lore(lore)
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)

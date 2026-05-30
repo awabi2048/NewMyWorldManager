@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -305,8 +306,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     ) {
         val lang = plugin.languageManager
         plugin.settingsSessionManager.updateSessionAction(player, worldUuid, action, isGui = true)
-        val bodyLines = (extraInfo + "" + lang.getMessage(player, "gui.common.confirm_warning"))
-            .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+        val lines = (extraInfo + lang.getMessage(player, "gui.common.confirm_warning"))
+            .filter { it.isNotBlank() }
+        val bodyLines = CCSystem.getAPI().buildLore(lines)
 
         DialogConfirmManager.showConfirmationByPreference(
             player,

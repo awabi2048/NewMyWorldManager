@@ -4,6 +4,7 @@ package me.awabi2048.myworldmanager.gui
 
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
+import com.awabi2048.ccsystem.CCSystem
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import io.papermc.paper.registry.data.dialog.ActionButton
 import io.papermc.paper.registry.data.dialog.DialogBase
@@ -299,17 +300,18 @@ class CreationDialogManager : Listener {
                 )
             } else ""
 
-            val bodyLines = mutableListOf<Component>()
-            bodyLines.add(Component.text("§8§m－－－－－－－－－－－－－－－－－－"))
-            bodyLines.add(Component.text("§f§l| §7${lang.getMessage(player, "gui.creation.confirm.name_label")} §a$cleanedName"))
-            bodyLines.add(Component.text("§f§l| §7${lang.getMessage(player, "gui.creation.confirm.type_label")} §e$typeName"))
+            val nameLabel = lang.getMessage(player, "gui.creation.confirm.name_label")
+            val typeLabel = lang.getMessage(player, "gui.creation.confirm.type_label")
+            val costLabel = lang.getMessage(player, "gui.creation.confirm.cost_label")
 
-            if (templateLine.isNotEmpty()) bodyLines.add(Component.text("§f§l| §7$templateLine"))
-            if (seedLine.isNotEmpty()) bodyLines.add(Component.text("§f§l| §7$seedLine"))
+            val lines = mutableListOf<String>()
+            lines.add(CCSystem.getAPI().createLoreDataLine(nameLabel, cleanedName, "§a"))
+            lines.add(CCSystem.getAPI().createLoreDataLine(typeLabel, typeName, "§e"))
+            if (templateLine.isNotEmpty()) lines.add(CCSystem.getAPI().createLoreTextLine(templateLine))
+            if (seedLine.isNotEmpty()) lines.add(CCSystem.getAPI().createLoreTextLine(seedLine))
+            lines.add(CCSystem.getAPI().createLoreDataLine(costLabel, "§6🛖 §e$cost", ""))
 
-            bodyLines.add(Component.text("§8§m－－－－－－－－－－－－－－－－－－"))
-            bodyLines.add(Component.text("§f§l| §7${lang.getMessage(player, "gui.creation.confirm.cost_label")} §6🛖 §e$cost"))
-            bodyLines.add(Component.text("§8§m－－－－－－－－－－－－－－－－－－"))
+            val bodyLines = CCSystem.getAPI().buildLore(lines)
 
             val actionButtons =
                 mutableListOf(

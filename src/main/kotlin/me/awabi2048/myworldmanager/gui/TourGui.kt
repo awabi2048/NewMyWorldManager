@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourSignData
@@ -144,9 +145,22 @@ class TourGui(private val plugin: MyWorldManager) {
         val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite))
         val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
         val tagLine = if (worldData.tags.isNotEmpty()) lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) })) else ""
-        val separator = lang.getComponent(player, "gui.common.separator")
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.current_world.name")).decoration(TextDecoration.ITALIC, false))
-        meta.lore(GuiHelper.cleanupLore(lang.getComponentList(player, "gui.favorite.current_world.lore", mapOf("world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)), "description" to formattedDesc, "owner_line" to ownerLine, "favorite_line" to favoriteLine, "visitor_line" to visitorLine, "tag_line" to tagLine)), separator))
+        val lines = lang.getMessageList(player, "gui.favorite.current_world.lore", mapOf(
+                "world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
+                "description" to formattedDesc,
+                "owner_line" to ownerLine,
+                "favorite_line" to favoriteLine,
+                "visitor_line" to visitorLine,
+                "tag_line" to tagLine
+        ))
+            .filter { line ->
+                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
+                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
+            }
+            .filter { it.isNotBlank() }
+        val lore = CCSystem.getAPI().buildLore(lines)
+        meta.lore(lore)
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_TOUR_CURRENT_WORLD)
         return item
@@ -182,7 +196,7 @@ class TourGui(private val plugin: MyWorldManager) {
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
         meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore.map { LegacyComponentSerializer.legacySection().deserialize(it).decoration(TextDecoration.ITALIC, false) })
+        meta.lore(CCSystem.getAPI().buildLore(lore, closingSeparator = false))
         item.itemMeta = meta
         ItemTag.tagItem(item, type)
         return item

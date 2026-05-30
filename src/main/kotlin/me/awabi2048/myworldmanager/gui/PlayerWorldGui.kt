@@ -21,6 +21,7 @@ import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import com.awabi2048.ccsystem.CCSystem
 
 class PlayerWorldGui(private val plugin: MyWorldManager) {
 
@@ -302,29 +303,25 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 lang.getMessage(player, "gui.player_world.world_item.settings")
                         }
 
-                val separator = lang.getComponent(player, "gui.common.separator")
-
-                meta.lore(
-                        me.awabi2048.myworldmanager.util.GuiHelper.cleanupLore(
-                                lang.getComponentList(
-                                        player,
-                                        "gui.player_world.world_item.lore",
-                                        mapOf(
-                                                "description" to formattedDesc,
-                                                "owner_line" to ownerLine,
-                                                "publish_line" to publishLine,
-                                                "favorite_line" to favoriteLine,
-                                                "visitor_line" to visitorLine,
-                                                "tag_line" to tagLine,
-                                                "expires_at_line" to expiresAtLine,
-                                                "expired_line" to expiredLine,
-                                                "warp_action" to warpAction,
-                                                "settings_action" to settingsAction
-                                        )
-                                ),
-                                separator
-                        )
-                )
+                val lines = lang.getMessageList(player, "gui.player_world.world_item.lore", mapOf(
+                        "description" to formattedDesc,
+                        "owner_line" to ownerLine,
+                        "publish_line" to publishLine,
+                        "favorite_line" to favoriteLine,
+                        "visitor_line" to visitorLine,
+                        "tag_line" to tagLine,
+                        "expires_at_line" to expiresAtLine,
+                        "expired_line" to expiredLine,
+                        "warp_action" to warpAction,
+                        "settings_action" to settingsAction
+                ))
+                    .filter { line ->
+                        val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
+                        !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
+                    }
+                    .filter { it.isNotBlank() }
+                val lore = CCSystem.getAPI().buildLore(lines)
+                meta.lore(lore)
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
