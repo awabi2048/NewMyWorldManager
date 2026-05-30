@@ -30,6 +30,7 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
+import org.bukkit.World
 import org.bukkit.block.BlockFace
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
@@ -2251,51 +2252,38 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        val totalExpCost =
-                                                calculateTotalExpansionCost(
-                                                        worldData.borderExpansionLevel
-                                                )
-                                        val stats =
-                                                plugin.playerStatsRepository.findByUuid(
-                                                        player.uniqueId
-                                                )
-
-                                        val worldName =
-                                                worldData.customWorldName
-                                                        ?: "my_world.${worldData.uuid}"
-                                        val world = Bukkit.getWorld(worldName)
-                                        if (world != null) {
-                                                val initialSize =
-                                                        plugin.config.getDouble(
-                                                                "expansion.initial_size",
-                                                                100.0
-                                                        )
-                                                world.worldBorder.size = initialSize
-                                        }
-
-                                        val refundRate =
-                                                plugin.config.getDouble(
-                                                        "critical_settings.refund_percentage",
-                                                        0.5
-                                                )
-                                        val refund = (totalExpCost * refundRate).toInt()
-
-                                        stats.worldPoint += refund
-                                        worldData.cumulativePoints -= totalExpCost
-                                        worldData.borderExpansionLevel = 0
-
-                                        plugin.playerStatsRepository.save(stats)
-                                        plugin.worldConfigRepository.save(worldData)
-
-                                        player.sendMessage(
-                                                plugin.languageManager.getMessage(
+                                        val world = resolveWorld(worldData)
+                                        if (world != null && !isSpawnAreaPlaceable(world.spawnLocation)) {
+                                                plugin.worldSettingsGui.openResetExpansionSpawnUnsafeConfirmation(
                                                         player,
-                                                        "messages.expansion_reset_success",
-                                                        mapOf("points" to refund)
+                                                        worldData
                                                 )
+                                                return
+                                        }
+                                        executeExpansionReset(player, worldData, closeInventory = true)
+                                }
+                        }
+                        SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE -> {
+                                event.isCancelled = true
+                                if (event.clickedInventory != event.view.topInventory) return
+
+                                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
                                         )
-                                        player.closeInventory()
-                                        plugin.settingsSessionManager.endSession(player)
+                                        plugin.worldSettingsGui.openResetExpansionConfirmation(
+                                                player,
+                                                worldData
+                                        )
+                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        executeExpansionReset(player, worldData, closeInventory = true)
                                 }
                         }
                         SettingsAction.DELETE_WORLD_CONFIRM -> {
@@ -5231,11 +5219,105 @@ player.sendMessage(
                 plugin.worldSettingsGui.open(player, worldData)
         }
 
+        private fun resolveWorld(worldData: WorldData): World? {
+                val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                return Bukkit.getWorld(worldName)
+        }
+
+        private fun teleportPlayersOutsideBorder(world: World, targetLocation: Location) {
+                val worldBorder = world.worldBorder
+                val safeTarget = targetLocation.clone()
+                world.players
+                        .filter { !worldBorder.isInside(it.location) }
+                        .forEach { it.teleport(safeTarget) }
+        }
+
+        private fun executeExpansionReset(
+                player: Player,
+                worldData: WorldData,
+                closeInventory: Boolean
+        ) {
+                val totalExpCost = calculateTotalExpansionCost(worldData.borderExpansionLevel)
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                val world = resolveWorld(worldData)
+
+                if (world != null) {
+                        val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+                        val spawnLocation = world.spawnLocation.clone()
+                        world.worldBorder.size = initialSize
+                        world.worldBorder.center = spawnLocation
+                        worldData.borderCenterPos = spawnLocation
+                        teleportPlayersOutsideBorder(world, spawnLocation)
+                }
+
+                val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
+                val refund = (totalExpCost * refundRate).toInt()
+
+                stats.worldPoint += refund
+                worldData.cumulativePoints -= totalExpCost
+                worldData.borderExpansionLevel = 0
+
+                plugin.playerStatsRepository.save(stats)
+                plugin.worldConfigRepository.save(worldData)
+
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.expansion_reset_success",
+                                mapOf("points" to refund)
+                        )
+                )
+
+                if (closeInventory) {
+                        player.closeInventory()
+                        plugin.settingsSessionManager.endSession(player)
+                } else {
+                        plugin.worldSettingsGui.open(player, worldData)
+                }
+        }
+
         private fun handleResetExpansionConfirm(player: Player, worldData: WorldData) {
-                // TODO: resetExpansion機能は未実装
-                player.sendMessage(plugin.languageManager.getMessage("messages.expansion_reset_complete"))
+                val world = resolveWorld(worldData)
+                if (world != null && !isSpawnAreaPlaceable(world.spawnLocation)) {
+                        val title = LegacyComponentSerializer.legacySection().deserialize(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "gui.confirm.reset_expansion_spawn_unsafe.title"
+                                )
+                        )
+                        val bodyLines = plugin.languageManager
+                                .getMessageList(player, "gui.confirm.reset_expansion_spawn_unsafe.lore")
+                                .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                        plugin.settingsSessionManager.updateSessionAction(
+                                player,
+                                worldData.uuid,
+                                SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE,
+                                isGui = true
+                        )
+                        DialogConfirmManager.showSimpleConfirmationDialog(
+                                player,
+                                plugin,
+                                title,
+                                bodyLines,
+                                "mwm:confirm/reset_expansion_spawn_unsafe",
+                                "mwm:confirm/cancel",
+                                plugin.languageManager.getMessage(player, "gui.common.confirm"),
+                                plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                onBedrockConfirm = {
+                                        executeExpansionReset(player, worldData, closeInventory = false)
+                                },
+                                onBedrockCancel = {
+                                        handleBedrockDialogCancel(player, worldData)
+                                },
+                                onBedrockFallback = {
+                                        plugin.worldSettingsGui
+                                                .openResetExpansionSpawnUnsafeConfirmation(player, worldData)
+                                }
+                        )
+                        return
+                }
+                executeExpansionReset(player, worldData, closeInventory = false)
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
-                plugin.worldSettingsGui.open(player, worldData)
         }
 
         private fun handleDeleteWorldConfirm(player: Player, worldData: WorldData) {
@@ -5362,6 +5444,7 @@ player.sendMessage(
                         SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
                                 reopenMemberManagementLatest(player, worldData.uuid)
                         SettingsAction.RESET_EXPANSION_CONFIRM,
+                        SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE,
                         SettingsAction.DELETE_WORLD_CONFIRM,
                         SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
                         SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
@@ -5587,6 +5670,7 @@ player.sendMessage(
                                 SettingsAction.MEMBER_REQUEST_OWNER_CONFIRM ->
                                         reopenMemberManagementLatest(player, worldData.uuid)
                                 SettingsAction.RESET_EXPANSION_CONFIRM,
+                                SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE,
                                 SettingsAction.DELETE_WORLD_CONFIRM,
                                 SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
                                 SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
@@ -5664,6 +5748,13 @@ player.sendMessage(
                 if (identifier == Key.key("mwm:confirm/reset_expansion")) {
                         DialogConfirmManager.safeCloseDialog(player)
                         handleResetExpansionConfirm(player, worldData)
+                        return
+                }
+
+                if (identifier == Key.key("mwm:confirm/reset_expansion_spawn_unsafe")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        executeExpansionReset(player, worldData, closeInventory = false)
+                        plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                         return
                 }
 

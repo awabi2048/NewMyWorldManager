@@ -2811,6 +2811,74 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
         }
 
+        fun openResetExpansionSpawnUnsafeConfirmation(player: Player, worldData: WorldData) {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.title")
+                me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
+                        plugin,
+                        player,
+                        "world_settings",
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
+                )
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE,
+                        isGui = true
+                )
+                scheduleGuiTransitionReset(plugin, player)
+                val currentTitle =
+                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                                .plainText()
+                                .serialize(player.openInventory.title())
+                val inventory =
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+                                player.openInventory.topInventory
+                        } else {
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                holder.inv = inventory
+                                inventory
+                        }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
+
+                val lore = lang.getComponentList(player, "gui.confirm.reset_expansion_spawn_unsafe.lore")
+                val infoItem =
+                        createItemComponent(
+                                Material.MAGMA_BLOCK,
+                                LegacyComponentSerializer.legacySection().serialize(lore[0]),
+                                lore.drop(1),
+                                ItemTag.TYPE_GUI_INFO
+                        )
+                ItemTag.setWorldUuid(infoItem, worldData.uuid)
+                inventory.setItem(22, infoItem)
+
+                inventory.setItem(
+                        20,
+                        createItem(
+                                Material.LIME_WOOL,
+                                lang.getMessage(player, "gui.common.cancel"),
+                                listOf(lang.getMessage(player, "gui.common.back")),
+                                ItemTag.TYPE_GUI_CANCEL
+                        )
+                )
+                inventory.setItem(
+                        24,
+                        createItem(
+                                Material.RED_WOOL,
+                                lang.getMessage(player, "gui.common.confirm"),
+                                emptyList<String>(),
+                                ItemTag.TYPE_GUI_CONFIRM
+                        )
+                )
+
+                if (player.openInventory.topInventory != inventory) {
+                        player.openInventory(inventory)
+                }
+        }
+
         fun openDeleteWorldConfirmation1(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.delete_1.title")
