@@ -10,24 +10,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 
 class LanguageManager(private val plugin: MyWorldManager) {
     private val serializer = LegacyComponentSerializer.legacySection()
-    private val sourceId: String
-        get() = plugin.name
-
-    init {
-        loadAllLanguages()
-    }
-
-    fun loadAllLanguages() {
-        val api = CCSystem.getAPI()
-        val validation = api.validateI18nSource(plugin, featureByFile())
-        if (validation.hasErrors) {
-            val detail = validation.errors.joinToString("\n") { "- $it" }
-            throw IllegalStateException("MyWorldManager の言語ファイル検証に失敗しました:\n$detail")
-        }
-
-        api.unregisterI18nSource(plugin.name)
-        api.registerI18nSource(plugin.name, plugin, featureByFile().keys)
-    }
 
     fun resolveLocale(player: Player?): String {
         return if (player != null) {
@@ -38,7 +20,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessage(player: Player?, key: String): String {
-        return CCSystem.getAPI().getI18nString(sourceId, player, key).replace('&', '§')
+        return CCSystem.getAPI().getI18nString(player, key).replace('&', '§')
     }
 
     fun getMessage(key: String): String {
@@ -46,7 +28,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessage(player: Player?, key: String, placeholders: Map<String, Any>): String {
-        return CCSystem.getAPI().getI18nString(sourceId, player, key, placeholders).replace('&', '§')
+        return CCSystem.getAPI().getI18nString(player, key, placeholders).replace('&', '§')
     }
 
     fun getMessage(key: String, placeholders: Map<String, Any>): String {
@@ -72,11 +54,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun hasKey(player: Player?, key: String): Boolean {
-        return CCSystem.getAPI().hasI18nKey(sourceId, key)
+        return CCSystem.getAPI().hasI18nKey(key)
     }
 
     fun hasKey(lang: String, key: String): Boolean {
-        return CCSystem.getAPI().hasI18nKey(sourceId, key)
+        return CCSystem.getAPI().hasI18nKey(key)
     }
 
     fun getMessageStrict(player: Player?, key: String): String? {
@@ -88,7 +70,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessageList(player: Player?, key: String): List<String> {
-        return CCSystem.getAPI().getI18nStringList(sourceId, player, key).map { it.replace('&', '§') }
+        return CCSystem.getAPI().getI18nStringList(player, key).map { it.replace('&', '§') }
     }
 
     fun getMessageList(key: String): List<String> {
@@ -96,11 +78,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getMessageListDraft(lang: String, key: String): List<String> {
-        return CCSystem.getAPI().getI18nStringList(sourceId, lang, key).map { it.replace('&', '§') }
+        return CCSystem.getAPI().getI18nStringList(lang, key).map { it.replace('&', '§') }
     }
 
     fun getMessageList(player: Player?, key: String, placeholders: Map<String, Any>): List<String> {
-        return CCSystem.getAPI().getI18nStringList(sourceId, player, key, placeholders).map { it.replace('&', '§') }
+        return CCSystem.getAPI().getI18nStringList(player, key, placeholders).map { it.replace('&', '§') }
     }
 
     fun getMessageList(key: String, placeholders: Map<String, Any>): List<String> {
@@ -122,32 +104,11 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun isKeyMatch(title: String, key: String): Boolean {
-        return CCSystem.getAPI().isI18nKeyMatch(sourceId, title, key)
+        return CCSystem.getAPI().isI18nKeyMatch(title, key)
     }
 
     fun isKeyStartWith(title: String, key: String): Boolean {
-        return CCSystem.getAPI().isI18nKeyStartWith(sourceId, title, key)
+        return CCSystem.getAPI().isI18nKeyStartWith(title, key)
     }
 
-    private fun featureByFile(): Map<String, String> {
-        return mapOf(
-            "_common.yml" to plugin.name,
-            "colors.yml" to plugin.name,
-            "world_tag.yml" to plugin.name,
-            "publish_level.yml" to plugin.name,
-            "gui_common.yml" to plugin.name,
-            "gui_creation.yml" to plugin.name,
-            "gui_portal.yml" to plugin.name,
-            "gui_settings.yml" to plugin.name,
-            "gui_admin.yml" to plugin.name,
-            "gui_discovery.yml" to plugin.name,
-            "gui_favorite.yml" to plugin.name,
-            "gui_meet.yml" to plugin.name,
-            "gui_bedrock.yml" to plugin.name,
-            "messages.yml" to plugin.name,
-            "role.yml" to plugin.name,
-            "custom_item.yml" to plugin.name,
-            "biomes.yml" to plugin.name
-        )
-    }
 }

@@ -362,7 +362,6 @@ class MyWorldManager : JavaPlugin() {
         reloadConfig()
 
         // 各コンポーネントの再読み込み
-        languageManager.loadAllLanguages()
         worldTagManager.reload()
         worldConfigRepository.loadAll()
         templateRepository.loadTemplates()
