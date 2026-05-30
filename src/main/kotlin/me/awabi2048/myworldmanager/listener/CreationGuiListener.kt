@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
+import org.bukkit.inventory.ItemStack
 
 class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
 
@@ -99,6 +100,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 when (tag) {
                     ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE -> {
                         plugin.soundManager.playClickSound(player, currentItem)
+                        if (plugin.templateRepository.findAll().isEmpty()) {
+                            player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
+                            plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
+                            return
+                        }
                         session.creationType = WorldCreationType.TEMPLATE
                         session.phase = WorldCreationPhase.TEMPLATE_SELECT
                         plugin.creationGui.openTemplateSelection(player)
@@ -302,13 +308,20 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    private fun openNameInputByPlatform(player: Player, session: WorldCreationSession) {
+    private fun openNameInputByPlatform(player: Player, session: WorldCreationSession, errorMessage: String? = null) {
         if (!plugin.playerPlatformResolver.isBedrock(player)) {
-            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
+            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session, errorMessage)
             return
         }
 
         val lang = plugin.languageManager
+        val label = buildString {
+            append(lang.getMessage(player, "gui.bedrock.input.creation_name.label"))
+            if (!errorMessage.isNullOrBlank()) {
+                append("\n§c")
+                append(errorMessage)
+            }
+        }
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
             plugin.creationSessionManager.endSession(player.uniqueId)
             plugin.floodgateFormBridge.notifyFallbackCancelled(player)
@@ -318,7 +331,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         val opened = plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
             title = lang.getMessage(player, "gui.bedrock.input.creation_name.title"),
-            label = lang.getMessage(player, "gui.bedrock.input.creation_name.label"),
+            label = label,
             placeholder = lang.getMessage(player, "gui.bedrock.input.creation_name.placeholder"),
             defaultValue = session.worldName ?: "",
             onSubmit = { value ->
@@ -326,8 +339,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     val latest = plugin.creationSessionManager.getSession(player.uniqueId) ?: return@Runnable
                     val error = plugin.worldValidator.validateName(value)
                     if (error != null) {
-                        player.sendMessage("§c$error")
-                        openNameInputByPlatform(player, latest)
+                        if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, latest, error)
+                        } else {
+                            openNameInputByPlatform(player, latest, error)
+                        }
                         return@Runnable
                     }
 

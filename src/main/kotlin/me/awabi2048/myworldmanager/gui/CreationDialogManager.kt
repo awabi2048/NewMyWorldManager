@@ -60,9 +60,7 @@ class CreationDialogManager : Listener {
             // 名前のバリデーション
             val error = plugin.worldValidator.validateName(nameRaw)
             if (error != null) {
-                player.sendMessage("§c$error")
-                // エラー時はダイアログを再表示
-                showNameInputDialog(player, session)
+                showNameInputDialog(player, session, error)
                 return
             }
 
@@ -74,7 +72,8 @@ class CreationDialogManager : Listener {
                 })
             } else {
                 session.phase = WorldCreationPhase.CONFIRM
-                showConfirmationDialog(player, session)
+                safeCloseDialog(player)
+                plugin.creationGui.openConfirmation(player, session)
             }
             return
         }
@@ -158,9 +157,22 @@ class CreationDialogManager : Listener {
         /**
          * ワールド名入力ダイアログを表示
          */
-        fun showNameInputDialog(player: Player, session: WorldCreationSession) {
+        fun showNameInputDialog(player: Player, session: WorldCreationSession, errorMessage: String? = null) {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
             val lang = plugin.languageManager
+            val body = mutableListOf(
+                DialogBody.plainMessage(
+                    Component.text(
+                        lang.getMessage(
+                            player,
+                            "messages.wizard_name_prompt"
+                        )
+                    )
+                )
+            )
+            if (!errorMessage.isNullOrBlank()) {
+                body += DialogBody.plainMessage(Component.text("§c$errorMessage"))
+            }
 
             val dialog = Dialog.create { builder ->
                 builder.empty()
@@ -169,22 +181,10 @@ class CreationDialogManager : Listener {
                             LegacyComponentSerializer.legacySection()
                                 .deserialize(lang.getMessage(player, "gui.creation.dialog.name_title"))
                         )
-                            .body(
-                                listOf(
-                                    DialogBody.plainMessage(
-                                        Component.text(
-                                            lang.getMessage(
-                                                player,
-                                                "messages.wizard_name_prompt"
-                                            )
-                                        )
-                                    )
-                                )
-                            )
+                            .body(body)
                             .inputs(
                                 listOf(
                                     DialogInput.text("world_name", Component.text("World Name"))
-                                        .maxLength(20)
                                         .initial(session.worldName ?: "")
                                         .build()
                                 )
