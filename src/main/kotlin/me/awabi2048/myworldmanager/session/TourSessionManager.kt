@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.session
 
 import me.awabi2048.myworldmanager.model.TourData
+import me.awabi2048.myworldmanager.model.TourWaypointData
 import org.bukkit.Material
 import java.util.UUID
 
@@ -16,7 +17,8 @@ data class TourEditSession(
     val worldUuid: UUID,
     var draft: TourData,
     val originalTourUuid: UUID?,
-    var awaitingIconPick: Boolean = false
+    var awaitingIconPick: Boolean = false,
+    var awaitingWaypointPick: Boolean = false
 ) {
     val isNew: Boolean get() = originalTourUuid == null
 }
@@ -47,7 +49,7 @@ class TourSessionManager {
         val session = TourEditSession(
             playerUuid = playerUuid,
             worldUuid = worldUuid,
-            draft = TourData(UUID.randomUUID(), name, description, Material.OAK_BOAT),
+            draft = TourData(UUID.randomUUID(), name, description, Material.OAK_BOAT, createdBy = playerUuid),
             originalTourUuid = null
         )
         editSessions[playerUuid] = session
@@ -56,13 +58,25 @@ class TourSessionManager {
 
     fun openExistingEdit(playerUuid: UUID, worldUuid: UUID, source: TourData): TourEditSession {
         val copy = source.copy(
-            signUuids = source.signUuids.toMutableList(),
+            startSignUuid = source.startSignUuid,
+            waypoints = source.waypoints.map {
+                TourWaypointData(
+                    uuid = it.uuid,
+                    name = it.name,
+                    blockX = it.blockX,
+                    blockY = it.blockY,
+                    blockZ = it.blockZ,
+                    createdAt = it.createdAt
+                )
+            }.toMutableList(),
             startedPlayerUuids = source.startedPlayerUuids.toMutableSet()
         )
         val session = TourEditSession(playerUuid, worldUuid, copy, source.uuid)
         editSessions[playerUuid] = session
         return session
     }
+
+    fun getAllSessions(): Collection<ActiveTourSession> = sessions.values.toList()
 
     fun clearEdit(playerUuid: UUID) {
         editSessions.remove(playerUuid)

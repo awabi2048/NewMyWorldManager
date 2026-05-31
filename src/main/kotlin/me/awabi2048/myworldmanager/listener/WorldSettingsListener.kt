@@ -1573,7 +1573,7 @@ class WorldSettingsListener : Listener {
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,
-                                                                        "error.no_permission"
+                                                                        "general.no_permission"
                                                                 )
                                                         )
                                                         plugin.soundManager.playClickSound(
@@ -4479,7 +4479,6 @@ player.sendMessage(
                 event.isCancelled = true
                 val lang = plugin.languageManager
                 if (args.size < 2) {
-                        PermissionManager.sendNoPermissionMessage(player)
                         return
                 }
 
@@ -4488,7 +4487,6 @@ player.sendMessage(
                 val payloadArgs = args.drop(2)
 
                 if (!plugin.internalCommandTokenManager.consume(player, action, token, payloadArgs)) {
-                        PermissionManager.sendNoPermissionMessage(player)
                         return
                 }
 
@@ -4604,6 +4602,23 @@ player.sendMessage(
                                 val requestAction = payloadArgs[1]
                                 plugin.memberRequestManager.handleInternalCommand(player, key, requestAction)
                         }
+                        "tourstart" -> {
+                            plugin.soundManager.playChatClickSound(player)
+                            if (payloadArgs.size < 2) return
+                            val worldUuid = runCatching { UUID.fromString(payloadArgs[0]) }.getOrNull() ?: return
+                            val tourUuid = runCatching { UUID.fromString(payloadArgs[1]) }.getOrNull() ?: return
+                            val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
+                            val tour = plugin.tourManager.getTour(worldData, tourUuid) ?: return
+                            when (plugin.tourManager.startTour(player, worldData, tour)) {
+                                me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> player.closeInventory()
+                                me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WORLD_MEMBER ->
+                                    player.sendMessage(lang.getMessage(player, "messages.invite_already_member"))
+                                me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR ->
+                                    player.sendMessage(lang.getMessage(player, "messages.tour.none_available"))
+                                me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WRONG_WORLD ->
+                                    player.sendMessage(lang.getMessage(player, "messages.no_in_myworld"))
+                            }
+                        }
                 }
         }
 
@@ -4716,8 +4731,8 @@ player.sendMessage(
                          val targetPlayer = plugin.server.getPlayer(targetUuid)
                          if (targetPlayer != null && targetPlayer.world.uid == worldData.uuid) {
                              targetPlayer.teleport(plugin.server.worlds[0].spawnLocation)
-                             targetPlayer.sendMessage(plugin.languageManager.getMessage(targetPlayer, "messages.visitor.kicked"))
-                             player.sendMessage(plugin.languageManager.getMessage(player, "messages.visitor.kick_success", mapOf("player" to targetPlayer.name)))
+                             targetPlayer.sendMessage(plugin.languageManager.getMessage(targetPlayer, "messages.kicked"))
+                             player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to targetPlayer.name)))
                          } else {
                              player.sendMessage(plugin.languageManager.getMessage(player, "error.player_not_found"))
                          }
@@ -5333,7 +5348,7 @@ player.sendMessage(
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
                                                         player,
-                                                        "messages.delete_success",
+                                                        "messages.world_delete_success",
                                                         mapOf("world" to worldName)
                                                 )
                                         )
