@@ -22,4 +22,8 @@ internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiW
     override fun findAll(): List<WorldData> {
         return plugin.worldConfigRepository.findAll()
     }
+
+    override fun save(worldData: WorldData) {
+        plugin.worldConfigRepository.save(worldData)
+    }
 }

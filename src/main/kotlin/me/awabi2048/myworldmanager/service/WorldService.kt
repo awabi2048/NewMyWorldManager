@@ -4,6 +4,7 @@ import java.io.File
 import java.util.*
 import java.util.logging.Level
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmDailyMaintenanceCompletedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldCreatedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
@@ -16,6 +17,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.WorldCreator
 import org.bukkit.WorldType
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import java.util.concurrent.CompletableFuture
 
@@ -588,8 +590,24 @@ class WorldService(
     }
 
     /** ワールドを完全に削除する */
-    fun deleteWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
+    fun deleteWorld(worldUuid: UUID, caller: CommandSender? = null): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val guardTarget = repository.findByUuid(worldUuid)
+        if (guardTarget == null) {
+            future.complete(false)
+            return future
+        }
+        val guardRejection =
+                MyWorldManagerApi.getWorldDeleteGuards()
+                        .firstNotNullOfOrNull { guard -> guard.canDelete(guardTarget, caller) }
+        if (guardRejection != null) {
+            plugin.logger.info(
+                    "World deletion rejected by registered guard for ${guardTarget.uuid}: $guardRejection"
+            )
+            caller?.sendMessage(guardRejection)
+            future.complete(false)
+            return future
+        }
         unloadWorldAfterEvacuation(worldUuid, false).thenAccept { unloaded ->
             if (!unloaded) {
                 future.complete(false)

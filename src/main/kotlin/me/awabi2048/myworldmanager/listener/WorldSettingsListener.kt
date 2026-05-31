@@ -5,6 +5,8 @@ package me.awabi2048.myworldmanager.listener
 import java.util.UUID
 import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemoveSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
@@ -102,6 +104,73 @@ class WorldSettingsListener : Listener {
 
                 val lang = plugin.languageManager
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+
+                val extensionMenuType =
+                        when (session.action) {
+                                SettingsAction.MANAGE_MEMBERS -> "member_management"
+                                else -> "world_settings"
+                        }
+
+                if (type == ItemTag.TYPE_GUI_EXTENSION) {
+                        event.isCancelled = true
+                        if (event.clickedInventory != event.view.topInventory) return
+                        val extensionId = ItemTag.getExtensionId(item) ?: return
+                        val extension =
+                                MyWorldManagerApi.getMenuExtensions()
+                                        .firstOrNull { it.getId() == extensionId }
+                                        ?: return
+                        val page =
+                                when (val raw = session.getMetadata("member_management_page")) {
+                                        is Int -> raw
+                                        is Number -> raw.toInt()
+                                        is String -> raw.toIntOrNull() ?: 0
+                                        else -> 0
+                                }
+                        val handled =
+                                extension.onClick(
+                                        event,
+                                        player,
+                                        MenuExtensionContext(
+                                                extensionMenuType,
+                                                mutableMapOf(
+                                                        "worldData" to worldData,
+                                                        "page" to page,
+                                                        "action" to session.action,
+                                                        "itemType" to type
+                                                )
+                                        )
+                                )
+                        if (handled) {
+                                plugin.soundManager.playClickSound(player, item, "world_settings")
+                        }
+                        return
+                }
+
+                val extensionPage =
+                        when (val raw = session.getMetadata("member_management_page")) {
+                                is Int -> raw
+                                is Number -> raw.toInt()
+                                is String -> raw.toIntOrNull() ?: 0
+                                else -> 0
+                        }
+                val extensionContext =
+                        MenuExtensionContext(
+                                extensionMenuType,
+                                mutableMapOf(
+                                        "worldData" to worldData,
+                                        "page" to extensionPage,
+                                        "action" to session.action,
+                                        "itemType" to type
+                                )
+                        )
+                if (
+                        MyWorldManagerApi.getMenuExtensions()
+                                .any { extension -> extension.onClick(event, player, extensionContext) }
+                ) {
+                        event.isCancelled = true
+                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                        return
+                }
 
                 // 蜈ｱ騾壹Γ繧ｽ繝・ラ: 繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺ｨ繧ｯ繝ｪ繝・け髻ｳ
                 fun handleCommandCancel() {
@@ -2354,7 +2423,7 @@ class WorldSettingsListener : Listener {
                                                 )
                                         )
 
-                                        plugin.worldService.deleteWorld(worldData.uuid)
+                                        plugin.worldService.deleteWorld(worldData.uuid, player)
                                                 .thenAccept { success: Boolean ->
                                                         Bukkit.getScheduler()
                                                                 .runTask(
@@ -5342,7 +5411,7 @@ player.sendMessage(
                         return
                 }
                 val worldName = worldData.name
-                plugin.worldService.deleteWorld(worldData.uuid).thenAccept { success ->
+                plugin.worldService.deleteWorld(worldData.uuid, player).thenAccept { success ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                                 if (success) {
                                         player.sendMessage(

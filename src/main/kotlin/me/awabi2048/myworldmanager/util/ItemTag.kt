@@ -12,6 +12,7 @@ object ItemTag {
     val PORTAL_UUID = NamespacedKey("myworldmanager", "portal_uuid")
     val TARGET_PAGE = NamespacedKey("myworldmanager", "target_page")
     val BIOME_ID = NamespacedKey("myworldmanager", "biome_id")
+    val EXTENSION_ID = NamespacedKey("myworldmanager", "extension_id")
 
     // Types
     const val TYPE_PORTAL = "portal"
@@ -83,6 +84,7 @@ object ItemTag {
     const val TYPE_GUI_MEET_SETTINGS_BUTTON = "gui_meet_settings_button"
     const val TYPE_GUI_MEET_STATUS_TOGGLE = "gui_meet_status_toggle"
     const val TYPE_GUI_PENDING_ENTRY = "gui_pending_entry"
+    const val TYPE_GUI_EXTENSION = "gui_extension"
 
     // お気に入りメニュー用タグ
     const val TYPE_GUI_FAVORITE_OTHER_WORLDS = "gui_favorite_other_worlds"
@@ -123,6 +125,7 @@ object ItemTag {
     const val TYPE_GUI_ADMIN_UNLINK = "gui_admin_unlink"
     const val TYPE_GUI_ADMIN_CURRENT_WORLD_INFO = "gui_admin_current_world_info"
 
+    @JvmStatic
     fun tagItem(item: ItemStack, type: String) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(ITEM_TYPE, PersistentDataType.STRING, type)
@@ -144,15 +147,18 @@ object ItemTag {
         ItemMetaCompat.hideAdditionalTooltip(meta)
     }
 
+    @JvmStatic
     fun getType(item: ItemStack): String? {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(ITEM_TYPE, PersistentDataType.STRING)
     }
 
+    @JvmStatic
     fun isType(item: ItemStack, type: String): Boolean {
         return getType(item) == type
     }
 
+    @JvmStatic
     fun setWorldUuid(item: ItemStack, uuid: java.util.UUID) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(WORLD_UUID, PersistentDataType.STRING, uuid.toString())
@@ -160,46 +166,54 @@ object ItemTag {
         item.itemMeta = meta
     }
 
+    @JvmStatic
     fun getWorldUuid(item: ItemStack): java.util.UUID? {
         val meta = item.itemMeta ?: return null
         val uuidStr = meta.persistentDataContainer.get(WORLD_UUID, PersistentDataType.STRING) ?: return null
         return try { java.util.UUID.fromString(uuidStr) } catch (e: Exception) { null }
     }
 
+    @JvmStatic
     fun setTargetPage(item: ItemStack, page: Int) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(TARGET_PAGE, PersistentDataType.INTEGER, page)
         item.itemMeta = meta
     }
 
+    @JvmStatic
     fun getTargetPage(item: ItemStack): Int? {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(TARGET_PAGE, PersistentDataType.INTEGER)
     }
 
+    @JvmStatic
     fun setPortalUuid(item: ItemStack, uuid: java.util.UUID) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(PORTAL_UUID, PersistentDataType.STRING, uuid.toString())
         item.itemMeta = meta
     }
 
+    @JvmStatic
     fun getPortalUuid(item: ItemStack): java.util.UUID? {
         val meta = item.itemMeta ?: return null
         val uuidStr = meta.persistentDataContainer.get(PORTAL_UUID, PersistentDataType.STRING) ?: return null
         return try { java.util.UUID.fromString(uuidStr) } catch (e: Exception) { null }
     }
 
+    @JvmStatic
     fun setBiomeId(item: ItemStack, biomeId: String) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(BIOME_ID, PersistentDataType.STRING, biomeId)
         item.itemMeta = meta
     }
 
+    @JvmStatic
     fun getBiomeId(item: ItemStack): String? {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(BIOME_ID, PersistentDataType.STRING)
     }
 
+    @JvmStatic
     fun setString(item: ItemStack, keyStr: String, value: String) {
         val meta = item.itemMeta ?: return
         val key = NamespacedKey("myworldmanager", keyStr)
@@ -207,9 +221,24 @@ object ItemTag {
         item.itemMeta = meta
     }
 
+    @JvmStatic
     fun getString(item: ItemStack, keyStr: String): String? {
         val meta = item.itemMeta ?: return null
         val key = NamespacedKey("myworldmanager", keyStr)
         return meta.persistentDataContainer.get(key, PersistentDataType.STRING)
+    }
+
+    @JvmStatic
+    fun setExtensionId(item: ItemStack, extensionId: String) {
+        val meta = item.itemMeta ?: return
+        meta.persistentDataContainer.set(EXTENSION_ID, PersistentDataType.STRING, extensionId)
+        applyIconSettings(meta)
+        item.itemMeta = meta
+    }
+
+    @JvmStatic
+    fun getExtensionId(item: ItemStack): String? {
+        val meta = item.itemMeta ?: return null
+        return meta.persistentDataContainer.get(EXTENSION_ID, PersistentDataType.STRING)
     }
 }

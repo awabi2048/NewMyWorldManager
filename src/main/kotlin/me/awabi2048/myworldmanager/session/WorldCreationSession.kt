@@ -24,6 +24,7 @@ data class WorldCreationSession(
     var templateName: String? = null,
     var inputSeedString: String? = null,
     var isDialogMode: Boolean = false,
+    val extras: MutableMap<String, Any?> = mutableMapOf(),
     var lastActivity: Long = System.currentTimeMillis()
 ) {
     /**

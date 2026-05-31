@@ -241,6 +241,11 @@ class MyWorldManager : JavaPlugin() {
         MyWorldManagerApi.registerMemberManager(MemberManagerAdapter(this))
         MyWorldManagerApi.registerWorldTagService(WorldTagServiceAdapter(this))
 
+        MyWorldManagerApi.setMemberManagementOpener { player, worldUuid ->
+            val worldData = worldConfigRepository.findByUuid(worldUuid) ?: return@setMemberManagementOpener
+            worldSettingsGui.openMemberManagement(player, worldData)
+        }
+
         inviteCommand = InviteCommand(this)
 
         // リスナーの登録

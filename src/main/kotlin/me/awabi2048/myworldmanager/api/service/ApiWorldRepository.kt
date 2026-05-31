@@ -9,4 +9,5 @@ interface ApiWorldRepository {
     fun findByOwner(ownerUuid: UUID): List<WorldData>
     fun findByWorldName(worldName: String): WorldData?
     fun findAll(): List<WorldData>
+    fun save(worldData: WorldData)
 }
