@@ -88,7 +88,7 @@ enum class CustomItem(val id: String) {
     
     TOUR_SIGN("tour_sign") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
-            val item = ItemStack(Material.POISONOUS_POTATO)
+            val item = ItemStack(Material.END_PORTAL_FRAME)
             val meta = item.itemMeta ?: return item
             
             meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.tour_sign.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))

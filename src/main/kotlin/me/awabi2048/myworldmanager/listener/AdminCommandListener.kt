@@ -355,7 +355,7 @@ class AdminCommandListener : Listener {
         val results = plugin.worldService.updateDailyData()
         val updatedCount = results["updated"] ?: 0
         val archivedCount = results["archived"] ?: 0
-        
+
         player.sendMessage(
                 plugin.languageManager.getMessage(
                         player,
@@ -471,7 +471,7 @@ class AdminCommandListener : Listener {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
                                                     player,
-                                                    "error.archive_failed"
+                                                    "messages.archive_failed"
                                             )
                                     )
                                 }

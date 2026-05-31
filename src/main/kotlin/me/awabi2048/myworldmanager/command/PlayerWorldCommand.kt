@@ -94,7 +94,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         }
 
         if (worldData.owner != sender.uniqueId) {
-            sender.sendMessage(plugin.languageManager.getMessage(sender, "error.no_permission"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender, "general.no_permission"))
             return true
         }
 

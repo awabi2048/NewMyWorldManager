@@ -30,11 +30,13 @@ class TourDialogManager : Listener {
     data class PlacementSession(val worldUuid: UUID, val x: Int, val y: Int, val z: Int, val blockFace: String, val hand: EquipmentSlot)
     data class EditTourSession(val worldUuid: UUID, val tourUuid: UUID)
     data class EditSignSession(val worldUuid: UUID, val signUuid: UUID)
+    data class CreateTourSession(val worldUuid: UUID)
 
     companion object {
         private val placement = ConcurrentHashMap<UUID, PlacementSession>()
         private val textEdit = ConcurrentHashMap<UUID, EditTourSession>()
         private val signEdit = ConcurrentHashMap<UUID, EditSignSession>()
+        private val createTour = ConcurrentHashMap<UUID, CreateTourSession>()
 
         fun startPlacement(player: Player, plugin: MyWorldManager, block: Block, blockFace: BlockFace, hand: EquipmentSlot) {
             val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: run {
@@ -46,11 +48,41 @@ class TourDialogManager : Listener {
                 return
             }
             if (!plugin.tourManager.canPlaceSign(worldData)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.limit_reached", mapOf("limit" to TourManager.MAX_SIGNS_PER_WORLD.toString())))
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.limit_reached", mapOf("limit" to TourManager.MAX_START_SIGNS_PER_WORLD.toString())))
+                return
+            }
+            val unboundTours = worldData.tours.filter { it.startSignUuid == null }
+            if (unboundTours.isEmpty()) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.sign_no_available_tour"))
                 return
             }
             placement[player.uniqueId] = PlacementSession(worldData.uuid, block.x, block.y, block.z, blockFace.name, hand)
-            showPlacementDialog(player, plugin)
+            plugin.tourGui.openBindSignToTourMenu(player, worldData)
+        }
+
+        fun startTourCreation(player: Player, plugin: MyWorldManager, worldUuid: UUID) {
+            createTour[player.uniqueId] = CreateTourSession(worldUuid)
+            showCreateTourDialog(player, plugin)
+        }
+
+        fun consumePlacement(playerUuid: UUID): PlacementSession? = placement.remove(playerUuid)
+
+        private fun showCreateTourDialog(player: Player, plugin: MyWorldManager) {
+            val lang = plugin.languageManager
+            val dialog = Dialog.create { builder ->
+                builder.empty().base(
+                    DialogBase.builder(Component.text(lang.getMessage(player, "gui.tour.create_dialog.title"), NamedTextColor.GOLD))
+                        .body(listOf(DialogBody.plainMessage(Component.text(lang.getMessage(player, "gui.tour.create_dialog.description")))))
+                        .inputs(listOf(
+                            DialogInput.text("name", Component.text(lang.getMessage(player, "gui.tour.input.name"))).maxLength(15).build(),
+                            DialogInput.text("description", Component.text(lang.getMessage(player, "gui.tour.input.description"))).maxLength(30).build()
+                        )).build()
+                ).type(DialogType.confirmation(
+                    ActionButton.create(Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:tour/create"), null)),
+                    ActionButton.create(Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED), null, 200, DialogAction.customClick(Key.key("mwm:tour/create_cancel"), null))
+                ))
+            }
+            player.showDialog(dialog)
         }
 
         fun startTourTextEdit(player: Player, plugin: MyWorldManager, worldUuid: UUID, tourUuid: UUID, currentName: String, currentDescription: String) {
@@ -85,23 +117,6 @@ class TourDialogManager : Listener {
             player.showDialog(dialog)
         }
 
-        private fun showPlacementDialog(player: Player, plugin: MyWorldManager) {
-            val lang = plugin.languageManager
-            val dialog = Dialog.create { builder ->
-                builder.empty().base(
-                    DialogBase.builder(Component.text(lang.getMessage(player, "gui.tour_sign.placement.title"), NamedTextColor.GOLD))
-                        .body(listOf(DialogBody.plainMessage(Component.text(lang.getMessage(player, "gui.tour_sign.placement.description")))))
-                        .inputs(listOf(
-                            DialogInput.text("title", Component.text(lang.getMessage(player, "gui.tour_sign.input.title"))).maxLength(15).build(),
-                            DialogInput.text("description", Component.text(lang.getMessage(player, "gui.tour_sign.input.description"))).maxLength(30).build()
-                        )).build()
-                ).type(DialogType.confirmation(
-                    ActionButton.create(Component.text(lang.getMessage(player, "gui.tour_sign.button.place"), NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:tour_sign/place"), null)),
-                    ActionButton.create(Component.text(lang.getMessage(player, "gui.tour_sign.button.cancel"), NamedTextColor.RED), null, 200, DialogAction.customClick(Key.key("mwm:tour_sign/cancel"), null))
-                ))
-            }
-            player.showDialog(dialog)
-        }
     }
 
     @EventHandler
@@ -111,23 +126,16 @@ class TourDialogManager : Listener {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         when (event.identifier) {
             Key.key("mwm:tour_sign/cancel") -> placement.remove(player.uniqueId)
-            Key.key("mwm:tour_sign/place") -> {
-                val session = placement.remove(player.uniqueId) ?: return
+            Key.key("mwm:tour_sign/place") -> placement.remove(player.uniqueId)
+            Key.key("mwm:tour/create_cancel") -> createTour.remove(player.uniqueId)
+            Key.key("mwm:tour/create") -> {
+                val session = createTour.remove(player.uniqueId) ?: return
                 val view = event.getDialogResponseView() ?: return
-                val title = view.getText("title")?.toString().orEmpty()
-                if (title.isBlank()) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.title_required"))
-                    return
-                }
+                val name = view.getText("name")?.toString().orEmpty().ifBlank { return }
+                val description = view.getText("description")?.toString().orEmpty()
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-                if (!plugin.tourManager.canPlaceSign(worldData)) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.limit_reached", mapOf("limit" to TourManager.MAX_SIGNS_PER_WORLD.toString())))
-                    return
-                }
-                plugin.tourManager.createTourSign(worldData, player, player.world.getBlockAt(session.x, session.y, session.z), runCatching { BlockFace.valueOf(session.blockFace) }.getOrDefault(BlockFace.NORTH), title, view.getText("description")?.toString().orEmpty())
-                val item = if (session.hand == EquipmentSlot.HAND) player.inventory.itemInMainHand else player.inventory.itemInOffHand
-                item.amount -= 1
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour_sign.placed"))
+                plugin.tourManager.createTour(name.trim().take(15), description.trim().take(30), player.uniqueId, worldData)
+                plugin.tourGui.openEditMenu(player, worldData)
             }
             Key.key("mwm:tour/edit_text_cancel") -> plugin.tourSessionManager.getEdit(player.uniqueId)?.let {
                 val worldData = plugin.worldConfigRepository.findByUuid(it.worldUuid) ?: return

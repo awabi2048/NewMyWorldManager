@@ -348,6 +348,9 @@ class MyWorldManager : JavaPlugin() {
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
         }
+        if (::tourManager.isInitialized) {
+            tourManager.shutdown()
+        }
         if (::internalCommandTokenManager.isInitialized) {
             internalCommandTokenManager.clearAll()
         }

@@ -1610,14 +1610,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val canForceAddMember = PermissionManager.canForceAddMember(player)
                 val inviteLore =
                         if (canForceAddMember) {
-                                listOf(
-                                        lang.getMessage(player, "gui.common.separator"),
-                                        lang.getMessage(player, "gui.member_management.invite.desc"),
-                                        lang.getMessage(player, "gui.common.separator"),
-                                        lang.getMessage(player, "gui.member_management.invite.click_normal"),
-                                        lang.getMessage(player, "gui.member_management.invite.click_force"),
-                                        lang.getMessage(player, "gui.common.separator")
-                                )
+                                val desc = lang.getMessage(player, "gui.member_management.invite.desc")
+                                val clickNormal = lang.getMessage(player, "gui.member_management.invite.click_normal")
+                                val clickForce = lang.getMessage(player, "gui.member_management.invite.click_force")
+                                val inviteSep = CCSystem.getAPI().createLoreSeparator(listOf(desc, clickNormal, clickForce))
+                                listOf(inviteSep, desc, inviteSep, clickNormal, clickForce, inviteSep)
                         } else {
                                 listOf(lang.getMessage(player, "gui.member_management.invite.desc"))
                         }
@@ -1975,7 +1972,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 val itemLore = mutableListOf<Component>()
-                
+
                 // Info section
                 val lastOnlineVal = if (!isOnline) {
                         @Suppress("DEPRECATION")
@@ -1990,16 +1987,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 itemLore.addAll(
                     lang.getComponentList(
-                        viewer, 
+                        viewer,
                         "gui.member_management.item.lore_info",
                         mapOf(
                             "last_online" to lastOnlineVal,
                             "role" to role
                         )
-                    ).filter { 
+                    ).filter {
                         // Filter out empty lines that result from empty last_online
                         val text = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(it)
-                        text.isNotBlank() 
+                        text.isNotBlank()
                     }
                 )
 
@@ -2027,10 +2024,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 meta.lore(itemLore)
                 item.itemMeta = meta
-                
+
                 me.awabi2048.myworldmanager.util.ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
                 me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, uuid)
-                
+
                 return item
         }
 

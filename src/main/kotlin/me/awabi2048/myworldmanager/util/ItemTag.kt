@@ -12,7 +12,7 @@ object ItemTag {
     val PORTAL_UUID = NamespacedKey("myworldmanager", "portal_uuid")
     val TARGET_PAGE = NamespacedKey("myworldmanager", "target_page")
     val BIOME_ID = NamespacedKey("myworldmanager", "biome_id")
-    
+
     // Types
     const val TYPE_PORTAL = "portal"
     const val TYPE_WORLD_GATE = "world_gate"
@@ -83,7 +83,7 @@ object ItemTag {
     const val TYPE_GUI_MEET_SETTINGS_BUTTON = "gui_meet_settings_button"
     const val TYPE_GUI_MEET_STATUS_TOGGLE = "gui_meet_status_toggle"
     const val TYPE_GUI_PENDING_ENTRY = "gui_pending_entry"
-    
+
     // お気に入りメニュー用タグ
     const val TYPE_GUI_FAVORITE_OTHER_WORLDS = "gui_favorite_other_worlds"
     const val TYPE_GUI_FAVORITE_TOGGLE = "gui_favorite_toggle"
@@ -100,8 +100,10 @@ object ItemTag {
     const val TYPE_GUI_TOUR_EDIT_TEXT = "gui_tour_edit_text"
     const val TYPE_GUI_TOUR_SIGN_ITEM = "gui_tour_sign_item"
     const val TYPE_GUI_TOUR_ADD_SIGN = "gui_tour_add_sign"
+    const val TYPE_GUI_TOUR_WAYPOINT_ITEM = "gui_tour_waypoint_item"
+    const val TYPE_GUI_TOUR_ADD_WAYPOINT = "gui_tour_add_waypoint"
     const val TYPE_GUI_SETTING_TOUR = "gui_setting_tour"
-    
+
     // 管理者GUIフィルター/ソート用タグ
     const val TYPE_GUI_ADMIN_FILTER_ARCHIVE = "gui_admin_filter_archive"
     const val TYPE_GUI_ADMIN_FILTER_PUBLISH = "gui_admin_filter_publish"
@@ -146,7 +148,7 @@ object ItemTag {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(ITEM_TYPE, PersistentDataType.STRING)
     }
-    
+
     fun isType(item: ItemStack, type: String): Boolean {
         return getType(item) == type
     }
@@ -186,13 +188,13 @@ object ItemTag {
         val uuidStr = meta.persistentDataContainer.get(PORTAL_UUID, PersistentDataType.STRING) ?: return null
         return try { java.util.UUID.fromString(uuidStr) } catch (e: Exception) { null }
     }
-    
+
     fun setBiomeId(item: ItemStack, biomeId: String) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(BIOME_ID, PersistentDataType.STRING, biomeId)
         item.itemMeta = meta
     }
-    
+
     fun getBiomeId(item: ItemStack): String? {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(BIOME_ID, PersistentDataType.STRING)

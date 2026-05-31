@@ -32,7 +32,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val totalMax = config.getInt("creation.max_total_world_count", 50)
         val totalCurrent = plugin.worldConfigRepository.findAll().size
         if (!bypassLimits && totalCurrent >= totalMax) {
-            player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached_total", mapOf("max" to totalMax)))
+            player.sendMessage(lang.getMessage(player, "gui.creation.limit_reached_total", mapOf("max" to totalMax)))
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER)) // エラー音の代わり
             return
         }
@@ -42,7 +42,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val playerMax = defaultMax + stats.unlockedWorldSlot
         val playerCurrent = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
         if (!bypassLimits && playerCurrent >= playerMax) {
-            player.sendMessage(lang.getMessage(player, "gui.creation.type.limit_reached", mapOf("current" to playerCurrent, "max" to playerMax)))
+            player.sendMessage(lang.getMessage(player, "gui.creation.limit_reached", mapOf("current" to playerCurrent, "max" to playerMax)))
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
             return
         }
@@ -82,7 +82,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         if (!bypassLimits && currentCounts >= maxCounts) {
-            lore.add(lang.getComponent(player, "gui.creation.type.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).decoration(TextDecoration.ITALIC, false))
+            lore.add(lang.getComponent(player, "gui.creation.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).decoration(TextDecoration.ITALIC, false))
         } else if (currentPoints >= cost) {
             lore.add(lang.getComponent(player, "gui.creation.type.available").decoration(TextDecoration.ITALIC, false))
         } else {

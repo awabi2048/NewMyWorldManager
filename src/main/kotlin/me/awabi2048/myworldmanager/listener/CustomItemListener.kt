@@ -22,7 +22,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
         val item = event.item ?: return
 
         if (!item.hasItemMeta()) return
-        
+
         // Empty Biome Bottle Logic
         if (ItemTag.isType(item, ItemTag.TYPE_EMPTY_BIOME_BOTTLE)) {
              if (event.action == Action.RIGHT_CLICK_AIR || event.action == Action.RIGHT_CLICK_BLOCK) {
@@ -30,13 +30,13 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
 
                  val biome = player.location.block.biome
                  val biomeId = biome.toString().lowercase()
-                 
+
                  // Reduce empty bottle
                  item.amount -= 1
-                 
+
                  // Create filled bottle
                  val filledBottle = CustomItem.BOTTLED_BIOME_AIR.createWithBiome(plugin.languageManager, player, biomeId)
-                 
+
                  // Give to player
                  if (item.amount == 0) {
                      // If it was the last one, replace in hand (or just remove if logic differs, but player.inventory.addItem handles "add or drop")
@@ -46,16 +46,16 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                      // However, to be safe and support stacking:
                      // 1. If stack > 1: decrement hand, addItem new bottle.
                      // 2. If stack == 1: set hand to new bottle.
-                     
-                     // We already did item.amount -= 1. 
+
+                     // We already did item.amount -= 1.
                      // If it was 1, now 0.
                      // Wait, manipulating the event.item directly works, but let's be precise.
                  }
-                 
+
                  // Re-do logic for safety
                  // Restore amount for a sec to handle "set to new item" vs "add new item"
                  item.amount += 1 // Undo
-                 
+
                  if (item.amount == 1) {
                      // Replace hand
                      if (event.hand == org.bukkit.inventory.EquipmentSlot.HAND) {
@@ -75,7 +75,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.bottle_fill", mapOf("biome" to biomeName)))
             }
         }
-        
+
         // Bottled Biome Air Logic (Partial Application)
         if (ItemTag.isType(item, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
             if ((event.action == Action.RIGHT_CLICK_AIR || event.action == Action.RIGHT_CLICK_BLOCK) && player.isSneaking) {
@@ -87,7 +87,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                     player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.biome_world_only"))
                     return
                 }
-                
+
                 // Get Biome ID
                 val biomeId = ItemTag.getBiomeId(item)
                 if (biomeId == null) {
@@ -100,27 +100,27 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                     player.sendMessage("§cInvalid biome data.")
                     return
                 }
-                
+
                 // Get World Data
                 val uuidStr = worldName.removePrefix("my_world.")
                 val worldUuid = try { java.util.UUID.fromString(uuidStr) } catch (e: Exception) { return }
                 val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-                
+
                 // Permission Check (Owner or Moderator)
                 if (worldData.owner != player.uniqueId && !worldData.moderators.contains(player.uniqueId) && !player.hasPermission("myworldmanager.admin")) {
                     player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.no_permission"))
                     return
                 }
-                
+
                 // Apply Partial Biome
                 val radius = 10
                 val centerX = player.location.blockX
                 val centerZ = player.location.blockZ
-                
+
                 val world = player.world
                 val minHeight = world.minHeight
                 val maxHeight = world.maxHeight
-                
+
                 for (x in centerX - radius..centerX + radius) {
                     for (z in centerZ - radius..centerZ + radius) {
                         for (y in minHeight until maxHeight step 4) { // Optimization: setBiome usually works on 4x4x4 sections or similar depending on version, but per-block loop is safe
@@ -132,30 +132,30 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                         }
                     }
                 }
-                
+
                 // Refresh affected chunks to show changes
                 val minChunkX = (centerX - radius) shr 4
                 val maxChunkX = (centerX + radius) shr 4
                 val minChunkZ = (centerZ - radius) shr 4
                 val maxChunkZ = (centerZ + radius) shr 4
-                
+
                 for (cx in minChunkX..maxChunkX) {
                     for (cz in minChunkZ..maxChunkZ) {
                         world.refreshChunk(cx, cz)
                     }
                 }
-                
+
                 // Save Data
                 worldData.partialBiomes.add(me.awabi2048.myworldmanager.model.PartialBiomeData(centerX, centerZ, radius, biomeId.uppercase()))
                 plugin.worldConfigRepository.save(worldData)
-                
+
                 // Effects
                 player.playSound(player.location, Sound.ITEM_BOTTLE_FILL, 1.0f, 0.5f) // Open sound pitch lower
                 player.world.spawnParticle(org.bukkit.Particle.CLOUD, player.location, 50, 2.0, 1.0, 2.0, 0.1)
-                
+
                 val biomeName = plugin.languageManager.getMessage(player, "biomes.${biomeId.lowercase()}")
                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.partial_biome_applied", mapOf("biome" to biomeName)))
-                
+
                 // Consume Item
                  item.amount -= 1
                  if (item.amount <= 0) {
@@ -165,7 +165,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  }
             }
         }
-        
+
         // World Seed Logic
         if (ItemTag.isType(item, ItemTag.TYPE_WORLD_SEED)) {
              if (event.action == Action.RIGHT_CLICK_AIR || event.action == Action.RIGHT_CLICK_BLOCK) {
@@ -183,15 +183,15 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                      player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f)
                      return
                  }
-                 
+
                  // Open Confirmation
                  val title = net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.title"))
-                 val bodyLines = listOf(
-                     net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.0")),
-                     net.kyori.adventure.text.Component.text(""),
-                     net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.2", mapOf("current" to currentSlots))),
-                     net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.lore.3", mapOf("next" to (currentSlots + 1))))
-                 )
+                 val loreComponents = plugin.languageManager.getComponentList(player, "gui.world_seed_confirm.lore", mapOf("current" to currentSlots, "next" to (currentSlots + 1)))
+                 val bodyLines = mutableListOf<net.kyori.adventure.text.Component>()
+                 if (loreComponents.isNotEmpty()) bodyLines.add(loreComponents[0])
+                 bodyLines.add(net.kyori.adventure.text.Component.text(""))
+                 if (loreComponents.size > 2) bodyLines.add(loreComponents[2])
+                 if (loreComponents.size > 3) bodyLines.add(loreComponents[3])
 
                  me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
                       player,
