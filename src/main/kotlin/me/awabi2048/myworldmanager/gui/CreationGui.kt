@@ -2,6 +2,8 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
@@ -191,6 +193,18 @@ class CreationGui(private val plugin: MyWorldManager) {
                 listOf(lang.getComponent(player, "gui.common.cancel_desc").decoration(TextDecoration.ITALIC, false))
             )
         )
+
+        val context = MenuExtensionContext(
+            "creation_confirm",
+            mutableMapOf(
+                "session" to session,
+                "worldName" to cleanedName,
+                "creationType" to session.creationType
+            )
+        )
+        MyWorldManagerApi.getMenuExtensions().forEach { extension ->
+            extension.onRender(inventory, player, context)
+        }
 
         player.openInventory(inventory)
     }

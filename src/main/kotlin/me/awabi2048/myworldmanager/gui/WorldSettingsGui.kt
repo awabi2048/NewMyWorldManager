@@ -7,6 +7,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -1088,6 +1090,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                 }
 
+                MyWorldManagerApi.getMenuExtensions().forEach { extension ->
+                        extension.onRender(
+                                inventory,
+                                player,
+                                MenuExtensionContext(
+                                        "world_settings",
+                                        mutableMapOf(
+                                                "worldData" to worldData,
+                                                "showBackButton" to currentShowBack,
+                                                "isOwner" to isOwner,
+                                                "isMember" to isMember,
+                                                "isModerator" to isModerator
+                                        )
+                                )
+                        )
+                }
+
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
                 }
@@ -1628,6 +1647,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                MyWorldManagerApi.getMenuExtensions().forEach { extension ->
+                        extension.onRender(
+                                inventory,
+                                player,
+                                MenuExtensionContext(
+                                        "member_management",
+                                        mutableMapOf(
+                                                "worldData" to worldData,
+                                                "page" to currentPage,
+                                                "footerStart" to footerStart,
+                                                "canManageRoles" to canManageRoles,
+                                                "isAdminFlow" to isAdminFlow
+                                        )
+                                )
+                        )
+                }
+
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 9 until footerStart) {
@@ -1978,7 +2014,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         @Suppress("DEPRECATION")
                         val date = java.time.Instant.ofEpochMilli(player.lastPlayed)
                                 .atZone(java.time.ZoneId.systemDefault())
-                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy年M月d日"))
                         val onlineLabel = lang.getMessage(viewer, "gui.member_management.item.last_online_label")
                         "§f§l| §7$onlineLabel §f$date"
                 } else {

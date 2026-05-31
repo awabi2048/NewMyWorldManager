@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
@@ -47,6 +49,26 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         }
 
         val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
+
+        if (tag == ItemTag.TYPE_GUI_EXTENSION) {
+            val extensionId = ItemTag.getExtensionId(currentItem) ?: return
+            val extension =
+                    MyWorldManagerApi.getMenuExtensions().firstOrNull { it.getId() == extensionId }
+                            ?: return
+            val context =
+                    MenuExtensionContext(
+                            "creation_confirm",
+                            mutableMapOf(
+                                    "session" to session,
+                                    "worldName" to (session.worldName ?: ""),
+                                    "creationType" to session.creationType
+                            )
+                    )
+            if (extension.onClick(event, player, context)) {
+                plugin.soundManager.playClickSound(player, currentItem)
+            }
+            return
+        }
 
         if (tag == ItemTag.TYPE_GUI_BACK) {
             plugin.soundManager.playClickSound(player, currentItem)
