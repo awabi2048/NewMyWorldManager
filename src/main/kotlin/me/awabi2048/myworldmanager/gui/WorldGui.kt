@@ -2,6 +2,8 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
@@ -51,12 +53,28 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
                 val currentPage = page ?: session.currentPage
                 session.currentPage = currentPage
+                if (session.sortBy == AdminSortType.EXPIRE_ASC || session.sortBy == AdminSortType.EXPIRE_DESC) {
+                        session.sortBy = AdminSortType.CREATED_DESC
+                }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         player.uniqueId,
                         SettingsAction.ADMIN_WORLD_GUI,
                         isGui = true
                 )
+
+                if (
+                        MyWorldManagerApi.openAdminWorldListOverride(
+                                player,
+                                AdminWorldListRequest(
+                                        page = page,
+                                        fromAdminMenu = fromAdminMenu,
+                                        suppressSound = suppressSound
+                                )
+                        )
+                ) {
+                        return
+                }
 
                 repository.loadAll()
 
@@ -1207,6 +1225,8 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 val lore = mutableListOf<Component>()
                 var sortTypes = AdminSortType.values()
+                        .filter { it != AdminSortType.EXPIRE_ASC && it != AdminSortType.EXPIRE_DESC }
+                        .toTypedArray()
                 if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
                         sortTypes =
                                 sortTypes.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()

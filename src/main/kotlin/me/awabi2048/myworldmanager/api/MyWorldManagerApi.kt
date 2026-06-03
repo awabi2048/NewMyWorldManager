@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.api
 
+import me.awabi2048.myworldmanager.api.extension.AdminWorldListProvider
+import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.api.extension.MenuExtension
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
@@ -8,8 +10,11 @@ import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldRuntimePolicy
 import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
+import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiTemplateRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
@@ -34,6 +39,8 @@ object MyWorldManagerApi {
     private val createCommandHandlers = CopyOnWriteArrayList<CreateCommandHandler>()
     private val worldRuntimePolicies = CopyOnWriteArrayList<WorldRuntimePolicy>()
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
+    private val worldSettingsMenuProviders = CopyOnWriteArrayList<WorldSettingsMenuProvider>()
+    private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
 
     @JvmStatic
     fun registerWorldPointService(service: WorldPointService) {
@@ -223,6 +230,42 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldPublishPolicy(): WorldPublishPolicy {
         return worldPublishPolicies.lastOrNull() ?: DefaultWorldPublishPolicy
+    }
+
+    @JvmStatic
+    fun registerWorldSettingsMenuProvider(provider: WorldSettingsMenuProvider) {
+        worldSettingsMenuProviders.removeIf { it.getId() == provider.getId() }
+        worldSettingsMenuProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterWorldSettingsMenuProvider(provider: WorldSettingsMenuProvider) {
+        worldSettingsMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    }
+
+    @JvmStatic
+    fun openWorldSettingsMenuOverride(
+        player: Player,
+        worldData: WorldData,
+        request: WorldSettingsMenuRequest
+    ): Boolean {
+        return worldSettingsMenuProviders.asReversed().any { it.open(player, worldData, request) }
+    }
+
+    @JvmStatic
+    fun registerAdminWorldListProvider(provider: AdminWorldListProvider) {
+        adminWorldListProviders.removeIf { it.getId() == provider.getId() }
+        adminWorldListProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterAdminWorldListProvider(provider: AdminWorldListProvider) {
+        adminWorldListProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    }
+
+    @JvmStatic
+    fun openAdminWorldListOverride(player: Player, request: AdminWorldListRequest): Boolean {
+        return adminWorldListProviders.asReversed().any { it.open(player, request) }
     }
 
     @JvmStatic

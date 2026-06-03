@@ -2,6 +2,8 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -137,6 +139,14 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             lang.getMessageList(player, "gui.admin_menu.portals.lore"),
             ItemTag.TYPE_GUI_ADMIN_PORTALS
         ))
+
+        MyWorldManagerApi.getMenuExtensions().forEach { extension ->
+            extension.onRender(
+                inventory,
+                player,
+                MenuExtensionContext("admin_menu", mutableMapOf())
+            )
+        }
 
         player.openInventory(inventory)
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)

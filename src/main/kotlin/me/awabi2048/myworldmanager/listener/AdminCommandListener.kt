@@ -2,6 +2,8 @@ package me.awabi2048.myworldmanager.listener
 
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -156,6 +158,20 @@ class AdminCommandListener : Listener {
             ItemTag.TYPE_GUI_ADMIN_PORTALS -> {
                 plugin.soundManager.playAdminClickSound(player)
                 plugin.adminPortalGui.open(player, fromAdminMenu = true)
+            }
+            ItemTag.TYPE_GUI_EXTENSION -> {
+                val extensionId = ItemTag.getExtensionId(item) ?: return
+                val handled = MyWorldManagerApi.getMenuExtensions()
+                    .firstOrNull { it.getId() == extensionId }
+                    ?.onClick(
+                        event,
+                        player,
+                        MenuExtensionContext("admin_menu", mutableMapOf("action" to action))
+                    )
+                    ?: false
+                if (handled) {
+                    plugin.soundManager.playAdminClickSound(player)
+                }
             }
             ItemTag.TYPE_GUI_RETURN -> {
                 plugin.soundManager.playAdminClickSound(player)

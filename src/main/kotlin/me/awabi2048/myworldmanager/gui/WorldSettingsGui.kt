@@ -9,6 +9,7 @@ import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -75,6 +76,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 val currentShowBack =
                         plugin.settingsSessionManager.getSession(player)?.showBackButton ?: false
+
+                if (
+                        MyWorldManagerApi.openWorldSettingsMenuOverride(
+                                player,
+                                worldData,
+                                WorldSettingsMenuRequest(
+                                        showBackButton = currentShowBack,
+                                        isPlayerWorldFlow = isPlayerWorldFlow,
+                                        parentShowBackButton = parentShowBackButton
+                                )
+                        )
+                ) {
+                        return
+                }
 
                 me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(
                         plugin,
