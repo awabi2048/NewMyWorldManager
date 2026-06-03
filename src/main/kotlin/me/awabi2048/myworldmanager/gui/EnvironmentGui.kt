@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -102,7 +103,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     else -> "earth"
                 }
         val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
-        val cost = plugin.config.getInt("environment.gravity.cost", 100)
+        val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
 
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.gravity.display")))
         meta.lore(
@@ -140,7 +141,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
 
         val session = plugin.settingsSessionManager.getSession(player)
         val currentWeather = session?.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
-        val cost = plugin.config.getInt("environment.weather.cost", 50)
+        val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
 
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.weather.display")))
         meta.lore(
@@ -181,7 +182,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
 
         val currentBiome = worldData.fixedBiome ?: "DEFAULT"
-        val cost = plugin.config.getInt("environment.biome.cost", 500)
+        val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
 
         meta.displayName(Component.text(lang.getMessage(player, "gui.environment.biome.display")))
         meta.lore(

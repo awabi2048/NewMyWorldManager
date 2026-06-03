@@ -1,7 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -23,14 +23,14 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
     private val dataRowsPerPage = 4
     private val itemsPerPage = worldsPerRow * dataRowsPerPage
 
-    fun hasSearchResult(query: String): Boolean {
+    fun hasSearchResult(player: Player, query: String): Boolean {
         val normalizedQuery = normalize(query)
-        return searchWorlds(normalizedQuery).isNotEmpty()
+        return searchWorlds(player, normalizedQuery).isNotEmpty()
     }
 
     fun open(player: Player, query: String, page: Int = 0, showBackButton: Boolean = false) {
         val normalizedQuery = normalize(query)
-        val worlds = searchWorlds(normalizedQuery)
+        val worlds = searchWorlds(player, normalizedQuery)
 
         val totalPages = if (worlds.isEmpty()) 1 else (worlds.size + itemsPerPage - 1) / itemsPerPage
         val currentPage = page.coerceIn(0, totalPages - 1)
@@ -74,13 +74,13 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
-    private fun searchWorlds(normalizedQuery: String): List<WorldData> {
+    private fun searchWorlds(player: Player, normalizedQuery: String): List<WorldData> {
         if (normalizedQuery.isEmpty()) return emptyList()
         val queryTokens = normalizedQuery.split(Regex("\\s+")).filter { it.isNotBlank() }
 
         return plugin.worldConfigRepository.findAll()
             .asSequence()
-            .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived }
+            .filter { MyWorldManagerApi.getWorldAccessPolicy().canShowInVisitWorldList(player, it) }
             .map { world ->
                 val normalizedName = normalize(world.name)
                 val exact = normalizedName == normalizedQuery

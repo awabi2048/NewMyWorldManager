@@ -18,6 +18,7 @@ import me.awabi2048.myworldmanager.session.WorldCreationPhase
 import me.awabi2048.myworldmanager.session.WorldCreationSession
 import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -276,12 +277,7 @@ class CreationDialogManager : Listener {
                 else -> lang.getMessage(player, "general.unknown")
             }
 
-            val cost = when (session.creationType) {
-                WorldCreationType.TEMPLATE -> config.getInt("creation_cost.template", 0)
-                WorldCreationType.SEED -> config.getInt("creation_cost.seed", 100)
-                WorldCreationType.RANDOM -> config.getInt("creation_cost.random", 50)
-                else -> 0
-            }
+            val cost = session.creationType?.let { WorldRuntimePolicies.creationCost(config, it) } ?: 0
 
             val cleanedName = session.worldName ?: lang.getMessage(player, "general.unknown")
 
@@ -365,12 +361,7 @@ class CreationDialogManager : Listener {
             session: WorldCreationSession,
             plugin: MyWorldManager
         ) {
-            val cost = when (session.creationType) {
-                WorldCreationType.TEMPLATE -> plugin.config.getInt("creation_cost.template", 0)
-                WorldCreationType.SEED -> plugin.config.getInt("creation_cost.seed", 100)
-                WorldCreationType.RANDOM -> plugin.config.getInt("creation_cost.random", 50)
-                else -> 0
-            }
+            val cost = session.creationType?.let { WorldRuntimePolicies.creationCost(plugin.config, it) } ?: 0
 
             // ポイント消費
             val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)

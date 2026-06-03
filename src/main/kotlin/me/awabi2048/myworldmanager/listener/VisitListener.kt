@@ -1,8 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.VisitGui
-import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -48,7 +48,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                                       worldData.moderators.contains(player.uniqueId) ||
                                       worldData.members.contains(player.uniqueId))
 
-                        if (worldData == null || (worldData.publishLevel != PublishLevel.PUBLIC && !isMember)) {
+                        if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                             player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                             plugin.soundManager.playActionSound(player, "visit", "access_denied")
                             player.closeInventory()
@@ -69,7 +69,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                                       worldData.moderators.contains(player.uniqueId) ||
                                       worldData.members.contains(player.uniqueId))
 
-                        if (worldData == null || (worldData.publishLevel != PublishLevel.PUBLIC && !isMember)) {
+                        if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                             player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                             plugin.soundManager.playActionSound(player, "visit", "access_denied")
                             player.closeInventory()

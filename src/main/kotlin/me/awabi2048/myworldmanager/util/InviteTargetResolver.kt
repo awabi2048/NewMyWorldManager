@@ -1,7 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
 import org.bukkit.entity.Player
@@ -33,7 +33,7 @@ object InviteTargetResolver {
         viewer: Player,
         worldData: WorldData?
     ): List<Player> {
-        if (worldData == null || worldData.publishLevel == PublishLevel.LOCKED) {
+        if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(viewer, worldData)) {
             return emptyList()
         }
 
@@ -62,7 +62,7 @@ object InviteTargetResolver {
             return RejectionReason.LOCKED
         }
 
-        if (worldData.publishLevel == PublishLevel.LOCKED) {
+        if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(viewer, worldData)) {
             return RejectionReason.LOCKED
         }
 

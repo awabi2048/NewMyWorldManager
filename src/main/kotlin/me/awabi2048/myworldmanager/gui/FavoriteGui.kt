@@ -1,7 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
@@ -245,16 +245,15 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to tagNames))
                 } else ""
 
-                val warpLine = if (!data.isArchived && (data.publishLevel == PublishLevel.PUBLIC || data.publishLevel == PublishLevel.FRIEND)) {
+                val viewerUuid = player.uniqueId
+                val isMember = data.owner == viewerUuid || data.moderators.contains(viewerUuid) || data.members.contains(viewerUuid)
+                val warpLine = if (MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, data, isMember)) {
                         if (isBedrock) {
                                 lang.getMessage(player, "gui.favorite.world_item.warp_bedrock")
                         } else {
                                 lang.getMessage(player, "gui.favorite.world_item.warp")
                         }
                 } else ""
-
-                val viewerUuid = player.uniqueId
-                val isMember = data.owner == viewerUuid || data.moderators.contains(viewerUuid) || data.members.contains(viewerUuid)
 
                 val archivedLine = if (data.isArchived) lang.getMessage(player, "gui.favorite.world_item.archived_label") else ""
                 val unfavoriteLine = if (isBedrock) {

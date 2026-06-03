@@ -8,6 +8,7 @@ import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -181,7 +182,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             return
         }
 
-        val defaultMax = plugin.config.getInt("creation.max_create_count_default", 3)
+        val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
         val stats = plugin.playerStatsRepository.findByUuid(targetId)
         val maxCounts = defaultMax + stats.unlockedWorldSlot
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == targetId }

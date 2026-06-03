@@ -20,6 +20,7 @@ import me.awabi2048.myworldmanager.util.GuiLoreAction
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
@@ -278,17 +279,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                         val costsSection = config.getConfigurationSection("expansion.costs")
                         val maxLevel = costsSection?.getKeys(false)?.size ?: 3
-                        val baseCost = config.getInt("expansion.base_cost", 100)
-                        val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
 
                         val currentLevel = worldData.borderExpansionLevel
-                        val cost =
-                                if (config.contains("expansion.costs.${currentLevel + 1}")) {
-                                        config.getInt("expansion.costs.${currentLevel + 1}")
-                                } else {
-                                        (baseCost * Math.pow(multiplier, currentLevel.toDouble()))
-                                                .toInt()
-                                }
+                        val cost = WorldRuntimePolicies.expansionCost(config, currentLevel + 1)
                         val expansionLoreBuilder = GuiLoreBuilder(lang, player)
 
                         if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
@@ -2759,21 +2752,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         private fun calculateTotalExpansionCost(level: Int): Int {
-                var total = 0
-                val config = plugin.config
-                val baseCost = config.getInt("expansion.base_cost", 100)
-                val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
-
-                for (i in 1..level) {
-                        total +=
-                                if (config.contains("expansion.costs.$i")) {
-                                        config.getInt("expansion.costs.$i")
-                                } else {
-                                        (baseCost * Math.pow(multiplier, (i - 1).toDouble()))
-                                                .toInt()
-                                }
-                }
-                return total
+                return WorldRuntimePolicies.totalExpansionCost(plugin.config, level)
         }
 
         fun openResetExpansionConfirmation(player: Player, worldData: WorldData) {

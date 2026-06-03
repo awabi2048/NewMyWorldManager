@@ -1,7 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -40,7 +40,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                                 world.moderators.contains(player.uniqueId) ||
                                                 world.members.contains(player.uniqueId)
 
-                                world.publishLevel == PublishLevel.PUBLIC || isMember
+                                MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, world, isMember)
                         }
 
                 val worldCount = targetWorlds.size

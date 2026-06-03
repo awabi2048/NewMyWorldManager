@@ -1,10 +1,11 @@
 package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.model.PortalData
-import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.TextDisplayEntityUtil
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -45,7 +46,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         val volume = ((maxX - minX + 1).toLong().coerceAtLeast(1L) *
                 (maxY - minY + 1).toLong().coerceAtLeast(1L) *
                 (maxZ - minZ + 1).toLong().coerceAtLeast(1L))
-        val pointCostPerBlock = plugin.config.getInt("portal.world_gate.point_cost_per_block", 1).coerceAtLeast(0)
+        val pointCostPerBlock = WorldRuntimePolicies.portalWorldGatePointCostPerBlock(plugin.config).coerceAtLeast(0)
         val totalCost = volume * pointCostPerBlock.toLong()
         return totalCost.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     }
@@ -556,7 +557,10 @@ class PortalManager(private val plugin: MyWorldManager) {
             // マイワールドへのワープ
             val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!) ?: return
             
-            if (destData.publishLevel == PublishLevel.LOCKED) {
+            val isMember = destData.owner == player.uniqueId ||
+                destData.members.contains(player.uniqueId) ||
+                destData.moderators.contains(player.uniqueId)
+            if (!MyWorldManagerApi.getWorldAccessPolicy().canEnterWorld(player, destData, isMember)) {
                 player.sendMessage(lang.getMessage(player, "error.portal_dest_locked"))
                 return
             }

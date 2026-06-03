@@ -2,12 +2,14 @@ package me.awabi2048.myworldmanager.ui.bedrock
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -245,7 +247,7 @@ class BedrockMenuService(
                     tr(
                         player,
                         "gui.bedrock.world_action.button.cycle_publish",
-                        mapOf("level" to publishLevelText(player, worldData.publishLevel))
+                        mapOf("level" to publishDisplayText(player, worldData))
                     ),
                     Material.ENDER_EYE
                 ) {
@@ -315,7 +317,7 @@ class BedrockMenuService(
                     tr(
                         player,
                         "gui.bedrock.world_action.content.publish",
-                        mapOf("publish" to publishLevelText(player, worldData.publishLevel))
+                        mapOf("publish" to publishDisplayText(player, worldData))
                     )
                 )
                 .joinToString("\n")
@@ -421,7 +423,7 @@ class BedrockMenuService(
         val footerStart = (rowCount - 1) * 9
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val currentCreateCount = worlds.count { it.owner == player.uniqueId }
-        val maxSlot = plugin.config.getInt("creation.max_create_count_default", 3) + stats.unlockedWorldSlot
+        val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         val holder = BedrockPlayerWorldListHolder(page, showBackButton)
@@ -528,7 +530,7 @@ class BedrockMenuService(
                     tr(
                         player,
                         "gui.bedrock.world_action.button.cycle_publish",
-                        mapOf("level" to publishLevelText(player, worldData.publishLevel))
+                        mapOf("level" to publishDisplayText(player, worldData))
                     ),
                     "cycle_publish",
                     worldData.uuid
@@ -921,6 +923,9 @@ class BedrockMenuService(
     }
 
     private fun cyclePublishLevel(player: Player, worldData: WorldData) {
+        if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
+            return
+        }
         val levels = PublishLevel.values()
         val currentIndex = levels.indexOf(worldData.publishLevel).let { if (it < 0) 0 else it }
         worldData.publishLevel = levels[(currentIndex + 1) % levels.size]
@@ -1242,6 +1247,11 @@ class BedrockMenuService(
 
     private fun publishLevelText(player: Player, level: PublishLevel): String {
         return tr(player, "publish_level.${level.name.lowercase()}")
+    }
+
+    private fun publishDisplayText(player: Player, worldData: WorldData): String {
+        return MyWorldManagerApi.getWorldPublishPolicy()
+            .getPublishDisplayName(player, worldData, publishLevelText(player, worldData.publishLevel))
     }
 
     private fun worldStateText(player: Player, archived: Boolean): String {

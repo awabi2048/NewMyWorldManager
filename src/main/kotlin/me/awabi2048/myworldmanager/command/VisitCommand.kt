@@ -10,6 +10,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -186,7 +187,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
                     world.moderators.contains(player.uniqueId) ||
                     world.members.contains(player.uniqueId)
 
-            world.publishLevel == PublishLevel.PUBLIC || isMember
+            MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, world, isMember)
         }
     }
 

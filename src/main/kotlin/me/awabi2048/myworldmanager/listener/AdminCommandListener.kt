@@ -5,7 +5,9 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -253,11 +255,8 @@ class AdminCommandListener : Listener {
                                 if (world.cumulativePoints <= 0) {
                                     val worldConfig = plugin.config
                                     var estimatedPoints =
-                                            worldConfig.getInt("creation_cost.template", 0)
-                                    for (i in 1..world.borderExpansionLevel) {
-                                        estimatedPoints +=
-                                                worldConfig.getInt("expansion.costs.$i", 100)
-                                    }
+                                            WorldRuntimePolicies.creationCost(worldConfig, WorldCreationType.TEMPLATE)
+                                    estimatedPoints += WorldRuntimePolicies.totalExpansionCost(worldConfig, world.borderExpansionLevel)
                                     world.cumulativePoints = estimatedPoints
                                 }
                                 plugin.worldConfigRepository.save(world)

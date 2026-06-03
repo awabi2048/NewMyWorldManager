@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -35,7 +35,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             player.sendMessage(lang.getMessage(player, "messages.invite_not_in_myworld"))
             return false
         }
-        if (currentWorldData.publishLevel == PublishLevel.LOCKED) {
+        if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(player, currentWorldData)) {
             player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
             return false
         }

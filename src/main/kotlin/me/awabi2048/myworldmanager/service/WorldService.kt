@@ -13,6 +13,7 @@ import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.WorldCreator
@@ -661,7 +662,7 @@ class WorldService(
         return future
     }
     private fun reduceOwnerSlotOnDeleteIfEnabled(ownerUuid: UUID) {
-        if (!plugin.config.getBoolean("deletion.reduce_owner_slot", false)) {
+        if (!WorldRuntimePolicies.reduceOwnerSlotOnDelete(plugin.config)) {
             return
         }
 

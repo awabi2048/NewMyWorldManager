@@ -3,6 +3,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PlayerWorldGui
 import io.papermc.paper.connection.PlayerGameConnection
@@ -14,7 +15,6 @@ import io.papermc.paper.registry.data.dialog.action.DialogAction
 import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
-import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
@@ -101,7 +101,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
                 
-                if (worldData.publishLevel == PublishLevel.LOCKED) {
+                if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(player, worldData)) {
                     player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
                     player.closeInventory()
                     return

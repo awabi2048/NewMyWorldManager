@@ -21,6 +21,7 @@ import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -1419,6 +1420,10 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
+                                                if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
+                                                        plugin.worldSettingsGui.open(player, worldData)
+                                                        return
+                                                }
                                                 val isBedrock =
                                                         plugin.playerPlatformResolver.isBedrock(player)
                                                 val nextLevel =
@@ -1726,10 +1731,7 @@ class WorldSettingsListener : Listener {
                                                         "world_settings"
                                                 )
                                                 val cost =
-                                                        plugin.config.getInt(
-                                                                "environment.gravity.cost",
-                                                                100
-                                                        )
+                                                        WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
                                                 plugin.logger.info("[MWM-Debug] Gravity click detected. Cost: $cost")
                                                 showEnvConfirmDialog(player, "gravity", cost)
                                         } else if (ItemTag.isType(
@@ -1787,10 +1789,7 @@ class WorldSettingsListener : Listener {
                                                         "world_settings"
                                                 )
                                                 val cost =
-                                                        plugin.config.getInt(
-                                                                "environment.biome.cost",
-                                                                500
-                                                        )
+                                                        WorldRuntimePolicies.environmentCost(plugin.config, "biome")
 
                                                 val biomeId = ItemTag.getBiomeId(clickedItem)
                                                 if (biomeId != null) {
@@ -1810,12 +1809,12 @@ class WorldSettingsListener : Listener {
                                                 if (event.isLeftClick) {
                                                         handleWeatherClickCycle(player, worldData)
                                                 } else if (event.isRightClick) {
-                                                        val cost = plugin.config.getInt("environment.weather.cost", 50)
+                                                        val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
                                                         showEnvConfirmDialog(player, "weather", cost)
                                                 }
                                         }
                                         ItemTag.TYPE_GUI_ENV_GRAVITY -> {
-                                                val cost = plugin.config.getInt("environment.gravity.cost", 100)
+                                                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
                                                 showEnvConfirmDialog(player, "gravity", cost)
                                         }
                                         ItemTag.TYPE_GUI_ENV_BIOME -> {
@@ -4063,33 +4062,12 @@ player.sendMessage(
         }
 
         private fun calculateExpansionCost(currentLevel: Int): Int {
-                val config = plugin.config
                 val targetLevel = currentLevel + 1
-                return if (config.contains("expansion.costs.$targetLevel")) {
-                        config.getInt("expansion.costs.$targetLevel")
-                } else {
-                        val baseCost = config.getInt("expansion.base_cost", 100)
-                        val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
-                        (baseCost * Math.pow(multiplier, currentLevel.toDouble())).toInt()
-                }
+                return WorldRuntimePolicies.expansionCost(plugin.config, targetLevel)
         }
 
         private fun calculateTotalExpansionCost(level: Int): Int {
-                var total = 0
-                val config = plugin.config
-                val baseCost = config.getInt("expansion.base_cost", 100)
-                val multiplier = config.getDouble("expansion.cost_multiplier", 2.0)
-
-                for (i in 1..level) {
-                        total +=
-                                if (config.contains("expansion.costs.$i")) {
-                                        config.getInt("expansion.costs.$i")
-                                } else {
-                                        (baseCost * Math.pow(multiplier, (i - 1).toDouble()))
-                                                .toInt()
-                                }
-                }
-                return total
+                return WorldRuntimePolicies.totalExpansionCost(plugin.config, level)
         }
 
         private fun performExpansion(worldData: WorldData, direction: BlockFace?): Boolean {
@@ -4200,8 +4178,7 @@ player.sendMessage(
                 worldData: WorldData,
                 confirmItem: org.bukkit.inventory.ItemStack
         ) {
-                val config = plugin.config
-                val cost = config.getInt("environment.gravity.cost", 100)
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
                 if (stats.worldPoint < cost) {
@@ -4255,8 +4232,7 @@ player.sendMessage(
         ) {
                 val biomeId = ItemTag.getBiomeId(confirmItem) ?: return
                 val lang = plugin.languageManager
-                val config = plugin.config
-                val cost = config.getInt("environment.biome.cost", 500)
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
                 // Safety Check: Permission & Logic
@@ -5140,8 +5116,7 @@ player.sendMessage(
         }
 
         private fun handleEnvGravityConfirm(player: Player, worldData: WorldData) {
-                val config = plugin.config
-                val cost = config.getInt("environment.gravity.cost", 100)
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
                 if (stats.worldPoint < cost) {
@@ -5185,8 +5160,7 @@ player.sendMessage(
         private fun handleWeatherConfirm(player: Player, worldData: WorldData) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val nextWeather = session.getMetadata("temp_weather") as? String ?: return
-                val config = plugin.config
-                val cost = config.getInt("environment.weather.cost", 50)
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
                 if (stats.worldPoint < cost) {
@@ -5223,8 +5197,7 @@ player.sendMessage(
 
         private fun handleEnvBiomeConfirm(player: Player, worldData: WorldData, biomeId: String) {
                 val lang = plugin.languageManager
-                val config = plugin.config
-                val cost = config.getInt("environment.biome.cost", 500)
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
                 if (stats.worldPoint < cost) {

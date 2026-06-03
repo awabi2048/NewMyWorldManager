@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -35,7 +35,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val allWorlds =
                         plugin.worldConfigRepository
                                 .findAll()
-                                .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived && it.sourceWorld != "CONVERT" }
+                                .filter { MyWorldManagerApi.getWorldAccessPolicy().canShowInDiscovery(player, it) }
                                 .filter {
                                         selectedTag == null || it.tags.contains(selectedTag)
                                 }
@@ -53,7 +53,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         // Spotlight登録ワールドは公開設定に関わらず表示する
                                         spotlightUuids.mapNotNull { uuid ->
                                                 plugin.worldConfigRepository.findByUuid(uuid)
-                                        }.filter { it.sourceWorld != "CONVERT" }
+                                        }.filter { MyWorldManagerApi.getWorldAccessPolicy().canShowInDiscovery(player, it) }
                                 }
                                 DiscoverySort.RANDOM -> {
                                         val seed = LocalDate.now().toEpochDay()

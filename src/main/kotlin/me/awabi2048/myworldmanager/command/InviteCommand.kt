@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.command
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
@@ -42,7 +43,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         }
 
         // 封鎖中チェック
-        if (worldData.publishLevel == PublishLevel.LOCKED) {
+        if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(player, worldData)) {
             player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
             return true
         }
@@ -136,7 +137,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         if (sender !is Player) return emptyList()
         if (args.size == 1) {
             val worldData = resolveCurrentWorldData(sender) ?: return emptyList()
-            if (worldData.publishLevel == PublishLevel.LOCKED) {
+            if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(sender, worldData)) {
                 return emptyList()
             }
             val isMember = worldData.owner == sender.uniqueId ||

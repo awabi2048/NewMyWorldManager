@@ -13,6 +13,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -166,7 +167,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 // 統計情報の取得
                 val currentCreateCount = playerWorlds.count { it.owner == player.uniqueId }
                 val maxSlot =
-                        plugin.config.getInt("creation.max_create_count_default", 3) +
+                        WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
                                 stats.unlockedWorldSlot
                 val bypassLimits = PermissionManager.canBypassWorldLimits(player)
                 val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)

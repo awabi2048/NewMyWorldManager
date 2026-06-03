@@ -1,8 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.VisitWorldGui
-import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.Material
@@ -46,7 +46,7 @@ class VisitWorldListener(private val plugin: MyWorldManager) : Listener {
                         worldData.members.contains(player.uniqueId)
                     )
 
-                if (worldData == null || (worldData.publishLevel != PublishLevel.PUBLIC && !isMember)) {
+                if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                     player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                     plugin.soundManager.playActionSound(player, "visit", "access_denied")
                     player.closeInventory()

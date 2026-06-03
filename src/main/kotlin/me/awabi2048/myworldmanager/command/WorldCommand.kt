@@ -2,15 +2,18 @@ package me.awabi2048.myworldmanager.command
 
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.CreationSessionManager
+import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -47,6 +50,11 @@ class WorldCommand(
             return true
         }
 
+        if (subCommand != null && !isSubCommandEnabled(sender, subCommand, args.toList())) {
+            sender.sendMessage(plugin.languageManager.getMessage(sender as? Player, "messages.command_disabled"))
+            return true
+        }
+
         if (subCommand == "list") {
             if (!hasGlobalPermission && !PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)) {
                 PermissionManager.sendNoPermissionMessage(sender)
@@ -71,6 +79,10 @@ class WorldCommand(
                 if (!hasGlobalPermission && !PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)) {
                     PermissionManager.sendNoPermissionMessage(sender)
                     return true
+                }
+                val handler = MyWorldManagerApi.getCreateCommandHandler()
+                if (handler != null) {
+                    return handler.handleCreateCommand(sender, args.drop(1))
                 }
                 if (args.size < 2) {
                     sender.sendMessage(lang.getMessage("messages.usage_create"))
@@ -113,7 +125,7 @@ class WorldCommand(
                     return true
                 }
 
-                val defaultMax = plugin.config.getInt("creation.max_create_count_default", 3)
+                val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
                 val maxPlayer = defaultMax + stats.unlockedWorldSlot
                 val currentPlayer = plugin.worldConfigRepository.findAll().count { it.owner == targetPlayer.uniqueId }
 
@@ -526,31 +538,41 @@ class WorldCommand(
 
         when (args.size) {
             1 -> {
-                if (hasCreatePermission) {
+                if (hasCreatePermission && canSuggestSubCommand(sender, "create", args.toList())) {
                     list.add("create")
                 }
-                if (hasReloadPermission) {
+                if (hasReloadPermission && canSuggestSubCommand(sender, "reload", args.toList())) {
                     list.add("reload")
                 }
-                if (hasStatsPermission) {
+                if (hasStatsPermission && canSuggestSubCommand(sender, "stats", args.toList())) {
                     list.add("stats")
                 }
-                if (hasGivePermission) {
+                if (hasGivePermission && canSuggestSubCommand(sender, "give", args.toList())) {
                     list.add("give")
                 }
-                if (hasGlobalPermission && sender is org.bukkit.command.ConsoleCommandSender) {
+                if (hasGlobalPermission && sender is org.bukkit.command.ConsoleCommandSender && canSuggestSubCommand(sender, "update-day", args.toList())) {
                     list.add("update-day")
+                }
+                if (hasGlobalPermission && sender is org.bukkit.command.ConsoleCommandSender) {
                     list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))
                 }
-                if (hasWorldListPermission) {
+                if (hasWorldListPermission && canSuggestSubCommand(sender, "list", args.toList())) {
                     list.add("list")
                 }
             }
             2 -> {
                 val sub = args[0].lowercase()
-                if ((sub == "stats" && hasStatsPermission) ||
+                val createCompletion = if (sub == "create" && hasCreatePermission && canSuggestSubCommand(sender, sub, args.toList())) {
+                    MyWorldManagerApi.getCreateCommandHandler()?.tabCompleteCreateCommand(sender, args.drop(1))
+                } else {
+                    null
+                }
+                if (createCompletion != null) {
+                    list.addAll(createCompletion)
+                } else if (((sub == "stats" && hasStatsPermission) ||
                     (sub == "give" && hasGivePermission) ||
-                    (sub == "create" && hasCreatePermission)
+                    (sub == "create" && hasCreatePermission)) &&
+                    canSuggestSubCommand(sender, sub, args.toList())
                 ) {
                     list.addAll(Bukkit.getOnlinePlayers().map { it.name })
                 } else if (sub.equals("migrate-worlds", ignoreCase = true) && hasGlobalPermission) {
@@ -562,7 +584,7 @@ class WorldCommand(
                 if (sub == "stats" && hasStatsPermission) {
                     list.addAll(listOf("points", "warp-slots", "world-slots"))
                 } else if (sub == "give" && hasGivePermission) {
-                    list.addAll(CustomItem.values().map { it.id })
+                    list.addAll(CustomItem.values().map { it.id }.filter { canSuggestGiveItem(sender, it) })
                 }
             }
             4 -> {
@@ -687,10 +709,9 @@ class WorldCommand(
                 val expansionLevel = section.getInt("border_expansion_level", 0)
 
                 // 累積ポイント計算
-                var points = plugin.config.getInt("creation_cost.template", 0)
-                for (i in 1..expansionLevel) {
-                    points += plugin.config.getInt("expansion.costs.$i", 100)
-                }
+                val points =
+                        WorldRuntimePolicies.creationCost(plugin.config, WorldCreationType.TEMPLATE) +
+                                WorldRuntimePolicies.totalExpansionCost(plugin.config, expansionLevel)
 
                 val createdAtRaw = section.getString("created_at")
                 val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -747,6 +768,24 @@ class WorldCommand(
             "give" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
             "list" -> PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
             else -> false
+        }
+    }
+
+    private fun isSubCommandEnabled(sender: CommandSender, subCommand: String, args: List<String>): Boolean {
+        return MyWorldManagerApi.getCommandPolicies().all {
+            it.canExecuteMwmSubCommand(sender, subCommand, args)
+        }
+    }
+
+    private fun canSuggestSubCommand(sender: CommandSender, subCommand: String, args: List<String>): Boolean {
+        return MyWorldManagerApi.getCommandPolicies().all {
+            it.canSuggestMwmSubCommand(sender, subCommand, args)
+        }
+    }
+
+    private fun canSuggestGiveItem(sender: CommandSender, itemId: String): Boolean {
+        return MyWorldManagerApi.getCommandPolicies().all {
+            it.canSuggestMwmGiveItem(sender, itemId)
         }
     }
 

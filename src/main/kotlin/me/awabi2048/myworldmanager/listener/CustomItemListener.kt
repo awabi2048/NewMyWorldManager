@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
@@ -174,9 +175,9 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  // Check limits
                  val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                  val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-                 val defaultSlots = plugin.config.getInt("creation.max_create_count_default")
+                 val defaultSlots = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
                  val currentSlots = defaultSlots + stats.unlockedWorldSlot
-                 val limit = plugin.config.getInt("creation.max_world_slots_limit", 10)
+                 val limit = WorldRuntimePolicies.maxWorldSlotLimit(plugin.config)
 
                  if (!bypassLimits && currentSlots >= limit) {
                      player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))

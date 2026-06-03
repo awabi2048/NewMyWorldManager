@@ -2,7 +2,8 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -52,7 +53,12 @@ class MeetGui(private val plugin: MyWorldManager) {
             val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return@filter false
             
             // 公開/限定公開のワールドにいるかチェック
-            if (worldData.publishLevel != PublishLevel.PUBLIC && worldData.publishLevel != PublishLevel.FRIEND) return@filter false
+            val isMember = worldData.owner == player.uniqueId ||
+                worldData.members.contains(player.uniqueId) ||
+                worldData.moderators.contains(player.uniqueId)
+            if (!MyWorldManagerApi.getWorldAccessPolicy().canShowMeetTarget(player, target, worldData, isMember)) {
+                return@filter false
+            }
             
             val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
             stats.meetStatus != "BUSY"
@@ -194,9 +200,10 @@ class MeetGui(private val plugin: MyWorldManager) {
                             
             // Logic based on status
             if (stats.meetStatus == "JOIN_ME") {
-                // Anyone can join if public
-                if (worldData.publishLevel == PublishLevel.PUBLIC || isMember) {
-                    lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_visit"))
+                when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(viewer, target, worldData, isMember)) {
+                    MeetTargetAction.DIRECT -> lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_visit"))
+                    MeetTargetAction.REQUEST -> lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_request"))
+                    MeetTargetAction.DENY -> Unit
                 }
             } else if (stats.meetStatus == "ASK_ME") {
                 // Request needed

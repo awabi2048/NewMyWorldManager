@@ -1,7 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 
@@ -89,27 +90,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                 if (stats.meetStatus == "ASK_ME") {
                     // Send Request
                     plugin.soundManager.playClickSound(player, currentItem, "meet")
-                    player.closeInventory()
-
-                    player.sendMessage(lang.getMessage(player, "general.meet_request.sent", mapOf("player" to target.name)))
-
-                    target.sendMessage(lang.getMessage(target, "general.meet_request.received", mapOf("player" to player.name)))
-                    val result = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, target.world.uid, 60)
-                    if (plugin.playerPlatformResolver.isBedrock(target)) {
-                        plugin.pendingDecisionManager.sendPendingHint(target, result.count)
-                    } else {
-                        target.sendMessage(
-                            ClickableInviteMessageFactory.create(
-                                plugin = plugin,
-                                target = target,
-                                messageKey = "general.meet_request.received",
-                                clickTextKey = "general.meet_request.accept_button",
-                                hoverTextKey = "general.meet_request.hover_accept",
-                                placeholders = mapOf("player" to player.name),
-                                arguments = listOf("/myworld", "pending_open", result.id.toString())
-                            )
-                        )
-                    }
+                    sendMeetRequest(player, target)
                     return
                 }
 
@@ -128,22 +109,52 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                                worldData.moderators.contains(player.uniqueId) || 
                                worldData.members.contains(player.uniqueId)
 
-                if (worldData.publishLevel == PublishLevel.PUBLIC || isMember) {
-                    plugin.soundManager.playClickSound(player, currentItem, "meet")
-                    player.closeInventory()
-                    plugin.worldService.teleportToWorld(player, worldData.uuid) {
-                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(player, target, worldData, isMember)) {
+                    MeetTargetAction.DIRECT -> {
+                        plugin.soundManager.playClickSound(player, currentItem, "meet")
+                        player.closeInventory()
+                        plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                            player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
 
-                        if (worldData.notificationEnabled && plugin.playerVisibilityService.isVisibleTo(target, player)) {
-                            target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
+                            if (worldData.notificationEnabled && plugin.playerVisibilityService.isVisibleTo(target, player)) {
+                                target.sendMessage(lang.getMessage(target, "messages.visitor_notified", mapOf("player" to player.name, "world" to worldData.name)))
+                            }
                         }
                     }
-                } else {
-                    player.sendMessage(lang.getMessage(player, "error.world_not_public"))
-                    plugin.soundManager.playActionSound(player, "meet", "access_denied")
+                    MeetTargetAction.REQUEST -> {
+                        plugin.soundManager.playClickSound(player, currentItem, "meet")
+                        sendMeetRequest(player, target)
+                    }
+                    MeetTargetAction.DENY -> {
+                        player.sendMessage(lang.getMessage(player, "error.world_not_public"))
+                        plugin.soundManager.playActionSound(player, "meet", "access_denied")
+                    }
                 }
             }
         }
-        
+         
         }
+
+    private fun sendMeetRequest(player: Player, target: Player) {
+        val lang = plugin.languageManager
+        player.closeInventory()
+        player.sendMessage(lang.getMessage(player, "general.meet_request.sent", mapOf("player" to target.name)))
+        target.sendMessage(lang.getMessage(target, "general.meet_request.received", mapOf("player" to player.name)))
+        val result = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, target.world.uid, 60)
+        if (plugin.playerPlatformResolver.isBedrock(target)) {
+            plugin.pendingDecisionManager.sendPendingHint(target, result.count)
+        } else {
+            target.sendMessage(
+                ClickableInviteMessageFactory.create(
+                    plugin = plugin,
+                    target = target,
+                    messageKey = "general.meet_request.received",
+                    clickTextKey = "general.meet_request.accept_button",
+                    hoverTextKey = "general.meet_request.hover_accept",
+                    placeholders = mapOf("player" to player.name),
+                    arguments = listOf("/myworld", "pending_open", result.id.toString())
+                )
+            )
+        }
+    }
 }

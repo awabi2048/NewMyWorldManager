@@ -10,6 +10,7 @@ import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -40,7 +41,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
 
         // プレイヤー個別の上限チェック
-        val defaultMax = config.getInt("creation.max_create_count_default", 3)
+        val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(config)
         val playerMax = defaultMax + stats.unlockedWorldSlot
         val playerCurrent = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
         if (!bypassLimits && playerCurrent >= playerMax) {
@@ -60,9 +61,9 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         setupHeaderFooter(inventory, 5)
 
-        inventory.setItem(20, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", config.getInt("creation_cost.template", 0), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
-        inventory.setItem(22, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", config.getInt("creation_cost.seed", 100), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
-        inventory.setItem(24, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", config.getInt("creation_cost.random", 50), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
+        inventory.setItem(20, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldRuntimePolicies.creationCost(config, WorldCreationType.TEMPLATE), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
+        inventory.setItem(22, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldRuntimePolicies.creationCost(config, WorldCreationType.SEED), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
+        inventory.setItem(24, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldRuntimePolicies.creationCost(config, WorldCreationType.RANDOM), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
 
         inventory.setItem(40, createBackButton(player))
 
@@ -78,7 +79,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         lore.add(lang.getComponent(player, "gui.creation.type.points", mapOf("points" to currentPoints)).decoration(TextDecoration.ITALIC, false))
         
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val defaultMax = plugin.config.getInt("creation.max_create_count_default", 3)
+        val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
         val maxCounts = defaultMax + stats.unlockedWorldSlot
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)

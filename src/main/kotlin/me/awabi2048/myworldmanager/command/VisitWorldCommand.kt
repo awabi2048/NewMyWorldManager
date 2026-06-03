@@ -10,7 +10,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.PermissionManager
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -160,7 +160,7 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
             return
         }
 
-        if (!plugin.visitWorldGui.hasSearchResult(query)) {
+        if (!plugin.visitWorldGui.hasSearchResult(player, query)) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.visitworld_no_result", mapOf("query" to query)))
             plugin.soundManager.playActionSound(player, "visit", "access_denied")
             return
@@ -181,7 +181,7 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
 
         return plugin.worldConfigRepository.findAll()
             .asSequence()
-            .filter { it.publishLevel == PublishLevel.PUBLIC && !it.isArchived }
+            .filter { MyWorldManagerApi.getWorldAccessPolicy().canShowInVisitWorldList(sender, it) }
             .map { it.name }
             .distinct()
             .filter { it.lowercase().contains(input) }

@@ -11,10 +11,10 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
-import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -70,7 +70,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                               worldData.members.contains(player.uniqueId)
 
                 if (isBedrock) {
-                    if (worldData.publishLevel != PublishLevel.PUBLIC && !isMember) {
+                    if (!MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                         player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                         plugin.soundManager.playActionSound(player, "discovery", "access_denied")
                         player.closeInventory()
@@ -91,7 +91,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     }
 
                     // アクセス判定
-                    if (worldData.publishLevel != PublishLevel.PUBLIC && !isMember) {
+                    if (!MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                         player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                         plugin.soundManager.playActionSound(player, "discovery", "access_denied")
                         player.closeInventory()

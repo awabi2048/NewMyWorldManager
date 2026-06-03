@@ -1,7 +1,15 @@
 package me.awabi2048.myworldmanager.api
 
 import me.awabi2048.myworldmanager.api.extension.MenuExtension
+import me.awabi2048.myworldmanager.api.extension.CommandPolicy
+import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
+import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
+import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
+import me.awabi2048.myworldmanager.api.extension.DefaultWorldRuntimePolicy
+import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
+import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiTemplateRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
@@ -21,6 +29,11 @@ object MyWorldManagerApi {
     private var worldTagService: ApiWorldTagService? = null
     private val menuExtensions = CopyOnWriteArrayList<MenuExtension>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
+    private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
+    private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
+    private val createCommandHandlers = CopyOnWriteArrayList<CreateCommandHandler>()
+    private val worldRuntimePolicies = CopyOnWriteArrayList<WorldRuntimePolicy>()
+    private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
 
     @JvmStatic
     fun registerWorldPointService(service: WorldPointService) {
@@ -130,6 +143,86 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldDeleteGuards(): List<WorldDeleteGuard> {
         return worldDeleteGuards.toList()
+    }
+
+    @JvmStatic
+    fun registerWorldAccessPolicy(policy: WorldAccessPolicy) {
+        worldAccessPolicies.removeIf { it.getId() == policy.getId() }
+        worldAccessPolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldAccessPolicy(policy: WorldAccessPolicy) {
+        worldAccessPolicies.removeIf { it === policy || it.getId() == policy.getId() }
+    }
+
+    @JvmStatic
+    fun getWorldAccessPolicy(): WorldAccessPolicy {
+        return worldAccessPolicies.lastOrNull() ?: DefaultWorldAccessPolicy
+    }
+
+    @JvmStatic
+    fun registerCommandPolicy(policy: CommandPolicy) {
+        commandPolicies.removeIf { it.getId() == policy.getId() }
+        commandPolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterCommandPolicy(policy: CommandPolicy) {
+        commandPolicies.removeIf { it === policy || it.getId() == policy.getId() }
+    }
+
+    @JvmStatic
+    fun getCommandPolicies(): List<CommandPolicy> {
+        return commandPolicies.toList()
+    }
+
+    @JvmStatic
+    fun registerCreateCommandHandler(handler: CreateCommandHandler) {
+        createCommandHandlers.removeIf { it.getId() == handler.getId() }
+        createCommandHandlers.add(handler)
+    }
+
+    @JvmStatic
+    fun unregisterCreateCommandHandler(handler: CreateCommandHandler) {
+        createCommandHandlers.removeIf { it === handler || it.getId() == handler.getId() }
+    }
+
+    @JvmStatic
+    fun getCreateCommandHandler(): CreateCommandHandler? {
+        return createCommandHandlers.lastOrNull()
+    }
+
+    @JvmStatic
+    fun registerWorldRuntimePolicy(policy: WorldRuntimePolicy) {
+        worldRuntimePolicies.removeIf { it.getId() == policy.getId() }
+        worldRuntimePolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldRuntimePolicy(policy: WorldRuntimePolicy) {
+        worldRuntimePolicies.removeIf { it === policy || it.getId() == policy.getId() }
+    }
+
+    @JvmStatic
+    fun getWorldRuntimePolicy(): WorldRuntimePolicy {
+        return worldRuntimePolicies.lastOrNull() ?: DefaultWorldRuntimePolicy
+    }
+
+    @JvmStatic
+    fun registerWorldPublishPolicy(policy: WorldPublishPolicy) {
+        worldPublishPolicies.removeIf { it.getId() == policy.getId() }
+        worldPublishPolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldPublishPolicy(policy: WorldPublishPolicy) {
+        worldPublishPolicies.removeIf { it === policy || it.getId() == policy.getId() }
+    }
+
+    @JvmStatic
+    fun getWorldPublishPolicy(): WorldPublishPolicy {
+        return worldPublishPolicies.lastOrNull() ?: DefaultWorldPublishPolicy
     }
 
     @JvmStatic

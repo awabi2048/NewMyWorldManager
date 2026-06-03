@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
@@ -111,7 +112,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                                worldData.moderators.contains(player.uniqueId) ||
                                worldData.members.contains(player.uniqueId)
 
-                if (!isMember && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.PUBLIC && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.FRIEND) {
+                if (!MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, worldData, isMember)) {
                     return
                 }
 
@@ -129,7 +130,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                                worldData.members.contains(player.uniqueId)
                 
                 // 公開・限定公開以外はワープ不可 (メンバーは例外)
-                if (!isMember && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.PUBLIC && worldData.publishLevel != me.awabi2048.myworldmanager.model.PublishLevel.FRIEND) {
+                if (!MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, worldData, isMember)) {
                     return
                 }
                 

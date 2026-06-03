@@ -7,6 +7,7 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -103,11 +104,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 val cost =
                         when (tag) {
                             ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE ->
-                                    config.getInt("creation_cost.template", 0)
+                                    WorldRuntimePolicies.creationCost(config, WorldCreationType.TEMPLATE)
                             ItemTag.TYPE_GUI_CREATION_TYPE_SEED ->
-                                    config.getInt("creation_cost.seed", 100)
+                                    WorldRuntimePolicies.creationCost(config, WorldCreationType.SEED)
                             ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM ->
-                                    config.getInt("creation_cost.random", 50)
+                                    WorldRuntimePolicies.creationCost(config, WorldCreationType.RANDOM)
                             else -> 0
                         }
 
@@ -204,16 +205,10 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     player.closeInventory()
 
                     // ポイント消費
-                    val config = plugin.config
                     val cost =
-                            when (session.creationType) {
-                                WorldCreationType.TEMPLATE ->
-                                        config.getInt("creation_cost.template", 0)
-                                WorldCreationType.SEED -> config.getInt("creation_cost.seed", 100)
-                                WorldCreationType.RANDOM ->
-                                        config.getInt("creation_cost.random", 50)
-                                else -> 0
-                            }
+                            session.creationType?.let {
+                                WorldRuntimePolicies.creationCost(plugin.config, it)
+                            } ?: 0
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
                     if (stats.worldPoint < cost) {

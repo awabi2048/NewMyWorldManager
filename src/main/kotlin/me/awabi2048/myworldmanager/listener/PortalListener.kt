@@ -1,11 +1,11 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PortalGui
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
-import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
@@ -92,7 +92,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     val worldData = managedWorld
 
                     val isMember = worldData.owner == player.uniqueId || worldData.moderators.contains(player.uniqueId)
-                    if (!isMember && worldData.publishLevel != PublishLevel.PUBLIC && worldData.publishLevel != PublishLevel.FRIEND) {
+                    if (!MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, worldData, isMember)) {
                         player.sendMessage(lang.getMessage(player, "error.portal_bind_invalid_publish"))
                         return
                     }
@@ -131,7 +131,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 val worldUuid = managedWorld.uuid
                 val worldData = managedWorld
                 val isMember = worldData.owner == player.uniqueId || worldData.moderators.contains(player.uniqueId)
-                if (!isMember && worldData.publishLevel != PublishLevel.PUBLIC && worldData.publishLevel != PublishLevel.FRIEND) {
+                if (!MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, worldData, isMember)) {
                     player.sendMessage(lang.getMessage(player, "error.portal_bind_invalid_publish"))
                     event.isCancelled = true
                     return
