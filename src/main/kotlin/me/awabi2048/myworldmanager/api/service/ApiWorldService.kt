@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.api.service
 
+import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.entity.Player
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
@@ -19,4 +21,20 @@ interface ApiWorldService {
     )
 
     fun loadWorld(worldUuid: UUID): Boolean
+
+    fun getWorldFolderName(worldData: WorldData): String
+
+    fun getWorldDirectory(worldData: WorldData): File
+
+    fun getWorldDataFile(worldUuid: UUID): File
+
+    fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean>
+
+    fun reloadWorldData()
+
+    fun reloadPortalData()
+
+    fun getRelatedPortals(worldUuid: UUID): List<ApiPortalSnapshot>
+
+    fun replaceRelatedPortals(worldUuid: UUID, portals: List<ApiPortalSnapshot>)
 }

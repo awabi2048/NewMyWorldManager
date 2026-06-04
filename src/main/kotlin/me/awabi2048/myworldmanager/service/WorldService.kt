@@ -402,6 +402,10 @@ class WorldService(
         return plugin.server.unloadWorld(world, save)
     }
 
+    fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
+        return unloadWorldAfterEvacuation(worldUuid, save)
+    }
+
     private fun unloadWorldAfterEvacuation(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
         val future = CompletableFuture<Boolean>()
         val worldData = repository.findByUuid(worldUuid)
