@@ -2,12 +2,16 @@ package me.awabi2048.myworldmanager.api
 
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListProvider
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
+import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuProvider
+import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.api.extension.MenuExtension
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldRuntimePolicy
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuProvider
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
@@ -41,6 +45,8 @@ object MyWorldManagerApi {
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
     private val worldSettingsMenuProviders = CopyOnWriteArrayList<WorldSettingsMenuProvider>()
     private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
+    private val playerWorldMenuProviders = CopyOnWriteArrayList<PlayerWorldMenuProvider>()
+    private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
 
     @JvmStatic
     fun registerWorldPointService(service: WorldPointService) {
@@ -266,6 +272,38 @@ object MyWorldManagerApi {
     @JvmStatic
     fun openAdminWorldListOverride(player: Player, request: AdminWorldListRequest): Boolean {
         return adminWorldListProviders.asReversed().any { it.open(player, request) }
+    }
+
+    @JvmStatic
+    fun registerPlayerWorldMenuProvider(provider: PlayerWorldMenuProvider) {
+        playerWorldMenuProviders.removeIf { it.getId() == provider.getId() }
+        playerWorldMenuProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterPlayerWorldMenuProvider(provider: PlayerWorldMenuProvider) {
+        playerWorldMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    }
+
+    @JvmStatic
+    fun openPlayerWorldMenuOverride(player: Player, request: PlayerWorldMenuRequest): Boolean {
+        return playerWorldMenuProviders.asReversed().any { it.open(player, request) }
+    }
+
+    @JvmStatic
+    fun registerDiscoveryMenuProvider(provider: DiscoveryMenuProvider) {
+        discoveryMenuProviders.removeIf { it.getId() == provider.getId() }
+        discoveryMenuProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterDiscoveryMenuProvider(provider: DiscoveryMenuProvider) {
+        discoveryMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    }
+
+    @JvmStatic
+    fun openDiscoveryMenuOverride(player: Player, request: DiscoveryMenuRequest): Boolean {
+        return discoveryMenuProviders.asReversed().any { it.open(player, request) }
     }
 
     @JvmStatic

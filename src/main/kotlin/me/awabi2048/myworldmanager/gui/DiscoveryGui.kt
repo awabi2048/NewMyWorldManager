@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -28,6 +29,18 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 if (showBackButton != null) {
                         session.showBackButton = showBackButton
+                }
+
+                if (
+                        MyWorldManagerApi.openDiscoveryMenuOverride(
+                                player,
+                                DiscoveryMenuRequest(
+                                        page = page,
+                                        showBackButton = session.showBackButton
+                                )
+                        )
+                ) {
+                        return
                 }
 
                 // ワールドの取得とフィルタリング

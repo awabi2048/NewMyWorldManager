@@ -8,6 +8,8 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -95,6 +97,18 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 
                 // 現在のページ番号を保存
                 session.currentPage = page
+
+                if (
+                        MyWorldManagerApi.openPlayerWorldMenuOverride(
+                                player,
+                                PlayerWorldMenuRequest(
+                                        page = page,
+                                        showBackButton = session.showBackButton
+                                )
+                        )
+                ) {
+                        return
+                }
 
                 val startIndex = page * itemsPerPageNum
                 val currentPageWorlds = playerWorlds.drop(startIndex).take(itemsPerPageNum)
