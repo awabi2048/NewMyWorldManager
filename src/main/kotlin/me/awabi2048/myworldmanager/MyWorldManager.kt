@@ -103,6 +103,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var menuEntryRouter: MenuEntryRouter
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
     lateinit var tourGui: TourGui
+    lateinit var worldSettingsListener: WorldSettingsListener
 
     override fun onEnable() {
         ensureCCSystemAvailable()
@@ -251,6 +252,7 @@ class MyWorldManager : JavaPlugin() {
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(this), this)
         server.pluginManager.registerEvents(AccessControlListener(this), this)
+        server.pluginManager.registerEvents(BorderExpansionChangeListener(this), this)
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
         // 旧 GuiListener を分割して登録
         server.pluginManager.registerEvents(PlayerWorldListener(this), this)
@@ -264,7 +266,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(AdminCommandListener(), this)
         server.pluginManager.registerEvents(CreationGuiListener(this), this)
         server.pluginManager.registerEvents(PlayerDataListener(), this)
-        server.pluginManager.registerEvents(WorldSettingsListener(), this)
+        worldSettingsListener = WorldSettingsListener()
+        server.pluginManager.registerEvents(worldSettingsListener, this)
         server.pluginManager.registerEvents(WorldExpirationListener(worldConfigRepository), this)
         server.pluginManager.registerEvents(PortalListener(this), this)
         server.pluginManager.registerEvents(PortalDisplayLifecycleListener(this), this)

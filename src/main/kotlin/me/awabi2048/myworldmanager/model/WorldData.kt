@@ -39,10 +39,19 @@ data class WorldData(
     var gravityMultiplier: Double = 1.0,
     var fixedWeather: String? = null,
     var fixedBiome: String? = null,
+    val borderExpansionHistory: MutableList<BorderExpansionRecord> = mutableListOf(),
     val partialBiomes: MutableList<PartialBiomeData> = mutableListOf(),
     val tourSigns: MutableList<TourSignData> = mutableListOf(),
     val tours: MutableList<TourData> = mutableListOf()
 ) : ConfigurationSerializable {
+
+    fun latestBorderExpansionRecord(): BorderExpansionRecord? {
+        return borderExpansionHistory.lastOrNull { it.levelAfter == borderExpansionLevel }
+    }
+
+    fun hasModifiedBorderExpansion(): Boolean {
+        return borderExpansionHistory.any { it.modified }
+    }
 
     override fun serialize(): Map<String, Any?> {
         return mutableMapOf(
@@ -75,6 +84,7 @@ data class WorldData(
             "gravity_multiplier" to gravityMultiplier,
             "fixed_weather" to fixedWeather,
             "fixed_biome" to fixedBiome,
+            "border_expansion_history" to borderExpansionHistory.map { it.serialize() },
             "partial_biomes" to partialBiomes.map { mapOf("x" to it.x, "z" to it.z, "radius" to it.radius, "biome" to it.biome) },
             "tour_signs" to tourSigns.map { it.serialize() },
             "tours" to tours.map { it.serialize() }
@@ -144,6 +154,10 @@ data class WorldData(
                 gravityMultiplier = (args["gravity_multiplier"] as? Number)?.toDouble() ?: 1.0,
                 fixedWeather = args["fixed_weather"] as? String,
                 fixedBiome = args["fixed_biome"] as? String,
+                borderExpansionHistory = (args["border_expansion_history"] as? List<*>)
+                    ?.mapNotNull { BorderExpansionRecord.deserialize(it as? Map<*, *>) }
+                    ?.toMutableList()
+                    ?: mutableListOf(),
                 partialBiomes = (args["partial_biomes"] as? List<*>)?.mapNotNull {
                     val map = it as? Map<*, *> ?: return@mapNotNull null
                     val x = (map["x"] as? Number)?.toInt() ?: return@mapNotNull null
@@ -221,6 +235,71 @@ data class WorldData(
             "FACILITY" to "facility",
             "STREAMING" to "streaming"
         )
+    }
+}
+
+data class BorderExpansionRecord(
+    val levelBefore: Int,
+    val levelAfter: Int,
+    val direction: String?,
+    val oldCenterX: Double,
+    val oldCenterZ: Double,
+    val oldSize: Double,
+    val newCenterX: Double,
+    val newCenterZ: Double,
+    val newSize: Double,
+    var modified: Boolean = false
+) {
+    fun serialize(): Map<String, Any?> = mapOf(
+        "level_before" to levelBefore,
+        "level_after" to levelAfter,
+        "direction" to direction,
+        "old_center_x" to oldCenterX,
+        "old_center_z" to oldCenterZ,
+        "old_size" to oldSize,
+        "new_center_x" to newCenterX,
+        "new_center_z" to newCenterZ,
+        "new_size" to newSize,
+        "modified" to modified
+    )
+
+    fun containsAddedArea(x: Double, z: Double): Boolean {
+        return isInside(x, z, newCenterX, newCenterZ, newSize) &&
+            !isInside(x, z, oldCenterX, oldCenterZ, oldSize)
+    }
+
+    private fun isInside(x: Double, z: Double, centerX: Double, centerZ: Double, size: Double): Boolean {
+        val radius = size / 2.0
+        return x >= centerX - radius &&
+            x <= centerX + radius &&
+            z >= centerZ - radius &&
+            z <= centerZ + radius
+    }
+
+    companion object {
+        fun deserialize(map: Map<*, *>?): BorderExpansionRecord? {
+            if (map == null) return null
+            val levelBefore = (map["level_before"] as? Number)?.toInt() ?: return null
+            val levelAfter = (map["level_after"] as? Number)?.toInt() ?: return null
+            val oldCenterX = (map["old_center_x"] as? Number)?.toDouble() ?: return null
+            val oldCenterZ = (map["old_center_z"] as? Number)?.toDouble() ?: return null
+            val oldSize = (map["old_size"] as? Number)?.toDouble() ?: return null
+            val newCenterX = (map["new_center_x"] as? Number)?.toDouble() ?: return null
+            val newCenterZ = (map["new_center_z"] as? Number)?.toDouble() ?: return null
+            val newSize = (map["new_size"] as? Number)?.toDouble() ?: return null
+            return BorderExpansionRecord(
+                levelBefore = levelBefore,
+                levelAfter = levelAfter,
+                direction = map["direction"] as? String,
+                oldCenterX = oldCenterX,
+                oldCenterZ = oldCenterZ,
+                oldSize = oldSize,
+                newCenterX = newCenterX,
+                newCenterZ = newCenterZ,
+                newSize = newSize,
+                modified = map["modified"] as? Boolean ?: false
+            )
+        }
     }
 }
 

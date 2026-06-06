@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.api.service
 
 import me.awabi2048.myworldmanager.model.WorldData
+import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
 import java.io.File
 import java.util.UUID
@@ -29,6 +30,16 @@ interface ApiWorldService {
     fun getWorldDataFile(worldUuid: UUID): File
 
     fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean>
+
+    fun startWorldBorderExpansionSequence(
+        player: Player,
+        worldUuid: UUID,
+        options: ExpansionSequenceOptions
+    ): Boolean
+
+    fun expandWorldBorder(worldUuid: UUID, direction: BlockFace?): Boolean
+
+    fun stepBackWorldBorder(worldUuid: UUID): Boolean
 
     fun reloadWorldData()
 

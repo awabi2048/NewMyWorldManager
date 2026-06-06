@@ -7,12 +7,17 @@ import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsInventoryHolder
+import me.awabi2048.myworldmanager.api.service.ExpansionExecutionMode
+import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
+import me.awabi2048.myworldmanager.api.service.ExpansionSequencePhase
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemoveSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferSource
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
+import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
@@ -73,6 +78,8 @@ class WorldSettingsListener : Listener {
         private val pendingExpansions = mutableMapOf<UUID, PendingExpansion>()
         private val spawnPreviewTasks = mutableMapOf<UUID, BukkitTask>()
         private val borderDirectionPreviewTasks = mutableMapOf<UUID, BukkitTask>()
+        private val expansionExecutionModeMetadataKey = "expansion_execution_mode"
+        private val expansionSkipPhasesMetadataKey = "expansion_skip_phases"
 
         data class PendingExpansion(
                 val worldData: WorldData,
@@ -80,6 +87,71 @@ class WorldSettingsListener : Listener {
                 val direction: BlockFace?,
                 val task: BukkitTask
         )
+
+        fun startWorldBorderExpansionSequence(
+                player: Player,
+                worldUuid: UUID,
+                options: ExpansionSequenceOptions
+        ): Boolean {
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
+                if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
+                        return false
+                }
+
+                val maxLevel =
+                        plugin.config.getConfigurationSection("expansion.costs")
+                                ?.getKeys(false)
+                                ?.size ?: 3
+                if (worldData.borderExpansionLevel >= maxLevel) {
+                        player.sendMessage(plugin.languageManager.getMessage("error.max_expansion_reached"))
+                        return false
+                }
+
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldUuid,
+                        SettingsAction.VIEW_SETTINGS,
+                        isGui = false
+                )
+                val session = plugin.settingsSessionManager.getSession(player) ?: return false
+                session.setMetadata(expansionExecutionModeMetadataKey, options.executionMode.name)
+                session.setMetadata(expansionSkipPhasesMetadataKey, options.skipPhases.map { it.name })
+                session.setMetadata("expand_cost", 0)
+                session.expansionDirection = options.direction
+
+                return when (options.startPhase) {
+                        ExpansionSequencePhase.METHOD_SELECT -> {
+                                plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                                true
+                        }
+                        ExpansionSequencePhase.DIRECTION_SELECT -> {
+                                startExpansionDirectionSelection(player, session)
+                                player.closeInventory()
+                                true
+                        }
+                        ExpansionSequencePhase.PREVIEW,
+                        ExpansionSequencePhase.CONFIRM -> {
+                                session.action = SettingsAction.EXPAND_DIRECTION_CONFIRM
+                                if (options.direction != null &&
+                                                !options.skipPhases.contains(ExpansionSequencePhase.PREVIEW)
+                                ) {
+                                        showBorderPreview(player, worldData, options.direction)
+                                }
+                                sendExpansionConfirmMessage(player)
+                                true
+                        }
+                        ExpansionSequencePhase.EXECUTE -> {
+                                executeExpansionByApiMode(player, worldData, options.direction)
+                                true
+                        }
+                        ExpansionSequencePhase.CLEANUP -> {
+                                stopBorderDirectionPreview(player)
+                                clearBorderPreview(player)
+                                plugin.settingsSessionManager.endSession(player)
+                                true
+                        }
+                }
+        }
 
         @EventHandler(ignoreCancelled = true)
         fun onInventoryClick(event: InventoryClickEvent) {
@@ -1029,8 +1101,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        session.action = SettingsAction.EXPAND_DIRECTION_WAIT
-                                        startBorderDirectionPreview(player)
+                                        startExpansionDirectionSelection(player, session)
                                         player.closeInventory()
                                         val promptKey =
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
@@ -1056,6 +1127,23 @@ class WorldSettingsListener : Listener {
                                                         )
                                                         .build()
                                         )
+                                } else if (type == ItemTag.TYPE_GUI_SETTING_STEP_BACK_EXPANSION) {
+                                        if (worldData.latestBorderExpansionRecord() == null) {
+                                                player.sendMessage(
+                                                        plugin.languageManager.getMessage(
+                                                                player,
+                                                                "messages.expansion_step_back_unavailable"
+                                                        )
+                                                )
+                                                plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                                                return
+                                        }
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        openExpansionStepBackConfirmationByPreference(player, worldData)
                                 } else if (type == ItemTag.TYPE_GUI_CANCEL ||
                                                 type == ItemTag.TYPE_GUI_BACK ||
                                                 type == ItemTag.TYPE_GUI_RETURN
@@ -2150,8 +2238,18 @@ class WorldSettingsListener : Listener {
                                                 val title = LegacyComponentSerializer.legacySection().deserialize(
                                                         plugin.languageManager.getMessage(player, "gui.confirm.reset_expansion.title")
                                                 )
-                                                val bodyLines = plugin.languageManager
+                                                val bodyTextLines = plugin.languageManager
                                                         .getMessageList(player, "gui.confirm.reset_expansion.lore")
+                                                        .toMutableList()
+                                                if (worldData.hasModifiedBorderExpansion()) {
+                                                        bodyTextLines.addAll(
+                                                                plugin.languageManager.getMessageList(
+                                                                        player,
+                                                                        "gui.confirm.reset_expansion.modified_warning"
+                                                                )
+                                                        )
+                                                }
+                                                val bodyLines = bodyTextLines
                                                         .map { LegacyComponentSerializer.legacySection().deserialize(it) }
                                                 plugin.settingsSessionManager.updateSessionAction(
                                                         player,
@@ -2298,6 +2396,29 @@ class WorldSettingsListener : Listener {
                                                         )
                                                 }
                                         }
+                                }
+                        }
+                        SettingsAction.STEP_BACK_EXPANSION_CONFIRM -> {
+                                event.isCancelled = true
+                                if (event.clickedInventory != event.view.topInventory) return
+
+                                if (type == ItemTag.TYPE_GUI_CANCEL) {
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        plugin.worldSettingsGui.openExpansionMethodSelection(
+                                                player,
+                                                worldData
+                                        )
+                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        executeExpansionStepBack(player, worldData, closeInventory = false)
                                 }
                         }
                         SettingsAction.RESET_EXPANSION_CONFIRM -> {
@@ -3483,9 +3604,7 @@ plugin.languageManager
                                         }
 
                                         // 迴ｾ蝨ｨ髢九＞縺ｦ縺・ｋ繧､繝ｳ繝吶Φ繝医Μ縺瑚ｨｭ螳哦UI縺ｮ繝帙Ν繝繝ｼ繧呈戟縺｣縺ｦ縺・ｋ蝣ｴ蜷医・邨ゆｺ・＠縺ｪ縺・
-                                        if (player.openInventory.topInventory.holder is
-                                                        me.awabi2048.myworldmanager.gui.WorldSettingsGuiHolder
-                                        ) {
+                                        if (player.openInventory.topInventory.holder is WorldSettingsInventoryHolder) {
                                                 return@Runnable
                                         }
 
@@ -3793,6 +3912,14 @@ plugin.languageManager
                         drawBottomFace = false, drawTopFace = true)
         }
 
+        private fun startExpansionDirectionSelection(
+                player: Player,
+                session: me.awabi2048.myworldmanager.session.SettingsSession
+        ) {
+                session.action = SettingsAction.EXPAND_DIRECTION_WAIT
+                startBorderDirectionPreview(player)
+        }
+
         private fun startBorderDirectionPreview(player: Player) {
                 stopBorderDirectionPreview(player)
                 borderDirectionPreviewTasks[player.uniqueId] =
@@ -3908,6 +4035,53 @@ player.sendMessage(
                 }
         }
 
+        private fun executeExpansionByApiMode(
+                player: Player,
+                worldData: WorldData,
+                direction: BlockFace?
+        ) {
+                val session = plugin.settingsSessionManager.getSession(player)
+                if (session != null &&
+                                expansionExecutionMode(session) !=
+                                        ExpansionExecutionMode.IMMEDIATE_NO_COST
+                ) {
+                        handleExpandConfirm(player, worldData)
+                        return
+                }
+
+                if (performExpansion(worldData, direction)) {
+                        plugin.worldConfigRepository.save(worldData)
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.expand_complete",
+                                        mapOf(
+                                                "level_before" to
+                                                        (worldData.borderExpansionLevel - 1),
+                                                "level_after" to worldData.borderExpansionLevel,
+                                                "remaining" to 0
+                                        )
+                                )
+                        )
+                        plugin.soundManager.playActionSound(player, "creation", "wizard_next")
+                } else {
+                        player.sendMessage(plugin.languageManager.getMessage("error.expand_failed"))
+                }
+                clearBorderPreview(player)
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
+        private fun expansionExecutionMode(
+                session: me.awabi2048.myworldmanager.session.SettingsSession
+        ): ExpansionExecutionMode {
+                val raw = session.getMetadata(expansionExecutionModeMetadataKey) as? String
+                return runCatching {
+                        if (raw == null) ExpansionExecutionMode.STANDARD
+                        else ExpansionExecutionMode.valueOf(raw)
+                }.getOrDefault(ExpansionExecutionMode.STANDARD)
+        }
+
         @EventHandler
         fun onInteract(event: PlayerInteractEvent) {
                 if (event.hand != EquipmentSlot.HAND) return
@@ -3952,7 +4126,13 @@ player.sendMessage(
                                                 settingsSession.worldUuid
                                         ) ?: return
                                 val cost =
-                                        calculateExpansionCost(worldData.borderExpansionLevel)
+                                        if (expansionExecutionMode(settingsSession) ==
+                                                        ExpansionExecutionMode.IMMEDIATE_NO_COST
+                                        ) {
+                                                0
+                                        } else {
+                                                calculateExpansionCost(worldData.borderExpansionLevel)
+                                        }
                                 
                                 settingsSession.setMetadata("expand_cost", cost)
 
@@ -4076,10 +4256,11 @@ player.sendMessage(
 
                 val border = world.worldBorder
                 val oldSize = border.size
+                val oldCenter = border.center.clone()
+                val levelBefore = worldData.borderExpansionLevel
                 val newSize = oldSize * 2
 
                 if (direction != null) {
-                        val oldCenter = border.center
                         val radius = oldSize / 2.0
 
                         var shiftX = 0.0
@@ -4115,6 +4296,20 @@ player.sendMessage(
                 border.setSize(newSize, 0)
 
                 worldData.borderExpansionLevel += 1
+                val newCenter = border.center
+                worldData.borderExpansionHistory.add(
+                        BorderExpansionRecord(
+                                levelBefore = levelBefore,
+                                levelAfter = worldData.borderExpansionLevel,
+                                direction = direction?.name,
+                                oldCenterX = oldCenter.x,
+                                oldCenterZ = oldCenter.z,
+                                oldSize = oldSize,
+                                newCenterX = newCenter.x,
+                                newCenterZ = newCenter.z,
+                                newSize = newSize
+                        )
+                )
                 plugin.worldConfigRepository.save(worldData)
                 return true
         }
@@ -4543,6 +4738,13 @@ player.sendMessage(
                                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
                                         val direction = session.expansionDirection
                                         val cost = session.getMetadata("expand_cost") as? Int ?: 0
+                                        if (expansionExecutionMode(session) ==
+                                                        ExpansionExecutionMode.IMMEDIATE_NO_COST
+                                        ) {
+                                                clearBorderPreview(player)
+                                                executeExpansionByApiMode(player, worldData, direction)
+                                                return
+                                        }
                                         openExpandConfirmationByPreference(
                                                 player,
                                                 worldData.uuid,
@@ -4978,6 +5180,64 @@ player.sendMessage(
                 }
         }
 
+        private fun openExpansionStepBackConfirmationByPreference(
+                player: Player,
+                worldData: WorldData
+        ) {
+                val lang = plugin.languageManager
+                val record = worldData.latestBorderExpansionRecord()
+                if (record == null) {
+                        player.sendMessage(
+                                lang.getMessage(player, "messages.expansion_step_back_unavailable")
+                        )
+                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                        return
+                }
+
+                val title = LegacyComponentSerializer.legacySection().deserialize(
+                        lang.getMessage(player, "gui.confirm.step_back_expansion.title")
+                )
+                val bodyTextLines = lang
+                        .getMessageList(player, "gui.confirm.step_back_expansion.lore")
+                        .toMutableList()
+                if (record.modified) {
+                        bodyTextLines.addAll(
+                                lang.getMessageList(
+                                        player,
+                                        "gui.confirm.step_back_expansion.modified_warning"
+                                )
+                        )
+                }
+                val bodyLines = bodyTextLines
+                        .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.STEP_BACK_EXPANSION_CONFIRM,
+                        isGui = true
+                )
+
+                DialogConfirmManager.showConfirmationByPreference(
+                        player,
+                        plugin,
+                        title,
+                        bodyLines,
+                        "mwm:confirm/step_back_expansion",
+                        "mwm:confirm/cancel",
+                        lang.getMessage(player, "gui.common.confirm"),
+                        lang.getMessage(player, "gui.common.cancel"),
+                        onBedrockConfirm = {
+                                handleBedrockDialogAction(player, worldData, "mwm:confirm/step_back_expansion")
+                        },
+                        onBedrockCancel = {
+                                handleBedrockDialogCancel(player, worldData)
+                        }
+                ) {
+                        plugin.worldSettingsGui.openExpansionStepBackConfirmation(player, worldData)
+                }
+        }
+
         // Helper to show generic simple confirmation
         private fun showEnvConfirmDialog(player: Player, type: String, cost: Int) {
             val lang = plugin.languageManager
@@ -5289,6 +5549,63 @@ player.sendMessage(
                         .forEach { it.teleport(safeTarget) }
         }
 
+        private fun executeExpansionStepBack(
+                player: Player,
+                worldData: WorldData,
+                closeInventory: Boolean
+        ) {
+                val record = worldData.latestBorderExpansionRecord()
+                if (record == null) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.expansion_step_back_unavailable"
+                                )
+                        )
+                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                        return
+                }
+
+                val world = resolveWorld(worldData)
+                if (world == null) {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_not_found"))
+                        return
+                }
+
+                val oldCenter = Location(world, record.oldCenterX, world.spawnLocation.y, record.oldCenterZ)
+                world.worldBorder.setCenter(oldCenter)
+                world.worldBorder.setSize(record.oldSize, 0)
+                worldData.borderCenterPos = oldCenter
+                worldData.borderExpansionLevel = record.levelBefore
+                val removedCost = WorldRuntimePolicies.expansionCost(plugin.config, record.levelAfter)
+                worldData.cumulativePoints = (worldData.cumulativePoints - removedCost).coerceAtLeast(0)
+                val recordIndex = worldData.borderExpansionHistory.indexOfLast { it == record }
+                if (recordIndex >= 0) {
+                        worldData.borderExpansionHistory.removeAt(recordIndex)
+                }
+
+                teleportPlayersOutsideBorder(world, oldCenter)
+                plugin.worldConfigRepository.save(worldData)
+
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.expansion_step_back_success",
+                                mapOf(
+                                        "level_before" to record.levelAfter,
+                                        "level_after" to record.levelBefore
+                                )
+                        )
+                )
+
+                if (closeInventory) {
+                        player.closeInventory()
+                        plugin.settingsSessionManager.endSession(player)
+                } else {
+                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                }
+        }
+
         private fun executeExpansionReset(
                 player: Player,
                 worldData: WorldData,
@@ -5311,8 +5628,9 @@ player.sendMessage(
                 val refund = (totalExpCost * refundRate).toInt()
 
                 stats.worldPoint += refund
-                worldData.cumulativePoints -= totalExpCost
+                worldData.cumulativePoints = (worldData.cumulativePoints - totalExpCost).coerceAtLeast(0)
                 worldData.borderExpansionLevel = 0
+                worldData.borderExpansionHistory.clear()
 
                 plugin.playerStatsRepository.save(stats)
                 plugin.worldConfigRepository.save(worldData)
@@ -5342,8 +5660,18 @@ player.sendMessage(
                                         "gui.confirm.reset_expansion_spawn_unsafe.title"
                                 )
                         )
-                        val bodyLines = plugin.languageManager
+                        val bodyTextLines = plugin.languageManager
                                 .getMessageList(player, "gui.confirm.reset_expansion_spawn_unsafe.lore")
+                                .toMutableList()
+                        if (worldData.hasModifiedBorderExpansion()) {
+                                bodyTextLines.addAll(
+                                        plugin.languageManager.getMessageList(
+                                                player,
+                                                "gui.confirm.reset_expansion.modified_warning"
+                                        )
+                                )
+                        }
+                        val bodyLines = bodyTextLines
                                 .map { LegacyComponentSerializer.legacySection().deserialize(it) }
                         plugin.settingsSessionManager.updateSessionAction(
                                 player,
@@ -5495,6 +5823,7 @@ player.sendMessage(
                 when (session.action) {
                         SettingsAction.ENV_CONFIRM -> plugin.environmentGui.open(player, worldData)
                         SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                        SettingsAction.STEP_BACK_EXPANSION_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                         SettingsAction.MEMBER_REMOVE_CONFIRM,
                         SettingsAction.MEMBER_TRANSFER_CONFIRM,
@@ -5582,6 +5911,11 @@ player.sendMessage(
 
                 if (keyVal == "confirm/reset_expansion") {
                         handleResetExpansionConfirm(player, worldData)
+                        return
+                }
+
+                if (keyVal == "confirm/step_back_expansion") {
+                        executeExpansionStepBack(player, worldData, closeInventory = false)
                         return
                 }
 
@@ -5720,6 +6054,7 @@ player.sendMessage(
                         when (session.action) {
                                 SettingsAction.ENV_CONFIRM -> plugin.environmentGui.open(player, worldData)
                                 SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                                SettingsAction.STEP_BACK_EXPANSION_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                                 SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                                 SettingsAction.MEMBER_REMOVE_CONFIRM,
                                 SettingsAction.MEMBER_TRANSFER_CONFIRM,
@@ -5805,6 +6140,12 @@ player.sendMessage(
                 if (identifier == Key.key("mwm:confirm/reset_expansion")) {
                         DialogConfirmManager.safeCloseDialog(player)
                         handleResetExpansionConfirm(player, worldData)
+                        return
+                }
+
+                if (identifier == Key.key("mwm:confirm/step_back_expansion")) {
+                        DialogConfirmManager.safeCloseDialog(player)
+                        executeExpansionStepBack(player, worldData, closeInventory = false)
                         return
                 }
 
