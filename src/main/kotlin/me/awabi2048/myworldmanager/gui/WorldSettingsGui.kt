@@ -1258,7 +1258,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         fun openExpansionMethodSelection(
                 player: Player,
-                @Suppress("UNUSED_PARAMETER") worldData: WorldData
+                worldData: WorldData
         ) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.expansion.method_title")
@@ -1328,12 +1328,110 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                val canStepBack = worldData.latestBorderExpansionRecord() != null
+                if (canStepBack) {
+                        inventory.setItem(
+                                40,
+                                createItem(
+                                        Material.RECOVERY_COMPASS,
+                                        lang.getMessage(player, "gui.expansion.step_back.name"),
+                                        lang.getMessageList(player, "gui.expansion.step_back.lore"),
+                                        ItemTag.TYPE_GUI_SETTING_STEP_BACK_EXPANSION
+                                )
+                        )
+                        inventory.setItem(
+                                36,
+                                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
+                                        plugin,
+                                        player,
+                                        "world_settings"
+                                )
+                        )
+                }
+
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 0 until inventory.size) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
                 player.openInventory(inventory)
+        }
+
+        fun openExpansionStepBackConfirmation(player: Player, worldData: WorldData) {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.confirm.step_back_expansion.title")
+                me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
+                        plugin,
+                        player,
+                        "world_settings",
+                        me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
+                )
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.STEP_BACK_EXPANSION_CONFIRM,
+                        isGui = true
+                )
+                scheduleGuiTransitionReset(plugin, player)
+                val currentTitle =
+                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                                .plainText()
+                                .serialize(player.openInventory.title())
+                val inventory =
+                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+                                player.openInventory.topInventory
+                        } else {
+                                val holder = WorldSettingsGuiHolder()
+                                val inventory =
+                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                holder.inv = inventory
+                                inventory
+                        }
+
+                me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
+
+                val lore =
+                        lang.getComponentList(player, "gui.confirm.step_back_expansion.lore") +
+                                if (worldData.latestBorderExpansionRecord()?.modified == true) {
+                                        lang.getComponentList(
+                                                player,
+                                                "gui.confirm.step_back_expansion.modified_warning"
+                                        )
+                                } else {
+                                        emptyList()
+                                }
+                val infoItem =
+                        createItemComponent(
+                                Material.RECOVERY_COMPASS,
+                                LegacyComponentSerializer.legacySection().serialize(lore[0]),
+                                lore.drop(1),
+                                ItemTag.TYPE_GUI_INFO
+                        )
+                ItemTag.setWorldUuid(infoItem, worldData.uuid)
+                inventory.setItem(22, infoItem)
+
+                inventory.setItem(
+                        20,
+                        createItem(
+                                Material.LIME_WOOL,
+                                lang.getMessage(player, "gui.common.cancel"),
+                                listOf(lang.getMessage(player, "gui.common.back")),
+                                ItemTag.TYPE_GUI_CANCEL
+                        )
+                )
+                inventory.setItem(
+                        24,
+                        createItem(
+                                Material.RED_WOOL,
+                                lang.getMessage(player, "gui.common.confirm"),
+                                emptyList<String>(),
+                                ItemTag.TYPE_GUI_CONFIRM
+                        )
+                )
+
+                if (player.openInventory.topInventory != inventory) {
+                        player.openInventory(inventory)
+                }
         }
 
         fun openExpansionConfirmation(
@@ -1400,7 +1498,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         "gui.expansion.method_direction",
                                         mapOf("direction" to directionName)
                                 )
-
                 inventory.setItem(
                         22,
                         createItem(
@@ -2803,7 +2900,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
-                val lore = lang.getComponentList(player, "gui.confirm.reset_expansion.lore")
+                val lore =
+                        lang.getComponentList(player, "gui.confirm.reset_expansion.lore") +
+                                if (worldData.hasModifiedBorderExpansion()) {
+                                        lang.getComponentList(
+                                                player,
+                                                "gui.confirm.reset_expansion.modified_warning"
+                                        )
+                                } else {
+                                        emptyList()
+                                }
                 val infoItem =
                         createItemComponent(
                                 Material.PAPER,
@@ -2871,7 +2977,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
-                val lore = lang.getComponentList(player, "gui.confirm.reset_expansion_spawn_unsafe.lore")
+                val lore =
+                        lang.getComponentList(player, "gui.confirm.reset_expansion_spawn_unsafe.lore") +
+                                if (worldData.hasModifiedBorderExpansion()) {
+                                        lang.getComponentList(
+                                                player,
+                                                "gui.confirm.reset_expansion.modified_warning"
+                                        )
+                                } else {
+                                        emptyList()
+                                }
                 val infoItem =
                         createItemComponent(
                                 Material.MAGMA_BLOCK,

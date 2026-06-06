@@ -1,9 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsInventoryHolder
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 
-class WorldSettingsGuiHolder : InventoryHolder {
+class WorldSettingsGuiHolder : WorldSettingsInventoryHolder {
     lateinit var inv: Inventory
     override fun getInventory(): Inventory = inv
 }

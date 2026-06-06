@@ -62,6 +62,7 @@ object ItemTag {
     const val TYPE_GUI_SETTING_NOTIFICATION = "gui_setting_notification"
     const val TYPE_GUI_SETTING_CRITICAL = "gui_setting_critical"
     const val TYPE_GUI_SETTING_RESET_EXPANSION = "gui_setting_reset_expansion"
+    const val TYPE_GUI_SETTING_STEP_BACK_EXPANSION = "gui_setting_step_back_expansion"
     const val TYPE_GUI_SETTING_DELETE_WORLD = "gui_setting_delete_world"
     const val TYPE_GUI_USER_SETTINGS_BUTTON = "gui_user_settings_button"
     const val TYPE_GUI_USER_SETTING_NOTIFICATION = "gui_user_setting_notification"
