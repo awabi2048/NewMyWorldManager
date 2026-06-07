@@ -28,7 +28,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         val config = plugin.config
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val currentPoints = stats.worldPoint
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         // サーバー全体の上限チェック
@@ -61,9 +60,9 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         setupHeaderFooter(inventory, 5)
 
-        inventory.setItem(20, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldRuntimePolicies.creationCost(config, WorldCreationType.TEMPLATE), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
-        inventory.setItem(22, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldRuntimePolicies.creationCost(config, WorldCreationType.SEED), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
-        inventory.setItem(24, createItemWithCost(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldRuntimePolicies.creationCost(config, WorldCreationType.RANDOM), currentPoints, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
+        inventory.setItem(20, createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
+        inventory.setItem(22, createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
+        inventory.setItem(24, createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
 
         inventory.setItem(40, createBackButton(player))
 
@@ -71,12 +70,9 @@ class CreationGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
-    private fun createItemWithCost(player: Player, material: Material, name: String, baseLoreKey: String, cost: Int, currentPoints: Int, tag: String): ItemStack {
+    private fun createCreationTypeItem(player: Player, material: Material, name: String, baseLoreKey: String, tag: String): ItemStack {
         val lang = plugin.languageManager
         val lore = lang.getComponentList(player, baseLoreKey).toMutableList()
-        lore.add(Component.empty())
-        lore.add(lang.getComponent(player, "gui.creation.type.cost", mapOf("cost" to cost)).decoration(TextDecoration.ITALIC, false))
-        lore.add(lang.getComponent(player, "gui.creation.type.points", mapOf("points" to currentPoints)).decoration(TextDecoration.ITALIC, false))
         
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
@@ -85,11 +81,8 @@ class CreationGui(private val plugin: MyWorldManager) {
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         if (!bypassLimits && currentCounts >= maxCounts) {
+            lore.add(Component.empty())
             lore.add(lang.getComponent(player, "gui.creation.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).decoration(TextDecoration.ITALIC, false))
-        } else if (currentPoints >= cost) {
-            lore.add(lang.getComponent(player, "gui.creation.type.available").decoration(TextDecoration.ITALIC, false))
-        } else {
-            lore.add(lang.getComponent(player, "gui.creation.type.insufficient", mapOf("shortage" to (cost - currentPoints))).decoration(TextDecoration.ITALIC, false))
         }
         
         return createItem(material, name, tag, lore)
