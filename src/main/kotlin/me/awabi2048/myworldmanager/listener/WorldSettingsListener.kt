@@ -1594,7 +1594,6 @@ class WorldSettingsListener : Listener {
                                                 }
                                         }
                                         ItemTag.TYPE_GUI_SETTING_TAGS -> {
-                                                plugin.logger.info("[MWM-Debug] Tag settings button clicked by ${player.name}")
                                                 plugin.soundManager.playClickSound(
                                                         player,
                                                         clickedItem,
@@ -1602,13 +1601,10 @@ class WorldSettingsListener : Listener {
                                                 )
                                                 // Check Beta Features
                                                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                                                plugin.logger.info("[MWM-Debug] Beta features enabled: ${stats.betaFeaturesEnabled}")
                                                 if (stats.betaFeaturesEnabled) {
                                                     // Dialog Flow
-                                                    plugin.logger.info("[MWM-Debug] Opening Dialog flow for tag editing")
                                                     // Dialog uses custom GUI transition flag to prevent session cleanup
                                                     plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
-                                                    plugin.logger.info("[MWM-Debug] Session updated for world ${worldData.uuid}")
 
                                                     player.closeInventory()
                                                     Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -1616,7 +1612,6 @@ class WorldSettingsListener : Listener {
                                                     })
                                                 } else {
                                                     // Legacy GUI Flow
-                                                    plugin.logger.info("[MWM-Debug] Opening Legacy GUI flow for tag editing")
                                                     plugin.worldSettingsGui.openTagEditor(
                                                             player,
                                                             worldData
@@ -5072,29 +5067,21 @@ player.sendMessage(
         }
 
         private fun showTagEditorDialog(player: Player, worldData: WorldData) {
-                plugin.logger.info("[MWM-Debug] showTagEditorDialog called for player ${player.name}, world ${worldData.customWorldName}")
-                
                 val lang = plugin.languageManager
                 val currentTags = worldData.tags
                 val allTags = plugin.worldTagManager.getEditableTagIds(currentTags)
-                
-                plugin.logger.info("[MWM-Debug] Current tags: $currentTags")
-                
+
                 // Build Inputs
                 // Create a boolean input for each tag
                 val inputs = allTags.map { tagId ->
                         val tagName = plugin.worldTagManager.getDisplayName(player, tagId)
                         val isSelected = currentTags.contains(tagId)
-                        
-                        plugin.logger.info("[MWM-Debug] Creating input for tag $tagId: key=tag_$tagId, initial=$isSelected")
-                        
+
                         DialogInput.bool("tag_$tagId", Component.text(tagName))
                                 .initial(isSelected)
                                 .build()
                 }
 
-                plugin.logger.info("[MWM-Debug] Creating dialog with ${inputs.size} inputs")
-                
                 val dialog = Dialog.create { builder ->
                         builder.empty()
                                 .base(DialogBase.builder(Component.text("タグ設定", NamedTextColor.YELLOW))
@@ -5110,7 +5097,6 @@ player.sendMessage(
                                 ))
                 }
                 player.showDialog(dialog)
-                plugin.logger.info("[MWM-Debug] Dialog shown to player ${player.name}")
         }
         
         private fun openExpandConfirmationByPreference(
@@ -5322,55 +5308,43 @@ player.sendMessage(
                         val session = plugin.settingsSessionManager.getSession(player) ?: return
                         
                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
-                                plugin.logger.warning("[MWM-Debug] WorldData not found for uuid ${session.worldUuid}")
+                                plugin.logger.warning("WorldData not found for tag dialog session uuid ${session.worldUuid}")
                                 return
                         }
-                        plugin.logger.info("[MWM-Debug] WorldData found: ${worldData.customWorldName}")
                         
                         // Collect all tags from input
                         val allTags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
                         val newTags = mutableSetOf<String>()
-                        plugin.logger.info("[MWM-Debug] Processing ${allTags.size} tags")
                         
                         for (tagId in allTags) {
                                 val inputKey = "tag_$tagId"
                                 val isSelected = view.getBoolean(inputKey) ?: false
-                                plugin.logger.info("[MWM-Debug] Tag $tagId: inputKey=$inputKey, isSelected=$isSelected")
                                 if (isSelected) {
                                         newTags.add(tagId)
                                 }
                         }
                         
-                        plugin.logger.info("[MWM-Debug] Selected tags: $newTags")
-                        
                         // Save Changes
-                        plugin.logger.info("[MWM-Debug] Clearing old tags: ${worldData.tags}")
                         worldData.tags.clear()
                         worldData.tags.addAll(newTags)
-                        plugin.logger.info("[MWM-Debug] New tags set: ${worldData.tags}")
                         
                         plugin.worldConfigRepository.save(worldData)
-                        plugin.logger.info("[MWM-Debug] WorldData saved successfully")
                         
                         // Return to settings
-                        plugin.logger.info("[MWM-Debug] Opening settings GUI")
                         plugin.worldSettingsGui.open(player, worldData)
-                        plugin.logger.info("[MWM-Debug] Done!")
                         return
                 }
                 
                 if (identifier == Key.key("mwm:settings/tags/close")) {
-                        plugin.logger.info("[MWM-Debug] Close button clicked")
                         val session = plugin.settingsSessionManager.getSession(player) ?: run {
-                                plugin.logger.warning("[MWM-Debug] Session not found for close action")
+                                plugin.logger.warning("Tag dialog session not found for close action")
                                 return
                         }
                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
-                                plugin.logger.warning("[MWM-Debug] WorldData not found for close action")
+                                plugin.logger.warning("WorldData not found for tag dialog close action")
                                 return
                         }
                         plugin.worldSettingsGui.open(player, worldData)
-                        plugin.logger.info("[MWM-Debug] Returned to settings after close")
                         return
                 }
         }
