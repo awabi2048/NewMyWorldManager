@@ -2596,12 +2596,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 scheduleGuiTransitionReset(plugin, player)
 
                 val inventory =
-                        if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+                        if (player.openInventory.topInventory.size == 27 && currentTitle == title) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = WorldSettingsGuiHolder()
                                 val inventory =
-                                        Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
+                                        Bukkit.createInventory(holder, 27, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title))
                                 holder.inv = inventory
                                 inventory
                         }
