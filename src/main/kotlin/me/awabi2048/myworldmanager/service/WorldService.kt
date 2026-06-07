@@ -388,7 +388,7 @@ class WorldService(
             val lobby = Bukkit.getWorlds().firstOrNull() // 暫定的に最初のワールド（通常はメインワールド）
             if (lobby != null) {
                 for (p in world.players) {
-                    p.teleport(lobby.spawnLocation)
+                    p.teleport(getEvacuationLocation())
                     p.sendMessage(
                             plugin.languageManager.getMessage(
                                     p,
@@ -818,6 +818,8 @@ class WorldService(
 
     /** 避難先ロケーションを取得する ロビーワールドが見つからない場合はメインワールドのスポーン地点 */
     fun getEvacuationLocation(): Location {
+        MyWorldManagerApi.getEvacuationLocationOverride()?.let { return it }
+
         val lobbyName = plugin.config.getString("lobby_world_name", "world")
         var lobby = Bukkit.getWorld(lobbyName!!)
         if (lobby == null) {

@@ -8,12 +8,14 @@ import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -153,6 +155,13 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         existing.forEach(plugin.portalRepository::removePortal)
         portals.map(::toPortalData).forEach(plugin.portalRepository::addPortal)
         plugin.portalRepository.loadAll()
+    }
+
+    override fun createLinkedWorldPortalItem(player: Player, worldUuid: UUID): ItemStack? {
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
+        val item = PortalItemUtil.createBasePortalItem(plugin.languageManager, player)
+        PortalItemUtil.bindWorld(item, worldUuid, worldData.name, plugin.languageManager, player)
+        return item
     }
 
     private fun toSnapshot(portal: PortalData): ApiPortalSnapshot {
