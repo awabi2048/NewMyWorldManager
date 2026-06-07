@@ -1,6 +1,9 @@
 package me.awabi2048.myworldmanager.ui
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuRequest
+import me.awabi2048.myworldmanager.api.extension.VisitMenuRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
@@ -61,12 +64,24 @@ class MenuEntryRouter(
             return
         }
 
+        if (MyWorldManagerApi.openFavoriteListMenuOverride(
+                player,
+                FavoriteListMenuRequest(page, worldData, returnToFavoriteMenu, showBackButton)
+            )
+        ) {
+            return
+        }
+
         plugin.favoriteGui.open(player, page, worldData, returnToFavoriteMenu, showBackButton)
     }
 
     fun openFavoriteMenu(player: Player, worldData: WorldData?) {
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openFavoriteMenu(player, worldData)
+            return
+        }
+
+        if (MyWorldManagerApi.openFavoriteMenuOverride(player, worldData)) {
             return
         }
 
@@ -81,6 +96,10 @@ class MenuEntryRouter(
     ) {
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openVisitMenu(player, owner, page, worldData)
+            return
+        }
+
+        if (MyWorldManagerApi.openVisitMenuOverride(player, owner, VisitMenuRequest(page, worldData))) {
             return
         }
 

@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.api.service
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -48,4 +49,6 @@ interface ApiWorldService {
     fun getRelatedPortals(worldUuid: UUID): List<ApiPortalSnapshot>
 
     fun replaceRelatedPortals(worldUuid: UUID, portals: List<ApiPortalSnapshot>)
+
+    fun createLinkedWorldPortalItem(player: Player, worldUuid: UUID): ItemStack?
 }

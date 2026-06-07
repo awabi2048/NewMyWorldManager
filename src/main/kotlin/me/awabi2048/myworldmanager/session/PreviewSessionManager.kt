@@ -289,17 +289,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         val world = Bukkit.getWorld(worldName)
         if (world == null) {
             // ワールドが存在しない場合はスポーンに送る
-            val evacuationWorld = plugin.config.getString("evacuation_location.world", "world") ?: "world"
-            val evacWorld = Bukkit.getWorld(evacuationWorld)
-            if (evacWorld != null) {
-                val evacLoc = Location(
-                    evacWorld,
-                    plugin.config.getDouble("evacuation_location.x", 0.5),
-                    plugin.config.getDouble("evacuation_location.y", 64.0),
-                    plugin.config.getDouble("evacuation_location.z", 0.5)
-                )
-                player.teleport(evacLoc)
-            }
+            player.teleport(plugin.worldService.getEvacuationLocation())
         } else {
             val restoreLoc = Location(world, x, y, z, yaw, pitch)
             player.teleport(restoreLoc)

@@ -1004,56 +1004,7 @@ class WorldSettingsListener : Listener {
                                                         ?: "my_world.${worldData.uuid}"
                                         if (visitor != null && visitor.world.name == worldFolderName
                                         ) {
-                                                val config = plugin.config
-                                                val worldName =
-                                                        config.getString(
-                                                                "evacuation_location.world",
-                                                                "world"
-                                                        )
-                                                val evacWorld =
-                                                        Bukkit.getWorld(worldName!!)
-                                                                ?: Bukkit.getWorlds()[0]
-                                                val x =
-                                                        config.getDouble(
-                                                                "evacuation_location.x",
-                                                                evacWorld.spawnLocation.x
-                                                        )
-                                                val y =
-                                                        config.getDouble(
-                                                                "evacuation_location.y",
-                                                                evacWorld.spawnLocation.y
-                                                        )
-                                                val z =
-                                                        config.getDouble(
-                                                                "evacuation_location.z",
-                                                                evacWorld.spawnLocation.z
-                                                        )
-                                                val yaw =
-                                                        config.getDouble(
-                                                                        "evacuation_location.yaw",
-                                                                        evacWorld.spawnLocation.yaw
-                                                                                .toDouble()
-                                                                )
-                                                                .toFloat()
-                                                val pitch =
-                                                        config.getDouble(
-                                                                        "evacuation_location.pitch",
-                                                                        evacWorld.spawnLocation
-                                                                                .pitch.toDouble()
-                                                                )
-                                                                .toFloat()
-
-                                                val evacuationLoc =
-                                                        org.bukkit.Location(
-                                                                evacWorld,
-                                                                x,
-                                                                y,
-                                                                z,
-                                                                yaw,
-                                                                pitch
-                                                        )
-
-                                                visitor.teleport(evacuationLoc)
+                                                visitor.teleport(plugin.worldService.getEvacuationLocation())
                                                 visitor.sendMessage(
                                                         plugin.languageManager.getMessage(
                                                                 visitor,
@@ -5768,17 +5719,7 @@ player.sendMessage(
                 val visitor = Bukkit.getPlayer(visitorUuid)
                 val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (visitor != null && visitor.world.name == worldFolderName) {
-                        val config = plugin.config
-                        val evacWorldName = config.getString("evacuation_location.world", "world") ?: "world"
-                        val evacWorld = Bukkit.getWorld(evacWorldName) ?: Bukkit.getWorlds()[0]
-                        val x = config.getDouble("evacuation_location.x", evacWorld.spawnLocation.x)
-                        val y = config.getDouble("evacuation_location.y", evacWorld.spawnLocation.y)
-                        val z = config.getDouble("evacuation_location.z", evacWorld.spawnLocation.z)
-                        val yaw = config.getDouble("evacuation_location.yaw", evacWorld.spawnLocation.yaw.toDouble()).toFloat()
-                        val pitch = config.getDouble("evacuation_location.pitch", evacWorld.spawnLocation.pitch.toDouble()).toFloat()
-
-                        val evacuationLoc = org.bukkit.Location(evacWorld, x, y, z, yaw, pitch)
-                        visitor.teleport(evacuationLoc)
+                        visitor.teleport(plugin.worldService.getEvacuationLocation())
                         visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
