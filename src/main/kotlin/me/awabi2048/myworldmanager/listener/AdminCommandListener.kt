@@ -8,6 +8,7 @@ import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.session.WorldCreationType
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
@@ -28,6 +29,10 @@ class AdminCommandListener : Listener {
         // セッションチェック
         if (!plugin.settingsSessionManager.hasSession(player)) return
         val session = plugin.settingsSessionManager.getSession(player) ?: return
+        if (!GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
+            session.isGuiTransition = false
+            return
+        }
 
         // GUI遷移中のクリックを無視
         if (session.isGuiTransition) {

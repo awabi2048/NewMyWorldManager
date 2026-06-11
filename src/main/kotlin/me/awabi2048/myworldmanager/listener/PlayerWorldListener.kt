@@ -17,6 +17,7 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -48,7 +49,11 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
-            event.isCancelled = true
+            if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
+                event.isCancelled = true
+                return
+            }
+            session.isGuiTransition = false
             return
         }
 

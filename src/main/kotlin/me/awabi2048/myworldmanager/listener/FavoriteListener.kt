@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.FavoriteGui
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -33,13 +34,18 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
-            event.isCancelled = true
+            if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
+                event.isCancelled = true
+                return
+            }
+            session.isGuiTransition = false
             return
         }
 
         // お気に入り一覧
         if (view.topInventory.holder is FavoriteGui.FavoriteGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
 
             val type = ItemTag.getType(currentItem)

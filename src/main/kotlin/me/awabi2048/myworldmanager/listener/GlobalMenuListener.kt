@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.MemberRequestConfirmGui
 import me.awabi2048.myworldmanager.gui.MemberRequestOwnerConfirmGui
+import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -45,12 +46,7 @@ class GlobalMenuListener(private val plugin: MyWorldManager) : Listener {
         // 既存のコードでは、各Listenerでタイトル判定などを行っている。
         // ここでは、MyWorldManager側の専用Holderを持つGUIにだけ適用する。
         
-        val holderClassName = holder?.javaClass?.name ?: return
-        val isPluginGui =
-            holderClassName.startsWith("me.awabi2048.myworldmanager") &&
-                holderClassName.endsWith("Holder")
-        
-        if (!isPluginGui) return
+        if (!GuiHelper.isPluginGuiInventory(event.view.topInventory)) return
 
         val p = player as? org.bukkit.entity.Player ?: return
         val uuid = p.uniqueId

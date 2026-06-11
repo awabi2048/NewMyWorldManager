@@ -10,6 +10,13 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 
 object GuiHelper {
+    fun isPluginGuiInventory(inventory: Inventory): Boolean {
+        val holder = inventory.holder ?: return false
+        val holderClassName = holder.javaClass.name
+        return holderClassName.startsWith("me.awabi2048.myworldmanager") &&
+            holderClassName.endsWith("Holder")
+    }
+
     fun inventoryTitle(title: String): Component {
         return Component.text(title, NamedTextColor.DARK_GRAY)
             .decoration(TextDecoration.ITALIC, false)

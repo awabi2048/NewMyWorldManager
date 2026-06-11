@@ -158,6 +158,10 @@ class WorldSettingsListener : Listener {
         fun onInventoryClick(event: InventoryClickEvent) {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
+                if (!GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
+                        session.isGuiTransition = false
+                        return
+                }
 
 
                 // GUI遷移中のクリックを無視
