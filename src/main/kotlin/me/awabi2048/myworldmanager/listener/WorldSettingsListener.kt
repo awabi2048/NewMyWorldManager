@@ -70,6 +70,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
+import me.awabi2048.myworldmanager.gui.WorldSettingsGuiHolder
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 
 class WorldSettingsListener : Listener {
@@ -171,6 +172,17 @@ class WorldSettingsListener : Listener {
                 // ただし、clickedInventoryチェックが必要か？
                 // ここでは一旦キャンセルせずに各分岐に委ねる、あるいはトップインベントリならキャンセル？
                 // 既存実装：各ifブロックで event.isCancelled = true していた。
+
+                // 外部メニュー（Chanpon等）が所有するインベントリの処理はスキップ
+                if (session.action == SettingsAction.VIEW_SETTINGS || session.action == SettingsAction.MANAGE_MEMBERS) {
+                        if (event.clickedInventory == event.view.topInventory) {
+                                val holder = event.view.topInventory.holder
+                                if (holder is WorldSettingsInventoryHolder && holder !is WorldSettingsGuiHolder) {
+                                        event.isCancelled = true
+                                        return
+                                }
+                        }
+                }
 
                 val item = event.currentItem ?: return
                 val type = ItemTag.getType(item)
@@ -2809,6 +2821,19 @@ plugin.languageManager
                 return opened
         }
 
+        fun editWorldInfo(player: Player, worldData: WorldData) {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                if (openBedrockWorldInfoInputForm(player, worldData)) return
+                if (plugin.playerPlatformResolver.isBedrock(player)) return
+                plugin.settingsSessionManager.updateSessionAction(
+                        player, worldData.uuid, SettingsAction.RENAME_WORLD, isGui = true
+                )
+                player.closeInventory()
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                        showWorldInfoDialog(player, worldData)
+                })
+        }
+
         private fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {
                 if (!plugin.playerPlatformResolver.isBedrock(player)) {
                         return false
@@ -3578,7 +3603,7 @@ plugin.languageManager
                 processImmediateExpansion(event.player)
         }
 
-        private fun startSpawnPreview(player: Player) {
+        fun startSpawnPreview(player: Player) {
                 stopSpawnPreview(player)
                 spawnPreviewTasks[player.uniqueId] =
                         Bukkit.getScheduler()
@@ -4338,7 +4363,7 @@ player.sendMessage(
                         return
                 }
 
-                worldData.gravityMultiplier = 0.17
+                worldData.gravityValue = 0.02
                 stats.worldPoint -= cost
                 worldData.cumulativePoints += cost
 
@@ -4466,13 +4491,24 @@ player.sendMessage(
 
         private fun applyGravityToWorld(worldData: WorldData) {
                 val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
-                val multiplier = worldData.gravityMultiplier
-                val gravityValue = 0.08 * multiplier
+                val gravityValue = worldData.gravityValue ?: 0.08
+                val key = org.bukkit.NamespacedKey("myworldmanager", "env_gravity")
 
                 world.entities.forEach { entity ->
                         if (entity is org.bukkit.entity.LivingEntity) {
-                                entity.getAttribute(org.bukkit.attribute.Attribute.GRAVITY)
-                                        ?.baseValue = gravityValue
+                                val attr = entity.getAttribute(org.bukkit.attribute.Attribute.GRAVITY)
+                                        ?: return@forEach
+                                attr.modifiers.filter { it.key == key }.forEach { attr.removeModifier(it.key) }
+                                attr.baseValue = 0.08
+                                if (gravityValue != 0.08) {
+                                        attr.addModifier(
+                                                org.bukkit.attribute.AttributeModifier(
+                                                        key,
+                                                        gravityValue - 0.08,
+                                                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER
+                                                )
+                                        )
+                                }
                         }
                 }
         }
@@ -5316,7 +5352,7 @@ player.sendMessage(
                         return
                 }
 
-                worldData.gravityMultiplier = 0.17
+                worldData.gravityValue = 0.02
                 stats.worldPoint -= cost
                 worldData.cumulativePoints += cost
 
