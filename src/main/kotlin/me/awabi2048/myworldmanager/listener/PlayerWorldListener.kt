@@ -17,6 +17,7 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -40,7 +41,7 @@ import java.util.UUID
 
 class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         
@@ -48,8 +49,12 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
-            event.isCancelled = true
-            return
+            if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
+                session.isGuiTransition = false
+            } else {
+                session.isGuiTransition = false
+                return
+            }
         }
 
         val view = event.view
@@ -63,6 +68,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         // プレイヤー用ワールド一覧
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != event.view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
             
@@ -239,6 +245,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         // 個人設定
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.UserSettingsGui.UserSettingsGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != event.view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return
             val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)

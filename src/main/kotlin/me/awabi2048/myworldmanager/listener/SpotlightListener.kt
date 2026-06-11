@@ -10,7 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 
 class SpotlightListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val view = event.view
@@ -19,6 +19,7 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
         if (!lang.isKeyMatch(title, "gui.spotlight_confirm.title") && !lang.isKeyMatch(title, "gui.discovery.spotlight_remove_confirm.title")) return
         event.isCancelled = true
+        if (event.clickedInventory != view.topInventory) return
 
         val item = event.currentItem ?: return
         val tag = ItemTag.getType(item) ?: return

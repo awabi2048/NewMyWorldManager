@@ -8,6 +8,7 @@ import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.session.WorldCreationType
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
@@ -16,6 +17,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import io.papermc.paper.event.player.PlayerCustomClickEvent
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.plugin.java.JavaPlugin
 
 class AdminCommandListener : Listener {
@@ -28,19 +30,23 @@ class AdminCommandListener : Listener {
         // セッションチェック
         if (!plugin.settingsSessionManager.hasSession(player)) return
         val session = plugin.settingsSessionManager.getSession(player) ?: return
+        val title = PlainTextComponentSerializer.plainText().serialize(event.view.title())
+        val isAdminInventory =
+                GuiHelper.isPluginGuiInventory(event.view.topInventory) ||
+                        isAdminSessionTitle(plugin, player, title, session.action)
+        if (!isAdminInventory) {
+            session.isGuiTransition = false
+            return
+        }
 
         // GUI遷移中のクリックを無視
         if (session.isGuiTransition) {
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
-            event.isCancelled = true
-            return
+            session.isGuiTransition = false
         }
 
         // アクションに応じた処理
-        if (session.action == SettingsAction.ADMIN_MENU ||
-                        session.action == SettingsAction.ADMIN_PORTAL_GUI ||
-                        session.action == SettingsAction.ADMIN_WORLD_GUI
-        ) {
+        if (session.action == SettingsAction.ADMIN_MENU) {
             handleAdminMenuClick(event, player, plugin, session.action)
         } else if (isAdminConfirmAction(session.action)) {
             handleAdminConfirmClick(event, player, plugin, session.action)
@@ -98,6 +104,31 @@ class AdminCommandListener : Listener {
             SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> true
             else -> false
         }
+    }
+
+    private fun isAdminSessionTitle(
+            plugin: MyWorldManager,
+            player: Player,
+            title: String,
+            action: SettingsAction
+    ): Boolean {
+        val lang = plugin.languageManager
+        val key = when (action) {
+            SettingsAction.ADMIN_MENU -> "gui.admin_menu.title"
+            SettingsAction.ADMIN_PORTAL_GUI -> "gui.admin_portals.title"
+            SettingsAction.ADMIN_WORLD_GUI -> "gui.admin.title"
+            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> "gui.admin_menu.convert.confirm_normal"
+            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> "gui.admin_menu.convert.confirm_admin"
+            SettingsAction.ADMIN_EXPORT_CONFIRM -> "gui.admin_menu.export.confirm_title"
+            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> "gui.admin_menu.archive.confirm_title"
+            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> "gui.admin_menu.update_data.confirm_title"
+            SettingsAction.ADMIN_UNLINK_CONFIRM -> "gui.admin_menu.unlink.confirm_title"
+            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> "gui.admin_menu.repair_templates.confirm_title"
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.archive_world.confirm_title"
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.unarchive_world.confirm_title"
+            else -> return false
+        }
+        return lang.isKeyMatch(title, key)
     }
 
     private fun handleAdminMenuClick(

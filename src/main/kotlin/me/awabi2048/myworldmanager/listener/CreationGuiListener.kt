@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
+import me.awabi2048.myworldmanager.gui.CreationGui
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
@@ -20,21 +21,13 @@ import org.bukkit.inventory.ItemStack
 
 class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
-        val view = event.view
-        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
-
-        val lang = plugin.languageManager
+        if (event.view.topInventory.holder !is CreationGui.CreationGuiHolder) return
 
         // 作成GUIのタイトルかどうかを判定（多言語対応）
-        val isCreationGui =
-                lang.isKeyMatch(title, "gui.creation.title_type") ||
-                        lang.isKeyMatch(title, "gui.creation.title_template") ||
-                        lang.isKeyMatch(title, "gui.creation.title_confirm")
-
-        if (!isCreationGui) return
         event.isCancelled = true
+        if (event.clickedInventory != event.view.topInventory) return
 
         val player = event.whoClicked as? Player ?: return
         val currentItem = event.currentItem ?: return
@@ -42,13 +35,8 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         if (currentItem.type == Material.AIR || tag == ItemTag.TYPE_GUI_DECORATION) return
 
         // GUI遷移中のクリックを無視
-        val settingsSession = plugin.settingsSessionManager.getSession(player)
-        if (settingsSession != null && settingsSession.isGuiTransition) {
+        val lang = plugin.languageManager
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
-            event.isCancelled = true
-            return
-        }
-
         val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
 
         if (tag == ItemTag.TYPE_GUI_EXTENSION) {
@@ -386,19 +374,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onInventoryClose(event: InventoryCloseEvent) {
-        val view = event.view
-        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
+        if (event.view.topInventory.holder !is CreationGui.CreationGuiHolder) return
 
         val lang = plugin.languageManager
 
         // 作成GUIのタイトルかどうかを判定（多言語対応）
-        val isCreationGui =
-                lang.isKeyMatch(title, "gui.creation.title_type") ||
-                        lang.isKeyMatch(title, "gui.creation.title_template") ||
-                        lang.isKeyMatch(title, "gui.creation.title_confirm")
-
-        if (!isCreationGui) return
-
         val player = event.player as? Player ?: return
 
         val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
@@ -421,20 +401,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                 return@Runnable
                             }
 
-                            val currentTitle =
-                                    PlainTextComponentSerializer.plainText()
-                                            .serialize(player.openInventory.title())
-                            val isStillInCreationGui =
-                                    lang.isKeyMatch(currentTitle, "gui.creation.title_type") ||
-                                            lang.isKeyMatch(
-                                                    currentTitle,
-                                                    "gui.creation.title_template"
-                                            ) ||
-                                            lang.isKeyMatch(
-                                                    currentTitle,
-                                                    "gui.creation.title_confirm"
-                                            )
-                            if (isStillInCreationGui) {
+                            if (player.openInventory.topInventory.holder is CreationGui.CreationGuiHolder) {
                                 return@Runnable
                             }
 

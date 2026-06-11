@@ -36,7 +36,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         private const val SPOTLIGHT_DESCRIPTION_MAX_LENGTH = 100
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val view = event.view
@@ -45,6 +45,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
         if (view.topInventory.holder !is me.awabi2048.myworldmanager.gui.DiscoveryGui.DiscoveryGuiHolder) return
         event.isCancelled = true
+        if (event.clickedInventory != view.topInventory) return
         
         // GUI遷移中のクリックを無視
         val settingsSession = plugin.settingsSessionManager.getSession(player)

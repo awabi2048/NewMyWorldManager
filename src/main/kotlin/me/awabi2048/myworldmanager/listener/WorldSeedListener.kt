@@ -65,7 +65,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val view = event.view
@@ -73,8 +73,9 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
         // Match Title using LanguageManager key matching
         // Note: WorldSeedConfirmGui uses "gui.world_seed_confirm.title"
         if (!plugin.languageManager.isKeyMatch(PlainTextComponentSerializer.plainText().serialize(view.title()), "gui.world_seed_confirm.title")) return
-        
+
         event.isCancelled = true
+        if (event.clickedInventory != view.topInventory) return
 
         val item = event.currentItem ?: return
         val tag = ItemTag.getType(item) ?: return

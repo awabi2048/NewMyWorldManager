@@ -93,15 +93,14 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val item = ItemStack(Material.FEATHER)
         val meta = item.itemMeta ?: return item
 
-        val currentMultiplier = worldData.gravityMultiplier
+        val currentGravity = worldData.gravityValue ?: 0.08
         val gravityKey =
-                when (currentMultiplier) {
-                    0.0 -> "zero"
-                    0.17 -> "moon"
-                    0.38 -> "mars"
-                    1.0 -> "earth"
-                    else -> "earth"
-                }
+            when (currentGravity) {
+                0.01 -> "moon"
+                0.02 -> "mars"
+                0.08 -> "earth"
+                else -> "earth"
+            }
         val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
 

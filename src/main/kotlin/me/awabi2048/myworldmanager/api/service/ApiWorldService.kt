@@ -51,4 +51,8 @@ interface ApiWorldService {
     fun replaceRelatedPortals(worldUuid: UUID, portals: List<ApiPortalSnapshot>)
 
     fun createLinkedWorldPortalItem(player: Player, worldUuid: UUID): ItemStack?
+
+    fun deleteWorld(worldUuid: UUID): CompletableFuture<Boolean>
+
+    fun deleteWorldForMaintenance(worldUuid: UUID): CompletableFuture<Boolean>
 }

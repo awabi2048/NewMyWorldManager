@@ -10,7 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 
 class MemberRequestOwnerConfirmListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         event.view.topInventory.holder as? MemberRequestOwnerConfirmGui.MemberRequestOwnerConfirmHolder ?: return

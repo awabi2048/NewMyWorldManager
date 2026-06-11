@@ -665,6 +665,53 @@ class WorldService(
         }
         return future
     }
+
+    fun deleteWorldForMaintenance(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
+        val future = java.util.concurrent.CompletableFuture<Boolean>()
+        unloadWorldAfterEvacuation(worldUuid, false).thenAccept { unloaded ->
+            if (!unloaded) {
+                future.complete(false)
+                return@thenAccept
+            }
+
+            val worldData = repository.findByUuid(worldUuid)
+            if (worldData == null) {
+                future.complete(false)
+                return@thenAccept
+            }
+
+            val folderName = getWorldFolderName(worldData)
+            val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
+            val folder = if (worldData.isArchived) {
+                File(archiveFolder, folderName)
+            } else {
+                File(Bukkit.getWorldContainer(), folderName)
+            }
+
+            if (folder.exists() && !folder.deleteRecursively()) {
+                future.complete(false)
+                return@thenAccept
+            }
+
+            repository.delete(worldUuid)
+            reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
+            Bukkit.getPluginManager().callEvent(
+                    MwmWorldDeletedEvent(
+                            worldUuid = worldUuid,
+                            ownerUuid = worldData.owner,
+                            refundPoints = 0,
+                            wasArchived = worldData.isArchived
+                    )
+            )
+            plugin.macroManager.execute(
+                    "on_world_delete",
+                    mapOf("world_uuid" to worldUuid.toString())
+            )
+            future.complete(true)
+        }
+        return future
+    }
+
     private fun reduceOwnerSlotOnDeleteIfEnabled(ownerUuid: UUID) {
         if (!WorldRuntimePolicies.reduceOwnerSlotOnDelete(plugin.config)) {
             return

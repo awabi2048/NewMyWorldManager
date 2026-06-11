@@ -14,6 +14,7 @@ import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.session.PlayerFilterType
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.key.Key
@@ -42,8 +43,12 @@ class AdminGuiListener : Listener {
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
-            event.isCancelled = true
-            return
+            if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
+                session.isGuiTransition = false
+            } else {
+                session.isGuiTransition = false
+                return
+            }
         }
 
         val view = event.view

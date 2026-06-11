@@ -70,6 +70,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
+import me.awabi2048.myworldmanager.gui.WorldSettingsGuiHolder
 import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 
 class WorldSettingsListener : Listener {
@@ -80,6 +81,7 @@ class WorldSettingsListener : Listener {
         private val borderDirectionPreviewTasks = mutableMapOf<UUID, BukkitTask>()
         private val expansionExecutionModeMetadataKey = "expansion_execution_mode"
         private val expansionSkipPhasesMetadataKey = "expansion_skip_phases"
+        private val iconPickerArmingMetadataKey = "icon_picker_arming"
 
         data class PendingExpansion(
                 val worldData: WorldData,
@@ -153,18 +155,30 @@ class WorldSettingsListener : Listener {
                 }
         }
 
-        @EventHandler(ignoreCancelled = true)
+        @EventHandler(ignoreCancelled = false)
         fun onInventoryClick(event: InventoryClickEvent) {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
+                if (session.action == SettingsAction.SELECT_ICON) {
+                        handleIconSelectionClick(player, event)
+                        return
+                }
+
+                val topHolder = event.view.topInventory.holder
+                if (!GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
+                        session.isGuiTransition = false
+                        return
+                }
+                if (topHolder !is WorldSettingsGuiHolder) {
+                        session.isGuiTransition = false
+                        return
+                }
 
 
                 // GUI遷移中のクリックを無視
                 if (session.isGuiTransition) {
 
-                        event.isCancelled = true
-
-                        return
+                        session.isGuiTransition = false
                 }
 
                 // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)
@@ -172,6 +186,7 @@ class WorldSettingsListener : Listener {
                 // ここでは一旦キャンセルせずに各分岐に委ねる、あるいはトップインベントリならキャンセル？
                 // 既存実装：各ifブロックで event.isCancelled = true していた。
 
+                // 外部メニュー（Chanpon等）が所有するインベントリの処理はスキップ
                 val item = event.currentItem ?: return
                 val type = ItemTag.getType(item)
 
@@ -1199,7 +1214,7 @@ class WorldSettingsListener : Listener {
                                         plugin.settingsSessionManager.endSession(player)
                                 }
                         }
-                        SettingsAction.VIEW_SETTINGS, SettingsAction.SELECT_ICON -> {
+                        SettingsAction.VIEW_SETTINGS -> {
                                 event.isCancelled = true
                                 val clickedItem = event.currentItem ?: return
 
@@ -1316,8 +1331,7 @@ class WorldSettingsListener : Listener {
                                                 plugin.settingsSessionManager.updateSessionAction(
                                                         player,
                                                         worldData.uuid,
-                                                        SettingsAction.RENAME_WORLD,
-                                                        isGui = true
+                                                        SettingsAction.RENAME_WORLD
                                                 )
 
                                                 player.closeInventory()
@@ -1388,16 +1402,7 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                plugin.settingsSessionManager.updateSessionAction(
-                                                        player,
-                                                        worldData.uuid,
-                                                        SettingsAction.SELECT_ICON
-                                                )
-                                                player.sendMessage(
-                                                        plugin.languageManager.getMessage(
-                                                                "messages.icon_prompt"
-                                                        )
-                                                )
+                                                startIconSelection(player, worldData)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_EXPAND -> {
                                                 if (worldData.borderExpansionLevel ==
@@ -1663,16 +1668,18 @@ class WorldSettingsListener : Listener {
 																worldData
 														)
 												} else {
-												player.closeInventory()
-												me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
-												plugin.settingsSessionManager
-														.updateSessionAction(
-																player,
-																worldData.uuid,
-																SettingsAction.SET_ANNOUNCEMENT
-														)
-										}
-										}
+                                                plugin.settingsSessionManager
+                                                        .updateSessionAction(
+                                                                player,
+                                                                worldData.uuid,
+                                                                SettingsAction.SET_ANNOUNCEMENT
+                                                        )
+                                                player.closeInventory()
+                                                Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                        me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
+                                                })
+                                        }
+                                        }
                                         ItemTag.TYPE_GUI_SETTING_PORTALS -> {
                                                 // ワールドオーナーのみアクセス可能
                                                 val isOwner = worldData.owner == player.uniqueId ||
@@ -2809,6 +2816,68 @@ plugin.languageManager
                 return opened
         }
 
+        fun editWorldInfo(player: Player, worldData: WorldData) {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                if (openBedrockWorldInfoInputForm(player, worldData)) return
+                if (plugin.playerPlatformResolver.isBedrock(player)) return
+                plugin.settingsSessionManager.updateSessionAction(
+                        player, worldData.uuid, SettingsAction.RENAME_WORLD
+                )
+                player.closeInventory()
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                        showWorldInfoDialog(player, worldData)
+                })
+        }
+
+        fun startIconSelection(player: Player, worldData: WorldData) {
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.SELECT_ICON
+                )
+                plugin.settingsSessionManager
+                        .getSession(player)
+                        ?.setMetadata(iconPickerArmingMetadataKey, true)
+                player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
+                player.closeInventory()
+        }
+
+        private fun handleIconSelectionClick(player: Player, event: InventoryClickEvent) {
+                if (event.clickedInventory != player.inventory) {
+                        return
+                }
+                val clickedItem = event.currentItem ?: return
+                if (clickedItem.type == Material.AIR) {
+                        return
+                }
+
+                event.isCancelled = true
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+
+                worldData.icon = clickedItem.type
+                plugin.worldConfigRepository.save(worldData)
+                val itemName =
+                        clickedItem
+                                .displayName()
+                                .decoration(TextDecoration.ITALIC, false)
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.icon_changed",
+                                mapOf(
+                                        "item" to
+                                                LegacyComponentSerializer
+                                                        .legacySection()
+                                                        .serialize(itemName)
+                                )
+                        )
+                )
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                plugin.settingsSessionManager.endSession(player)
+                plugin.worldSettingsGui.open(player, worldData)
+        }
+
         private fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {
                 if (!plugin.playerPlatformResolver.isBedrock(player)) {
                         return false
@@ -3511,6 +3580,10 @@ plugin.languageManager
 
                 // 繧｢繧､繧ｳ繝ｳ驕ｸ謚樔ｸｭ縺ｫ繧､繝ｳ繝吶Φ繝医Μ繧帝哩縺倥◆蝣ｴ蜷医・繧ｭ繝｣繝ｳ繧ｻ繝ｫ繝｡繝・そ繝ｼ繧ｸ繧定｡ｨ遉ｺ縺励※蜊ｳ邨ゆｺ・
                 if (session.action == SettingsAction.SELECT_ICON) {
+                        if (session.getMetadata(iconPickerArmingMetadataKey) == true) {
+                                session.setMetadata(iconPickerArmingMetadataKey, false)
+                                return
+                        }
                         plugin.settingsSessionManager.endSession(player)
                         player.sendMessage(lang.getMessage(player, "messages.icon_cancelled"))
                         return
@@ -3522,7 +3595,11 @@ plugin.languageManager
                                 SettingsAction.SET_SPAWN_GUEST,
                                 SettingsAction.SET_SPAWN_MEMBER,
                                 SettingsAction.EXPAND_DIRECTION_WAIT,
-                                SettingsAction.EXPAND_DIRECTION_CONFIRM
+                                SettingsAction.EXPAND_DIRECTION_CONFIRM,
+                                SettingsAction.RENAME_WORLD,
+                                SettingsAction.SET_ANNOUNCEMENT,
+                                SettingsAction.MEMBER_INVITE,
+                                SettingsAction.MANAGE_TAGS
                         )
 
                 if (session.action in blockInputActions) {
@@ -3578,7 +3655,7 @@ plugin.languageManager
                 processImmediateExpansion(event.player)
         }
 
-        private fun startSpawnPreview(player: Player) {
+        fun startSpawnPreview(player: Player) {
                 stopSpawnPreview(player)
                 spawnPreviewTasks[player.uniqueId] =
                         Bukkit.getScheduler()
@@ -4338,7 +4415,7 @@ player.sendMessage(
                         return
                 }
 
-                worldData.gravityMultiplier = 0.17
+                worldData.gravityValue = 0.02
                 stats.worldPoint -= cost
                 worldData.cumulativePoints += cost
 
@@ -4466,13 +4543,24 @@ player.sendMessage(
 
         private fun applyGravityToWorld(worldData: WorldData) {
                 val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
-                val multiplier = worldData.gravityMultiplier
-                val gravityValue = 0.08 * multiplier
+                val gravityValue = worldData.gravityValue ?: 0.08
+                val key = org.bukkit.NamespacedKey("myworldmanager", "env_gravity")
 
                 world.entities.forEach { entity ->
                         if (entity is org.bukkit.entity.LivingEntity) {
-                                entity.getAttribute(org.bukkit.attribute.Attribute.GRAVITY)
-                                        ?.baseValue = gravityValue
+                                val attr = entity.getAttribute(org.bukkit.attribute.Attribute.GRAVITY)
+                                        ?: return@forEach
+                                attr.modifiers.filter { it.key == key }.forEach { attr.removeModifier(it.key) }
+                                attr.baseValue = 0.08
+                                if (gravityValue != 0.08) {
+                                        attr.addModifier(
+                                                org.bukkit.attribute.AttributeModifier(
+                                                        key,
+                                                        gravityValue - 0.08,
+                                                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER
+                                                )
+                                        )
+                                }
                         }
                 }
         }
@@ -5316,7 +5404,7 @@ player.sendMessage(
                         return
                 }
 
-                worldData.gravityMultiplier = 0.17
+                worldData.gravityValue = 0.02
                 stats.worldPoint -= cost
                 worldData.cumulativePoints += cost
 

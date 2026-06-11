@@ -12,7 +12,7 @@ class ConfirmationMenuListener : Listener {
 
     private val pendingMessage = "§7保留しました。/myworld メニューから、保留中の申請などを確認できます。"
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val holder = event.view.topInventory.holder as? ConfirmationMenuGui.ConfirmationMenuHolder ?: return

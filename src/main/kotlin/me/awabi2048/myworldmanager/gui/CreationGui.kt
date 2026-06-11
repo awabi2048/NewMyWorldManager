@@ -17,6 +17,8 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.inventory.Inventory
+import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
@@ -56,7 +58,10 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
-        val inventory = Bukkit.createInventory(null, 45, title)
+        clearSettingsGuiTransition(player)
+        val holder = CreationGuiHolder(CreationMenuType.TYPE_SELECT)
+        val inventory = Bukkit.createInventory(holder, 45, title)
+        holder.inv = inventory
 
         setupHeaderFooter(inventory, 5)
 
@@ -107,7 +112,10 @@ class CreationGui(private val plugin: MyWorldManager) {
         val neededDataRows = (templates.size + worldsPerRow - 1) / worldsPerRow
         val rowCount = (neededDataRows + 2).coerceIn(3, 6)
         
-        val inventory = Bukkit.createInventory(null, rowCount * 9, title)
+        clearSettingsGuiTransition(player)
+        val holder = CreationGuiHolder(CreationMenuType.TEMPLATE_SELECT)
+        val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
+        holder.inv = inventory
 
         setupHeaderFooter(inventory, rowCount)
 
@@ -143,7 +151,10 @@ class CreationGui(private val plugin: MyWorldManager) {
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
         
-        val inventory = Bukkit.createInventory(null, 45, title)
+        clearSettingsGuiTransition(player)
+        val holder = CreationGuiHolder(CreationMenuType.CONFIRM)
+        val inventory = Bukkit.createInventory(holder, 45, title)
+        holder.inv = inventory
         
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
@@ -240,5 +251,21 @@ class CreationGui(private val plugin: MyWorldManager) {
         // 括弧内の文字列（ローマ字変換など）を削除
         val regex = Regex("\\s?\\(.*?\\)")
         return name.replace(regex, "").trim()
+    }
+
+    private fun clearSettingsGuiTransition(player: Player) {
+        plugin.settingsSessionManager.getSession(player)?.isGuiTransition = false
+    }
+
+    enum class CreationMenuType {
+        TYPE_SELECT,
+        TEMPLATE_SELECT,
+        CONFIRM
+    }
+
+    class CreationGuiHolder(val menuType: CreationMenuType) : InventoryHolder {
+        lateinit var inv: Inventory
+
+        override fun getInventory(): Inventory = inv
     }
 }

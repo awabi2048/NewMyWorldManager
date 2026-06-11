@@ -28,7 +28,7 @@ import org.bukkit.plugin.java.JavaPlugin
 
 class TemplateWizardListener : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val view = event.view
@@ -39,6 +39,7 @@ class TemplateWizardListener : Listener {
         if (!lang.isKeyMatch(title, "gui.template_wizard.title")) return
 
         event.isCancelled = true
+        if (event.clickedInventory != view.topInventory) return
         val currentItem = event.currentItem ?: return
         if (currentItem.type == Material.AIR) return
 
@@ -115,7 +116,7 @@ class TemplateWizardListener : Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onPlayerInventoryClick(event: InventoryClickEvent) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val player = event.whoClicked as? Player ?: return

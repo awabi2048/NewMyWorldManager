@@ -15,7 +15,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 
 class VisitListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
@@ -26,6 +26,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
             val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
             event.isCancelled = true
+            if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return

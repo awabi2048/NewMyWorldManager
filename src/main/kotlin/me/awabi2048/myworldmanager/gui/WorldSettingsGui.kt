@@ -3296,4 +3296,57 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         private fun createDecorationItem(material: Material): ItemStack {
                 return GuiItemFactory.decoration(material)
         }
+
+        fun editWorldInfo(player: Player, worldData: WorldData) {
+                plugin.worldSettingsListener.editWorldInfo(player, worldData)
+        }
+
+        fun enterIconSelection(player: Player, worldData: WorldData) {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                plugin.worldSettingsListener.startIconSelection(player, worldData)
+        }
+
+        fun enterSpawnSetting(player: Player, worldData: WorldData, isGuest: Boolean) {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
+                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action, isGui = true)
+
+                plugin.worldSettingsListener.startSpawnPreview(player)
+
+                val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
+                val typeName = plugin.languageManager.getMessage(player, typeKey)
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player, "messages.spawn_setting_started", mapOf("type" to typeName)
+                        )
+                )
+        }
+
+        fun toggleNotification(player: Player, worldData: WorldData) {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                worldData.notificationEnabled = !worldData.notificationEnabled
+                plugin.worldConfigRepository.save(worldData)
+        }
+
+        fun editAnnouncement(player: Player, worldData: WorldData) {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.SET_ANNOUNCEMENT
+                )
+                player.closeInventory()
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                        AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
+                })
+        }
+
+        fun clearAnnouncements(player: Player, worldData: WorldData) {
+                plugin.soundManager.playClickSound(player, null, "world_settings")
+                worldData.announcementMessages.clear()
+                plugin.worldConfigRepository.save(worldData)
+                player.sendMessage(
+                        plugin.languageManager.getMessage(player, "messages.announcement_cleared")
+                )
+        }
 }
