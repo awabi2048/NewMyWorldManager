@@ -40,7 +40,7 @@ import java.util.UUID
 
 class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         
@@ -63,6 +63,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         // プレイヤー用ワールド一覧
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != event.view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
             
@@ -239,6 +240,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         // 個人設定
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.UserSettingsGui.UserSettingsGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != event.view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return
             val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
