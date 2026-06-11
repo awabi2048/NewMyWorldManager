@@ -16,7 +16,7 @@ import java.util.UUID
 
 class MeetListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
@@ -27,6 +27,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
 
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.MeetGui.MeetGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != view.topInventory) return
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
 
             if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {

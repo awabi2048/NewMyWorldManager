@@ -44,11 +44,11 @@ class AdminGuiListener : Listener {
         if (session != null && session.isGuiTransition) {
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
-                event.isCancelled = true
+                session.isGuiTransition = false
+            } else {
+                session.isGuiTransition = false
                 return
             }
-            session.isGuiTransition = false
-            return
         }
 
         val view = event.view

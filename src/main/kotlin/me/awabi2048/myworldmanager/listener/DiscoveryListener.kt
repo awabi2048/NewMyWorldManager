@@ -36,7 +36,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         private const val SPOTLIGHT_DESCRIPTION_MAX_LENGTH = 100
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val view = event.view

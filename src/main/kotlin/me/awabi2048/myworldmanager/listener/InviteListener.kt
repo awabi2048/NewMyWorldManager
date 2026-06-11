@@ -12,7 +12,7 @@ import java.util.UUID
 
 class InviteListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val view = event.view
@@ -22,6 +22,7 @@ class InviteListener(private val plugin: MyWorldManager) : Listener {
         }
 
         event.isCancelled = true
+        if (event.clickedInventory != view.topInventory) return
         val currentItem = event.currentItem ?: return
         val type = ItemTag.getType(currentItem)
         if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) {

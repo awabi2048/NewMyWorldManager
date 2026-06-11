@@ -21,7 +21,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 
 class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
@@ -35,11 +35,11 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         if (session != null && session.isGuiTransition) {
             // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
-                event.isCancelled = true
+                session.isGuiTransition = false
+            } else {
+                session.isGuiTransition = false
                 return
             }
-            session.isGuiTransition = false
-            return
         }
 
         // お気に入り一覧
@@ -214,6 +214,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         // お気に入りメニュー
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteMenuGui.FavoriteMenuGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
@@ -288,6 +289,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         // お気に入り解除確認メニュー
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteConfirmGui.FavoriteConfirmGuiHolder) {
             event.isCancelled = true
+            if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return

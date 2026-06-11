@@ -105,15 +105,16 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         player.openInventory(inventory)
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onClick(event: InventoryClickEvent) {
         val lang = plugin.languageManager
         val view = event.view
         val player = event.whoClicked as? Player ?: return
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         if (!lang.isKeyMatch(title, "gui.portal.title")) return
-        
+
         event.isCancelled = true
+        if (event.clickedInventory != view.topInventory) return
         val inv = event.inventory
         
         val firstItem = inv.getItem(0) ?: return

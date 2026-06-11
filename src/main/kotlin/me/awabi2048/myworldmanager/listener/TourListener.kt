@@ -98,7 +98,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         TourDialogManager.startPlacement(player, plugin, event.blockPlaced, blockFace, event.hand)
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val top = event.view.topInventory.holder
@@ -125,6 +125,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             is TourGui.VisitorTourHolder -> top.worldUuid
             is TourGui.EditTourHolder -> top.worldUuid
             is TourGui.SingleTourHolder -> top.worldUuid
+            is TourGui.DeleteTourHolder -> top.worldUuid
             is TourGui.StartSelectionHolder -> top.worldUuid
             is TourGui.StartConfirmHolder -> top.worldUuid
             is TourGui.BindSignHolder -> top.worldUuid
@@ -136,6 +137,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             is TourGui.StartConfirmHolder -> handleStartConfirmClick(player, worldData, type, item, top)
             is TourGui.EditTourHolder -> handleEditMenuClick(player, worldData, type, item)
             is TourGui.SingleTourHolder -> handleSingleEditClick(player, worldData, type, item, top, event.click)
+            is TourGui.DeleteTourHolder -> handleDeleteConfirmClick(player, worldData, type, item, top)
             is TourGui.BindSignHolder -> handleBindSignClick(player, worldData, type, item, top)
         }
     }
@@ -266,7 +268,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
                         plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
                     },
                     onGuiFallback = {
-                        plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
+                        plugin.tourGui.openDeleteConfirm(player, worldData, session.draft, holder.isNew)
                     }
                 )
             }
@@ -285,6 +287,25 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
                 plugin.soundManager.playClickSound(player, item, "tour")
                 val waypointUuid = ItemTag.getString(item, "tour_waypoint_uuid")?.let(UUID::fromString) ?: return
                 session.draft.waypoints.removeIf { it.uuid == waypointUuid }
+                plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
+            }
+        }
+    }
+
+    private fun handleDeleteConfirmClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: TourGui.DeleteTourHolder) {
+        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
+        when (type) {
+            ItemTag.TYPE_GUI_CONFIRM -> {
+                plugin.soundManager.playClickSound(player, item, "tour")
+                if (!holder.isNew) {
+                    val tourUuid = session.originalTourUuid ?: holder.tourUuid
+                    plugin.tourManager.deleteTour(worldData, tourUuid)
+                }
+                plugin.tourSessionManager.clearEdit(player.uniqueId)
+                plugin.tourGui.openEditMenu(player, worldData)
+            }
+            ItemTag.TYPE_GUI_CANCEL -> {
+                plugin.soundManager.playClickSound(player, item, "tour")
                 plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
             }
         }

@@ -154,7 +154,7 @@ class WorldSettingsListener : Listener {
                 }
         }
 
-        @EventHandler(ignoreCancelled = true)
+        @EventHandler(ignoreCancelled = false)
         fun onInventoryClick(event: InventoryClickEvent) {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
@@ -167,9 +167,7 @@ class WorldSettingsListener : Listener {
                 // GUI遷移中のクリックを無視
                 if (session.isGuiTransition) {
 
-                        event.isCancelled = true
-
-                        return
+                        session.isGuiTransition = false
                 }
 
                 // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)

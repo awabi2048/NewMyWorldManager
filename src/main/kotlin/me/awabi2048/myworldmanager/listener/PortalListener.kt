@@ -757,10 +757,11 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         if (event.view.topInventory.holder !is WorldGateConfirmHolder) return
         event.isCancelled = true
+        if (event.clickedInventory != event.view.topInventory) return
 
         val player = event.whoClicked as? org.bukkit.entity.Player ?: return
         val item = event.currentItem ?: return
