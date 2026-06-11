@@ -3303,12 +3303,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         fun enterIconSelection(player: Player, worldData: WorldData) {
                 plugin.soundManager.playClickSound(player, null, "world_settings")
-                plugin.settingsSessionManager.updateSessionAction(
-                        player, worldData.uuid, SettingsAction.SELECT_ICON
-                )
-                player.sendMessage(
-                        plugin.languageManager.getMessage("messages.icon_prompt")
-                )
+                plugin.worldSettingsListener.startIconSelection(player, worldData)
         }
 
         fun enterSpawnSetting(player: Player, worldData: WorldData, isGuest: Boolean) {
@@ -3335,7 +3330,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         fun editAnnouncement(player: Player, worldData: WorldData) {
                 plugin.soundManager.playClickSound(player, null, "world_settings")
-                AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.SET_ANNOUNCEMENT
+                )
+                player.closeInventory()
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                        AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
+                })
         }
 
         fun clearAnnouncements(player: Player, worldData: WorldData) {
