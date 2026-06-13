@@ -153,6 +153,12 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             }
             if (type == ItemTag.TYPE_GUI_USER_SETTINGS_BUTTON) {
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
+                val currentSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+                plugin.menuRouteHistory.pushPlayerWorld(
+                    player,
+                    currentSession.currentPage,
+                    currentSession.showBackButton
+                )
                 plugin.userSettingsGui.open(player, showBackButton = true)
                 return
             }
@@ -235,7 +241,13 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                         worldData.members.contains(player.uniqueId)
 
                 if (isMember) {
-                    val currentShowBack = plugin.playerWorldSessionManager.getSession(player.uniqueId).showBackButton
+                    val currentSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+                    val currentShowBack = currentSession.showBackButton
+                    plugin.menuRouteHistory.pushPlayerWorld(
+                        player,
+                        currentSession.currentPage,
+                        currentShowBack
+                    )
                     plugin.worldSettingsGui.open(player, worldData, showBackButton = true, isPlayerWorldFlow = true, parentShowBackButton = currentShowBack)
                 }
             }
@@ -281,8 +293,10 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
                 ItemTag.TYPE_GUI_RETURN -> {
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                    val currentPage = plugin.playerWorldSessionManager.getSession(player.uniqueId).currentPage
-                    plugin.playerWorldGui.open(player, currentPage)
+                    if (!plugin.menuRouteHistory.openPrevious(player)) {
+                        val currentPage = plugin.playerWorldSessionManager.getSession(player.uniqueId).currentPage
+                        plugin.playerWorldGui.open(player, currentPage)
+                    }
                 }
             }
             return
