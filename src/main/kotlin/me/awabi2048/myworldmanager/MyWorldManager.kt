@@ -18,6 +18,7 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.service.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.ui.MenuEntryRouter
+import me.awabi2048.myworldmanager.ui.MenuRouteHistory
 import me.awabi2048.myworldmanager.ui.PlayerPlatformResolver
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockUiRoutingService
@@ -101,6 +102,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var bedrockUiRoutingService: BedrockUiRoutingService
     lateinit var bedrockMenuService: BedrockMenuService
     lateinit var menuEntryRouter: MenuEntryRouter
+    lateinit var menuRouteHistory: MenuRouteHistory
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
@@ -230,6 +232,7 @@ class MyWorldManager : JavaPlugin() {
                 BedrockUiRoutingService(this, playerPlatformResolver, floodgateFormBridge)
         bedrockMenuService =
                 BedrockMenuService(this, bedrockUiRoutingService, floodgateFormBridge)
+        menuRouteHistory = MenuRouteHistory(this)
         menuEntryRouter = MenuEntryRouter(this, playerPlatformResolver, bedrockMenuService)
         internalCommandTokenManager = InternalCommandTokenManager(this)
         server.scheduler.runTaskTimer(this, Runnable {
