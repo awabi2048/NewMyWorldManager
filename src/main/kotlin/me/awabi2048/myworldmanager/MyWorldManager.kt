@@ -377,6 +377,9 @@ class MyWorldManager : JavaPlugin() {
     }
 
     fun clearTransientPlayerMenuState(playerUuid: UUID) {
+        Bukkit.getPlayer(playerUuid)?.let { player ->
+            if (::menuRouteHistory.isInitialized) menuRouteHistory.clear(player)
+        }
         if (::settingsSessionManager.isInitialized) settingsSessionManager.endSession(playerUuid)
         if (::creationSessionManager.isInitialized) creationSessionManager.endSession(playerUuid)
         if (::inviteSessionManager.isInitialized) inviteSessionManager.endSession(playerUuid)
@@ -390,6 +393,7 @@ class MyWorldManager : JavaPlugin() {
     }
 
     private fun clearAllTransientMenuState() {
+        if (::menuRouteHistory.isInitialized) menuRouteHistory.unregister()
         if (::settingsSessionManager.isInitialized) settingsSessionManager.clearAll()
         if (::creationSessionManager.isInitialized) {
             creationSessionManager.clearAll()

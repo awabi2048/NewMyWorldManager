@@ -199,12 +199,14 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.player_world.button.settings"), Material.WRITABLE_BOOK) {
+            plugin.menuRouteHistory.pushPlayerWorld(player, page, showBackButton)
             openSettings(player, showBackButton, page)
         }
 
         val currentManagedWorld = getCurrentManagedWorld(player)
         if (currentManagedWorld != null && canAccessWorldSettings(player, currentManagedWorld)) {
             actions += FormAction(tr(player, "gui.bedrock.player_world.button.current_world"), Material.COMPASS) {
+                plugin.menuRouteHistory.pushPlayerWorld(player, page, showBackButton)
                 openCurrentWorldMenu(player, currentManagedWorld, showBackButton)
             }
         }
@@ -281,6 +283,7 @@ class BedrockMenuService(
         if (canAccessWorldSettings(player, worldData)) {
             actions += FormAction(tr(player, "gui.bedrock.world_action.button.advanced_settings"), Material.COMPARATOR) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
+                pushWorldActionRoute(player, latest, returnPage, showBackButton)
                 plugin.worldSettingsGui.open(player, latest, showBackButton)
             }
         }
@@ -740,6 +743,7 @@ class BedrockMenuService(
             }
 
             "open_advanced_settings" -> {
+                pushWorldActionRoute(player, worldData, holder.returnPage, holder.showBackButton)
                 plugin.worldSettingsGui.open(player, worldData, holder.showBackButton)
             }
 
@@ -1003,9 +1007,25 @@ class BedrockMenuService(
     }
 
     private fun performConfiguredReturn(player: Player) {
-        player.closeInventory()
-        val command = plugin.config.getString("menu_command", "mwm")?.removePrefix("/") ?: "mwm"
-        player.performCommand(command)
+        if (!plugin.menuRouteHistory.openPrevious(player)) {
+            player.closeInventory()
+        }
+    }
+
+    private fun pushWorldActionRoute(
+        player: Player,
+        worldData: WorldData,
+        returnPage: Int,
+        showBackButton: Boolean
+    ) {
+        plugin.menuRouteHistory.pushCustom(
+            player,
+            "bedrock.world_action:${worldData.uuid}:$returnPage:$showBackButton"
+        ) { target ->
+            val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@pushCustom false
+            openWorldActionMenu(target, latest, returnPage, showBackButton)
+            true
+        }
     }
 
     private fun createWorldListItem(player: Player, worldData: WorldData): ItemStack {
