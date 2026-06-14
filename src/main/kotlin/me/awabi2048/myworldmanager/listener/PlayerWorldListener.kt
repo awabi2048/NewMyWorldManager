@@ -36,6 +36,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
@@ -67,7 +68,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
         // プレイヤー用ワールド一覧
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder) {
-            event.isCancelled = true
+            event.cancelWithDebug("PlayerWorldListener.onInventoryClick: player world list GUI click")
             if (event.clickedInventory != event.view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
@@ -256,7 +257,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
         // 個人設定
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.UserSettingsGui.UserSettingsGuiHolder) {
-            event.isCancelled = true
+            event.cancelWithDebug("PlayerWorldListener.onInventoryClick: user settings GUI click")
             if (event.clickedInventory != event.view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return

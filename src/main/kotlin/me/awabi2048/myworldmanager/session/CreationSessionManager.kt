@@ -29,6 +29,10 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
         sessions.remove(playerId)
     }
 
+    fun clearAll() {
+        sessions.clear()
+    }
+
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
         sessions[playerId]?.let { 
             it.touch()

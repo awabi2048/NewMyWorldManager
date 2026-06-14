@@ -81,4 +81,14 @@ class TourSessionManager {
     fun clearEdit(playerUuid: UUID) {
         editSessions.remove(playerUuid)
     }
+
+    fun clearPlayer(playerUuid: UUID) {
+        sessions.remove(playerUuid)
+        editSessions.remove(playerUuid)
+    }
+
+    fun clearAll() {
+        sessions.clear()
+        editSessions.clear()
+    }
 }

@@ -17,6 +17,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.inventory.ItemStack
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -655,7 +656,7 @@ class BedrockMenuService(
         holder: BedrockPlayerWorldListHolder,
         event: InventoryClickEvent
     ) {
-        event.isCancelled = true
+        event.cancelWithDebug("BedrockMenuService.handlePlayerWorldInventoryClick: bedrock player world list click")
         if (event.clickedInventory != event.view.topInventory) {
             return
         }
@@ -704,7 +705,7 @@ class BedrockMenuService(
         holder: BedrockWorldActionHolder,
         event: InventoryClickEvent
     ) {
-        event.isCancelled = true
+        event.cancelWithDebug("BedrockMenuService.handleWorldActionInventoryClick: bedrock world action click")
         if (event.clickedInventory != event.view.topInventory) {
             return
         }
@@ -755,7 +756,7 @@ class BedrockMenuService(
         holder: BedrockSettingsHolder,
         event: InventoryClickEvent
     ) {
-        event.isCancelled = true
+        event.cancelWithDebug("BedrockMenuService.handleSettingsInventoryClick: bedrock settings click")
         if (event.clickedInventory != event.view.topInventory) {
             return
         }

@@ -14,4 +14,12 @@ class MeetSessionManager {
     fun getSession(playerUuid: UUID): MeetSession {
         return sessions.getOrPut(playerUuid) { MeetSession(playerUuid) }
     }
+
+    fun clearSession(playerUuid: UUID) {
+        sessions.remove(playerUuid)
+    }
+
+    fun clearAll() {
+        sessions.clear()
+    }
 }

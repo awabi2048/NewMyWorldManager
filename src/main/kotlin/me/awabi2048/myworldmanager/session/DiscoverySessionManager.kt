@@ -19,4 +19,12 @@ class DiscoverySessionManager {
     fun getSession(playerUuid: UUID): DiscoverySession {
         return sessions.getOrPut(playerUuid) { DiscoverySession(playerUuid) }
     }
+
+    fun clearSession(playerUuid: UUID) {
+        sessions.remove(playerUuid)
+    }
+
+    fun clearAll() {
+        sessions.clear()
+    }
 }

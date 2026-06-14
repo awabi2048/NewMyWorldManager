@@ -17,4 +17,8 @@ class InviteSessionManager {
     fun endSession(playerId: UUID) {
         sessions.remove(playerId)
     }
+
+    fun clearAll() {
+        sessions.clear()
+    }
 }

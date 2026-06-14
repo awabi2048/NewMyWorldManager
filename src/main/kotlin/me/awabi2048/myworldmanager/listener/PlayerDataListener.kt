@@ -57,5 +57,6 @@ class PlayerDataListener : Listener {
         
         // キャッシュから削除してメモリを節約
         plugin.playerStatsRepository.uncache(player.uniqueId)
+        plugin.clearTransientPlayerMenuState(player.uniqueId)
     }
 }

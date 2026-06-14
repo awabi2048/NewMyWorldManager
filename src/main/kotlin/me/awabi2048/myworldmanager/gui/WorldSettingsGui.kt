@@ -74,8 +74,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                val currentShowBack =
-                        plugin.settingsSessionManager.getSession(player)?.showBackButton ?: false
+                val requestSession = plugin.settingsSessionManager.getSession(player)
+                val currentShowBack = requestSession?.showBackButton ?: false
+                val currentIsPlayerWorldFlow = isPlayerWorldFlow ?: requestSession?.isPlayerWorldFlow
+                val currentParentShowBackButton =
+                        parentShowBackButton ?: requestSession?.parentShowBackButton
 
                 if (
                         MyWorldManagerApi.openWorldSettingsMenuOverride(
@@ -83,8 +86,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 worldData,
                                 WorldSettingsMenuRequest(
                                         showBackButton = currentShowBack,
-                                        isPlayerWorldFlow = isPlayerWorldFlow,
-                                        parentShowBackButton = parentShowBackButton
+                                        isPlayerWorldFlow = currentIsPlayerWorldFlow,
+                                        parentShowBackButton = currentParentShowBackButton
                                 )
                         )
                 ) {

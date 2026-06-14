@@ -23,6 +23,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -760,7 +761,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         if (event.view.topInventory.holder !is WorldGateConfirmHolder) return
-        event.isCancelled = true
+        event.cancelWithDebug("PortalListener.onInventoryClick: world gate confirm GUI click")
         if (event.clickedInventory != event.view.topInventory) return
 
         val player = event.whoClicked as? org.bukkit.entity.Player ?: return

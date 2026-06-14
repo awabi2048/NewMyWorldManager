@@ -12,6 +12,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import java.util.UUID
 
 class MeetListener(private val plugin: MyWorldManager) : Listener {
@@ -26,7 +27,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
         val type = ItemTag.getType(currentItem)
 
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.MeetGui.MeetGuiHolder) {
-            event.isCancelled = true
+            event.cancelWithDebug("MeetListener.onInventoryClick: meet GUI click")
             if (event.clickedInventory != view.topInventory) return
             if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
 

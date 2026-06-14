@@ -18,6 +18,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 
 class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
@@ -44,7 +45,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
         // お気に入り一覧
         if (view.topInventory.holder is FavoriteGui.FavoriteGuiHolder) {
-            event.isCancelled = true
+            event.cancelWithDebug("FavoriteListener.onInventoryClick: favorite list GUI click")
             if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
 
@@ -213,7 +214,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
         // お気に入りメニュー
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteMenuGui.FavoriteMenuGuiHolder) {
-            event.isCancelled = true
+            event.cancelWithDebug("FavoriteListener.onInventoryClick: favorite menu GUI click")
             if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
@@ -288,7 +289,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         
         // お気に入り解除確認メニュー
         if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteConfirmGui.FavoriteConfirmGuiHolder) {
-            event.isCancelled = true
+            event.cancelWithDebug("FavoriteListener.onInventoryClick: favorite remove confirm GUI click")
             if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)

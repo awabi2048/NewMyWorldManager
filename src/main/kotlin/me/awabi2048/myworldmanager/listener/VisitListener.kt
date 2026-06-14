@@ -12,6 +12,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 
 class VisitListener(private val plugin: MyWorldManager) : Listener {
 
@@ -25,7 +26,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
             val lang = plugin.languageManager
             val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
-            event.isCancelled = true
+            event.cancelWithDebug("VisitListener.onInventoryClick: visit GUI click")
             if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return

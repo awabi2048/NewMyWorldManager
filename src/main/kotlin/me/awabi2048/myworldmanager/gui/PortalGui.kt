@@ -18,6 +18,7 @@ import java.util.UUID
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 
 class PortalGui(private val plugin: MyWorldManager) : Listener {
 
@@ -113,7 +114,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         if (!lang.isKeyMatch(title, "gui.portal.title")) return
 
-        event.isCancelled = true
+        event.cancelWithDebug("PortalGui.onClick: portal GUI click")
         if (event.clickedInventory != view.topInventory) return
         val inv = event.inventory
         

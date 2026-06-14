@@ -292,6 +292,7 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(TourListener(this), this)
         server.pluginManager.registerEvents(TourDialogManager(), this)
         server.pluginManager.registerEvents(BedrockInventoryListener(this), this)
+        server.pluginManager.registerEvents(InventoryClickDebugListener(this), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
@@ -353,6 +354,7 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
         worldPointApiService = null
         runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
@@ -372,6 +374,35 @@ class MyWorldManager : JavaPlugin() {
                 logger,
                 listOf("MyWorldManager ${pluginMeta.version} has been disabled.", "Goodbye!")
         )
+    }
+
+    fun clearTransientPlayerMenuState(playerUuid: UUID) {
+        if (::settingsSessionManager.isInitialized) settingsSessionManager.endSession(playerUuid)
+        if (::creationSessionManager.isInitialized) creationSessionManager.endSession(playerUuid)
+        if (::inviteSessionManager.isInitialized) inviteSessionManager.endSession(playerUuid)
+        if (::discoverySessionManager.isInitialized) discoverySessionManager.clearSession(playerUuid)
+        if (::meetSessionManager.isInitialized) meetSessionManager.clearSession(playerUuid)
+        if (::favoriteSessionManager.isInitialized) favoriteSessionManager.clearSession(playerUuid)
+        if (::playerWorldSessionManager.isInitialized) playerWorldSessionManager.clearSession(playerUuid)
+        if (::adminGuiSessionManager.isInitialized) adminGuiSessionManager.clearSession(playerUuid)
+        if (::tourSessionManager.isInitialized) tourSessionManager.clearPlayer(playerUuid)
+        if (::templateWizardGui.isInitialized) templateWizardGui.removeSession(playerUuid)
+    }
+
+    private fun clearAllTransientMenuState() {
+        if (::settingsSessionManager.isInitialized) settingsSessionManager.clearAll()
+        if (::creationSessionManager.isInitialized) {
+            creationSessionManager.clearAll()
+            creationSessionManager.stopTimeoutChecker()
+        }
+        if (::inviteSessionManager.isInitialized) inviteSessionManager.clearAll()
+        if (::discoverySessionManager.isInitialized) discoverySessionManager.clearAll()
+        if (::meetSessionManager.isInitialized) meetSessionManager.clearAll()
+        if (::favoriteSessionManager.isInitialized) favoriteSessionManager.clearAll()
+        if (::playerWorldSessionManager.isInitialized) playerWorldSessionManager.clearAll()
+        if (::adminGuiSessionManager.isInitialized) adminGuiSessionManager.clearAll()
+        if (::tourSessionManager.isInitialized) tourSessionManager.clearAll()
+        if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
     }
 
     private fun loadWorldsFromPreviousShutdown() {

@@ -21,6 +21,7 @@ import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -48,6 +49,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerCommandPreprocessEvent
 import org.bukkit.event.player.PlayerInteractEvent
@@ -89,6 +91,23 @@ class WorldSettingsListener : Listener {
                 val direction: BlockFace?,
                 val task: BukkitTask
         )
+
+        private fun externalInputFor(action: SettingsAction): MenuExternalInput {
+                return when (action) {
+                        SettingsAction.SELECT_ICON -> MenuExternalInput.SELECT_ICON
+                        SettingsAction.RENAME_WORLD -> MenuExternalInput.RENAME_WORLD
+                        SettingsAction.CHANGE_DESCRIPTION -> MenuExternalInput.CHANGE_DESCRIPTION
+                        SettingsAction.SET_ANNOUNCEMENT -> MenuExternalInput.SET_ANNOUNCEMENT
+                        SettingsAction.MEMBER_INVITE -> MenuExternalInput.MEMBER_INVITE
+                        SettingsAction.MANAGE_TAGS -> MenuExternalInput.MANAGE_TAGS
+                        SettingsAction.SET_SPAWN_GUEST,
+                        SettingsAction.SET_SPAWN_MEMBER -> MenuExternalInput.SET_SPAWN
+                        SettingsAction.EXPAND_DIRECTION_WAIT,
+                        SettingsAction.EXPAND_DIRECTION_CONFIRM -> MenuExternalInput.EXPAND_DIRECTION
+                        SettingsAction.ADMIN_PLAYER_FILTER -> MenuExternalInput.ADMIN_PLAYER_FILTER
+                        else -> MenuExternalInput.NONE
+                }
+        }
 
         fun startWorldBorderExpansionSequence(
                 player: Player,
@@ -160,6 +179,11 @@ class WorldSettingsListener : Listener {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 if (session.action == SettingsAction.SELECT_ICON) {
+                        if (!session.isExternalInputActive(MenuExternalInput.SELECT_ICON)) {
+                                plugin.settingsSessionManager.endSession(player)
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_cancelled"))
+                                return
+                        }
                         handleIconSelectionClick(player, event)
                         return
                 }
@@ -187,6 +211,11 @@ class WorldSettingsListener : Listener {
                 // 既存実装：各ifブロックで event.isCancelled = true していた。
 
                 // 外部メニュー（Chanpon等）が所有するインベントリの処理はスキップ
+                if (event.clickedInventory != event.view.topInventory) {
+                        event.cancelWithDebug("WorldSettingsListener.onInventoryClick: bottom inventory guard")
+                        return
+                }
+
                 val item = event.currentItem ?: return
                 val type = ItemTag.getType(item)
 
@@ -200,7 +229,7 @@ class WorldSettingsListener : Listener {
                         }
 
                 if (type == ItemTag.TYPE_GUI_EXTENSION) {
-                        event.isCancelled = true
+                        event.cancelWithDebug("WorldSettingsListener.onInventoryClick: extension click")
                         if (event.clickedInventory != event.view.topInventory) return
                         val extensionId = ItemTag.getExtensionId(item) ?: return
                         val extension =
@@ -255,7 +284,7 @@ class WorldSettingsListener : Listener {
                         MyWorldManagerApi.getMenuExtensions()
                                 .any { extension -> extension.onClick(event, player, extensionContext) }
                 ) {
-                        event.isCancelled = true
+                        event.cancelWithDebug("WorldSettingsListener.onInventoryClick: any extension click")
                         plugin.soundManager.playClickSound(player, item, "world_settings")
                         return
                 }
@@ -271,7 +300,7 @@ class WorldSettingsListener : Listener {
 
                 when (session.action) {
                         SettingsAction.MANAGE_MEMBERS -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage members")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
@@ -736,7 +765,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.MEMBER_REMOVE_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member remove confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -791,7 +820,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.MEMBER_TRANSFER_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member transfer confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -861,7 +890,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member pending invite cancel confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -891,7 +920,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.MANAGE_VISITORS -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage visitors")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
@@ -993,7 +1022,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.VISITOR_KICK_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: visitor kick confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -1043,7 +1072,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.EXPAND_SELECT_METHOD -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: expand select method")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_SETTING_EXPAND) {
@@ -1120,7 +1149,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.EXPAND_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: expand confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL ||
@@ -1217,7 +1246,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.VIEW_SETTINGS -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: view settings")
                                 val clickedItem = event.currentItem ?: return
 
                                 // 繧｢繧､繧ｳ繝ｳ驕ｸ謚槭Δ繝ｼ繝・
@@ -1805,7 +1834,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.VIEW_ENVIRONMENT_SETTINGS -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: view environment settings")
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
@@ -1924,7 +1953,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.ENV_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: env confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 when (type) {
@@ -1963,7 +1992,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.MANAGE_TAGS -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage tags")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type != null && type.startsWith("tag_")) {
@@ -1993,7 +2022,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.MANAGE_PORTALS -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage portals")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
@@ -2229,7 +2258,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.CRITICAL_SETTINGS -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: critical settings")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 when (type) {
@@ -2407,7 +2436,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.STEP_BACK_EXPANSION_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: step back expansion confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2430,7 +2459,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.RESET_EXPANSION_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: reset expansion confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2461,7 +2490,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: reset expansion confirm spawn unsafe")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2484,7 +2513,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.DELETE_WORLD_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: delete world confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2510,7 +2539,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.DELETE_WORLD_CONFIRM_FINAL -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: delete world confirm final")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2585,7 +2614,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.ARCHIVE_WORLD -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: archive world")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2610,7 +2639,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: archive world from critical")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2647,7 +2676,7 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         SettingsAction.UNARCHIVE_CONFIRM -> {
-                                event.isCancelled = true
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: unarchive confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 if (type == ItemTag.TYPE_GUI_CANCEL) {
@@ -2892,7 +2921,10 @@ plugin.languageManager
                 )
                 plugin.settingsSessionManager
                         .getSession(player)
-                        ?.setMetadata(iconPickerArmingMetadataKey, true)
+                        ?.let {
+                                it.setMetadata(iconPickerArmingMetadataKey, true)
+                                it.beginExternalInput(MenuExternalInput.SELECT_ICON)
+                        }
                 player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
                 player.closeInventory()
         }
@@ -2906,7 +2938,7 @@ plugin.languageManager
                         return
                 }
 
-                event.isCancelled = true
+                event.cancelWithDebug("WorldSettingsListener.handleIconSelectionClick: icon selection click", force = true)
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
 
@@ -3633,6 +3665,11 @@ plugin.languageManager
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val lang = plugin.languageManager
 
+                if (session.isExternalInputExpired()) {
+                        plugin.settingsSessionManager.endSession(player)
+                        return
+                }
+
                 // 繧｢繧､繧ｳ繝ｳ驕ｸ謚樔ｸｭ縺ｫ繧､繝ｳ繝吶Φ繝医Μ繧帝哩縺倥◆蝣ｴ蜷医・繧ｭ繝｣繝ｳ繧ｻ繝ｫ繝｡繝・そ繝ｼ繧ｸ繧定｡ｨ遉ｺ縺励※蜊ｳ邨ゆｺ・
                 if (session.action == SettingsAction.SELECT_ICON) {
                         if (session.getMetadata(iconPickerArmingMetadataKey) == true) {
@@ -3658,6 +3695,9 @@ plugin.languageManager
                         )
 
                 if (session.action in blockInputActions) {
+                        if (session.externalInput == MenuExternalInput.NONE) {
+                                session.beginExternalInput(externalInputFor(session.action), 300_000L)
+                        }
                         return
                 }
 

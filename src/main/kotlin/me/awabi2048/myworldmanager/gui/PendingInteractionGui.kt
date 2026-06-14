@@ -11,6 +11,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
@@ -102,7 +103,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
 
     fun handleInventoryClick(player: Player, event: InventoryClickEvent): Boolean {
         val holder = event.view.topInventory.holder as? PendingInteractionHolder ?: return false
-        event.isCancelled = true
+        event.cancelWithDebug("PendingInteractionGui.handleInventoryClick: plugin GUI click")
 
         if (event.clickedInventory != event.view.topInventory) {
             return true
