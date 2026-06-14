@@ -28,6 +28,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import java.util.*
 
 class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
@@ -44,7 +45,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
 
         val lang = plugin.languageManager
         if (view.topInventory.holder !is me.awabi2048.myworldmanager.gui.DiscoveryGui.DiscoveryGuiHolder) return
-        event.isCancelled = true
+        event.cancelWithDebug("DiscoveryListener.onInventoryClick: discovery GUI click")
         if (event.clickedInventory != view.topInventory) return
         
         // GUI遷移中のクリックを無視

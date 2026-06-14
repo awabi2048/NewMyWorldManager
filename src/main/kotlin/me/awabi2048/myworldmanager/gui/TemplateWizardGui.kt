@@ -136,4 +136,5 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
     fun getSession(uuid: UUID) = sessions[uuid]
     fun removeSession(uuid: UUID) = sessions.remove(uuid)
+    fun clearAll() = sessions.clear()
 }

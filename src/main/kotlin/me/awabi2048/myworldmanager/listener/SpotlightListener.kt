@@ -7,6 +7,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 
 class SpotlightListener(private val plugin: MyWorldManager) : Listener {
 
@@ -18,7 +19,7 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
 
         val lang = plugin.languageManager
         if (!lang.isKeyMatch(title, "gui.spotlight_confirm.title") && !lang.isKeyMatch(title, "gui.discovery.spotlight_remove_confirm.title")) return
-        event.isCancelled = true
+        event.cancelWithDebug("SpotlightListener.onInventoryClick: spotlight confirm GUI click")
         if (event.clickedInventory != view.topInventory) return
 
         val item = event.currentItem ?: return

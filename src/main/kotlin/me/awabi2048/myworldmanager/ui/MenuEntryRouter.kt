@@ -17,7 +17,7 @@ class MenuEntryRouter(
 ) {
 
     fun openPlayerWorld(player: Player, page: Int = 0, showBackButton: Boolean = false) {
-        if (!showBackButton) plugin.menuRouteHistory.clear(player)
+        if (!showBackButton) resetTopLevelMenuState(player)
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openPlayerWorld(player, page, showBackButton)
             return
@@ -27,7 +27,7 @@ class MenuEntryRouter(
     }
 
     fun openUserSettings(player: Player, showBackButton: Boolean = false) {
-        if (!showBackButton) plugin.menuRouteHistory.clear(player)
+        if (!showBackButton) resetTopLevelMenuState(player)
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openSettings(player, showBackButton)
             return
@@ -37,7 +37,7 @@ class MenuEntryRouter(
     }
 
     fun openWorldSettings(player: Player, worldData: WorldData, showBackButton: Boolean = false) {
-        if (!showBackButton) plugin.menuRouteHistory.clear(player)
+        if (!showBackButton) resetTopLevelMenuState(player)
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openCurrentWorldMenu(player, worldData, showBackButton)
             return
@@ -47,7 +47,7 @@ class MenuEntryRouter(
     }
 
     fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
-        if (!showBackButton) plugin.menuRouteHistory.clear(player)
+        if (!showBackButton) resetTopLevelMenuState(player)
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openDiscovery(player, page, showBackButton)
             return
@@ -63,7 +63,7 @@ class MenuEntryRouter(
         returnToFavoriteMenu: Boolean = false,
         showBackButton: Boolean = false
     ) {
-        if (!showBackButton) plugin.menuRouteHistory.clear(player)
+        if (!showBackButton) resetTopLevelMenuState(player)
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openFavoriteList(player, page, worldData, returnToFavoriteMenu, showBackButton)
             return
@@ -112,7 +112,7 @@ class MenuEntryRouter(
     }
 
     fun openMeet(player: Player, showBackButton: Boolean? = null) {
-        if (showBackButton == false) plugin.menuRouteHistory.clear(player)
+        if (showBackButton == false) resetTopLevelMenuState(player)
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openMeet(player, showBackButton)
             return
@@ -206,5 +206,10 @@ class MenuEntryRouter(
         }
 
         plugin.worldSeedConfirmGui.open(player, currentSlots, nextSlots)
+    }
+
+    private fun resetTopLevelMenuState(player: Player) {
+        plugin.menuRouteHistory.clear(player)
+        plugin.settingsSessionManager.endSession(player)
     }
 }

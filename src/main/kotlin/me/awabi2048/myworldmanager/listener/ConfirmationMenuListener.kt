@@ -6,6 +6,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.inventory.InventoryCloseEvent
 
 class ConfirmationMenuListener : Listener {
@@ -17,7 +18,7 @@ class ConfirmationMenuListener : Listener {
         val player = event.whoClicked as? Player ?: return
         val holder = event.view.topInventory.holder as? ConfirmationMenuGui.ConfirmationMenuHolder ?: return
 
-        event.isCancelled = true
+        event.cancelWithDebug("ConfirmationMenuListener.onInventoryClick: confirmation menu click")
         if (event.clickedInventory != event.view.topInventory) return
 
         val item = event.currentItem ?: return

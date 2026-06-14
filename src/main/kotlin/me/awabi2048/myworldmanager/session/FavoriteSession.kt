@@ -15,4 +15,12 @@ class FavoriteSessionManager {
     fun getSession(playerUuid: UUID): FavoriteSession {
         return sessions.getOrPut(playerUuid) { FavoriteSession(playerUuid) }
     }
+
+    fun clearSession(playerUuid: UUID) {
+        sessions.remove(playerUuid)
+    }
+
+    fun clearAll() {
+        sessions.clear()
+    }
 }

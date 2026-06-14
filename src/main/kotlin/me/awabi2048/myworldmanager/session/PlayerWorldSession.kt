@@ -14,4 +14,12 @@ class PlayerWorldSessionManager {
     fun getSession(playerUuid: UUID): PlayerWorldSession {
         return sessions.getOrPut(playerUuid) { PlayerWorldSession(playerUuid) }
     }
+
+    fun clearSession(playerUuid: UUID) {
+        sessions.remove(playerUuid)
+    }
+
+    fun clearAll() {
+        sessions.clear()
+    }
 }

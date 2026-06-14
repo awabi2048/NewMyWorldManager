@@ -146,4 +146,8 @@ class AdminGuiSessionManager {
     fun clearSession(playerUuid: UUID) {
         sessions.remove(playerUuid)
     }
+
+    fun clearAll() {
+        sessions.clear()
+    }
 }

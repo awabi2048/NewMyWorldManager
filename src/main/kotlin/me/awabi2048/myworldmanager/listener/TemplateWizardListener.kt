@@ -24,6 +24,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.plugin.java.JavaPlugin
 
 class TemplateWizardListener : Listener {
@@ -38,7 +39,7 @@ class TemplateWizardListener : Listener {
 
         if (!lang.isKeyMatch(title, "gui.template_wizard.title")) return
 
-        event.isCancelled = true
+        event.cancelWithDebug("TemplateWizardListener.onInventoryClick: template wizard GUI click")
         if (event.clickedInventory != view.topInventory) return
         val currentItem = event.currentItem ?: return
         if (currentItem.type == Material.AIR) return
@@ -132,8 +133,8 @@ class TemplateWizardListener : Listener {
             if (item != null && item.type != Material.AIR) {
                 session.icon = item.type
                 plugin.soundManager.playClickSound(player, item)
+                event.cancelWithDebug("TemplateWizardListener.onPlayerInventoryClick: template wizard icon pick click", force = true)
                 plugin.templateWizardGui.open(player)
-                event.isCancelled = true
             }
         }
     }

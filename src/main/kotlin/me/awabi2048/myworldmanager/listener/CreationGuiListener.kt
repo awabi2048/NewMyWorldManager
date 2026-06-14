@@ -16,6 +16,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.inventory.ItemStack
 
@@ -26,7 +27,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         if (event.view.topInventory.holder !is CreationGui.CreationGuiHolder) return
 
         // 作成GUIのタイトルかどうかを判定（多言語対応）
-        event.isCancelled = true
+        event.cancelWithDebug("CreationGuiListener.onInventoryClick: creation GUI click")
         if (event.clickedInventory != event.view.topInventory) return
 
         val player = event.whoClicked as? Player ?: return

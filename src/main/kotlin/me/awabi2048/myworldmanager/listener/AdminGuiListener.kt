@@ -12,6 +12,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.PlayerFilterType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -27,6 +28,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
 
@@ -57,7 +59,7 @@ class AdminGuiListener : Listener {
         
         // ポータル管理GUIの判定
         if (lang.isKeyMatch(title, "gui.admin_portals.title")) {
-            event.isCancelled = true
+            event.cancelWithDebug("AdminGuiListener.onInventoryClick: admin portals GUI click")
             if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem) ?: return
@@ -148,7 +150,7 @@ class AdminGuiListener : Listener {
 
         // 管理者用ワールド管理
         if (lang.isKeyMatch(title, "gui.admin.title")) {
-            event.isCancelled = true
+            event.cancelWithDebug("AdminGuiListener.onInventoryClick: admin world list GUI click")
             if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
             if (currentItem.type == Material.AIR) return
@@ -191,6 +193,7 @@ class AdminGuiListener : Listener {
                 } else if (event.isRightClick) {
                     if (session.playerFilterType != me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
                         plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
+                        plugin.settingsSessionManager.getSession(player)?.beginExternalInput(MenuExternalInput.ADMIN_PLAYER_FILTER)
                         player.closeInventory()
                         openAdminPlayerFilterInput(plugin, player)
                     }

@@ -22,6 +22,7 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
@@ -106,7 +107,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             if (plugin.tourSessionManager.getEdit(player.uniqueId)?.awaitingIconPick == true) {
                 val picked = event.currentItem?.type ?: return
                 if (picked.isAir) return
-                event.isCancelled = true
+                event.cancelWithDebug("TourListener.onInventoryClick: tour icon pick click", force = true)
                 val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
                 session.draft.icon = picked
                 session.awaitingIconPick = false
@@ -117,7 +118,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             return
         }
         if (top !is TourGui.BaseHolder) return
-        event.isCancelled = true
+        event.cancelWithDebug("TourListener.onInventoryClick: tour GUI click")
         val item = event.currentItem ?: return
         val type = ItemTag.getType(item) ?: return
         if (type == ItemTag.TYPE_GUI_DECORATION) return

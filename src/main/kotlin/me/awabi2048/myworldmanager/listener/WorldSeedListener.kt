@@ -10,6 +10,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.inventory.EquipmentSlot
 
 class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
@@ -74,7 +75,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
         // Note: WorldSeedConfirmGui uses "gui.world_seed_confirm.title"
         if (!plugin.languageManager.isKeyMatch(PlainTextComponentSerializer.plainText().serialize(view.title()), "gui.world_seed_confirm.title")) return
 
-        event.isCancelled = true
+        event.cancelWithDebug("WorldSeedListener.onInventoryClick: world seed confirm GUI click")
         if (event.clickedInventory != view.topInventory) return
 
         val item = event.currentItem ?: return

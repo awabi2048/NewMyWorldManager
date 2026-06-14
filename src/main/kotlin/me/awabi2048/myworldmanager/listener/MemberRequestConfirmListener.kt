@@ -7,6 +7,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
+import me.awabi2048.myworldmanager.util.cancelWithDebug
 
 class MemberRequestConfirmListener(private val plugin: MyWorldManager) : Listener {
 
@@ -15,7 +16,7 @@ class MemberRequestConfirmListener(private val plugin: MyWorldManager) : Listene
         val player = event.whoClicked as? Player ?: return
         event.view.topInventory.holder as? MemberRequestConfirmGui.MemberRequestConfirmGuiHolder ?: return
 
-        event.isCancelled = true
+        event.cancelWithDebug("MemberRequestConfirmListener.onInventoryClick: member request confirm GUI click")
         if (event.clickedInventory != event.view.topInventory) return
 
         val item = event.currentItem ?: return
