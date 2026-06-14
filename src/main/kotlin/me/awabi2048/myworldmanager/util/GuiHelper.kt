@@ -136,13 +136,14 @@ object GuiHelper {
 
     fun handleReturnClick(plugin: MyWorldManager, player: Player, item: org.bukkit.inventory.ItemStack) {
         plugin.soundManager.playClickSound(player, item)
-        val command = plugin.config.getString("menu_command", "mwm")?.removePrefix("/") ?: "mwm"
+        if (plugin.menuRouteHistory.openPrevious(player)) {
+            return
+        }
         
         // 全てのセッション終了を試みる（安全のため）
         plugin.settingsSessionManager.endSession(player)
         
         player.closeInventory()
-        player.performCommand(command)
     }
 
     fun createContextWorldIconItem(
