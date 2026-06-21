@@ -673,7 +673,6 @@ class BedrockMenuService(
                 val session = plugin.creationSessionManager.startSession(player.uniqueId)
                 session.isDialogMode = false
                 player.closeInventory()
-                player.sendMessage(tr(player, "messages.wizard_start"))
                 plugin.creationGui.openTypeSelection(player)
             }
             "open_settings" -> openSettings(player, holder.showBackButton, holder.page)

@@ -1,6 +1,5 @@
 world_name:
-  min_length: 3
-  max_length: 16
+  max_length: 32
 
 world_tags:
   - shop

@@ -10,6 +10,9 @@ import java.util.concurrent.CompletableFuture
 
 interface ApiWorldService {
 
+    /** Uses the same validation rules as MWM's own creation flow. */
+    fun validateWorldName(worldName: String): String?
+
     fun createFromTemplate(
         templateName: String,
         ownerUuid: UUID,

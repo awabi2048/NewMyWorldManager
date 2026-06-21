@@ -150,7 +150,6 @@ class WorldCommand(
 
                 // JE は常にダイアログ入力、BE は FormUI 入力
                 session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(targetPlayer)
-                targetPlayer.sendMessage(lang.getMessage("messages.wizard_start"))
                 plugin.creationGui.openTypeSelection(targetPlayer)
                 sender.sendMessage(
                         lang.getMessage(

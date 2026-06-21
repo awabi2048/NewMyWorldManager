@@ -5,11 +5,14 @@ import org.bukkit.plugin.java.JavaPlugin
 class WorldValidator(private val plugin: JavaPlugin) {
 
     fun validateName(name: String): String? {
-        val minLength = plugin.config.getInt("world_name.min_length", 3)
+        val maxLength = plugin.config.getInt("world_name.max_length", 32)
         val blockedStrings = plugin.config.getStringList("validation.blocked_strings")
 
-        if (name.length < minLength) {
-            return "ワールド名は${minLength}文字以上である必要があります。"
+        if (name.isBlank()) {
+            return "§cワールド名を入力してください"
+        }
+        if (name.length > maxLength) {
+            return "§cワールド名は${maxLength}文字以下で入力してください"
         }
         if (blockedStrings.any { name.contains(it, ignoreCase = true) }) {
             return "ワールド名に使用できない文字列が含まれています。"

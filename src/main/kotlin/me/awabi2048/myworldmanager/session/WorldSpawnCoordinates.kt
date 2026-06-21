@@ -13,6 +13,9 @@ data class WorldSpawnCoordinates(
         const val MAX_HORIZONTAL = 29_999_984
 
         fun parse(x: String, y: String, z: String): ParseResult {
+            if (x.isBlank() && y.isBlank() && z.isBlank()) {
+                return ParseResult.Unset
+            }
             val parsedX = x.trim().toIntOrNull()
             val parsedY = y.trim().toIntOrNull()
             val parsedZ = z.trim().toIntOrNull()
@@ -31,6 +34,7 @@ data class WorldSpawnCoordinates(
 
     sealed interface ParseResult {
         data class Valid(val coordinates: WorldSpawnCoordinates) : ParseResult
+        data object Unset : ParseResult
         data object InvalidNumber : ParseResult
         data object OutOfRange : ParseResult
     }

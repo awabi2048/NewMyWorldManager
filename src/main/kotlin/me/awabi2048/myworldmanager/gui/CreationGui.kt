@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -81,7 +82,9 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun createCreationTypeItem(player: Player, material: Material, name: String, baseLoreKey: String, tag: String): ItemStack {
         val lang = plugin.languageManager
-        val lore = lang.getComponentList(player, baseLoreKey).toMutableList()
+        val lore = lang.getMessageList(player, baseLoreKey)
+            .map<String, GuiLoreLine> { GuiLoreLine.Text(it.replace(Regex("(?i)^[§&][0-9A-FK-ORX]"), "")) }
+            .toMutableList()
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
@@ -90,11 +93,11 @@ class CreationGui(private val plugin: MyWorldManager) {
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         if (!bypassLimits && currentCounts >= maxCounts) {
-            lore.add(Component.empty())
-            lore.add(lang.getComponent(player, "gui.creation.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).decoration(TextDecoration.ITALIC, false))
+            lore.add(GuiLoreLine.Spacer)
+            lore.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.creation.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).removePrefix("§c")))
         }
 
-        return createItem(material, name, tag, lore)
+        return createItem(material, name, tag, GuiLoreSpec.Rich(lore, GuiLoreFrame.NONE))
     }
 
     fun openTemplateSelection(player: Player) {
@@ -201,8 +204,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         }
 
-        val infoLore = CCSystem.getAPI().getLoreService().render(
-            GuiLoreSpec.Rich(
+        val infoLore = GuiLoreSpec.Rich(
                 listOf(
                     GuiLoreLine.Data(
                         lang.getMessage(player, "gui.creation.confirm.world_name_label"),
@@ -212,7 +214,6 @@ class CreationGui(private val plugin: MyWorldManager) {
                     generationLine
                 ),
                 GuiLoreFrame.BOTH
-            )
         )
 
         inventory.setItem(22, createItem(Material.PAPER, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_INFO, infoLore))
@@ -223,7 +224,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 Material.LIME_CONCRETE,
                 lang.getMessage(player, "gui.common.confirm"),
                 ItemTag.TYPE_GUI_CONFIRM,
-                listOf(lang.getComponent(player, "gui.common.confirm_desc").decoration(TextDecoration.ITALIC, false))
+                emptyList()
             )
         )
 
@@ -233,24 +234,34 @@ class CreationGui(private val plugin: MyWorldManager) {
                 Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.common.cancel"),
                 ItemTag.TYPE_GUI_CANCEL,
-                listOf(lang.getComponent(player, "gui.common.cancel_desc").decoration(TextDecoration.ITALIC, false))
+                emptyList()
             )
         )
 
         if (session.creationType == WorldCreationType.SEED) {
-            val coordinates = session.spawnCoordinates?.display()
-                ?: lang.getMessage(player, "gui.creation.confirm.spawn_location.default")
+            val coordinates = session.spawnCoordinates?.let {
+                "§6(${it.x}, ${it.y}, ${it.z})"
+            } ?: "§b${lang.getMessage(player, "gui.creation.confirm.spawn_location.default")}"
+            val spawnLore = GuiLoreSpec.Blocks(
+                listOf(
+                    GuiLoreBlock(
+                        listOf(
+                            GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.description")),
+                            GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.default_help")),
+                            GuiLoreLine.Spacer,
+                            GuiLoreLine.Raw("§f❙ §7${lang.getMessage(player, "gui.creation.confirm.spawn_location.current_label")} $coordinates"),
+                            GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.spawn_location.action"))
+                        )
+                    )
+                )
+            )
             inventory.setItem(
                 layout.spawnLocationSlot,
                 createItem(
                     Material.COMPASS,
                     lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
                     ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION,
-                    lang.getComponentList(
-                        player,
-                        "gui.creation.confirm.spawn_location.lore",
-                        mapOf("coordinates" to coordinates)
-                    )
+                    spawnLore
                 )
             )
         }
@@ -288,6 +299,10 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun createItem(material: Material, name: String, tag: String, lore: List<Component>): ItemStack {
+        return GuiItemFactory.item(material, name, lore, tag)
+    }
+
+    private fun createItem(material: Material, name: String, tag: String, lore: GuiLoreSpec): ItemStack {
         return GuiItemFactory.item(material, name, lore, tag)
     }
 

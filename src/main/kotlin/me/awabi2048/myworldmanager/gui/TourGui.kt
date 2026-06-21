@@ -140,8 +140,8 @@ class TourGui(private val plugin: MyWorldManager) {
         holder.inv = inventory
         fillBase(inventory)
         inventory.setItem(22, createLoreItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete_confirm.title"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1"), lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"), lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_INFO))
-        inventory.setItem(20, createLoreItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_CONFIRM))
-        inventory.setItem(24, createLoreItem(Material.RED_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel_action")), ItemTag.TYPE_GUI_CANCEL))
+        inventory.setItem(20, createLoreItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"), emptyList(), ItemTag.TYPE_GUI_CONFIRM))
+        inventory.setItem(24, createLoreItem(Material.RED_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"), emptyList(), ItemTag.TYPE_GUI_CANCEL))
         player.openInventory(inventory)
     }
 
