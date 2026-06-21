@@ -5,6 +5,9 @@ package me.awabi2048.myworldmanager.gui
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import io.papermc.paper.registry.data.dialog.ActionButton
 import io.papermc.paper.registry.data.dialog.DialogBase
@@ -18,6 +21,7 @@ import me.awabi2048.myworldmanager.session.WorldCreationPhase
 import me.awabi2048.myworldmanager.session.WorldCreationSession
 import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -300,14 +304,15 @@ class CreationDialogManager : Listener {
             val typeLabel = lang.getMessage(player, "gui.creation.confirm.type_label")
             val costLabel = lang.getMessage(player, "gui.creation.confirm.cost_label")
 
-            val lines = mutableListOf<String>()
-            lines.add(CCSystem.getAPI().createLoreDataLine(nameLabel, cleanedName, "§a"))
-            lines.add(CCSystem.getAPI().createLoreDataLine(typeLabel, typeName, "§e"))
-            if (templateLine.isNotEmpty()) lines.add(CCSystem.getAPI().createLoreTextLine(templateLine))
-            if (seedLine.isNotEmpty()) lines.add(CCSystem.getAPI().createLoreTextLine(seedLine))
-            lines.add(CCSystem.getAPI().createLoreDataLine(costLabel, "§6🛖 §e$cost", ""))
+            val loreLines = mutableListOf<GuiLoreLine>()
+            loreLines.add(GuiLoreLine.Data(nameLabel, cleanedName, "§a"))
+            loreLines.add(GuiLoreLine.Data(typeLabel, typeName, "§e"))
+            if (templateLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(templateLine))
+            if (seedLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(seedLine))
+            loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
 
-            val bodyLines = CCSystem.getAPI().buildLore(lines)
+            val bodyLines = CCSystem.getAPI().getLoreService()
+                .render(GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH))
 
             val actionButtons =
                 mutableListOf(

@@ -37,21 +37,16 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
-        
+
         // 現在開いているインベントリのタイトルと一致する場合は音を鳴らさない（画面更新とみなす）
         // 現在開いているインベントリのタイトルと一致する場合は音を鳴らさない（画面更新とみなす）
         val title = lang.getMessage(player, titleKey)
         val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "portal", titleComponent, null)
-        
+
         val inventory = Bukkit.createInventory(null, 27, titleComponent)
 
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 18..26) inventory.setItem(i, blackPane)
-        for (i in 9..17) inventory.setItem(i, greyPane)
+        GuiItemFactory.applyStandardFrame(inventory)
 
         val textStatus = if (portal.showText) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
         inventory.setItem(11, createItem(Material.OAK_SIGN, lang.getMessage(player, "gui.portal.toggle_text.name"), lang.getComponentList(player, "gui.portal.toggle_text.lore", mapOf("status" to textStatus)), ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT))
@@ -68,7 +63,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         val currentIndex = colors.indexOf(portal.particleColor)
         val nextIndex = (currentIndex + 1) % colors.size
         val prevIndex = (currentIndex + colors.size - 1) % colors.size
-        
+
         val colorName = lang.getMessage(player, "colors.$colorKey")
         val nextColorKey = getColorKey(colors[nextIndex])
         val prevColorKey = getColorKey(colors[prevIndex])
@@ -77,7 +72,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
 
         inventory.setItem(13, createItem(
             getWoolColor(portal.particleColor),
-            lang.getMessage(player, "gui.portal.color.name"), 
+            lang.getMessage(player, "gui.portal.color.name"),
             lang.getComponentList(
                 player,
                 "gui.portal.color.lore",
@@ -89,19 +84,14 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
             ),
             ItemTag.TYPE_GUI_PORTAL_CYCLE_COLOR
         ))
-        
+
         inventory.setItem(15, createItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.portal.remove.name"), lang.getComponentList(player, "gui.portal.remove.lore"), ItemTag.TYPE_GUI_PORTAL_REMOVE))
 
         // Portal IDの保持
         val metaItem = inventory.getItem(0)!!
         val meta = metaItem.itemMeta ?: return
-        meta.lore(listOf(lang.getComponent(player, "gui.portal.id_format", mapOf("id" to portal.id))))
+        meta.lore(GuiItemFactory.componentMenuLore(listOf(lang.getComponent(player, "gui.portal.id_format", mapOf("id" to portal.id)))))
         metaItem.itemMeta = meta
-
-        // 背景埋め
-        for (i in 0 until inventory.size) {
-            if (inventory.getItem(i) == null) inventory.setItem(i, greyPane)
-        }
 
         player.openInventory(inventory)
     }
@@ -117,7 +107,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         event.cancelWithDebug("PortalGui.onClick: portal GUI click")
         if (event.clickedInventory != view.topInventory) return
         val inv = event.inventory
-        
+
         val firstItem = inv.getItem(0) ?: return
         val firstLore = firstItem.itemMeta?.lore() ?: return
         val portalIdStr = PlainTextComponentSerializer.plainText().serialize(firstLore[0]).substringAfter("PORTAL_ID: ").trim()
@@ -149,13 +139,13 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
              ItemTag.TYPE_GUI_PORTAL_REMOVE -> {
                   plugin.soundManager.playClickSound(player, item)
                   val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
-                  
+
                   // ビジュアル要素を先に削除（タイミング問題を防ぐ）
                   plugin.portalManager.removePortalVisuals(portal.id)
-                 
+
                  // その後、リポジトリから削除
                  plugin.portalRepository.removePortal(portal.id)
-                 
+
                   if (!portal.isGate()) {
                       val world = Bukkit.getWorld(portal.worldName)
                       val block = world?.getBlockAt(portal.x, portal.y, portal.z)
@@ -163,7 +153,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                           block.type = Material.AIR
                       }
                   }
-                 
+
                 val returnItem = if (portal.isGate()) {
                     WorldGateItemUtil.createBaseWorldGateItem(lang, player)
                 } else {
@@ -184,7 +174,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                         PortalItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
                     }
                 }
-                 
+
                 player.inventory.addItem(returnItem)
                 if (portal.isGate()) {
                     val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: portal.ownerUuid.toString()
@@ -233,4 +223,3 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         }
     }
 }
-

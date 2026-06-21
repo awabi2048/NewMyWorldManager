@@ -652,7 +652,9 @@ class WorldService(
             Bukkit.getPluginManager().callEvent(
                     MwmWorldDeletedEvent(
                             worldUuid = worldUuid,
+                            worldName = folderName,
                             ownerUuid = worldData.owner,
+                            participantUuids = (worldData.members + worldData.moderators + worldData.owner).toSet(),
                             refundPoints = refund,
                             wasArchived = worldData.isArchived
                     )
@@ -698,7 +700,9 @@ class WorldService(
             Bukkit.getPluginManager().callEvent(
                     MwmWorldDeletedEvent(
                             worldUuid = worldUuid,
+                            worldName = folderName,
                             ownerUuid = worldData.owner,
+                            participantUuids = (worldData.members + worldData.moderators + worldData.owner).toSet(),
                             refundPoints = 0,
                             wasArchived = worldData.isArchived
                     )

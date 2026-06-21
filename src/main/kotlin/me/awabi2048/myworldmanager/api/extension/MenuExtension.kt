@@ -7,6 +7,8 @@ import org.bukkit.inventory.Inventory
 interface MenuExtension {
     fun getId(): String
 
+    fun onPrepare(context: MenuExtensionContext) {}
+
     fun onRender(inventory: Inventory, player: Player, context: MenuExtensionContext) {}
 
     fun onClick(event: InventoryClickEvent, player: Player, context: MenuExtensionContext): Boolean = false

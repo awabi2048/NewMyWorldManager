@@ -40,7 +40,7 @@ class AdminGuiListener : Listener {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         // Debug: リスナー呼び出し確認
         // player.sendMessage("§d[Debug-System] AdminGuiListener called. Cancelled: ${event.isCancelled}, Title: ${event.view.title}")
-        
+
         // GUI遷移中のクリックを無視
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
@@ -56,7 +56,7 @@ class AdminGuiListener : Listener {
         val view = event.view
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         val lang = plugin.languageManager
-        
+
         // ポータル管理GUIの判定
         if (lang.isKeyMatch(title, "gui.admin_portals.title")) {
             event.cancelWithDebug("AdminGuiListener.onInventoryClick: admin portals GUI click")
@@ -116,7 +116,7 @@ class AdminGuiListener : Listener {
                         val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
                         plugin.portalManager.removePortalVisuals(portalUuid)
                         plugin.portalRepository.removePortal(portalUuid)
-                        
+
                         if (!portal.isGate()) {
                             val world = Bukkit.getWorld(portal.worldName)
                             val block = world?.getBlockAt(portal.x, portal.y, portal.z)
@@ -124,7 +124,7 @@ class AdminGuiListener : Listener {
                                 block.type = org.bukkit.Material.AIR
                             }
                         }
-                        
+
                         plugin.soundManager.playAdminClickSound(player)
                         if (portal.isGate()) {
                             val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: portal.ownerUuid.toString()
@@ -167,7 +167,7 @@ class AdminGuiListener : Listener {
                 plugin.worldGui.open(player, targetPage)
                 return
             }
-            
+
             // アーカイブフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE) {
                 plugin.soundManager.playClickSound(player, currentItem)
@@ -175,15 +175,15 @@ class AdminGuiListener : Listener {
                 plugin.worldGui.open(player)
                 return
             }
-            
+
             // 公開レベルフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cyclePublishFilter(player.uniqueId, event.isRightClick)
+                plugin.adminGuiSessionManager.cyclePublishFilter(player.uniqueId, event.isLeftClick)
                 plugin.worldGui.open(player)
                 return
             }
-            
+
             // プレイヤーフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER) {
                 plugin.soundManager.playClickSound(player, currentItem)
@@ -200,11 +200,11 @@ class AdminGuiListener : Listener {
                 }
                 return
             }
-            
+
             // ソートボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_SORT) {
                 plugin.soundManager.playAdminClickSound(player)
-                plugin.adminGuiSessionManager.cycleSortType(player.uniqueId, event.isRightClick)
+                plugin.adminGuiSessionManager.cycleSortType(player.uniqueId, event.isLeftClick)
                 plugin.worldGui.open(player)
                 return
             }
@@ -242,7 +242,7 @@ class AdminGuiListener : Listener {
                 openWorldSettingsFromAdmin(plugin, player, worldData)
                 return
             }
-            
+
             if (type == ItemTag.TYPE_GUI_DECORATION || type == ItemTag.TYPE_GUI_INFO) return
 
             // ワールドアイコンの処理

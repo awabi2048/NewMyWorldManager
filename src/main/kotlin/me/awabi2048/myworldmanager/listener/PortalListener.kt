@@ -65,7 +65,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
     fun onInteract(event: PlayerInteractEvent) {
         val player = event.player
         val item = event.item ?: ItemStack(Material.AIR)
-        
+
         // 1. アイテム状態での操作（紐づけ・解除）
         if (ItemTag.isType(item, ItemTag.TYPE_PORTAL)) {
             val lang = plugin.languageManager
@@ -78,7 +78,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     return
                 } else {
                     // 紐づけ
-                    if (player.isSneaking) return 
+                    if (player.isSneaking) return
                     if (PortalItemUtil.getBoundWorldUuid(item) != null || PortalItemUtil.getBoundTargetWorldName(item) != null) return // 既に紐づけ済み
 
                     val currentWorld = player.world
@@ -112,7 +112,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             if (player.isSneaking) {
                 val boundWorldUuid = WorldGateItemUtil.getBoundWorldUuid(item)
                 val boundTargetWorldName = WorldGateItemUtil.getBoundTargetWorldName(item)
-                
+
                 if (boundWorldUuid != null || boundTargetWorldName != null) {
                     WorldGateItemUtil.unbindWorld(item, lang, player)
                     player.sendMessage(lang.getMessage(player, "messages.world_gate_unbind_success"))
@@ -121,7 +121,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     event.isCancelled = true
                     return
                 }
-                
+
                 val managedWorld = plugin.worldConfigRepository.findByWorldName(player.world.name)
                 if (managedWorld == null) {
                     player.sendMessage(lang.getMessage(player, "error.portal_bind_myworld_only"))
@@ -357,9 +357,9 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
         val infoItem = ItemStack(Material.BOOK)
         val infoMeta = infoItem.itemMeta
-        infoMeta?.displayName(Component.text(lang.getMessage(player, "messages.world_gate_confirm_title")))
+        infoMeta?.displayName(lang.getComponent(player, "messages.world_gate_confirm_title"))
         infoMeta?.lore(
-            lang.getComponentList(
+            lang.getMenuLore(
                 player,
                 "messages.world_gate_confirm_body",
                 mapOf(
@@ -381,14 +381,14 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
         val confirmMeta = confirmItem.itemMeta
-        confirmMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.confirm")))
+        confirmMeta?.displayName(lang.getComponent(player, "gui.common.confirm"))
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
         inventory.setItem(20, confirmItem)
 
         val cancelItem = ItemStack(Material.RED_CONCRETE)
         val cancelMeta = cancelItem.itemMeta
-        cancelMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.cancel")))
+        cancelMeta?.displayName(lang.getComponent(player, "gui.common.cancel"))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
         inventory.setItem(24, cancelItem)
@@ -684,7 +684,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             )
             return
         }
-        
+
         val lang = plugin.languageManager
         val worldUuid = PortalItemUtil.getBoundWorldUuid(item)
         val targetWorldName = PortalItemUtil.getBoundTargetWorldName(item)
@@ -694,7 +694,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             event.player.sendMessage(lang.getMessage(event.player, "error.portal_not_bound"))
             return
         }
-        
+
         val portal = PortalData(
             worldName = event.block.world.name,
             x = event.block.x,
@@ -718,10 +718,10 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
               // 撤去処理（正確な順序で実行）
               // 1. ビジュアル要素を削除（TextDisplay など）
               plugin.portalManager.removePortalVisuals(portal.id)
-             
+
              // 2. ポータルデータをリポジトリから削除
              plugin.portalRepository.removePortal(portal.id)
-             
+
              // 3. プレイヤーにメッセージを送信
              event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_broken"))
          }
@@ -731,7 +731,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
     fun onPlayerMove(event: PlayerMoveEvent) {
         val from = event.from
         val to = event.to
-        
+
         // ブロックごとの移動のみ検知（軽量化）
         if (from.blockX == to.blockX && from.blockY == to.blockY && from.blockZ == to.blockZ) return
 

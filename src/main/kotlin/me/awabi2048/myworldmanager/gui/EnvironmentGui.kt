@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
@@ -45,28 +46,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     inventory
                 }
 
-        // 背景アイテム作成
-        val blackPane = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
-        val blackMeta = blackPane.itemMeta
-        blackMeta?.displayName(Component.empty())
-        blackMeta?.isHideTooltip = true
-        blackPane.itemMeta = blackMeta
-        ItemTag.tagItem(blackPane, ItemTag.TYPE_GUI_DECORATION)
-
-        val grayPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-        val grayMeta = grayPane.itemMeta
-        grayMeta?.displayName(Component.empty())
-        grayMeta?.isHideTooltip = true
-        grayPane.itemMeta = grayMeta
-        ItemTag.tagItem(grayPane, ItemTag.TYPE_GUI_DECORATION)
-
-        // バックグラウンド埋め
-        // ヘッダー・フッター
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 36..44) inventory.setItem(i, blackPane)
-
-        // コンテンツエリア
-        for (i in 9..35) inventory.setItem(i, grayPane)
+        GuiItemFactory.applyStandardFrame(inventory)
 
         // スロット20: 重力
         inventory.setItem(20, createGravityItem(player, worldData))
@@ -80,7 +60,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         // 戻るボタン (スロット40)
         val backItem = ItemStack(Material.ARROW)
         val backMeta = backItem.itemMeta
-        backMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.back")))
+        backMeta?.displayName(lang.getComponent(player, "gui.common.back"))
         backItem.itemMeta = backMeta
         ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_CANCEL)
         inventory.setItem(40, backItem)
@@ -104,9 +84,9 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
 
-        meta.displayName(Component.text(lang.getMessage(player, "gui.environment.gravity.display")))
+        meta.displayName(lang.getComponent(player, "gui.environment.gravity.display"))
         meta.lore(
-                listOf(
+                GuiItemFactory.componentMenuLore(listOf(
                         Component.text(
                                 lang.getMessage(
                                         player,
@@ -125,7 +105,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                         Component.text(
                                 lang.getMessage(player, "gui.environment.gravity.click_hint")
                         )
-                )
+                ))
         )
 
         item.itemMeta = meta
@@ -142,9 +122,9 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val currentWeather = session?.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
 
-        meta.displayName(Component.text(lang.getMessage(player, "gui.environment.weather.display")))
+        meta.displayName(lang.getComponent(player, "gui.environment.weather.display"))
         meta.lore(
-                listOf(
+                GuiItemFactory.componentMenuLore(listOf(
                         Component.text(
                                 lang.getMessage(
                                         player,
@@ -167,7 +147,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                         Component.text(
                                 lang.getMessage(player, "gui.environment.weather.click_confirm")
                         )
-                )
+                ))
         )
 
         item.itemMeta = meta
@@ -183,9 +163,9 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val currentBiome = worldData.fixedBiome ?: "DEFAULT"
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
 
-        meta.displayName(Component.text(lang.getMessage(player, "gui.environment.biome.display")))
+        meta.displayName(lang.getComponent(player, "gui.environment.biome.display"))
         meta.lore(
-                listOf(
+                GuiItemFactory.componentMenuLore(listOf(
                         Component.text(
                                 lang.getMessage(
                                         player,
@@ -203,7 +183,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                         Component.text(lang.getMessage(player, "gui.environment.biome.desc")),
                         Component.empty(),
                         Component.text(lang.getMessage(player, "gui.environment.biome.click_hint"))
-                )
+                ))
         )
 
         item.itemMeta = meta

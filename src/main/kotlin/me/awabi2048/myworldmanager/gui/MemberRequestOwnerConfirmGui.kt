@@ -20,7 +20,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "member_request_owner_confirm", title, null)
-        
+
         val holder = MemberRequestOwnerConfirmHolder()
         val inventory = Bukkit.createInventory(holder, 45, title)
         holder.inv = inventory
@@ -32,7 +32,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
-        infoMeta.lore(lang.getComponentList(player, "gui.member_request_owner_confirm.lore", mapOf("player" to requestorName)))
+        infoMeta.lore(lang.getMenuLore(player, "gui.member_request_owner_confirm.lore", mapOf("player" to requestorName)))
         infoItem.itemMeta = infoMeta
         inventory.setItem(22, infoItem)
 

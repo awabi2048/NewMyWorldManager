@@ -16,7 +16,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 
 class MeetGui(private val plugin: MyWorldManager) {
-    
+
     // 1行7アイコン中央寄せのレイアウト (スロット 10~16, 19~25, ...)
     private val playerSlots = listOf(
         10, 11, 12, 13, 14, 15, 16,
@@ -28,17 +28,17 @@ class MeetGui(private val plugin: MyWorldManager) {
     fun open(player: Player, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
         val session = plugin.meetSessionManager.getSession(player.uniqueId)
-        
+
         if (showBackButton != null) {
             session.showBackButton = showBackButton
         }
-        
+
         val titleKey = "gui.meet.title_list"
         if (!lang.hasKey(player, titleKey)) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
-        
+
         // マイワールドに滞在中で、且つ meetStatus が BUSY でないプレイヤーを抽出（自分以外）
         val targets = Bukkit.getOnlinePlayers().filter { target ->
             if (target.uniqueId == player.uniqueId) return@filter false
@@ -48,10 +48,10 @@ class MeetGui(private val plugin: MyWorldManager) {
                 val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
                 return@filter stats.meetStatus != "BUSY"
             }
-            
+
             val worldName = target.world.name
             val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return@filter false
-            
+
             // 公開/限定公開のワールドにいるかチェック
             val isMember = worldData.owner == player.uniqueId ||
                 worldData.members.contains(player.uniqueId) ||
@@ -59,7 +59,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             if (!MyWorldManagerApi.getWorldAccessPolicy().canShowMeetTarget(player, target, worldData, isMember)) {
                 return@filter false
             }
-            
+
             val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
             stats.meetStatus != "BUSY"
         }.sortedBy { it.name }
@@ -70,19 +70,12 @@ class MeetGui(private val plugin: MyWorldManager) {
         session.currentPage = currentPage
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title, MeetGuiHolder::class.java)
-        
+
         val holder = MeetGuiHolder()
         val inventory = Bukkit.createInventory(holder, 45, title)
         holder.inv = inventory
 
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 36 until 45) inventory.setItem(i, blackPane)
-        for (i in 9 until 36) {
-            inventory.setItem(i, greyPane)
-        }
+        GuiItemFactory.applyStandardFrame(inventory)
 
         // プレイヤーの配置
         val pageTargets = targets.drop(currentPage * itemsPerPage).take(itemsPerPage)
@@ -93,9 +86,9 @@ class MeetGui(private val plugin: MyWorldManager) {
         if (pageTargets.isEmpty()) {
             inventory.setItem(22, createEmptyItem(player))
         }
-        
+
         val statusSlot = 40
-        
+
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val currentStatus = stats.meetStatus
         val statusNameKey = "general.status.${currentStatus.lowercase()}"
@@ -110,12 +103,12 @@ class MeetGui(private val plugin: MyWorldManager) {
         val statusMeta = statusItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta
         if (statusMeta != null) {
             statusMeta.owningPlayer = player
-            statusMeta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.meet.status_button.display", mapOf("player" to player.name))).decoration(TextDecoration.ITALIC, false))
+            statusMeta.displayName(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name)))
             statusMeta.lore(statusLore)
             statusItem.itemMeta = statusMeta
         }
         ItemTag.tagItem(statusItem, ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE)
-        
+
         inventory.setItem(statusSlot, statusItem)
 
         if (currentPage > 0) {
@@ -147,9 +140,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val item = ItemStack(Material.QUARTZ)
         val meta = item.itemMeta ?: return item
         meta.displayName(
-            LegacyComponentSerializer.legacySection().deserialize(
-                plugin.languageManager.getMessage(viewer, "gui.meet.empty_message")
-            ).decoration(TextDecoration.ITALIC, false)
+            plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")
         )
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -165,7 +156,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val isOnline = target.isOnline
         val colorCode = if (isOnline) lang.getMessage(viewer, "publish_level.color.online") else lang.getMessage(viewer, "publish_level.color.offline")
         // 名前を色分けしたComponentに変換
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize("$colorCode${target.name}").decoration(TextDecoration.ITALIC, false))
+        meta.displayName(me.awabi2048.myworldmanager.util.GuiItemFactory.legacy("$colorCode${target.name}"))
 
         val lines = mutableListOf<String>()
 
@@ -194,10 +185,10 @@ class MeetGui(private val plugin: MyWorldManager) {
 
         // クリックしてワールドを訪れる/申請の表示判定
         if (worldData != null && !isSameWorld) {
-            val isMember = worldData.owner == viewer.uniqueId || 
-                           worldData.moderators.contains(viewer.uniqueId) || 
+            val isMember = worldData.owner == viewer.uniqueId ||
+                           worldData.moderators.contains(viewer.uniqueId) ||
                            worldData.members.contains(viewer.uniqueId)
-                            
+
             // Logic based on status
             if (stats.meetStatus == "JOIN_ME") {
                 when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(viewer, target, worldData, isMember)) {
@@ -211,10 +202,10 @@ class MeetGui(private val plugin: MyWorldManager) {
             }
         }
 
-        val lore = CCSystem.getAPI().buildLore(lines)
+        val lore = GuiItemFactory.menuLore(lines)
         meta.lore(lore)
         item.itemMeta = meta
-        
+
         // タグ付け
         ItemTag.tagItem(item, "gui_meet_target_head")
         return item
@@ -225,4 +216,3 @@ class MeetGui(private val plugin: MyWorldManager) {
         override fun getInventory(): org.bukkit.inventory.Inventory = inv
     }
 }
-

@@ -48,6 +48,7 @@ object ItemTag {
     const val TYPE_GUI_CREATION_TYPE_SEED = "gui_creation_type_seed"
     const val TYPE_GUI_CREATION_TYPE_RANDOM = "gui_creation_type_random"
     const val TYPE_GUI_CREATION_TEMPLATE_ITEM = "gui_creation_template_item"
+    const val TYPE_GUI_CREATION_SPAWN_LOCATION = "gui_creation_spawn_location"
     const val TYPE_GUI_MEMBER_ITEM = "gui_member_item"
     const val TYPE_GUI_MEMBER_INVITE = "gui_member_invite"
     const val TYPE_GUI_MEMBER_PENDING_INVITE = "gui_member_pending_invite"

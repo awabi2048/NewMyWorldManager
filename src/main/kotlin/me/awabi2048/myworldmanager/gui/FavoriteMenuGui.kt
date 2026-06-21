@@ -19,7 +19,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val titleKey = "gui.favorite.favorite_menu.title"
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", title, FavoriteMenuGuiHolder::class.java)
-        
+
         val holder = FavoriteMenuGuiHolder()
         val inventory = Bukkit.createInventory(holder, 45, title)
         holder.inv = inventory
@@ -76,11 +76,11 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.COMPASS)
         val meta = item.itemMeta ?: return item
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.favorite_menu.other_worlds.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-        
-        val lore = lang.getComponentList(player, "gui.favorite.favorite_menu.other_worlds.lore")
+        meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.other_worlds.name"))
+
+        val lore = lang.getMenuLore(player, "gui.favorite.favorite_menu.other_worlds.lore")
         meta.lore(lore)
-        
+
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_OTHER_WORLDS)
         ItemTag.setWorldUuid(item, worldData.uuid)
@@ -89,22 +89,22 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
 
     private fun createToggleFavoriteItem(player: Player, worldData: WorldData?): ItemStack {
         val lang = plugin.languageManager
-        
+
         if (worldData == null) {
             val item = ItemStack(Material.BARRIER)
             val meta = item.itemMeta ?: return item
             meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed")))
+            meta.lore(GuiItemFactory.componentMenuLore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed"))))
             item.itemMeta = meta
             ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
             return item
         }
-        
+
         if (worldData.owner == player.uniqueId) {
             val item = ItemStack(Material.BARRIER)
             val meta = item.itemMeta ?: return item
             meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_owner")))
+            meta.lore(GuiItemFactory.componentMenuLore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_owner"))))
             item.itemMeta = meta
             ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
             return item
@@ -112,21 +112,21 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val isFavorite = stats.favoriteWorlds.containsKey(worldData.uuid)
-        
+
         val material = if (isFavorite) Material.RED_DYE else Material.GRAY_DYE
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
-        
+
         val nameKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.name_remove" else "gui.favorite.favorite_menu.toggle.name_add"
         val loreKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.lore_remove" else "gui.favorite.favorite_menu.toggle.lore_add"
-        
+
         meta.displayName(lang.getComponent(player, nameKey).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         val lore = GuiLoreBuilder(lang, player)
             .componentBlock(listOf(lang.getComponent(player, loreKey)))
             .componentBlock(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.click")))
             .build()
         meta.lore(lore)
-        
+
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_TOGGLE)
         ItemTag.setWorldUuid(item, worldData.uuid)
@@ -137,11 +137,11 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.BOOK)
         val meta = item.itemMeta ?: return item
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.favorite_menu.list.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-        
-        val lore = lang.getComponentList(player, "gui.favorite.favorite_menu.list.lore")
+        meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.list.name"))
+
+        val lore = lang.getMenuLore(player, "gui.favorite.favorite_menu.list.lore")
         meta.lore(lore)
-        
+
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_LIST)
         if (worldData != null) ItemTag.setWorldUuid(item, worldData.uuid)
@@ -150,7 +150,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
 
     private fun createWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
         val lang = plugin.languageManager
-        
+
         val item = ItemStack(worldData.icon)
         val meta = item.itemMeta ?: return item
         val owner = Bukkit.getOfflinePlayer(worldData.owner)
@@ -180,9 +180,9 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                 !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
             }
             .filter { it.isNotBlank() }
-        val lore = CCSystem.getAPI().buildLore(lines)
+        val lore = GuiItemFactory.menuLore(lines)
 
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.current_world.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
+        meta.displayName(lang.getComponent(player, "gui.favorite.current_world.name"))
         meta.lore(lore)
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)

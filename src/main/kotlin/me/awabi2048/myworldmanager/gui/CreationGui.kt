@@ -1,8 +1,12 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.CreationConfirmationLayout
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
@@ -25,7 +29,7 @@ import java.io.File
 import java.util.UUID
 
 class CreationGui(private val plugin: MyWorldManager) {
-    
+
     fun openTypeSelection(player: Player) {
         val config = plugin.config
         val lang = plugin.languageManager
@@ -78,7 +82,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     private fun createCreationTypeItem(player: Player, material: Material, name: String, baseLoreKey: String, tag: String): ItemStack {
         val lang = plugin.languageManager
         val lore = lang.getComponentList(player, baseLoreKey).toMutableList()
-        
+
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
         val maxCounts = defaultMax + stats.unlockedWorldSlot
@@ -89,7 +93,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             lore.add(Component.empty())
             lore.add(lang.getComponent(player, "gui.creation.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).decoration(TextDecoration.ITALIC, false))
         }
-        
+
         return createItem(material, name, tag, lore)
     }
 
@@ -102,7 +106,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
-        
+
         val templates = plugin.templateRepository.findAll()
         if (templates.isEmpty()) {
             player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
@@ -111,7 +115,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val worldsPerRow = 7
         val neededDataRows = (templates.size + worldsPerRow - 1) / worldsPerRow
         val rowCount = (neededDataRows + 2).coerceIn(3, 6)
-        
+
         clearSettingsGuiTransition(player)
         val holder = CreationGuiHolder(CreationMenuType.TEMPLATE_SELECT)
         val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
@@ -131,7 +135,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             }
             lore.add(Component.empty())
             lore.add(lang.getComponent(player, "gui.creation.template_item.preview_hint").decoration(TextDecoration.ITALIC, false))
-            
+
             inventory.setItem(slot, createItem(template.icon, template.name, ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM, lore))
         }
 
@@ -150,30 +154,64 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
-        
+
         clearSettingsGuiTransition(player)
         val holder = CreationGuiHolder(CreationMenuType.CONFIRM)
         val inventory = Bukkit.createInventory(holder, 45, title)
         holder.inv = inventory
-        
+
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
+        val layout = CreationConfirmationLayout()
+        val context = MenuExtensionContext(
+            "creation_confirm",
+            mutableMapOf(
+                "session" to session,
+                "worldName" to cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown")),
+                "creationType" to session.creationType,
+                "layout" to layout
+            )
+        )
+        // アドオンには作成処理を渡さず、コア項目と競合する表示位置だけを事前調整させる。
+        MyWorldManagerApi.getMenuExtensions().forEach { extension ->
+            extension.onPrepare(context)
+        }
+
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
-        val generationLine = when (session.creationType) {
+        val generationLine: GuiLoreLine = when (session.creationType) {
             WorldCreationType.TEMPLATE -> {
                 val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
                 val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
-                CCSystem.getAPI().createLoreSubDataLine("テンプレート", displayName)
+                GuiLoreLine.SubData(
+                    lang.getMessage(player, "gui.creation.confirm.template_label"),
+                    displayName
+                )
             }
-            WorldCreationType.SEED -> CCSystem.getAPI().createLoreSubDataLine("シード値", session.inputSeedString ?: "")
-            WorldCreationType.RANDOM -> CCSystem.getAPI().createLoreSubDataLine("生成方法", "ランダム")
-            null -> CCSystem.getAPI().createLoreSubDataLine("生成方法", lang.getMessage(player, "general.unknown"))
+            WorldCreationType.SEED -> GuiLoreLine.SubData(
+                lang.getMessage(player, "gui.creation.confirm.seed_label"),
+                session.inputSeedString ?: ""
+            )
+            WorldCreationType.RANDOM -> GuiLoreLine.SubData(
+                lang.getMessage(player, "gui.creation.confirm.generation_label"),
+                lang.getMessage(player, "gui.creation.confirm.random_generation")
+            )
+            null -> GuiLoreLine.SubData(
+                lang.getMessage(player, "gui.creation.confirm.generation_label"),
+                lang.getMessage(player, "general.unknown")
+            )
         }
 
-        val infoLore = CCSystem.getAPI().buildLore(
-            listOf(
-                CCSystem.getAPI().createLoreDataLine("ワールド名", cleanedName, "§e"),
-                generationLine
+        val infoLore = CCSystem.getAPI().getLoreService().render(
+            GuiLoreSpec.Rich(
+                listOf(
+                    GuiLoreLine.Data(
+                        lang.getMessage(player, "gui.creation.confirm.world_name_label"),
+                        cleanedName,
+                        "§e"
+                    ),
+                    generationLine
+                ),
+                GuiLoreFrame.BOTH
             )
         )
 
@@ -199,14 +237,24 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         )
 
-        val context = MenuExtensionContext(
-            "creation_confirm",
-            mutableMapOf(
-                "session" to session,
-                "worldName" to cleanedName,
-                "creationType" to session.creationType
+        if (session.creationType == WorldCreationType.SEED) {
+            val coordinates = session.spawnCoordinates?.display()
+                ?: lang.getMessage(player, "gui.creation.confirm.spawn_location.default")
+            inventory.setItem(
+                layout.spawnLocationSlot,
+                createItem(
+                    Material.COMPASS,
+                    lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
+                    ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION,
+                    lang.getComponentList(
+                        player,
+                        "gui.creation.confirm.spawn_location.lore",
+                        mapOf("coordinates" to coordinates)
+                    )
+                )
             )
-        )
+        }
+
         MyWorldManagerApi.getMenuExtensions().forEach { extension ->
             extension.onRender(inventory, player, context)
         }
@@ -215,12 +263,10 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun setupHeaderFooter(inventory: org.bukkit.inventory.Inventory, rowCount: Int) {
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
         val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
 
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in (rowCount - 1) * 9 until rowCount * 9) inventory.setItem(i, blackPane)
-        
+        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+
         for (i in 1 until rowCount - 1) {
             inventory.setItem(i * 9, greyPane)
             inventory.setItem(i * 9 + 8, greyPane)
@@ -229,18 +275,16 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun createBackButton(player: Player): ItemStack {
         val lang = plugin.languageManager
-        val lore = listOf(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.common.return_desc")).decoration(TextDecoration.ITALIC, false))
-        return createItem(plugin.menuConfigManager.getIconMaterial("creation", "back", Material.ARROW), lang.getMessage(player, "gui.common.return"), ItemTag.TYPE_GUI_BACK, lore)
+        return createItem(
+            plugin.menuConfigManager.getIconMaterial("creation", "back", Material.ARROW),
+            lang.getMessage(player, "gui.common.return"),
+            ItemTag.TYPE_GUI_BACK,
+            emptyList()
+        )
     }
 
     private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
-        val item = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-
-        for (i in 0 until inventory.size) {
-            if (inventory.getItem(i) == null) {
-                inventory.setItem(i, item)
-            }
-        }
+        GuiItemFactory.fillEmpty(inventory)
     }
 
     private fun createItem(material: Material, name: String, tag: String, lore: List<Component>): ItemStack {

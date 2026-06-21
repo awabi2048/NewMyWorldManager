@@ -1,9 +1,6 @@
 package me.awabi2048.myworldmanager.util
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
@@ -19,13 +16,13 @@ object PortalItemUtil {
     fun createBasePortalItem(lang: me.awabi2048.myworldmanager.util.LanguageManager, player: org.bukkit.entity.Player?): ItemStack {
         val item = ItemStack(Material.END_PORTAL_FRAME)
         val meta = item.itemMeta ?: return item
-        meta.displayName(Component.text(lang.getMessage(player, "gui.portal_item.name")).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lang.getComponentList(player, "gui.portal_item.lore_unbound"))
+        meta.displayName(lang.getComponent(player, "gui.portal_item.name"))
+        meta.lore(lang.getMenuLore(player, "gui.portal_item.lore_unbound"))
         try { meta.setMaxStackSize(1) } catch (e: Exception) {}
 
         meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
         item.itemMeta = meta
-        
+
         item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("world_portal").build())
 
         ItemTag.tagItem(item, ItemTag.TYPE_PORTAL)
@@ -37,10 +34,10 @@ object PortalItemUtil {
         meta.persistentDataContainer.set(WORLD_UUID_KEY, PersistentDataType.STRING, worldUuid.toString())
         meta.persistentDataContainer.remove(TARGET_WORLD_NAME_KEY)
         meta.setEnchantmentGlintOverride(true)
-        
-        val lore = lang.getComponentList(player, "gui.portal_item.lore_bound", mapOf("destination" to worldName))
+
+        val lore = lang.getMenuLore(player, "gui.portal_item.lore_bound", mapOf("destination" to worldName))
         meta.lore(lore)
-        
+
         item.itemMeta = meta
     }
 
@@ -49,10 +46,10 @@ object PortalItemUtil {
         meta.persistentDataContainer.set(TARGET_WORLD_NAME_KEY, PersistentDataType.STRING, worldName)
         meta.persistentDataContainer.remove(WORLD_UUID_KEY)
         meta.setEnchantmentGlintOverride(true)
-        
-        val lore = lang.getComponentList(player, "gui.portal_item.lore_bound", mapOf("destination" to displayName))
+
+        val lore = lang.getMenuLore(player, "gui.portal_item.lore_bound", mapOf("destination" to displayName))
         meta.lore(lore)
-        
+
         item.itemMeta = meta
     }
 
@@ -61,11 +58,11 @@ object PortalItemUtil {
         meta.persistentDataContainer.remove(WORLD_UUID_KEY)
         meta.persistentDataContainer.remove(TARGET_WORLD_NAME_KEY)
         meta.setEnchantmentGlintOverride(false)
-        
+
         val baseItem = createBasePortalItem(lang, player)
         meta.displayName(baseItem.itemMeta.displayName())
         meta.lore(baseItem.itemMeta.lore())
-        
+
         item.itemMeta = meta
     }
 

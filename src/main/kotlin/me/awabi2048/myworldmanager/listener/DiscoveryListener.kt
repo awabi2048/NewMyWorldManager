@@ -47,7 +47,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         if (view.topInventory.holder !is me.awabi2048.myworldmanager.gui.DiscoveryGui.DiscoveryGuiHolder) return
         event.cancelWithDebug("DiscoveryListener.onInventoryClick: discovery GUI click")
         if (event.clickedInventory != view.topInventory) return
-        
+
         // GUI遷移中のクリックを無視
         val settingsSession = plugin.settingsSessionManager.getSession(player)
         if (settingsSession != null && settingsSession.isGuiTransition) {
@@ -67,7 +67,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
                 val isCurrentWorld = currentWorldData?.uuid == worldData.uuid
 
-                val isMember = worldData.owner == player.uniqueId || 
+                val isMember = worldData.owner == player.uniqueId ||
                               worldData.moderators.contains(player.uniqueId) ||
                               worldData.members.contains(player.uniqueId)
 
@@ -186,10 +186,10 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         }
 
                         // お気に入り (Shift + 右クリック)
-                        val isWorldMember = worldData.owner == player.uniqueId || 
+                        val isWorldMember = worldData.owner == player.uniqueId ||
                                       worldData.moderators.contains(player.uniqueId) ||
                                       worldData.members.contains(player.uniqueId)
-                                      
+
                         if (isWorldMember) return // 所属ワールドはお気に入り不可
 
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
@@ -252,7 +252,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     }
                     session.selectedTag = null
                 }
-                
+
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)
             }
@@ -268,7 +268,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
 
-                val forward = if (isBedrock) true else event.isLeftClick
+                val forward = if (isBedrock) true else event.isRightClick
                 session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), forward)
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)
@@ -279,7 +279,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
             "discovery_spotlight_empty" -> {
                 if ((isBedrock || event.isLeftClick) && player.hasPermission("myworldmanager.admin")) {
                     val world = player.world
-                    
+
                     // Try getting by UUID first (standard MyWorld folder name format: my_world.<UUID>)
                     var worldData: me.awabi2048.myworldmanager.model.WorldData? = null
                     if (world.name.startsWith("my_world.")) {
@@ -291,7 +291,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                             // ignore
                         }
                     }
-                    
+
                     // Fallback to name search if not found by UUID
                     if (worldData == null) {
                         worldData = plugin.worldConfigRepository.findByWorldName(world.name)
@@ -301,14 +301,14 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         player.sendMessage(lang.getMessage(player, "error.spotlight_not_in_myworld"))
                         return
                     }
-                    
+
                     // オーナーチェック (管理者なら他人のワールドも可とする)
                     val isAdmin = player.hasPermission("myworldmanager.admin")
                     if (!isAdmin && worldData.owner != player.uniqueId && !player.isOp) {
                         player.sendMessage(lang.getMessage(player, "error.spotlight_not_owner"))
                         return
                     }
-                    
+
                     val title = net.kyori.adventure.text.Component.text(lang.getMessage(player, "gui.spotlight_confirm.title"))
                     val bodyLines = lang.getMessageList(player, "gui.spotlight_confirm.lore", mapOf("world" to worldData.name))
                         .map { net.kyori.adventure.text.Component.text(it) }

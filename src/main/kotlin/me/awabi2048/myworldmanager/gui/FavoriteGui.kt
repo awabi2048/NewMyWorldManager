@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.TextDecoration
@@ -14,6 +15,9 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 
 class FavoriteGui(private val plugin: MyWorldManager) {
 
@@ -35,7 +39,12 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 session.returnToFavoriteMenu = returnToFavoriteMenu
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 val favWorldUuids = stats.favoriteWorlds.keys
-                val selectedTag = session.selectedTag
+                val selectedTag = session.selectedTag?.takeIf {
+                        it in plugin.worldTagManager.getEnabledTagIds()
+                }
+                if (selectedTag != session.selectedTag) {
+                        session.selectedTag = null
+                }
 
                 val resolvedWorlds =
                         favWorldUuids.mapNotNull { uuid ->
@@ -264,23 +273,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.favorite.world_item.unfavorite")
                 } else ""
 
-                val lines = lang.getMessageList(player, "gui.favorite.world_item.lore", mapOf(
-                        "description" to formattedDesc,
-                        "owner_line" to ownerLine,
-                        "favorite_line" to favoriteLine,
-                        "visitor_line" to visitorLine,
-                        "tag_line" to tagLine,
-                        "warp_line" to warpLine,
-                        "archived_line" to archivedLine,
-                        "unfavorite_line" to unfavoriteLine
-                ))
-                    .filter { line ->
-                        val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                        !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-                    }
-                    .filter { it.isNotBlank() }
-                val lore = CCSystem.getAPI().buildLore(lines)
-                meta.lore(lore)
+                meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
+                        *buildList {
+                                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
+                                add(listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                                add(listOf(warpLine, archivedLine, unfavoriteLine).filter(String::isNotBlank))
+                        }.toTypedArray()
+                )))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
@@ -292,9 +291,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = GuiItemFactory.item(
                         Material.REDSTONE,
-                        lang.getComponent(player, "gui.common.return")
-                                .decorate(TextDecoration.BOLD),
-                        if (returnToWorld != null) listOf(lang.getComponent(player, "gui.common.return_desc")) else emptyList(),
+                        lang.getComponent(player, "gui.common.return"),
+                        emptyList(),
                         ItemTag.TYPE_GUI_RETURN
                 )
                 if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
@@ -368,43 +366,45 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val meta = item.itemMeta ?: return item
                 val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
-                val tagName = if (selectedTag != null)
-                        plugin.worldTagManager.getDisplayName(player, selectedTag)
-                else
-                        lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
-
-                val prefix = if (selectedTag != null)
-                        lang.getMessage(player, "gui.discovery.tag_filter.current_prefix")
-                else ""
-
-                val clickLeft = if (isBedrock) lang.getMessage(player, "gui.discovery.tag_filter.click_bedrock") else lang.getMessage(player, "gui.discovery.tag_filter.click_left")
-                val clickRight = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.tag_filter.click_right")
-                val loreKey = if (isBedrock) "gui.discovery.tag_filter.lore_bedrock" else "gui.discovery.tag_filter.lore"
-
-                val tagList = plugin.worldTagManager.getEnabledTagIds().joinToString("\n") { tagId ->
-                        val tagPrefix = if (tagId == selectedTag)
-                                lang.getMessage(player, "gui.discovery.tag_filter.active")
-                        else
-                                lang.getMessage(player, "gui.discovery.tag_filter.inactive")
-                        val tagColor = if (tagId == selectedTag) "§e" else "§7"
-                        val name = plugin.worldTagManager.getDisplayName(player, tagId)
-                        "$tagPrefix$tagColor$name"
-                }
-
                 meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name").decoration(TextDecoration.ITALIC, false))
-                meta.lore(
-                        lang.getComponentList(
-                                player,
-                                loreKey,
-                                mapOf(
-                                        "prefix" to prefix,
-                                        "tag" to tagName,
-                                        "tag_list" to tagList,
-                                        "click_left" to clickLeft,
-                                        "click_right" to clickRight
-                                )
-                        )
-                )
+                val options = listOf(
+                        "" to lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
+                ) + plugin.worldTagManager.getEnabledTagIds().map { tagId ->
+                        tagId to plugin.worldTagManager.getDisplayName(player, tagId)
+                }
+                val selectedId = selectedTag.orEmpty()
+                val selectedOption = options.firstOrNull { it.first == selectedId } ?: options.first()
+                meta.lore(CCSystem.getAPI().getLoreService().render(
+                        GuiLoreSpec.Rich(buildList {
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.discovery.tag_filter.label"),
+                                        selectedOption.second,
+                                        "\u00A7e"
+                                ))
+                                add(GuiLoreLine.Spacer)
+                                options.forEach { (tagId, displayName) ->
+                                        val selected = tagId == selectedOption.first
+                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                                        val color = if (selected) "\u00A7e" else "\u00A77"
+                                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                                }
+                                add(GuiLoreLine.Spacer)
+                                if (isBedrock) {
+                                        add(GuiLoreLine.SingleAction(
+                                                lang.getMessage(player, "gui.discovery.tag_filter.action.next")
+                                        ))
+                                } else {
+                                        add(GuiLoreLine.Action(
+                                                lang.getMessage(player, "gui.settings.click.left"),
+                                                lang.getMessage(player, "gui.discovery.tag_filter.action.next")
+                                        ))
+                                        add(GuiLoreLine.Action(
+                                                lang.getMessage(player, "gui.settings.click.right"),
+                                                lang.getMessage(player, "gui.discovery.tag_filter.action.clear")
+                                        ))
+                                }
+                        }, GuiLoreFrame.BOTH)
+                ))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_TAG)

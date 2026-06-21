@@ -177,7 +177,9 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         when (type) {
             ItemTag.TYPE_GUI_TOUR_BACK -> {
                 plugin.soundManager.playClickSound(player, item, "tour")
-                plugin.menuEntryRouter.openWorldSettings(player, worldData, false)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    plugin.menuEntryRouter.openWorldSettings(player, worldData, false)
+                }
             }
             ItemTag.TYPE_GUI_TOUR_CREATE -> {
                 plugin.soundManager.playClickSound(player, item, "tour")

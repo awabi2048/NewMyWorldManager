@@ -1,6 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -145,14 +148,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 背景 (黒の板ガラス)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in bottomRowStartSlot until inventorySize) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 // 戻るボタン
                 if (currentShowBack) {
                         inventory.setItem(
                                 backButtonSlot,
-                                createItem(Material.REDSTONE, "§7戻る", listOf("§eクリックで戻る"), ItemTag.TYPE_GUI_RETURN)
+                                createItem(Material.REDSTONE, "§7戻る", emptyList(), ItemTag.TYPE_GUI_RETURN)
                         )
                 }
 
@@ -190,7 +192,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.NAME_TAG
                                         ),
                                         lang.getMessage(player, "gui.settings.info.display"),
-                                        infoLoreBuilder.build(),
+                                        infoLoreBuilder.buildSpec(),
                                         ItemTag.TYPE_GUI_SETTING_INFO
                                 )
                         )
@@ -215,7 +217,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         "gui.settings.icon.action.start_selection"
                                                 )
                                         )
-                                        .build()
+                                        .buildSpec()
 
                         inventory.setItem(
                                 iconSettingSlot,
@@ -285,7 +287,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.COMPASS
                                         ),
                                         lang.getMessage(player, "gui.settings.spawn.display"),
-                                        spawnLoreBuilder.build(),
+                                        spawnLoreBuilder.buildSpec(),
                                         ItemTag.TYPE_GUI_SETTING_SPAWN
                                 )
                         )
@@ -301,6 +303,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val currentLevel = worldData.borderExpansionLevel
                         val cost = WorldRuntimePolicies.expansionCost(config, currentLevel + 1)
                         val expansionLoreBuilder = GuiLoreBuilder(lang, player)
+                                .block(
+                                        lang.getMessageList(
+                                                player,
+                                                "gui.settings.expand.blocks.description"
+                                        )
+                                )
+                                .spacer()
 
                         if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
                                 expansionLoreBuilder.block(
@@ -411,7 +420,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.FILLED_MAP
                                         ),
                                         lang.getMessage(player, "gui.settings.expand.display"),
-                                        expansionLoreBuilder.build(),
+                                        expansionLoreBuilder.buildSpec(),
                                         ItemTag.TYPE_GUI_SETTING_EXPAND
                                 )
                         )
@@ -455,72 +464,44 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 )
 
-                        val current = levels.find { it.first == worldData.publishLevel }
-                        val currentLevelName =
-                                current?.second ?: lang.getMessage(player, "general.unknown")
-                        val currentColor = current?.third ?: "§f"
                         val inactiveColor = lang.getMessage(player, "publish_level.color.inactive")
-
-                        // Build level_list
-                        val levelList = levels.joinToString("\n") { (level, name, color) ->
-                                val isActive = worldData.publishLevel == level
-                                val prefix = if (isActive) lang.getMessage(player, "gui.settings.publish.active_prefix") else lang.getMessage(player, "gui.settings.publish.inactive_prefix")
-                                val style = if (isActive) color else inactiveColor
-                                "$prefix$style$name"
-                        }
-
-                        // Description
-                        val configKey = worldData.publishLevel.name.lowercase()
-                        val description = lang.getMessage(player, "publish_level.description.$configKey")
-
-                        val publishLoreBuilder =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.publish.blocks.current",
-                                                        mapOf(
-                                                                "current_color" to currentColor,
-                                                                "current_level" to currentLevelName,
-                                                                "description" to description
-                                                        )
-                                                )
-                                        )
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.publish.blocks.level_list",
-                                                        mapOf("level_list" to levelList)
-                                                )
-                                        )
-
-                        if (isBedrock) {
-                                publishLoreBuilder.singleAction(
-                                        lang.getMessage(
+                        val selectedLevel = levels.first { it.first == worldData.publishLevel }
+                        val publishLore = CCSystem.getAPI().getLoreService().render(
+                                GuiLoreSpec.Rich(buildList {
+                                        add(GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.settings.publish.display"),
+                                                selectedLevel.second,
+                                                selectedLevel.third
+                                        ))
+                                        add(GuiLoreLine.Spacer)
+                                        add(GuiLoreLine.Text(lang.getMessage(
                                                 player,
-                                                "gui.settings.publish.action.cycle_bedrock"
-                                        )
-                                )
-                        } else {
-                                publishLoreBuilder.multiActions(
-                                        listOf(
-                                                GuiLoreAction(
+                                                "publish_level.description.${worldData.publishLevel.name.lowercase()}"
+                                        )))
+                                        add(GuiLoreLine.Spacer)
+                                        levels.forEach { (level, name, color) ->
+                                                val selected = level == worldData.publishLevel
+                                                val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                                                val displayColor = if (selected) color else inactiveColor
+                                                add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $displayColor$name"))
+                                        }
+                                        add(GuiLoreLine.Spacer)
+                                        if (isBedrock) {
+                                                add(GuiLoreLine.SingleAction(
+                                                        lang.getMessage(player, "gui.settings.publish.action.cycle_bedrock")
+                                                ))
+                                        } else {
+                                                add(GuiLoreLine.Action(
                                                         lang.getMessage(player, "gui.settings.click.left"),
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.settings.publish.action.previous"
-                                                        )
-                                                ),
-                                                GuiLoreAction(
+                                                        lang.getMessage(player, "gui.settings.publish.action.previous")
+                                                ))
+                                                add(GuiLoreLine.Action(
                                                         lang.getMessage(player, "gui.settings.click.right"),
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.settings.publish.action.next"
-                                                        )
-                                                )
-                                        )
-                                )
-                        }
+                                                        lang.getMessage(player, "gui.settings.publish.action.next")
+                                                ))
+                                        }
+                                }, GuiLoreFrame.BOTH)
+                        )
 
                         inventory.setItem(
                                 24,
@@ -531,7 +512,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.OAK_DOOR
                                         ),
                                         lang.getMessage(player, "gui.settings.publish.display"),
-                                        publishLoreBuilder.build(),
+                                        publishLore,
                                         ItemTag.TYPE_GUI_SETTING_PUBLISH
                                 )
                         )
@@ -618,6 +599,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .block(
                                                 lang.getMessageList(
                                                         player,
+                                                        "gui.settings.member.blocks.description"
+                                                )
+                                        )
+                                        .spacer()
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
                                                         "gui.settings.member.blocks.summary",
                                                         mapOf(
                                                                 "count" to totalCount,
@@ -633,7 +621,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         "gui.settings.member.action.open_list"
                                                 )
                                         )
-                                        .build()
+                                        .buildSpec()
 
                         inventory.setItem(
                                 25,
@@ -672,6 +660,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .block(
                                                 lang.getMessageList(
                                                         player,
+                                                        "gui.settings.tags.blocks.description"
+                                                )
+                                        )
+                                        .spacer()
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
                                                         "gui.settings.tags.blocks.summary",
                                                         mapOf("tags_list" to tagsList)
                                                 )
@@ -679,7 +674,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .singleAction(
                                                 lang.getMessage(player, "gui.settings.tags.action.edit")
                                         )
-                                        .build()
+                                        .buildSpec()
 
                         inventory.setItem(
                                 tagsSettingSlot,
@@ -700,7 +695,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (hasManagePermission) {
                         val messagePreview = if (worldData.announcementMessages.isNotEmpty()) {
                                 mutableListOf<String>().apply {
-                                    add("")
                                     add(lang.getMessage(player, "gui.settings.announcement.preview_header"))
                                     addAll(worldData.announcementMessages.map { "  $it" })
                                     add(lang.getMessage(player, "gui.settings.announcement.preview_footer"))
@@ -715,13 +709,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 lang.getMessageList(
                                                         player,
                                                         if (isBedrock) {
-                                                                "gui.settings.announcement.blocks.summary_be"
+                                                                "gui.settings.announcement.blocks.description_be"
                                                         } else {
-                                                                "gui.settings.announcement.blocks.summary_je"
-                                                        },
+                                                                "gui.settings.announcement.blocks.description_je"
+                                                        }
+                                                )
+                                        )
+
+                        if (messagePreview.isNotEmpty()) {
+                                announcementLoreBuilder
+                                        .spacer()
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.announcement.blocks.preview",
                                                         mapOf("message_preview" to messagePreview)
                                                 )
                                         )
+                        }
 
                         if (isBedrock) {
                                 announcementLoreBuilder.singleAction(
@@ -763,7 +768,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 player,
                                                 "gui.settings.announcement.display"
                                         ),
-                                        announcementLoreBuilder.build(),
+                                        announcementLoreBuilder.buildSpec(),
                                         ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT
                                 )
                         )
@@ -785,11 +790,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .block(
                                                 lang.getMessageList(
                                                         player,
-                                                        "gui.settings.notification.blocks.summary",
+                                                        "gui.settings.notification.blocks.current",
                                                         mapOf(
                                                                 "color" to statusColor,
                                                                 "status" to statusText
                                                         )
+                                                )
+                                        )
+                                        .spacer()
+                                        .block(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.settings.notification.blocks.description"
                                                 )
                                         )
                                         .singleAction(
@@ -798,7 +810,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         "gui.settings.notification.action.toggle"
                                                 )
                                         )
-                                        .build()
+                                        .buildSpec()
 
                         inventory.setItem(
                                 notificationSettingSlot,
@@ -850,7 +862,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.GRASS_BLOCK
                                         ),
                                         lang.getMessage(player, "gui.settings.environment.display"),
-                                        environmentLoreBuilder.build(),
+                                        environmentLoreBuilder.buildSpec(),
                                         ItemTag.TYPE_GUI_SETTING_ENVIRONMENT
                                 )
                         )
@@ -883,7 +895,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.TNT
                                         ),
                                         lang.getMessage(player, "gui.settings.critical.display"),
-                                        criticalLoreBuilder.build(),
+                                        criticalLoreBuilder.buildSpec(),
                                         ItemTag.TYPE_GUI_SETTING_CRITICAL
                                 )
                         )
@@ -1040,7 +1052,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .singleAction(
                                                 lang.getMessage(player, "gui.settings.visitors.action.open")
                                         )
-                                        .build()
+                                        .buildSpec()
 
                         inventory.setItem(
                                 51,
@@ -1076,7 +1088,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .singleAction(
                                                 lang.getMessage(player, "gui.settings.portals.action.open")
                                         )
-                                        .build()
+                                        .buildSpec()
                         inventory.setItem(
                                 52,
                                 createItemComponent(
@@ -1298,8 +1310,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 36..44) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 inventory.setItem(
                         20,
@@ -1476,8 +1487,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 36..44) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 val directionKey =
                         when (direction) {
@@ -1667,10 +1677,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 inventory.clear()
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 val footerStart = (rowCount - 1) * 9
-                for (i in 0..8) inventory.setItem(footerStart + i, blackPane)
 
                 // メンバーリストの描画
                 val isAdminFlow = plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
@@ -1740,10 +1749,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 val desc = lang.getMessage(player, "gui.member_management.invite.desc")
                                 val clickNormal = lang.getMessage(player, "gui.member_management.invite.click_normal")
                                 val clickForce = lang.getMessage(player, "gui.member_management.invite.click_force")
-                                val inviteSep = CCSystem.getAPI().createLoreSeparator(listOf(desc, clickNormal, clickForce))
-                                listOf(inviteSep, desc, inviteSep, clickNormal, clickForce, inviteSep)
+                                GuiLoreSpec.Blocks(listOf(
+                                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                                        listOf(
+                                                GuiLoreLine.Raw(desc),
+                                        )
+                                    ),
+                                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                                        listOf(
+                                                GuiLoreLine.Raw(clickNormal),
+                                                GuiLoreLine.Raw(clickForce)
+                                        )
+                                    )
+                                ))
                         } else {
-                                listOf(lang.getMessage(player, "gui.member_management.invite.desc"))
+                                GuiLoreSpec.Blocks(listOf(
+                                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                                        GuiLoreLine.Raw(lang.getMessage(player, "gui.member_management.invite.desc"))
+                                    ))
+                                ))
                         }
                 inventory.setItem(
                         footerStart + 4,
@@ -1836,13 +1860,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .decoration(TextDecoration.ITALIC, false)
                 )
                 meta.lore(
-                        listOf(
+                        GuiItemFactory.componentMenuLore(listOf(
                                 lang.getComponent(
                                         player,
                                         "gui.member_management.pending_cancel_confirm.body",
                                         mapOf("player" to targetName)
                                 )
-                        )
+                        ))
                 )
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -2166,7 +2190,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                meta.lore(itemLore)
+                meta.lore(GuiItemFactory.componentMenuLore(itemLore))
                 item.itemMeta = meta
 
                 me.awabi2048.myworldmanager.util.ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
@@ -2286,10 +2310,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 val footerStart = (rowCount - 1) * 9
-                for (i in 0..8) inventory.setItem(footerStart + i, blackPane)
 
                 // プレイヤーリストの描画
                 val isAdminFlow = plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
@@ -2503,7 +2526,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         lines.add(lang.getMessage(viewer, kickKey))
                 }
 
-                val lore = CCSystem.getAPI().buildLore(lines)
+                val lore = GuiItemFactory.menuLore(lines)
                 meta.lore(lore)
                 item.itemMeta = meta
 
@@ -2519,6 +2542,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 tag: String
         ): ItemStack {
                 return GuiItemFactory.textItem(material, name, loreLines, tag)
+        }
+
+        private fun createItem(
+                material: Material,
+                name: String,
+                lore: GuiLoreSpec,
+                tag: String
+        ): ItemStack {
+                return GuiItemFactory.item(material, name, lore, tag)
         }
 
         private data class BorderInfo(
@@ -2571,6 +2603,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return GuiItemFactory.item(material, name, loreComponents, tag)
         }
 
+        private fun createItemComponent(
+                material: Material,
+                name: String,
+                lore: GuiLoreSpec,
+                tag: String
+        ): ItemStack {
+                return GuiItemFactory.item(material, name, lore, tag)
+        }
+
         fun openTagEditor(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title =
@@ -2613,8 +2654,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 背景
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 18..26) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 // タグの配置
                 val tags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
@@ -2653,13 +2693,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         lore.add("")
                         lore.add(lang.getMessage(player, "gui.tag_editor.click_toggle"))
 
-                        meta.lore(
-                                lore.map {
-                                        LegacyComponentSerializer.legacySection()
-                                                .deserialize(it)
-                                                .decoration(TextDecoration.ITALIC, false)
-                                }
-                        )
+                        meta.lore(GuiItemFactory.menuLore(lore))
                         item.itemMeta = meta
                         ItemTag.tagItem(item, "tag_$tagId")
                         inventory.setItem(slot, item)
@@ -2725,8 +2759,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 36..44) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 val middleGrayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 9..35) inventory.setItem(i, middleGrayPane)
@@ -3125,12 +3158,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
-                val lore = lang.getComponentList(player, "gui.confirm.delete_2.lore")
+                val lore = CCSystem.getAPI().getLoreService().render(
+                        com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
+                                listOf(
+                                        com.awabi2048.ccsystem.api.gui.GuiLoreLine.Danger(
+                                                lang.getMessage(player, "gui.confirm.delete_2.danger")
+                                        ),
+                                        com.awabi2048.ccsystem.api.gui.GuiLoreLine.Warning(
+                                                lang.getMessage(player, "gui.confirm.delete_2.warning")
+                                        )
+                                ),
+                                com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH
+                        )
+                )
                 val infoItem =
                         createItemComponent(
                                 Material.LAVA_BUCKET,
-                                LegacyComponentSerializer.legacySection().serialize(lore[0]),
-                                lore.drop(1),
+                                lang.getMessage(player, "gui.confirm.delete_2.display"),
+                                lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
@@ -3203,8 +3248,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 背景
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in 36..44) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 currentPagePortals.forEachIndexed { index, portal ->
                         val slot = 9 + index
@@ -3288,7 +3332,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         mapOf("x" to portal.x, "y" to portal.y, "z" to portal.z)
                 )
 
-                meta.lore(lore)
+                meta.lore(GuiItemFactory.componentMenuLore(lore))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_PORTAL)
                 ItemTag.setPortalUuid(item, portal.id)
@@ -3313,6 +3357,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 plugin.soundManager.playClickSound(player, null, "world_settings")
                 val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action, isGui = true)
+                player.closeInventory()
 
                 plugin.worldSettingsListener.startSpawnPreview(player)
 

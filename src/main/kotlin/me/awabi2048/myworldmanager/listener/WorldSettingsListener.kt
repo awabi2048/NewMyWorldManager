@@ -179,13 +179,15 @@ class WorldSettingsListener : Listener {
                 val player = event.whoClicked as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 if (session.action == SettingsAction.SELECT_ICON) {
-                        if (!session.isExternalInputActive(MenuExternalInput.SELECT_ICON)) {
-                                plugin.settingsSessionManager.endSession(player)
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_cancelled"))
+                        if (event.clickedInventory == player.inventory) {
+                                if (!session.isExternalInputActive(MenuExternalInput.SELECT_ICON)) {
+                                        plugin.settingsSessionManager.endSession(player)
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_cancelled"))
+                                        return
+                                }
+                                handleIconSelectionClick(player, event)
                                 return
                         }
-                        handleIconSelectionClick(player, event)
-                        return
                 }
 
                 val topHolder = event.view.topInventory.holder
@@ -2926,7 +2928,6 @@ plugin.languageManager
                                 it.beginExternalInput(MenuExternalInput.SELECT_ICON)
                         }
                 player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
-                player.closeInventory()
         }
 
         private fun handleIconSelectionClick(player: Player, event: InventoryClickEvent) {
@@ -2962,7 +2963,9 @@ plugin.languageManager
                 )
                 plugin.soundManager.playClickSound(player, null, "world_settings")
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldSettingsGui.open(player, worldData)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                }
         }
 
         private fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {
@@ -3628,7 +3631,9 @@ plugin.languageManager
                         plugin.worldConfigRepository.save(worldData)
                 }
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldSettingsGui.open(player, worldData)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                }
         }
 
         private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
@@ -3642,7 +3647,9 @@ plugin.languageManager
                 }
 
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldSettingsGui.open(player, worldData)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                }
         }
 
         private fun applyWorldDescriptionUpdate(
@@ -3656,7 +3663,9 @@ plugin.languageManager
                 player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
 
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldSettingsGui.open(player, worldData)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                }
         }
 
         @EventHandler
@@ -3715,7 +3724,7 @@ plugin.languageManager
                                                 clearBorderPreview(player)
                                                 return@Runnable
                                         }
-                                        
+
                                         if (session.isGuiTransition) {
                                                 session.isGuiTransition = false
                                                 return@Runnable
@@ -4188,7 +4197,9 @@ player.sendMessage(
                 }
                 clearBorderPreview(player)
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldSettingsGui.open(player, worldData)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                }
         }
 
         private fun expansionExecutionMode(
@@ -4252,7 +4263,7 @@ player.sendMessage(
                                         } else {
                                                 calculateExpansionCost(worldData.borderExpansionLevel)
                                         }
-                                
+
                                 settingsSession.setMetadata("expand_cost", cost)
 
                                 val directionKey =
@@ -4756,7 +4767,7 @@ player.sendMessage(
 
         private fun showBorderPreview(player: Player, worldData: WorldData, direction: BlockFace) {
                 var world = Bukkit.getWorld(worldData.uuid)
-                
+
                 if (world == null) {
                     val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                     world = Bukkit.getWorld(folderName)
@@ -5007,7 +5018,7 @@ player.sendMessage(
 
             val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
             val player = conn.player
-            
+
             if (identifier == Key.key("mwm:settings/world_info_submit")) {
                 val view = event.getDialogResponseView() ?: return
                 val newName = view.getText("world_name")?.toString().orEmpty().trim()
@@ -5045,12 +5056,15 @@ player.sendMessage(
                 reopenMemberManagementLatest(player, session.worldUuid)
                 return
             }
-            
+
             // Cancel
             if (identifier == Key.key("mwm:settings/cancel")) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-                plugin.worldSettingsGui.open(player, worldData)
+                plugin.settingsSessionManager.endSession(player)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                    plugin.worldSettingsGui.open(player, worldData)
+                }
             }
 
             val keyValue = identifier.value()
@@ -5074,11 +5088,11 @@ player.sendMessage(
             // Dialog Confirmation Handler (Environment & Visitor Kick)
             val keyVal = keyValue
             if (keyVal.startsWith("mwm:confirm/")) {
-                
+
                 // Cancel
                 if (keyVal == "mwm:confirm/cancel") {
                    DialogConfirmManager.safeCloseDialog(player)
-                   return 
+                   return
                 }
 
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
@@ -5087,7 +5101,7 @@ player.sendMessage(
                 if (keyVal.startsWith("mwm:confirm/env_change/")) {
                     val envType = keyVal.substringAfter("mwm:confirm/env_change/")
                     DialogConfirmManager.safeCloseDialog(player)
-                    
+
                     when (envType) {
                         "gravity" -> handleEnvGravityConfirm(player, worldData)
                         "weather" -> handleWeatherConfirm(player, worldData)
@@ -5098,7 +5112,7 @@ player.sendMessage(
                     }
                     return
                 }
-                
+
                 if (keyVal.startsWith("mwm:confirm/visitor_kick/")) {
                      val targetUuidStr = keyVal.substringAfter("mwm:confirm/visitor_kick/")
                      DialogConfirmManager.safeCloseDialog(player)
@@ -5120,9 +5134,9 @@ player.sendMessage(
                 }
             }
         }
-        
 
-        
+
+
         private fun showWorldInfoDialog(player: Player, worldData: WorldData) {
              val lang = plugin.languageManager
              val dialog = Dialog.create { builder ->
@@ -5133,11 +5147,11 @@ player.sendMessage(
                         ))
                         .inputs(listOf(
                             DialogInput.text("world_name", Component.text(lang.getMessage(player, "gui.bedrock.input.rename.label")))
-                                .initial(worldData.name)
+                                .initial(worldData.name.take(16))
                                 .maxLength(16)
                                 .build(),
                             DialogInput.text("world_desc", Component.text(lang.getMessage(player, "gui.bedrock.input.description.label")))
-                                .initial(worldData.description)
+                                .initial(worldData.description.take(100))
                                 .maxLength(100)
                                 .build()
                         ))
@@ -5233,7 +5247,7 @@ player.sendMessage(
                 }
                 player.showDialog(dialog)
         }
-        
+
         private fun openExpandConfirmationByPreference(
                 player: Player,
                 worldUuid: UUID,
@@ -5362,7 +5376,7 @@ player.sendMessage(
         // Helper to show generic simple confirmation
         private fun showEnvConfirmDialog(player: Player, type: String, cost: Int) {
             val lang = plugin.languageManager
-            
+
             val titleKey = "gui.environment.$type.display" // e.g. gui.environment.gravity.display
             val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.YELLOW)
 
@@ -5422,35 +5436,35 @@ player.sendMessage(
                 }
             )
         }
-        
+
         private fun showVisitorKickConfirmDialog(player: Player, targetName: String, targetUuid: UUID) {
             val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return) ?: return
             plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, targetUuid)
         }
-        
+
         @EventHandler
         fun onTagDialogInteraction(event: PlayerCustomClickEvent) {
-                
+
                 val identifier = event.identifier
-                
+
                 val conn = event.commonConnection as? PlayerGameConnection ?: return
                 val player = conn.player
-                
+
                 if (identifier == Key.key("mwm:settings/tags/submit")) {
-                        
+
                         val view = event.getDialogResponseView() ?: return
-                        
+
                         val session = plugin.settingsSessionManager.getSession(player) ?: return
-                        
+
                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: run {
                                 plugin.logger.warning("WorldData not found for tag dialog session uuid ${session.worldUuid}")
                                 return
                         }
-                        
+
                         // Collect all tags from input
                         val allTags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
                         val newTags = mutableSetOf<String>()
-                        
+
                         for (tagId in allTags) {
                                 val inputKey = "tag_$tagId"
                                 val isSelected = view.getBoolean(inputKey) ?: false
@@ -5458,18 +5472,18 @@ player.sendMessage(
                                         newTags.add(tagId)
                                 }
                         }
-                        
+
                         // Save Changes
                         worldData.tags.clear()
                         worldData.tags.addAll(newTags)
-                        
+
                         plugin.worldConfigRepository.save(worldData)
-                        
+
                         // Return to settings
                         plugin.worldSettingsGui.open(player, worldData)
                         return
                 }
-                
+
                 if (identifier == Key.key("mwm:settings/tags/close")) {
                         val session = plugin.settingsSessionManager.getSession(player) ?: run {
                                 plugin.logger.warning("Tag dialog session not found for close action")

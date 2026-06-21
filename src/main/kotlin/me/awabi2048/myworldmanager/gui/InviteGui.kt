@@ -1,6 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -62,12 +65,7 @@ class InviteGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
         holder.inv = inventory
 
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in (rowCount - 1) * 9 until rowCount * 9) inventory.setItem(i, blackPane)
-        for (i in 9 until (rowCount - 1) * 9) inventory.setItem(i, greyPane)
+        GuiItemFactory.applyStandardFrame(inventory)
 
         val headSlots = playerSlots.filter { it < inventory.size && it != statusSlot }
         targets.take(headSlots.size).forEachIndexed { index, target ->
@@ -75,8 +73,16 @@ class InviteGui(private val plugin: MyWorldManager) {
             inventory.setItem(slot, createTargetHead(target, player))
         }
 
-        val statusLore = CCSystem.getAPI().buildLore(
-            listOf(lang.getMessage(player, "gui.meet.world_item.current_world", mapOf("world" to currentWorldData.name)))
+        val statusLore = GuiLoreSpec.Blocks(
+            listOf(
+                GuiLoreBlock(
+                    listOf(
+                        GuiLoreLine.Raw(
+                            lang.getMessage(player, "gui.meet.world_item.current_world", mapOf("world" to currentWorldData.name))
+                        )
+                    )
+                )
+            )
         )
         inventory.setItem(
             statusSlot,

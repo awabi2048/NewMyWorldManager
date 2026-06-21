@@ -43,12 +43,10 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(holder, rowCount * 9, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(plugin.languageManager.getComponent(player, "gui.pending_list.title")))
         holder.inv = inventory
 
-        val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
         val footerStart = (rowCount - 1) * 9
 
-        for (slot in 0..8) inventory.setItem(slot, blackPane)
-        for (slot in footerStart until footerStart + 9) inventory.setItem(slot, blackPane)
+        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
         for (row in 1 until rowCount - 1) {
             val rowStart = row * 9
             inventory.setItem(rowStart, grayPane)
@@ -306,7 +304,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val item = ItemStack(Material.BARRIER)
         val meta = item.itemMeta ?: return item
         meta.displayName(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name"))
-        meta.lore(plugin.languageManager.getComponentList(player, "gui.pending_list.empty.lore"))
+        meta.lore(plugin.languageManager.getMenuLore(player, "gui.pending_list.empty.lore"))
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         return item

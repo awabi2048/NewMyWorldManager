@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -153,7 +154,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                 } else {
                         lang.getMessage(viewer, "gui.visit.world_item.warp")
                 }
-                
+
                 val stats = plugin.playerStatsRepository.findByUuid(viewer.uniqueId)
                 val viewerPlayerUuid = viewer.uniqueId
                 val isMember = world.owner == viewerPlayerUuid ||
@@ -170,22 +171,13 @@ class VisitGui(private val plugin: MyWorldManager) {
                         }
                 } else ""
 
-                val lines = lang.getMessageList(viewer, "gui.visit.world_item.lore", mapOf(
-                        "description" to formattedDesc,
-                        "owner_line" to ownerLine,
-                        "favorite_line" to favoriteLine,
-                        "visitor_line" to visitorLine,
-                        "tag_line" to tagLine,
-                        "warp_line" to warpLine,
-                        "fav_action_line" to favActionLine
-                ))
-                    .filter { line ->
-                        val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                        !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-                    }
-                    .filter { it.isNotBlank() }
-                val lore = CCSystem.getAPI().buildLore(lines)
-                meta.lore(lore)
+                meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
+                        *buildList {
+                                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
+                                add(listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                                add(listOf(warpLine, favActionLine).filter(String::isNotBlank))
+                        }.toTypedArray()
+                )))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
@@ -197,10 +189,8 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = GuiItemFactory.item(
                         Material.REDSTONE,
-                        lang.getComponent(player, "gui.common.return")
-                                .color(NamedTextColor.YELLOW)
-                                .decorate(TextDecoration.BOLD),
-                        listOf(lang.getComponent(player, "gui.common.return_desc")),
+                        lang.getComponent(player, "gui.common.return"),
+                        emptyList(),
                         ItemTag.TYPE_GUI_RETURN
                 )
                 ItemTag.setWorldUuid(item, returnToWorld.uuid)
