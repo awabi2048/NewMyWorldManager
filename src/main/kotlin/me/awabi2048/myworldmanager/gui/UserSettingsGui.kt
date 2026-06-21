@@ -5,6 +5,8 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.StructuredLore
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -41,7 +43,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         items.add(createItem(
             Material.BELL,
             lang.getMessage(player, "gui.user_settings.notification.display"),
-            lang.getMessageList(player, "gui.user_settings.notification.lore", mapOf("status" to notifyStatus)),
+            settingLore(player, "notification", mapOf("status" to notifyStatus)),
             ItemTag.TYPE_GUI_USER_SETTING_NOTIFICATION
         ))
 
@@ -51,7 +53,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         items.add(createItem(
             Material.WRITABLE_BOOK,
             lang.getMessage(player, "gui.user_settings.language.display"),
-            lang.getMessageList(player, "gui.user_settings.language.lore", mapOf("language" to languageName)),
+            settingLore(player, "language", mapOf("language" to languageName)),
             ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE
         ))
 
@@ -64,18 +66,16 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         items.add(createItem(
             Material.RECOVERY_COMPASS,
             lang.getMessage(player, "gui.user_settings.critical_settings_visibility.display"),
-            lang.getMessageList(player, "gui.user_settings.critical_settings_visibility.lore", mapOf("status" to criticalStatus)),
+            settingLore(player, "critical_settings_visibility", mapOf("status" to criticalStatus)),
             ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY
         ))
 
         items.add(createItem(
             Material.COMPASS,
             lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
-            lang.getMessageList(
-                player,
-                "gui.user_settings.tour_navigation.lore",
-                mapOf("status" to lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${stats.tourNavigationMode.name.lowercase()}"))
-            ),
+            settingLore(player, "tour_navigation", mapOf(
+                "status" to lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${stats.tourNavigationMode.name.lowercase()}")
+            )),
             ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
         ))
         
@@ -88,20 +88,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         val inventory = Bukkit.createInventory(holder, totalRows * 9, title)
         holder.inv = inventory
 
-        // Fill Background
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        
-        // Top and Bottom Rows (Black)
-        for (i in 0 until 9) inventory.setItem(i, blackPane)
-        for (i in (totalRows - 1) * 9 until totalRows * 9) inventory.setItem(i, blackPane)
-        
-        // Middle Rows (Gray)
-        for (row in 1 until totalRows - 1) {
-             for (col in 0 until 9) {
-                 inventory.setItem(row * 9 + col, grayPane)
-             }
-        }
+        GuiItemFactory.applyStandardFrame(inventory)
         
         // Place Items
         val itemRows = items.chunked(itemsPerRow)
@@ -121,8 +108,17 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
-    private fun createItem(material: Material, name: String, loreLines: List<String>, tag: String): ItemStack {
-        return GuiItemFactory.textItem(material, name, loreLines, tag)
+    private fun settingLore(player: Player, setting: String, placeholders: Map<String, Any>): GuiLoreSpec.Blocks {
+        val prefix = "gui.user_settings.$setting.blocks"
+        return StructuredLore.setting(
+            plugin.languageManager.getMessageList(player, "$prefix.description", placeholders),
+            plugin.languageManager.getMessageList(player, "$prefix.current", placeholders),
+            plugin.languageManager.getMessageList(player, "$prefix.action", placeholders)
+        )
+    }
+
+    private fun createItem(material: Material, name: String, lore: GuiLoreSpec, tag: String): ItemStack {
+        return GuiItemFactory.item(material, name, lore, tag)
     }
 
     class UserSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {

@@ -1,11 +1,15 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourWaypointData
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -38,14 +42,12 @@ class TourGui(private val plugin: MyWorldManager) {
 
         val description = if (tour.description.isBlank()) "§7" else normalizeDescription(tour.description)
         val byLine = "§7by $ownerName"
-        val infoContent = listOf(description, byLine)
-        val separator = CCSystem.getAPI().createLoreSeparator(infoContent)
         inventory.setItem(
             22,
             createItem(
                 Material.FILLED_MAP,
                 "§b【${tour.name}】",
-                legacyLore(separator, description, "", byLine, separator),
+                framedLore(description, "", byLine),
                 ItemTag.TYPE_GUI_INFO
             )
         )
@@ -144,11 +146,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     private fun fillBase(inventory: Inventory) {
-        val black = decoration(Material.BLACK_STAINED_GLASS_PANE)
-        val gray = decoration(Material.GRAY_STAINED_GLASS_PANE)
-        for (slot in 0 until inventory.size) inventory.setItem(slot, gray)
-        for (i in 0..8) inventory.setItem(i, black)
-        for (i in inventory.size - 9 until inventory.size) inventory.setItem(i, black)
+        GuiItemFactory.applyStandardFrame(inventory)
     }
 
     private fun createCurrentWorldItem(player: Player, worldData: WorldData): ItemStack {
@@ -164,7 +162,7 @@ class TourGui(private val plugin: MyWorldManager) {
         val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite))
         val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
         val tagLine = if (worldData.tags.isNotEmpty()) lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) })) else ""
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(player, "gui.favorite.current_world.name")).decoration(TextDecoration.ITALIC, false))
+        meta.displayName(lang.getComponent(player, "gui.favorite.current_world.name"))
         val lines = lang.getMessageList(player, "gui.favorite.current_world.lore", mapOf(
                 "world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
                 "description" to formattedDesc,
@@ -178,7 +176,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
             }
             .filter { it.isNotBlank() }
-        val lore = CCSystem.getAPI().buildLore(lines)
+        val lore = GuiItemFactory.menuLore(lines)
         meta.lore(lore)
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_TOUR_CURRENT_WORLD)
@@ -229,45 +227,33 @@ class TourGui(private val plugin: MyWorldManager) {
     ): ItemStack {
         val components = when (style) {
             LoreStyle.RAW -> legacyLore(lore)
-            LoreStyle.AUTO_OPEN -> CCSystem.getAPI().buildLore(lore, closingSeparator = false)
+            LoreStyle.AUTO_OPEN -> GuiItemFactory.menuLore(lore, closingSeparator = false)
             LoreStyle.FRAMED -> framedLore(lore)
         }
         return createItem(material, name, components, type)
     }
 
     private fun createItem(material: Material, name: String, lore: List<Component>, type: String): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name).decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore)
-        item.itemMeta = meta
-        ItemTag.tagItem(item, type)
-        return item
+        return GuiItemFactory.item(material, name, lore, type)
     }
 
     private fun framedLore(vararg lines: String): List<Component> = framedLore(lines.toList())
 
     private fun framedLore(lines: List<String>): List<Component> {
         if (lines.isEmpty()) return emptyList()
-        val separator = CCSystem.getAPI().createLoreSeparator(lines)
-        return legacyLore(listOf(separator) + lines + separator)
+        return CCSystem.getAPI().getGuiElementService().autoLore(lines, true)
     }
 
     private fun legacyLore(vararg lines: String): List<Component> = legacyLore(lines.toList())
 
     private fun legacyLore(lines: List<String>): List<Component> {
-        val serializer = LegacyComponentSerializer.legacySection()
-        return lines.map { serializer.deserialize(it).decoration(TextDecoration.ITALIC, false) }
+        return CCSystem.getAPI().getLoreService().render(
+            GuiLoreSpec.Rich(lines.map(GuiLoreLine::Raw), GuiLoreFrame.NONE)
+        )
     }
 
     private fun decoration(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-        return item
+        return GuiItemFactory.decoration(material)
     }
 
     fun openBindSignToTourMenu(player: Player, worldData: WorldData) {

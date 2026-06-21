@@ -25,7 +25,7 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
-        infoMeta.lore(lang.getComponentList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name)))
+        infoMeta.lore(lang.getMenuLore(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name)))
         infoItem.itemMeta = infoMeta
         inventory.setItem(22, infoItem)
 

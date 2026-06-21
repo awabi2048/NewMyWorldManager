@@ -1,15 +1,18 @@
 package me.awabi2048.myworldmanager.ui.bedrock
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.StructuredLore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -487,7 +490,7 @@ class BedrockMenuService(
                 Material.WRITABLE_BOOK,
                 tr(player, "gui.user_settings.button.display"),
                 "open_settings",
-                lore = plugin.languageManager.getMessageList(player, "gui.user_settings.button.lore")
+                lore = GuiLoreSpec.Simple(listOf(tr(player, "gui.user_settings.button.action")))
             )
         )
 
@@ -621,12 +624,7 @@ class BedrockMenuService(
                 Material.BELL,
                 tr(player, "gui.user_settings.notification.display"),
                 "toggle_notification",
-                lore =
-                    plugin.languageManager.getMessageList(
-                        player,
-                        "gui.user_settings.notification.lore",
-                        mapOf("status" to notifyStatus)
-                    )
+                lore = settingLore(player, "notification", mapOf("status" to notifyStatus))
             )
         )
         inventory.setItem(
@@ -635,12 +633,7 @@ class BedrockMenuService(
                 Material.WRITABLE_BOOK,
                 tr(player, "gui.user_settings.language.display"),
                 "cycle_language",
-                lore =
-                    plugin.languageManager.getMessageList(
-                        player,
-                        "gui.user_settings.language.lore",
-                        mapOf("language" to languageName)
-                    )
+                lore = settingLore(player, "language", mapOf("language" to languageName))
                 )
         )
         inventory.setItem(12, createCriticalVisibilityItem(player, stats.criticalSettingsEnabled))
@@ -1106,30 +1099,16 @@ class BedrockMenuService(
             }
 
         val warpAction = tr(player, "gui.player_world.world_item.warp_bedrock")
-        val settingsAction = ""
-
-        val lines = plugin.languageManager.getMessageList(
-                player,
-                "gui.player_world.world_item.lore",
-                mapOf(
-                    "description" to formattedDesc,
-                    "owner_line" to ownerLine,
-                    "publish_line" to publishLine,
-                    "favorite_line" to favoriteLine,
-                    "visitor_line" to visitorLine,
-                    "tag_line" to tagLine,
-                    "expires_at_line" to expiresAtLine,
-                    "expired_line" to expiredLine,
-                    "warp_action" to warpAction,
-                    "settings_action" to settingsAction
-                )
-            )
-            .filter { line ->
-                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-            }
-            .filter { it.isNotBlank() }
-        meta.lore(CCSystem.getAPI().buildLore(lines))
+        // Bedrock uses the same semantic sections as the Java menu, with its own action text.
+        meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
+            *buildList {
+                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
+                add(listOf(ownerLine, publishLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                val lifecycle = listOf(expiresAtLine, expiredLine).filter(String::isNotBlank)
+                if (lifecycle.isNotEmpty()) add(lifecycle)
+                add(listOf(warpAction))
+            }.toTypedArray()
+        )))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
@@ -1142,7 +1121,7 @@ class BedrockMenuService(
         val item = ItemStack(Material.NETHER_STAR)
         val meta = item.itemMeta ?: return item
         meta.displayName(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display"))
-        meta.lore(plugin.languageManager.getComponentList(player, "gui.player_world.creation_button.lore"))
+        meta.lore(plugin.languageManager.getMenuLore(player, "gui.player_world.creation_button.lore"))
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
         ItemTag.setString(item, "bedrock_action", "start_creation")
@@ -1175,7 +1154,7 @@ class BedrockMenuService(
             )
         )
         meta.lore(
-            plugin.languageManager.getComponentList(
+            plugin.languageManager.getMenuLore(
                 player,
                 if (bypassLimits) "gui.player_world.stats_button.lore_bypass" else "gui.player_world.stats_button.lore",
                 mapOf(
@@ -1194,7 +1173,9 @@ class BedrockMenuService(
                 val pendingSectionStart = lore.size - 5
                 val pendingSectionEnd = lore.size - 1
                 meta.lore(
-                    lore.filterIndexed { index, _ -> index !in pendingSectionStart until pendingSectionEnd }
+                    lore.filterIndexed { index, _ ->
+                        index !in pendingSectionStart until pendingSectionEnd
+                    }
                 )
             }
         }
@@ -1212,41 +1193,36 @@ class BedrockMenuService(
         val meta = item.itemMeta ?: return item
         val status = if (enabled) tr(player, "messages.status_visible") else tr(player, "messages.status_hidden")
         meta.displayName(plugin.languageManager.getComponent(player, "gui.user_settings.critical_settings_visibility.display"))
-        meta.lore(
-            plugin.languageManager.getComponentList(
-                player,
-                "gui.user_settings.critical_settings_visibility.lore",
-                mapOf("status" to status)
-            )
-        )
+        meta.lore(CCSystem.getAPI().getLoreService().render(
+            settingLore(player, "critical_settings_visibility", mapOf("status" to status))
+        ))
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
         ItemTag.setString(item, "bedrock_action", "toggle_critical")
         return item
     }
 
+    private fun settingLore(player: Player, setting: String, placeholders: Map<String, Any>) =
+        StructuredLore.setting(
+            plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.description", placeholders),
+            plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.current", placeholders),
+            plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.action", placeholders)
+        )
+
     private fun createActionItem(
         material: Material,
         displayName: String,
         action: String,
         worldUuid: UUID? = null,
-        lore: List<String> = emptyList()
+        lore: GuiLoreSpec = GuiLoreSpec.None
     ): ItemStack {
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
 
-        meta.displayName(
-            LegacyComponentSerializer.legacySection().deserialize(displayName)
-                .decoration(TextDecoration.ITALIC, false)
-        )
+        meta.displayName(CCSystem.getAPI().getGuiElementService().name(displayName))
 
-        if (lore.isNotEmpty()) {
-            meta.lore(
-                lore.map {
-                    LegacyComponentSerializer.legacySection().deserialize(it)
-                        .decoration(TextDecoration.ITALIC, false)
-                }
-            )
+        if (lore != GuiLoreSpec.None) {
+            meta.lore(CCSystem.getAPI().getLoreService().render(lore))
         }
 
         item.itemMeta = meta

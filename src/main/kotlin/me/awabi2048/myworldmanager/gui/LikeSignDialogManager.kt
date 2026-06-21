@@ -5,6 +5,9 @@ package me.awabi2048.myworldmanager.gui
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import io.papermc.paper.registry.data.dialog.ActionButton
 import io.papermc.paper.registry.data.dialog.DialogBase
@@ -192,11 +195,15 @@ class LikeSignDialogManager : Listener {
             val likesLabel = lang.getMessage(player, "gui.like_sign.edit.current_likes")
             val typeLabel = lang.getMessage(player, "gui.like_sign.input.display_type")
 
-            val lines = listOf(
-                CCSystem.getAPI().createLoreDataLine(likesLabel, "§c❤ ${signData.likeCount()}", ""),
-                CCSystem.getAPI().createLoreDataLine(typeLabel, signData.displayType.name, "§f")
+            val bodyLines = CCSystem.getAPI().getLoreService().render(
+                GuiLoreSpec.Rich(
+                    listOf(
+                        GuiLoreLine.Data(likesLabel, "§c❤ ${signData.likeCount()}", ""),
+                        GuiLoreLine.Data(typeLabel, signData.displayType.name, "§f")
+                    ),
+                    GuiLoreFrame.BOTH
+                )
             )
-            val bodyLines = CCSystem.getAPI().buildLore(lines)
 
             val dialog = Dialog.create { builder ->
                 builder.empty()

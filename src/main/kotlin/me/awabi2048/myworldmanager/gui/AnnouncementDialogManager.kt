@@ -212,10 +212,12 @@ class AnnouncementDialogManager : Listener {
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 plugin.settingsSessionManager.endSession(player)
 
-                if (worldUuid != null) {
-                    val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-                    if (worldData != null) {
-                        plugin.worldSettingsGui.open(player, worldData)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    if (worldUuid != null) {
+                        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        if (worldData != null) {
+                            plugin.worldSettingsGui.open(player, worldData)
+                        }
                     }
                 }
             })
@@ -243,7 +245,9 @@ class AnnouncementDialogManager : Listener {
             // 設定GUIに戻る
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldSettingsGui.open(player, worldData)
+                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                    plugin.worldSettingsGui.open(player, worldData)
+                }
             })
 
             return

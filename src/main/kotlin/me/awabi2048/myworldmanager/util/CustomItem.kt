@@ -23,84 +23,84 @@ enum class CustomItem(val id: String) {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
             val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
-            
-            meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.empty_biome_bottle.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(lang.getMessageList(player, "custom_item.empty_biome_bottle.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
-            
+
+            meta.displayName(lang.getComponent(player, "custom_item.empty_biome_bottle.name"))
+            meta.lore(lang.getMenuLore(player, "custom_item.empty_biome_bottle.lore"))
+
             meta.setMaxStackSize(4)
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
             item.itemMeta = meta
-            
+
             item.unsetData(DataComponentTypes.CONSUMABLE)
             item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("empty_biome_bottle").build())
-            
+
             ItemTag.tagItem(item, ItemTag.TYPE_EMPTY_BIOME_BOTTLE)
             return item
         }
     },
-    
+
     BOTTLED_BIOME_AIR("bottled_biome_air") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
             // Default to plains if no biome info is provided
             return createWithBiome(lang, player, "plains")
         }
     },
-    
+
     MOON_STONE("moon_stone") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
             val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
-            
-            meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.moon_stone.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(lang.getMessageList(player, "custom_item.moon_stone.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
-            
+
+            meta.displayName(lang.getComponent(player, "custom_item.moon_stone.name"))
+            meta.lore(lang.getMenuLore(player, "custom_item.moon_stone.lore"))
+
             meta.setMaxStackSize(1)
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
             item.itemMeta = meta
-            
+
             item.unsetData(DataComponentTypes.CONSUMABLE)
             item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("moon_stone").build())
-            
+
             ItemTag.tagItem(item, ItemTag.TYPE_MOON_STONE)
             return item
         }
     },
-    
+
     WORLD_SEED("world_seed") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
             val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
-            
-            meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.world_seed.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(lang.getMessageList(player, "custom_item.world_seed.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
-            
+
+            meta.displayName(lang.getComponent(player, "custom_item.world_seed.name"))
+            meta.lore(lang.getMenuLore(player, "custom_item.world_seed.lore"))
+
             meta.setMaxStackSize(1)
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
             item.itemMeta = meta
-            
+
             item.unsetData(DataComponentTypes.CONSUMABLE)
             item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("world_seed").build())
-            
+
             ItemTag.tagItem(item, ItemTag.TYPE_WORLD_SEED)
             return item
         }
     },
-    
+
     TOUR_SIGN("tour_sign") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
             val item = ItemStack(Material.END_PORTAL_FRAME)
             val meta = item.itemMeta ?: return item
-            
-            meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.tour_sign.name")).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(lang.getMessageList(player, "custom_item.tour_sign.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
-            
+
+            meta.displayName(lang.getComponent(player, "custom_item.tour_sign.name"))
+            meta.lore(lang.getMenuLore(player, "custom_item.tour_sign.lore"))
+
             meta.setMaxStackSize(16)
             meta.setItemModel(NamespacedKey("minecraft", "pale_oak_sign"))
             item.itemMeta = meta
-            
+
             item.unsetData(DataComponentTypes.CONSUMABLE)
             item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("tour_sign").build())
-            
+
             ItemTag.tagItem(item, ItemTag.TYPE_TOUR_SIGN)
             return item
         }
@@ -112,22 +112,22 @@ enum class CustomItem(val id: String) {
     };
 
     abstract fun create(lang: LanguageManager, player: Player?): ItemStack
-    
+
     fun createWithBiome(lang: LanguageManager, player: Player?, biomeId: String): ItemStack {
         val item = ItemStack(Material.POISONOUS_POTATO)
         val meta = item.itemMeta ?: return item
-        
+
         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
-        meta.displayName(net.kyori.adventure.text.Component.text(lang.getMessage(player, "custom_item.bottled_biome_air.name", mapOf("biome" to biomeName))).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-        meta.lore(lang.getMessageList(player, "custom_item.bottled_biome_air.lore").map { net.kyori.adventure.text.Component.text(it).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false) })
-        
+        meta.displayName(lang.getComponent(player, "custom_item.bottled_biome_air.name", mapOf("biome" to biomeName)))
+        meta.lore(lang.getMenuLore(player, "custom_item.bottled_biome_air.lore"))
+
         meta.setMaxStackSize(1)
         meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
         item.itemMeta = meta
-        
+
         item.unsetData(DataComponentTypes.CONSUMABLE)
         item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("bottled_biome_air").build())
-        
+
         ItemTag.tagItem(item, ItemTag.TYPE_BOTTLED_BIOME_AIR)
         ItemTag.setBiomeId(item, biomeId)
         return item

@@ -1,12 +1,17 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
+import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -382,24 +387,12 @@ class WorldGui(private val plugin: MyWorldManager) {
 
         /** 黒の板ガラスを作成 (1行目・6行目用) */
         private fun createBlackPaneItem(): ItemStack {
-                val item = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(Component.empty())
-                meta.isHideTooltip = true
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-                return item
+                return GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
         }
 
         /** 背景用の灰色の板ガラスを作成 */
         private fun createBackgroundItem(): ItemStack {
-                val item = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(Component.empty())
-                meta.isHideTooltip = true
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
-                return item
+                return GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
         }
 
         private fun createCurrentWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
@@ -681,33 +674,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                         else ""
                 val worldSizeLine = buildWorldSizeLine(player, data)
 
-                val lines = lang.getMessageList(
-                        player,
-                        "gui.admin.world_item.lore",
-                        mapOf(
-                                "uuid_line" to firstLine,
-                                "world_name_line" to worldNameLine,
-                                "owner_line" to ownerLine,
-                                "status_line" to statusLine,
-                                "publish_line" to publishLine,
-                                "generation_line" to generationLine,
-                                "created_line" to createdLine,
-                                "expire_line" to expireLine,
-                                "mspt_line" to msptLine,
-                                "world_size_line" to worldSizeLine,
-                                "tag_line" to "",
-                                "action_warp" to actionWarp,
-                                "action_settings" to actionSettings,
-                                "action_archive" to actionArchive,
-                                "uuid_copy_hint" to uuidCopyHint
-                        )
-                )
-                    .filter { line ->
-                        val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                        !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-                    }
-                    .filter { it.isNotBlank() }
-                return CCSystem.getAPI().buildLore(lines)
+                return CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
+                        listOf(firstLine, worldNameLine, ownerLine, statusLine).filter(String::isNotBlank),
+                        listOf(publishLine, generationLine),
+                        listOf(createdLine, expireLine).filter(String::isNotBlank),
+                        listOf(msptLine, worldSizeLine).filter(String::isNotBlank),
+                        listOf(actionWarp, actionSettings, actionArchive, uuidCopyHint).filter(String::isNotBlank)
+                ))
         }
 
         private fun getGenerationMethodLabel(player: Player, sourceWorld: String): String {
@@ -989,7 +962,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev"
                                 )
                         )
-                        meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+                        meta.lore(GuiItemFactory.componentMenuLore(lore))
                 }
 
                 item.itemMeta = meta
@@ -1108,7 +1081,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                          String.format("§7Server MSPT: %s ms", me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColoredString(mspt))
                      ))
                 }
-                meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+                meta.lore(GuiItemFactory.componentMenuLore(lore))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -1123,21 +1096,29 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 meta.displayName(lang.getComponent(player, "gui.admin.filter.archive.display"))
 
-                val lore = mutableListOf<Component>()
-                ArchiveFilter.values().forEach { filter ->
-                        val prefix = if (filter == session.archiveFilter) "§a» " else "§8- "
-                        lore.add(
-                                LegacyComponentSerializer.legacySection()
-                                        .deserialize(
-                                                "$prefix${lang.getMessage(player, filter.displayKey)}"
-                                        )
-                                        .decoration(TextDecoration.ITALIC, false)
-                        )
+                val options = ArchiveFilter.values().map { filter ->
+                        filter to lang.getMessage(player, filter.displayKey)
                 }
-                lore.add(Component.empty())
-                lore.add(lang.getComponent(player, "gui.admin.filter.click_cycle"))
-
-                meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+                meta.lore(CCSystem.getAPI().getLoreService().render(
+                        GuiLoreSpec.Rich(buildList {
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.admin.filter.archive.label"),
+                                        options.first { it.first == session.archiveFilter }.second,
+                                        "\u00A7e"
+                                ))
+                                add(GuiLoreLine.Spacer)
+                                options.forEach { (filter, displayName) ->
+                                        val selected = filter == session.archiveFilter
+                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                                        val color = if (selected) "\u00A7e" else "\u00A77"
+                                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                                }
+                                add(GuiLoreLine.Spacer)
+                                add(GuiLoreLine.SingleAction(
+                                        lang.getMessage(player, "gui.admin.filter.click_cycle")
+                                ))
+                        }, GuiLoreFrame.BOTH)
+                ))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE)
                 return item
@@ -1151,21 +1132,34 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 meta.displayName(lang.getComponent(player, "gui.admin.filter.publish.display"))
 
-                val lore = mutableListOf<Component>()
-                PublishFilter.values().forEach { filter ->
-                        val prefix = if (filter == session.publishFilter) "§a» " else "§8- "
-                        lore.add(
-                                LegacyComponentSerializer.legacySection()
-                                        .deserialize(
-                                                "$prefix${lang.getMessage(player, filter.displayKey)}"
-                                        )
-                                        .decoration(TextDecoration.ITALIC, false)
-                        )
+                val options = PublishFilter.values().map { filter ->
+                        filter to lang.getMessage(player, filter.displayKey)
                 }
-                lore.add(Component.empty())
-                lore.add(lang.getComponent(player, "gui.admin.filter.click_lr"))
-
-                meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+                meta.lore(CCSystem.getAPI().getLoreService().render(
+                        GuiLoreSpec.Rich(buildList {
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.admin.filter.publish.label"),
+                                        options.first { it.first == session.publishFilter }.second,
+                                        "\u00A7e"
+                                ))
+                                add(GuiLoreLine.Spacer)
+                                options.forEach { (filter, displayName) ->
+                                        val selected = filter == session.publishFilter
+                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                                        val color = if (selected) "\u00A7e" else "\u00A77"
+                                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                                }
+                                add(GuiLoreLine.Spacer)
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.left"),
+                                        lang.getMessage(player, "gui.admin.filter.previous")
+                                ))
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.right"),
+                                        lang.getMessage(player, "gui.admin.filter.next")
+                                ))
+                        }, GuiLoreFrame.BOTH)
+                ))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH)
                 return item
@@ -1209,7 +1203,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         lore.add(lang.getComponent(player, "gui.admin.filter.player.click_right"))
                 }
 
-                meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+                meta.lore(GuiItemFactory.componentMenuLore(lore))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER)
                 return item
@@ -1223,7 +1217,6 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 meta.displayName(lang.getComponent(player, "gui.admin.sort.display"))
 
-                val lore = mutableListOf<Component>()
                 var sortTypes = AdminSortType.values()
                         .filter { it != AdminSortType.EXPIRE_ASC && it != AdminSortType.EXPIRE_DESC }
                         .toTypedArray()
@@ -1232,22 +1225,37 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 sortTypes.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()
                 }
 
-                sortTypes.forEach { sortType ->
-                        val prefix = if (sortType == session.sortBy) "§a» " else "§8- "
-                        lore.add(
-                                LegacyComponentSerializer.legacySection()
-                                        .deserialize(
-                                                "$prefix${lang.getMessage(player, sortType.displayKey)}"
-                                        )
-                                        .decoration(TextDecoration.ITALIC, false)
-                        )
+                val options = sortTypes.map { sortType ->
+                        sortType to lang.getMessage(player, sortType.displayKey)
                 }
-                lore.add(Component.empty())
-                lore.add(lang.getComponent(player, "gui.admin.filter.click_lr"))
-
-                meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+                meta.lore(CCSystem.getAPI().getLoreService().render(
+                        GuiLoreSpec.Rich(buildList {
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.admin.sort.label"),
+                                        options.first { it.first == session.sortBy }.second,
+                                        "\u00A7e"
+                                ))
+                                add(GuiLoreLine.Spacer)
+                                options.forEach { (sortType, displayName) ->
+                                        val selected = sortType == session.sortBy
+                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                                        val color = if (selected) "\u00A7e" else "\u00A77"
+                                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                                }
+                                add(GuiLoreLine.Spacer)
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.left"),
+                                        lang.getMessage(player, "gui.admin.filter.previous")
+                                ))
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.right"),
+                                        lang.getMessage(player, "gui.admin.filter.next")
+                                ))
+                        }, GuiLoreFrame.BOTH)
+                ))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_SORT)
                 return item
         }
+
 }

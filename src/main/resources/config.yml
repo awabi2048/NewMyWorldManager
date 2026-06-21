@@ -42,6 +42,10 @@ creation_cost:
 deletion:
   reduce_owner_slot: false
 
+# LuckPerms group granted to MyWorld participants only in their world context. Empty disables it.
+permissions:
+  world_work_group: "builder"
+
 default_expiration:
   initial_days: 90
   extension_days: 30

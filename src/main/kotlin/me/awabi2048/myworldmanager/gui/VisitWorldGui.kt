@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
@@ -99,20 +100,13 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
     }
 
     private fun fillBaseLayout(inventory: Inventory) {
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
         val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        val whitePane = GuiItemFactory.decoration(Material.WHITE_STAINED_GLASS_PANE)
-
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 45..53) inventory.setItem(i, blackPane)
+        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = Material.WHITE_STAINED_GLASS_PANE)
 
         for (row in 1..4) {
             val rowStart = row * 9
             inventory.setItem(rowStart, grayPane)
             inventory.setItem(rowStart + 8, grayPane)
-            for (column in 1..7) {
-                inventory.setItem(rowStart + column, whitePane)
-            }
         }
     }
 
@@ -153,7 +147,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
         }
 
         meta.displayName(lang.getComponent(player, "gui.visitworld.info.name").decoration(TextDecoration.ITALIC, false))
-        meta.lore(lore)
+        meta.lore(GuiItemFactory.componentMenuLore(lore))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -229,22 +223,13 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             ""
         }
 
-        val lines = lang.getMessageList(viewer, "gui.visit.world_item.lore", mapOf(
-            "description" to formattedDesc,
-            "owner_line" to ownerLine,
-            "favorite_line" to favoriteLine,
-            "visitor_line" to visitorLine,
-            "tag_line" to tagLine,
-            "warp_line" to warpLine,
-            "fav_action_line" to favActionLine
-        ))
-            .filter { line ->
-                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-            }
-            .filter { it.isNotBlank() }
-        val lore = CCSystem.getAPI().buildLore(lines)
-        meta.lore(lore)
+        meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
+            *buildList {
+                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
+                add(listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                add(listOf(warpLine, favActionLine).filter(String::isNotBlank))
+            }.toTypedArray()
+        )))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)

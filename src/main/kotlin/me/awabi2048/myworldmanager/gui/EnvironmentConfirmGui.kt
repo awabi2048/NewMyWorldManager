@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
@@ -43,13 +44,20 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         val displayItem = itemToConsume.clone()
         displayItem.amount = 1
         val meta = displayItem.itemMeta
-        val lore = meta.lore() ?: mutableListOf()
-        lore.add(Component.empty())
-        lore.add(
-                Component.text(
-                        lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost))
+        val lore = GuiLoreBuilder(lang, player)
+                .componentBlock(meta.lore().orEmpty())
+                .componentBlock(
+                        listOf(
+                                Component.text(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.settings.expand.cost",
+                                                mapOf("cost" to cost)
+                                        )
+                                )
+                        )
                 )
-        )
+                .build()
         meta.lore(lore)
         displayItem.itemMeta = meta
         ItemTag.tagItem(displayItem, ItemTag.TYPE_GUI_INFO)
@@ -58,7 +66,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         // 確定ボタン
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
         val confirmMeta = confirmItem.itemMeta
-        confirmMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.confirm")))
+        confirmMeta?.displayName(lang.getComponent(player, "gui.common.confirm"))
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
         inventory.setItem(20, confirmItem)
@@ -66,7 +74,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         // キャンセルボタン
         val cancelItem = ItemStack(Material.RED_CONCRETE)
         val cancelMeta = cancelItem.itemMeta
-        cancelMeta?.displayName(Component.text(lang.getMessage(player, "gui.common.cancel")))
+        cancelMeta?.displayName(lang.getComponent(player, "gui.common.cancel"))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
         inventory.setItem(24, cancelItem)

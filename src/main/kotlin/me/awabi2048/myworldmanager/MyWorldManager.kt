@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.api.internal.WorldServiceAdapter
 import me.awabi2048.myworldmanager.api.internal.WorldTagServiceAdapter
 import me.awabi2048.myworldmanager.command.*
 import me.awabi2048.myworldmanager.gui.*
+import me.awabi2048.myworldmanager.integration.WorldPermissionPolicyService
 import me.awabi2048.myworldmanager.listener.*
 import me.awabi2048.myworldmanager.model.LikeSignData
 import me.awabi2048.myworldmanager.model.TourData
@@ -29,6 +30,7 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import net.luckperms.api.LuckPerms
 import java.io.File
 import java.util.UUID
 import java.util.jar.JarFile
@@ -42,6 +44,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
     private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
+    private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
 
@@ -106,6 +109,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
+    lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
     override fun onEnable() {
         ensureCCSystemAvailable()
@@ -203,6 +207,13 @@ class MyWorldManager : JavaPlugin() {
         creationSessionManager = CreationSessionManager(this)
         inviteSessionManager = InviteSessionManager()
         macroManager = MacroManager(this)
+        worldPermissionPolicyService = WorldPermissionPolicyService(
+                server.servicesManager.getRegistration(LuckPerms::class.java)?.provider,
+                server.pluginManager.isPluginEnabled("WorldGuard"),
+                config.getString("permissions.world_work_group", "builder").orEmpty().trim(),
+                logger,
+                dataFolder
+        )
         tourSessionManager = TourSessionManager()
         // MemberInviteManagerの初期化に依存関係を渡す
         memberInviteManager = MemberInviteManager(this, worldConfigRepository, macroManager)
@@ -244,6 +255,9 @@ class MyWorldManager : JavaPlugin() {
         MyWorldManagerApi.registerTemplateRepository(TemplateRepositoryAdapter(this))
         MyWorldManagerApi.registerMemberManager(MemberManagerAdapter(this))
         MyWorldManagerApi.registerWorldTagService(WorldTagServiceAdapter(this))
+        worldWorkPermissionSyncService = MyWorldManagerApi.WorldWorkPermissionSyncService { worldUuid ->
+            worldConfigRepository.findByUuid(worldUuid)?.let(worldPermissionPolicyService::syncParticipants)
+        }.also(MyWorldManagerApi::registerWorldWorkPermissionSyncService)
 
         MyWorldManagerApi.setMemberManagementOpener { player, worldUuid ->
             val worldData = worldConfigRepository.findByUuid(worldUuid) ?: return@setMemberManagementOpener
@@ -254,6 +268,16 @@ class MyWorldManager : JavaPlugin() {
 
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(this), this)
+        server.pluginManager.registerEvents(
+                WorldPermissionPolicyListener(worldConfigRepository, worldPermissionPolicyService),
+                this
+        )
+        // サーバー起動時点ですでにロード済みのMyWorldにも、一度だけ初期ポリシーを適用する。
+        server.scheduler.runTask(this, Runnable {
+            worldConfigRepository.findAll()
+                    .filter { Bukkit.getWorld(WorldPermissionPolicyService.worldName(it)) != null }
+                    .forEach(worldPermissionPolicyService::initializeWorld)
+        })
         server.pluginManager.registerEvents(AccessControlListener(this), this)
         server.pluginManager.registerEvents(BorderExpansionChangeListener(this), this)
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
@@ -354,9 +378,12 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        if (::menuRouteHistory.isInitialized) menuRouteHistory.closeOwnedMenus()
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
         worldPointApiService = null
+        worldWorkPermissionSyncService?.let(MyWorldManagerApi::unregisterWorldWorkPermissionSyncService)
+        worldWorkPermissionSyncService = null
         runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()

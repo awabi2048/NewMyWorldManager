@@ -1,6 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
@@ -26,21 +29,12 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
-        
+
         plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_MENU, isGui = true)
-        
+
         val inventory = Bukkit.createInventory(null, 45, title)
 
-        // 背景 (黒の板ガラス)
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 36..44) inventory.setItem(i, blackPane)
-
-        // 背景 (灰色の板ガラス)
-        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        for (i in 0 until inventory.size) {
-            if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
-        }
+        GuiItemFactory.applyStandardFrame(inventory)
 
         // Slot 19: データ更新 (update-data)
         inventory.setItem(19, createItem(
@@ -104,14 +98,17 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                 ItemTag.TYPE_GUI_ADMIN_EXPORT
             ))
         } else {
-            val lore = lang.getMessageList(player, "gui.admin_menu.export.lore").toMutableList()
-            lore.add("")
-            lore.add("§c※現在のワールドはマイワールドではないため")
-            lore.add("§c  エクスポートできません。")
-            inventory.setItem(25, createItem(
+            val loreLines = mutableListOf<GuiLoreLine>()
+            lang.getMessageList(player, "gui.admin_menu.export.lore").forEach { line ->
+                val trimmed = line.trim()
+                if (trimmed.isEmpty()) loreLines.add(GuiLoreLine.Spacer) else loreLines.add(GuiLoreLine.Raw(trimmed))
+            }
+            loreLines.add(GuiLoreLine.Spacer)
+            loreLines.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.admin_menu.export.unavailable_warning")))
+            inventory.setItem(25, GuiItemFactory.item(
                 Material.BARRIER,
                 lang.getMessage(player, "gui.admin_menu.export.display"),
-                lore,
+                GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH),
                 ItemTag.TYPE_GUI_INFO
             ))
         }
@@ -127,8 +124,12 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         // Slot 40: プラグイン情報
         inventory.setItem(40, createItem(
             Material.NETHER_STAR,
-            "§bMyWorldManager",
-            listOf("§7Version: " + plugin.pluginMeta.version, "§7Author: awabi2048"),
+            lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
+            lang.getMessageList(
+                player,
+                "gui.admin_menu.plugin_info.lore",
+                mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048")
+            ),
             ItemTag.TYPE_GUI_INFO
         ))
 
@@ -228,7 +229,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         }
     }
-    
+
     fun openUpdateDataConfirmation(player: Player) {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.update_data.confirm_title")
@@ -318,7 +319,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.updateSessionAction(player, worldUuid, action, isGui = true)
         val lines = (extraInfo + lang.getMessage(player, "gui.common.confirm_warning"))
             .filter { it.isNotBlank() }
-        val bodyLines = CCSystem.getAPI().buildLore(lines)
+        val bodyLines = GuiItemFactory.menuLore(lines)
 
         DialogConfirmManager.showConfirmationByPreference(
             player,
@@ -343,7 +344,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val infoLore = extraInfo.toMutableList()
         infoLore.add("")
         infoLore.add(lang.getMessage(player, "gui.common.confirm_warning"))
-        
+
         inventory.setItem(22, createItem(
             Material.PAPER,
             lang.getMessage(player, "gui.common.confirmation"),

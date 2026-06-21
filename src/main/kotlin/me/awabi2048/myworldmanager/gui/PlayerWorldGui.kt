@@ -16,6 +16,7 @@ import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.StructuredLore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -25,6 +26,11 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 
 class PlayerWorldGui(private val plugin: MyWorldManager) {
 
@@ -37,7 +43,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         fun getPlayerWorlds(player: Player): List<WorldData> {
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 val allWorlds = repository.findAll()
-                
+
                 // プレイヤーがアクセス可能なワールドをフィルタリング
                 val accessibleWorlds = allWorlds
                         .filter {
@@ -49,16 +55,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         .filter {
                                 it.owner == player.uniqueId || !it.isArchived
                         } // メンバーとして参加しているアーカイブ済みは非表示
-                
+
                 // worldDisplayOrder に含まれるワールド（順序リスト順）
                 val orderedWorlds = stats.worldDisplayOrder
                         .mapNotNull { uuid -> accessibleWorlds.find { it.uuid == uuid } }
-                
+
                 // worldDisplayOrder に含まれていないワールド（作成日時降順）
                 val unorderedWorlds = accessibleWorlds
                         .filter { !stats.worldDisplayOrder.contains(it.uuid) }
                         .sortedWith(compareBy<WorldData> { it.isArchived }.thenByDescending { it.createdAt })
-                
+
                 // 完全な順序リスト（orderedWorlds + unorderedWorlds）
                 return orderedWorlds + unorderedWorlds
         }
@@ -76,7 +82,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         plugin.worldConfigRepository.findByUuid(uuid) == null
                 }
                 val afterCount = stats.worldDisplayOrder.size
-                
+
                 // 変更があれば保存＆ログ出力
                 if (beforeCount != afterCount) {
                         plugin.playerStatsRepository.save(stats)
@@ -85,7 +91,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 repository.loadAll()
                 val playerWorlds = getPlayerWorlds(player)
-                
+
                 // worldDisplayOrder に含まれていないワールドを自動追加
                 val currentUuids = playerWorlds.map { it.uuid }
                 val missingUuids = currentUuids.filter { !stats.worldDisplayOrder.contains(it) }
@@ -94,7 +100,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         plugin.playerStatsRepository.save(stats)
                         plugin.logger.info("[PlayerWorldGui] ${player.name} の worldDisplayOrder に新規ワールド ${missingUuids.size} 件を追加しました。")
                 }
-                
+
                 // 現在のページ番号を保存
                 session.currentPage = page
 
@@ -148,10 +154,9 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
 
-                val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 val greyPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
 
-                for (i in 0..8) inventory.setItem(i, blackPane)
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
                 for (i in 0 until neededDataRows) {
                         val rowStart = (i + 1) * 9
@@ -176,8 +181,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
 
                 val footerStart = (rowCount - 1) * 9
-                for (i in 0..8) inventory.setItem(footerStart + i, blackPane)
-
                 // 統計情報の取得
                 val currentCreateCount = playerWorlds.count { it.owner == player.uniqueId }
                 val maxSlot =
@@ -309,7 +312,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                     meta.setEnchantmentGlintOverride(true)
                     lang.getMessage(player, "gui.player_world.world_item.expired")
                 } else ""
-                
+
                 val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
                 val settingsAction =
                         if (plugin.playerPlatformResolver.isBedrock(player)) {
@@ -318,25 +321,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 lang.getMessage(player, "gui.player_world.world_item.settings")
                         }
 
-                val lines = lang.getMessageList(player, "gui.player_world.world_item.lore", mapOf(
-                        "description" to formattedDesc,
-                        "owner_line" to ownerLine,
-                        "publish_line" to publishLine,
-                        "favorite_line" to favoriteLine,
-                        "visitor_line" to visitorLine,
-                        "tag_line" to tagLine,
-                        "expires_at_line" to expiresAtLine,
-                        "expired_line" to expiredLine,
-                        "warp_action" to warpAction,
-                        "settings_action" to settingsAction
-                ))
-                    .filter { line ->
-                        val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                        !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-                    }
-                    .filter { it.isNotBlank() }
-                val lore = CCSystem.getAPI().buildLore(lines)
-                meta.lore(lore)
+                // MWM owns the semantic block order; CC-System owns all surrounding separators.
+                meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
+                        *buildList {
+                                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
+                                add(listOf(ownerLine, publishLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                                val lifecycle = listOf(expiresAtLine, expiredLine).filter(String::isNotBlank)
+                                if (lifecycle.isNotEmpty()) add(lifecycle)
+                                add(listOf(warpAction, settingsAction).filter(String::isNotBlank))
+                        }.toTypedArray()
+                )))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
@@ -346,23 +340,17 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun createUserSettingsButton(player: Player): ItemStack {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.WRITABLE_BOOK)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
-                        lang.getComponent(
-                                player,
-                                "gui.user_settings.button.display"
+                val item = CCSystem.getAPI().getGuiElementService().item(
+                        GuiItemSpec(
+                                material = Material.WRITABLE_BOOK,
+                                name = GuiNameSpec.Text(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
+                                lore = GuiLoreSpec.Simple(
+                                        listOf(lang.getMessage(player, "gui.user_settings.button.action"))
+                                ),
+                                role = GuiElementRole.ACTION,
+                                amount = 1
                         )
                 )
-
-                meta.lore(
-                        lang.getComponentList(
-                                player,
-                                "gui.user_settings.button.lore"
-                        )
-                )
-
-                item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_USER_SETTINGS_BUTTON)
                 return item
         }
@@ -374,7 +362,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 meta.displayName(
                         lang.getComponent(player, "gui.player_world.creation_button.display")
                 )
-                meta.lore(lang.getComponentList(player, "gui.player_world.creation_button.lore"))
+                meta.lore(GuiItemFactory.menuLore(lang.getMessageList(player, "gui.player_world.creation_button.lore")))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_CREATION_BUTTON)
                 return item
@@ -410,7 +398,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 )
 
                 meta.lore(
-                        lang.getComponentList(
+                        GuiItemFactory.menuLore(lang.getMessageList(
                                 player,
                                 if (bypassLimits) "gui.player_world.stats_button.lore_bypass" else "gui.player_world.stats_button.lore",
                                 mapOf(
@@ -421,7 +409,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         "pending_count" to pendingCount,
                                         "latest_pending_at" to latestPendingText
                                 )
-                        )
+                        ))
                 )
 
                 if (pendingCount == 0) {
@@ -430,7 +418,9 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 val pendingSectionStart = lore.size - 5
                                 val pendingSectionEnd = lore.size - 1
                                 meta.lore(
-                                        lore.filterIndexed { index, _ -> index !in pendingSectionStart until pendingSectionEnd }
+                                        lore.filterIndexed { index, _ ->
+                                                index !in pendingSectionStart until pendingSectionEnd
+                                        }
                                 )
                         }
                 }

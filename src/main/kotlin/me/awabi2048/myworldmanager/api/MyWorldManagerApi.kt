@@ -24,6 +24,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
+import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiTemplateRepository
@@ -59,6 +60,8 @@ object MyWorldManagerApi {
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
     private val visitMenuProviders = CopyOnWriteArrayList<VisitMenuProvider>()
     private val worldEvacuationProviders = CopyOnWriteArrayList<WorldEvacuationProvider>()
+    private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
+    private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
 
     @JvmStatic
     fun registerWorldPointService(service: WorldPointService) {
@@ -380,6 +383,43 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getEvacuationLocationOverride(): Location? {
         return worldEvacuationProviders.asReversed().firstNotNullOfOrNull { it.getEvacuationLocation() }
+    }
+
+    @JvmStatic
+    fun registerWorldWorkPermissionPolicy(policy: WorldWorkPermissionPolicy) {
+        worldWorkPermissionPolicies.removeIf { it.getId() == policy.getId() }
+        worldWorkPermissionPolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldWorkPermissionPolicy(policy: WorldWorkPermissionPolicy) {
+        worldWorkPermissionPolicies.removeIf { it === policy || it.getId() == policy.getId() }
+    }
+
+    @JvmStatic
+    fun canAssignWorldWorkPermission(worldData: WorldData, playerUuid: UUID): Boolean {
+        return worldWorkPermissionPolicies.all { it.canAssign(worldData, playerUuid) }
+    }
+
+    @JvmStatic
+    fun registerWorldWorkPermissionSyncService(service: WorldWorkPermissionSyncService) {
+        worldWorkPermissionSyncService = service
+    }
+
+    @JvmStatic
+    fun unregisterWorldWorkPermissionSyncService(service: WorldWorkPermissionSyncService) {
+        if (worldWorkPermissionSyncService === service) {
+            worldWorkPermissionSyncService = null
+        }
+    }
+
+    @JvmStatic
+    fun syncWorldWorkPermissions(worldUuid: UUID) {
+        worldWorkPermissionSyncService?.sync(worldUuid)
+    }
+
+    fun interface WorldWorkPermissionSyncService {
+        fun sync(worldUuid: UUID)
     }
 
     @JvmStatic

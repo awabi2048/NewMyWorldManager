@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
@@ -26,7 +30,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
 
     fun open(player: Player, page: Int? = null, fromAdminMenu: Boolean? = null) {
 
-        
+
         val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
         if (fromAdminMenu != null) {
             session.fromAdminMenu = fromAdminMenu
@@ -46,9 +50,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_portals", titleComp)
         val inventory = Bukkit.createInventory(null, 54, titleComp)
 
-        // 1行目を黒の板ガラスで敷き詰める
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        for (i in 0..8) inventory.setItem(i, blackPane)
+        GuiItemFactory.applyStandardFrame(inventory)
 
         // ポータルアイテムの配置
         val startIndex = safePage * itemsPerPage
@@ -61,22 +63,20 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         // 下部ボタンレイアウト:
         // [<前] [ ] [ ] [情報] [ ] [ソート] [ ] [ ] [次>]
         //  46   47  48  49   50   51   52  53
-        
-        // 最終行を黒の板ガラスで敷き詰める（RAYOUT_RULES.md準拠）
-        for (i in 45..53) inventory.setItem(i, blackPane)
+
 
         // ページネーション
         if (safePage > 0) {
             inventory.setItem(46, createNavButton(lang.getMessage("gui.common.prev_page"), Material.ARROW, safePage - 1, true))
         }
-        
+
         if (safePage < totalPages - 1) {
             inventory.setItem(53, createNavButton(lang.getMessage("gui.common.next_page"), Material.ARROW, safePage + 1, false))
         }
 
         // 情報
         inventory.setItem(49, createInfoButton(portals.size, safePage + 1, totalPages))
-        
+
         // ソート
         inventory.setItem(51, createSortButton(player, session))
 
@@ -85,14 +85,6 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             inventory.setItem(52, createNavButton(lang.getMessage("gui.common.back"), Material.ARROW, 0, false)) // ページ0はダミー、タイプでタグ付け
             val backItem = inventory.getItem(52)!!
             ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_RETURN)
-        }
-
-        // 背景
-        val background = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        for (slot in 0 until inventory.size) {
-            if (inventory.getItem(slot) == null) {
-                inventory.setItem(slot, background)
-            }
         }
 
         player.openInventory(inventory)
@@ -111,7 +103,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.END_PORTAL_FRAME)
         val meta = item.itemMeta ?: return item
-        
+
         // 行き先の判定
         val destName = if (portal.worldUuid != null) {
             val worldData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
@@ -122,12 +114,12 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         }
 
         val displayTitle = lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destName))
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(displayTitle).decoration(TextDecoration.ITALIC, false))
-        
+        meta.displayName(me.awabi2048.myworldmanager.util.GuiItemFactory.legacy(displayTitle))
+
         val ownerName = PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown")
 
-        
-        val lore = lang.getComponentList(
+
+        val lore = lang.getMenuLore(
             player,
             "gui.admin_portals.portal_item.lore",
             mapOf(
@@ -138,19 +130,19 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 "z" to portal.z
             )
         )
-        
+
         meta.lore(lore)
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_PORTAL)
         ItemTag.setPortalUuid(item, portal.id)
-        
+
         return item
     }
 
     private fun createNavButton(label: String, material: Material, targetPage: Int, isPrev: Boolean): ItemStack {
         val item = ItemStack(material)
         val meta = item.itemMeta ?: return item
-        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(label).decoration(TextDecoration.ITALIC, false))
+        meta.displayName(me.awabi2048.myworldmanager.util.GuiItemFactory.legacy(label))
         item.itemMeta = meta
         ItemTag.tagItem(item, if (isPrev) ItemTag.TYPE_GUI_NAV_PREV else ItemTag.TYPE_GUI_NAV_NEXT)
         ItemTag.setTargetPage(item, targetPage)
@@ -162,10 +154,10 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
         meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
-        meta.lore(listOf(
+        meta.lore(GuiItemFactory.componentMenuLore(listOf(
             lang.getComponent(null, "gui.admin.info.total_count", mapOf("count" to totalCount)),
             lang.getComponent(null, "gui.admin.info.page", mapOf("page" to current, "total_pages" to total))
-        ))
+        )))
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         return item
@@ -175,18 +167,34 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val item = ItemStack(Material.HOPPER)
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
-        
+
         meta.displayName(lang.getComponent(player, "gui.admin_portals.sort.display"))
-        
-        val lore = mutableListOf<Component>()
-        PortalSortType.values().forEach { sortType ->
-            val prefix = if (sortType == session.portalSortBy) "§a» " else "§8- "
-            lore.add(LegacyComponentSerializer.legacySection().deserialize("$prefix${lang.getMessage(player, sortType.displayKey)}"))
+
+        val options = PortalSortType.values().map { sortType ->
+            sortType to lang.getMessage(player, sortType.displayKey)
         }
-        lore.add(Component.empty())
-        lore.add(lang.getComponent(player, "gui.admin.filter.click_cycle"))
-        
-        meta.lore(lore)
+        meta.lore(
+            CCSystem.getAPI().getLoreService().render(
+                GuiLoreSpec.Rich(buildList {
+                    add(GuiLoreLine.Data(
+                        lang.getMessage(player, "gui.admin_portals.sort.label"),
+                        options.first { it.first == session.portalSortBy }.second,
+                        "\u00A7e"
+                    ))
+                    add(GuiLoreLine.Spacer)
+                    options.forEach { (sortType, displayName) ->
+                        val selected = sortType == session.portalSortBy
+                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                        val color = if (selected) "\u00A7e" else "\u00A77"
+                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                    }
+                    add(GuiLoreLine.Spacer)
+                    add(GuiLoreLine.SingleAction(
+                        lang.getMessage(player, "gui.admin.filter.click_cycle")
+                    ))
+                }, GuiLoreFrame.BOTH)
+            )
+        )
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_PORTAL_SORT)
         return item

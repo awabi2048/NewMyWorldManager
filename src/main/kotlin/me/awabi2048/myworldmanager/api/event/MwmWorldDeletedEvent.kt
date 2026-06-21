@@ -6,7 +6,9 @@ import org.bukkit.event.HandlerList
 
 class MwmWorldDeletedEvent(
     val worldUuid: UUID,
+    val worldName: String,
     val ownerUuid: UUID,
+    val participantUuids: Set<UUID>,
     val refundPoints: Int,
     val wasArchived: Boolean
 ) : Event() {

@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.util
 
 import com.awabi2048.ccsystem.CCSystem
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.entity.Player
@@ -36,7 +37,7 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getComponent(player: Player?, key: String, placeholders: Map<String, Any>): Component {
-        return serializer.deserialize(getMessage(player, key, placeholders)).decoration(TextDecoration.ITALIC, false)
+        return normalizeComponent(serializer.deserialize(getMessage(player, key, placeholders)))
     }
 
     fun getComponent(key: String, placeholders: Map<String, Any>): Component {
@@ -44,12 +45,12 @@ class LanguageManager(private val plugin: MyWorldManager) {
     }
 
     fun getComponent(player: Player?, key: String): Component {
-        return serializer.deserialize(getMessage(player, key)).decoration(TextDecoration.ITALIC, false)
+        return normalizeComponent(serializer.deserialize(getMessage(player, key)))
     }
 
     fun getComponentList(player: Player?, key: String): List<Component> {
         return getMessageList(player, key).map {
-            serializer.deserialize(it).decoration(TextDecoration.ITALIC, false)
+            normalizeComponent(serializer.deserialize(it))
         }
     }
 
@@ -91,8 +92,26 @@ class LanguageManager(private val plugin: MyWorldManager) {
 
     fun getComponentList(player: Player?, key: String, placeholders: Map<String, Any>): List<Component> {
         return getMessageList(player, key, placeholders).flatMap { it.split("\n") }.map {
-            serializer.deserialize(it).decoration(TextDecoration.ITALIC, false)
+            normalizeComponent(serializer.deserialize(it))
         }
+    }
+
+    fun getMenuLore(
+        player: Player?,
+        key: String,
+        placeholders: Map<String, Any> = emptyMap(),
+        closingSeparator: Boolean = true
+    ): List<Component> {
+        return CCSystem.getAPI().getGuiElementService().autoLore(
+            getMessageList(player, key, placeholders).flatMap { it.split("\n") },
+            closingSeparator
+        )
+    }
+
+    private fun normalizeComponent(component: Component): Component {
+        return component
+            .colorIfAbsent(NamedTextColor.WHITE)
+            .decoration(TextDecoration.ITALIC, false)
     }
 
     fun getComponentList(key: String, placeholders: Map<String, Any>): List<Component> {

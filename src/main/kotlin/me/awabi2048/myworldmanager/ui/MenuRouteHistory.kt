@@ -12,6 +12,9 @@ class MenuRouteHistory(private val plugin: MyWorldManager) {
     private val customOpeners = ConcurrentHashMap<String, CustomMenuRouteOpener>()
 
     init {
+        navigation.registerMenuMatcher(OWNER) { inventory ->
+            me.awabi2048.myworldmanager.util.GuiHelper.isPluginGuiInventory(inventory)
+        }
         navigation.registerOpener(OWNER, ROUTE_PLAYER_WORLD) { target, route ->
             val page = route.payload["page"]?.toIntOrNull() ?: 0
             val showBackButton = route.payload["showBackButton"].toBooleanValue()
@@ -41,6 +44,10 @@ class MenuRouteHistory(private val plugin: MyWorldManager) {
     fun unregister() {
         customOpeners.clear()
         navigation.unregisterOwner(OWNER)
+    }
+
+    fun closeOwnedMenus() {
+        navigation.closeOwnedMenus(OWNER, plugin.server.onlinePlayers)
     }
 
     fun pushPlayerWorld(player: Player, page: Int, showBackButton: Boolean) {

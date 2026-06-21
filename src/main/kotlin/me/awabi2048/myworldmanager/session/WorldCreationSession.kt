@@ -7,6 +7,7 @@ enum class WorldCreationPhase {
     TYPE_SELECT,
     TEMPLATE_SELECT,
     SEED_INPUT,
+    SPAWN_INPUT,
     CONFIRM
 }
 
@@ -23,6 +24,7 @@ data class WorldCreationSession(
     var creationType: WorldCreationType? = null,
     var templateName: String? = null,
     var inputSeedString: String? = null,
+    var spawnCoordinates: WorldSpawnCoordinates? = null,
     var isDialogMode: Boolean = false,
     val extras: MutableMap<String, Any?> = mutableMapOf(),
     var lastActivity: Long = System.currentTimeMillis()

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import net.kyori.adventure.text.Component
@@ -13,10 +15,12 @@ import org.bukkit.inventory.Inventory
 
 object GuiHelper {
     fun isPluginGuiInventory(inventory: Inventory): Boolean {
-        val holder = inventory.holder ?: return false
-        val holderClassName = holder.javaClass.name
-        return holderClassName.startsWith("me.awabi2048.myworldmanager") &&
-            holderClassName.endsWith("Holder")
+        val holderClassName = inventory.holder?.javaClass?.name
+        if (holderClassName?.startsWith("me.awabi2048.myworldmanager") == true) return true
+        return inventory.contents.filterNotNull().any { item ->
+            val type = ItemTag.getType(item) ?: return@any false
+            type.startsWith("gui_") || type.startsWith("discovery_")
+        }
     }
 
     fun inventoryTitle(title: String): Component {
@@ -37,7 +41,7 @@ object GuiHelper {
     fun playMenuSoundIfTitleChanged(plugin: MyWorldManager, player: Player, menuId: String, newTitle: Component, targetHolderClass: Class<*>? = null) {
         val currentInventory = player.openInventory.topInventory
         val currentTitle = player.openInventory.title()
-        
+
         // Serialize to plain text to compare content while ignoring minor formatting differences if any,
         // and to handle the case where correct comparison allows skipping sound on refresh.
         val currentTitleStr = PlainTextComponentSerializer.plainText().serialize(currentTitle)
@@ -91,21 +95,7 @@ object GuiHelper {
     }
 
     fun applyConfirmationFrame(inventory: Inventory) {
-        val blackPane = GuiItemFactory.decoration(org.bukkit.Material.BLACK_STAINED_GLASS_PANE)
-        val grayPane = GuiItemFactory.decoration(org.bukkit.Material.GRAY_STAINED_GLASS_PANE)
-
-        for (slot in 0 until inventory.size) {
-            inventory.setItem(slot, grayPane)
-        }
-
-        for (slot in 0..8) {
-            inventory.setItem(slot, blackPane)
-        }
-
-        val footerStart = inventory.size - 9
-        for (slot in footerStart until inventory.size) {
-            inventory.setItem(slot, blackPane)
-        }
+        GuiItemFactory.applyStandardFrame(inventory)
     }
 
     /*
@@ -139,10 +129,10 @@ object GuiHelper {
         if (plugin.menuRouteHistory.openPrevious(player)) {
             return
         }
-        
+
         // 全てのセッション終了を試みる（安全のため）
         plugin.settingsSessionManager.endSession(player)
-        
+
         player.closeInventory()
     }
 
@@ -153,6 +143,33 @@ object GuiHelper {
         lore: List<Component> = emptyList(),
         attachWorldUuid: Boolean = true
     ): org.bukkit.inventory.ItemStack {
+        val renderedLore = if (lore.isEmpty()) emptyList() else GuiItemFactory.componentMenuLore(lore)
+        return createContextWorldIconItemRendered(plugin, player, worldData, renderedLore, attachWorldUuid)
+    }
+
+    fun createContextWorldIconItem(
+        plugin: MyWorldManager,
+        player: Player,
+        worldData: WorldData,
+        lore: GuiLoreSpec,
+        attachWorldUuid: Boolean = true
+    ): org.bukkit.inventory.ItemStack {
+        return createContextWorldIconItemRendered(
+            plugin,
+            player,
+            worldData,
+            CCSystem.getAPI().getLoreService().render(lore),
+            attachWorldUuid
+        )
+    }
+
+    private fun createContextWorldIconItemRendered(
+        plugin: MyWorldManager,
+        player: Player,
+        worldData: WorldData,
+        renderedLore: List<Component>,
+        attachWorldUuid: Boolean
+    ): org.bukkit.inventory.ItemStack {
         val lang = plugin.languageManager
         val item = org.bukkit.inventory.ItemStack(worldData.icon)
         val meta = item.itemMeta ?: return item
@@ -162,8 +179,8 @@ object GuiHelper {
             lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))
                 .decoration(TextDecoration.ITALIC, false)
         )
-        if (lore.isNotEmpty()) {
-            meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
+        if (renderedLore.isNotEmpty()) {
+            meta.lore(renderedLore)
         }
 
         item.itemMeta = meta
@@ -174,42 +191,6 @@ object GuiHelper {
         return item
     }
 
-    /**
-     * Deduplicates consecutive separators and removes leading/trailing separators in lore.
-     */
-    fun cleanupLore(lore: List<Component>, separator: Component): List<Component> {
-        val plain = PlainTextComponentSerializer.plainText()
-        val separatorText = plain.serialize(separator).trim()
-        
-        val result = mutableListOf<Component>()
-        var lastWasSeparator = false
-        
-        // Regex to identify various separator-like strings (sequences of hyphens or full-width dashes)
-        val separatorRegex = Regex("^[\\-－＝—_]+$")
-        
-        for (comp in lore) {
-            val text = plain.serialize(comp).trim()
-            if (text.isBlank()) continue
-            
-            // Check if it's a separator by:
-            // 1. Direct match with current language's separator
-            // 2. Matching a sequence of common separator characters
-            val isSeparator = text == separatorText || separatorRegex.matches(text)
-            
-            if (isSeparator) {
-                if (!lastWasSeparator) {
-                    result.add(comp)
-                }
-                lastWasSeparator = true
-            } else {
-                result.add(comp)
-                lastWasSeparator = false
-            }
-        }
-        
-        return result
-    }
-
     private fun createNavigationItem(player: Player, material: org.bukkit.inventory.ItemStack, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
         // Overload to accept ItemStack if needed, but below uses Material
         return createNavigationItem(player, material.type, name, targetPage, isNext)
@@ -218,9 +199,9 @@ object GuiHelper {
     private fun createNavigationItem(player: Player, material: org.bukkit.Material, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
         val item = org.bukkit.inventory.ItemStack(material)
         val meta = item.itemMeta ?: return item
-        
-        meta.displayName(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(name).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-        
+
+        meta.displayName(GuiItemFactory.legacy(name))
+
         item.itemMeta = meta
         ItemTag.setTargetPage(item, targetPage)
         val type = if (isNext) ItemTag.TYPE_GUI_NAV_NEXT else ItemTag.TYPE_GUI_NAV_PREV
