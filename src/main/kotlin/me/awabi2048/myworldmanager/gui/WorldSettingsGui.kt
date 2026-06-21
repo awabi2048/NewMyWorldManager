@@ -176,10 +176,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (isBedrock) {
                                 infoLoreBuilder
                                         .block(lang.getMessageList(player, "gui.settings.info.blocks.summary_be"))
-                                        .singleAction(lang.getMessage(player, "gui.settings.info.action.open_editor"))
+                                        .actions(lang.getMessage(player, "gui.settings.info.action.open_editor"))
                         } else {
                                 infoLoreBuilder
-                                        .singleAction(lang.getMessage(player, "gui.settings.info.action.open_editor"))
+                                        .actions(lang.getMessage(player, "gui.settings.info.action.open_editor"))
                                         .block(lang.getMessageList(player, "gui.settings.info.blocks.summary_je"))
                         }
 
@@ -211,7 +211,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val iconLore =
                                 GuiLoreBuilder(lang, player)
                                         .block(lang.getMessageList(player, "gui.settings.icon.blocks.description"))
-                                        .singleAction(
+                                        .actions(
                                                 lang.getMessage(
                                                         player,
                                                         "gui.settings.icon.action.start_selection"
@@ -254,11 +254,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
 
                         if (isBedrock) {
-                                spawnLoreBuilder.singleAction(
+                                spawnLoreBuilder.actions(
                                         lang.getMessage(player, "gui.settings.spawn.action.set_both")
                                 )
                         } else {
-                                spawnLoreBuilder.multiActions(
+                                spawnLoreBuilder.actions(
                                         listOf(
                                                 GuiLoreAction(
                                                         lang.getMessage(player, "gui.settings.click.left"),
@@ -369,7 +369,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                                 val showOpenMenuHint = isInWorld && currentLevel < maxLevel
                                 if (showOpenMenuHint) {
-                                        expansionLoreBuilder.singleAction(
+                                        expansionLoreBuilder.actions(
                                                 lang.getMessage(
                                                         player,
                                                         if (isBedrock) {
@@ -394,7 +394,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 )
                                 if (!isBedrock && isInWorld) {
-                                        expansionLoreBuilder.multiActions(
+                                        expansionLoreBuilder.actions(
                                                 listOf(
                                                         GuiLoreAction(
                                                                 lang.getMessage(player, "gui.settings.click.right"),
@@ -615,7 +615,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         )
                                                 )
                                         )
-                                        .singleAction(
+                                        .actions(
                                                 lang.getMessage(
                                                         player,
                                                         "gui.settings.member.action.open_list"
@@ -671,7 +671,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         mapOf("tags_list" to tagsList)
                                                 )
                                         )
-                                        .singleAction(
+                                        .actions(
                                                 lang.getMessage(player, "gui.settings.tags.action.edit")
                                         )
                                         .buildSpec()
@@ -729,14 +729,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
 
                         if (isBedrock) {
-                                announcementLoreBuilder.singleAction(
+                                announcementLoreBuilder.actions(
                                         lang.getMessage(
                                                 player,
                                                 "gui.settings.announcement.action.open_menu_bedrock"
                                         )
                                 )
                         } else {
-                                announcementLoreBuilder.multiActions(
+                                announcementLoreBuilder.actions(
                                         listOf(
                                                 GuiLoreAction(
                                                         lang.getMessage(player, "gui.settings.click.left"),
@@ -804,7 +804,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         "gui.settings.notification.blocks.description"
                                                 )
                                         )
-                                        .singleAction(
+                                        .actions(
                                                 lang.getMessage(
                                                         player,
                                                         "gui.settings.notification.action.toggle"
@@ -850,7 +850,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (!isInWorld && warningLore != null) {
                                 environmentLoreBuilder.warning(warningLore)
                         }
-                        environmentLoreBuilder.singleAction(
+                        environmentLoreBuilder.actions(
                                 lang.getMessage(player, "gui.settings.environment.action.open")
                         )
                         inventory.setItem(
@@ -883,7 +883,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (!isInWorld && warningLore != null) {
                                 criticalLoreBuilder.warning(warningLore)
                         }
-                        criticalLoreBuilder.singleAction(
+                        criticalLoreBuilder.actions(
                                 lang.getMessage(player, "gui.settings.critical.action.open")
                         )
                         inventory.setItem(
@@ -1049,7 +1049,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         mapOf("count" to visitors.size)
                                                 )
                                         )
-                                        .singleAction(
+                                        .actions(
                                                 lang.getMessage(player, "gui.settings.visitors.action.open")
                                         )
                                         .buildSpec()
@@ -1085,7 +1085,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         "gui.settings.portals.blocks.summary"
                                                 )
                                         )
-                                        .singleAction(
+                                        .actions(
                                                 lang.getMessage(player, "gui.settings.portals.action.open")
                                         )
                                         .buildSpec()
@@ -1429,7 +1429,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.common.cancel"),
-                                listOf(lang.getMessage(player, "gui.common.back")),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2726,6 +2726,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun openCriticalSettings(player: Player, worldData: WorldData) {
+                if (!plugin.playerStatsRepository.findByUuid(player.uniqueId).criticalSettingsEnabled) return
+                if (!plugin.playerStatsRepository.findByUuid(player.uniqueId).criticalSettingsEnabled) return
+                if (!plugin.playerStatsRepository.findByUuid(player.uniqueId).criticalSettingsEnabled) {
+                        return
+                }
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.critical.title")
                 val currentTitle =
@@ -2961,7 +2966,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.LIME_WOOL,
                                 lang.getMessage(player, "gui.common.cancel"),
-                                listOf(lang.getMessage(player, "gui.common.back")),
+                                emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -3158,8 +3163,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
-                val lore = CCSystem.getAPI().getLoreService().render(
-                        com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
+                val lore = com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
                                 listOf(
                                         com.awabi2048.ccsystem.api.gui.GuiLoreLine.Danger(
                                                 lang.getMessage(player, "gui.confirm.delete_2.danger")
@@ -3169,7 +3173,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 ),
                                 com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH
-                        )
                 )
                 val infoItem =
                         createItemComponent(

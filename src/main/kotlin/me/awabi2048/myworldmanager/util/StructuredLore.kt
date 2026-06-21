@@ -35,9 +35,9 @@ object StructuredLore {
             GuiLoreBlock(
                 description.map(GuiLoreLine::Raw) +
                     GuiLoreLine.Spacer +
-                    current.map(GuiLoreLine::Raw)
-            ),
-            GuiLoreBlock(action.map(GuiLoreLine::Raw))
+                    current.map(GuiLoreLine::Raw) +
+                    action.map(GuiLoreLine::Raw)
+            )
         ))
     }
 }

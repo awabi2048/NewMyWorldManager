@@ -130,7 +130,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(player)
 
                 player.closeInventory()
-                player.sendMessage(lang.getMessage(player, "messages.wizard_start"))
                 plugin.creationGui.openTypeSelection(player)
                 return
             }

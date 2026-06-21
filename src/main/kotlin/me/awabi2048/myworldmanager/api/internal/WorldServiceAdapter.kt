@@ -22,6 +22,10 @@ import java.util.concurrent.CompletableFuture
 
 internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorldService {
 
+    override fun validateWorldName(worldName: String): String? {
+        return plugin.worldValidator.validateName(worldName)
+    }
+
     override fun createFromTemplate(
         templateName: String,
         ownerUuid: UUID,

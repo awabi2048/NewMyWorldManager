@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
@@ -131,6 +135,30 @@ object ItemTag {
     fun tagItem(item: ItemStack, type: String) {
         val meta = item.itemMeta ?: return
         meta.persistentDataContainer.set(ITEM_TYPE, PersistentDataType.STRING, type)
+        val genericStyle = when (type) {
+            TYPE_GUI_RETURN,
+            TYPE_GUI_BACK,
+            TYPE_GUI_NAV_PREV,
+            TYPE_GUI_NAV_NEXT -> GuiNameStyle.MUTED
+            TYPE_GUI_CONFIRM -> GuiNameStyle.SUCCESS
+            TYPE_GUI_CANCEL -> GuiNameStyle.DANGER
+            else -> null
+        }
+        if (genericStyle != null) {
+            // 生成元に依存せず、汎用操作アイコンをNameのみの共通表示へ揃える。
+            val fallbackLabel = when (type) {
+                TYPE_GUI_CONFIRM -> "実行"
+                TYPE_GUI_CANCEL -> "キャンセル"
+                TYPE_GUI_NAV_PREV -> "前へ"
+                TYPE_GUI_NAV_NEXT -> "次へ"
+                else -> "戻る"
+            }
+            val label = PlainTextComponentSerializer.plainText()
+                .serialize(meta.displayName() ?: Component.text(fallbackLabel))
+                .ifBlank { fallbackLabel }
+            meta.displayName(CCSystem.getAPI().getGuiElementService().name(label, genericStyle))
+            meta.lore(null)
+        }
         applyIconSettings(meta)
         item.itemMeta = meta
     }

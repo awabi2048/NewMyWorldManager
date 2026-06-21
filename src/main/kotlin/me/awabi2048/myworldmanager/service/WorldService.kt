@@ -13,6 +13,7 @@ import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
+import me.awabi2048.myworldmanager.session.WorldSpawnCoordinates
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -57,8 +58,14 @@ class WorldService(
             seed: String?,
             environment: org.bukkit.World.Environment,
             generator: String? = null,
-            worldType: WorldType = WorldType.NORMAL
+            worldType: WorldType = WorldType.NORMAL,
+            initialSpawn: WorldSpawnCoordinates? = null
     ): Boolean {
+
+        plugin.worldValidator.validateName(worldName)?.let { error ->
+            player.sendMessage(error)
+            return false
+        }
 
         val uuid = UUID.randomUUID()
         val worldFolderName = "my_world.${uuid}"
@@ -126,7 +133,7 @@ class WorldService(
                 return false
             }
 
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None")
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None", initialSpawn)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -143,7 +150,8 @@ class WorldService(
             worldFolderName: String,
             world: org.bukkit.World,
             cost: Int,
-            templateName: String
+            templateName: String,
+            initialSpawn: WorldSpawnCoordinates? = null
     ) {
         val now = java.time.LocalDateTime.now()
         val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -155,6 +163,11 @@ class WorldService(
                                         30
                                 )
                         )
+
+        // World と永続データの基準地点を先に揃え、初回ワープやボーダー中心だけがずれないようにする。
+        if (initialSpawn != null) {
+            world.setSpawnLocation(initialSpawn.x, initialSpawn.y, initialSpawn.z)
+        }
 
         // 初期ワールドボーダーの設定
         val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
@@ -226,7 +239,8 @@ class WorldService(
             ownerUuid: UUID,
             worldName: String,
             seed: String?,
-            cost: Int
+            cost: Int,
+            initialSpawn: WorldSpawnCoordinates? = null
     ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
@@ -234,7 +248,13 @@ class WorldService(
             future.complete(false)
             return future
         }
-        val success = createWorld(player, worldName, seed, org.bukkit.World.Environment.NORMAL)
+        val success = createWorld(
+                player,
+                worldName,
+                seed,
+                org.bukkit.World.Environment.NORMAL,
+                initialSpawn = initialSpawn
+        )
         // Note: Currently createWorld(player, ...) doesn't take cost. 
         // If it's used elsewhere, it might need update. For now, matching the call.
         future.complete(success)
@@ -251,6 +271,12 @@ class WorldService(
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
         if (player == null) {
+            future.complete(false)
+            return future
+        }
+
+        plugin.worldValidator.validateName(worldName)?.let { error ->
+            player.sendMessage(error)
             future.complete(false)
             return future
         }
@@ -326,7 +352,7 @@ class WorldService(
                             return@Runnable
                         }
 
-                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, templateName)
+                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, templateName, null)
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)

@@ -1260,6 +1260,13 @@ class WorldSettingsListener : Listener {
                                                                 ItemTag.TYPE_GUI_DECORATION
                                                         )
                                         ) {
+                                                if (clickedItem.type == Material.BLACK_STAINED_GLASS_PANE ||
+                                                        clickedItem.type == Material.GRAY_STAINED_GLASS_PANE
+                                                ) {
+                                                        player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BIT, 1.0f, 0.5f)
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_forbidden"))
+                                                        return
+                                                }
                                                 worldData.icon = clickedItem.type
                                                 plugin.worldConfigRepository.save(worldData)
                                                 val itemName =
@@ -2942,6 +2949,14 @@ plugin.languageManager
                 event.cancelWithDebug("WorldSettingsListener.handleIconSelectionClick: icon selection click", force = true)
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+
+                if (clickedItem.type == Material.BLACK_STAINED_GLASS_PANE ||
+                        clickedItem.type == Material.GRAY_STAINED_GLASS_PANE
+                ) {
+                        player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BIT, 1.0f, 0.5f)
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_forbidden"))
+                        return
+                }
 
                 worldData.icon = clickedItem.type
                 plugin.worldConfigRepository.save(worldData)

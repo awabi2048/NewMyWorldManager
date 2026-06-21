@@ -93,10 +93,17 @@ class MeetGui(private val plugin: MyWorldManager) {
         val currentStatus = stats.meetStatus
         val statusNameKey = "general.status.${currentStatus.lowercase()}"
         val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
+        val statusDescription = lang.getMessage(
+            player,
+            "general.status.description.${currentStatus.lowercase()}"
+        )
 
         val statusLore = GuiLoreBuilder(lang, player)
-            .block(listOf(lang.getMessage(player, "gui.meet.status_button.current", mapOf("status" to statusName))))
-            .action(lang.getMessage(player, "gui.meet.status_button.click"))
+            .block(listOf(
+                lang.getMessage(player, "gui.meet.status_button.current", mapOf("status" to statusName)),
+                statusDescription
+            ))
+            .actions(lang.getMessage(player, "gui.meet.status_button.action"))
             .build()
 
         val statusItem = ItemStack(Material.PLAYER_HEAD)

@@ -81,33 +81,41 @@ class GuiLoreBuilder(
         return this
     }
 
-    fun singleAction(action: String): GuiLoreBuilder {
-        val template = languageManager.getMessage(
-            player,
-            "lore.action_single",
-            mapOf("action" to action)
-        )
-        addSection(listOf(GuiLoreLine.SingleAction(template)), false)
-        return this
-    }
+    fun actions(action: String): GuiLoreBuilder = actions(listOf(GuiLoreAction(action = action)))
 
-    fun multiActions(actions: List<GuiLoreAction>): GuiLoreBuilder {
-        if (actions.isNotEmpty()) {
-            addSection(actions.map { GuiLoreLine.Action(it.operation ?: "", it.action) })
+    /**
+     * 操作案内の件数を一箇所で判定し、単一操作と複数操作の表示規則を統一する。
+     */
+    fun actions(actions: List<GuiLoreAction>): GuiLoreBuilder {
+        if (actions.isEmpty()) return this
+
+        joinActionWithPreviousContent()
+        if (actions.size == 1) {
+            val action = actions.single()
+            val templateKey = if (action.operation.isNullOrBlank()) {
+                "lore.action_single"
+            } else {
+                "lore.action_single_with_operation"
+            }
+            val template = languageManager.getMessage(
+                player,
+                templateKey,
+                mapOf(
+                    "operation" to action.operation.orEmpty(),
+                    "action" to action.action
+                )
+            )
+            addSection(listOf(GuiLoreLine.SingleAction(template)), false)
+        } else {
+            addSection(actions.map { GuiLoreLine.Action(it.operation.orEmpty(), it.action) })
         }
         return this
     }
 
-    fun action(action: String): GuiLoreBuilder {
-        return rawAction(action, false)
-    }
-
-    fun rawAction(text: String, showClosingSeparator: Boolean = false): GuiLoreBuilder {
-        val normalized = text.trim()
-        if (normalized.isNotEmpty()) {
-            addSection(listOf(GuiLoreLine.Raw(normalized)), showClosingSeparator)
+    private fun joinActionWithPreviousContent() {
+        if (sections.isNotEmpty() && !sections.last().isSpacer) {
+            spacer()
         }
-        return this
     }
 
     fun warning(text: String): GuiLoreBuilder {

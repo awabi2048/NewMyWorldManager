@@ -26,7 +26,7 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
         // ワールド名からマイワールドデータを取得
         val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
         if (worldData == null) {
-            player.sendMessage("§cここはマイワールドではありません。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldmenu_not_in_myworld"))
             return true
         }
 
