@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.api.service
 
 import me.awabi2048.myworldmanager.model.WorldData
+import net.kyori.adventure.text.Component
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -10,8 +11,12 @@ import java.util.concurrent.CompletableFuture
 
 interface ApiWorldService {
 
-    /** Uses the same validation rules as MWM's own creation flow. */
-    fun validateWorldName(worldName: String): String?
+    /**
+     * Uses the same validation rules as MWM's own creation flow.
+     * Returns a localized [Component] error message, or null when the name is valid.
+     * Color codes are already decoded so callers can send the result as-is.
+     */
+    fun validateWorldName(player: Player, worldName: String): Component?
 
     fun createFromTemplate(
         templateName: String,
