@@ -14,6 +14,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
 import me.awabi2048.myworldmanager.session.WorldSpawnCoordinates
+import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -62,9 +63,11 @@ class WorldService(
             initialSpawn: WorldSpawnCoordinates? = null
     ): Boolean {
 
-        plugin.worldValidator.validateName(worldName)?.let { error ->
-            player.sendMessage(error)
-            return false
+        plugin.worldValidator.validateName(worldName).let { result ->
+            if (result is WorldNameValidation.Failure) {
+                player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
+                return false
+            }
         }
 
         val uuid = UUID.randomUUID()
@@ -275,10 +278,12 @@ class WorldService(
             return future
         }
 
-        plugin.worldValidator.validateName(worldName)?.let { error ->
-            player.sendMessage(error)
-            future.complete(false)
-            return future
+        plugin.worldValidator.validateName(worldName).let { result ->
+            if (result is WorldNameValidation.Failure) {
+                player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
+                future.complete(false)
+                return future
+            }
         }
 
         val uuid = UUID.randomUUID()
