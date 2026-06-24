@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiConfirmationLayout
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
@@ -8,12 +9,18 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.inventory.Inventory
+import org.bukkit.inventory.InventoryHolder
+import org.bukkit.inventory.ItemStack
 
 object GuiHelper {
+    private val layoutService
+        get() = CCSystem.getAPI().getGuiLayoutService()
+
     fun isPluginGuiInventory(inventory: Inventory): Boolean {
         val holderClassName = inventory.holder?.javaClass?.name
         if (holderClassName?.startsWith("me.awabi2048.myworldmanager") == true) return true
@@ -94,8 +101,27 @@ object GuiHelper {
         }, 5L)
     }
 
+    fun confirmationLayout(): GuiConfirmationLayout = layoutService.confirmation45()
+
+    fun createConfirmationInventory(holder: InventoryHolder?, title: Component): Inventory {
+        val layout = confirmationLayout()
+        return Bukkit.createInventory(holder, layout.size, inventoryTitle(title))
+    }
+
     fun applyConfirmationFrame(inventory: Inventory) {
-        GuiItemFactory.applyStandardFrame(inventory)
+        layoutService.applyStandardFrame(inventory)
+    }
+
+    fun setConfirmationItems(
+        inventory: Inventory,
+        centerItem: ItemStack,
+        confirmItem: ItemStack,
+        cancelItem: ItemStack
+    ) {
+        val layout = confirmationLayout()
+        inventory.setItem(layout.previewSlot, centerItem)
+        inventory.setItem(layout.confirmSlot, confirmItem)
+        inventory.setItem(layout.cancelSlot, cancelItem)
     }
 
     /*

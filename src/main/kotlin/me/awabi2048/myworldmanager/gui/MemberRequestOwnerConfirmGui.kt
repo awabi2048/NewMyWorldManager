@@ -2,12 +2,12 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -22,7 +22,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "member_request_owner_confirm", title, null)
 
         val holder = MemberRequestOwnerConfirmHolder()
-        val inventory = Bukkit.createInventory(holder, 45, title)
+        val inventory = GuiHelper.createConfirmationInventory(holder, title)
         holder.inv = inventory
 
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
@@ -34,7 +34,6 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         infoMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
         infoMeta.lore(lang.getMenuLore(player, "gui.member_request_owner_confirm.lore", mapOf("player" to requestorName)))
         infoItem.itemMeta = infoMeta
-        inventory.setItem(22, infoItem)
 
         // 承認
         val yesItem = ItemStack(Material.LIME_CONCRETE)
@@ -43,7 +42,6 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         yesItem.itemMeta = yesMeta
         ItemTag.tagItem(yesItem, "member_request_owner_yes")
         ItemTag.setString(yesItem, "key", key)
-        inventory.setItem(20, yesItem)
 
         // 却下
         val noItem = ItemStack(Material.RED_CONCRETE)
@@ -52,7 +50,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         noItem.itemMeta = noMeta
         ItemTag.tagItem(noItem, "member_request_owner_no")
         ItemTag.setString(noItem, "key", key)
-        inventory.setItem(24, noItem)
+        GuiHelper.setConfirmationItems(inventory, infoItem, yesItem, noItem)
 
         player.openInventory(inventory)
     }

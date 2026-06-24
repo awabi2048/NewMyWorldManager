@@ -350,7 +350,10 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val remainingPoints = (currentPoints - requiredPoints).coerceAtLeast(0)
 
         val holder = WorldGateConfirmHolder()
-        val inventory = Bukkit.createInventory(holder, 45, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "messages.world_gate_confirm_title")))
+        val inventory = me.awabi2048.myworldmanager.util.GuiHelper.createConfirmationInventory(
+            holder,
+            me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "messages.world_gate_confirm_title"))
+        )
         holder.inv = inventory
 
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
@@ -377,21 +380,19 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         )
         infoItem.itemMeta = infoMeta
         ItemTag.tagItem(infoItem, ItemTag.TYPE_GUI_INFO)
-        inventory.setItem(22, infoItem)
 
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
         val confirmMeta = confirmItem.itemMeta
         confirmMeta?.displayName(lang.getComponent(player, "gui.common.confirm"))
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
-        inventory.setItem(20, confirmItem)
 
         val cancelItem = ItemStack(Material.RED_CONCRETE)
         val cancelMeta = cancelItem.itemMeta
         cancelMeta?.displayName(lang.getComponent(player, "gui.common.cancel"))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
-        inventory.setItem(24, cancelItem)
+        me.awabi2048.myworldmanager.util.GuiHelper.setConfirmationItems(inventory, infoItem, confirmItem, cancelItem)
 
         player.openInventory(inventory)
     }

@@ -4,7 +4,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -18,7 +17,7 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "member_request", titleComponent)
 
         val holder = MemberRequestConfirmGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 45, titleComponent)
+        val inventory = GuiHelper.createConfirmationInventory(holder, titleComponent)
         holder.inv = inventory
 
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
@@ -31,7 +30,6 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
             worldData,
             lang.getComponentList(player, "gui.member_request_confirm.lore", mapOf("world" to worldName))
         )
-        inventory.setItem(22, worldItem)
 
         // Confirm Button
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
@@ -40,7 +38,6 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
         ItemTag.setWorldUuid(confirmItem, worldData.uuid)
-        inventory.setItem(20, confirmItem)
 
         // Cancel Button
         val cancelItem = ItemStack(Material.RED_CONCRETE)
@@ -49,7 +46,7 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
         ItemTag.setWorldUuid(cancelItem, worldData.uuid)
-        inventory.setItem(24, cancelItem)
+        GuiHelper.setConfirmationItems(inventory, worldItem, confirmItem, cancelItem)
 
         player.openInventory(inventory)
     }

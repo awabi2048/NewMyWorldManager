@@ -1,11 +1,11 @@
 package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -16,7 +16,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.world_seed_confirm.title"))
         player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
-        val inventory = Bukkit.createInventory(null, 45, title)
+        val inventory = GuiHelper.createConfirmationInventory(null, title)
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         // 情報
@@ -25,7 +25,6 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         infoMeta.displayName(lang.getComponent(player, "gui.world_seed_confirm.title"))
         infoMeta.lore(lang.getMenuLore(player, "gui.world_seed_confirm.lore", mapOf("current" to currentSlots, "next" to nextSlots)))
         infoItem.itemMeta = infoMeta
-        inventory.setItem(22, infoItem)
 
         // はい
         val yesItem = ItemStack(Material.LIME_CONCRETE)
@@ -33,7 +32,6 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         yesMeta.displayName(lang.getComponent(player, "gui.common.confirm"))
         yesItem.itemMeta = yesMeta
         ItemTag.tagItem(yesItem, "world_seed_confirm_yes")
-        inventory.setItem(20, yesItem)
 
         // いいえ
         val noItem = ItemStack(Material.RED_CONCRETE)
@@ -41,7 +39,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         noMeta.displayName(lang.getComponent(player, "gui.common.cancel"))
         noItem.itemMeta = noMeta
         ItemTag.tagItem(noItem, "world_seed_confirm_no")
-        inventory.setItem(24, noItem)
+        GuiHelper.setConfirmationItems(inventory, infoItem, yesItem, noItem)
 
         player.openInventory(inventory)
     }

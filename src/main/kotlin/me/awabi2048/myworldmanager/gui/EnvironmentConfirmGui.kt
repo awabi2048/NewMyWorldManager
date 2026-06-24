@@ -3,10 +3,10 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -35,7 +35,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         session?.confirmItem = itemToConsume.clone()
 
         val holder = WorldSettingsGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 45, titleComponent)
+        val inventory = GuiHelper.createConfirmationInventory(holder, titleComponent)
         holder.inv = inventory
 
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
@@ -61,7 +61,6 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         meta.lore(lore)
         displayItem.itemMeta = meta
         ItemTag.tagItem(displayItem, ItemTag.TYPE_GUI_INFO)
-        inventory.setItem(22, displayItem)
 
         // 確定ボタン
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
@@ -69,7 +68,6 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         confirmMeta?.displayName(lang.getComponent(player, "gui.common.confirm"))
         confirmItem.itemMeta = confirmMeta
         ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
-        inventory.setItem(20, confirmItem)
 
         // キャンセルボタン
         val cancelItem = ItemStack(Material.RED_CONCRETE)
@@ -77,7 +75,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         cancelMeta?.displayName(lang.getComponent(player, "gui.common.cancel"))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
-        inventory.setItem(24, cancelItem)
+        GuiHelper.setConfirmationItems(inventory, displayItem, confirmItem, cancelItem)
 
         player.openInventory(inventory)
     }
