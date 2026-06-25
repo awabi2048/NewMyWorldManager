@@ -8,7 +8,9 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -422,18 +424,19 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    private fun openNameInputByPlatform(player: Player, session: WorldCreationSession, errorMessage: String? = null) {
+    private fun openNameInputByPlatform(player: Player, session: WorldCreationSession, errorMessage: Component? = null) {
         if (!plugin.playerPlatformResolver.isBedrock(player)) {
             me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session, errorMessage)
             return
         }
 
         val lang = plugin.languageManager
+        val plainSerializer = PlainTextComponentSerializer.plainText()
         val label = buildString {
             append(lang.getMessage(player, "gui.bedrock.input.creation_name.label"))
-            if (!errorMessage.isNullOrBlank()) {
+            errorMessage?.let {
                 append("\n")
-                append(errorMessage)
+                append(plainSerializer.serialize(it))
             }
         }
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
@@ -451,12 +454,13 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             onSubmit = { value ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     val latest = plugin.creationSessionManager.getSession(player.uniqueId) ?: return@Runnable
-                    val error = plugin.worldValidator.validateName(value)
-                    if (error != null) {
+                    val result = plugin.worldValidator.validateName(value)
+                    if (result is WorldNameValidation.Failure) {
+                        val errorComponent = plugin.languageManager.getComponent(player, result.messageKey, result.placeholders)
                         if (!plugin.playerPlatformResolver.isBedrock(player)) {
-                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, latest, error)
+                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, latest, errorComponent)
                         } else {
-                            openNameInputByPlatform(player, latest, error)
+                            openNameInputByPlatform(player, latest, errorComponent)
                         }
                         return@Runnable
                     }

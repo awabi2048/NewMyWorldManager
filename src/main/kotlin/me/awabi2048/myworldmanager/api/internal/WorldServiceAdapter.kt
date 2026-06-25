@@ -9,7 +9,9 @@ import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.PortalItemUtil
+import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Location
@@ -22,8 +24,12 @@ import java.util.concurrent.CompletableFuture
 
 internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorldService {
 
-    override fun validateWorldName(worldName: String): String? {
-        return plugin.worldValidator.validateName(worldName)
+    override fun validateWorldName(player: Player, worldName: String): Component? {
+        return when (val result = plugin.worldValidator.validateName(worldName)) {
+            is WorldNameValidation.Ok -> null
+            is WorldNameValidation.Failure ->
+                plugin.languageManager.getComponent(player, result.messageKey, result.placeholders)
+        }
     }
 
     override fun createFromTemplate(

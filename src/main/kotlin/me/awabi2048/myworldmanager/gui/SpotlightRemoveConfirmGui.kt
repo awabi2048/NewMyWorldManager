@@ -2,11 +2,11 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -18,7 +18,7 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "spotlight_remove_confirm", title, null)
-        val inventory = Bukkit.createInventory(null, 45, title)
+        val inventory = GuiHelper.createConfirmationInventory(null, title)
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 
         // 情報
@@ -27,7 +27,6 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         infoMeta.displayName(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
         infoMeta.lore(lang.getMenuLore(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name)))
         infoItem.itemMeta = infoMeta
-        inventory.setItem(22, infoItem)
 
         // はい
         val yesItem = ItemStack(Material.LIME_CONCRETE)
@@ -36,7 +35,6 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         yesItem.itemMeta = yesMeta
         ItemTag.tagItem(yesItem, "spotlight_remove_confirm_yes")
         ItemTag.setWorldUuid(yesItem, worldData.uuid)
-        inventory.setItem(20, yesItem)
 
         // いいえ
         val noItem = ItemStack(Material.RED_CONCRETE)
@@ -44,7 +42,7 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         noMeta.displayName(lang.getComponent(player, "gui.common.cancel"))
         noItem.itemMeta = noMeta
         ItemTag.tagItem(noItem, "spotlight_remove_confirm_no")
-        inventory.setItem(24, noItem)
+        GuiHelper.setConfirmationItems(inventory, infoItem, yesItem, noItem)
 
         player.openInventory(inventory)
     }

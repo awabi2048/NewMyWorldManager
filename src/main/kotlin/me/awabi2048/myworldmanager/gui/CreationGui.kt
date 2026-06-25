@@ -160,7 +160,7 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         clearSettingsGuiTransition(player)
         val holder = CreationGuiHolder(CreationMenuType.CONFIRM)
-        val inventory = Bukkit.createInventory(holder, 45, title)
+        val inventory = me.awabi2048.myworldmanager.util.GuiHelper.createConfirmationInventory(holder, title)
         holder.inv = inventory
 
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
@@ -216,20 +216,15 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiLoreFrame.BOTH
         )
 
-        inventory.setItem(22, createItem(Material.PAPER, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_INFO, infoLore))
-
-        inventory.setItem(
-            20,
+        me.awabi2048.myworldmanager.util.GuiHelper.setConfirmationItems(
+            inventory,
+            createItem(Material.PAPER, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_INFO, infoLore),
             createItem(
                 Material.LIME_CONCRETE,
                 lang.getMessage(player, "gui.common.confirm"),
                 ItemTag.TYPE_GUI_CONFIRM,
                 emptyList()
-            )
-        )
-
-        inventory.setItem(
-            24,
+            ),
             createItem(
                 Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.common.cancel"),

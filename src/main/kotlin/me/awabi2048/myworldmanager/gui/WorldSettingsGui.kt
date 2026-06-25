@@ -469,11 +469,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val publishLore = CCSystem.getAPI().getLoreService().render(
                                 GuiLoreSpec.Rich(buildList {
                                         add(GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.settings.publish.display"),
+                                                lang.getMessage(player, "gui.settings.publish.current_label"),
                                                 selectedLevel.second,
                                                 selectedLevel.third
                                         ))
-                                        add(GuiLoreLine.Spacer)
                                         add(GuiLoreLine.Text(lang.getMessage(
                                                 player,
                                                 "publish_level.description.${worldData.publishLevel.name.lowercase()}"
@@ -483,7 +482,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 val selected = level == worldData.publishLevel
                                                 val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
                                                 val displayColor = if (selected) color else inactiveColor
-                                                add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $displayColor$name"))
+                                                add(GuiLoreLine.Raw("$marker $displayColor$name"))
                                         }
                                         add(GuiLoreLine.Spacer)
                                         if (isBedrock) {
@@ -511,7 +510,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "publish",
                                                 Material.OAK_DOOR
                                         ),
-                                        lang.getMessage(player, "gui.settings.publish.display"),
+                                        "\u00A7e公開レベル",
                                         publishLore,
                                         ItemTag.TYPE_GUI_SETTING_PUBLISH
                                 )

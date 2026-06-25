@@ -23,6 +23,7 @@ import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.session.WorldSpawnCoordinates
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -67,9 +68,10 @@ class CreationDialogManager : Listener {
             val nameRaw = view?.getText("world_name")?.toString().orEmpty()
 
             // 名前のバリデーション
-            val error = plugin.worldValidator.validateName(nameRaw)
-            if (error != null) {
-                showNameInputDialog(player, session, error)
+            val result = plugin.worldValidator.validateName(nameRaw)
+            if (result is WorldNameValidation.Failure) {
+                val errorComponent = plugin.languageManager.getComponent(player, result.messageKey, result.placeholders)
+                showNameInputDialog(player, session, errorComponent)
                 return
             }
 
@@ -216,13 +218,13 @@ class CreationDialogManager : Listener {
         /**
          * ワールド名入力ダイアログを表示
          */
-        fun showNameInputDialog(player: Player, session: WorldCreationSession, errorMessage: String? = null) {
+        fun showNameInputDialog(player: Player, session: WorldCreationSession, errorMessage: Component? = null) {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
             val lang = plugin.languageManager
             // 入力指示は入力欄の枠タイトルに集約し、同じ文面を本文へ重複表示しない。
             val body = mutableListOf<DialogBody>()
-            if (!errorMessage.isNullOrBlank()) {
-                body += DialogBody.plainMessage(Component.text("§c$errorMessage"))
+            if (errorMessage != null) {
+                body += DialogBody.plainMessage(errorMessage)
             }
 
             val dialog = Dialog.create { builder ->

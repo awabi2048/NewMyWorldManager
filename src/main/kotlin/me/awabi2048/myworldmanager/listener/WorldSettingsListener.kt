@@ -28,6 +28,7 @@ import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldNameValidation
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -3627,8 +3628,9 @@ plugin.languageManager
                 var updated = false
 
                 if (newName.isNotBlank()) {
-                        if (newName.length < 3 || newName.length > 16) {
-                                player.sendMessage(lang.getMessage(player, "messages.world_name_invalid"))
+                        val result = plugin.worldValidator.validateName(newName)
+                        if (result is WorldNameValidation.Failure) {
+                                player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
                         } else if (worldData.name != newName) {
                                 worldData.name = newName
                                 updated = true
@@ -3653,8 +3655,9 @@ plugin.languageManager
 
         private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
                 val lang = plugin.languageManager
-                if (newName.length < 3 || newName.length > 16) {
-                        player.sendMessage(lang.getMessage(player, "messages.world_name_invalid"))
+                val result = plugin.worldValidator.validateName(newName)
+                if (result is WorldNameValidation.Failure) {
+                        player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
                 } else {
                         worldData.name = newName
                         plugin.worldConfigRepository.save(worldData)
