@@ -4,6 +4,7 @@ import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -68,11 +69,11 @@ class MeetGui(private val plugin: MyWorldManager) {
         val totalPages = if (targets.isEmpty()) 1 else (targets.size + itemsPerPage - 1) / itemsPerPage
         val currentPage = session.currentPage.coerceIn(0, totalPages - 1)
         session.currentPage = currentPage
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title, MeetGuiHolder::class.java)
+        val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
+        GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title, MeetGuiHolder::class.java)
 
         val holder = MeetGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 45, title)
+        val inventory = Bukkit.createInventory(holder, GuiHelper.settingsLayout().size, title)
         holder.inv = inventory
 
         GuiItemFactory.applyStandardFrame(inventory)
@@ -119,15 +120,15 @@ class MeetGui(private val plugin: MyWorldManager) {
         inventory.setItem(statusSlot, statusItem)
 
         if (currentPage > 0) {
-            inventory.setItem(37, me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "meet", currentPage - 1))
+            inventory.setItem(37, GuiHelper.createPrevPageItem(plugin, player, "meet", currentPage - 1))
         }
         if (currentPage < totalPages - 1) {
-            inventory.setItem(43, me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(plugin, player, "meet", currentPage + 1))
+            inventory.setItem(43, GuiHelper.createNextPageItem(plugin, player, "meet", currentPage + 1))
         }
 
         // 戻るボタン
         if (session.showBackButton) {
-            inventory.setItem(36, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"))
+            inventory.setItem(36, GuiHelper.createReturnItem(plugin, player, "meet"))
         }
 
         player.openInventory(inventory)
@@ -163,7 +164,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val isOnline = target.isOnline
         val colorCode = if (isOnline) lang.getMessage(viewer, "publish_level.color.online") else lang.getMessage(viewer, "publish_level.color.offline")
         // 名前を色分けしたComponentに変換
-        meta.displayName(me.awabi2048.myworldmanager.util.GuiItemFactory.legacy("$colorCode${target.name}"))
+        meta.displayName(GuiItemFactory.legacy("$colorCode${target.name}"))
 
         val lines = mutableListOf<String>()
 
