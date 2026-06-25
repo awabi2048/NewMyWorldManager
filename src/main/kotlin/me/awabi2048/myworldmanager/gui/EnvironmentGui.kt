@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
@@ -37,25 +38,24 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
 
         val inventory =
-                if (player.openInventory.topInventory.size == 45 && currentTitle == title) {
+                if (player.openInventory.topInventory.size == GuiHelper.threeChoiceLayout().size && currentTitle == title) {
                     player.openInventory.topInventory
                 } else {
                     val holder = WorldSettingsGuiHolder()
-                    val inventory = Bukkit.createInventory(holder, 45, titleComponent)
+                    val inventory = Bukkit.createInventory(holder, GuiHelper.threeChoiceLayout().size, titleComponent)
                     holder.inv = inventory
                     inventory
                 }
 
         GuiItemFactory.applyStandardFrame(inventory)
 
-        // スロット20: 重力
-        inventory.setItem(20, createGravityItem(player, worldData))
-
-        // スロット22: 天候
-        inventory.setItem(22, createWeatherItem(player, worldData))
-
-        // スロット24: バイオーム
-        inventory.setItem(24, createBiomeItem(player, worldData))
+        // Keep the three environment choices aligned with the shared layout.
+        GuiHelper.setThreeChoiceItems(
+                inventory,
+                createGravityItem(player, worldData),
+                createWeatherItem(player, worldData),
+                createBiomeItem(player, worldData)
+        )
 
         // 戻るボタン (スロット40)
         val backItem = ItemStack(Material.ARROW)
@@ -63,7 +63,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         backMeta?.displayName(lang.getComponent(player, "gui.common.back"))
         backItem.itemMeta = backMeta
         ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_CANCEL)
-        inventory.setItem(40, backItem)
+        GuiHelper.setThreeChoiceBack(inventory, backItem)
 
         player.openInventory(inventory)
     }

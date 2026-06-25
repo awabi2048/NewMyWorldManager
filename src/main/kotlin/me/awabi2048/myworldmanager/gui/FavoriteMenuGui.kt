@@ -2,26 +2,26 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import com.awabi2048.ccsystem.CCSystem
 
 class FavoriteMenuGui(private val plugin: MyWorldManager) {
 
     fun open(player: Player, worldData: WorldData?) {
         val lang = plugin.languageManager
         val titleKey = "gui.favorite.favorite_menu.title"
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", title, FavoriteMenuGuiHolder::class.java)
+        val layout = GuiHelper.threeChoiceLayout()
+        val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
+        GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", title, FavoriteMenuGuiHolder::class.java)
 
         val holder = FavoriteMenuGuiHolder()
-        val inventory = Bukkit.createInventory(holder, 45, title)
+        val inventory = Bukkit.createInventory(holder, layout.size, title)
         holder.inv = inventory
 
         plugin.settingsSessionManager.updateSessionAction(
@@ -39,37 +39,38 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         }
 
         // 背景配置
-        for (i in 0 until 45) {
+        // Keep the favorite menu on the shared three-choice frame while preserving per-world context tags.
+        for (i in 0 until layout.size) {
             inventory.setItem(i, grayPane)
         }
         for (i in 0..8) inventory.setItem(i, blackPane)
-        for (i in 36..44) inventory.setItem(i, blackPane)
+        for (i in layout.size - 9 until layout.size) inventory.setItem(i, blackPane)
 
 
         if (worldData != null && worldData.owner == player.uniqueId) {
             // オーナーの場合：お気に入りリストを中央に配置
-            inventory.setItem(22, createFavoriteListItem(player, worldData))
+            inventory.setItem(layout.centerSlot, createFavoriteListItem(player, worldData))
         } else {
             // オーナー以外の場合：通常レイアウト
             // Slot 20: ほかのワールド
             if (worldData != null) {
-                inventory.setItem(20, createOtherWorldsItem(player, worldData))
+                inventory.setItem(layout.leftSlot, createOtherWorldsItem(player, worldData))
             }
 
             // Slot 22: お気に入り追加/削除
-            inventory.setItem(22, createToggleFavoriteItem(player, worldData))
+            inventory.setItem(layout.centerSlot, createToggleFavoriteItem(player, worldData))
 
             // Slot 24: お気に入り一覧
-            inventory.setItem(24, createFavoriteListItem(player, worldData))
+            inventory.setItem(layout.rightSlot, createFavoriteListItem(player, worldData))
         }
 
         // Slot 40: ワールドアイコン
         if (worldData != null) {
-            inventory.setItem(40, createWorldInfoItem(player, worldData))
+            inventory.setItem(layout.backSlot, createWorldInfoItem(player, worldData))
         }
 
         player.openInventory(inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        GuiHelper.scheduleGuiTransitionReset(plugin, player)
     }
 
     private fun createOtherWorldsItem(player: Player, worldData: WorldData): ItemStack {

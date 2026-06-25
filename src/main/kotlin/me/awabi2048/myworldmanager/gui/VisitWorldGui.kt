@@ -50,7 +50,8 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
         )
 
         val holder = VisitWorldGuiHolder(query, showBackButton, currentPage)
-        val inventory = Bukkit.createInventory(holder, 54, title)
+        val layout = GuiHelper.settingsLayout()
+        val inventory = Bukkit.createInventory(holder, layout.size, title)
         holder.inv = inventory
 
         fillBaseLayout(inventory)
@@ -60,10 +61,11 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             inventory.setItem(worldItemSlots[index], createWorldItem(player, worldData))
         }
 
-        if (showBackButton) {
-            inventory.setItem(45, GuiHelper.createReturnItem(plugin, player, "visit"))
-        }
-        inventory.setItem(49, createInfoItem(player, query, worlds.size, pageWorlds.size, currentPage + 1, totalPages))
+        GuiHelper.setSettingsFooter(
+            inventory,
+            if (showBackButton) GuiHelper.createReturnItem(plugin, player, "visit") else null,
+            createInfoItem(player, query, worlds.size, pageWorlds.size, currentPage + 1, totalPages)
+        )
 
         if (currentPage > 0) {
             inventory.setItem(47, GuiHelper.createPrevPageItem(plugin, player, "visit", currentPage - 1))

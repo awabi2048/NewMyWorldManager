@@ -3,6 +3,9 @@ package me.awabi2048.myworldmanager.util
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiConfirmationLayout
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiPagedListLayout
+import com.awabi2048.ccsystem.api.gui.GuiSettingsLayout
+import com.awabi2048.ccsystem.api.gui.GuiThreeChoiceLayout
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import net.kyori.adventure.text.Component
@@ -103,6 +106,12 @@ object GuiHelper {
 
     fun confirmationLayout(): GuiConfirmationLayout = layoutService.confirmation45()
 
+    fun pagedListLayout(): GuiPagedListLayout = layoutService.pagedList54()
+
+    fun settingsLayout(): GuiSettingsLayout = layoutService.settings54()
+
+    fun threeChoiceLayout(): GuiThreeChoiceLayout = layoutService.threeChoice45()
+
     fun createConfirmationInventory(holder: InventoryHolder?, title: Component): Inventory {
         val layout = confirmationLayout()
         return Bukkit.createInventory(holder, layout.size, inventoryTitle(title))
@@ -122,6 +131,23 @@ object GuiHelper {
         inventory.setItem(layout.previewSlot, centerItem)
         inventory.setItem(layout.confirmSlot, confirmItem)
         inventory.setItem(layout.cancelSlot, cancelItem)
+    }
+
+    fun setThreeChoiceItems(inventory: Inventory, leftItem: ItemStack, centerItem: ItemStack, rightItem: ItemStack) {
+        val layout = threeChoiceLayout()
+        inventory.setItem(layout.leftSlot, leftItem)
+        inventory.setItem(layout.centerSlot, centerItem)
+        inventory.setItem(layout.rightSlot, rightItem)
+    }
+
+    fun setThreeChoiceBack(inventory: Inventory, backItem: ItemStack) {
+        inventory.setItem(threeChoiceLayout().backSlot, backItem)
+    }
+
+    fun setSettingsFooter(inventory: Inventory, backItem: ItemStack?, infoItem: ItemStack?) {
+        val layout = settingsLayout()
+        backItem?.let { inventory.setItem(layout.backSlot, it) }
+        infoItem?.let { inventory.setItem(layout.infoSlot, it) }
     }
 
     /*

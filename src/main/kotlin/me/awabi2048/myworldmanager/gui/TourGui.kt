@@ -136,12 +136,37 @@ class TourGui(private val plugin: MyWorldManager) {
     fun openDeleteConfirm(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
         val lang = plugin.languageManager
         val holder = DeleteTourHolder(worldData.uuid, tour.uuid, isNew)
-        val inventory = Bukkit.createInventory(holder, 45, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))))
+        val inventory = GuiHelper.createConfirmationInventory(
+            holder,
+            Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))
+        )
         holder.inv = inventory
-        fillBase(inventory)
-        inventory.setItem(22, createLoreItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete_confirm.title"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1"), lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"), lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_INFO))
-        inventory.setItem(20, createLoreItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"), emptyList(), ItemTag.TYPE_GUI_CONFIRM))
-        inventory.setItem(24, createLoreItem(Material.RED_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"), emptyList(), ItemTag.TYPE_GUI_CANCEL))
+        GuiHelper.applyConfirmationFrame(inventory)
+        GuiHelper.setConfirmationItems(
+            inventory,
+            createLoreItem(
+                Material.LAVA_BUCKET,
+                lang.getMessage(player, "gui.tour.menu.delete_confirm.title"),
+                listOf(
+                    lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1"),
+                    lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"),
+                    lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")
+                ),
+                ItemTag.TYPE_GUI_INFO
+            ),
+            createLoreItem(
+                Material.LIME_WOOL,
+                lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"),
+                emptyList(),
+                ItemTag.TYPE_GUI_CONFIRM
+            ),
+            createLoreItem(
+                Material.RED_WOOL,
+                lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"),
+                emptyList(),
+                ItemTag.TYPE_GUI_CANCEL
+            )
+        )
         player.openInventory(inventory)
     }
 
