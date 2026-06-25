@@ -73,7 +73,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title, MeetGuiHolder::class.java)
 
         val holder = MeetGuiHolder()
-        val inventory = Bukkit.createInventory(holder, GuiHelper.settingsLayout().size, title)
+        val inventory = Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, title)
         holder.inv = inventory
 
         GuiItemFactory.applyStandardFrame(inventory)
