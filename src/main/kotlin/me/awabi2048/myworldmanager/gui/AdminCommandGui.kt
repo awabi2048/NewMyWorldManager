@@ -122,16 +122,31 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         ))
 
         // Slot 40: プラグイン情報
-        inventory.setItem(40, createItem(
-            Material.NETHER_STAR,
-            lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
-            lang.getMessageList(
-                player,
-                "gui.admin_menu.plugin_info.lore",
-                mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048")
-            ),
-            ItemTag.TYPE_GUI_INFO
-        ))
+        val adminMenuProviders = MyWorldManagerApi.getAdminMenuProviders()
+        inventory.setItem(40, if (adminMenuProviders.isNotEmpty()) {
+            createItem(
+                Material.NETHER_STAR,
+                lang.getMessage(player, "gui.admin_menu.menu_switch.display"),
+                lang.getMessageList(
+                    player,
+                    "gui.admin_menu.menu_switch.lore",
+                    mapOf("next" to adminMenuProviders.first().getDisplayName(player))
+                ),
+                ItemTag.TYPE_GUI_ADMIN_MENU_SWITCH
+            )
+        } else {
+            // 追加の管理メニュー種別がない環境では、従来どおりプラグイン情報を中央に置く。
+            createItem(
+                Material.NETHER_STAR,
+                lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
+                lang.getMessageList(
+                    player,
+                    "gui.admin_menu.plugin_info.lore",
+                    mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048")
+                ),
+                ItemTag.TYPE_GUI_INFO
+            )
+        })
 
         // Slot 42: ポータル管理 (portals)
         inventory.setItem(42, createItem(

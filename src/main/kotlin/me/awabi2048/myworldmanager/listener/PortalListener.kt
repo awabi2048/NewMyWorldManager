@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.util.WorldGateItemUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import io.papermc.paper.event.player.PlayerCustomClickEvent
+import io.papermc.paper.event.player.PlayerPickBlockEvent
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Location
@@ -285,6 +286,23 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
     private fun canOpenPortalMenu(player: org.bukkit.entity.Player, portal: PortalData): Boolean {
         return portal.ownerUuid == player.uniqueId || player.hasPermission("myworldmanager.admin")
+    }
+
+    private fun createPortalItem(portal: PortalData, player: org.bukkit.entity.Player): ItemStack {
+        val lang = plugin.languageManager
+        val item = PortalItemUtil.createBasePortalItem(lang, player)
+        portal.worldUuid?.let { worldUuid ->
+            val worldName = plugin.worldConfigRepository.findByUuid(worldUuid)?.name
+                ?: lang.getMessage(player, "general.unknown")
+            PortalItemUtil.bindWorld(item, worldUuid, worldName, lang, player)
+            return item
+        }
+
+        portal.targetWorldName?.let { targetWorldName ->
+            val displayName = plugin.config.getString("portal_targets.$targetWorldName") ?: targetWorldName
+            PortalItemUtil.bindExternalWorld(item, targetWorldName, displayName, lang, player)
+        }
+        return item
     }
 
     private fun showWorldGateConfirm(player: org.bukkit.entity.Player) {
@@ -727,6 +745,22 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
              event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_broken"))
          }
      }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun onPickPortalBlock(event: PlayerPickBlockEvent) {
+        val portal = plugin.portalRepository.findByLocation(event.block.location) ?: return
+        if (portal.isGate()) return
+        if (!canOpenPortalMenu(event.player, portal)) return
+
+        val item = createPortalItem(portal, event.player)
+        if (event.targetSlot in 0 until event.player.inventory.size) {
+            event.player.inventory.setItem(event.targetSlot, item)
+        } else {
+            event.player.inventory.addItem(item)
+        }
+        event.isCancelled = true
+        event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_pick_success"))
+    }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     fun onPlayerMove(event: PlayerMoveEvent) {

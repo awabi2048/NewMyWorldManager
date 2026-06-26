@@ -67,11 +67,13 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         }
 
         // プレイヤー用ワールド一覧
-        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder) {
+        val playerWorldHolder = view.topInventory.holder as? me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder
+        if (playerWorldHolder != null) {
             event.cancelWithDebug("PlayerWorldListener.onInventoryClick: player world list GUI click")
             if (event.clickedInventory != event.view.topInventory) return
             val currentItem = event.currentItem ?: return
             val type = ItemTag.getType(currentItem)
+            val isOwnMenu = playerWorldHolder.targetPlayerUuid == player.uniqueId
             
 
             
@@ -80,7 +82,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
                 val targetPage = ItemTag.getTargetPage(currentItem) ?: return
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                gui.open(player, targetPage)
+                gui.open(player, targetPage, null, playerWorldHolder.targetPlayerUuid, playerWorldHolder.targetPlayerName)
                 return
             }
             
@@ -121,6 +123,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             }
 
             if (type == ItemTag.TYPE_GUI_CREATION_BUTTON) {
+                if (!isOwnMenu) return
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 
                 // セッションの開始
@@ -135,6 +138,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             }
 
             if (type == ItemTag.TYPE_GUI_PLAYER_STATS) {
+                if (!isOwnMenu) return
                 val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
                 if (pendingCount == 0) {
                     return
@@ -152,6 +156,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 return
             }
             if (type == ItemTag.TYPE_GUI_USER_SETTINGS_BUTTON) {
+                if (!isOwnMenu) return
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 val currentSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
                 plugin.menuRouteHistory.pushPlayerWorld(
@@ -166,7 +171,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
             val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
-            if (!isBedrock && event.isShiftClick && event.isLeftClick) {
+            if (isOwnMenu && !isBedrock && event.isShiftClick && event.isLeftClick) {
                 // Shift+左クリック：ワールドを先頭に移動
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 stats.worldDisplayOrder.remove(uuid)
@@ -178,7 +183,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 
                 // 現在のページ番号を取得してGUI再表示
                 val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
-                plugin.playerWorldGui.open(player, session.currentPage)
+                plugin.playerWorldGui.open(player, session.currentPage, null, playerWorldHolder.targetPlayerUuid, playerWorldHolder.targetPlayerName)
                 return
             } else if (event.isLeftClick && !event.isShiftClick) {
                 // Shiftなし左クリック：アーカイブ状態のチェック
@@ -236,7 +241,8 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             } else if (!isBedrock && event.isRightClick) {
 
                 // 右クリック：設定を開く
-                val isMember = worldData.owner == player.uniqueId ||
+                val isMember = player.hasPermission("myworldmanager.admin") ||
+                        worldData.owner == player.uniqueId ||
                         worldData.moderators.contains(player.uniqueId) ||
                         worldData.members.contains(player.uniqueId)
 

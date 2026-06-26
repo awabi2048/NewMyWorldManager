@@ -130,6 +130,7 @@ object ItemTag {
     const val TYPE_GUI_ADMIN_PORTALS = "gui_admin_portals"
     const val TYPE_GUI_ADMIN_UNLINK = "gui_admin_unlink"
     const val TYPE_GUI_ADMIN_CURRENT_WORLD_INFO = "gui_admin_current_world_info"
+    const val TYPE_GUI_ADMIN_MENU_SWITCH = "gui_admin_menu_switch"
 
     @JvmStatic
     fun tagItem(item: ItemStack, type: String) {

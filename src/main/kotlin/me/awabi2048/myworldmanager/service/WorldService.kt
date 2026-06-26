@@ -69,6 +69,10 @@ class WorldService(
                 return false
             }
         }
+        if (repository.findByOwnerAndDisplayName(player.uniqueId, worldName) != null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            return false
+        }
 
         val uuid = UUID.randomUUID()
         val worldFolderName = "my_world.${uuid}"
@@ -284,6 +288,11 @@ class WorldService(
                 future.complete(false)
                 return future
             }
+        }
+        if (repository.findByOwnerAndDisplayName(ownerUuid, worldName) != null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            future.complete(false)
+            return future
         }
 
         val uuid = UUID.randomUUID()

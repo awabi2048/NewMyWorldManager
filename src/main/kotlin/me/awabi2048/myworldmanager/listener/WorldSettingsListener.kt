@@ -3631,6 +3631,8 @@ plugin.languageManager
                         val result = plugin.worldValidator.validateName(newName)
                         if (result is WorldNameValidation.Failure) {
                                 player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
+                        } else if (plugin.worldConfigRepository.findByOwnerAndDisplayName(worldData.owner, newName, worldData.uuid) != null) {
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
                         } else if (worldData.name != newName) {
                                 worldData.name = newName
                                 updated = true
@@ -3658,6 +3660,8 @@ plugin.languageManager
                 val result = plugin.worldValidator.validateName(newName)
                 if (result is WorldNameValidation.Failure) {
                         player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
+                } else if (plugin.worldConfigRepository.findByOwnerAndDisplayName(worldData.owner, newName, worldData.uuid) != null) {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
                 } else {
                         worldData.name = newName
                         plugin.worldConfigRepository.save(worldData)
@@ -5139,7 +5143,7 @@ player.sendMessage(
                          // Execute Kick
                          val targetPlayer = plugin.server.getPlayer(targetUuid)
                          if (targetPlayer != null && targetPlayer.world.uid == worldData.uuid) {
-                             targetPlayer.teleport(plugin.server.worlds[0].spawnLocation)
+                             targetPlayer.teleport(plugin.worldService.getEvacuationLocation())
                              targetPlayer.sendMessage(plugin.languageManager.getMessage(targetPlayer, "messages.kicked"))
                              player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to targetPlayer.name)))
                          } else {

@@ -135,10 +135,9 @@
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <relocations>
-                                <relocation>
-                                    <pattern>kotlin</pattern>
-                                    <shadedPattern>me.awabi2048.myworldmanager.kotlin</shadedPattern>
-                                </relocation>
+                                <!-- kotlin パッケージの relocate は、他プラグインから Kotlin 関数を
+                                     呼ぶ際の型不一致（kotlin.Unit vs me.awabi2048...kotlin.Unit 等）を
+                                     引き起こすため廃止。 -->
                             </relocations>
                             <filters>
                                 <filter>

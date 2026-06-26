@@ -465,7 +465,18 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         return@Runnable
                     }
 
-                    latest.worldName = me.awabi2048.myworldmanager.gui.CreationDialogManager.cleanWorldName(value)
+                    val cleanName = me.awabi2048.myworldmanager.gui.CreationDialogManager.cleanWorldName(value)
+                    if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, cleanName) != null) {
+                        val errorComponent = plugin.languageManager.getComponent(player, "messages.world_name_duplicate")
+                        if (!plugin.playerPlatformResolver.isBedrock(player)) {
+                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, latest, errorComponent)
+                        } else {
+                            openNameInputByPlatform(player, latest, errorComponent)
+                        }
+                        return@Runnable
+                    }
+
+                    latest.worldName = cleanName
                     latest.phase = WorldCreationPhase.CONFIRM
                     plugin.creationGui.openConfirmation(player, latest)
                 })

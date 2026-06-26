@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.api.extension
 
 import org.bukkit.entity.Player
+import java.util.UUID
 
 interface PlayerWorldMenuProvider {
     fun getId(): String
@@ -10,5 +11,7 @@ interface PlayerWorldMenuProvider {
 
 data class PlayerWorldMenuRequest(
     val page: Int,
-    val showBackButton: Boolean
+    val showBackButton: Boolean,
+    val targetPlayerUuid: UUID? = null,
+    val targetPlayerName: String? = null
 )

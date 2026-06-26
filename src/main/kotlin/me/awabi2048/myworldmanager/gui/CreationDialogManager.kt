@@ -75,7 +75,17 @@ class CreationDialogManager : Listener {
                 return
             }
 
-            session.worldName = cleanWorldName(nameRaw)
+            val cleanName = cleanWorldName(nameRaw)
+            if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, cleanName) != null) {
+                showNameInputDialog(
+                    player,
+                    session,
+                    plugin.languageManager.getComponent(player, "messages.world_name_duplicate")
+                )
+                return
+            }
+
+            session.worldName = cleanName
             if (session.creationType == null) {
                 session.phase = WorldCreationPhase.TYPE_SELECT
                 org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -479,6 +489,10 @@ class CreationDialogManager : Listener {
             plugin.playerStatsRepository.save(stats)
 
             val name = session.worldName ?: "New World"
+            if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, name) != null) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+                return
+            }
 
             when (session.creationType) {
                 WorldCreationType.TEMPLATE -> {

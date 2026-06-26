@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
+import java.util.UUID
 
 class MenuEntryRouter(
     private val plugin: MyWorldManager,
@@ -17,13 +18,24 @@ class MenuEntryRouter(
 ) {
 
     fun openPlayerWorld(player: Player, page: Int = 0, showBackButton: Boolean = false) {
+        openPlayerWorld(player, player.uniqueId, player.name, page, showBackButton)
+    }
+
+    fun openPlayerWorld(
+        player: Player,
+        targetPlayerUuid: UUID,
+        targetPlayerName: String?,
+        page: Int = 0,
+        showBackButton: Boolean = false
+    ) {
         if (!showBackButton) resetTopLevelMenuState(player)
-        if (platformResolver.isBedrock(player)) {
+        val isOwnMenu = targetPlayerUuid == player.uniqueId
+        if (isOwnMenu && platformResolver.isBedrock(player)) {
             bedrockMenuService.openPlayerWorld(player, page, showBackButton)
             return
         }
 
-        plugin.playerWorldGui.open(player, page, showBackButton)
+        plugin.playerWorldGui.open(player, page, showBackButton, targetPlayerUuid, targetPlayerName)
     }
 
     fun openUserSettings(player: Player, showBackButton: Boolean = false) {

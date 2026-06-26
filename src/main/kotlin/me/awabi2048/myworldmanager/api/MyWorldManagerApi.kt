@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.api
 
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListProvider
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
+import me.awabi2048.myworldmanager.api.extension.AdminMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuProvider
@@ -12,6 +13,7 @@ import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
+import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldRuntimePolicy
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuProvider
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
@@ -23,6 +25,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
 import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
 import me.awabi2048.myworldmanager.model.WorldData
@@ -45,6 +48,7 @@ object MyWorldManagerApi {
     private var templateRepository: ApiTemplateRepository? = null
     private var memberManager: ApiMemberManager? = null
     private var worldTagService: ApiWorldTagService? = null
+    private var worldCreationControlService: WorldCreationControlService? = null
     private val menuExtensions = CopyOnWriteArrayList<MenuExtension>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
@@ -52,8 +56,10 @@ object MyWorldManagerApi {
     private val createCommandHandlers = CopyOnWriteArrayList<CreateCommandHandler>()
     private val worldRuntimePolicies = CopyOnWriteArrayList<WorldRuntimePolicy>()
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
+    private val worldPortalPolicies = CopyOnWriteArrayList<WorldPortalPolicy>()
     private val worldSettingsMenuProviders = CopyOnWriteArrayList<WorldSettingsMenuProvider>()
     private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
+    private val adminMenuProviders = CopyOnWriteArrayList<AdminMenuProvider>()
     private val playerWorldMenuProviders = CopyOnWriteArrayList<PlayerWorldMenuProvider>()
     private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
     private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
@@ -139,6 +145,33 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldTagService(): ApiWorldTagService? {
         return worldTagService
+    }
+
+    @JvmStatic
+    fun registerWorldCreationControlService(service: WorldCreationControlService) {
+        worldCreationControlService = service
+    }
+
+    @JvmStatic
+    fun unregisterWorldCreationControlService(service: WorldCreationControlService) {
+        if (worldCreationControlService === service) {
+            worldCreationControlService = null
+        }
+    }
+
+    @JvmStatic
+    fun isWorldCreationEnabled(): Boolean {
+        return worldCreationControlService?.isWorldCreationEnabled() ?: true
+    }
+
+    @JvmStatic
+    fun setWorldCreationEnabled(enabled: Boolean) {
+        worldCreationControlService?.setWorldCreationEnabled(enabled)
+    }
+
+    interface WorldCreationControlService {
+        fun isWorldCreationEnabled(): Boolean
+        fun setWorldCreationEnabled(enabled: Boolean)
     }
 
     @JvmStatic
@@ -254,6 +287,22 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
+    fun registerWorldPortalPolicy(policy: WorldPortalPolicy) {
+        worldPortalPolicies.removeIf { it.getId() == policy.getId() }
+        worldPortalPolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldPortalPolicy(policy: WorldPortalPolicy) {
+        worldPortalPolicies.removeIf { it === policy || it.getId() == policy.getId() }
+    }
+
+    @JvmStatic
+    fun getWorldPortalPolicy(): WorldPortalPolicy {
+        return worldPortalPolicies.lastOrNull() ?: DefaultWorldPortalPolicy
+    }
+
+    @JvmStatic
     fun registerWorldSettingsMenuProvider(provider: WorldSettingsMenuProvider) {
         worldSettingsMenuProviders.removeIf { it.getId() == provider.getId() }
         worldSettingsMenuProviders.add(provider)
@@ -287,6 +336,32 @@ object MyWorldManagerApi {
     @JvmStatic
     fun openAdminWorldListOverride(player: Player, request: AdminWorldListRequest): Boolean {
         return adminWorldListProviders.asReversed().any { it.open(player, request) }
+    }
+
+    @JvmStatic
+    fun registerAdminMenuProvider(provider: AdminMenuProvider) {
+        adminMenuProviders.removeIf { it.getId() == provider.getId() }
+        adminMenuProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterAdminMenuProvider(provider: AdminMenuProvider) {
+        adminMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    }
+
+    @JvmStatic
+    fun getAdminMenuProviders(): List<AdminMenuProvider> {
+        return adminMenuProviders.toList()
+    }
+
+    @JvmStatic
+    fun openNextAdminMenu(player: Player, currentProviderId: String? = null): Boolean {
+        val providers = adminMenuProviders.toList()
+        if (providers.isEmpty()) return false
+        val currentIndex = currentProviderId?.let { id -> providers.indexOfFirst { it.getId() == id } } ?: -1
+        val nextIndex = if (currentIndex < 0 || currentIndex + 1 >= providers.size) 0 else currentIndex + 1
+        providers[nextIndex].open(player)
+        return true
     }
 
     @JvmStatic

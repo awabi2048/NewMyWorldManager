@@ -44,6 +44,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
     private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
+    private var worldCreationControlService: MyWorldManagerApi.WorldCreationControlService? = null
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
@@ -256,6 +257,14 @@ class MyWorldManager : JavaPlugin() {
         MyWorldManagerApi.registerTemplateRepository(TemplateRepositoryAdapter(this))
         MyWorldManagerApi.registerMemberManager(MemberManagerAdapter(this))
         MyWorldManagerApi.registerWorldTagService(WorldTagServiceAdapter(this))
+        worldCreationControlService = object : MyWorldManagerApi.WorldCreationControlService {
+            override fun isWorldCreationEnabled(): Boolean = config.getBoolean("creation.enabled", true)
+
+            override fun setWorldCreationEnabled(enabled: Boolean) {
+                config.set("creation.enabled", enabled)
+                saveConfig()
+            }
+        }.also(MyWorldManagerApi::registerWorldCreationControlService)
         worldWorkPermissionSyncService = MyWorldManagerApi.WorldWorkPermissionSyncService { worldUuid ->
             worldConfigRepository.findByUuid(worldUuid)?.let(worldPermissionPolicyService::syncParticipants)
         }.also(MyWorldManagerApi::registerWorldWorkPermissionSyncService)
@@ -383,6 +392,8 @@ class MyWorldManager : JavaPlugin() {
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
         worldPointApiService = null
+        worldCreationControlService?.let(MyWorldManagerApi::unregisterWorldCreationControlService)
+        worldCreationControlService = null
         worldWorkPermissionSyncService?.let(MyWorldManagerApi::unregisterWorldWorkPermissionSyncService)
         worldWorkPermissionSyncService = null
         runCatching { CCSystem.getAPI().unregisterI18nSource(name) }

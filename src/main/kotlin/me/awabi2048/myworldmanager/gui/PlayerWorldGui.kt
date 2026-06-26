@@ -41,19 +41,23 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         private val itemsPerPageNum = dataRowsPerPage * worldsPerRow // 28 items
 
         fun getPlayerWorlds(player: Player): List<WorldData> {
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                return getPlayerWorlds(player.uniqueId)
+        }
+
+        fun getPlayerWorlds(targetPlayerUuid: UUID): List<WorldData> {
+                val stats = plugin.playerStatsRepository.findByUuid(targetPlayerUuid)
                 val allWorlds = repository.findAll()
 
                 // プレイヤーがアクセス可能なワールドをフィルタリング
                 val accessibleWorlds = allWorlds
                         .filter {
-                                it.owner == player.uniqueId ||
-                                        it.moderators.contains(player.uniqueId) ||
-                                        it.members.contains(player.uniqueId) ||
+                                it.owner == targetPlayerUuid ||
+                                        it.moderators.contains(targetPlayerUuid) ||
+                                        it.members.contains(targetPlayerUuid) ||
                                         it.isArchived // アーカイブ済みも自分のなら表示
                         }
                         .filter {
-                                it.owner == player.uniqueId || !it.isArchived
+                                it.owner == targetPlayerUuid || !it.isArchived
                         } // メンバーとして参加しているアーカイブ済みは非表示
 
                 // worldDisplayOrder に含まれるワールド（順序リスト順）
@@ -69,14 +73,21 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 return orderedWorlds + unorderedWorlds
         }
 
-        fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
+        fun open(
+                player: Player,
+                page: Int = 0,
+                showBackButton: Boolean? = null,
+                targetPlayerUuid: UUID = player.uniqueId,
+                targetPlayerName: String? = player.name
+        ) {
                 val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
                 if (showBackButton != null) {
                         session.showBackButton = showBackButton
                 }
 
                 // worldDisplayOrder のバリデーション
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                val isOwnMenu = targetPlayerUuid == player.uniqueId
+                val stats = plugin.playerStatsRepository.findByUuid(targetPlayerUuid)
                 val beforeCount = stats.worldDisplayOrder.size
                 stats.worldDisplayOrder.removeAll { uuid ->
                         plugin.worldConfigRepository.findByUuid(uuid) == null
@@ -90,7 +101,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
 
                 repository.loadAll()
-                val playerWorlds = getPlayerWorlds(player)
+                val playerWorlds = getPlayerWorlds(targetPlayerUuid)
 
                 // worldDisplayOrder に含まれていないワールドを自動追加
                 val currentUuids = playerWorlds.map { it.uuid }
@@ -109,7 +120,9 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 player,
                                 PlayerWorldMenuRequest(
                                         page = page,
-                                        showBackButton = session.showBackButton
+                                        showBackButton = session.showBackButton,
+                                        targetPlayerUuid = targetPlayerUuid,
+                                        targetPlayerName = targetPlayerName
                                 )
                         )
                 ) {
@@ -137,7 +150,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(titleStr)
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "player_world")
 
-                val holder = PlayerWorldGuiHolder()
+                val holder = PlayerWorldGuiHolder(targetPlayerUuid, targetPlayerName)
                 val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
                 holder.inv = inventory
 
@@ -165,7 +178,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                                 createWorldItem(
                                                         player,
                                                         currentPageWorlds[worldIndexInPage],
-                                                        player.uniqueId
+                                                        targetPlayerUuid
                                                 )
                                         )
                                 } else {
@@ -176,13 +189,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 val footerStart = (rowCount - 1) * 9
                 // 統計情報の取得
-                val currentCreateCount = playerWorlds.count { it.owner == player.uniqueId }
+                val currentCreateCount = playerWorlds.count { it.owner == targetPlayerUuid }
                 val maxSlot =
                         WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
                                 stats.unlockedWorldSlot
                 val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
-                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
+                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(targetPlayerUuid)
+                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(targetPlayerUuid)
                 val latestPendingText =
                         latestPendingAt?.let {
                                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -191,21 +204,28 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         } ?: lang.getMessage(player, "general.unknown")
 
                 // マイワールド新規作成ボタン (Slot 2)
-                if (bypassLimits || currentCreateCount < maxSlot) {
+                val creationBlockReason = creationBlockReason(currentCreateCount, maxSlot, bypassLimits)
+                if (isOwnMenu && creationBlockReason == null) {
                         inventory.setItem(footerStart + 2, createCreationButton(player))
+                } else if (isOwnMenu) {
+                        creationBlockReason?.let {
+                                inventory.setItem(footerStart + 2, createCreationUnavailableButton(player, it))
+                        }
                 }
 
                 // プレイヤー統計ボタン (Slot 4)
                 inventory.setItem(
                         footerStart + 4,
-                        createStatsButton(player, currentCreateCount, maxSlot, stats)
+                        createStatsButton(player, targetPlayerUuid, targetPlayerName, currentCreateCount, maxSlot, stats)
                 )
 
                 // 個人設定ボタン (Slot 6)
-                inventory.setItem(
-                        footerStart + 6,
-                        createUserSettingsButton(player)
-                )
+                if (isOwnMenu) {
+                        inventory.setItem(
+                                footerStart + 6,
+                                createUserSettingsButton(player)
+                        )
+                }
 
                 if (page > 0) {
                         inventory.setItem(
@@ -362,8 +382,33 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 return item
         }
 
+        private fun createCreationUnavailableButton(player: Player, reason: CreationBlockReason): ItemStack {
+                val item = ItemStack(Material.BARRIER)
+                item.editMeta { meta ->
+                        meta.displayName(plugin.languageManager.getComponent(player, reason.displayKey))
+                        meta.lore(null)
+                        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
+                }
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
+                return item
+        }
+
+        private fun creationBlockReason(
+                currentCreateCount: Int,
+                maxSlot: Int,
+                bypassLimits: Boolean
+        ): CreationBlockReason? {
+                if (bypassLimits) return null
+                // 作成期間の停止は枠不足より優先して、運営側の意図をそのまま表示する。
+                if (!MyWorldManagerApi.isWorldCreationEnabled()) return CreationBlockReason.PERIOD_DISABLED
+                if (currentCreateCount >= maxSlot) return CreationBlockReason.NO_SLOT
+                return null
+        }
+
         private fun createStatsButton(
                 player: Player,
+                targetPlayerUuid: UUID,
+                targetPlayerName: String?,
                 currentCreateCount: Int,
                 maxSlot: Int,
                 stats: PlayerStats
@@ -371,10 +416,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(Material.PLAYER_HEAD)
                 val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-                meta.owningPlayer = player
+                meta.owningPlayer = Bukkit.getOfflinePlayer(targetPlayerUuid)
                 val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
-                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
+                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(targetPlayerUuid)
+                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(targetPlayerUuid)
                 val latestPendingText =
                         latestPendingAt?.let {
                                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -386,7 +431,12 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         lang.getComponent(
                                 player,
                                 "gui.player_world.stats_button.display",
-                                mapOf("player" to PlayerNameUtil.getNameOrDefault(player.uniqueId, lang.getMessage(player, "general.unknown")))
+                                mapOf(
+                                        "player" to (
+                                                targetPlayerName
+                                                        ?: PlayerNameUtil.getNameOrDefault(targetPlayerUuid, lang.getMessage(player, "general.unknown"))
+                                                )
+                                )
 
                         )
                 )
@@ -441,8 +491,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
         }
 
-        class PlayerWorldGuiHolder : org.bukkit.inventory.InventoryHolder {
+        class PlayerWorldGuiHolder(
+                val targetPlayerUuid: UUID,
+                val targetPlayerName: String?
+        ) : org.bukkit.inventory.InventoryHolder {
                 lateinit var inv: org.bukkit.inventory.Inventory
                 override fun getInventory(): org.bukkit.inventory.Inventory = inv
+        }
+
+        private enum class CreationBlockReason(val displayKey: String) {
+                PERIOD_DISABLED("gui.player_world.creation_unavailable.period_disabled"),
+                NO_SLOT("gui.player_world.creation_unavailable.no_slot")
         }
 }

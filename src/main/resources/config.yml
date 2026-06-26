@@ -28,6 +28,7 @@ fallback_language: "ja_jp"
 
 
 creation:
+  enabled: true
   max_create_count_default: 3
   max_total_world_count: 50
   max_world_slots_limit: 10 # Default max slots a player can reach using World Seeds

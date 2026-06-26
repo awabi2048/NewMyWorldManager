@@ -5,6 +5,7 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.util.Locale
 import java.util.UUID
 
 class WorldConfigRepository(private val plugin: JavaPlugin) {
@@ -108,6 +109,17 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         return findByOwner(player.uniqueId)
     }
 
+    @Synchronized
+    fun findByOwnerAndDisplayName(ownerUuid: UUID, worldName: String, excludingUuid: UUID? = null): WorldData? {
+        val normalized = normalizeDisplayName(worldName)
+        // 表示名の重複制約はオーナー単位で扱う。フォルダ名ではなくプレイヤーに見える名前を基準にする。
+        return cache.values.firstOrNull {
+            it.owner == ownerUuid &&
+                it.uuid != excludingUuid &&
+                normalizeDisplayName(it.name) == normalized
+        }
+    }
+
     /**
      * 指定されたUUIDのワールドデータを削除する
      */
@@ -133,6 +145,10 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
 
     private fun toWorldFolderName(worldData: WorldData): String {
         return worldData.customWorldName ?: "my_world.${worldData.uuid}"
+    }
+
+    private fun normalizeDisplayName(name: String): String {
+        return name.trim().lowercase(Locale.ROOT)
     }
 
     private fun loadWorldData(file: File): WorldData? {

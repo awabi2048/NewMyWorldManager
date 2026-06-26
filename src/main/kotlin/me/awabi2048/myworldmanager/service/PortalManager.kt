@@ -202,6 +202,8 @@ class PortalManager(private val plugin: MyWorldManager) {
             val loc = portal.getCenterLocation()
 
             // 1. パーティクル表示
+            val destinationData = portal.worldUuid?.let { plugin.worldConfigRepository.findByUuid(it) }
+            val isPortalOpen = destinationData?.let { MyWorldManagerApi.getWorldPortalPolicy().isPortalOpen(it) } ?: true
             val dustOptions = Particle.DustOptions(portal.particleColor, 1.0f)
             if (portal.isGate()) {
                 val minX = portal.getMinX().toDouble()
@@ -216,24 +218,32 @@ class PortalManager(private val plugin: MyWorldManager) {
                     val px = minX + Math.random() * (maxX - minX + 1.0)
                     val py = minY + Math.random() * (maxY - minY + 1.0)
                     val pz = minZ + Math.random() * (maxZ - minZ + 1.0)
-                    world.spawnParticle(
-                        Particle.DUST,
-                        Location(world, px, py, pz),
-                        1,
-                        0.0, 0.0, 0.0,
-                        dustOptions
-                    )
+                    if (isPortalOpen) {
+                        world.spawnParticle(
+                            Particle.DUST,
+                            Location(world, px, py, pz),
+                            1,
+                            0.0, 0.0, 0.0,
+                            dustOptions
+                        )
+                    } else {
+                        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, Location(world, px, py, pz), 1)
+                    }
                 }
             } else {
                 for (i in 0..10) {
                     val offset = Math.random() * 2.0
-                    world.spawnParticle(
-                        Particle.DUST,
-                        loc.clone().add(0.0, 0.5 + offset, 0.0),
-                        1,
-                        0.3, 0.0, 0.3,
-                        dustOptions
-                    )
+                    if (isPortalOpen) {
+                        world.spawnParticle(
+                            Particle.DUST,
+                            loc.clone().add(0.0, 0.5 + offset, 0.0),
+                            1,
+                            0.3, 0.0, 0.3,
+                            dustOptions
+                        )
+                    } else {
+                        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, loc.clone().add(0.0, 0.5 + offset, 0.0), 1)
+                    }
                 }
             }
 
@@ -554,9 +564,16 @@ class PortalManager(private val plugin: MyWorldManager) {
         }
         
         if (portal.worldUuid != null) {
+            /*
             // マイワールドへのワープ
+            */
             val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!) ?: return
-            
+            val portalPolicy = MyWorldManagerApi.getWorldPortalPolicy()
+            if (!portalPolicy.canUsePortal(player, destData)) {
+                portalPolicy.blockedMessages(player, destData).forEach(player::sendMessage)
+                return
+            }
+
             val isMember = destData.owner == player.uniqueId ||
                 destData.members.contains(player.uniqueId) ||
                 destData.moderators.contains(player.uniqueId)

@@ -191,6 +191,10 @@ class AdminCommandListener : Listener {
                 plugin.soundManager.playAdminClickSound(player)
                 plugin.adminPortalGui.open(player, fromAdminMenu = true)
             }
+            ItemTag.TYPE_GUI_ADMIN_MENU_SWITCH -> {
+                plugin.soundManager.playAdminClickSound(player)
+                MyWorldManagerApi.openNextAdminMenu(player)
+            }
             ItemTag.TYPE_GUI_EXTENSION -> {
                 val extensionId = ItemTag.getExtensionId(item) ?: return
                 val handled = MyWorldManagerApi.getMenuExtensions()

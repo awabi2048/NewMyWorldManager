@@ -480,8 +480,11 @@ class BedrockMenuService(
             )
         }
 
-        if (bypassLimits || currentCreateCount < maxSlot) {
+        val creationBlockReason = creationBlockReason(currentCreateCount, maxSlot, bypassLimits)
+        if (creationBlockReason == null) {
             inventory.setItem(footerStart + 2, createCreationButtonItem(player))
+        } else {
+            inventory.setItem(footerStart + 2, createCreationUnavailableButtonItem(player, creationBlockReason))
         }
         inventory.setItem(footerStart + 4, createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint))
         inventory.setItem(
@@ -1127,6 +1130,30 @@ class BedrockMenuService(
         return item
     }
 
+    private fun createCreationUnavailableButtonItem(player: Player, reason: CreationBlockReason): ItemStack {
+        val item = ItemStack(Material.BARRIER)
+        item.editMeta { meta ->
+            meta.displayName(plugin.languageManager.getComponent(player, reason.displayKey))
+            meta.lore(null)
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
+        }
+        ItemTag.tagItem(item, "bedrock_menu_item")
+        ItemTag.setString(item, "bedrock_action", "noop")
+        return item
+    }
+
+    private fun creationBlockReason(
+        currentCreateCount: Int,
+        maxSlot: Int,
+        bypassLimits: Boolean
+    ): CreationBlockReason? {
+        if (bypassLimits) return null
+        // 作成期間の停止は枠不足より優先して、運営側の意図をそのまま表示する。
+        if (!MyWorldManagerApi.isWorldCreationEnabled()) return CreationBlockReason.PERIOD_DISABLED
+        if (currentCreateCount >= maxSlot) return CreationBlockReason.NO_SLOT
+        return null
+    }
+
     private fun createStatsButtonItem(
         player: Player,
         currentCreateCount: Int,
@@ -1266,5 +1293,10 @@ class BedrockMenuService(
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
+    }
+
+    private enum class CreationBlockReason(val displayKey: String) {
+        PERIOD_DISABLED("gui.player_world.creation_unavailable.period_disabled"),
+        NO_SLOT("gui.player_world.creation_unavailable.no_slot")
     }
 }

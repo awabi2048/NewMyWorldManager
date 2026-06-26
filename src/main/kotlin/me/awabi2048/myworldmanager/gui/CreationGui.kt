@@ -36,6 +36,11 @@ class CreationGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
+        if (!bypassLimits && !MyWorldManagerApi.isWorldCreationEnabled()) {
+            player.sendMessage(lang.getMessage(player, "gui.creation.period_disabled"))
+            plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
+            return
+        }
 
         // サーバー全体の上限チェック
         val totalMax = config.getInt("creation.max_total_world_count", 50)

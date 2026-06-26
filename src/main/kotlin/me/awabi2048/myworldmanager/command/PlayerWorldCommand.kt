@@ -56,6 +56,17 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             return true
         }
 
+        if (args.size == 1 && sender.hasPermission("myworldmanager.admin")) {
+            val target = PlayerNameUtil.resolveOfflinePlayer(plugin, args[0])
+            if (target == null) {
+                sender.sendMessage(plugin.languageManager.getMessage(sender, "general.player_not_found"))
+                return true
+            }
+            // 管理者の代理表示では、対象プレイヤーのワールド一覧だけを開き、本人専用操作はGUI側で抑止する。
+            plugin.menuEntryRouter.openPlayerWorld(sender, target.uniqueId, target.name ?: args[0], 0, false)
+            return true
+        }
+
         if (!plugin.playerPlatformResolver.isBedrock(sender)) {
             sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_command_bedrock_only"))
             return true
@@ -135,6 +146,13 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         }
         if (sender !is Player) {
             return emptyList()
+        }
+        if (args.size == 1 && sender.hasPermission("myworldmanager.admin")) {
+            return Bukkit.getOfflinePlayers()
+                .mapNotNull { it.name }
+                .filter { it.startsWith(args[0], ignoreCase = true) }
+                .sorted()
+                .take(50)
         }
         if (!plugin.playerPlatformResolver.isBedrock(sender)) {
             return emptyList()

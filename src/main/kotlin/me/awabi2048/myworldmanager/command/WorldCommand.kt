@@ -107,6 +107,10 @@ class WorldCommand(
 
                 // ----- 上限チェック (Moved from CreationGuiListener) -----
                 val bypassLimits = PermissionManager.canBypassWorldLimits(sender)
+                if (!bypassLimits && !MyWorldManagerApi.isWorldCreationEnabled()) {
+                    sender.sendMessage(lang.getMessage(sender as? Player, "gui.creation.period_disabled"))
+                    return true
+                }
                 val stats = plugin.playerStatsRepository.findByUuid(targetPlayer.uniqueId)
                 val maxTotal = plugin.config.getInt("creation.max_total_world_count", 50)
                 val currentTotal = plugin.worldConfigRepository.findAll().size
