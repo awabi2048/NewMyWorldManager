@@ -17,12 +17,7 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.common.confirmation")
         val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-                plugin,
-                player,
-                "environment_confirm",
-                titleComponent
-        )
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "environment_confirm")
 
         plugin.settingsSessionManager.updateSessionAction(
                 player,

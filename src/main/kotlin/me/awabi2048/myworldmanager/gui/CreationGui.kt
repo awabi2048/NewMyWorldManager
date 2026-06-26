@@ -62,19 +62,23 @@ class CreationGui(private val plugin: MyWorldManager) {
              return
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
         clearSettingsGuiTransition(player)
         val holder = CreationGuiHolder(CreationMenuType.TYPE_SELECT)
-        val inventory = Bukkit.createInventory(holder, 45, title)
+        val layout = me.awabi2048.myworldmanager.util.GuiHelper.threeChoiceLayout()
+        val inventory = Bukkit.createInventory(holder, layout.size, title)
         holder.inv = inventory
 
         setupHeaderFooter(inventory, 5)
 
-        inventory.setItem(20, createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE))
-        inventory.setItem(22, createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", ItemTag.TYPE_GUI_CREATION_TYPE_SEED))
-        inventory.setItem(24, createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM))
+        me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceItems(
+            inventory,
+            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE),
+            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
+            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM)
+        )
 
-        inventory.setItem(40, createBackButton(player))
+        me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
 
         fillBackground(inventory)
         player.openInventory(inventory)
@@ -108,7 +112,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             return
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
 
         val templates = plugin.templateRepository.findAll()
         if (templates.isEmpty()) {
@@ -156,7 +160,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             return
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
 
         clearSettingsGuiTransition(player)
         val holder = CreationGuiHolder(CreationMenuType.CONFIRM)

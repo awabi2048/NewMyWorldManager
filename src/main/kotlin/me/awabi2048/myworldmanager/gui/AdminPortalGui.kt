@@ -11,6 +11,7 @@ import me.awabi2048.myworldmanager.session.AdminGuiSession
 import me.awabi2048.myworldmanager.session.PortalSortType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -26,8 +27,6 @@ import java.util.*
 class AdminPortalGui(private val plugin: MyWorldManager) {
 
     private val menuId = "admin_portals"
-    private val itemsPerPage = 36
-
     fun open(player: Player, page: Int? = null, fromAdminMenu: Boolean? = null) {
 
 
@@ -41,14 +40,16 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
 
         // ソートを適用してポータルリストを取得
         val portals = getSortedPortals(session)
+        val layout = GuiHelper.pagedListLayout()
+        val itemsPerPage = layout.itemSlots.size
         val totalPages = if (portals.isEmpty()) 1 else (portals.size + itemsPerPage - 1) / itemsPerPage
         val safePage = currentPage.coerceIn(0, totalPages - 1)
         session.portalPage = safePage
 
         val lang = plugin.languageManager
         val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.admin_portals.title"))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_portals", titleComp)
-        val inventory = Bukkit.createInventory(null, 54, titleComp)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_portals")
+        val inventory = Bukkit.createInventory(null, layout.size, titleComp)
 
         GuiItemFactory.applyStandardFrame(inventory)
 
@@ -57,7 +58,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val pagePortals = portals.drop(startIndex).take(itemsPerPage)
 
         pagePortals.forEachIndexed { index, portal ->
-            inventory.setItem(index + 9, createPortalItem(player, portal))
+            inventory.setItem(layout.itemSlots[index], createPortalItem(player, portal))
         }
 
         // 下部ボタンレイアウト:
@@ -75,7 +76,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         }
 
         // 情報
-        inventory.setItem(49, createInfoButton(portals.size, safePage + 1, totalPages))
+        GuiHelper.setSettingsFooter(inventory, null, createInfoButton(portals.size, safePage + 1, totalPages))
 
         // ソート
         inventory.setItem(51, createSortButton(player, session))

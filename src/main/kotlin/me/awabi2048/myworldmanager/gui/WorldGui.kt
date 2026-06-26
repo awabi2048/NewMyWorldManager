@@ -10,6 +10,7 @@ import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -29,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap
 class WorldGui(private val plugin: MyWorldManager) {
 
         private val repository = plugin.worldConfigRepository
-        private val itemsPerPage = 36 // 2行目から5行目までの4行分
         private val worldSizeCache = ConcurrentHashMap<String, WorldSizeCacheEntry>()
         private val worldSizeInFlight = ConcurrentHashMap.newKeySet<String>()
 
@@ -87,6 +87,8 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 // フィルターとソートを適用してワールドリストを取得（現在地ワールドは一覧から除外）
                 val filteredWorlds = getFilteredAndSortedWorlds(session, currentWorldData?.uuid)
+                val layout = GuiHelper.pagedListLayout()
+                val itemsPerPage = layout.itemSlots.size
 
                 val totalPages =
                         if (filteredWorlds.isEmpty()) 1
@@ -102,18 +104,12 @@ class WorldGui(private val plugin: MyWorldManager) {
                         )
                         return
                 }
-                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
+                val title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
 
                 if (!suppressSound) {
-                        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-                                plugin,
-                                player,
-                                "admin_world",
-                                title,
-                                null
-                        )
+                        GuiHelper.playMenuOpen(player, "admin_world")
                 }
-                val inventory = Bukkit.createInventory(null, 54, title)
+                val inventory = Bukkit.createInventory(null, layout.size, title)
 
                 // 1行目を黒の板ガラスで敷き詰める
                 val blackPane = createBlackPaneItem()
@@ -130,7 +126,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val pageWorlds = filteredWorlds.drop(startIndex).take(itemsPerPage)
 
                 pageWorlds.forEachIndexed { index, worldData ->
-                        inventory.setItem(index + 9, createWorldItem(player, worldData))
+                        inventory.setItem(layout.itemSlots[index], createWorldItem(player, worldData))
                 }
 
                 // 6行目のレイアウト:
@@ -180,7 +176,7 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 // 統計情報ボタン
                 inventory.setItem(
-                        49,
+                        layout.infoSlot,
                         createInfoButton(filteredWorlds.size, safePage + 1, totalPages)
                 )
 
@@ -193,7 +189,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 // 装飾
                 if (session.fromAdminMenu) {
                         inventory.setItem(
-                                45,
+                                layout.backSlot,
                                 createNavButton(
                                         player,
                                         lang.getMessage("gui.common.back"),
@@ -204,10 +200,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         isNext = false
                                 )
                         )
-                        val backItem = inventory.getItem(45)!!
+                        val backItem = inventory.getItem(layout.backSlot)!!
                         ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_RETURN)
                 } else {
-                        inventory.setItem(45, blackPane)
+                        inventory.setItem(layout.backSlot, blackPane)
                 }
 
                 // 余ったスロットは灰色の板ガラスで埋める (背景)
@@ -221,7 +217,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
                 }
-                me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+                GuiHelper.scheduleGuiTransitionReset(plugin, player)
 
                 // 自動更新タスク
                 object : org.bukkit.scheduler.BukkitRunnable() {
@@ -266,19 +262,19 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                                         currentPageWorlds.forEachIndexed { index, worldData ->
                                                 inventory.setItem(
-                                                        index + 9,
+                                                        layout.itemSlots[index],
                                                         createWorldItem(player, worldData)
                                                 )
                                         }
 
                                         // アイテム数が減った場合、残りのスロットを背景にする
                                         for (i in currentPageWorlds.size until itemsPerPage) {
-                                                inventory.setItem(i + 9, createBackgroundItem())
+                                                inventory.setItem(layout.itemSlots[i], createBackgroundItem())
                                         }
 
                                         // 統計情報ボタンも更新
                                         inventory.setItem(
-                                                49,
+                                                layout.infoSlot,
                                                 createInfoButton(
                                                         currentFilteredWorlds.size,
                                                         safePage + 1,

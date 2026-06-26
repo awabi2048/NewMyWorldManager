@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
@@ -75,14 +76,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         )
                         return
                 }
-                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-                me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "favorite",
-                        title,
-                        FavoriteGuiHolder::class.java
-                )
+                val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
+                GuiHelper.playMenuOpen(player, "favorite")
 
                 val inventorySize = 45
                 val footerStart = 36
@@ -131,14 +126,14 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
                 if (currentPage > 0) {
                         val item =
-                                me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
+                                GuiHelper.createPrevPageItem(
                                         plugin,
                                         player,
                                         "favorite",
                                         currentPage - 1
                                 )
                         if (returnToWorld != null)
-                                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(
+                                ItemTag.setWorldUuid(
                                         item,
                                         returnToWorld.uuid
                                 )
@@ -151,14 +146,14 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
                 if (currentPage < totalPages - 1) {
                         val item =
-                                me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
+                                GuiHelper.createNextPageItem(
                                         plugin,
                                         player,
                                         "favorite",
                                         currentPage + 1
                                 )
                         if (returnToWorld != null)
-                                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(
+                                ItemTag.setWorldUuid(
                                         item,
                                         returnToWorld.uuid
                                 )
@@ -178,13 +173,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
                 // 戻るボタン
                 val returnItem =
-                        me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
+                        GuiHelper.createReturnItem(
                                 plugin,
                                 player,
                                 "favorite"
                         )
                 if (returnToWorld != null) {
-                        me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(
+                        ItemTag.setWorldUuid(
                                 returnItem,
                                 returnToWorld.uuid
                         )
@@ -213,7 +208,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 }
 
                 player.openInventory(inventory)
-                me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+                GuiHelper.scheduleGuiTransitionReset(plugin, player)
         }
 
         private fun createWorldItem(

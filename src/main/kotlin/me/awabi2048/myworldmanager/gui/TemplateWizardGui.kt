@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.CustomItem
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
@@ -40,24 +41,14 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val session = sessions.getOrPut(player.uniqueId) { WizardSession() }
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.template_wizard.title")
-        val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, menuId, titleComponent, null)
-        val inventory = Bukkit.createInventory(player, 54, titleComponent)
+        val settingsLayout = GuiHelper.settingsLayout()
+        val titleComponent = GuiHelper.inventoryTitle(title)
+        GuiHelper.playMenuOpen(player, menuId)
+        val inventory = Bukkit.createInventory(player, settingsLayout.size, titleComponent)
 
-        // 装飾用
-        // 装飾用
-        val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        
-        for (i in 0..53) {
-            if (i < 9 || i >= 45) {
-                inventory.setItem(i, blackPane)
-            } else {
-                inventory.setItem(i, grayPane)
-            }
-        }
+        // Template editing is a settings-style screen; use the shared frame before placing wizard controls.
+        GuiItemFactory.applyStandardFrame(inventory)
 
-        // 設定項目
         // ID & Name (IDはNameの英字版などにする想定)
         val nameItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "name_input", Material.NAME_TAG),
@@ -72,8 +63,6 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             ),
             "name_input"
         )
-        inventory.setItem(20, nameItem)
-
         // Description
         val descItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "desc_input", Material.WRITABLE_BOOK),
@@ -85,8 +74,6 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             ),
             "desc_input"
         )
-        inventory.setItem(22, descItem)
-
         // Icon
         val iconItem = createSettingItem(
             session.icon,
@@ -98,7 +85,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             ),
             "icon_select"
         )
-        inventory.setItem(24, iconItem)
+        GuiHelper.setThreeChoiceItems(inventory, nameItem, descItem, iconItem)
 
         // Origin
         val originItem = createSettingItem(
@@ -125,7 +112,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         }
 
         player.openInventory(inventory)
-        
+
         // サウンド
 
     }

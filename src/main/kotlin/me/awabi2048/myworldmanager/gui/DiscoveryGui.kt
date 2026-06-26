@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.DiscoverySort
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -91,13 +92,14 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val currentPage = page.coerceIn(0, totalPages - 1)
 
                 val titleKey = "gui.discovery.title"
-                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
+                val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
+                val inventorySize = GuiHelper.settingsLayout().size
                 val inventory =
                         if (player.openInventory.topInventory.holder is DiscoveryGuiHolder) {
                                 player.openInventory.topInventory
                         } else {
                                 val holder = DiscoveryGuiHolder()
-                                val inv = Bukkit.createInventory(holder, 54, title)
+                                val inv = Bukkit.createInventory(holder, inventorySize, title)
                                 holder.inv = inv
                                 inv
                         }
@@ -109,7 +111,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 // Clear content area if reusing
                 if (player.openInventory.topInventory == inventory) {
-                        for (i in 0 until 54) inventory.setItem(i, null)
+                        for (i in 0 until inventorySize) inventory.setItem(i, null)
                 }
 
                 GuiItemFactory.applyStandardFrame(inventory)
@@ -162,34 +164,14 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 // ソート & フィルタ
                 inventory.setItem(48, createSortButton(player, session.sort))
-                inventory.setItem(
-                        49,
-                        createStatsItem(
-                                player,
-                                session.sort,
-                                session.selectedTag,
-                                sortedWorlds.size
-                        )
+                GuiHelper.setSettingsFooter(
+                        inventory,
+                        if (session.showBackButton) GuiHelper.createReturnItem(plugin, player, "discovery") else null,
+                        createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size)
                 )
                 inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
 
-                if (session.showBackButton) {
-                        inventory.setItem(
-                                45,
-                                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
-                                        plugin,
-                                        player,
-                                        "discovery"
-                                )
-                        )
-                }
-
-                me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "discovery",
-                        title
-                )
+                GuiHelper.playMenuOpen(player, "discovery")
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)

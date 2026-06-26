@@ -28,13 +28,13 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         }
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-        
+
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "user_settings", title, UserSettingsGuiHolder::class.java)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "user_settings")
 
         plugin.settingsSessionManager.updateSessionAction(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.VIEW_SETTINGS, isGui = true)
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        
+
         // Prepare Items
         val items = mutableListOf<ItemStack>()
 
@@ -78,18 +78,18 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             )),
             ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
         ))
-        
+
         // Calculate Size
         val itemsPerRow = 7
         val contentRows = (items.size + itemsPerRow - 1) / itemsPerRow
         val totalRows = (contentRows + 2).coerceAtLeast(3) // Min 3 rows
-        
+
         val holder = UserSettingsGuiHolder()
         val inventory = Bukkit.createInventory(holder, totalRows * 9, title)
         holder.inv = inventory
 
         GuiItemFactory.applyStandardFrame(inventory)
-        
+
         // Place Items
         val itemRows = items.chunked(itemsPerRow)
         itemRows.forEachIndexed { rowOffset, rowItems ->

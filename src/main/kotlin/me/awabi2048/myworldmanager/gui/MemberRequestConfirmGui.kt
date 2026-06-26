@@ -14,7 +14,7 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.member_request_confirm.title")
         val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "member_request", titleComponent)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "member_request")
 
         val holder = MemberRequestConfirmGuiHolder()
         val inventory = GuiHelper.createConfirmationInventory(holder, titleComponent)

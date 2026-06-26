@@ -10,6 +10,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.util.GuiHelper
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -102,7 +103,7 @@ class AnnouncementDialogManager : Listener {
             }
 
             player.showDialog(dialog)
-            plugin.soundManager.playMenuOpenSound(player, "world_settings")
+            GuiHelper.playMenuOpen(player, "world_settings")
         }
     }
 

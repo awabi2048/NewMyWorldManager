@@ -42,7 +42,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         // 現在開いているインベントリのタイトルと一致する場合は音を鳴らさない（画面更新とみなす）
         val title = lang.getMessage(player, titleKey)
         val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "portal", titleComponent, null)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "portal")
 
         val inventory = Bukkit.createInventory(null, 27, titleComponent)
 

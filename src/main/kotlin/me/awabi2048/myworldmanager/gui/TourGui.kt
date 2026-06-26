@@ -33,6 +33,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openStartConfirm(player: Player, worldData: WorldData, tour: TourData) {
+        GuiHelper.playMenuOpen(player, "tour")
         val ownerName = Bukkit.getOfflinePlayer(tour.createdBy ?: worldData.owner).name
             ?: plugin.languageManager.getMessage(player, "general.unknown")
         val holder = StartConfirmHolder(worldData.uuid, tour.uuid)
@@ -65,6 +66,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     private fun openPagedTourMenu(player: Player, worldData: WorldData, title: Component, holder: BaseHolder, page: Int, showWorldIcon: Boolean, filterSignUuid: java.util.UUID?) {
+        GuiHelper.playMenuOpen(player, "tour")
         val tours = (if (filterSignUuid == null) plugin.tourManager.validTours(worldData) else plugin.tourManager.findToursBySign(worldData, filterSignUuid))
         val safePage = page.coerceAtLeast(0)
         val pageCount = tours.drop(safePage * pageSlots.size).take(pageSlots.size).size
@@ -86,6 +88,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openEditMenu(player: Player, worldData: WorldData, page: Int = 0) {
+        GuiHelper.playMenuOpen(player, "tour")
         val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
         val rows = (((minOf(pageSlots.size, maxOf(7, tours.size)) + 6) / 7) + 2).coerceIn(3, 6)
@@ -111,6 +114,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openSingleEditMenu(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
+        GuiHelper.playMenuOpen(player, "tour")
         val lang = plugin.languageManager
         val waypointRows = ((tour.waypoints.size + 1 + 6) / 7).coerceAtLeast(1).coerceAtMost(4)
         val rows = (waypointRows + 2).coerceAtMost(6)
@@ -136,12 +140,37 @@ class TourGui(private val plugin: MyWorldManager) {
     fun openDeleteConfirm(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
         val lang = plugin.languageManager
         val holder = DeleteTourHolder(worldData.uuid, tour.uuid, isNew)
-        val inventory = Bukkit.createInventory(holder, 45, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))))
+        val inventory = GuiHelper.createConfirmationInventory(
+            holder,
+            Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))
+        )
         holder.inv = inventory
-        fillBase(inventory)
-        inventory.setItem(22, createLoreItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete_confirm.title"), listOf(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1"), lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"), lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")), ItemTag.TYPE_GUI_INFO))
-        inventory.setItem(20, createLoreItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"), emptyList(), ItemTag.TYPE_GUI_CONFIRM))
-        inventory.setItem(24, createLoreItem(Material.RED_WOOL, lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"), emptyList(), ItemTag.TYPE_GUI_CANCEL))
+        GuiHelper.applyConfirmationFrame(inventory)
+        GuiHelper.setConfirmationItems(
+            inventory,
+            createLoreItem(
+                Material.LAVA_BUCKET,
+                lang.getMessage(player, "gui.tour.menu.delete_confirm.title"),
+                listOf(
+                    lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1"),
+                    lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"),
+                    lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")
+                ),
+                ItemTag.TYPE_GUI_INFO
+            ),
+            createLoreItem(
+                Material.LIME_WOOL,
+                lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"),
+                emptyList(),
+                ItemTag.TYPE_GUI_CONFIRM
+            ),
+            createLoreItem(
+                Material.RED_WOOL,
+                lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"),
+                emptyList(),
+                ItemTag.TYPE_GUI_CANCEL
+            )
+        )
         player.openInventory(inventory)
     }
 
