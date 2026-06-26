@@ -48,7 +48,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
 
         val lang = plugin.languageManager
         val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.admin_portals.title"))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_portals", titleComp)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_portals")
         val inventory = Bukkit.createInventory(null, layout.size, titleComp)
 
         GuiItemFactory.applyStandardFrame(inventory)

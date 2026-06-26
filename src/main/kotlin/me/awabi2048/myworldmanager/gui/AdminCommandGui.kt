@@ -28,7 +28,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     fun open(player: Player) {
         val lang = plugin.languageManager
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
 
         plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_MENU, isGui = true)
 
@@ -166,7 +166,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/convert_admin"
         }
         showDialogOrGuiConfirmation(player, player.uniqueId, action, title, confirmId) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, mode == WorldService.ConversionMode.NORMAL)
             player.openInventory(inventory)
@@ -184,7 +184,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title,
             "mwm:confirm/admin/unlink"
         ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
@@ -204,7 +204,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/export",
             extraInfo
         ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
             player.openInventory(inventory)
@@ -222,7 +222,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title,
             "mwm:confirm/admin/archive_all"
         ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
@@ -240,7 +240,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title,
             "mwm:confirm/admin/update_data"
         ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
@@ -258,7 +258,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title,
             "mwm:confirm/admin/repair_templates"
         ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, true)
             player.openInventory(inventory)
@@ -278,7 +278,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/archive_world/$worldUuid",
             extraInfo
         ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
             player.openInventory(inventory)
@@ -298,7 +298,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             "mwm:confirm/admin/unarchive_world/$worldUuid",
             extraInfo
         ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "admin_manage", title)
+            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
             val inventory = GuiHelper.createConfirmationInventory(null, title)
             setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
             player.openInventory(inventory)

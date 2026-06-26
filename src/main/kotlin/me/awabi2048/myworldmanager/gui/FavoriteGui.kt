@@ -77,13 +77,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         return
                 }
                 val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "favorite",
-                        title,
-                        FavoriteGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "favorite")
 
                 val inventorySize = 45
                 val footerStart = 36

@@ -62,7 +62,7 @@ class CreationGui(private val plugin: MyWorldManager) {
              return
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
         clearSettingsGuiTransition(player)
         val holder = CreationGuiHolder(CreationMenuType.TYPE_SELECT)
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.threeChoiceLayout()
@@ -112,7 +112,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             return
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
 
         val templates = plugin.templateRepository.findAll()
         if (templates.isEmpty()) {
@@ -160,7 +160,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             return
         }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "creation", title)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
 
         clearSettingsGuiTransition(player)
         val holder = CreationGuiHolder(CreationMenuType.CONFIRM)

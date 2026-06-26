@@ -27,7 +27,7 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         GuiHelper.applyConfirmationFrame(inventory)
         GuiHelper.setConfirmationItems(inventory, centerItem, confirmItem, cancelItem)
 
-        GuiHelper.playMenuSoundIfTitleChanged(plugin, player, menuId, title, ConfirmationMenuHolder::class.java)
+        GuiHelper.playMenuOpen(player, menuId)
         player.openInventory(inventory)
     }
 

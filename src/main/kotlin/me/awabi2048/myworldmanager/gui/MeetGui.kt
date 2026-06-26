@@ -70,7 +70,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val currentPage = session.currentPage.coerceIn(0, totalPages - 1)
         session.currentPage = currentPage
         val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "meet", title, MeetGuiHolder::class.java)
+        GuiHelper.playMenuOpen(player, "meet")
 
         val holder = MeetGuiHolder()
         val inventory = Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, title)

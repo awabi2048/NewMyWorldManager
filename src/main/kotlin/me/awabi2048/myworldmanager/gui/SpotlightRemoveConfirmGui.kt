@@ -17,7 +17,7 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "spotlight_remove_confirm", title, null)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "spotlight_remove_confirm")
         val inventory = GuiHelper.createConfirmationInventory(null, title)
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
 

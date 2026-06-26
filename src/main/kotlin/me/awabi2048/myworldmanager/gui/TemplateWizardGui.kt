@@ -43,7 +43,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val title = lang.getMessage(player, "gui.template_wizard.title")
         val settingsLayout = GuiHelper.settingsLayout()
         val titleComponent = GuiHelper.inventoryTitle(title)
-        GuiHelper.playMenuSoundIfTitleChanged(plugin, player, menuId, titleComponent, null)
+        GuiHelper.playMenuOpen(player, menuId)
         val inventory = Bukkit.createInventory(player, settingsLayout.size, titleComponent)
 
         // Template editing is a settings-style screen; use the shared frame before placing wizard controls.
@@ -112,7 +112,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         }
 
         player.openInventory(inventory)
-        
+
         // サウンド
 
     }

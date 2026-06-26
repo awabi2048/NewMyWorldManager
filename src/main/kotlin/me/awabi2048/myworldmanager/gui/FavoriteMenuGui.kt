@@ -18,7 +18,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val titleKey = "gui.favorite.favorite_menu.title"
         val layout = GuiHelper.threeChoiceLayout()
         val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", title, FavoriteMenuGuiHolder::class.java)
+        GuiHelper.playMenuOpen(player, "favorite_menu")
 
         val holder = FavoriteMenuGuiHolder()
         val inventory = Bukkit.createInventory(holder, layout.size, title)

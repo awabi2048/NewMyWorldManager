@@ -33,6 +33,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openStartConfirm(player: Player, worldData: WorldData, tour: TourData) {
+        GuiHelper.playMenuOpen(player, "tour")
         val ownerName = Bukkit.getOfflinePlayer(tour.createdBy ?: worldData.owner).name
             ?: plugin.languageManager.getMessage(player, "general.unknown")
         val holder = StartConfirmHolder(worldData.uuid, tour.uuid)
@@ -65,6 +66,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     private fun openPagedTourMenu(player: Player, worldData: WorldData, title: Component, holder: BaseHolder, page: Int, showWorldIcon: Boolean, filterSignUuid: java.util.UUID?) {
+        GuiHelper.playMenuOpen(player, "tour")
         val tours = (if (filterSignUuid == null) plugin.tourManager.validTours(worldData) else plugin.tourManager.findToursBySign(worldData, filterSignUuid))
         val safePage = page.coerceAtLeast(0)
         val pageCount = tours.drop(safePage * pageSlots.size).take(pageSlots.size).size
@@ -86,6 +88,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openEditMenu(player: Player, worldData: WorldData, page: Int = 0) {
+        GuiHelper.playMenuOpen(player, "tour")
         val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
         val rows = (((minOf(pageSlots.size, maxOf(7, tours.size)) + 6) / 7) + 2).coerceIn(3, 6)
@@ -111,6 +114,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openSingleEditMenu(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
+        GuiHelper.playMenuOpen(player, "tour")
         val lang = plugin.languageManager
         val waypointRows = ((tour.waypoints.size + 1 + 6) / 7).coerceAtLeast(1).coerceAtMost(4)
         val rows = (waypointRows + 2).coerceAtMost(6)

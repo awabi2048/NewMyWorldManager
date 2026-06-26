@@ -19,12 +19,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.environment.title")
         val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-                plugin,
-                player,
-                "environment",
-                titleComponent
-        )
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "environment")
         val currentTitle =
                 net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
                         .serialize(player.openInventory.title())

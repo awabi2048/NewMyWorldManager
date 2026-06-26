@@ -50,13 +50,7 @@ class InviteGui(private val plugin: MyWorldManager) {
         }
 
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-            plugin,
-            player,
-            "meet",
-            title,
-            InviteGuiHolder::class.java
-        )
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "meet")
 
         val userCount = targets.size
         val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6

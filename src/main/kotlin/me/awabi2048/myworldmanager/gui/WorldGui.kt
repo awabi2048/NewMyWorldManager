@@ -107,13 +107,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
 
                 if (!suppressSound) {
-                        GuiHelper.playMenuSoundIfTitleChanged(
-                                plugin,
-                                player,
-                                "admin_world",
-                                title,
-                                null
-                        )
+                        GuiHelper.playMenuOpen(player, "admin_world")
                 }
                 val inventory = Bukkit.createInventory(null, layout.size, title)
 

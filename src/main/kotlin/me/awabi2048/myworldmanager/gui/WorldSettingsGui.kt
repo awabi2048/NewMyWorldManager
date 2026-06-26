@@ -111,13 +111,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         mapOf("world" to worldData.name)
                                 )
                         )
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        title,
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
 
                 // 権限判定
                 val currentSession = plugin.settingsSessionManager.getSession(player)
@@ -1148,13 +1142,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.ARCHIVE_WORLD,
                         isGui = true
                 )
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title),
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
 
                 val inventory =
                         if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
@@ -1216,13 +1204,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.UNARCHIVE_CONFIRM,
                         isGui = true
                 )
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title),
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
 
                 val inventory =
                         if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
@@ -1282,13 +1264,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
 
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title),
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1374,12 +1350,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openExpansionStepBackConfirmation(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.step_back_expansion.title")
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1460,13 +1431,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title),
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldUuid,
@@ -1575,13 +1540,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .serialize(player.openInventory.title())
 
                 if (playSound) {
-                        GuiHelper.playMenuSoundIfTitleChanged(
-                                plugin,
-                                player,
-                                "world_settings",
-                                GuiHelper.inventoryTitle(title),
-                                WorldSettingsGuiHolder::class.java
-                        )
+                        GuiHelper.playMenuOpen(player, "world_settings")
                 }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -1818,13 +1777,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title),
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1914,13 +1867,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title),
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2025,13 +1972,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title),
-                        WorldSettingsGuiHolder::class.java
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2257,12 +2198,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openVisitorManagement(player: Player, worldData: WorldData, page: Int = 0) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.visitor_management.title")
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2393,12 +2329,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2625,12 +2556,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
 
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2738,12 +2664,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
 
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2911,12 +2832,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openResetExpansionConfirmation(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.reset_expansion.title")
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2988,12 +2904,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openResetExpansionSpawnUnsafeConfirmation(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.title")
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -3065,12 +2976,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openDeleteWorldConfirmation1(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.delete_1.title")
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -3133,12 +3039,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openDeleteWorldConfirmation2(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.delete_2.title")
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "world_settings",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -3216,12 +3117,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
 
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "portal_manage",
-                        GuiHelper.inventoryTitle(title)
-                )
+                GuiHelper.playMenuOpen(player, "portal_manage")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,

@@ -6,6 +6,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiPagedListLayout
 import com.awabi2048.ccsystem.api.gui.GuiSettingsLayout
 import com.awabi2048.ccsystem.api.gui.GuiThreeChoiceLayout
+import com.awabi2048.ccsystem.api.gui.MenuClickType
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import net.kyori.adventure.text.Component
@@ -23,6 +24,9 @@ import org.bukkit.inventory.ItemStack
 object GuiHelper {
     private val layoutService
         get() = CCSystem.getAPI().getGuiLayoutService()
+
+    private val menuSoundService
+        get() = CCSystem.getAPI().getMenuSoundService()
 
     fun isPluginGuiInventory(inventory: Inventory): Boolean {
         val holderClassName = inventory.holder?.javaClass?.name
@@ -44,28 +48,21 @@ object GuiHelper {
     }
 
     /**
-     * Plays the menu open sound only if the menu title is different from the currently open inventory's title,
-     * OR if the inventory holder class is different.
-     * This prevents the sound from playing when simply refreshing the menu or navigating pages.
+     * メニューを開いたときの効果音を明示的に再生する。
+     *
+     * 明示的再生方式: 新しい画面を開いたときに呼び出し側が明示的に呼ぶ。
+     * 同一画面の再描画（ページ送り・ソート更新等）では呼ばないことで音を抑制する。
+     * 間接的なタイトル/ホルダー比較には依存しない。
      */
-    fun playMenuSoundIfTitleChanged(plugin: MyWorldManager, player: Player, menuId: String, newTitle: Component, targetHolderClass: Class<*>? = null) {
-        val currentInventory = player.openInventory.topInventory
-        val currentTitle = player.openInventory.title()
+    fun playMenuOpen(player: Player, menuId: String) {
+        menuSoundService.onMenuOpen(player, menuId)
+    }
 
-        // Serialize to plain text to compare content while ignoring minor formatting differences if any,
-        // and to handle the case where correct comparison allows skipping sound on refresh.
-        val currentTitleStr = PlainTextComponentSerializer.plainText().serialize(currentTitle)
-        val newTitleStr = PlainTextComponentSerializer.plainText().serialize(newTitle)
-
-        // Check if the current inventory holder matches the target holder class
-        val isSameHolder = targetHolderClass != null && targetHolderClass.isInstance(currentInventory.holder)
-
-        // If the titles are different AND the holder is also different (or not specified), it means we are opening a new menu type or context.
-        // If they are the same, it's likely a page update or refresh, so suppress sound.
-        // If the holder is the same, it's definitely a refresh of the same menu type.
-        if (currentTitleStr != newTitleStr && !isSameHolder) {
-            plugin.soundManager.playMenuOpenSound(player, menuId)
-        }
+    /**
+     * メニュー内のボタンクリック音を明示的に再生する。
+     */
+    fun playMenuClick(player: Player, menuId: String, clickType: MenuClickType = MenuClickType.DEFAULT) {
+        menuSoundService.onMenuClick(player, menuId, clickType)
     }
 
     /**

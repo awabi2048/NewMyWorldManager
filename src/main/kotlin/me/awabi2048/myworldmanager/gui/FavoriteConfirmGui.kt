@@ -14,7 +14,7 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.favorite.remove_confirm.title")
         val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(plugin, player, "favorite_menu", titleComponent)
+        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "favorite_menu")
 
         val holder = FavoriteConfirmGuiHolder()
         val inventory = GuiHelper.createConfirmationInventory(holder, titleComponent)

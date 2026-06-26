@@ -65,13 +65,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val targetName = PlayerNameUtil.getNameOrDefault(targetPlayer.uniqueId, "Unknown")
                 val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey, mapOf("player" to targetName)))
 
-                me.awabi2048.myworldmanager.util.GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "visit",
-                        titleComp,
-                        VisitGuiHolder::class.java
-                )
+                me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "visit")
 
                 val holder = VisitGuiHolder()
                 val inventory = Bukkit.createInventory(holder, rowCount * 9, titleComp)

@@ -171,12 +171,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 )
                 inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
 
-                GuiHelper.playMenuSoundIfTitleChanged(
-                        plugin,
-                        player,
-                        "discovery",
-                        title
-                )
+                GuiHelper.playMenuOpen(player, "discovery")
 
                 if (player.openInventory.topInventory != inventory) {
                         player.openInventory(inventory)
