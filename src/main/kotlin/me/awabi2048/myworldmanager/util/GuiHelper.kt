@@ -260,13 +260,7 @@ object GuiHelper {
 }
 
 fun InventoryClickEvent.cancelWithDebug(source: String, force: Boolean = false) {
-    val player = this.whoClicked as? Player ?: return
-    val plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(MyWorldManager::class.java)
     if (!force && !shouldCancelProtectedMenuClick()) return
-    val parts = source.split(": ", limit = 2)
-    val path = parts[0]
-    val reason = parts.getOrElse(1) { "unspecified" }
-    plugin.logger.info("[ClickCancel] player=${player.name} | source=${path} | reason=${reason} | title=${this.view.title()} | slot=${this.slot} | click=${this.click} | action=${this.action}")
     this.isCancelled = true
 }
 

@@ -36,11 +36,12 @@ data class WorldData(
     var archivedAt: String? = null,
     var archiveTransitionType: String? = null,
     val customWorldName: String? = null,
-    var gravityValue: Double? = null,
+    var gravityValue: Double? = DEFAULT_GRAVITY,
     var fixedWeather: String? = null,
     var fixedBiome: String? = null,
     var fixedTime: Long? = null,
     var fixedScale: Double? = null,
+    var allowFlight: Boolean = false,
     val borderExpansionHistory: MutableList<BorderExpansionRecord> = mutableListOf(),
     val partialBiomes: MutableList<PartialBiomeData> = mutableListOf(),
     val tourSigns: MutableList<TourSignData> = mutableListOf(),
@@ -88,6 +89,7 @@ data class WorldData(
             "fixed_biome" to fixedBiome,
             "fixed_time" to fixedTime,
             "fixed_scale" to fixedScale,
+            "allow_flight" to allowFlight,
             "border_expansion_history" to borderExpansionHistory.map { it.serialize() },
             "partial_biomes" to partialBiomes.map { mapOf("x" to it.x, "z" to it.z, "radius" to it.radius, "biome" to it.biome) },
             "tour_signs" to tourSigns.map { it.serialize() },
@@ -97,6 +99,7 @@ data class WorldData(
 
     companion object {
         const val EXPANSION_LEVEL_SPECIAL = -1
+        const val DEFAULT_GRAVITY = 0.08
 
         @JvmStatic
         fun deserialize(args: Map<String, Any>): WorldData {
@@ -155,11 +158,12 @@ data class WorldData(
                 archivedAt = args["archived_at"] as? String,
                 archiveTransitionType = args["archive_transition_type"] as? String,
                 customWorldName = args["custom_world_name"] as? String,
-                gravityValue = (args["gravity_value"] as? Number)?.toDouble(),
+                gravityValue = (args["gravity_value"] as? Number)?.toDouble() ?: DEFAULT_GRAVITY,
                 fixedWeather = args["fixed_weather"] as? String,
                 fixedBiome = args["fixed_biome"] as? String,
                 fixedTime = (args["fixed_time"] as? Number)?.toLong(),
                 fixedScale = (args["fixed_scale"] as? Number)?.toDouble(),
+                allowFlight = args["allow_flight"] as? Boolean ?: false,
                 borderExpansionHistory = (args["border_expansion_history"] as? List<*>)
                     ?.mapNotNull { BorderExpansionRecord.deserialize(it as? Map<*, *>) }
                     ?.toMutableList()

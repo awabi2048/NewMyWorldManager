@@ -53,6 +53,7 @@ object ItemTag {
     const val TYPE_GUI_CREATION_TYPE_RANDOM = "gui_creation_type_random"
     const val TYPE_GUI_CREATION_TEMPLATE_ITEM = "gui_creation_template_item"
     const val TYPE_GUI_CREATION_SPAWN_LOCATION = "gui_creation_spawn_location"
+    const val TYPE_GUI_CREATION_DIMENSION = "gui_creation_dimension"
     const val TYPE_GUI_MEMBER_ITEM = "gui_member_item"
     const val TYPE_GUI_MEMBER_INVITE = "gui_member_invite"
     const val TYPE_GUI_MEMBER_PENDING_INVITE = "gui_member_pending_invite"
@@ -165,16 +166,8 @@ object ItemTag {
     }
 
     private fun applyIconSettings(meta: ItemMeta) {
-        // Hide attributes, enchantments, etc. while keeping Name and Lore
-        meta.addItemFlags(
-            ItemFlag.HIDE_ATTRIBUTES,
-            ItemFlag.HIDE_ENCHANTS,
-            ItemFlag.HIDE_DESTROYS,
-            ItemFlag.HIDE_PLACED_ON,
-            ItemFlag.HIDE_DYE,
-            ItemFlag.HIDE_ARMOR_TRIM,
-            ItemFlag.HIDE_STORED_ENCHANTS
-        )
+        // GUIアイコンでは素材固有のレコード/道具/属性ツールチップをまとめて隠し、名前とLoreだけを見せる。
+        meta.addItemFlags(*ItemFlag.values())
         ItemMetaCompat.hideAdditionalTooltip(meta)
     }
 

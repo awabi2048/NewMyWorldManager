@@ -66,6 +66,10 @@ object InviteTargetResolver {
             return RejectionReason.LOCKED
         }
 
+        if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteTarget(viewer, worldData, target)) {
+            return RejectionReason.LOCKED
+        }
+
         if (target.uniqueId == viewer.uniqueId) {
             return RejectionReason.SELF
         }

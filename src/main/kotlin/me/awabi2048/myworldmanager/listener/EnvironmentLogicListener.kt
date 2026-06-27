@@ -8,10 +8,15 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.GameRule
+import org.bukkit.GameMode
 import org.bukkit.Difficulty
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.EnderCrystal
+import org.bukkit.entity.EnderDragon
+import org.bukkit.event.entity.EntityPlaceEvent
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerToggleFlightEvent
 import org.bukkit.event.weather.WeatherChangeEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import me.awabi2048.myworldmanager.model.WorldData
@@ -26,6 +31,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         removeAllModifiers(event.player)
         applyGravity(event.player, event.player.world.name)
         applyScale(event.player, event.player.world.name)
+        applyFlight(event.player, event.player.world.name)
         applyTime(event.player.world)
         applyWorldSettings(event.player.world)
     }
@@ -35,16 +41,45 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         removeAllModifiers(event.player)
         applyGravity(event.player, event.player.world.name)
         applyScale(event.player, event.player.world.name)
+        applyFlight(event.player, event.player.world.name)
         applyTime(event.player.world)
         applyWorldSettings(event.player.world)
     }
 
     @EventHandler
     fun onEntitySpawn(event: org.bukkit.event.entity.EntitySpawnEvent) {
+        if (isBlockedEndBossEntity(event.entity)) {
+            event.isCancelled = true
+            event.entity.remove()
+            return
+        }
         if (event.entity is org.bukkit.entity.LivingEntity) {
             applyGravity(event.entity, event.entity.world.name)
             applyScale(event.entity, event.entity.world.name)
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun onEntityPlace(event: EntityPlaceEvent) {
+        if (isBlockedEndBossEntity(event.entity)) {
+            event.isCancelled = true
+            event.entity.remove()
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun onPlayerToggleFlight(event: PlayerToggleFlightEvent) {
+        val player = event.player
+        val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return
+        if (worldData.allowFlight) return
+        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
+
+        // 設定OFFのワールドでは、他プラグイン等でallowFlightが戻っても非クリエイティブの飛行を確実に止める。
+        event.isCancelled = true
+        if (player.isFlying) {
+            player.isFlying = false
+        }
+        player.allowFlight = false
     }
 
     private fun removeAllModifiers(entity: org.bukkit.entity.Entity) {
@@ -101,6 +136,23 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
+    private fun applyFlight(player: org.bukkit.entity.Player, worldName: String) {
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
+        val shouldAllow = worldData?.allowFlight == true
+        val gameModeAllowsFlight = player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR
+
+        // ワールド環境設定のフライ許可は、通常ゲームモードだけを対象にして管理者/観戦者の飛行状態を壊さない。
+        if (shouldAllow || gameModeAllowsFlight) {
+            player.allowFlight = true
+            return
+        }
+
+        if (player.isFlying) {
+            player.isFlying = false
+        }
+        player.allowFlight = false
+    }
+
     private fun applyTime(world: org.bukkit.World) {
         val worldName = world.name
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
@@ -124,6 +176,13 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
 
         world.difficulty = Difficulty.PEACEFUL
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false)
+    }
+
+    private fun isBlockedEndBossEntity(entity: org.bukkit.entity.Entity): Boolean {
+        if (entity !is EnderDragon && entity !is EnderCrystal) return false
+        val world = entity.world
+        if (world.environment != org.bukkit.World.Environment.THE_END) return false
+        return plugin.worldConfigRepository.findByWorldName(world.name) != null
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

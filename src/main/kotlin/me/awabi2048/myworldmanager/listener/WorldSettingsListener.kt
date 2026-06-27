@@ -1306,6 +1306,37 @@ class WorldSettingsListener : Listener {
                                 // 通常設定操作
                                 val itemTag = ItemTag.getType(clickedItem) ?: return
 
+                                if (itemTag == ItemTag.TYPE_GUI_INFO &&
+                                                ItemTag.getWorldUuid(clickedItem) == worldData.uuid
+                                ) {
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                clickedItem,
+                                                "world_settings"
+                                        )
+                                        plugin.worldService.teleportToWorld(
+                                                player,
+                                                worldData.uuid,
+                                                closeInventoryOnLoad = false
+                                        ) {
+                                                player.sendMessage(
+                                                        plugin.languageManager.getMessage(
+                                                                player,
+                                                                "messages.warp_success",
+                                                                mapOf("world" to worldData.name)
+                                                        )
+                                                )
+                                                plugin.worldSettingsGui.open(
+                                                        player,
+                                                        worldData,
+                                                        session.showBackButton,
+                                                        session.isPlayerWorldFlow,
+                                                        session.parentShowBackButton
+                                                )
+                                        }
+                                        return
+                                }
+
                                 // 制限対象のタグ
                                 val restrictedTags =
                                         setOf(
@@ -1867,7 +1898,6 @@ class WorldSettingsListener : Listener {
                                                 )
                                                 val cost =
                                                         WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-                                                plugin.logger.info("[MWM-Debug] Gravity click detected. Cost: $cost")
                                                 showEnvConfirmDialog(player, "gravity", cost)
                                         } else if (ItemTag.isType(
                                                         clickedItem,
@@ -1929,7 +1959,6 @@ class WorldSettingsListener : Listener {
                                                 val biomeId = ItemTag.getBiomeId(clickedItem)
                                                 if (biomeId != null) {
                                                         session.setMetadata("temp_biome", biomeId)
-                                                        plugin.logger.info("[MWM-Debug] Biome click detected. ID: $biomeId")
                                                         showEnvConfirmDialog(player, "biome", cost)
                                                 }
                                         }
@@ -3454,6 +3483,18 @@ plugin.languageManager
                                 worldData.moderators.contains(target.uniqueId)
                 ) {
                         player.sendMessage(lang.getMessage(player, "error.invite_already_member"))
+                        player.playSound(
+                                player.location,
+                                org.bukkit.Sound.ENTITY_VILLAGER_NO,
+                                1.0f,
+                                1.0f
+                        )
+                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        return
+                }
+
+                if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteTarget(player, worldData, target)) {
+                        player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
                         player.playSound(
                                 player.location,
                                 org.bukkit.Sound.ENTITY_VILLAGER_NO,

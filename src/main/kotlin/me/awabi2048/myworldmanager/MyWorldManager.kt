@@ -326,7 +326,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(TourListener(this), this)
         server.pluginManager.registerEvents(TourDialogManager(), this)
         server.pluginManager.registerEvents(BedrockInventoryListener(this), this)
-        server.pluginManager.registerEvents(InventoryClickDebugListener(this), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)

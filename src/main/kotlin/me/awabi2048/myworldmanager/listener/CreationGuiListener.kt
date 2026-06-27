@@ -191,7 +191,13 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 }
             }
             WorldCreationPhase.CONFIRM -> {
-                if (tag == ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION &&
+                if (tag == ItemTag.TYPE_GUI_CREATION_DIMENSION &&
+                    session.creationType == WorldCreationType.SEED
+                ) {
+                    plugin.soundManager.playClickSound(player, currentItem)
+                    session.seedEnvironment = nextSeedEnvironment(session.seedEnvironment, event.isRightClick)
+                    plugin.creationGui.openConfirmation(player, session)
+                } else if (tag == ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION &&
                     session.creationType == WorldCreationType.SEED
                 ) {
                     plugin.soundManager.playClickSound(player, currentItem)
@@ -245,7 +251,8 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                             session.worldName!!,
                                             session.inputSeedString,
                                             cost,
-                                            session.spawnCoordinates
+                                            session.spawnCoordinates,
+                                            session.seedEnvironment
                                     )
                                     .thenAccept { success: Boolean ->
                                         if (success) player.sendMessage("§aワールド作成完了！")
@@ -333,6 +340,24 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             plugin.creationSessionManager.endSession(player.uniqueId)
             plugin.floodgateFormBridge.notifyFallbackCancelled(player)
         }
+    }
+
+    private fun nextSeedEnvironment(
+        current: org.bukkit.World.Environment,
+        reverse: Boolean
+    ): org.bukkit.World.Environment {
+        val values = listOf(
+            org.bukkit.World.Environment.NORMAL,
+            org.bukkit.World.Environment.NETHER,
+            org.bukkit.World.Environment.THE_END
+        )
+        val index = values.indexOf(current).let { if (it < 0) 0 else it }
+        val nextIndex = if (reverse) {
+            (index + values.size - 1) % values.size
+        } else {
+            (index + 1) % values.size
+        }
+        return values[nextIndex]
     }
 
     private fun openSpawnInputByPlatform(

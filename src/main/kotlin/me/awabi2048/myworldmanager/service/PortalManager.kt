@@ -35,6 +35,7 @@ class PortalManager(private val plugin: MyWorldManager) {
     private val warpCooldowns = ConcurrentHashMap<UUID, Long>()
     private val ignorePlayers = ConcurrentHashMap.newKeySet<UUID>()
     private val portalGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> Expiry)
+    private val blockedMessageCooldowns = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> NextMessageAt)
     private val portalCache = ConcurrentHashMap<String, ConcurrentHashMap<Long, PortalData>>() // WorldName -> BlockKey -> PortalData
     private val gateCache = ConcurrentHashMap<String, MutableList<PortalData>>() // WorldName -> Gate portals
 
@@ -227,7 +228,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                             dustOptions
                         )
                     } else {
-                        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, Location(world, px, py, pz), 1)
+                        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, Location(world, px, py, pz), 1, 0.0, 0.0, 0.0, 0.0)
                     }
                 }
             } else {
@@ -242,7 +243,13 @@ class PortalManager(private val plugin: MyWorldManager) {
                             dustOptions
                         )
                     } else {
-                        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, loc.clone().add(0.0, 0.5 + offset, 0.0), 1)
+                        world.spawnParticle(
+                            Particle.TRIAL_SPAWNER_DETECTION,
+                            loc.clone().add(0.0, 0.5 + offset, 0.0),
+                            1,
+                            0.3, 0.0, 0.3,
+                            0.0
+                        )
                     }
                 }
             }
@@ -570,7 +577,9 @@ class PortalManager(private val plugin: MyWorldManager) {
             val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!) ?: return
             val portalPolicy = MyWorldManagerApi.getWorldPortalPolicy()
             if (!portalPolicy.canUsePortal(player, destData)) {
-                portalPolicy.blockedMessages(player, destData).forEach(player::sendMessage)
+                if (consumeBlockedMessageCooldown(player.uniqueId, portal.id)) {
+                    portalPolicy.blockedMessages(player, destData).forEach(player::sendMessage)
+                }
                 return
             }
 
@@ -623,6 +632,17 @@ class PortalManager(private val plugin: MyWorldManager) {
       /**
        * ポータルの TextDisplay を削除
        */
+     private fun consumeBlockedMessageCooldown(playerUuid: UUID, portalUuid: UUID): Boolean {
+         val now = System.currentTimeMillis()
+         val playerCooldowns = blockedMessageCooldowns.computeIfAbsent(playerUuid) { ConcurrentHashMap() }
+         val nextMessageAt = playerCooldowns[portalUuid] ?: 0L
+         if (nextMessageAt > now) return false
+
+         // プレイヤーが封鎖中ポータル上に居続ける場合、毎tick同じ案内を出さない。
+         playerCooldowns[portalUuid] = now + 10_000L
+         return true
+     }
+
      private fun removeTextDisplayForPortal(portalId: UUID) {
           // メモリから削除
           val display = textDisplays.remove(portalId)

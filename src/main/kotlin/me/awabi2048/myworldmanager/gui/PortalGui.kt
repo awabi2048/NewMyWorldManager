@@ -7,13 +7,13 @@ import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.Inventory
+import org.bukkit.inventory.InventoryHolder
 import java.util.UUID
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -44,7 +44,9 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "portal")
 
-        val inventory = Bukkit.createInventory(null, 27, titleComponent)
+        val holder = PortalHolder(portal.id)
+        val inventory = Bukkit.createInventory(holder, 27, titleComponent)
+        holder.inv = inventory
 
         GuiItemFactory.applyStandardFrame(inventory)
 
@@ -99,20 +101,12 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
     @EventHandler(ignoreCancelled = false)
     fun onClick(event: InventoryClickEvent) {
         val lang = plugin.languageManager
-        val view = event.view
         val player = event.whoClicked as? Player ?: return
-        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
-        if (!lang.isKeyMatch(title, "gui.portal.title")) return
+        val holder = event.view.topInventory.holder as? PortalHolder ?: return
 
         event.cancelWithDebug("PortalGui.onClick: portal GUI click")
-        if (event.clickedInventory != view.topInventory) return
-        val inv = event.inventory
-
-        val firstItem = inv.getItem(0) ?: return
-        val firstLore = firstItem.itemMeta?.lore() ?: return
-        val portalIdStr = PlainTextComponentSerializer.plainText().serialize(firstLore[0]).substringAfter("PORTAL_ID: ").trim()
-        val portalId = try { UUID.fromString(portalIdStr) } catch(e: Exception) { return }
-        val portal = plugin.portalRepository.findAll().find { it.id == portalId } ?: return
+        if (event.clickedInventory != event.view.topInventory) return
+        val portal = plugin.portalRepository.findAll().find { it.id == holder.portalId } ?: return
 
         val item = event.currentItem ?: return
         val type = ItemTag.getType(item)
@@ -221,5 +215,10 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
             Color.ORANGE -> "orange"
             else -> "white"
         }
+    }
+
+    private class PortalHolder(val portalId: UUID) : InventoryHolder {
+        lateinit var inv: Inventory
+        override fun getInventory(): Inventory = inv
     }
 }

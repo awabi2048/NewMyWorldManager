@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.api.extension
 
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 
 interface WorldAccessPolicy {
@@ -26,6 +27,8 @@ interface WorldAccessPolicy {
 
     fun canInviteToWorld(sender: Player, worldData: WorldData): Boolean =
         worldData.publishLevel != PublishLevel.LOCKED
+
+    fun canInviteTarget(sender: Player, worldData: WorldData, target: OfflinePlayer): Boolean = true
 
     fun canEnterWorld(player: Player, worldData: WorldData, isMember: Boolean): Boolean {
         if (worldData.isArchived) return false

@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.session
 
+import org.bukkit.World
 import java.util.UUID
 
 enum class WorldCreationPhase {
@@ -24,6 +25,7 @@ data class WorldCreationSession(
     var creationType: WorldCreationType? = null,
     var templateName: String? = null,
     var inputSeedString: String? = null,
+    var seedEnvironment: World.Environment = World.Environment.NORMAL,
     var spawnCoordinates: WorldSpawnCoordinates? = null,
     var isDialogMode: Boolean = false,
     val extras: MutableMap<String, Any?> = mutableMapOf(),

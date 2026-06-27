@@ -21,6 +21,7 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.World
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
@@ -214,14 +215,22 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
 
         val infoLore = GuiLoreSpec.Rich(
-                listOf(
-                    GuiLoreLine.Data(
+                buildList {
+                    add(GuiLoreLine.Data(
                         lang.getMessage(player, "gui.creation.confirm.world_name_label"),
                         cleanedName,
                         "§e"
-                    ),
-                    generationLine
-                ),
+                    ))
+                    add(generationLine)
+                    if (session.creationType == WorldCreationType.SEED) {
+                        add(
+                            GuiLoreLine.SubData(
+                                lang.getMessage(player, "gui.creation.confirm.dimension_label"),
+                                seedEnvironmentDisplay(player, session.seedEnvironment)
+                            )
+                        )
+                    }
+                },
                 GuiLoreFrame.BOTH
         )
 
@@ -243,6 +252,32 @@ class CreationGui(private val plugin: MyWorldManager) {
         )
 
         if (session.creationType == WorldCreationType.SEED) {
+            val dimensionLore = run {
+                GuiLoreSpec.Blocks(
+                listOf(
+                    GuiLoreBlock(
+                        listOf(
+                            GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.dimension.description")),
+                            GuiLoreLine.Spacer,
+                            GuiLoreLine.Raw("ﾂｧf笶・ﾂｧ7${lang.getMessage(player, "gui.creation.confirm.dimension.current_label")} ﾂｧe${seedEnvironmentDisplay(player, session.seedEnvironment)}"),
+                            GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_next")),
+                            GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_prev"))
+                        )
+                    )
+                )
+                )
+                seedEnvironmentLore(player, session.seedEnvironment)
+            }
+            inventory.setItem(
+                SEED_DIMENSION_SLOT,
+                createItem(
+                    seedEnvironmentMaterial(session.seedEnvironment),
+                    lang.getMessage(player, "gui.creation.confirm.dimension.display"),
+                    ItemTag.TYPE_GUI_CREATION_DIMENSION,
+                    dimensionLore
+                )
+            )
+
             val coordinates = session.spawnCoordinates?.let {
                 "§6(${it.x}, ${it.y}, ${it.z})"
             } ?: "§b${lang.getMessage(player, "gui.creation.confirm.spawn_location.default")}"
@@ -253,7 +288,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                             GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.description")),
                             GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.default_help")),
                             GuiLoreLine.Spacer,
-                            GuiLoreLine.Raw("§f❙ §7${lang.getMessage(player, "gui.creation.confirm.spawn_location.current_label")} $coordinates"),
+                            GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.spawn_location.current_label"), coordinates, ""),
                             GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.spawn_location.action"))
                         )
                     )
@@ -316,6 +351,52 @@ class CreationGui(private val plugin: MyWorldManager) {
         return name.replace(regex, "").trim()
     }
 
+    private fun seedEnvironmentDisplay(player: Player, environment: World.Environment): String {
+        val key = when (environment) {
+            World.Environment.NORMAL -> "normal"
+            World.Environment.NETHER -> "nether"
+            World.Environment.THE_END -> "the_end"
+            else -> "normal"
+        }
+        return plugin.languageManager.getMessage(player, "gui.creation.confirm.dimension.options.$key")
+    }
+
+    private fun seedEnvironmentLore(player: Player, current: World.Environment): GuiLoreSpec {
+        val lang = plugin.languageManager
+        val options = listOf(
+            World.Environment.NORMAL to "\u00A7a",
+            World.Environment.NETHER to "\u00A7c",
+            World.Environment.THE_END to "\u00A75"
+        )
+        return GuiLoreSpec.Rich(buildList {
+            add(GuiLoreLine.Data(
+                lang.getMessage(player, "gui.creation.confirm.dimension.current_label"),
+                seedEnvironmentDisplay(player, current),
+                options.first { it.first == current }.second
+            ))
+            add(GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.dimension.description")))
+            add(GuiLoreLine.Spacer)
+            options.forEach { (environment, selectedColor) ->
+                val selected = environment == current
+                val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                val color = if (selected) selectedColor else "\u00A77"
+                add(GuiLoreLine.Raw("$marker $color${seedEnvironmentDisplay(player, environment)}"))
+            }
+            add(GuiLoreLine.Spacer)
+            add(GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_next")))
+            add(GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_prev")))
+        }, GuiLoreFrame.BOTH)
+    }
+
+    private fun seedEnvironmentMaterial(environment: World.Environment): Material {
+        return when (environment) {
+            World.Environment.NORMAL -> Material.GRASS_BLOCK
+            World.Environment.NETHER -> Material.NETHERRACK
+            World.Environment.THE_END -> Material.END_STONE
+            else -> Material.GRASS_BLOCK
+        }
+    }
+
     private fun clearSettingsGuiTransition(player: Player) {
         plugin.settingsSessionManager.getSession(player)?.isGuiTransition = false
     }
@@ -324,6 +405,10 @@ class CreationGui(private val plugin: MyWorldManager) {
         TYPE_SELECT,
         TEMPLATE_SELECT,
         CONFIRM
+    }
+
+    companion object {
+        const val SEED_DIMENSION_SLOT = 39
     }
 
     class CreationGuiHolder(val menuType: CreationMenuType) : InventoryHolder {

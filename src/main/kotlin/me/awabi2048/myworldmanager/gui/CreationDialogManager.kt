@@ -414,6 +414,19 @@ class CreationDialogManager : Listener {
                     mapOf("seed" to (session.inputSeedString ?: ""))
                 )
             } else ""
+            val seedDimensionLine = if (session.creationType == WorldCreationType.SEED) {
+                val dimensionKey = when (session.seedEnvironment) {
+                    org.bukkit.World.Environment.NORMAL -> "normal"
+                    org.bukkit.World.Environment.NETHER -> "nether"
+                    org.bukkit.World.Environment.THE_END -> "the_end"
+                    else -> "normal"
+                }
+                lang.getMessage(
+                    player,
+                    "gui.creation.confirm.dimension_line",
+                    mapOf("dimension" to lang.getMessage(player, "gui.creation.confirm.dimension.options.$dimensionKey"))
+                )
+            } else ""
 
             val nameLabel = lang.getMessage(player, "gui.creation.confirm.name_label")
             val typeLabel = lang.getMessage(player, "gui.creation.confirm.type_label")
@@ -424,6 +437,7 @@ class CreationDialogManager : Listener {
             loreLines.add(GuiLoreLine.Data(typeLabel, typeName, "§e"))
             if (templateLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(templateLine))
             if (seedLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(seedLine))
+            if (seedDimensionLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(seedDimensionLine))
             loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
 
             val bodyLines = CCSystem.getAPI().getLoreService()
@@ -506,7 +520,8 @@ class CreationDialogManager : Listener {
                         name,
                         seedStr,
                         cost,
-                        session.spawnCoordinates
+                        session.spawnCoordinates,
+                        session.seedEnvironment
                     )
                 }
                 WorldCreationType.RANDOM -> {

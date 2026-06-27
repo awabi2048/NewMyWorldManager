@@ -18,9 +18,11 @@ import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Material
 import org.bukkit.WorldCreator
 import org.bukkit.WorldType
 import org.bukkit.command.CommandSender
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import java.util.concurrent.CompletableFuture
 
@@ -140,7 +142,14 @@ class WorldService(
                 return false
             }
 
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None", initialSpawn)
+            val effectiveInitialSpawn = if (environment == org.bukkit.World.Environment.THE_END) {
+                prepareGeneratedEndWorld(world)
+                initialSpawn ?: findRandomSafeEndSpawn(world)
+            } else {
+                initialSpawn
+            }
+
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None", effectiveInitialSpawn)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -148,6 +157,63 @@ class WorldService(
             creatingWorlds.remove(player.uniqueId.toString())
             return false
         }
+    }
+
+    private fun prepareGeneratedEndWorld(world: org.bukkit.World) {
+        removeEndBossEntities(world)
+        hideEndDragonBossBar(world)
+        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            removeEndBossEntities(world)
+            hideEndDragonBossBar(world)
+        }, 20L)
+    }
+
+    private fun removeEndBossEntities(world: org.bukkit.World) {
+        world.entities
+                .filter { it.type == EntityType.ENDER_DRAGON || it.type == EntityType.END_CRYSTAL }
+                .forEach { it.remove() }
+    }
+
+    private fun hideEndDragonBossBar(world: org.bukkit.World) {
+        // End生成直後はドラゴン本体を消してもボスバーだけ残ることがあるため、BossBattle側も明示的に閉じる。
+        world.enderDragonBattle?.bossBar?.let { bossBar ->
+            bossBar.removeAll()
+            bossBar.isVisible = false
+        }
+    }
+
+    private fun findRandomSafeEndSpawn(world: org.bukkit.World): WorldSpawnCoordinates? {
+        val random = java.util.concurrent.ThreadLocalRandom.current()
+        repeat(160) {
+            val radius = Math.sqrt(random.nextDouble()) * 15.0
+            val angle = random.nextDouble(0.0, Math.PI * 2.0)
+            val x = Math.round(Math.cos(angle) * radius).toInt()
+            val z = Math.round(Math.sin(angle) * radius).toInt()
+            val safe = findSafeSurfaceLocation(world, x, z)
+            if (safe != null) {
+                return WorldSpawnCoordinates(safe.blockX, safe.blockY, safe.blockZ)
+            }
+        }
+        val spawn = world.spawnLocation
+        return WorldSpawnCoordinates(spawn.blockX, spawn.blockY.coerceIn(1, 255), spawn.blockZ)
+    }
+
+    private fun findSafeSurfaceLocation(world: org.bukkit.World, x: Int, z: Int): Location? {
+        world.getChunkAt(x shr 4, z shr 4).load()
+        val y = world.getHighestBlockYAt(x, z) + 1
+        if (!isSafeStandingLocation(world, x, y, z)) return null
+        return Location(world, x + 0.5, y.toDouble(), z + 0.5)
+    }
+
+    private fun isSafeStandingLocation(world: org.bukkit.World, x: Int, y: Int, z: Int): Boolean {
+        if (y <= world.minHeight + 1 || y >= world.maxHeight - 2) return false
+        val floor = world.getBlockAt(x, y - 1, z)
+        val feet = world.getBlockAt(x, y, z)
+        val head = world.getBlockAt(x, y + 1, z)
+        return !floor.type.isAir &&
+                floor.type.isSolid &&
+                feet.type.isAir &&
+                head.type.isAir
     }
 
     private fun finalizeWorldCreation(
@@ -247,7 +313,8 @@ class WorldService(
             worldName: String,
             seed: String?,
             cost: Int,
-            initialSpawn: WorldSpawnCoordinates? = null
+            initialSpawn: WorldSpawnCoordinates? = null,
+            environment: org.bukkit.World.Environment = org.bukkit.World.Environment.NORMAL
     ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
@@ -259,7 +326,7 @@ class WorldService(
                 player,
                 worldName,
                 seed,
-                org.bukkit.World.Environment.NORMAL,
+                environment,
                 initialSpawn = initialSpawn
         )
         // Note: Currently createWorld(player, ...) doesn't take cost. 
@@ -516,6 +583,7 @@ class WorldService(
             location: Location? = null,
             runMacro: Boolean = true,
             reason: MwmWarpReason = MwmWarpReason.DIRECT,
+            closeInventoryOnLoad: Boolean = true,
             afterTeleported: (() -> Unit)? = null
     ) {
         val worldData = repository.findByUuid(worldUuid) ?: return
@@ -523,8 +591,14 @@ class WorldService(
         val needsLoad = Bukkit.getWorld(folderName) == null
 
         if (needsLoad) {
-            player.closeInventory()
-            if (!loadWorld(worldUuid)) return
+            if (closeInventoryOnLoad) {
+                player.closeInventory()
+            }
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
+            if (!loadWorld(worldUuid)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_load_failed"))
+                return
+            }
         }
 
         val world = Bukkit.getWorld(folderName)
@@ -549,8 +623,12 @@ class WorldService(
                         }
 
         // 再ロード後の保存済みLocationは停止済みの古いWorldを保持している場合があるため、現在のWorldへ差し替える。
-        val targetLoc = selectedLoc.clone()
-        targetLoc.world = world
+        // 保存済みLocationは古いWorld参照を持つことがあるため、現在ロード済みのWorldへ差し替える。
+        val selectedTargetLoc = selectedLoc.clone()
+        selectedTargetLoc.world = world
+
+        // スポーン/ポータル/個別指定がボーダー外に出ている場合でも、保存値は変えずに中央の安全地点へ逃がす。
+        val targetLoc = resolveBorderSafeWarpLocation(world, selectedTargetLoc)
 
         val executeTeleport = Runnable {
             if (!player.isOnline) {
@@ -595,6 +673,60 @@ class WorldService(
     }
 
     /** プレイヤーの既存のワールドデータをすべて削除してリセットする（デバッグ用・管理者用） */
+    fun teleportToWorldKeepingInventory(
+            player: Player,
+            worldUuid: UUID,
+            reason: MwmWarpReason,
+            afterTeleported: Runnable?
+    ) {
+        // 外部アドオンからは Kotlin の Function0 をシグネチャに出さず、JAR間のクラスローダ衝突を避ける。
+        teleportToWorld(
+                player = player,
+                worldUuid = worldUuid,
+                location = null,
+                runMacro = true,
+                reason = reason,
+                closeInventoryOnLoad = false,
+                afterTeleported = { afterTeleported?.run() }
+        )
+    }
+
+    private fun resolveBorderSafeWarpLocation(world: org.bukkit.World, target: Location): Location {
+        if (world.worldBorder.isInside(target)) {
+            return target
+        }
+
+        return findSafeBorderCenterLocation(world) ?: run {
+            val center = world.worldBorder.center
+            val x = Math.round(center.x).toInt()
+            val z = Math.round(center.z).toInt()
+            val y = (world.getHighestBlockYAt(x, z) + 1).coerceIn(world.minHeight + 1, world.maxHeight - 2)
+            Location(world, x + 0.5, y.toDouble(), z + 0.5)
+        }
+    }
+
+    private fun findSafeBorderCenterLocation(world: org.bukkit.World): Location? {
+        val center = world.worldBorder.center
+        val centerX = Math.round(center.x).toInt()
+        val centerZ = Math.round(center.z).toInt()
+
+        for (radius in 0..12) {
+            for (dx in -radius..radius) {
+                for (dz in -radius..radius) {
+                    if (radius != 0 && kotlin.math.abs(dx) != radius && kotlin.math.abs(dz) != radius) continue
+                    val x = centerX + dx
+                    val z = centerZ + dz
+                    val safe = findSafeSurfaceLocation(world, x, z) ?: continue
+                    if (world.worldBorder.isInside(safe)) {
+                        return safe
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
     fun resetPlayerData(player: Player) {
         val worlds = repository.findAll().filter { it.owner == player.uniqueId }
         for (world in worlds) {
