@@ -22,7 +22,8 @@ import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 
 class TourGui(private val plugin: MyWorldManager) {
-    private val pageSlots = listOf(10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43)
+    // ツアー一覧は5行固定にし、ヘッダー中央を現在ワールド表示、下段を操作領域として使う。
+    private val pageSlots = listOf(10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34)
 
     fun openVisitorMenu(player: Player, worldData: WorldData, page: Int = 0) {
         openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, "gui.tour.menu.visitor_title"))), VisitorTourHolder(worldData.uuid, page), page, true, null)
@@ -69,19 +70,15 @@ class TourGui(private val plugin: MyWorldManager) {
         GuiHelper.playMenuOpen(player, "tour")
         val tours = (if (filterSignUuid == null) plugin.tourManager.validTours(worldData) else plugin.tourManager.findToursBySign(worldData, filterSignUuid))
         val safePage = page.coerceAtLeast(0)
-        val pageCount = tours.drop(safePage * pageSlots.size).take(pageSlots.size).size
-        val contentRows = maxOf(1, ((maxOf(pageCount, 7) + 6) / 7))
-        val rows = (contentRows + 2).coerceIn(3, 6)
+        val rows = 5
         val inventory = Bukkit.createInventory(holder, rows * 9, title)
         holder.inv = inventory
         fillBase(inventory)
-        tours.drop(safePage * pageSlots.size).take((rows - 2) * 7).forEachIndexed { index, tour ->
-            val row = index / 7 + 1
-            val col = index % 7 + 1
-            inventory.setItem(row * 9 + col, createTourItem(player, worldData, tour, false))
+        tours.drop(safePage * pageSlots.size).take(pageSlots.size).forEachIndexed { index, tour ->
+            inventory.setItem(pageSlots[index], createTourItem(player, worldData, tour, false))
         }
         val footerStart = inventory.size - 9
-        if (showWorldIcon) inventory.setItem(footerStart + 4, createCurrentWorldItem(player, worldData))
+        if (showWorldIcon) inventory.setItem(4, createCurrentWorldItem(player, worldData))
         if (safePage > 0) inventory.setItem(footerStart, GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1))
         if ((safePage + 1) * pageSlots.size < tours.size) inventory.setItem(footerStart + 8, GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1))
         player.openInventory(inventory)
@@ -91,25 +88,26 @@ class TourGui(private val plugin: MyWorldManager) {
         GuiHelper.playMenuOpen(player, "tour")
         val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
-        val rows = (((minOf(pageSlots.size, maxOf(7, tours.size)) + 6) / 7) + 2).coerceIn(3, 6)
+        val rows = 5
         val holder = EditTourHolder(worldData.uuid, page)
         val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.edit_title"))))
         holder.inv = inventory
         fillBase(inventory)
         val safePage = page.coerceAtLeast(0)
-        tours.drop(safePage * pageSlots.size).take((rows - 2) * 7).forEachIndexed { index, tour ->
-            val row = index / 7 + 1
-            val col = index % 7 + 1
-            inventory.setItem(row * 9 + col, createEditTourItem(player, worldData, tour))
+        tours.drop(safePage * pageSlots.size).take(pageSlots.size).forEachIndexed { index, tour ->
+            inventory.setItem(pageSlots[index], createEditTourItem(player, worldData, tour))
         }
-        inventory.setItem(inventory.size - 9, createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
+        val footerStart = inventory.size - 9
+        inventory.setItem(footerStart + 4, createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
         if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
             val createContent = listOf(lang.getMessage(player, "gui.tour.menu.create.description"), lang.getMessage(player, "gui.tour.menu.create.action"))
-            inventory.setItem(inventory.size - 7, createLoreItem(Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), createContent, ItemTag.TYPE_GUI_TOUR_CREATE, LoreStyle.FRAMED))
+            inventory.setItem(footerStart + 2, createLoreItem(Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), createContent, ItemTag.TYPE_GUI_TOUR_CREATE, LoreStyle.FRAMED))
         }
-        inventory.setItem(inventory.size - 5, createCurrentWorldItem(player, worldData))
+        inventory.setItem(4, createCurrentWorldItem(player, worldData))
         val infoLines = lang.getMessageList(player, "gui.tour.menu.info.lore")
-        inventory.setItem(inventory.size - 3, createLoreItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), infoLines, ItemTag.TYPE_GUI_TOUR_INFO, LoreStyle.FRAMED))
+        inventory.setItem(footerStart + 6, createLoreItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), infoLines, ItemTag.TYPE_GUI_TOUR_INFO, LoreStyle.FRAMED))
+        if (safePage > 0) inventory.setItem(footerStart, GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1))
+        if ((safePage + 1) * pageSlots.size < tours.size) inventory.setItem(footerStart + 8, GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1))
         player.openInventory(inventory)
     }
 
@@ -183,28 +181,18 @@ class TourGui(private val plugin: MyWorldManager) {
         val item = ItemStack(worldData.icon)
         val meta = item.itemMeta ?: return item
         val owner = Bukkit.getOfflinePlayer(worldData.owner)
-        val formattedDesc = if (worldData.description.isNotEmpty()) lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description)) else ""
-        val onlineColor = lang.getMessage(player, "publish_level.color.online")
-        val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-        val statusColor = if (owner.isOnline) onlineColor else offlineColor
-        val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
-        val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite))
-        val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
-        val tagLine = if (worldData.tags.isNotEmpty()) lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) })) else ""
+        val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
         meta.displayName(lang.getComponent(player, "gui.favorite.current_world.name"))
-        val lines = lang.getMessageList(player, "gui.favorite.current_world.lore", mapOf(
-                "world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
-                "description" to formattedDesc,
-                "owner_line" to ownerLine,
-                "favorite_line" to favoriteLine,
-                "visitor_line" to visitorLine,
-                "tag_line" to tagLine
-        ))
-            .filter { line ->
-                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-            }
-            .filter { it.isNotBlank() }
+        val lines = listOf(
+            lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
+            if (worldData.description.isNotBlank()) {
+                lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description))
+            } else {
+                "§7-"
+            },
+            "",
+            lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to ownerName, "status_color" to ""))
+        )
         val lore = GuiItemFactory.menuLore(lines)
         meta.lore(lore)
         item.itemMeta = meta

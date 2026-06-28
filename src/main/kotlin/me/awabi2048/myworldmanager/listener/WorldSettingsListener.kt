@@ -1309,6 +1309,9 @@ class WorldSettingsListener : Listener {
                                 if (itemTag == ItemTag.TYPE_GUI_INFO &&
                                                 ItemTag.getWorldUuid(clickedItem) == worldData.uuid
                                 ) {
+                                        if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
+                                                return
+                                        }
                                         plugin.soundManager.playClickSound(
                                                 player,
                                                 clickedItem,

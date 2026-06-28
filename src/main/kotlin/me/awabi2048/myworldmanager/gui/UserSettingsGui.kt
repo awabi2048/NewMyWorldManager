@@ -79,10 +79,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
         ))
 
-        // Calculate Size
-        val itemsPerRow = 7
-        val contentRows = (items.size + itemsPerRow - 1) / itemsPerRow
-        val totalRows = (contentRows + 2).coerceAtLeast(3) // Min 3 rows
+        val totalRows = 5
 
         val holder = UserSettingsGuiHolder()
         val inventory = Bukkit.createInventory(holder, totalRows * 9, title)
@@ -90,16 +87,13 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
 
         GuiItemFactory.applyStandardFrame(inventory)
 
-        // Place Items
-        val itemRows = items.chunked(itemsPerRow)
-        itemRows.forEachIndexed { rowOffset, rowItems ->
-            rowItems.forEachIndexed { colOffset, item ->
-                val slot = (rowOffset + 1) * 9 + 1 + colOffset
-                inventory.setItem(slot, item)
-            }
+        // 個人設定は5行レイアウトの中央行に集約し、他の設定系メニューと視線の位置を揃える。
+        val centerRowStart = 2 * 9
+        val firstSlot = centerRowStart + ((9 - items.size) / 2)
+        items.forEachIndexed { index, item ->
+            inventory.setItem(firstSlot + index, item)
         }
 
-        // Back Button (Center of last row)
         if (session.showBackButton) {
             val backSlot = (totalRows - 1) * 9 + 4
             inventory.setItem(backSlot, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "user_settings"))

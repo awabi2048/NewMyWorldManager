@@ -285,6 +285,8 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
      * 指定メニューのアイコンMaterialを取得
      */
     fun getIconMaterial(menuId: String, iconId: String, default: Material = Material.BARRIER): Material {
+        // 戻るボタンは全メニューでCC-System規則のREDSTONEに統一する。
+        if (iconId == "back") return Material.REDSTONE
         return menuConfigs[menuId]?.icons?.get(iconId)?.material ?: default
     }
 

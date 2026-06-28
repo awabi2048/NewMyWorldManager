@@ -327,7 +327,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                     lang.getMessage(player, "gui.player_world.world_item.expired")
                 } else ""
 
-                val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
+                val warpAction = if (isCurrentWorld(player, world)) {
+                        ""
+                } else {
+                        lang.getMessage(player, "gui.player_world.world_item.warp")
+                }
                 val settingsAction =
                         if (plugin.playerPlatformResolver.isBedrock(player)) {
                                 lang.getMessage(player, "gui.player_world.world_item.settings_bedrock")
@@ -350,6 +354,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
                 ItemTag.setWorldUuid(item, world.uuid)
                 return item
+        }
+
+        private fun isCurrentWorld(player: Player, world: WorldData): Boolean {
+                return plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == world.uuid
         }
 
         private fun createUserSettingsButton(player: Player): ItemStack {

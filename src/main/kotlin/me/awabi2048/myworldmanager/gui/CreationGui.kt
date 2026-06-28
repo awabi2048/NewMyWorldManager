@@ -326,7 +326,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     private fun createBackButton(player: Player): ItemStack {
         val lang = plugin.languageManager
         return createItem(
-            plugin.menuConfigManager.getIconMaterial("creation", "back", Material.ARROW),
+            plugin.menuConfigManager.getIconMaterial("creation", "back", Material.REDSTONE),
             lang.getMessage(player, "gui.common.return"),
             ItemTag.TYPE_GUI_BACK,
             emptyList()

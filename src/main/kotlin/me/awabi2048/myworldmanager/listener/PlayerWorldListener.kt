@@ -220,6 +220,9 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 }
 
                 // 通常の左クリック：ワープ処理
+                if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
+                    return
+                }
                 val folderName = worldData.customWorldName ?: "my_world.$uuid"
                 if (Bukkit.getWorld(folderName) == null) {
                     player.closeInventory()
@@ -247,6 +250,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                         worldData.members.contains(player.uniqueId)
 
                 if (isMember) {
+                    plugin.soundManager.playClickSound(player, currentItem, "player_world")
                     val currentSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
                     val currentShowBack = currentSession.showBackButton
                     plugin.menuRouteHistory.pushPlayerWorld(
