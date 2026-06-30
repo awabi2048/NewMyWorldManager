@@ -7,6 +7,7 @@ object PermissionManager {
     const val ADMIN = "myworldmanager.admin"
     const val ADMIN_WORLD_LIST = "myworldmanager.admin.world_list"
     const val ADMIN_BYPASS_WORLD_LIMITS = "myworldmanager.admin.bypass_world_limits"
+    const val CREATE = "myworldmanager.create"
     const val FORCE_ADD_MEMBER = "myworldmanager.force_add_member"
     const val CITIZEN = "myworldmanager.citizen"
     const val COMMAND_DISCOVERY = "myworldmanager.command.discovery"
@@ -34,7 +35,7 @@ object PermissionManager {
      */
     fun checkPermission(sender: CommandSender, permission: String): Boolean {
         if (sender !is Player) return true // コンソールは常に全権限
-        
+
         // テスト権限または管理者権限を持っている場合、すべての mwm 権限をパス
         if (sender.hasPermission(TEST) || sender.hasPermission(ADMIN)) {
             return true

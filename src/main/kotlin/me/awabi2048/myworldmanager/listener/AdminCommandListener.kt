@@ -361,46 +361,6 @@ class AdminCommandListener : Listener {
         player.sendMessage("§a修復処理が完了しました。")
     }
 
-    // 再帰的にアーカイブ処理を行うヘルパー
-    private fun processArchiveQueue(
-            player: Player,
-            plugin: MyWorldManager,
-            targets: List<me.awabi2048.myworldmanager.model.WorldData>,
-            index: Int
-    ) {
-        if (index >= targets.size) {
-            player.sendMessage(
-                    plugin.languageManager.getMessage(
-                            "messages.migration_archive_complete",
-                            mapOf("count" to targets.size)
-                    )
-            )
-            return
-        }
-
-        val worldData = targets[index]
-        plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success: Boolean ->
-            if (success) {
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                "messages.migration_archive_progress",
-                                mapOf(
-                                        "current" to (index + 1),
-                                        "total" to targets.size,
-                                        "world" to worldData.name
-                                )
-                        )
-                )
-            }
-            Bukkit.getScheduler()
-                    .runTaskLater(
-                            plugin,
-                            Runnable { processArchiveQueue(player, plugin, targets, index + 1) },
-                            20L
-                    )
-        }
-    }
-
     private fun performArchiveAll(player: Player, plugin: MyWorldManager) {
         player.sendMessage("§eデイリーメンテナンス（期限切れアーカイブ処理）を開始します...")
         val results = plugin.worldService.updateDailyData()

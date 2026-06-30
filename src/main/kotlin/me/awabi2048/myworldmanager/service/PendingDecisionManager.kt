@@ -15,7 +15,8 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         WORLD_INVITE,
         MEMBER_INVITE,
         MEMBER_REQUEST,
-        MEET_REQUEST
+        MEET_REQUEST,
+        VISIT_REQUEST
     }
 
     data class PendingEntryView(
@@ -60,6 +61,17 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         override val createdAt: Long,
         override val expiresAt: Long
     ) : PendingDecision
+
+    private data class VisitRequestDecision(
+        override val id: UUID,
+        val requesterUuid: UUID,
+        override val actorUuid: UUID,
+        override val worldUuid: UUID,
+        override val createdAt: Long,
+        override val expiresAt: Long
+    ) : PendingDecision {
+        override val type: PendingType = PendingType.VISIT_REQUEST
+    }
 
     data class PersistentPendingView(
         val id: UUID,
@@ -121,6 +133,23 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             target.uniqueId,
             decision
         )
+        return EnqueueResult(decision.id, count)
+    }
+
+    fun enqueueVisitRequest(target: Player, requesterUuid: UUID, worldUuid: UUID, timeoutSeconds: Long): EnqueueResult? {
+        if (hasPendingVisitRequest(target.uniqueId, requesterUuid, worldUuid)) {
+            return null
+        }
+        val now = System.currentTimeMillis()
+        val decision = VisitRequestDecision(
+            id = UUID.randomUUID(),
+            requesterUuid = requesterUuid,
+            actorUuid = requesterUuid,
+            worldUuid = worldUuid,
+            createdAt = now,
+            expiresAt = now + (timeoutSeconds * 1000L)
+        )
+        val count = enqueueTransient(target.uniqueId, decision)
         return EnqueueResult(decision.id, count)
     }
 
@@ -316,6 +345,28 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                     }
                 }
             }
+
+            is VisitRequestDecision -> {
+                if (accept) {
+                    handleVisitRequestAccept(target, decision.requesterUuid, decision.worldUuid)
+                } else {
+                    val requester = Bukkit.getPlayer(decision.requesterUuid)
+                    requester?.sendMessage(
+                        plugin.languageManager.getMessage(
+                            requester,
+                            "messages.visit_request_denied",
+                            mapOf("owner" to target.name)
+                        )
+                    )
+                    target.sendMessage(
+                        plugin.languageManager.getMessage(
+                            target,
+                            "messages.visit_request_denied_by_target",
+                            mapOf("player" to (requester?.name ?: plugin.languageManager.getMessage(target, "general.unknown")))
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -406,6 +457,18 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         }
     }
 
+    private fun hasPendingVisitRequest(targetUuid: UUID, requesterUuid: UUID, worldUuid: UUID): Boolean {
+        val queue = transientByTarget[targetUuid] ?: return false
+        synchronized(queue) {
+            cleanupExpiredLocked(queue)
+            return queue.any {
+                it is VisitRequestDecision &&
+                    it.requesterUuid == requesterUuid &&
+                    it.worldUuid == worldUuid
+            }
+        }
+    }
+
     private fun handleMeetRequestAccept(target: Player, requesterUuid: UUID) {
         val requester = Bukkit.getPlayer(requesterUuid)
         if (requester == null || !requester.isOnline) {
@@ -436,6 +499,36 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             )
 
             // 訪問者統計はAccessControlListenerで一元管理
+        }
+    }
+
+    private fun handleVisitRequestAccept(target: Player, requesterUuid: UUID, worldUuid: UUID) {
+        val requester = Bukkit.getPlayer(requesterUuid)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+        if (requester == null || !requester.isOnline) {
+            target.sendMessage(plugin.languageManager.getMessage(target, "messages.visit_request_target_offline"))
+            return
+        }
+        if (worldData == null || worldData.isArchived) {
+            target.sendMessage(plugin.languageManager.getMessage(target, "general.world_not_found"))
+            return
+        }
+
+        plugin.worldService.teleportToWorld(requester, worldUuid) {
+            requester.sendMessage(
+                plugin.languageManager.getMessage(
+                    requester,
+                    "messages.visit_request_accepted",
+                    mapOf("owner" to target.name, "world" to worldData.name)
+                )
+            )
+            target.sendMessage(
+                plugin.languageManager.getMessage(
+                    target,
+                    "messages.visit_request_accepted_by_target",
+                    mapOf("player" to requester.name, "world" to worldData.name)
+                )
+            )
         }
     }
 }

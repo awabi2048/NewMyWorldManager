@@ -32,6 +32,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         applyGravity(event.player, event.player.world.name)
         applyScale(event.player, event.player.world.name)
         applyFlight(event.player, event.player.world.name)
+        applyWeather(event.player.world)
         applyTime(event.player.world)
         applyWorldSettings(event.player.world)
     }
@@ -42,6 +43,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         applyGravity(event.player, event.player.world.name)
         applyScale(event.player, event.player.world.name)
         applyFlight(event.player, event.player.world.name)
+        applyWeather(event.player.world)
         applyTime(event.player.world)
         applyWorldSettings(event.player.world)
     }
@@ -151,6 +153,41 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
             player.isFlying = false
         }
         player.allowFlight = false
+    }
+
+    private fun applyWeather(world: org.bukkit.World) {
+        val worldName = world.name
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
+        val weather = worldData.fixedWeather
+
+        if (weather == null) {
+            world.setGameRule(GameRule.DO_WEATHER_CYCLE, true)
+            world.weatherDuration = 0
+            world.thunderDuration = 0
+            return
+        }
+        // 天候を固定するため、バニラの天候サイクルを停止する。
+        // DO_WEATHER_CYCLE を false にしないと再起動/アンロード後に天候がリセットされる。
+        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false)
+        when (weather) {
+            "CLEAR" -> {
+                world.setStorm(false)
+                world.setThundering(false)
+                world.weatherDuration = Int.MAX_VALUE
+            }
+            "RAIN" -> {
+                world.setStorm(true)
+                world.setThundering(false)
+                world.weatherDuration = Int.MAX_VALUE
+                world.thunderDuration = 0
+            }
+            "THUNDER" -> {
+                world.setStorm(true)
+                world.setThundering(true)
+                world.weatherDuration = Int.MAX_VALUE
+                world.thunderDuration = Int.MAX_VALUE
+            }
+        }
     }
 
     private fun applyTime(world: org.bukkit.World) {
@@ -266,6 +303,19 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // チャンクロード時に既存エンティティ（サーバー起動前から存在するモブ等）の重力・スケールを再適用する。
+        // onEntitySpawn は新規スポーンのみを拾うため、永続化されたエンティティにはここで反映する。
+        val gravity = worldData.gravityValue
+        val scale = worldData.fixedScale
+        if (gravity != null || scale != null) {
+            chunk.entities.forEach { entity ->
+                if (entity is org.bukkit.entity.LivingEntity) {
+                    if (gravity != null) applyGravity(entity, worldName)
+                    if (scale != null) applyScale(entity, worldName)
                 }
             }
         }

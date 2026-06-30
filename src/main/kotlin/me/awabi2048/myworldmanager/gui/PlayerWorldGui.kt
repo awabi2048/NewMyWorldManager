@@ -204,7 +204,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         } ?: lang.getMessage(player, "general.unknown")
 
                 // マイワールド新規作成ボタン (Slot 2)
-                val creationBlockReason = creationBlockReason(currentCreateCount, maxSlot, bypassLimits)
+                val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
                 if (isOwnMenu && creationBlockReason == null) {
                         inventory.setItem(footerStart + 2, createCreationButton(player))
                 } else if (isOwnMenu) {
@@ -391,21 +391,27 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun createCreationUnavailableButton(player: Player, reason: CreationBlockReason): ItemStack {
+                val lang = plugin.languageManager
                 val item = ItemStack(Material.BARRIER)
-                item.editMeta { meta ->
-                        meta.displayName(plugin.languageManager.getComponent(player, reason.displayKey))
-                        meta.lore(null)
-                        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
-                }
+                val meta = item.itemMeta ?: return item
+                meta.displayName(lang.getComponent(player, reason.displayKey))
+                meta.lore(GuiItemFactory.menuLore(lang.getMessageList(player, reason.loreKey)))
+                meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
+                item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
                 return item
         }
 
         private fun creationBlockReason(
+                player: Player,
                 currentCreateCount: Int,
                 maxSlot: Int,
                 bypassLimits: Boolean
         ): CreationBlockReason? {
+                // 作成権限は最優先。bypassLimits や運用フラグよりも先に判定する。
+                if (!PermissionManager.checkPermission(player, PermissionManager.CREATE)) {
+                        return CreationBlockReason.NO_PERMISSION
+                }
                 if (bypassLimits) return null
                 // 作成期間の停止は枠不足より優先して、運営側の意図をそのまま表示する。
                 if (!MyWorldManagerApi.isWorldCreationEnabled()) return CreationBlockReason.PERIOD_DISABLED
@@ -507,8 +513,18 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 override fun getInventory(): org.bukkit.inventory.Inventory = inv
         }
 
-        private enum class CreationBlockReason(val displayKey: String) {
-                PERIOD_DISABLED("gui.player_world.creation_unavailable.period_disabled"),
-                NO_SLOT("gui.player_world.creation_unavailable.no_slot")
+        private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
+                PERIOD_DISABLED(
+                        "gui.player_world.creation_unavailable.period_disabled.display",
+                        "gui.player_world.creation_unavailable.period_disabled.lore"
+                ),
+                NO_SLOT(
+                        "gui.player_world.creation_unavailable.no_slot.display",
+                        "gui.player_world.creation_unavailable.no_slot.lore"
+                ),
+                NO_PERMISSION(
+                        "gui.player_world.creation_unavailable.no_permission.display",
+                        "gui.player_world.creation_unavailable.no_permission.lore"
+                )
         }
 }

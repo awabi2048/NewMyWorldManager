@@ -419,7 +419,7 @@ class WorldCommand(
                 // インベントリに追加を試みる
                 val result = targetPlayer.inventory.addItem(item)
                 val displayName = item.itemMeta?.displayName() ?: customItem.id
-                
+
                 // インベントリがいっぱいで、アイテムがドロップされたかどうかを確認
                 if (result.isNotEmpty()) {
                     // ドロップされたアイテムを足元に配置
@@ -450,66 +450,6 @@ class WorldCommand(
                             )
                     )
                 }
-                return true
-            }
-            "migrate-worlds" -> {
-                val lang = plugin.languageManager
-                if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("error.console_only"))
-                    return true
-                }
-                if (!plugin.config.getBoolean("migration.enable_world_migration", false)) {
-                    sender.sendMessage(
-                            lang.getMessage(
-                                    "error.migration_disabled",
-                                    mapOf("config_key" to "migration.enable_world_migration")
-                            )
-                    )
-                    return true
-                }
-                val dataOnly = args.contains("-data")
-                performMigration(sender, dataOnly)
-                plugin.config.set("migration.enable_world_migration", false)
-                plugin.saveConfig()
-                return true
-            }
-            "migrate-players" -> {
-                val lang = plugin.languageManager
-                if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("error.console_only"))
-                    return true
-                }
-                if (!plugin.config.getBoolean("migration.enable_player_migration", false)) {
-                    sender.sendMessage(
-                            lang.getMessage(
-                                    "error.migration_disabled",
-                                    mapOf("config_key" to "migration.enable_player_migration")
-                            )
-                    )
-                    return true
-                }
-                performPlayerMigration(sender)
-                plugin.saveConfig()
-                return true
-            }
-            "migrate-portals" -> {
-                val lang = plugin.languageManager
-                if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("error.console_only"))
-                    return true
-                }
-                if (!plugin.config.getBoolean("migration.enable_portal_migration", false)) {
-                    sender.sendMessage(
-                            lang.getMessage(
-                                    "error.migration_disabled",
-                                    mapOf("config_key" to "migration.enable_portal_migration")
-                            )
-                    )
-                    return true
-                }
-                performPortalMigration(sender)
-                plugin.config.set("migration.enable_portal_migration", false)
-                plugin.saveConfig()
                 return true
             }
 
@@ -556,9 +496,6 @@ class WorldCommand(
                 if (hasGlobalPermission && sender is org.bukkit.command.ConsoleCommandSender && canSuggestSubCommand(sender, "update-day", args.toList())) {
                     list.add("update-day")
                 }
-                if (hasGlobalPermission && sender is org.bukkit.command.ConsoleCommandSender) {
-                    list.addAll(listOf("migrate-worlds", "migrate-players", "migrate-portals"))
-                }
                 if (hasWorldListPermission && canSuggestSubCommand(sender, "list", args.toList())) {
                     list.add("list")
                 }
@@ -578,8 +515,6 @@ class WorldCommand(
                     canSuggestSubCommand(sender, sub, args.toList())
                 ) {
                     list.addAll(Bukkit.getOnlinePlayers().map { it.name })
-                } else if (sub.equals("migrate-worlds", ignoreCase = true) && hasGlobalPermission) {
-                    list.add("-data")
                 }
             }
             3 -> {
@@ -599,168 +534,10 @@ class WorldCommand(
         return list.filter { it.lowercase().startsWith(args.last().lowercase()) }
     }
 
-    private fun performMigration(sender: CommandSender, dataOnly: Boolean = false) {
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val lang = plugin.languageManager
-        val file = java.io.File(plugin.dataFolder, "world_data.yml")
-        if (!file.exists()) {
-            sender.sendMessage(
-                    lang.getMessage(
-                            "messages.migration_file_not_found",
-                            mapOf("file" to "world_data.yml")
-                    )
-            )
-            return
-        }
-
-        val config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file)
-        val initialDays = plugin.config.getInt("default_expiration.initial_days", 7)
-        val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-
-        var count = 0
-        for (key in config.getKeys(false)) {
-            try {
-                val uuid = UUID.fromString(key)
-                val section = config.getConfigurationSection(key) ?: continue
-
-                val name = section.getString("name", "Unknown")!!
-                val description = section.getString("description", "")!!
-                val iconStr = section.getString("icon", "GRASS_BLOCK")!!
-                val icon =
-                        org.bukkit.Material.matchMaterial(iconStr)
-                                ?: org.bukkit.Material.GRASS_BLOCK
-                val sourceWorld = section.getString("source_world", "default")!!
-
-                val isArchived = section.getString("activity_state") == "ARCHIVED"
-                val worldName = "my_world.$uuid"
-
-                // フォルダ存在確認
-                val archiveFolder =
-                        java.io.File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
-                val worldFolder =
-                        if (isArchived) {
-                            java.io.File(archiveFolder, worldName)
-                        } else {
-                            java.io.File(Bukkit.getWorldContainer(), worldName)
-                        }
-
-                if (!dataOnly && (!worldFolder.exists() || !worldFolder.isDirectory)) {
-                    val errorMsg =
-                            lang.getMessage(
-                                    "messages.migration_folder_not_found",
-                                    mapOf("path" to worldName, "id" to key)
-                            )
-                    sender.sendMessage(errorMsg)
-                    plugin.logger.severe(errorMsg)
-                    continue
-                }
-
-                // 期限計算
-                val lastUpdatedStr = section.getString("last_updated", "2026-01-12")!!
-                val lastUpdated =
-                        try {
-                            java.time.LocalDate.parse(lastUpdatedStr.replace("'", ""))
-                        } catch (e: Exception) {
-                            java.time.LocalDate.now()
-                        }
-                val expireDate = lastUpdated.plusDays(initialDays.toLong()).format(dateFormatter)
-
-                val ownerStr = section.getString("owner") ?: continue
-                val owner = UUID.fromString(ownerStr)
-
-                val members = mutableListOf<UUID>()
-                val moderators = mutableListOf<UUID>()
-                val memberSection = section.getConfigurationSection("member")
-                if (memberSection != null) {
-                    for (mUuidStr in memberSection.getKeys(false)) {
-                        try {
-                            val mUuid = UUID.fromString(mUuidStr)
-                            // オーナーは権限リストに含めない (重複防止)
-                            if (mUuid == owner) continue
-
-                            val role = memberSection.getString(mUuidStr)?.uppercase() ?: "MEMBER"
-                            when (role) {
-                                "OWNER", "MODERATOR" -> moderators.add(mUuid)
-                                "MEMBER" -> members.add(mUuid)
-                            }
-                        } catch (e: Exception) {}
-                    }
-                }
-
-                val publishLevel =
-                        when (section.getString("publish_level", "CLOSE")?.uppercase()) {
-                            "OPEN" -> PublishLevel.FRIEND
-                            "PUBLIC" -> PublishLevel.PUBLIC
-                            else -> PublishLevel.PRIVATE
-                        }
-
-                fun parseLoc(str: String?): org.bukkit.Location? {
-                    if (str == null) return null
-                    val clean = str.replace("(", "").replace(")", "")
-                    val coords = clean.split(",")
-                    if (coords.size < 3) return null
-                    val x = coords[0].trim().toDoubleOrNull() ?: return null
-                    val y = coords[1].trim().toDoubleOrNull() ?: return null
-                    val z = coords[2].trim().toDoubleOrNull() ?: return null
-                    return org.bukkit.Location(Bukkit.getWorld(worldName), x, y, z)
-                }
-
-                val spawnPosGuest = parseLoc(section.getString("spawn_pos_guest"))
-                val spawnPosMember = parseLoc(section.getString("spawn_pos_member"))
-                val borderCenterPos = parseLoc(section.getString("border_center_pos"))
-
-                val expansionLevel = section.getInt("border_expansion_level", 0)
-
-                // 累積ポイント計算
-                val points =
-                        WorldRuntimePolicies.creationCost(plugin.config, WorldCreationType.TEMPLATE) +
-                                WorldRuntimePolicies.totalExpansionCost(plugin.config, expansionLevel)
-
-                val createdAtRaw = section.getString("created_at")
-                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                val createdAt =
-                        if (createdAtRaw != null) {
-                            if (createdAtRaw.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
-                                "$createdAtRaw 00:00:00"
-                            } else {
-                                createdAtRaw
-                            }
-                        } else {
-                            java.time.LocalDateTime.now().format(formatter)
-                        }
-
-                val worldData =
-                        WorldData(
-                                uuid = uuid,
-                                name = name,
-                                description = description,
-                                icon = icon,
-                                sourceWorld = sourceWorld,
-                                expireDate = expireDate,
-                                owner = owner,
-                                members = members,
-                                moderators = moderators,
-                                publishLevel = publishLevel,
-                                spawnPosGuest = spawnPosGuest,
-                                spawnPosMember = spawnPosMember,
-                                borderCenterPos = borderCenterPos,
-                                borderExpansionLevel = expansionLevel,
-                                isArchived = isArchived,
-                                cumulativePoints = points,
-                                createdAt = createdAt
-                        )
-
-                plugin.worldConfigRepository.save(worldData)
-                count++
-            } catch (e: Exception) {
-                sender.sendMessage(
-                        lang.getMessage("messages.migration_error", mapOf("error" to key))
-                )
-                e.printStackTrace()
-            }
-        }
-        sender.sendMessage(lang.getMessage("messages.migration_success", mapOf("count" to count)))
-        plugin.worldConfigRepository.loadAll()
+    private fun isSubCommandEnabled(sender: CommandSender, subCommand: String, args: List<String>): Boolean {
+        // migration は運用状態を config.yml に持ち込んでいたため完全廃止する。
+        // それ以外のサブコマンドは、公開済みの権限体系で表示と実行可否を判断する。
+        return subCommand in enabledSubCommands
     }
 
     private fun hasSubcommandPermission(sender: CommandSender, subCommand: String?): Boolean {
@@ -770,201 +547,21 @@ class WorldCommand(
             "stats" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
             "give" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
             "list" -> PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
+            "update-day" -> sender is org.bukkit.command.ConsoleCommandSender
             else -> false
         }
     }
 
-    private fun isSubCommandEnabled(sender: CommandSender, subCommand: String, args: List<String>): Boolean {
-        return MyWorldManagerApi.getCommandPolicies().all {
-            it.canExecuteMwmSubCommand(sender, subCommand, args)
-        }
-    }
-
     private fun canSuggestSubCommand(sender: CommandSender, subCommand: String, args: List<String>): Boolean {
-        return MyWorldManagerApi.getCommandPolicies().all {
-            it.canSuggestMwmSubCommand(sender, subCommand, args)
-        }
+        return isSubCommandEnabled(sender, subCommand, args) && hasSubcommandPermission(sender, subCommand)
     }
 
     private fun canSuggestGiveItem(sender: CommandSender, itemId: String): Boolean {
-        return MyWorldManagerApi.getCommandPolicies().all {
-            it.canSuggestMwmGiveItem(sender, itemId)
-        }
+        return PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE) &&
+            CustomItem.fromId(itemId) != null
     }
 
-    private fun processArchiveQueue(sender: CommandSender, targets: List<WorldData>, index: Int) {
-        if (index >= targets.size) {
-            val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-            sender.sendMessage(
-                    plugin.languageManager.getMessage(
-                            "messages.migration_archive_complete",
-                            mapOf("count" to targets.size)
-                    )
-            )
-            return
-        }
-
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val lang = plugin.languageManager
-        val worldData = targets[index]
-
-        plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success: Boolean ->
-            if (success) {
-                sender.sendMessage(
-                        lang.getMessage(
-                                "messages.migration_archive_progress",
-                                mapOf(
-                                        "current" to (index + 1),
-                                        "total" to targets.size,
-                                        "world" to worldData.name
-                                )
-                        )
-                )
-            }
-            // 次のワールドを処理
-            Bukkit.getScheduler()
-                    .runTaskLater(
-                            plugin,
-                            Runnable { processArchiveQueue(sender, targets, index + 1) },
-                            20L
-                    ) // 1秒後に次を処理
-        }
-    }
-
-    private fun performPlayerMigration(sender: CommandSender) {
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val lang = plugin.languageManager
-        val file = java.io.File(plugin.dataFolder, "player_data.yml")
-        if (!file.exists()) {
-            sender.sendMessage(
-                    lang.getMessage(
-                            "messages.migration_file_not_found",
-                            mapOf("file" to "player_data.yml")
-                    )
-            )
-            return
-        }
-
-        val config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file)
-        val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val nowStr = java.time.LocalDate.now().format(dateFormatter)
-
-        var count = 0
-        for (key in config.getKeys(false)) {
-            try {
-                val uuid = UUID.fromString(key)
-                val section = config.getConfigurationSection(key) ?: continue
-
-                val worldPoint = section.getInt("world_point")
-                // unlockedWarpSlot removed
-                val unlockedWorldSlot = section.getInt("unlocked_world_slot")
-                val warpShortcuts: List<String> = section.getStringList("warp_shortcuts")
-
-                val stats = plugin.playerStatsRepository.findByUuid(uuid)
-                stats.worldPoint = worldPoint
-                // unlockedWarpSlot removed
-                stats.unlockedWorldSlot = unlockedWorldSlot
-
-                warpShortcuts.forEach { wUuidStr: String ->
-                    try {
-                        val wUuid = UUID.fromString(wUuidStr)
-                        if (!stats.favoriteWorlds.containsKey(wUuid)) {
-                            stats.favoriteWorlds[wUuid] = nowStr
-                        }
-                    } catch (e: Exception) {}
-                }
-
-                plugin.playerStatsRepository.save(stats)
-                count++
-            } catch (e: Exception) {
-                sender.sendMessage(
-                        lang.getMessage("messages.migration_error", mapOf("error" to key))
-                )
-                e.printStackTrace()
-            }
-        }
-        sender.sendMessage(lang.getMessage("messages.migration_success", mapOf("count" to count)))
-    }
-
-    private fun performPortalMigration(sender: CommandSender) {
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val lang = plugin.languageManager
-        val file = java.io.File(plugin.dataFolder, "portal_data.yml")
-        if (!file.exists()) {
-            sender.sendMessage(
-                    lang.getMessage(
-                            "messages.migration_file_not_found",
-                            mapOf("file" to "portal_data.yml")
-                    )
-            )
-            return
-        }
-
-        val config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file)
-        var count = 0
-
-        for (key in config.getKeys(false)) {
-            try {
-                val section = config.getConfigurationSection(key) ?: continue
-                val id =
-                        try {
-                            UUID.fromString(key)
-                        } catch (e: Exception) {
-                            continue
-                        }
-
-                val locSection = section.getConfigurationSection("location") ?: continue
-                val worldName = locSection.getString("world") ?: continue
-                val x = locSection.getDouble("x")
-                val y = locSection.getDouble("y")
-                val z = locSection.getDouble("z")
-
-                val ownerStr = section.getString("owner") ?: continue
-                val ownerUuid = UUID.fromString(ownerStr)
-
-                val destStr = section.getString("destination") ?: continue
-                val worldUuid = UUID.fromString(destStr)
-
-                val showText = section.getBoolean("display_text", true)
-
-                // 色のパース
-                val colorStr = section.getString("color", "AQUA")!!
-                var color: org.bukkit.Color = org.bukkit.Color.AQUA
-                try {
-                    // 名前からColor定数を取得を試みる
-                    val field = org.bukkit.Color::class.java.getDeclaredField(colorStr.uppercase())
-                    color = field.get(null) as org.bukkit.Color
-                } catch (e: Exception) {
-                    try {
-                        // 失敗したらDyeColor経由で試す
-                        color = org.bukkit.DyeColor.valueOf(colorStr.uppercase()).fireworkColor
-                    } catch (e2: Exception) {
-                        // それでもだめならデフォルト
-                    }
-                }
-
-                val portalData =
-                        PortalData(
-                                id = id,
-                                worldName = worldName,
-                                x = x.toInt(),
-                                y = y.toInt(),
-                                z = z.toInt(),
-                                worldUuid = worldUuid,
-                                showText = showText,
-                                particleColor = color,
-                                ownerUuid = ownerUuid
-                        )
-
-                plugin.portalRepository.addPortal(portalData)
-                count++
-            } catch (e: Exception) {
-                sender.sendMessage(
-                        lang.getMessage("messages.migration_error", mapOf("error" to key))
-                )
-                e.printStackTrace()
-            }
-        }
-        sender.sendMessage(lang.getMessage("messages.migration_success", mapOf("count" to count)))
+    companion object {
+        private val enabledSubCommands = setOf("create", "reload", "stats", "give", "update-day", "list")
     }
 }
