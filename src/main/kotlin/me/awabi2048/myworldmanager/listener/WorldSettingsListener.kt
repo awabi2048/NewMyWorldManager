@@ -35,6 +35,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Color
+import org.bukkit.GameRule
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Location
 import org.bukkit.Material
@@ -1309,6 +1310,9 @@ class WorldSettingsListener : Listener {
                                 if (itemTag == ItemTag.TYPE_GUI_INFO &&
                                                 ItemTag.getWorldUuid(clickedItem) == worldData.uuid
                                 ) {
+                                        if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
+                                                return
+                                        }
                                         plugin.soundManager.playClickSound(
                                                 player,
                                                 clickedItem,
@@ -4214,8 +4218,7 @@ plugin.languageManager
                                         mapOf(
                                                 "level_before" to
                                                         (worldData.borderExpansionLevel - 1),
-                                                "level_after" to worldData.borderExpansionLevel,
-                                                "remaining" to stats.worldPoint
+                                                "level_after" to worldData.borderExpansionLevel
                                         )
                                 )
                         )
@@ -4739,18 +4742,27 @@ player.sendMessage(
                 val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
                 val fixed = worldData.fixedWeather ?: return
 
+                // 天候を固定するため、バニラの天候サイクルを停止する。
+                // DO_WEATHER_CYCLE を false にせず weatherDuration のみ設定すると、
+                // サイクル継続で固定天候がすぐ上書きされてしまう。
+                world.setGameRule(GameRule.DO_WEATHER_CYCLE, false)
                 when (fixed) {
                         "CLEAR" -> {
                                 world.setStorm(false)
                                 world.setThundering(false)
+                                world.weatherDuration = Int.MAX_VALUE
                         }
                         "RAIN" -> {
                                 world.setStorm(true)
                                 world.setThundering(false)
+                                world.weatherDuration = Int.MAX_VALUE
+                                world.thunderDuration = 0
                         }
                         "THUNDER" -> {
                                 world.setStorm(true)
                                 world.setThundering(true)
+                                world.weatherDuration = Int.MAX_VALUE
+                                world.thunderDuration = Int.MAX_VALUE
                         }
                 }
         }
@@ -5710,8 +5722,7 @@ player.sendMessage(
                                         "messages.expand_complete",
                                         mapOf(
                                                 "level_before" to (worldData.borderExpansionLevel - 1),
-                                                "level_after" to worldData.borderExpansionLevel,
-                                                "remaining" to stats.worldPoint
+                                                "level_after" to worldData.borderExpansionLevel
                                         )
                                 )
                         )

@@ -48,6 +48,7 @@ class MyWorldManager : JavaPlugin() {
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
+    lateinit var runtimeStateRepository: RuntimeStateRepository
 
     lateinit var settingsSessionManager: SettingsSessionManager
     lateinit var inviteSessionManager: InviteSessionManager
@@ -161,6 +162,7 @@ class MyWorldManager : JavaPlugin() {
         portalRepository = PortalRepository(this)
         spotlightRepository = SpotlightRepository(this)
         pendingInteractionRepository = PendingInteractionRepository(this)
+        runtimeStateRepository = RuntimeStateRepository(this)
 
         // サービスの初期化
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
@@ -258,11 +260,10 @@ class MyWorldManager : JavaPlugin() {
         MyWorldManagerApi.registerMemberManager(MemberManagerAdapter(this))
         MyWorldManagerApi.registerWorldTagService(WorldTagServiceAdapter(this))
         worldCreationControlService = object : MyWorldManagerApi.WorldCreationControlService {
-            override fun isWorldCreationEnabled(): Boolean = config.getBoolean("creation.enabled", true)
+            override fun isWorldCreationEnabled(): Boolean = runtimeStateRepository.isWorldCreationEnabled()
 
             override fun setWorldCreationEnabled(enabled: Boolean) {
-                config.set("creation.enabled", enabled)
-                saveConfig()
+                runtimeStateRepository.setWorldCreationEnabled(enabled)
             }
         }.also(MyWorldManagerApi::registerWorldCreationControlService)
         worldWorkPermissionSyncService = MyWorldManagerApi.WorldWorkPermissionSyncService { worldUuid ->
@@ -499,6 +500,7 @@ class MyWorldManager : JavaPlugin() {
         templateRepository.loadTemplates()
         portalRepository.loadAll()
         spotlightRepository.load()
+        runtimeStateRepository.load()
         macroManager.loadConfig()
         menuConfigManager.initialize() // フォルダ作成・デフォルトコピー・全読み込みを一括実行
         registerMenuSoundProvider()

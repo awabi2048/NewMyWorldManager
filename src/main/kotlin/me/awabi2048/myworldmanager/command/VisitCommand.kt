@@ -46,7 +46,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             return true
         }
 
-        processVisitTargetInput(sender, args[0])
+        processVisitTargetInput(sender, args[0], args.getOrNull(1))
         return true
     }
 
@@ -147,7 +147,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         player.showDialog(dialog)
     }
 
-    private fun processVisitTargetInput(player: Player, rawInput: String) {
+    private fun processVisitTargetInput(player: Player, rawInput: String, rawWorldInput: String? = null) {
         val targetName = rawInput.trim()
         if (targetName.isEmpty()) {
             player.sendMessage(plugin.languageManager.getMessage(player, "general.player_not_found"))
@@ -166,6 +166,17 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             return
         }
 
+        val worldName = rawWorldInput?.trim().orEmpty()
+        if (worldName.isNotEmpty()) {
+            val worldData = resolveTargetWorld(target.uniqueId, worldName)
+            if (worldData == null || worldData.isArchived) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "general.world_not_found"))
+                return
+            }
+            handleDirectWorldVisit(player, target.name ?: targetName, worldData)
+            return
+        }
+
         val visitableWorlds = collectVisitableWorlds(player, target.uniqueId)
 
         if (visitableWorlds.isEmpty()) {
@@ -174,6 +185,86 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         }
 
         plugin.menuEntryRouter.openVisitMenu(player, target)
+    }
+
+    private fun resolveTargetWorld(ownerUuid: UUID, rawWorldInput: String): WorldData? {
+        val query = rawWorldInput.trim()
+        val queryUuid = runCatching { UUID.fromString(query) }.getOrNull()
+        return plugin.worldConfigRepository.findAll()
+            .filter { it.owner == ownerUuid }
+            .firstOrNull { world ->
+                world.uuid == queryUuid ||
+                    world.name.equals(query, ignoreCase = true) ||
+                    plugin.worldService.getWorldFolderName(world).equals(query, ignoreCase = true)
+            }
+    }
+
+    private fun handleDirectWorldVisit(player: Player, ownerName: String, worldData: WorldData) {
+        val isMember = worldData.owner == player.uniqueId ||
+            worldData.moderators.contains(player.uniqueId) ||
+            worldData.members.contains(player.uniqueId)
+        val accessPolicy = MyWorldManagerApi.getWorldAccessPolicy()
+
+        if (accessPolicy.canEnterWorld(player, worldData, isMember) &&
+            accessPolicy.canUseVisitEntry(player, worldData, isMember)
+        ) {
+            plugin.worldService.teleportToWorld(player, worldData.uuid)
+            return
+        }
+
+        requestVisitPermission(player, ownerName, worldData)
+    }
+
+    private fun requestVisitPermission(player: Player, ownerName: String, worldData: WorldData) {
+        val respondent = visitRequestRespondents(worldData, player.uniqueId).firstOrNull()
+        if (respondent == null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visit_request_no_respondent"))
+            return
+        }
+
+        val timeoutSeconds = plugin.config.getLong("invite.timeout_seconds", 60L).coerceAtLeast(1L)
+        val result = plugin.pendingDecisionManager.enqueueVisitRequest(
+            target = respondent,
+            requesterUuid = player.uniqueId,
+            worldUuid = worldData.uuid,
+            timeoutSeconds = timeoutSeconds
+        )
+        if (result == null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visit_request_already_pending"))
+            return
+        }
+
+        player.sendMessage(
+            plugin.languageManager.getMessage(
+                player,
+                "messages.visit_request_sent",
+                mapOf("owner" to ownerName, "world" to worldData.name)
+            )
+        )
+        respondent.sendMessage(
+            plugin.languageManager.getMessage(
+                respondent,
+                "messages.visit_request_received",
+                mapOf("player" to player.name, "world" to worldData.name)
+            )
+        )
+        plugin.pendingDecisionManager.sendPendingHint(respondent, result.count)
+    }
+
+    private fun visitRequestRespondents(worldData: WorldData, requesterUuid: UUID): List<Player> {
+        // 制作中ワールドへの一時訪問は、ワールドを管理できるオンラインプレイヤーにだけ承認させる。
+        val respondentIds = buildList {
+            add(worldData.owner)
+            addAll(worldData.moderators)
+            addAll(worldData.members)
+        }
+        return respondentIds
+            .asSequence()
+            .filter { it != requesterUuid }
+            .distinct()
+            .mapNotNull(Bukkit::getPlayer)
+            .filter { it.isOnline }
+            .toList()
     }
 
     private fun collectVisitableWorlds(player: Player, targetUuid: UUID): List<WorldData> {
@@ -201,6 +292,14 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
                 .filter { target ->
                     target != sender && collectVisitableWorlds(sender, target.uniqueId).isNotEmpty()
                 }
+                .map { it.name }
+                .filter { it.lowercase().startsWith(search) }
+        }
+        if (args.size == 2) {
+            val target = PlayerNameUtil.resolveOfflinePlayer(plugin, args[0]) ?: return emptyList()
+            val search = args[1].lowercase()
+            return plugin.worldConfigRepository.findAll()
+                .filter { it.owner == target.uniqueId && !it.isArchived }
                 .map { it.name }
                 .filter { it.lowercase().startsWith(search) }
         }

@@ -34,8 +34,9 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
         val isOwner = worldData.owner == player.uniqueId
         val isModerator = worldData.moderators.contains(player.uniqueId)
         val isMember = worldData.members.contains(player.uniqueId)
+        val isAdminFlow = PermissionManager.checkPermission(player, PermissionManager.ADMIN)
 
-        if (!isOwner && !isModerator && !isMember) {
+        if (!isOwner && !isModerator && !isMember && !isAdminFlow) {
             player.sendMessage("§cこのコマンドを実行する権限がありません。（メンバー以上が必要）")
             return true
         }
@@ -45,6 +46,15 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
 
         // GUIを開く
         val showBackButton = args.contains("-menu")
+        // 管理者が現地確認で開く /worldmenu は所有者権限の代替として扱う。
+        // 後続の設定画面は SettingsSession.isAdminFlow を参照して所有者限定操作を許可する。
+        plugin.settingsSessionManager.updateSessionAction(
+            player,
+            worldData.uuid,
+            SettingsAction.VIEW_SETTINGS,
+            isGui = true,
+            isAdminFlow = isAdminFlow
+        )
         plugin.menuEntryRouter.openWorldSettings(player, worldData, showBackButton)
         return true
     }

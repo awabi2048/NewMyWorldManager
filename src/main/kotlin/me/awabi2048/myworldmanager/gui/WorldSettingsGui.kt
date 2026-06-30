@@ -126,8 +126,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 val inventorySize = if (isMemberLayout) 45 else 54
                 val bottomRowStartSlot = inventorySize - 9
-                val backButtonSlot = if (isMemberLayout) 36 else 45
-                val worldInfoSlot = if (isMemberLayout) 22 else 49
+                // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定して、ツアー/Chanpon側と視線を揃える。
+                val backButtonSlot = bottomRowStartSlot + 4
+                val worldInfoSlot = 4
                 val tourSettingSlot = if (isMemberLayout) 42 else 47
 
                 val infoSettingSlot = if (useModeratorCenteredLayout) 21 else 19
@@ -1010,6 +1011,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 infoLore.add(
                         "${lang.getMessage(player, "publish_level.color.uuid")}UUID: ${worldData.uuid}"
                 )
+                if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid != worldData.uuid) {
+                        infoLore.add(lang.getMessage(player, "gui.player_world.world_item.warp"))
+                }
 
                 val infoItem =
                         createItem(
@@ -1321,20 +1325,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val canStepBack = worldData.latestBorderExpansionRecord() != null
                 if (canStepBack) {
                         inventory.setItem(
-                                40,
+                                42,
                                 createItem(
                                         Material.RECOVERY_COMPASS,
                                         lang.getMessage(player, "gui.expansion.step_back.name"),
                                         lang.getMessageList(player, "gui.expansion.step_back.lore"),
                                         ItemTag.TYPE_GUI_SETTING_STEP_BACK_EXPANSION
-                                )
-                        )
-                        inventory.setItem(
-                                36,
-                                GuiHelper.createReturnItem(
-                                        plugin,
-                                        player,
-                                        "world_settings"
                                 )
                         )
                 }
@@ -2641,7 +2637,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 inventory.setItem(
                         22,
                         createItem(
-                                Material.ARROW,
+                                Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
                                 emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL
@@ -2813,7 +2809,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 inventory.setItem(
                         40,
                         createItem(
-                                Material.ARROW,
+                                Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
                                 emptyList<String>(),
                                 ItemTag.TYPE_GUI_CANCEL

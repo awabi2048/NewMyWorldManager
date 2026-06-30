@@ -28,7 +28,6 @@ fallback_language: "ja_jp"
 
 
 creation:
-  enabled: true
   max_create_count_default: 3
   max_total_world_count: 50
   max_world_slots_limit: 10 # Default max slots a player can reach using World Seeds
@@ -103,12 +102,6 @@ portal:
     particle_density_per_block: 0.8
     particle_min_count: 16
     particle_max_count: 320
-
-# 移行コマンドの設定
-migration:
-  enable_world_migration: false
-  enable_player_migration: false
-  enable_portal_migration: false
 
 # 重大な設定の払い戻し割合・アーカイブクールダウン設定
 critical_settings:

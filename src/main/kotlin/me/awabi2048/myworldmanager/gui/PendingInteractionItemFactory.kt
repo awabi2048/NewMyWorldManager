@@ -130,6 +130,7 @@ object PendingInteractionItemFactory {
             PendingDecisionManager.PendingType.MEMBER_INVITE -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.member_invite")
             PendingDecisionManager.PendingType.MEMBER_REQUEST -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.member_request")
             PendingDecisionManager.PendingType.MEET_REQUEST -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.meet_request")
+            PendingDecisionManager.PendingType.VISIT_REQUEST -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.visit_request")
         }
     }
 

@@ -480,7 +480,7 @@ class BedrockMenuService(
             )
         }
 
-        val creationBlockReason = creationBlockReason(currentCreateCount, maxSlot, bypassLimits)
+        val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
         if (creationBlockReason == null) {
             inventory.setItem(footerStart + 2, createCreationButtonItem(player))
         } else {
@@ -1132,21 +1132,26 @@ class BedrockMenuService(
 
     private fun createCreationUnavailableButtonItem(player: Player, reason: CreationBlockReason): ItemStack {
         val item = ItemStack(Material.BARRIER)
-        item.editMeta { meta ->
-            meta.displayName(plugin.languageManager.getComponent(player, reason.displayKey))
-            meta.lore(null)
-            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
-        }
+        val meta = item.itemMeta ?: return item
+        meta.displayName(plugin.languageManager.getComponent(player, reason.displayKey))
+        meta.lore(GuiItemFactory.menuLore(plugin.languageManager.getMessageList(player, reason.loreKey)))
+        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
+        item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
         ItemTag.setString(item, "bedrock_action", "noop")
         return item
     }
 
     private fun creationBlockReason(
+        player: Player,
         currentCreateCount: Int,
         maxSlot: Int,
         bypassLimits: Boolean
     ): CreationBlockReason? {
+        // 作成権限は、運営トグルや枠不足より先に本人へ表示する基本要件として扱う。
+        if (!PermissionManager.checkPermission(player, PermissionManager.CREATE)) {
+            return CreationBlockReason.NO_PERMISSION
+        }
         if (bypassLimits) return null
         // 作成期間の停止は枠不足より優先して、運営側の意図をそのまま表示する。
         if (!MyWorldManagerApi.isWorldCreationEnabled()) return CreationBlockReason.PERIOD_DISABLED
@@ -1295,8 +1300,18 @@ class BedrockMenuService(
         return item
     }
 
-    private enum class CreationBlockReason(val displayKey: String) {
-        PERIOD_DISABLED("gui.player_world.creation_unavailable.period_disabled"),
-        NO_SLOT("gui.player_world.creation_unavailable.no_slot")
+    private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
+        PERIOD_DISABLED(
+            "gui.player_world.creation_unavailable.period_disabled.display",
+            "gui.player_world.creation_unavailable.period_disabled.lore"
+        ),
+        NO_SLOT(
+            "gui.player_world.creation_unavailable.no_slot.display",
+            "gui.player_world.creation_unavailable.no_slot.lore"
+        ),
+        NO_PERMISSION(
+            "gui.player_world.creation_unavailable.no_permission.display",
+            "gui.player_world.creation_unavailable.no_permission.lore"
+        )
     }
 }

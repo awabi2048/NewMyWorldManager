@@ -53,7 +53,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         )
 
         // 戻るボタン (スロット40)
-        val backItem = ItemStack(Material.ARROW)
+        val backItem = ItemStack(Material.REDSTONE)
         val backMeta = backItem.itemMeta
         backMeta?.displayName(lang.getComponent(player, "gui.common.back"))
         backItem.itemMeta = backMeta

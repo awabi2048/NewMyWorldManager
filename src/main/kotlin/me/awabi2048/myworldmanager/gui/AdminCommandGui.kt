@@ -75,7 +75,8 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         // Slot 24: ワールド変換 (convert) / 紐づけ解除 (unlink)
         if (isMyWorld) {
             inventory.setItem(24, createItem(
-                Material.CHAIN,
+                // 1.21.11 APIではCHAINが利用できないため、紐づけ解除の意味に近いLEADを使う。
+                Material.LEAD,
                 lang.getMessage(player, "gui.admin_menu.unlink.display"),
                 lang.getMessageList(player, "gui.admin_menu.unlink.lore"),
                 ItemTag.TYPE_GUI_ADMIN_UNLINK

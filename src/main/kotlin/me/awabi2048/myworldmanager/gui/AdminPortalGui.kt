@@ -83,7 +83,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
 
         // 戻るボタン
         if (session.fromAdminMenu) {
-            inventory.setItem(52, createNavButton(lang.getMessage("gui.common.back"), Material.ARROW, 0, false)) // ページ0はダミー、タイプでタグ付け
+            inventory.setItem(52, createNavButton(lang.getMessage("gui.common.back"), Material.REDSTONE, 0, false)) // ページ0はダミー、タイプでタグ付け
             val backItem = inventory.getItem(52)!!
             ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_RETURN)
         }
