@@ -310,6 +310,10 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(PortalListener(this), this)
         server.pluginManager.registerEvents(PortalDisplayLifecycleListener(this), this)
         server.pluginManager.registerEvents(PortalGui(this), this)
+        if (server.pluginManager.isPluginEnabled("WorldEdit") || server.pluginManager.isPluginEnabled("FastAsyncWorldEdit")) {
+            // WorldEditのcut/copy/pasteはBukkitの通常ブロックイベントを通らないため、ポータルメタデータを別途同期する。
+            server.pluginManager.registerEvents(WorldEditPortalSyncListener(this), this)
+        }
         server.pluginManager.registerEvents(DiscoveryListener(this), this)
         server.pluginManager.registerEvents(SpotlightListener(this), this)
         server.pluginManager.registerEvents(TemplatePreviewListener(), this)

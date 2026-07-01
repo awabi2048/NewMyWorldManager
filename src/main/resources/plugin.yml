@@ -4,7 +4,7 @@ main: me.awabi2048.myworldmanager.MyWorldManager
 api-version: '26.1.2'
 authors: [awabi2048]
 description: ""
-softdepend: [PremiumVanish, CC-System, LuckPerms, WorldGuard]
+softdepend: [PremiumVanish, CC-System, LuckPerms, WorldGuard, WorldEdit, FastAsyncWorldEdit]
 commands:
   mwm:
     description: MyWorldManager main command
