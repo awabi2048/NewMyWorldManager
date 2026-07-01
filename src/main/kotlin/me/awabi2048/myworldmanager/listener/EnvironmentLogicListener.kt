@@ -165,9 +165,9 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         if (previousAllow == currentAllow) return
         if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
         val key = if (currentAllow) {
-            "chanpon.environment.flight.notification.enabled"
+            "messages.env_flight_enabled"
         } else {
-            "chanpon.environment.flight.notification.disabled"
+            "messages.env_flight_disabled"
         }
         player.sendMessage(plugin.languageManager.getMessage(player, key))
     }
