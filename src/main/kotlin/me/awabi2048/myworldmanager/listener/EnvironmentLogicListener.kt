@@ -28,13 +28,18 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onPlayerChangedWorld(event: PlayerChangedWorldEvent) {
-        removeAllModifiers(event.player)
-        applyGravity(event.player, event.player.world.name)
-        applyScale(event.player, event.player.world.name)
-        applyFlight(event.player, event.player.world.name)
-        applyWeather(event.player.world)
-        applyTime(event.player.world)
-        applyWorldSettings(event.player.world)
+        val player = event.player
+        // ワールド移動前後のフライ許可状態を比較し、変化があった場合のみ通知する。
+        val previousAllow = computeFlightAllowed(player, event.from.name)
+        removeAllModifiers(player)
+        applyGravity(player, player.world.name)
+        applyScale(player, player.world.name)
+        applyFlight(player, player.world.name)
+        applyWeather(player.world)
+        applyTime(player.world)
+        applyWorldSettings(player.world)
+        val currentAllow = computeFlightAllowed(player, player.world.name)
+        notifyFlightChange(player, previousAllow, currentAllow)
     }
 
     @EventHandler
@@ -138,9 +143,41 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
+    /**
+     * 指定ワールドでプレイヤーにフライを許可すべきかを計算する。
+     * applyFlight と同じ基準（原則有効化＋マイワールド allowFlight 上書き＋ゲームモード考慮）。
+     */
+    private fun computeFlightAllowed(player: org.bukkit.entity.Player, worldName: String): Boolean {
+        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return true
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
+        return worldData?.allowFlight ?: true
+    }
+
+    /**
+     * ワールド移動前後でフライ許可状態が変化した場合に通知する。
+     * 同じ状態なら通知しない（スパム抑制）。ゲームモードがクリエイティブ/スペクテイターのときは通知しない。
+     */
+    private fun notifyFlightChange(
+        player: org.bukkit.entity.Player,
+        previousAllow: Boolean,
+        currentAllow: Boolean
+    ) {
+        if (previousAllow == currentAllow) return
+        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
+        val key = if (currentAllow) {
+            "chanpon.environment.flight.notification.enabled"
+        } else {
+            "chanpon.environment.flight.notification.disabled"
+        }
+        player.sendMessage(plugin.languageManager.getMessage(player, key))
+    }
+
     private fun applyFlight(player: org.bukkit.entity.Player, worldName: String) {
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
-        val shouldAllow = worldData?.allowFlight == true
+        // フライは「原則的に有効」。マイワールドでは環境設定 allowFlight で上書きする。
+        // これにより、マイワールド以外（ロビー・スポーン等）では常時フライ可能で、
+        // マイワールド内ではオーナーの設定に従う。
+        val shouldAllow = worldData?.allowFlight ?: true
         val gameModeAllowsFlight = player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR
 
         // ワールド環境設定のフライ許可は、通常ゲームモードだけを対象にして管理者/観戦者の飛行状態を壊さない。

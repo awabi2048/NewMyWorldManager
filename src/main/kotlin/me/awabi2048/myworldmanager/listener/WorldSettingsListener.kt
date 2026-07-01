@@ -4252,8 +4252,7 @@ player.sendMessage(
                                         mapOf(
                                                 "level_before" to
                                                         (worldData.borderExpansionLevel - 1),
-                                                "level_after" to worldData.borderExpansionLevel,
-                                                "remaining" to 0
+                                                "level_after" to worldData.borderExpansionLevel
                                         )
                                 )
                         )
