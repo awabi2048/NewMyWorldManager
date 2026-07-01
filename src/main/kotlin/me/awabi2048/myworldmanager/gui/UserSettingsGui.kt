@@ -73,9 +73,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         items.add(createItem(
             Material.COMPASS,
             lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
-            settingLore(player, "tour_navigation", mapOf(
-                "status" to lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${stats.tourNavigationMode.name.lowercase()}")
-            )),
+            tourNavigationLore(player, stats.tourNavigationMode),
             ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
         ))
 
@@ -109,6 +107,23 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             plugin.languageManager.getMessageList(player, "$prefix.current", placeholders),
             plugin.languageManager.getMessageList(player, "$prefix.action", placeholders)
         )
+    }
+
+    private fun tourNavigationLore(player: Player, currentMode: TourNavigationMode): GuiLoreSpec.Blocks {
+        val lang = plugin.languageManager
+        val description = lang.getMessageList(player, "gui.user_settings.tour_navigation.blocks.description")
+        val options = TourNavigationMode.entries.map { mode ->
+            StructuredLore.SelectionOption(
+                label = lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase()}"),
+                selected = mode == currentMode,
+                selectedColor = "§b",
+                inactiveColor = "§7"
+            )
+        }
+        val action = lang.getMessageList(player, "gui.user_settings.tour_navigation.blocks.action")
+
+        // 現在値は選択肢リスト内のマーカーで示し、説明ブロックに一覧をまとめる。
+        return StructuredLore.selectionSetting(description, options, action)
     }
 
     private fun createItem(material: Material, name: String, lore: GuiLoreSpec, tag: String): ItemStack {

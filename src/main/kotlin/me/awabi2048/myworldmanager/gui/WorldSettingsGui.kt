@@ -25,6 +25,7 @@ import me.awabi2048.myworldmanager.util.GuiLoreAction
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
@@ -461,25 +462,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 )
 
                         val inactiveColor = lang.getMessage(player, "publish_level.color.inactive")
-                        val selectedLevel = levels.first { it.first == worldData.publishLevel }
                         val publishLore = CCSystem.getAPI().getLoreService().render(
                                 GuiLoreSpec.Rich(buildList {
-                                        add(GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.settings.publish.current_label"),
-                                                selectedLevel.second,
-                                                selectedLevel.third
-                                        ))
                                         add(GuiLoreLine.Text(lang.getMessage(
                                                 player,
                                                 "publish_level.description.${worldData.publishLevel.name.lowercase()}"
                                         )))
                                         add(GuiLoreLine.Spacer)
-                                        levels.forEach { (level, name, color) ->
-                                                val selected = level == worldData.publishLevel
-                                                val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
-                                                val displayColor = if (selected) color else inactiveColor
-                                                add(GuiLoreLine.Raw("$marker $displayColor$name"))
-                                        }
+                                        // 現在値行は持たず、選択肢リスト内のマーカーで現在の公開レベルを示す。
+                                        addAll(StructuredLore.selectionLines(
+                                                levels.map { (level, name, color) ->
+                                                        StructuredLore.SelectionOption(
+                                                                label = name,
+                                                                selected = level == worldData.publishLevel,
+                                                                selectedColor = color,
+                                                                inactiveColor = inactiveColor
+                                                        )
+                                                }
+                                        ))
                                         add(GuiLoreLine.Spacer)
                                         if (isBedrock) {
                                                 add(GuiLoreLine.SingleAction(

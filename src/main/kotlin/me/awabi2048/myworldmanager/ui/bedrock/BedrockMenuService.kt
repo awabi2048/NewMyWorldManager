@@ -5,6 +5,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.PublishLevel
+import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -640,6 +641,15 @@ class BedrockMenuService(
                 )
         )
         inventory.setItem(12, createCriticalVisibilityItem(player, stats.criticalSettingsEnabled))
+        inventory.setItem(
+            13,
+            createActionItem(
+                Material.COMPASS,
+                tr(player, "gui.user_settings.tour_navigation.display"),
+                "cycle_tour_navigation",
+                lore = tourNavigationLore(player, stats.tourNavigationMode)
+            )
+        )
         if (showBackButton) {
             inventory.setItem(
                 22,
@@ -778,6 +788,13 @@ class BedrockMenuService(
             "toggle_critical" -> {
                 stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
                 plugin.playerStatsRepository.save(stats)
+                openSettings(player, holder.showBackButton, holder.returnPage)
+            }
+
+            "cycle_tour_navigation" -> {
+                stats.tourNavigationMode = nextTourNavigationMode(stats.tourNavigationMode)
+                plugin.playerStatsRepository.save(stats)
+                plugin.tourManager.refreshNavigation(player)
                 openSettings(player, holder.showBackButton, holder.returnPage)
             }
 
@@ -1239,6 +1256,30 @@ class BedrockMenuService(
             plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.current", placeholders),
             plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.action", placeholders)
         )
+
+    private fun tourNavigationLore(player: Player, currentMode: TourNavigationMode): GuiLoreSpec.Blocks {
+        val description = plugin.languageManager.getMessageList(player, "gui.user_settings.tour_navigation.blocks.description")
+        val options = TourNavigationMode.entries.map { mode ->
+            StructuredLore.SelectionOption(
+                label = tr(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase(Locale.ROOT)}"),
+                selected = mode == currentMode,
+                selectedColor = "§b",
+                inactiveColor = "§7"
+            )
+        }
+        val action = plugin.languageManager.getMessageList(player, "gui.user_settings.tour_navigation.blocks.action")
+
+        // Java版と同じく、現在値はリストの選択マーカーで表現する。
+        return StructuredLore.selectionSetting(description, options, action)
+    }
+
+    private fun nextTourNavigationMode(mode: TourNavigationMode): TourNavigationMode {
+        return when (mode) {
+            TourNavigationMode.BOSSBAR_ONLY -> TourNavigationMode.ALL
+            TourNavigationMode.ALL -> TourNavigationMode.NONE
+            TourNavigationMode.NONE -> TourNavigationMode.BOSSBAR_ONLY
+        }
+    }
 
     private fun createActionItem(
         material: Material,
