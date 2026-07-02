@@ -2,7 +2,6 @@ package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
-import org.bukkit.Difficulty
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -13,36 +12,22 @@ class WorldStatusListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onWorldUnload(event: WorldUnloadEvent) {
-        // アンロードされたワールドを登録
-        // キャンセルされる可能性もあるので、MONITOR優先度が望ましいが、通常のEventHandlerで処理
-        // WorldServiceでの手動アンロードと重複する可能性があるが、Setなので問題ない
         UnloadedWorldRegistry.register(event.world.name)
-        
-        // そのワールドのTextDisplayをメモリマップからクリア
         plugin.portalManager.cleanupWorld(event.world.name)
     }
 
     @EventHandler
     fun onWorldLoad(event: WorldLoadEvent) {
-        // ロードされたワールドは登録解除
         UnloadedWorldRegistry.unregister(event.world.name)
+        // ロード済み復元や手動ロードでも、保存済みの環境設定を同じ経路で再適用する。
+        plugin.worldEnvironmentService.applyAll(event.world)
 
-        // マイワールドがロードされたときは難易度をピースフルに統一
-        if (plugin.worldConfigRepository.findByWorldName(event.world.name) != null) {
-            event.world.difficulty = Difficulty.PEACEFUL
-        }
-        
-        // マイワールドのLikeSignホログラムを生成
         val worldName = event.world.name
         if (worldName.startsWith("my_world.")) {
-            val worldUuidStr = worldName.removePrefix("my_world.")
-            val worldUuid = try { 
-                java.util.UUID.fromString(worldUuidStr) 
-            } catch (e: Exception) { 
-                return 
-            }
-            val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-            if (worldData != null) {
+            val worldUuid = runCatching {
+                java.util.UUID.fromString(worldName.removePrefix("my_world."))
+            }.getOrNull() ?: return
+            plugin.worldConfigRepository.findByUuid(worldUuid)?.let { worldData ->
                 plugin.likeSignManager.spawnHologramsForWorld(worldData)
             }
         }

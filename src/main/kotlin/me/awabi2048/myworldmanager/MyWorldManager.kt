@@ -39,6 +39,7 @@ class MyWorldManager : JavaPlugin() {
 
     lateinit var worldConfigRepository: WorldConfigRepository
     lateinit var worldService: WorldService
+    lateinit var worldEnvironmentService: WorldEnvironmentService
     lateinit var worldGui: WorldGui
     lateinit var creationSessionManager: CreationSessionManager
     lateinit var templateRepository: TemplateRepository
@@ -166,6 +167,7 @@ class MyWorldManager : JavaPlugin() {
 
         // サービスの初期化
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
+        worldEnvironmentService = WorldEnvironmentService(this)
         portalManager = PortalManager(this)
         portalManager.startTasks()
         worldUnloadService = WorldUnloadService(this)
@@ -255,6 +257,7 @@ class MyWorldManager : JavaPlugin() {
         }, 20L, 20L)
 
         MyWorldManagerApi.registerWorldService(WorldServiceAdapter(this))
+        MyWorldManagerApi.registerWorldEnvironmentService(worldEnvironmentService)
         MyWorldManagerApi.registerWorldRepository(WorldRepositoryAdapter(this))
         MyWorldManagerApi.registerTemplateRepository(TemplateRepositoryAdapter(this))
         MyWorldManagerApi.registerMemberManager(MemberManagerAdapter(this))
@@ -400,6 +403,9 @@ class MyWorldManager : JavaPlugin() {
         worldCreationControlService = null
         worldWorkPermissionSyncService?.let(MyWorldManagerApi::unregisterWorldWorkPermissionSyncService)
         worldWorkPermissionSyncService = null
+        if (::worldEnvironmentService.isInitialized) {
+            MyWorldManagerApi.unregisterWorldEnvironmentService(worldEnvironmentService)
+        }
         runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
         runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {

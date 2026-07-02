@@ -32,6 +32,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiTemplateRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
+import me.awabi2048.myworldmanager.api.service.ApiWorldEnvironmentService
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ApiWorldTagService
 import java.util.UUID
@@ -44,6 +45,7 @@ object MyWorldManagerApi {
 
     private var worldPointService: WorldPointService? = null
     private var worldService: ApiWorldService? = null
+    private var worldEnvironmentService: ApiWorldEnvironmentService? = null
     private var worldRepository: ApiWorldRepository? = null
     private var templateRepository: ApiTemplateRepository? = null
     private var memberManager: ApiMemberManager? = null
@@ -105,6 +107,23 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldService(): ApiWorldService? {
         return worldService
+    }
+
+    @JvmStatic
+    fun registerWorldEnvironmentService(service: ApiWorldEnvironmentService) {
+        worldEnvironmentService = service
+    }
+
+    @JvmStatic
+    fun unregisterWorldEnvironmentService(service: ApiWorldEnvironmentService) {
+        if (worldEnvironmentService === service) {
+            worldEnvironmentService = null
+        }
+    }
+
+    @JvmStatic
+    fun getWorldEnvironmentService(): ApiWorldEnvironmentService? {
+        return worldEnvironmentService
     }
 
     @JvmStatic

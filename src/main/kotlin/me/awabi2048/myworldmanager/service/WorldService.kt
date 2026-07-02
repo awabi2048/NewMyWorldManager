@@ -33,6 +33,7 @@ class WorldService(
 ) {
 
     private val creatingWorlds = mutableSetOf<String>()
+    private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
 
     private fun resolveSeed(seedInput: String?): Long? {
         val normalized = seedInput?.trim()?.takeIf { it.isNotEmpty() } ?: return null
@@ -243,7 +244,7 @@ class WorldService(
         }
 
         // 初期ワールドボーダーの設定
-        val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+        val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
         val initialCenter = world.spawnLocation
 
         val border = world.worldBorder

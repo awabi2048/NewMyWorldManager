@@ -35,7 +35,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Color
-import org.bukkit.GameRule
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Location
 import org.bukkit.Material
@@ -86,6 +85,7 @@ class WorldSettingsListener : Listener {
         private val expansionExecutionModeMetadataKey = "expansion_execution_mode"
         private val expansionSkipPhasesMetadataKey = "expansion_skip_phases"
         private val iconPickerArmingMetadataKey = "icon_picker_arming"
+        private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
 
         data class PendingExpansion(
                 val worldData: WorldData,
@@ -4611,7 +4611,7 @@ player.sendMessage(
                         )
                 )
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
-                applyGravityToWorld(worldData)
+                plugin.worldEnvironmentService.applyAttributes(worldData.uuid)
                 plugin.environmentGui.open(player, worldData)
         }
 
@@ -4713,59 +4713,6 @@ player.sendMessage(
                 }
         }
 
-        private fun applyGravityToWorld(worldData: WorldData) {
-                val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
-                val gravityValue = worldData.gravityValue ?: 0.08
-                val key = org.bukkit.NamespacedKey("myworldmanager", "env_gravity")
-
-                world.entities.forEach { entity ->
-                        if (entity is org.bukkit.entity.LivingEntity) {
-                                val attr = entity.getAttribute(org.bukkit.attribute.Attribute.GRAVITY)
-                                        ?: return@forEach
-                                attr.modifiers.filter { it.key == key }.forEach { attr.removeModifier(it.key) }
-                                attr.baseValue = 0.08
-                                if (gravityValue != 0.08) {
-                                        attr.addModifier(
-                                                org.bukkit.attribute.AttributeModifier(
-                                                        key,
-                                                        gravityValue - 0.08,
-                                                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER
-                                                )
-                                        )
-                                }
-                        }
-                }
-        }
-
-        private fun applyWeatherToWorld(worldData: WorldData) {
-                val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
-                val fixed = worldData.fixedWeather ?: return
-
-                // 天候を固定するため、バニラの天候サイクルを停止する。
-                // DO_WEATHER_CYCLE を false にせず weatherDuration のみ設定すると、
-                // サイクル継続で固定天候がすぐ上書きされてしまう。
-                world.setGameRule(GameRule.DO_WEATHER_CYCLE, false)
-                when (fixed) {
-                        "CLEAR" -> {
-                                world.setStorm(false)
-                                world.setThundering(false)
-                                world.weatherDuration = Int.MAX_VALUE
-                        }
-                        "RAIN" -> {
-                                world.setStorm(true)
-                                world.setThundering(false)
-                                world.weatherDuration = Int.MAX_VALUE
-                                world.thunderDuration = 0
-                        }
-                        "THUNDER" -> {
-                                world.setStorm(true)
-                                world.setThundering(true)
-                                world.weatherDuration = Int.MAX_VALUE
-                                world.thunderDuration = Int.MAX_VALUE
-                        }
-                }
-        }
-
         private fun applyBiomeToWorld(worldData: WorldData) {
                 val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
                 val biomeStr = worldData.fixedBiome ?: return
@@ -4778,7 +4725,7 @@ player.sendMessage(
 
                 val center = worldData.borderCenterPos ?: world.spawnLocation
                 val expansion = worldData.borderExpansionLevel
-                val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+                val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
                 // Adjust for special level or calculate size
                 val size =
                         if (expansion == WorldData.EXPANSION_LEVEL_SPECIAL) 60000000.0
@@ -5610,13 +5557,13 @@ player.sendMessage(
                         )
                 )
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
-                applyGravityToWorld(worldData)
+                plugin.worldEnvironmentService.applyAttributes(worldData.uuid)
                 plugin.environmentGui.open(player, worldData)
         }
 
         private fun handleWeatherConfirm(player: Player, worldData: WorldData) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val nextWeather = session.getMetadata("temp_weather") as? String ?: return
+                val nextWeather = session.tempWeather ?: session.getMetadata("temp_weather") as? String ?: return
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
@@ -5647,7 +5594,7 @@ player.sendMessage(
                                 mapOf("cost" to cost)
                         )
                 )
-                applyWeatherToWorld(worldData)
+                plugin.worldEnvironmentService.applyWeather(worldData.uuid)
                 plugin.soundManager.playActionSound(player, "environment", "weather_change")
                 plugin.environmentGui.open(player, worldData)
         }
@@ -5812,7 +5759,7 @@ player.sendMessage(
                 val world = resolveWorld(worldData)
 
                 if (world != null) {
-                        val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+                        val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
                         val spawnLocation = world.spawnLocation.clone()
                         world.worldBorder.size = initialSize
                         world.worldBorder.center = spawnLocation
