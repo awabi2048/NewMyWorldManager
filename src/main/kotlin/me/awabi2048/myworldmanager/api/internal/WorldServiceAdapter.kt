@@ -54,7 +54,7 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
     }
 
     override fun getWorldDirectory(worldData: WorldData): File {
-        return File(Bukkit.getWorldContainer(), getWorldFolderName(worldData))
+        return plugin.worldService.getWorldDirectory(worldData)
     }
 
     override fun getWorldDataFile(worldUuid: UUID): File {

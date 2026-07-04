@@ -827,7 +827,7 @@ class WorldGui(private val plugin: MyWorldManager) {
 
         private fun resolveWorldDirectory(data: WorldData, worldFolderName: String): File {
                 if (!data.isArchived) {
-                        return File(Bukkit.getWorldContainer(), worldFolderName)
+                        return plugin.worldService.resolveWorldDirectory(worldFolderName)
                 }
 
                 val archiveRoot = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
@@ -835,7 +835,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 if (archivedFolder.exists()) {
                         return archivedFolder
                 }
-                return File(Bukkit.getWorldContainer(), worldFolderName)
+                return plugin.worldService.resolveWorldDirectory(worldFolderName)
         }
 
         private fun sumMcaFileSize(directory: File): Long {
@@ -975,7 +975,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
                 val world = Bukkit.getWorld(worldFolderName)
-                val worldFolder = java.io.File(Bukkit.getWorldContainer(), worldFolderName)
+                val worldFolder = plugin.worldService.resolveWorldDirectory(worldFolderName)
                 val isUnloaded = UnloadedWorldRegistry.isUnloaded(worldFolderName)
 
                 if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {

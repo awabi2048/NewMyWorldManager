@@ -64,6 +64,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
     }
 
     private fun handleWorldEntry(player: Player, worldData: WorldData, source: MwmVisitSource) {
+        recordVisitedWorld(player, worldData)
         if (isMember(player, worldData)) return
 
         val owner = Bukkit.getPlayer(worldData.owner)
@@ -114,4 +115,11 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
         worldData.owner == player.uniqueId ||
             worldData.members.contains(player.uniqueId) ||
             worldData.moderators.contains(player.uniqueId)
+
+    private fun recordVisitedWorld(player: Player, worldData: WorldData) {
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        if (stats.visitedWorlds.containsKey(worldData.uuid)) return
+        stats.visitedWorlds[worldData.uuid] = java.time.LocalDate.now().toString()
+        plugin.playerStatsRepository.save(stats)
+    }
 }

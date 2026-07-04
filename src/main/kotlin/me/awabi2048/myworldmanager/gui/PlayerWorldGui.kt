@@ -28,6 +28,8 @@ import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
@@ -327,28 +329,32 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                     lang.getMessage(player, "gui.player_world.world_item.expired")
                 } else ""
 
-                val warpAction = if (isCurrentWorld(player, world)) {
-                        ""
-                } else {
-                        lang.getMessage(player, "gui.player_world.world_item.warp")
-                }
-                val settingsAction =
-                        if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                lang.getMessage(player, "gui.player_world.world_item.settings_bedrock")
-                        } else {
-                                lang.getMessage(player, "gui.player_world.world_item.settings")
-                        }
+                val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
+                val settingsAction = lang.getMessage(player, "gui.player_world.world_item.settings")
+                val isCurrentWorld = isCurrentWorld(player, world)
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 // MWM owns the semantic block order; CC-System owns all surrounding separators.
-                meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
-                        *buildList {
-                                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
-                                add(listOf(ownerLine, publishLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                                val lifecycle = listOf(expiresAtLine, expiredLine).filter(String::isNotBlank)
-                                if (lifecycle.isNotEmpty()) add(lifecycle)
-                                add(listOf(warpAction, settingsAction).filter(String::isNotBlank))
-                        }.toTypedArray()
-                )))
+                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
+                        add(GuiLoreBlock(
+                                (listOf(ownerLine, publishLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                                        .map(GuiLoreLine::Raw)
+                        ))
+                        val lifecycle = listOf(expiresAtLine, expiredLine).filter(String::isNotBlank)
+                        if (lifecycle.isNotEmpty()) add(GuiLoreBlock(lifecycle.map(GuiLoreLine::Raw)))
+                        add(GuiLoreBlock(buildList {
+                                if (isBedrock) {
+                                        if (!isCurrentWorld) add(GuiLoreLine.SingleAction(warpAction))
+                                        add(GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.world_item.settings_bedrock")))
+                                } else if (isCurrentWorld) {
+                                        add(GuiLoreLine.SingleAction(settingsAction))
+                                } else {
+                                        add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), warpAction))
+                                        add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), settingsAction))
+                                }
+                        }))
+                })))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
@@ -409,7 +415,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 bypassLimits: Boolean
         ): CreationBlockReason? {
                 // 作成権限は最優先。bypassLimits や運用フラグよりも先に判定する。
-                if (!PermissionManager.checkPermission(player, PermissionManager.CREATE)) {
+                if (!PermissionManager.checkPermission(player, PermissionManager.COMMAND_MWM_CREATE)) {
                         return CreationBlockReason.NO_PERMISSION
                 }
                 if (bypassLimits) return null

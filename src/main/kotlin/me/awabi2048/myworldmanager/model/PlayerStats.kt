@@ -12,6 +12,7 @@ data class PlayerStats(
     var unlockedWorldSlot: Int = 0,
     val registeredWarp: MutableList<UUID> = mutableListOf(),
     val favoriteWorlds: MutableMap<UUID, String> = mutableMapOf(), // WorldUUID to RegistrationDate (YYYY-MM-DD)
+    val visitedWorlds: MutableMap<UUID, String> = mutableMapOf(), // WorldUUID to first visit date (YYYY-MM-DD)
     var lastOnline: String? = null,
     var lastName: String? = null,
     var language: String = "ja_jp",

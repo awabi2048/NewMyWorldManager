@@ -61,6 +61,13 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             section.getKeys(false).associate { UUID.fromString(it) to section.getString(it)!! }.toMutableMap()
         } ?: mutableMapOf()
 
+        val visitedWorldsSection = config.getConfigurationSection("visited_worlds")
+        val loadedVisitedWorlds = visitedWorldsSection?.let { section ->
+            section.getKeys(false).mapNotNull { key ->
+                runCatching { UUID.fromString(key) to (section.getString(key) ?: "") }.getOrNull()
+            }.toMap().toMutableMap()
+        } ?: mutableMapOf()
+
         val loadedWorldDisplayOrder = config.getStringList("world_display_order")
             .mapNotNull { try { UUID.fromString(it) } catch (e: Exception) { null } }
 
@@ -79,6 +86,10 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             plugin.worldConfigRepository.findByUuid(uuid) != null
         }.toMutableMap()
 
+        val existingVisitedWorlds = loadedVisitedWorlds.filterKeys { uuid ->
+            plugin.worldConfigRepository.findByUuid(uuid) != null
+        }.toMutableMap()
+
         val existingWorldDisplayOrder = loadedWorldDisplayOrder.filter { uuid ->
             plugin.worldConfigRepository.findByUuid(uuid) != null
         }.toMutableList()
@@ -90,6 +101,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             unlockedWorldSlot = config.getInt("unlocked_world_slot", 0),
             registeredWarp = existingRegisteredWarp,
             favoriteWorlds = existingFavoriteWorlds,
+            visitedWorlds = existingVisitedWorlds,
             lastOnline = config.getString("last_online"),
             lastName = config.getString("last_name"),
             language = "ja_jp",
@@ -111,6 +123,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         // 変更があった場合は保存する
         if (loadedRegisteredWarp.size != existingRegisteredWarp.size || 
             loadedFavoriteWorlds.size != existingFavoriteWorlds.size ||
+            loadedVisitedWorlds.size != existingVisitedWorlds.size ||
             loadedWorldDisplayOrder.size != existingWorldDisplayOrder.size) {
             plugin.logger.info("[PlayerStats] ${uuid} の存在しないワールドのUUIDをクリーンアップしました。")
             saveToFile(stats)
@@ -131,6 +144,11 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         val favSection = config.createSection("favorite_worlds")
         stats.favoriteWorlds.forEach { (uuid, date) ->
             favSection.set(uuid.toString(), date)
+        }
+
+        val visitedSection = config.createSection("visited_worlds")
+        stats.visitedWorlds.forEach { (uuid, date) ->
+            visitedSection.set(uuid.toString(), date)
         }
         
         config.set("world_display_order", stats.worldDisplayOrder.map { it.toString() })

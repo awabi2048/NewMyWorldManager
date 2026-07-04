@@ -17,6 +17,10 @@ commands:
     description: Open world settings menu
     usage: /<command>
     permission: myworldmanager.command.worldmenu
+  worldwarp:
+    description: Warp to a MyWorld by short world id
+    usage: /worldwarp <world-id>
+    permission: myworldmanager.command.worldwarp
   visit:
     description: Visit another player's public worlds
     usage: /visit [player]
@@ -63,7 +67,7 @@ permissions:
       myworldmanager.command.mwm: true
       myworldmanager.admin.world_list: true
       myworldmanager.force_add_member: true
-      myworldmanager.create: true
+      myworldmanager.command.mwm.create: true
   myworldmanager.admin.world_list:
     description: Allows access to admin world list menu (/mwm list)
     default: false
@@ -71,9 +75,6 @@ permissions:
       myworldmanager.command.mwm.list: true
   myworldmanager.admin.bypass_world_limits:
     description: Bypass all MyWorld world count limits
-    default: false
-  myworldmanager.create:
-    description: Allows creating new MyWorld worlds
     default: false
   myworldmanager.force_add_member:
     description: Allows force adding members from member management
@@ -92,6 +93,7 @@ permissions:
       myworldmanager.command.tour: true
       myworldmanager.command.visit: true
       myworldmanager.command.worldmenu: true
+      myworldmanager.command.worldwarp: true
   myworldmanager.command.discovery:
     description: Allows use of /discovery
     default: false
@@ -121,6 +123,9 @@ permissions:
     default: false
   myworldmanager.command.worldmenu:
     description: Allows use of /worldmenu
+    default: false
+  myworldmanager.command.worldwarp:
+    description: Allows use of /worldwarp
     default: false
   myworldmanager.command.mwm:
     description: Allows full access to /mwm

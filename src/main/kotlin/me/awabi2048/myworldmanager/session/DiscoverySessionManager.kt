@@ -6,10 +6,15 @@ enum class DiscoverySort {
     HOT, NEW, FAVORITES, SPOTLIGHT, RANDOM
 }
 
+enum class DiscoverySpecialFilter {
+    NONE, UNVISITED
+}
+
 data class DiscoverySession(
     val playerUuid: UUID,
     var sort: DiscoverySort = DiscoverySort.HOT,
     var selectedTag: String? = null,
+    var specialFilter: DiscoverySpecialFilter = DiscoverySpecialFilter.NONE,
     var showBackButton: Boolean = false
 )
 

@@ -16,9 +16,9 @@ import me.awabi2048.myworldmanager.repository.WorldConfigRepository
 import me.awabi2048.myworldmanager.session.WorldSpawnCoordinates
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldWarpId
 import org.bukkit.Bukkit
 import org.bukkit.Location
-import org.bukkit.Material
 import org.bukkit.WorldCreator
 import org.bukkit.WorldType
 import org.bukkit.command.CommandSender
@@ -77,12 +77,12 @@ class WorldService(
             return false
         }
 
-        val uuid = UUID.randomUUID()
+        val uuid = generateUniqueWorldUuid()
         val worldFolderName = "my_world.${uuid}"
 
-        // 同名ワールドのチェック（念のため）
+        // Paper 26 ではカスタムワールド実体が world/dimensions/minecraft 配下に置かれるため、両方を確認する。
         if (Bukkit.getWorld(worldFolderName) != null ||
-                        File(Bukkit.getWorldContainer(), worldFolderName).exists()
+                        worldFolderExists(worldFolderName)
         ) {
             player.sendMessage(
                     plugin.languageManager.getMessage(player, "error.world_already_exists")
@@ -363,11 +363,11 @@ class WorldService(
             return future
         }
 
-        val uuid = UUID.randomUUID()
+        val uuid = generateUniqueWorldUuid()
         val worldFolderName = "my_world.${uuid}"
 
         if (Bukkit.getWorld(worldFolderName) != null ||
-                        File(Bukkit.getWorldContainer(), worldFolderName).exists()
+                        worldFolderExists(worldFolderName)
         ) {
             player.sendMessage(
                     plugin.languageManager.getMessage(player, "error.world_already_exists")
@@ -469,7 +469,7 @@ class WorldService(
             return true // すでにロードされている
         }
 
-        if (!File(Bukkit.getWorldContainer(), folderName).exists()) {
+        if (!worldFolderExists(folderName)) {
             return false // ワールドフォルダが存在しない
         }
 
@@ -575,6 +575,49 @@ class WorldService(
     /** ワールドフォルダ名を取得する（my_world.UUID または customWorldName） */
     fun getWorldFolderName(worldData: WorldData): String {
         return worldData.customWorldName ?: "my_world.${worldData.uuid}"
+    }
+
+    fun getWorldDirectory(worldData: WorldData): File =
+            resolveWorldDirectory(getWorldFolderName(worldData))
+
+    fun resolveWorldDirectory(folderName: String): File =
+            possibleWorldDirectories(folderName).firstOrNull { it.exists() && it.isDirectory }
+                    ?: File(Bukkit.getWorldContainer(), folderName)
+
+    private fun preferredActiveWorldDirectory(folderName: String): File {
+        val container = Bukkit.getWorldContainer()
+        val dimensionRoot = File(File(container, "world"), "dimensions/minecraft")
+        return if (dimensionRoot.exists() && dimensionRoot.isDirectory) {
+            File(dimensionRoot, folderName)
+        } else {
+            File(container, folderName)
+        }
+    }
+
+    private fun worldFolderExists(folderName: String): Boolean =
+            possibleWorldDirectories(folderName).any { it.exists() && it.isDirectory }
+
+    private fun possibleWorldDirectories(folderName: String): List<File> {
+        val container = Bukkit.getWorldContainer()
+        return listOf(
+                File(container, folderName),
+                File(File(File(container, "world"), "dimensions/minecraft"), folderName)
+        )
+    }
+
+    private fun generateUniqueWorldUuid(): UUID {
+        val usedWarpIds = repository.findAll().mapTo(mutableSetOf()) { WorldWarpId.of(it.uuid) }
+        repeat(100) {
+            val uuid = UUID.randomUUID()
+            val folderName = "my_world.$uuid"
+            if (WorldWarpId.of(uuid) !in usedWarpIds &&
+                    Bukkit.getWorld(folderName) == null &&
+                    !worldFolderExists(folderName)
+            ) {
+                return uuid
+            }
+        }
+        error("Unable to allocate unique MyWorld warp id after 100 attempts")
     }
 
     /** プレイヤーを指定されたワールドにテレポートさせる */
@@ -747,7 +790,7 @@ class WorldService(
         val folderName = getWorldFolderName(worldData)
         val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
         val archivedFile = File(archiveFolder, folderName)
-        val targetFile = File(plugin.server.worldContainer, folderName)
+        val targetFile = preferredActiveWorldDirectory(folderName)
 
         if (archivedFile.exists()) {
             if (!archivedFile.renameTo(targetFile)) {
@@ -812,7 +855,7 @@ class WorldService(
             val folder = if (worldData.isArchived) {
                 File(archiveFolder, folderName)
             } else {
-                File(Bukkit.getWorldContainer(), folderName)
+                getWorldDirectory(worldData)
             }
 
             if (folder.exists() && !folder.deleteRecursively()) {
@@ -860,7 +903,7 @@ class WorldService(
             val folder = if (worldData.isArchived) {
                 File(archiveFolder, folderName)
             } else {
-                File(Bukkit.getWorldContainer(), folderName)
+                getWorldDirectory(worldData)
             }
 
             if (folder.exists() && !folder.deleteRecursively()) {
@@ -925,7 +968,7 @@ class WorldService(
             val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
             if (!archiveFolder.exists()) archiveFolder.mkdirs()
 
-            val sourceFile = File(plugin.server.worldContainer, folderName)
+            val sourceFile = getWorldDirectory(worldData)
             val targetFile = File(archiveFolder, folderName)
 
             if (sourceFile.exists() && !sourceFile.renameTo(targetFile)) {

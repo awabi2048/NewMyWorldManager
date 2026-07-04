@@ -16,6 +16,7 @@ import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.session.DiscoverySort
+import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -27,6 +28,7 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import me.awabi2048.myworldmanager.util.cancelWithDebug
 import java.util.*
@@ -47,6 +49,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         if (view.topInventory.holder !is me.awabi2048.myworldmanager.gui.DiscoveryGui.DiscoveryGuiHolder) return
         event.cancelWithDebug("DiscoveryListener.onInventoryClick: discovery GUI click")
         if (event.clickedInventory != view.topInventory) return
+        if (event.click == ClickType.DOUBLE_CLICK) return
 
         // GUI遷移中のクリックを無視
         val settingsSession = plugin.settingsSessionManager.getSession(player)
@@ -269,6 +272,23 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
 
                 val forward = if (isBedrock) true else event.isRightClick
                 session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), forward)
+                plugin.soundManager.playClickSound(player, item, "discovery")
+                plugin.menuEntryRouter.openDiscovery(player)
+            }
+            ItemTag.TYPE_GUI_DISCOVERY_SPECIAL_FILTER -> {
+                if (isBedrock || event.isLeftClick) {
+                    session.specialFilter = GuiHelper.getNextValue(
+                        session.specialFilter,
+                        DiscoverySpecialFilter.values(),
+                        true
+                    )
+                } else if (event.isRightClick) {
+                    if (session.specialFilter == DiscoverySpecialFilter.NONE) {
+                        return
+                    }
+                    session.specialFilter = DiscoverySpecialFilter.NONE
+                }
+
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)
             }

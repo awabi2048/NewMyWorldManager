@@ -5,6 +5,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -55,12 +56,17 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 if (selectedTag != session.selectedTag) {
                         session.selectedTag = null
                 }
+                val playerStats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 val allWorlds =
                         plugin.worldConfigRepository
                                 .findAll()
                                 .filter { MyWorldManagerApi.getWorldAccessPolicy().canShowInDiscovery(player, it) }
                                 .filter {
                                         selectedTag == null || it.tags.contains(selectedTag)
+                                }
+                                .filter {
+                                        session.specialFilter != DiscoverySpecialFilter.UNVISITED ||
+                                                !playerStats.visitedWorlds.containsKey(it.uuid)
                                 }
 
                 // ソート
@@ -169,7 +175,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         if (session.showBackButton) GuiHelper.createReturnItem(plugin, player, "discovery") else null,
                         createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size)
                 )
-                inventory.setItem(50, createTagFilterButton(player, session.selectedTag))
+                inventory.setItem(50, createSpecialFilterButton(player, session.specialFilter))
 
                 GuiHelper.playMenuOpen(player, "discovery")
 
@@ -278,7 +284,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         val selected = sort == currentSort
                                         val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
                                         val color = if (selected) "\u00A7e" else "\u00A77"
-                                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                                        add(GuiLoreLine.Raw("$marker $color$displayName"))
                                 }
                                 add(GuiLoreLine.Spacer)
                                 add(GuiLoreLine.Action(
@@ -329,7 +335,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         val selected = tagId == selectedOption.first
                                         val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
                                         val color = if (selected) "\u00A7e" else "\u00A77"
-                                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                                        add(GuiLoreLine.Raw("$marker $color$displayName"))
                                 }
                                 add(GuiLoreLine.Spacer)
                                 if (isBedrock) {
@@ -351,6 +357,52 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_TAG)
+                return item
+        }
+
+        private fun createSpecialFilterButton(player: Player, filter: DiscoverySpecialFilter): ItemStack {
+                val lang = plugin.languageManager
+                val item = ItemStack(Material.COMPASS)
+                val meta = item.itemMeta ?: return item
+                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
+
+                meta.displayName(lang.getComponent(player, "gui.discovery.special_filter.name"))
+                val display = lang.getMessage(player, "gui.discovery.special_filter.type.${filter.name.lowercase()}")
+                meta.lore(CCSystem.getAPI().getLoreService().render(
+                        GuiLoreSpec.Rich(buildList {
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.discovery.special_filter.label"),
+                                        display,
+                                        "\u00A7e"
+                                ))
+                                add(GuiLoreLine.Spacer)
+                                DiscoverySpecialFilter.values().forEach { option ->
+                                        val selected = option == filter
+                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
+                                        val color = if (selected) "\u00A7e" else "\u00A77"
+                                        val name = lang.getMessage(player, "gui.discovery.special_filter.type.${option.name.lowercase()}")
+                                        add(GuiLoreLine.Raw("$marker $color$name"))
+                                }
+                                add(GuiLoreLine.Spacer)
+                                if (isBedrock) {
+                                        add(GuiLoreLine.SingleAction(
+                                                lang.getMessage(player, "gui.discovery.special_filter.action.next")
+                                        ))
+                                } else {
+                                        add(GuiLoreLine.Action(
+                                                lang.getMessage(player, "gui.settings.click.left"),
+                                                lang.getMessage(player, "gui.discovery.special_filter.action.next")
+                                        ))
+                                        add(GuiLoreLine.Action(
+                                                lang.getMessage(player, "gui.settings.click.right"),
+                                                lang.getMessage(player, "gui.discovery.special_filter.action.clear")
+                                        ))
+                                }
+                        }, GuiLoreFrame.BOTH)
+                ))
+
+                item.itemMeta = meta
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_SPECIAL_FILTER)
                 return item
         }
 

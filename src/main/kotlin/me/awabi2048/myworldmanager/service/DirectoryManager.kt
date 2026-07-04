@@ -23,7 +23,7 @@ class DirectoryManager(
             val folder = if (world.isArchived) {
                 File(archiveFolder, folderName)
             } else {
-                File(plugin.server.worldContainer, folderName)
+                resolveActiveWorldDirectory(folderName)
             }
             
             if (!folder.exists() || !folder.isDirectory) {
@@ -52,5 +52,14 @@ class DirectoryManager(
             
             plugin.logger.severe("====================================================")
         }
+    }
+
+    private fun resolveActiveWorldDirectory(folderName: String): File {
+        val container = plugin.server.worldContainer
+        val candidates = listOf(
+            File(container, folderName),
+            File(File(File(container, "world"), "dimensions/minecraft"), folderName)
+        )
+        return candidates.firstOrNull { it.exists() && it.isDirectory } ?: candidates.first()
     }
 }
