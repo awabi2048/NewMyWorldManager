@@ -71,10 +71,18 @@ object StructuredLore {
         options: List<SelectionOption>,
         action: List<String>
     ): GuiLoreSpec.Blocks {
-        require(description.isNotEmpty() && action.isNotEmpty()) {
+        return selectionSettingWithActions(description, options, action.map(GuiLoreLine::Raw))
+    }
+
+    fun selectionSettingWithActions(
+        description: List<String>,
+        options: List<SelectionOption>,
+        actionLines: List<GuiLoreLine>
+    ): GuiLoreSpec.Blocks {
+        require(description.isNotEmpty() && actionLines.isNotEmpty()) {
             "Selection setting lore requires description, options, and action content"
         }
-        require((description + action).none(String::isBlank)) {
+        require(description.none(String::isBlank)) {
             "Blank selection setting lore lines must be expressed explicitly"
         }
         return GuiLoreSpec.Blocks(listOf(
@@ -83,7 +91,7 @@ object StructuredLore {
                     GuiLoreLine.Spacer +
                     selectionLines(options)
             ),
-            GuiLoreBlock(action.map(GuiLoreLine::Raw))
+            GuiLoreBlock(actionLines)
         ))
     }
 }

@@ -2,6 +2,7 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import io.papermc.paper.registry.data.dialog.ActionButton
@@ -18,7 +19,6 @@ import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
-import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -238,22 +238,12 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 }
             }
             ItemTag.TYPE_GUI_DISCOVERY_TAG -> {
-                val allTags = plugin.worldTagManager.getEnabledTagIds()
-                if (isBedrock || event.isLeftClick) {
-                    val currentIndex = if (session.selectedTag == null) -1 else allTags.indexOf(session.selectedTag)
-                    val nextIndex = (currentIndex + 1) % (allTags.size + 1)
-
-                    session.selectedTag = if (nextIndex == allTags.size) {
-                        null
-                    } else {
-                        allTags[nextIndex]
-                    }
-                } else if (event.isRightClick) {
-                    if (session.selectedTag == null) {
-                        return
-                    }
-                    session.selectedTag = null
-                }
+                val options = plugin.worldTagManager.getEnabledTagIds() + null
+                session.selectedTag = GuiCycle.selectNullable(
+                    session.selectedTag,
+                    options,
+                    reverse = !isBedrock && event.isRightClick
+                )
 
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)
@@ -270,24 +260,20 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
 
-                val forward = if (isBedrock) true else event.isRightClick
-                session.sort = GuiHelper.getNextValue(session.sort, DiscoverySort.values(), forward)
+                session.sort = GuiCycle.select(
+                    session.sort,
+                    DiscoverySort.values(),
+                    reverse = !isBedrock && event.isRightClick
+                )
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)
             }
             ItemTag.TYPE_GUI_DISCOVERY_SPECIAL_FILTER -> {
-                if (isBedrock || event.isLeftClick) {
-                    session.specialFilter = GuiHelper.getNextValue(
-                        session.specialFilter,
-                        DiscoverySpecialFilter.values(),
-                        true
-                    )
-                } else if (event.isRightClick) {
-                    if (session.specialFilter == DiscoverySpecialFilter.NONE) {
-                        return
-                    }
-                    session.specialFilter = DiscoverySpecialFilter.NONE
-                }
+                session.specialFilter = GuiCycle.select(
+                    session.specialFilter,
+                    DiscoverySpecialFilter.values(),
+                    reverse = !isBedrock && event.isRightClick
+                )
 
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)

@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PlayerWorldGui
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
@@ -291,11 +292,11 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 }
                 ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION -> {
                     plugin.soundManager.playClickSound(player, currentItem)
-                    stats.tourNavigationMode = when (stats.tourNavigationMode) {
-                        TourNavigationMode.BOSSBAR_ONLY -> TourNavigationMode.ALL
-                        TourNavigationMode.ALL -> TourNavigationMode.NONE
-                        TourNavigationMode.NONE -> TourNavigationMode.BOSSBAR_ONLY
-                    }
+                    stats.tourNavigationMode = GuiCycle.select(
+                        stats.tourNavigationMode,
+                        TourNavigationMode.entries,
+                        reverse = event.isRightClick
+                    )
                     plugin.playerStatsRepository.save(stats)
                     plugin.tourManager.refreshNavigation(player)
                     plugin.userSettingsGui.open(player)

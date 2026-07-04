@@ -289,11 +289,11 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.left"),
-                                        lang.getMessage(player, "gui.discovery.sort.action.previous")
+                                        lang.getMessage(player, "gui.discovery.sort.action.next")
                                 ))
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.discovery.sort.action.next")
+                                        lang.getMessage(player, "gui.discovery.sort.action.previous")
                                 ))
                                 if (canEditSpotlight) {
                                         add(GuiLoreLine.Action(
@@ -349,7 +349,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         ))
                                         add(GuiLoreLine.Action(
                                                 lang.getMessage(player, "gui.settings.click.right"),
-                                                lang.getMessage(player, "gui.discovery.tag_filter.action.clear")
+                                                lang.getMessage(player, "gui.discovery.tag_filter.action.previous")
                                         ))
                                 }
                         }, GuiLoreFrame.BOTH)
@@ -395,7 +395,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         ))
                                         add(GuiLoreLine.Action(
                                                 lang.getMessage(player, "gui.settings.click.right"),
-                                                lang.getMessage(player, "gui.discovery.special_filter.action.clear")
+                                                lang.getMessage(player, "gui.discovery.special_filter.action.previous")
                                         ))
                                 }
                         }, GuiLoreFrame.BOTH)

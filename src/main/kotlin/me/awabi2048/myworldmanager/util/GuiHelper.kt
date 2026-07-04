@@ -66,30 +66,6 @@ object GuiHelper {
     }
 
     /**
-     * Arrayの中から現在の値の次（または前）の値を取得します。
-     */
-    fun <T> getNextValue(current: T, values: Array<T>, isRightClick: Boolean): T {
-        val index = values.indexOf(current).let { if (it == -1) 0 else it }
-        return if (isRightClick) {
-            values[(index + 1) % values.size]
-        } else {
-            values[(index + values.size - 1) % values.size]
-        }
-    }
-
-    /**
-     * Listの中から現在の値の次（または前）の値を取得します。
-     */
-    fun <T> getNextValue(current: T, values: List<T>, isRightClick: Boolean): T {
-        val index = values.indexOf(current).let { if (it == -1) 0 else it }
-        return if (isRightClick) {
-            values[(index + 1) % values.size]
-        } else {
-            values[(index + values.size - 1) % values.size]
-        }
-    }
-
-    /**
      * GUI遷移中フラグを一定時間後に解除します。
      */
     fun scheduleGuiTransitionReset(plugin: MyWorldManager, player: Player) {

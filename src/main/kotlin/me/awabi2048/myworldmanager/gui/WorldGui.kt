@@ -1110,8 +1110,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreLine.SingleAction(
-                                        lang.getMessage(player, "gui.admin.filter.click_cycle")
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.left"),
+                                        lang.getMessage(player, "gui.admin.filter.next")
+                                ))
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.right"),
+                                        lang.getMessage(player, "gui.admin.filter.previous")
                                 ))
                         }, GuiLoreFrame.BOTH)
                 ))
@@ -1148,11 +1153,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.left"),
-                                        lang.getMessage(player, "gui.admin.filter.previous")
+                                        lang.getMessage(player, "gui.admin.filter.next")
                                 ))
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.admin.filter.next")
+                                        lang.getMessage(player, "gui.admin.filter.previous")
                                 ))
                         }, GuiLoreFrame.BOTH)
                 ))
@@ -1241,11 +1246,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.left"),
-                                        lang.getMessage(player, "gui.admin.filter.previous")
+                                        lang.getMessage(player, "gui.admin.filter.next")
                                 ))
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.admin.filter.next")
+                                        lang.getMessage(player, "gui.admin.filter.previous")
                                 ))
                         }, GuiLoreFrame.BOTH)
                 ))

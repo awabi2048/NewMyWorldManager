@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.session
 
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.model.PublishLevel
 import java.util.UUID
 
@@ -85,18 +86,15 @@ class AdminGuiSessionManager {
         getSession(playerUuid).currentPage = page
     }
 
-    fun cycleArchiveFilter(playerUuid: UUID) {
+    fun cycleArchiveFilter(playerUuid: UUID, reverse: Boolean = false) {
         val session = getSession(playerUuid)
-        val values = ArchiveFilter.values()
-        session.archiveFilter = values[(session.archiveFilter.ordinal + 1) % values.size]
+        session.archiveFilter = GuiCycle.select(session.archiveFilter, ArchiveFilter.values(), reverse)
         session.currentPage = 0 // フィルター変更時はページをリセット
     }
 
     fun cyclePublishFilter(playerUuid: UUID, reverse: Boolean = false) {
         val session = getSession(playerUuid)
-        val values = PublishFilter.values()
-        val delta = if (reverse) values.size - 1 else 1
-        session.publishFilter = values[(session.publishFilter.ordinal + delta) % values.size]
+        session.publishFilter = GuiCycle.select(session.publishFilter, PublishFilter.values(), reverse)
         session.currentPage = 0
     }
 
@@ -111,16 +109,13 @@ class AdminGuiSessionManager {
             values = values.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()
         }
         
-        val currentIndex = values.indexOf(session.sortBy).let { if (it == -1) 0 else it }
-        val delta = if (reverse) values.size - 1 else 1
-        session.sortBy = values[(currentIndex + delta) % values.size]
+        session.sortBy = GuiCycle.select(session.sortBy, values, reverse)
         session.currentPage = 0
     }
 
-    fun cyclePortalSortType(playerUuid: UUID) {
+    fun cyclePortalSortType(playerUuid: UUID, reverse: Boolean = false) {
         val session = getSession(playerUuid)
-        val values = PortalSortType.values()
-        session.portalSortBy = values[(session.portalSortBy.ordinal + 1) % values.size]
+        session.portalSortBy = GuiCycle.select(session.portalSortBy, PortalSortType.values(), reverse)
         session.portalPage = 0
     }
 
@@ -131,10 +126,9 @@ class AdminGuiSessionManager {
         session.currentPage = 0
     }
 
-    fun cyclePlayerFilterType(playerUuid: UUID) {
+    fun cyclePlayerFilterType(playerUuid: UUID, reverse: Boolean = false) {
         val session = getSession(playerUuid)
-        val values = PlayerFilterType.values()
-        session.playerFilterType = values[(session.playerFilterType.ordinal + 1) % values.size]
+        session.playerFilterType = GuiCycle.select(session.playerFilterType, PlayerFilterType.values(), reverse)
         /* Preserved for usability
         if (session.playerFilterType == PlayerFilterType.NONE) {
             session.playerFilter = null

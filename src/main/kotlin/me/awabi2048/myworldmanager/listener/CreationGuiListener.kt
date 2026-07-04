@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
@@ -195,7 +196,15 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     session.creationType == WorldCreationType.SEED
                 ) {
                     plugin.soundManager.playClickSound(player, currentItem)
-                    session.seedEnvironment = nextSeedEnvironment(session.seedEnvironment, event.isRightClick)
+                    session.seedEnvironment = GuiCycle.select(
+                        session.seedEnvironment,
+                        listOf(
+                            org.bukkit.World.Environment.NORMAL,
+                            org.bukkit.World.Environment.NETHER,
+                            org.bukkit.World.Environment.THE_END
+                        ),
+                        reverse = event.isRightClick
+                    )
                     plugin.creationGui.openConfirmation(player, session)
                 } else if (tag == ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION &&
                     session.creationType == WorldCreationType.SEED
@@ -340,24 +349,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             plugin.creationSessionManager.endSession(player.uniqueId)
             plugin.floodgateFormBridge.notifyFallbackCancelled(player)
         }
-    }
-
-    private fun nextSeedEnvironment(
-        current: org.bukkit.World.Environment,
-        reverse: Boolean
-    ): org.bukkit.World.Environment {
-        val values = listOf(
-            org.bukkit.World.Environment.NORMAL,
-            org.bukkit.World.Environment.NETHER,
-            org.bukkit.World.Environment.THE_END
-        )
-        val index = values.indexOf(current).let { if (it < 0) 0 else it }
-        val nextIndex = if (reverse) {
-            (index + values.size - 1) % values.size
-        } else {
-            (index + 1) % values.size
-        }
-        return values[nextIndex]
     }
 
     private fun openSpawnInputByPlatform(
