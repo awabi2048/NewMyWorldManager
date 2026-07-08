@@ -76,6 +76,10 @@ class MenuRouteHistory(private val plugin: MyWorldManager) {
         return navigation.openPrevious(player)
     }
 
+    fun breadcrumbs(player: Player): List<MenuRoute> {
+        return navigation.breadcrumbs(player)
+    }
+
     fun interface CustomMenuRouteOpener {
         fun open(player: Player): Boolean
     }

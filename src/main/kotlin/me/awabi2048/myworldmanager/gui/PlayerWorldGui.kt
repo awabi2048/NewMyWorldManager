@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -345,10 +346,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         if (lifecycle.isNotEmpty()) add(GuiLoreBlock(lifecycle.map(GuiLoreLine::Raw)))
                         add(GuiLoreBlock(buildList {
                                 if (isBedrock) {
-                                        if (!isCurrentWorld) add(GuiLoreLine.SingleAction(warpAction))
+                                        if (!isCurrentWorld) add(GuiLoreActions.singleClick(lang, player, warpAction))
                                         add(GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.world_item.settings_bedrock")))
                                 } else if (isCurrentWorld) {
-                                        add(GuiLoreLine.SingleAction(settingsAction))
+                                        add(GuiLoreActions.singleClick(lang, player, settingsAction))
                                 } else {
                                         add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), warpAction))
                                         add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), settingsAction))

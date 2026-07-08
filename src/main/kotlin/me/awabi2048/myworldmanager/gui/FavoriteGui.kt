@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
@@ -385,7 +386,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 }
                                 add(GuiLoreLine.Spacer)
                                 if (isBedrock) {
-                                        add(GuiLoreLine.SingleAction(
+                                        add(GuiLoreActions.singleClick(
+                                                lang,
+                                                player,
                                                 lang.getMessage(player, "gui.discovery.tag_filter.action.next")
                                         ))
                                 } else {

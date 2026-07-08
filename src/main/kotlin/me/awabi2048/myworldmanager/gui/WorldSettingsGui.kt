@@ -21,6 +21,7 @@ import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiLoreAction
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -482,7 +483,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ))
                                         add(GuiLoreLine.Spacer)
                                         if (isBedrock) {
-                                                add(GuiLoreLine.SingleAction(
+                                                add(GuiLoreActions.singleClick(
+                                                        lang,
+                                                        player,
                                                         lang.getMessage(player, "gui.settings.publish.action.cycle_bedrock")
                                                 ))
                                         } else {

@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -273,7 +274,11 @@ class CreationGui(private val plugin: MyWorldManager) {
                             GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.default_help")),
                             GuiLoreLine.Spacer,
                             GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.spawn_location.current_label"), coordinates, ""),
-                            GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.spawn_location.action"))
+                            GuiLoreActions.singleClick(
+                                lang,
+                                player,
+                                lang.getMessage(player, "gui.creation.confirm.spawn_location.action")
+                            )
                         )
                     )
                 )

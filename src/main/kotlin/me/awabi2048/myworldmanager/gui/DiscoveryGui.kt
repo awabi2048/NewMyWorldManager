@@ -8,6 +8,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiHelper
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -222,9 +223,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         ""
                 }
 
-                val warpHint = if (isBedrock) {
-                        lang.getMessage(player, "gui.discovery.world_item.warp_hint_bedrock")
-                } else if (isCurrentWorld) {
+                val warpHint = if (isCurrentWorld) {
                         ""
                 } else {
                         lang.getMessage(player, "gui.discovery.world_item.warp_hint")
@@ -339,7 +338,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 }
                                 add(GuiLoreLine.Spacer)
                                 if (isBedrock) {
-                                        add(GuiLoreLine.SingleAction(
+                                        add(GuiLoreActions.singleClick(
+                                                lang,
+                                                player,
                                                 lang.getMessage(player, "gui.discovery.tag_filter.action.next")
                                         ))
                                 } else {
@@ -385,7 +386,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 }
                                 add(GuiLoreLine.Spacer)
                                 if (isBedrock) {
-                                        add(GuiLoreLine.SingleAction(
+                                        add(GuiLoreActions.singleClick(
+                                                lang,
+                                                player,
                                                 lang.getMessage(player, "gui.discovery.special_filter.action.next")
                                         ))
                                 } else {

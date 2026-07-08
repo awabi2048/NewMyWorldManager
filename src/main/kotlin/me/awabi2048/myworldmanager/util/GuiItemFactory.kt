@@ -24,7 +24,42 @@ import org.bukkit.inventory.meta.SkullMeta
 
 private val guiLegacySerializer = LegacyComponentSerializer.legacySection()
 
-data class GuiLoreAction(val operation: String? = null, val action: String)
+data class GuiLoreAction(val operation: String, val action: String)
+
+object GuiLoreActions {
+    fun singleClick(languageManager: LanguageManager, player: Player, action: String): GuiLoreLine.SingleAction {
+        return single(
+            languageManager,
+            player,
+            languageManager.getMessage(player, "lore.click.any"),
+            action
+        )
+    }
+
+    fun single(
+        languageManager: LanguageManager,
+        player: Player,
+        operation: String,
+        action: String
+    ): GuiLoreLine.SingleAction {
+        require(operation.isNotBlank()) { "Single action operation must not be blank" }
+        require(action.isNotBlank()) { "Single action content must not be blank" }
+        val resolved = languageManager.getMessage(
+            player,
+            "lore.action_single_with_operation",
+            mapOf(
+                "operation" to operation,
+                "action" to action
+            )
+        )
+        // SingleActionは操作と内容を分けて保持し、表示文だけロケール別テンプレートで解決する。
+        return GuiLoreLine.SingleAction(
+            operation = operation,
+            action = action,
+            resolvedText = resolved
+        )
+    }
+}
 
 private data class GuiLoreSection(
     val lines: List<GuiLoreLine>,
@@ -81,7 +116,11 @@ class GuiLoreBuilder(
         return this
     }
 
-    fun actions(action: String): GuiLoreBuilder = actions(listOf(GuiLoreAction(action = action)))
+    fun actions(action: String): GuiLoreBuilder {
+        joinActionWithPreviousContent()
+        addSection(listOf(GuiLoreActions.singleClick(languageManager, player, action)), false)
+        return this
+    }
 
     /**
      * 操作案内の件数を一箇所で判定し、単一操作と複数操作の表示規則を統一する。
@@ -92,22 +131,12 @@ class GuiLoreBuilder(
         joinActionWithPreviousContent()
         if (actions.size == 1) {
             val action = actions.single()
-            val templateKey = if (action.operation.isNullOrBlank()) {
-                "lore.action_single"
-            } else {
-                "lore.action_single_with_operation"
-            }
-            val template = languageManager.getMessage(
-                player,
-                templateKey,
-                mapOf(
-                    "operation" to action.operation.orEmpty(),
-                    "action" to action.action
-                )
+            addSection(
+                listOf(GuiLoreActions.single(languageManager, player, action.operation, action.action)),
+                false
             )
-            addSection(listOf(GuiLoreLine.SingleAction(template)), false)
         } else {
-            addSection(actions.map { GuiLoreLine.Action(it.operation.orEmpty(), it.action) })
+            addSection(actions.map { GuiLoreLine.Action(it.operation, it.action) })
         }
         return this
     }
