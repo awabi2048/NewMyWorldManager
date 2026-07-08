@@ -343,6 +343,11 @@ class MyWorldManager : JavaPlugin() {
         getCommand("myworld")?.setExecutor(myWorldCmd)
         getCommand("myworld")?.setTabCompleter(myWorldCmd)
         getCommand("worldmenu")?.setExecutor(WorldMenuCommand(this))
+        getCommand("worldwarp")?.let {
+            val worldWarpCmd = WorldWarpCommand(this)
+            it.setExecutor(worldWarpCmd)
+            it.setTabCompleter(worldWarpCmd)
+        }
         getCommand("visit")?.let {
             val visitCmd = VisitCommand(this)
             it.setExecutor(visitCmd)

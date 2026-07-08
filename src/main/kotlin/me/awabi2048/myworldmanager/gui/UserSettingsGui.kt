@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.StructuredLore
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -120,10 +121,19 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 inactiveColor = "§7"
             )
         }
-        val action = lang.getMessageList(player, "gui.user_settings.tour_navigation.blocks.action")
+        val actionLines = listOf(
+            GuiLoreLine.Action(
+                lang.getMessage(player, "gui.settings.click.left"),
+                lang.getMessage(player, "gui.user_settings.cycle_action.next")
+            ),
+            GuiLoreLine.Action(
+                lang.getMessage(player, "gui.settings.click.right"),
+                lang.getMessage(player, "gui.user_settings.cycle_action.previous")
+            )
+        )
 
         // 現在値は選択肢リスト内のマーカーで示し、説明ブロックに一覧をまとめる。
-        return StructuredLore.selectionSetting(description, options, action)
+        return StructuredLore.selectionSettingWithActions(description, options, actionLines)
     }
 
     private fun createItem(material: Material, name: String, lore: GuiLoreSpec, tag: String): ItemStack {

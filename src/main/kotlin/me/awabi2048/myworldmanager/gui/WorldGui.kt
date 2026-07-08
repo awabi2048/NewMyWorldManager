@@ -827,7 +827,7 @@ class WorldGui(private val plugin: MyWorldManager) {
 
         private fun resolveWorldDirectory(data: WorldData, worldFolderName: String): File {
                 if (!data.isArchived) {
-                        return File(Bukkit.getWorldContainer(), worldFolderName)
+                        return plugin.worldService.resolveWorldDirectory(worldFolderName)
                 }
 
                 val archiveRoot = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
@@ -835,7 +835,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 if (archivedFolder.exists()) {
                         return archivedFolder
                 }
-                return File(Bukkit.getWorldContainer(), worldFolderName)
+                return plugin.worldService.resolveWorldDirectory(worldFolderName)
         }
 
         private fun sumMcaFileSize(directory: File): Long {
@@ -975,7 +975,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val worldFolderName = data.customWorldName ?: "my_world.${data.uuid}"
                 val world = Bukkit.getWorld(worldFolderName)
-                val worldFolder = java.io.File(Bukkit.getWorldContainer(), worldFolderName)
+                val worldFolder = plugin.worldService.resolveWorldDirectory(worldFolderName)
                 val isUnloaded = UnloadedWorldRegistry.isUnloaded(worldFolderName)
 
                 if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
@@ -1110,8 +1110,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreLine.SingleAction(
-                                        lang.getMessage(player, "gui.admin.filter.click_cycle")
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.left"),
+                                        lang.getMessage(player, "gui.admin.filter.next")
+                                ))
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.right"),
+                                        lang.getMessage(player, "gui.admin.filter.previous")
                                 ))
                         }, GuiLoreFrame.BOTH)
                 ))
@@ -1148,11 +1153,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.left"),
-                                        lang.getMessage(player, "gui.admin.filter.previous")
+                                        lang.getMessage(player, "gui.admin.filter.next")
                                 ))
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.admin.filter.next")
+                                        lang.getMessage(player, "gui.admin.filter.previous")
                                 ))
                         }, GuiLoreFrame.BOTH)
                 ))
@@ -1241,11 +1246,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.left"),
-                                        lang.getMessage(player, "gui.admin.filter.previous")
+                                        lang.getMessage(player, "gui.admin.filter.next")
                                 ))
                                 add(GuiLoreLine.Action(
                                         lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.admin.filter.next")
+                                        lang.getMessage(player, "gui.admin.filter.previous")
                                 ))
                         }, GuiLoreFrame.BOTH)
                 ))

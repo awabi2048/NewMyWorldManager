@@ -402,8 +402,7 @@ class CreationDialogManager : Listener {
 
             val templateLine = if (session.creationType == WorldCreationType.TEMPLATE) {
                 val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
-                val displayName = template?.name
-                    ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
+                val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
                 lang.getMessage(player, "gui.creation.confirm.template_line", mapOf("template" to displayName))
             } else ""
 

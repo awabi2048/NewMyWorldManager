@@ -36,6 +36,16 @@ interface WorldAccessPolicy {
         return worldData.publishLevel != PublishLevel.LOCKED
     }
 
+    fun canDirectWorldWarp(player: Player, worldData: WorldData, isMember: Boolean): Boolean =
+        canEnterWorld(player, worldData, isMember) &&
+            canUseVisitEntry(player, worldData, isMember)
+
+    fun canRequestWorldWarp(player: Player, worldData: WorldData, isMember: Boolean): Boolean =
+        !worldData.isArchived &&
+            !isMember &&
+            worldData.publishLevel != PublishLevel.PUBLIC &&
+            worldData.publishLevel != PublishLevel.LOCKED
+
     fun canShowMeetTarget(viewer: Player, target: Player, worldData: WorldData, isMember: Boolean): Boolean =
         getMeetTargetAction(viewer, target, worldData, isMember) != MeetTargetAction.DENY
 

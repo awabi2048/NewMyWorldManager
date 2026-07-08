@@ -62,6 +62,7 @@ object ItemTag {
     const val TYPE_GUI_DISCOVERY_ITEM = "discovery_world_item"
     const val TYPE_GUI_DISCOVERY_SORT = "discovery_sort_button"
     const val TYPE_GUI_DISCOVERY_TAG = "discovery_tag_button"
+    const val TYPE_GUI_DISCOVERY_SPECIAL_FILTER = "discovery_special_filter_button"
     const val TYPE_GUI_WORLD_ITEM = "gui_world_item"
     const val TYPE_GUI_SETTING_VISITOR = "gui_setting_visitor"
     const val TYPE_GUI_VISITOR_ITEM = "gui_visitor_item"

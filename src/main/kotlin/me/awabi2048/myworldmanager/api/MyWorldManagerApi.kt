@@ -22,6 +22,7 @@ import me.awabi2048.myworldmanager.api.extension.VisitMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
 import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
+import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessProvider
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
@@ -68,6 +69,7 @@ object MyWorldManagerApi {
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
     private val visitMenuProviders = CopyOnWriteArrayList<VisitMenuProvider>()
     private val worldEvacuationProviders = CopyOnWriteArrayList<WorldEvacuationProvider>()
+    private val worldMenuAccessProviders = CopyOnWriteArrayList<WorldMenuAccessProvider>()
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
 
@@ -461,6 +463,22 @@ object MyWorldManagerApi {
     @JvmStatic
     fun openVisitMenuOverride(player: Player, owner: OfflinePlayer, request: VisitMenuRequest): Boolean {
         return visitMenuProviders.asReversed().any { it.open(player, owner, request) }
+    }
+
+    @JvmStatic
+    fun registerWorldMenuAccessProvider(provider: WorldMenuAccessProvider) {
+        worldMenuAccessProviders.removeIf { it.getId() == provider.getId() }
+        worldMenuAccessProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterWorldMenuAccessProvider(provider: WorldMenuAccessProvider) {
+        worldMenuAccessProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    }
+
+    @JvmStatic
+    fun openWorldMenuAccessOverride(player: Player, worldData: WorldData, showBackButton: Boolean): Boolean {
+        return worldMenuAccessProviders.asReversed().any { it.open(player, worldData, showBackButton) }
     }
 
     @JvmStatic

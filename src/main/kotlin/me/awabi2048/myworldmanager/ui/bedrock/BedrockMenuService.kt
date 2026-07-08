@@ -1166,7 +1166,7 @@ class BedrockMenuService(
         bypassLimits: Boolean
     ): CreationBlockReason? {
         // 作成権限は、運営トグルや枠不足より先に本人へ表示する基本要件として扱う。
-        if (!PermissionManager.checkPermission(player, PermissionManager.CREATE)) {
+        if (!PermissionManager.checkPermission(player, PermissionManager.COMMAND_MWM_CREATE)) {
             return CreationBlockReason.NO_PERMISSION
         }
         if (bypassLimits) return null

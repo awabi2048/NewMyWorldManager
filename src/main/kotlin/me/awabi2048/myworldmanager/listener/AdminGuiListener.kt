@@ -76,7 +76,7 @@ class AdminGuiListener : Listener {
                 }
                 ItemTag.TYPE_GUI_ADMIN_PORTAL_SORT -> {
                     plugin.soundManager.playAdminClickSound(player)
-                    plugin.adminGuiSessionManager.cyclePortalSortType(player.uniqueId)
+                    plugin.adminGuiSessionManager.cyclePortalSortType(player.uniqueId, event.isRightClick)
                     plugin.adminPortalGui.open(player)
                 }
                 ItemTag.TYPE_PORTAL -> {
@@ -171,7 +171,7 @@ class AdminGuiListener : Listener {
             // アーカイブフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cycleArchiveFilter(player.uniqueId)
+                plugin.adminGuiSessionManager.cycleArchiveFilter(player.uniqueId, event.isRightClick)
                 plugin.worldGui.open(player)
                 return
             }
@@ -179,7 +179,7 @@ class AdminGuiListener : Listener {
             // 公開レベルフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cyclePublishFilter(player.uniqueId, event.isLeftClick)
+                plugin.adminGuiSessionManager.cyclePublishFilter(player.uniqueId, event.isRightClick)
                 plugin.worldGui.open(player)
                 return
             }
@@ -204,7 +204,7 @@ class AdminGuiListener : Listener {
             // ソートボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_SORT) {
                 plugin.soundManager.playAdminClickSound(player)
-                plugin.adminGuiSessionManager.cycleSortType(player.uniqueId, event.isLeftClick)
+                plugin.adminGuiSessionManager.cycleSortType(player.uniqueId, event.isRightClick)
                 plugin.worldGui.open(player)
                 return
             }

@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -252,29 +253,13 @@ class CreationGui(private val plugin: MyWorldManager) {
         )
 
         if (session.creationType == WorldCreationType.SEED) {
-            val dimensionLore = run {
-                GuiLoreSpec.Blocks(
-                listOf(
-                    GuiLoreBlock(
-                        listOf(
-                            GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.dimension.description")),
-                            GuiLoreLine.Spacer,
-                            GuiLoreLine.Raw("ﾂｧf笶・ﾂｧ7${lang.getMessage(player, "gui.creation.confirm.dimension.current_label")} ﾂｧe${seedEnvironmentDisplay(player, session.seedEnvironment)}"),
-                            GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_next")),
-                            GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_prev"))
-                        )
-                    )
-                )
-                )
-                seedEnvironmentLore(player, session.seedEnvironment)
-            }
             inventory.setItem(
                 SEED_DIMENSION_SLOT,
                 createItem(
                     seedEnvironmentMaterial(session.seedEnvironment),
                     lang.getMessage(player, "gui.creation.confirm.dimension.display"),
                     ItemTag.TYPE_GUI_CREATION_DIMENSION,
-                    dimensionLore
+                    seedEnvironmentLore(player, session.seedEnvironment)
                 )
             )
 
@@ -289,7 +274,11 @@ class CreationGui(private val plugin: MyWorldManager) {
                             GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.default_help")),
                             GuiLoreLine.Spacer,
                             GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.spawn_location.current_label"), coordinates, ""),
-                            GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.spawn_location.action"))
+                            GuiLoreActions.singleClick(
+                                lang,
+                                player,
+                                lang.getMessage(player, "gui.creation.confirm.spawn_location.action")
+                            )
                         )
                     )
                 )
@@ -382,9 +371,6 @@ class CreationGui(private val plugin: MyWorldManager) {
                 val color = if (selected) selectedColor else "\u00A77"
                 add(GuiLoreLine.Raw("$marker $color${seedEnvironmentDisplay(player, environment)}"))
             }
-            add(GuiLoreLine.Spacer)
-            add(GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_next")))
-            add(GuiLoreLine.SingleAction(lang.getMessage(player, "gui.creation.confirm.dimension.action_prev")))
         }, GuiLoreFrame.BOTH)
     }
 

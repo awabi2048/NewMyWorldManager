@@ -2,6 +2,7 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import java.util.UUID
 import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -1558,10 +1559,10 @@ class WorldSettingsListener : Listener {
                                                 val isBedrock =
                                                         plugin.playerPlatformResolver.isBedrock(player)
                                                 val nextLevel =
-                                                        GuiHelper.getNextValue(
+                                                        GuiCycle.select(
                                                                 worldData.publishLevel,
                                                                 PublishLevel.values(),
-                                                                if (isBedrock) false else event.isRightClick
+                                                                reverse = !isBedrock && event.isRightClick
                                                         )
                                                 worldData.publishLevel = nextLevel
                                                 if (worldData.publishLevel == PublishLevel.PUBLIC) {
@@ -4557,7 +4558,7 @@ player.sendMessage(
 
                 val currentTemp = session.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
                 session.tempWeather =
-                        GuiHelper.getNextValue(currentTemp, options, true) // Cycle next
+                        GuiCycle.select(currentTemp, options)
 
                 plugin.soundManager.playClickSound(player, null, "world_settings")
                 plugin.environmentGui.open(player, worldData)

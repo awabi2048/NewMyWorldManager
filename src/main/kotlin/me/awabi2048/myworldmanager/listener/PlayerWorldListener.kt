@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PlayerWorldGui
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
@@ -219,10 +220,18 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
 
-                // 通常の左クリック：ワープ処理
-                if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
+                val currentSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+                val isCurrentWorld =
+                    plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid
+
+                // 現在いるワールドはSingleActionとして扱い、左右どちらのクリックでも設定を開く。
+                if (isCurrentWorld && canOpenWorldSettings(player, worldData)) {
+                    openWorldSettingsFromList(player, currentItem, worldData, currentSession)
                     return
                 }
+
+                // 通常の左クリック：ワープ処理
+                if (isCurrentWorld) return
                 val folderName = worldData.customWorldName ?: "my_world.$uuid"
                 if (Bukkit.getWorld(folderName) == null) {
                     player.closeInventory()
@@ -244,21 +253,13 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             } else if (!isBedrock && event.isRightClick) {
 
                 // 右クリック：設定を開く
-                val isMember = player.hasPermission("myworldmanager.admin") ||
-                        worldData.owner == player.uniqueId ||
-                        worldData.moderators.contains(player.uniqueId) ||
-                        worldData.members.contains(player.uniqueId)
-
-                if (isMember) {
-                    plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                    val currentSession = plugin.playerWorldSessionManager.getSession(player.uniqueId)
-                    val currentShowBack = currentSession.showBackButton
-                    plugin.menuRouteHistory.pushPlayerWorld(
+                if (canOpenWorldSettings(player, worldData)) {
+                    openWorldSettingsFromList(
                         player,
-                        currentSession.currentPage,
-                        currentShowBack
+                        currentItem,
+                        worldData,
+                        plugin.playerWorldSessionManager.getSession(player.uniqueId)
                     )
-                    plugin.worldSettingsGui.open(player, worldData, showBackButton = true, isPlayerWorldFlow = true, parentShowBackButton = currentShowBack)
                 }
             }
             return
@@ -291,11 +292,11 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 }
                 ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION -> {
                     plugin.soundManager.playClickSound(player, currentItem)
-                    stats.tourNavigationMode = when (stats.tourNavigationMode) {
-                        TourNavigationMode.BOSSBAR_ONLY -> TourNavigationMode.ALL
-                        TourNavigationMode.ALL -> TourNavigationMode.NONE
-                        TourNavigationMode.NONE -> TourNavigationMode.BOSSBAR_ONLY
-                    }
+                    stats.tourNavigationMode = GuiCycle.select(
+                        stats.tourNavigationMode,
+                        TourNavigationMode.entries,
+                        reverse = event.isRightClick
+                    )
                     plugin.playerStatsRepository.save(stats)
                     plugin.tourManager.refreshNavigation(player)
                     plugin.userSettingsGui.open(player)
@@ -440,5 +441,33 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
         plugin.inviteSessionManager.endSession(player.uniqueId)
         player.performCommand("invite $targetName")
+    }
+
+    private fun canOpenWorldSettings(player: org.bukkit.entity.Player, worldData: me.awabi2048.myworldmanager.model.WorldData): Boolean =
+        player.hasPermission("myworldmanager.admin") ||
+            worldData.owner == player.uniqueId ||
+            worldData.moderators.contains(player.uniqueId) ||
+            worldData.members.contains(player.uniqueId)
+
+    private fun openWorldSettingsFromList(
+        player: org.bukkit.entity.Player,
+        item: org.bukkit.inventory.ItemStack,
+        worldData: me.awabi2048.myworldmanager.model.WorldData,
+        session: me.awabi2048.myworldmanager.session.PlayerWorldSession
+    ) {
+        plugin.soundManager.playClickSound(player, item, "player_world")
+        val currentShowBack = session.showBackButton
+        plugin.menuRouteHistory.pushPlayerWorld(
+            player,
+            session.currentPage,
+            currentShowBack
+        )
+        plugin.worldSettingsGui.open(
+            player,
+            worldData,
+            showBackButton = true,
+            isPlayerWorldFlow = true,
+            parentShowBackButton = currentShowBack
+        )
     }
 }
