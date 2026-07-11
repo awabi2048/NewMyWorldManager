@@ -112,10 +112,13 @@ class InviteGui(private val plugin: MyWorldManager) {
         val status = plugin.playerStatsRepository.findByUuid(target.uniqueId).meetStatus
         val statusKey = "general.status.${status.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else status
-        val lore = GuiLoreBuilder(lang, viewer)
-            .componentBlock(listOf(lang.getComponent(viewer, "gui.meet.world_item.status", mapOf("status" to statusName))))
-            .componentBlock(listOf(lang.getComponent(viewer, "gui.invite.target_head.click_invite")))
-            .build()
+        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            GuiLoreBlock(listOf(GuiLoreLine.Raw(lang.getMessage(viewer, "gui.meet.world_item.status", mapOf("status" to statusName))))),
+            GuiLoreBlock(listOf(GuiLoreLine.Action(
+                lang.getMessage(viewer, "lore.click.any"),
+                lang.getMessage(viewer, "gui.invite.target_head.click_invite")
+            )))
+        )))
 
         meta.lore(lore)
         item.itemMeta = meta

@@ -85,7 +85,6 @@ class WorldSettingsListener : Listener {
         private val borderDirectionPreviewTasks = mutableMapOf<UUID, BukkitTask>()
         private val expansionExecutionModeMetadataKey = "expansion_execution_mode"
         private val expansionSkipPhasesMetadataKey = "expansion_skip_phases"
-        private val iconPickerArmingMetadataKey = "icon_picker_arming"
         private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
 
         data class PendingExpansion(
@@ -603,24 +602,6 @@ class WorldSettingsListener : Listener {
                                 if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
                                         val memberId = ItemTag.getWorldUuid(item)
                                         if (memberId != null && memberId != player.uniqueId) {
-                                                val isBedrock =
-                                                        plugin.playerPlatformResolver.isBedrock(player)
-                                                if (isBedrock) {
-                                                        if (event.isLeftClick && !event.isShiftClick) {
-                                                                plugin.soundManager.playClickSound(
-                                                                        player,
-                                                                        item,
-                                                                        "world_settings"
-                                                                )
-                                                                toggleMemberRole(
-                                                                        player,
-                                                                        worldData,
-                                                                        memberId
-                                                                )
-                                                        }
-                                                        return
-                                                }
-
                                                 if (event.isShiftClick) {
                                                         if (event.isLeftClick) {
                                                                 plugin.soundManager.playClickSound(
@@ -962,12 +943,7 @@ class WorldSettingsListener : Listener {
                                 }
 
                                 if (type == ItemTag.TYPE_GUI_VISITOR_ITEM) {
-                                        val canKickByClick =
-                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                        event.isLeftClick
-                                                } else {
-                                                        event.isRightClick
-                                                }
+                                        val canKickByClick = event.isLeftClick || event.isRightClick
                                         if (canKickByClick) {
                                                 val visitorUuid =
                                                         ItemTag.getWorldUuid(item) ?: return
@@ -1107,7 +1083,7 @@ class WorldSettingsListener : Listener {
                                         player.closeInventory()
                                         val promptKey =
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                        "messages.expand_direction_prompt_bedrock"
+                                                        "messages.expand_direction_prompt"
                                                 } else {
                                                         "messages.expand_direction_prompt"
                                                 }
@@ -1319,6 +1295,15 @@ class WorldSettingsListener : Listener {
                                                 clickedItem,
                                                 "world_settings"
                                         )
+                                        // 非同期ワープ中にワールド変更処理が設定画面セッションを破棄しないよう、遷移意図を先に記録する。
+                                        plugin.settingsSessionManager.updateSessionAction(
+                                                player,
+                                                worldData.uuid,
+                                                SettingsAction.VIEW_SETTINGS,
+                                                isGui = true,
+                                                isPlayerWorldFlow = session.isPlayerWorldFlow,
+                                                parentShowBackButton = session.parentShowBackButton
+                                        )
                                         plugin.worldService.teleportToWorld(
                                                 player,
                                                 worldData.uuid,
@@ -1425,16 +1410,12 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                val isBedrock =
-                                                        plugin.playerPlatformResolver.isBedrock(player)
-                                                val isGuest = isBedrock || event.isLeftClick
+                                                val isGuest = event.isLeftClick
                                                 val action =
                                                         if (isGuest) SettingsAction.SET_SPAWN_GUEST
                                                         else SettingsAction.SET_SPAWN_MEMBER
                                                 val typeKey =
-                                                        if (isBedrock) {
-                                                                "gui.settings.spawn.type.both"
-                                                        } else if (isGuest) {
+                                                        if (isGuest) {
                                                                 "gui.settings.spawn.type.guest"
                                                         } else {
                                                                 "gui.settings.spawn.type.member"
@@ -1451,7 +1432,7 @@ class WorldSettingsListener : Listener {
                                                                         Component.text(
                                                                                 plugin.languageManager.getMessage(
                                                                                         player,
-                                                                                        if (isBedrock) "messages.spawn_set_start_bedrock" else "messages.spawn_set_start",
+                                                                                        "messages.spawn_set_start",
                                                                                         mapOf("type" to typeName)
                                                                                 )
                                                                         )
@@ -1469,9 +1450,6 @@ class WorldSettingsListener : Listener {
                                                         worldData.uuid,
                                                         action
                                                 )
-                                                plugin.settingsSessionManager
-                                                        .getSession(player)
-                                                        ?.setMetadata("spawn_set_both", isBedrock)
                                                 startSpawnPreview(player)
                                                 player.closeInventory()
                                         }
@@ -1556,13 +1534,11 @@ class WorldSettingsListener : Listener {
                                                         plugin.worldSettingsGui.open(player, worldData)
                                                         return
                                                 }
-                                                val isBedrock =
-                                                        plugin.playerPlatformResolver.isBedrock(player)
                                                 val nextLevel =
                                                         GuiCycle.select(
                                                                 worldData.publishLevel,
                                                                 PublishLevel.values(),
-                                                                reverse = !isBedrock && event.isRightClick
+                                                                reverse = event.isRightClick
                                                         )
                                                 worldData.publishLevel = nextLevel
                                                 if (worldData.publishLevel == PublishLevel.PUBLIC) {
@@ -1650,31 +1626,16 @@ class WorldSettingsListener : Listener {
                                                         clickedItem,
                                                         "world_settings"
                                                 )
-                                                // Check Beta Features
-                                                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                                                if (stats.betaFeaturesEnabled) {
-                                                    // Dialog Flow
-                                                    // Dialog uses custom GUI transition flag to prevent session cleanup
-                                                    plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
-
-                                                    player.closeInventory()
-                                                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                plugin.settingsSessionManager.updateSessionAction(
+                                                        player,
+                                                        worldData.uuid,
+                                                        SettingsAction.MANAGE_TAGS,
+                                                        isGui = true
+                                                )
+                                                player.closeInventory()
+                                                Bukkit.getScheduler().runTask(plugin, Runnable {
                                                         showTagEditorDialog(player, worldData)
-                                                    })
-                                                } else {
-                                                    // Legacy GUI Flow
-                                                    plugin.menuRouteHistory.pushWorldSettings(
-                                                            player,
-                                                            worldData.uuid,
-                                                            session.showBackButton,
-                                                            session.isPlayerWorldFlow,
-                                                            session.parentShowBackButton
-                                                    )
-                                                    plugin.worldSettingsGui.openTagEditor(
-                                                            player,
-                                                            worldData
-                                                    )
-                                                }
+                                                })
                                         }
                                         ItemTag.TYPE_GUI_SETTING_VISITOR -> {
                                                 plugin.soundManager.playClickSound(
@@ -2033,36 +1994,6 @@ class WorldSettingsListener : Listener {
                                                 )
                                                 plugin.environmentGui.open(player, worldData)
                                         }
-                                }
-                        }
-                        SettingsAction.MANAGE_TAGS -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage tags")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type != null && type.startsWith("tag_")) {
-                                        plugin.soundManager.playClickSound(
-                                                player,
-                                                item,
-                                                "world_settings"
-                                        )
-                                        val tagId = plugin.worldTagManager.normalizeTagId(type.substringAfter("tag_")) ?: return
-                                        val editableTags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
-                                        if (!editableTags.contains(tagId)) {
-                                                return
-                                        }
-
-                                        if (worldData.tags.contains(tagId)) {
-                                                worldData.tags.remove(tagId)
-                                        } else {
-                                                worldData.tags.add(tagId)
-                                        }
-                                        plugin.worldConfigRepository.save(worldData)
-                                        plugin.worldSettingsGui.openTagEditor(player, worldData)
-                                } else if (type == ItemTag.TYPE_GUI_BACK ||
-                                                type == ItemTag.TYPE_GUI_CANCEL
-                                ) {
-                                        plugin.soundManager.playGlobalClickSound(player)
-                                        plugin.worldSettingsGui.open(player, worldData)
                                 }
                         }
                         SettingsAction.MANAGE_PORTALS -> {
@@ -2868,7 +2799,7 @@ plugin.languageManager
                                 latestSession.action = SettingsAction.EXPAND_DIRECTION_WAIT
                                 startBorderDirectionPreview(player)
                                 player.sendMessage(
-                                        lang.getMessage(player, "messages.expand_direction_prompt_bedrock")
+                                        lang.getMessage(player, "messages.expand_direction_prompt")
                                 )
                         }
                 )
@@ -2966,7 +2897,6 @@ plugin.languageManager
                 plugin.settingsSessionManager
                         .getSession(player)
                         ?.let {
-                                it.setMetadata(iconPickerArmingMetadataKey, true)
                                 it.beginExternalInput(MenuExternalInput.SELECT_ICON)
                         }
                 player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
@@ -3747,12 +3677,8 @@ plugin.languageManager
                         return
                 }
 
-                // 繧｢繧､繧ｳ繝ｳ驕ｸ謚樔ｸｭ縺ｫ繧､繝ｳ繝吶Φ繝医Μ繧帝哩縺倥◆蝣ｴ蜷医・繧ｭ繝｣繝ｳ繧ｻ繝ｫ繝｡繝・そ繝ｼ繧ｸ繧定｡ｨ遉ｺ縺励※蜊ｳ邨ゆｺ・
+                // アイコン選択はプレイヤー自身のインベントリを使うため、閉じた時点で明確にキャンセルする。
                 if (session.action == SettingsAction.SELECT_ICON) {
-                        if (session.getMetadata(iconPickerArmingMetadataKey) == true) {
-                                session.setMetadata(iconPickerArmingMetadataKey, false)
-                                return
-                        }
                         plugin.settingsSessionManager.endSession(player)
                         player.sendMessage(lang.getMessage(player, "messages.icon_cancelled"))
                         return
@@ -4401,19 +4327,7 @@ player.sendMessage(
                         val worldData =
                                 plugin.worldConfigRepository.findByUuid(settingsSession.worldUuid)
                         if (worldData != null) {
-                                val setBoth =
-                                        settingsSession.getMetadata("spawn_set_both") as? Boolean
-                                                ?: false
-                                if (setBoth) {
-                                        worldData.spawnPosGuest = loc.clone()
-                                        worldData.spawnPosMember = loc.clone()
-                                        player.sendMessage(
-                                                plugin.languageManager.getMessage(
-                                                        player,
-                                                        "messages.spawn_both_set"
-                                                )
-                                        )
-                                } else if (currentAction == SettingsAction.SET_SPAWN_GUEST) {
+                                if (currentAction == SettingsAction.SET_SPAWN_GUEST) {
                                         worldData.spawnPosGuest = loc
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
@@ -4430,7 +4344,7 @@ player.sendMessage(
                                 }
                                 plugin.worldConfigRepository.save(worldData)
                                 stopSpawnPreview(player)
-                                showSpawnConfirmEffect(player, loc, currentAction == SettingsAction.SET_SPAWN_GUEST || setBoth)
+                                showSpawnConfirmEffect(player, loc, currentAction == SettingsAction.SET_SPAWN_GUEST)
                                 plugin.worldSettingsGui.open(player, worldData)
                         }
                         return
@@ -4489,7 +4403,7 @@ player.sendMessage(
                         worldData.borderCenterPos = newCenter
                 }
 
-                border.setSize(newSize, 0)
+                border.setSize(newSize)
 
                 worldData.borderExpansionLevel += 1
                 val newCenter = border.center
@@ -4925,7 +4839,7 @@ player.sendMessage(
                                         startBorderDirectionPreview(player)
                                         val promptKey =
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                        "messages.expand_direction_prompt_bedrock"
+                                                        "messages.expand_direction_prompt"
                                                 } else {
                                                         "messages.expand_direction_prompt"
                                                 }
@@ -5718,7 +5632,7 @@ player.sendMessage(
 
                 val oldCenter = Location(world, record.oldCenterX, world.spawnLocation.y, record.oldCenterZ)
                 world.worldBorder.setCenter(oldCenter)
-                world.worldBorder.setSize(record.oldSize, 0)
+                world.worldBorder.setSize(record.oldSize)
                 worldData.borderCenterPos = oldCenter
                 worldData.borderExpansionLevel = record.levelBefore
                 val removedCost = WorldRuntimePolicies.expansionCost(plugin.config, record.levelAfter)

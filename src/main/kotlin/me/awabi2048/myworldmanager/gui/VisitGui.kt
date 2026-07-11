@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.NamedTextColor
@@ -15,14 +16,13 @@ import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 
 class VisitGui(private val plugin: MyWorldManager) {
 
         private val repository = plugin.worldConfigRepository
-        private val worldsPerRow = 7
-        private val dataRowsPerPage = 4
-        private val itemsPerPage = dataRowsPerPage * worldsPerRow // 28
-
         fun open(
                 player: Player,
                 targetPlayer: OfflinePlayer,
@@ -54,21 +54,16 @@ class VisitGui(private val plugin: MyWorldManager) {
                         return
                 }
 
-                val neededDataRows =
-                        if (worldCount == 0) 1
-                        else
-                                kotlin.math.min(
-                                        dataRowsPerPage,
-                                        (worldCount + worldsPerRow - 1) / worldsPerRow
-                                )
-                val rowCount = neededDataRows + 2
+                val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(worldCount, page)
+                val currentPage = pageLayout.page
+                val layout = pageLayout.layout
                 val targetName = PlayerNameUtil.getNameOrDefault(targetPlayer.uniqueId, "Unknown")
                 val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey, mapOf("player" to targetName)))
 
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "visit")
 
                 val holder = VisitGuiHolder()
-                val inventory = Bukkit.createInventory(holder, rowCount * 9, titleComp)
+                val inventory = Bukkit.createInventory(holder, layout.size, titleComp)
                 holder.inv = inventory
 
                 val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
@@ -76,33 +71,25 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
                 if (returnToWorld != null) ItemTag.setWorldUuid(greyPane, returnToWorld.uuid)
 
-                for (i in 0..8) inventory.setItem(i, blackPane)
-                for (i in (rowCount - 1) * 9 until rowCount * 9) inventory.setItem(i, blackPane)
-
-                val startIndex = page * itemsPerPage
-                for (i in 0 until neededDataRows) {
-                        val rowStart = (i + 1) * 9
-                        inventory.setItem(rowStart, greyPane) // 左端
-                        inventory.setItem(rowStart + 8, greyPane) // 右端
-
-                        for (j in 0 until 7) {
-                                val worldIndex = startIndex + i * 7 + j
-                                if (worldIndex < targetWorlds.size) {
-                                        val world = targetWorlds[worldIndex]
-                                        inventory.setItem(
-                                                rowStart + 1 + j,
-                                                createWorldItem(player, world)
-                                        )
-                                } else {
-                                        inventory.setItem(rowStart + 1 + j, greyPane)
-                                }
-                        }
+                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                layout.itemSlots.forEachIndexed { index, slot ->
+                        inventory.setItem(
+                                slot,
+                                targetWorlds.drop(pageLayout.startIndex).getOrNull(index)?.let {
+                                        createWorldItem(player, it)
+                                } ?: greyPane
+                        )
                 }
 
                 // 戻るボタン
                 if (returnToWorld != null) {
-                        val footerStart = (rowCount - 1) * 9
-                        inventory.setItem(footerStart, createBackButton(player, returnToWorld))
+                        inventory.setItem(layout.backSlot, createBackButton(player, returnToWorld))
+                }
+                if (currentPage > 0) {
+                        inventory.setItem(layout.previousPageSlot, GuiHelper.createPrevPageItem(plugin, player, "visit", currentPage - 1))
+                }
+                if (currentPage < pageLayout.totalPages - 1) {
+                        inventory.setItem(layout.nextPageSlot, GuiHelper.createNextPageItem(plugin, player, "visit", currentPage + 1))
                 }
 
                 player.openInventory(inventory)
@@ -142,12 +129,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                         lang.getMessage(viewer, "gui.visit.world_item.tag", mapOf("tags" to tagNames))
                 } else ""
 
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(viewer)
-                val warpLine = if (isBedrock) {
-                        lang.getMessage(viewer, "gui.visit.world_item.warp_bedrock")
-                } else {
-                        lang.getMessage(viewer, "gui.visit.world_item.warp")
-                }
+                val warpAction = lang.getMessage(viewer, "gui.visit.world_item.warp")
 
                 val stats = plugin.playerStatsRepository.findByUuid(viewer.uniqueId)
                 val viewerPlayerUuid = viewer.uniqueId
@@ -155,9 +137,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 world.moderators.contains(viewerPlayerUuid) ||
                                 world.members.contains(viewerPlayerUuid)
 
-                val favActionLine = if (isBedrock) {
-                        ""
-                } else if (!isMember) {
+                val favoriteAction = if (!isMember) {
                         if (stats.favoriteWorlds.containsKey(world.uuid)) {
                                 lang.getMessage(viewer, "gui.visit.world_item.fav_remove")
                         } else {
@@ -165,13 +145,19 @@ class VisitGui(private val plugin: MyWorldManager) {
                         }
                 } else ""
 
-                meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
-                        *buildList {
-                                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
-                                add(listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                                add(listOf(warpLine, favActionLine).filter(String::isNotBlank))
-                        }.toTypedArray()
-                )))
+                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
+                        add(GuiLoreBlock(
+                                (listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                                        .map(GuiLoreLine::Raw)
+                        ))
+                        add(GuiLoreBlock(buildList {
+                                add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.left"), warpAction))
+                                if (favoriteAction.isNotBlank()) {
+                                        add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.right"), favoriteAction))
+                                }
+                        }))
+                })))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)

@@ -112,7 +112,6 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             } else {
                 if (config.getBoolean("meet_enabled", true)) "JOIN_ME" else "BUSY"
             },
-            betaFeaturesEnabled = config.getBoolean("beta_features_enabled", false),
             worldDisplayOrder = existingWorldDisplayOrder,
             tourSlotsByWorld = loadedTourSlotsByWorld,
             tourNavigationMode = runCatching {
@@ -159,7 +158,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         config.set("visitor_notification_enabled", stats.visitorNotificationEnabled)
         config.set("critical_settings_enabled", stats.criticalSettingsEnabled)
         config.set("meet_status", stats.meetStatus)
-        config.set("beta_features_enabled", stats.betaFeaturesEnabled)
+        config.set("beta_features_enabled", null)
         config.set("tour_navigation_mode", stats.tourNavigationMode.name)
 
         val tourSlotsSection = config.createSection("tour_slots_by_world")

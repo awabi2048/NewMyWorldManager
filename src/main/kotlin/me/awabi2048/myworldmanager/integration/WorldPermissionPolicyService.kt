@@ -40,8 +40,8 @@ class WorldPermissionPolicyService(
         val key = "initialized.${worldData.uuid}"
         if (state.getBoolean(key, false)) return
         val world = Bukkit.getWorld(worldName(worldData)) ?: return
-        world.setGameRule(org.bukkit.GameRule.MOB_GRIEFING, true)
-        world.setGameRule(org.bukkit.GameRule.GLOBAL_SOUND_EVENTS, false)
+        world.setGameRule(org.bukkit.GameRules.MOB_GRIEFING, true)
+        world.setGameRule(org.bukkit.GameRules.GLOBAL_SOUND_EVENTS, false)
         if (worldGuardAvailable) {
             val manager = WorldGuard.getInstance().platform.regionContainer.get(BukkitAdapter.adapt(world))
             if (manager != null) {
@@ -104,8 +104,8 @@ class WorldPermissionPolicyService(
     fun handlePlayerEnteredWorld(player: org.bukkit.entity.Player, worldData: WorldData) {
         player.resetPlayerTime()
         val world = player.world
-        world.setGameRule(org.bukkit.GameRule.MOB_GRIEFING, true)
-        world.setGameRule(org.bukkit.GameRule.GLOBAL_SOUND_EVENTS, false)
+        world.setGameRule(org.bukkit.GameRules.MOB_GRIEFING, true)
+        world.setGameRule(org.bukkit.GameRules.GLOBAL_SOUND_EVENTS, false)
         // This replaces the former macro while keeping the cleanup scoped to MyWorld entry.
         world.getEntitiesByClass(org.bukkit.entity.Shulker::class.java).forEach(org.bukkit.entity.Entity::remove)
     }

@@ -170,9 +170,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             }
             val uuid = ItemTag.getWorldUuid(currentItem) ?: return
             val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-            val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
-            if (isOwnMenu && !isBedrock && event.isShiftClick && event.isLeftClick) {
+            if (isOwnMenu && event.isShiftClick && event.isLeftClick) {
                 // Shift+左クリック：ワールドを先頭に移動
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 stats.worldDisplayOrder.remove(uuid)
@@ -250,7 +248,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
                     player.closeInventory()
                 }
-            } else if (!isBedrock && event.isRightClick) {
+            } else if (event.isRightClick) {
 
                 // 右クリック：設定を開く
                 if (canOpenWorldSettings(player, worldData)) {

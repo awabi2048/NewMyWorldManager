@@ -1,13 +1,17 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
-import me.awabi2048.myworldmanager.util.StructuredLore
-import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -41,21 +45,30 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
 
         // 1. Notification
         val notifyStatus = if (stats.visitorNotificationEnabled) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
-        items.add(createItem(
+        items.add(settingItem(
+            player,
             Material.BELL,
-            lang.getMessage(player, "gui.user_settings.notification.display"),
-            settingLore(player, "notification", mapOf("status" to notifyStatus)),
-            ItemTag.TYPE_GUI_USER_SETTING_NOTIFICATION
+            "gui.user_settings.notification.display",
+            "notification",
+            notifyStatus,
+            if (stats.visitorNotificationEnabled) "§a" else "§c",
+            ItemTag.TYPE_GUI_USER_SETTING_NOTIFICATION,
+            "gui.user_settings.cycle_action.toggle",
+            glint = stats.visitorNotificationEnabled
         ))
 
         // 2. Language
         val currentLocale = lang.resolveLocale(player)
         val languageName = lang.getMessage(player, "general.language.$currentLocale")
-        items.add(createItem(
+        items.add(settingItem(
+            player,
             Material.WRITABLE_BOOK,
-            lang.getMessage(player, "gui.user_settings.language.display"),
-            settingLore(player, "language", mapOf("language" to languageName)),
-            ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE
+            "gui.user_settings.language.display",
+            "language",
+            languageName,
+            "§f",
+            ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE,
+            "gui.user_settings.cycle_action.next"
         ))
 
         // 3. Critical Settings Visibility
@@ -64,19 +77,18 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         } else {
             lang.getMessage(player, "messages.status_hidden")
         }
-        items.add(createItem(
+        items.add(settingItem(
+            player,
             Material.RECOVERY_COMPASS,
-            lang.getMessage(player, "gui.user_settings.critical_settings_visibility.display"),
-            settingLore(player, "critical_settings_visibility", mapOf("status" to criticalStatus)),
-            ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY
+            "gui.user_settings.critical_settings_visibility.display",
+            "critical_settings_visibility",
+            criticalStatus,
+            if (stats.criticalSettingsEnabled) "§a" else "§7",
+            ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY,
+            "gui.user_settings.cycle_action.toggle"
         ))
 
-        items.add(createItem(
-            Material.COMPASS,
-            lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
-            tourNavigationLore(player, stats.tourNavigationMode),
-            ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
-        ))
+        items.add(tourNavigationItem(player, stats.tourNavigationMode))
 
         val totalRows = 5
 
@@ -101,43 +113,86 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
-    private fun settingLore(player: Player, setting: String, placeholders: Map<String, Any>): GuiLoreSpec.Blocks {
+    private fun settingItem(
+        player: Player,
+        material: Material,
+        displayKey: String,
+        setting: String,
+        currentValue: String,
+        currentValueColor: String,
+        tag: String,
+        actionKey: String,
+        glint: Boolean? = null,
+    ): ItemStack {
         val prefix = "gui.user_settings.$setting.blocks"
-        return StructuredLore.setting(
-            plugin.languageManager.getMessageList(player, "$prefix.description", placeholders),
-            plugin.languageManager.getMessageList(player, "$prefix.current", placeholders),
-            plugin.languageManager.getMessageList(player, "$prefix.action", placeholders)
+        return GuiItemFactory.menuIcon(
+            GuiMenuIconSpec(
+                material = material,
+                name = GuiNameSpec.Text(
+                    plugin.languageManager.getMessage(player, displayKey),
+                    GuiNameStyle.DEFAULT
+                ),
+                role = GuiElementRole.CONTENT,
+                amount = 1,
+                description = plugin.languageManager.getMessageList(player, "$prefix.description"),
+                data = listOf(
+                    GuiMenuIconData(
+                        plugin.languageManager.getMessage(player, "$prefix.current_label"),
+                        currentValue,
+                        currentValueColor
+                    )
+                ),
+                options = emptyList(),
+                warnings = emptyList(),
+                dangers = emptyList(),
+                actions = listOf(
+                    GuiLoreActions.menuSingleClick(
+                        plugin.languageManager,
+                        player,
+                        plugin.languageManager.getMessage(player, actionKey)
+                    )
+                ),
+                glint = glint,
+            ),
+            tag
         )
     }
 
-    private fun tourNavigationLore(player: Player, currentMode: TourNavigationMode): GuiLoreSpec.Blocks {
+    private fun tourNavigationItem(player: Player, currentMode: TourNavigationMode): ItemStack {
         val lang = plugin.languageManager
-        val description = lang.getMessageList(player, "gui.user_settings.tour_navigation.blocks.description")
         val options = TourNavigationMode.entries.map { mode ->
-            StructuredLore.SelectionOption(
+            GuiMenuIconOption(
                 label = lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase()}"),
                 selected = mode == currentMode,
                 selectedColor = "§b",
                 inactiveColor = "§7"
             )
         }
-        val actionLines = listOf(
-            GuiLoreLine.Action(
-                lang.getMessage(player, "gui.settings.click.left"),
-                lang.getMessage(player, "gui.user_settings.cycle_action.next")
+        return GuiItemFactory.menuIcon(
+            GuiMenuIconSpec(
+                material = Material.COMPASS,
+                name = GuiNameSpec.Text(
+                    lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
+                    GuiNameStyle.DEFAULT
+                ),
+                role = GuiElementRole.CONTENT,
+                amount = 1,
+                description = lang.getMessageList(player, "gui.user_settings.tour_navigation.blocks.description"),
+                data = emptyList(),
+                options = options,
+                warnings = emptyList(),
+                dangers = emptyList(),
+                actions = listOf(
+                    GuiLoreActions.menuSingleClick(
+                        lang,
+                        player,
+                        lang.getMessage(player, "gui.user_settings.cycle_action.toggle")
+                    )
+                ),
+                glint = null
             ),
-            GuiLoreLine.Action(
-                lang.getMessage(player, "gui.settings.click.right"),
-                lang.getMessage(player, "gui.user_settings.cycle_action.previous")
-            )
+            ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
         )
-
-        // 現在値は選択肢リスト内のマーカーで示し、説明ブロックに一覧をまとめる。
-        return StructuredLore.selectionSettingWithActions(description, options, actionLines)
-    }
-
-    private fun createItem(material: Material, name: String, lore: GuiLoreSpec, tag: String): ItemStack {
-        return GuiItemFactory.item(material, name, lore, tag)
     }
 
     class UserSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {

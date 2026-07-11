@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -51,7 +55,13 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         GuiItemFactory.applyStandardFrame(inventory)
 
         val textStatus = if (portal.showText) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
-        inventory.setItem(11, createItem(Material.OAK_SIGN, lang.getMessage(player, "gui.portal.toggle_text.name"), lang.getComponentList(player, "gui.portal.toggle_text.lore", mapOf("status" to textStatus)), ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT))
+        inventory.setItem(11, structuredItem(
+            player,
+            Material.OAK_SIGN,
+            "gui.portal.toggle_text",
+            listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.portal.toggle_text.current_label"), textStatus, "§e")),
+            ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT
+        ))
 
         // 色アイコン決定処理
         val colorKey = when (portal.particleColor) {
@@ -72,22 +82,25 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         val nextColorName = lang.getMessage(player, "colors.$nextColorKey")
         val prevColorName = lang.getMessage(player, "colors.$prevColorKey")
 
-        inventory.setItem(13, createItem(
+        inventory.setItem(13, structuredItem(
+            player,
             getWoolColor(portal.particleColor),
-            lang.getMessage(player, "gui.portal.color.name"),
-            lang.getComponentList(
-                player,
-                "gui.portal.color.lore",
-                mapOf(
-                    "color" to colorName,
-                    "prev_color" to prevColorName,
-                    "next_color" to nextColorName
-                )
+            "gui.portal.color",
+            listOf(
+                GuiLoreLine.Data(lang.getMessage(player, "gui.portal.color.current_label"), colorName, "§e"),
+                GuiLoreLine.Text(lang.getMessage(player, "gui.portal.color.previous", mapOf("color" to prevColorName))),
+                GuiLoreLine.Text(lang.getMessage(player, "gui.portal.color.next", mapOf("color" to nextColorName)))
             ),
             ItemTag.TYPE_GUI_PORTAL_CYCLE_COLOR
         ))
 
-        inventory.setItem(15, createItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.portal.remove.name"), lang.getComponentList(player, "gui.portal.remove.lore"), ItemTag.TYPE_GUI_PORTAL_REMOVE))
+        inventory.setItem(15, structuredItem(
+            player,
+            Material.LAVA_BUCKET,
+            "gui.portal.remove",
+            listOf(GuiLoreLine.Danger(lang.getMessage(player, "gui.portal.remove.description"))),
+            ItemTag.TYPE_GUI_PORTAL_REMOVE
+        ))
 
         // Portal IDの保持
         val metaItem = inventory.getItem(0)!!
@@ -96,6 +109,29 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         metaItem.itemMeta = meta
 
         player.openInventory(inventory)
+    }
+
+    private fun structuredItem(
+        player: Player,
+        material: Material,
+        key: String,
+        information: List<GuiLoreLine>,
+        tag: String
+    ): ItemStack {
+        val lang = plugin.languageManager
+        return GuiItemFactory.item(
+            material,
+            lang.getMessage(player, "$key.name"),
+            GuiLoreSpec.Blocks(listOf(
+                GuiLoreBlock(information),
+                GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(
+                    lang,
+                    player,
+                    lang.getMessage(player, "$key.action")
+                )))
+            )),
+            tag
+        )
     }
 
     @EventHandler(ignoreCancelled = false)

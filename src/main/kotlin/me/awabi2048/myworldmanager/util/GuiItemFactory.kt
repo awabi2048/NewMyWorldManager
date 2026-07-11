@@ -9,6 +9,8 @@ import com.awabi2048.ccsystem.api.gui.GuiFrameSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import net.kyori.adventure.text.Component
@@ -59,11 +61,20 @@ object GuiLoreActions {
             resolvedText = resolved
         )
     }
+
+    fun menuSingleClick(
+        languageManager: LanguageManager,
+        player: Player,
+        action: String,
+        enabled: Boolean = true,
+    ): GuiMenuIconAction {
+        val line = singleClick(languageManager, player, action)
+        return GuiMenuIconAction(line.operation, line.action, line.resolvedText, enabled)
+    }
 }
 
 private data class GuiLoreSection(
     val lines: List<GuiLoreLine>,
-    val showClosingSeparator: Boolean = true,
     val isSpacer: Boolean = false,
 )
 
@@ -73,9 +84,9 @@ class GuiLoreBuilder(
 ) {
     private val sections = mutableListOf<GuiLoreSection>()
 
-    private fun addSection(lines: List<GuiLoreLine>, showClosingSeparator: Boolean = true) {
+    private fun addSection(lines: List<GuiLoreLine>) {
         if (lines.isNotEmpty()) {
-            sections += GuiLoreSection(lines, showClosingSeparator)
+            sections += GuiLoreSection(lines)
         }
     }
 
@@ -118,7 +129,7 @@ class GuiLoreBuilder(
 
     fun actions(action: String): GuiLoreBuilder {
         joinActionWithPreviousContent()
-        addSection(listOf(GuiLoreActions.singleClick(languageManager, player, action)), false)
+        addSection(listOf(GuiLoreActions.singleClick(languageManager, player, action)))
         return this
     }
 
@@ -132,8 +143,7 @@ class GuiLoreBuilder(
         if (actions.size == 1) {
             val action = actions.single()
             addSection(
-                listOf(GuiLoreActions.single(languageManager, player, action.operation, action.action)),
-                false
+                listOf(GuiLoreActions.single(languageManager, player, action.operation, action.action))
             )
         } else {
             addSection(actions.map { GuiLoreLine.Action(it.operation, it.action) })
@@ -156,7 +166,7 @@ class GuiLoreBuilder(
     }
 
     fun spacer(): GuiLoreBuilder {
-        sections += GuiLoreSection(emptyList(), showClosingSeparator = false, isSpacer = true)
+        sections += GuiLoreSection(emptyList(), isSpacer = true)
         return this
     }
 
@@ -167,7 +177,7 @@ class GuiLoreBuilder(
         return CCSystem.getAPI().getLoreService().render(buildSpec())
     }
 
-    /** Returns module-defined content blocks; CC-System owns every separator between them. */
+    /** MWM supplies content blocks; CC-System draws the outer frame and ordinary boundary blank lines, while explicit separators draw middle rules. */
     fun buildSpec(): GuiLoreSpec.Blocks {
         val blocks = mutableListOf<GuiLoreBlock>()
         var current = mutableListOf<GuiLoreLine>()
@@ -227,6 +237,15 @@ object GuiItemFactory {
     fun decoration(material: Material, tag: String = ItemTag.TYPE_GUI_DECORATION): ItemStack {
         val item = CCSystem.getAPI().getGuiElementService().item(decorationSpec(material))
         ItemTag.tagItem(item, tag)
+        return item
+    }
+
+    fun menuIcon(
+        spec: GuiMenuIconSpec,
+        tag: String? = null,
+    ): ItemStack {
+        val item = CCSystem.getAPI().getGuiElementService().menuIcon(spec)
+        tag?.let { ItemTag.tagItem(item, it) }
         return item
     }
 

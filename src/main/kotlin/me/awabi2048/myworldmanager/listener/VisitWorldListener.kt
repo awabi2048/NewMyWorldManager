@@ -19,8 +19,6 @@ class VisitWorldListener(private val plugin: MyWorldManager) : Listener {
         val player = event.whoClicked as? Player ?: return
         val holder = event.view.topInventory.holder as? VisitWorldGui.VisitWorldGuiHolder ?: return
         val lang = plugin.languageManager
-        val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
         event.cancelWithDebug("VisitWorldListener.onInventoryClick: visit world GUI click")
         if (event.clickedInventory != event.view.topInventory) return
         val currentItem = event.currentItem ?: return
@@ -52,15 +50,6 @@ class VisitWorldListener(private val plugin: MyWorldManager) : Listener {
                     player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                     plugin.soundManager.playActionSound(player, "visit", "access_denied")
                     player.closeInventory()
-                    return
-                }
-
-                if (isBedrock) {
-                    plugin.soundManager.playClickSound(player, currentItem, "visit")
-                    player.closeInventory()
-                    plugin.worldService.teleportToWorld(player, uuid) {
-                        player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                    }
                     return
                 }
 

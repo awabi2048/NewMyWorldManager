@@ -76,7 +76,6 @@ object ItemTag {
     const val TYPE_GUI_USER_SETTING_LANGUAGE = "gui_user_setting_language"
     const val TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY = "gui_user_setting_critical_visibility"
     const val TYPE_GUI_USER_SETTING_TOUR_NAVIGATION = "gui_user_setting_tour_navigation"
-    const val TYPE_GUI_USER_SETTING_BETA_FEATURES = "gui_user_setting_beta_features"
     const val TYPE_GUI_USER_SETTING_MEET_ENABLED = "gui_user_setting_meet_enabled"
     const val TYPE_GUI_RETURN = "gui_return"
     const val TYPE_GUI_SETTING_ANNOUNCEMENT = "gui_setting_announcement"

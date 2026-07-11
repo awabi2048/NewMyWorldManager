@@ -6,7 +6,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 
 /**
  * Converts module-owned content and ordering into CC-System lore blocks.
- * Separator rendering intentionally remains outside MyWorldManager.
+ * CC-System draws the outer frame and ordinary boundary blank lines; explicit separators draw middle rules.
  */
 object StructuredLore {
     data class SelectionOption(
@@ -29,7 +29,7 @@ object StructuredLore {
 
     /**
      * Settings keep their explanation and current value in one visual block.
-     * The spacer is layout data supplied by MWM; CC-System still owns every separator.
+     * MWM supplies the spacer as layout data; CC-System draws the outer frame and ordinary boundary blank lines.
      */
     fun setting(description: List<String>, current: List<String>, action: List<String>): GuiLoreSpec.Blocks {
         require(description.isNotEmpty() && current.isNotEmpty() && action.isNotEmpty()) {

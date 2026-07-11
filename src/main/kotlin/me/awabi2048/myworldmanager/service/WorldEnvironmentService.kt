@@ -6,7 +6,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.Bukkit
 import org.bukkit.Difficulty
 import org.bukkit.GameMode
-import org.bukkit.GameRule
+import org.bukkit.GameRules
 import org.bukkit.NamespacedKey
 import org.bukkit.World
 import org.bukkit.attribute.Attribute
@@ -113,14 +113,14 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     private fun applyWeather(world: World, worldData: WorldData) {
         val weather = worldData.fixedWeather
         if (weather == null) {
-            world.setGameRule(GameRule.DO_WEATHER_CYCLE, true)
+            world.setGameRule(GameRules.ADVANCE_WEATHER, true)
             world.weatherDuration = 0
             world.thunderDuration = 0
             return
         }
 
         // 天候固定はイベントキャンセルではなく、バニラの天候進行停止と明示適用で成立させる。
-        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false)
+        world.setGameRule(GameRules.ADVANCE_WEATHER, false)
         when (weather) {
             "CLEAR" -> {
                 world.setStorm(false)
@@ -146,9 +146,9 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
         val fixedTime = worldData.fixedTime
         if (fixedTime != null) {
             world.time = fixedTime
-            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false)
+            world.setGameRule(GameRules.ADVANCE_TIME, false)
         } else {
-            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true)
+            world.setGameRule(GameRules.ADVANCE_TIME, true)
         }
     }
 
@@ -168,7 +168,7 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     private fun applyWorldSettings(world: World, worldData: WorldData) {
         if (worldData.sourceWorld == "CONVERT" && !world.name.startsWith("my_world.")) return
         world.difficulty = Difficulty.PEACEFUL
-        world.setGameRule(GameRule.DO_MOB_SPAWNING, false)
+        world.setGameRule(GameRules.SPAWN_MOBS, false)
     }
 
     private fun applyGravity(entity: LivingEntity, gravity: Double?) {

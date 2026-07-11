@@ -37,34 +37,38 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         GuiItemFactory.applyStandardFrame(inventory)
 
         // Slot 19: データ更新 (update-data)
-        inventory.setItem(19, createItem(
+        inventory.setItem(19, createActionItem(player,
             Material.COMMAND_BLOCK,
             lang.getMessage(player, "gui.admin_menu.update_data.display"),
             lang.getMessageList(player, "gui.admin_menu.update_data.lore"),
+            lang.getMessage(player, "gui.admin_menu.update_data.action"),
             ItemTag.TYPE_GUI_ADMIN_UPDATE_DATA
         ))
 
         // Slot 20: テンプレート修復 (complete_templates)
-        inventory.setItem(20, createItem(
+        inventory.setItem(20, createActionItem(player,
             Material.ANVIL,
             lang.getMessage(player, "gui.admin_menu.repair_templates.display"),
             lang.getMessageList(player, "gui.admin_menu.repair_templates.lore"),
+            lang.getMessage(player, "gui.admin_menu.repair_templates.action"),
             ItemTag.TYPE_GUI_ADMIN_REPAIR_TEMPLATES
         ))
 
         // Slot 21: テンプレート作成 (create-template)
-        inventory.setItem(21, createItem(
+        inventory.setItem(21, createActionItem(player,
             Material.CRAFTING_TABLE,
             lang.getMessage(player, "gui.admin_menu.create_template.display"),
             lang.getMessageList(player, "gui.admin_menu.create_template.lore"),
+            lang.getMessage(player, "gui.admin_menu.create_template.action"),
             ItemTag.TYPE_GUI_ADMIN_CREATE_TEMPLATE
         ))
 
         // Slot 23: アーカイブ実行 (archive)
-        inventory.setItem(23, createItem(
+        inventory.setItem(23, createActionItem(player,
             Material.CHEST,
             lang.getMessage(player, "gui.admin_menu.archive.display"),
             lang.getMessageList(player, "gui.admin_menu.archive.lore"),
+            lang.getMessage(player, "gui.admin_menu.archive.action"),
             ItemTag.TYPE_GUI_ADMIN_ARCHIVE_ALL
         ))
 
@@ -74,28 +78,32 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
         // Slot 24: ワールド変換 (convert) / 紐づけ解除 (unlink)
         if (isMyWorld) {
-            inventory.setItem(24, createItem(
+            inventory.setItem(24, createActionItem(player,
                 // 1.21.11 APIではCHAINが利用できないため、紐づけ解除の意味に近いLEADを使う。
                 Material.LEAD,
                 lang.getMessage(player, "gui.admin_menu.unlink.display"),
                 lang.getMessageList(player, "gui.admin_menu.unlink.lore"),
+                lang.getMessage(player, "gui.admin_menu.unlink.action"),
                 ItemTag.TYPE_GUI_ADMIN_UNLINK
             ))
         } else {
-            inventory.setItem(24, createItem(
+            inventory.setItem(24, createDualActionItem(player,
                 Material.WRITABLE_BOOK,
                 lang.getMessage(player, "gui.admin_menu.convert.display"),
                 lang.getMessageList(player, "gui.admin_menu.convert.lore"),
+                lang.getMessage(player, "gui.admin_menu.convert.action.normal"),
+                lang.getMessage(player, "gui.admin_menu.convert.action.admin"),
                 ItemTag.TYPE_GUI_ADMIN_CONVERT
             ))
         }
 
         // Slot 25: ワールドエクスポート (export)
         if (isMyWorld) {
-            inventory.setItem(25, createItem(
+            inventory.setItem(25, createActionItem(player,
                 Material.DISPENSER,
                 lang.getMessage(player, "gui.admin_menu.export.display"),
                 lang.getMessageList(player, "gui.admin_menu.export.lore"),
+                lang.getMessage(player, "gui.admin_menu.export.action"),
                 ItemTag.TYPE_GUI_ADMIN_EXPORT
             ))
         } else {
@@ -115,17 +123,18 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         }
 
         // Slot 38: ワールド一覧 (info)
-        inventory.setItem(38, createItem(
+        inventory.setItem(38, createActionItem(player,
             Material.FILLED_MAP,
             lang.getMessage(player, "gui.admin_menu.info.display"),
             lang.getMessageList(player, "gui.admin_menu.info.lore"),
+            lang.getMessage(player, "gui.admin_menu.info.action"),
             ItemTag.TYPE_GUI_ADMIN_INFO
         ))
 
         // Slot 40: プラグイン情報
         val adminMenuProviders = MyWorldManagerApi.getAdminMenuProviders()
         inventory.setItem(40, if (adminMenuProviders.isNotEmpty()) {
-            createItem(
+            createActionItem(player,
                 Material.NETHER_STAR,
                 lang.getMessage(player, "gui.admin_menu.menu_switch.display"),
                 lang.getMessageList(
@@ -133,6 +142,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     "gui.admin_menu.menu_switch.lore",
                     mapOf("next" to adminMenuProviders.first().getDisplayName(player))
                 ),
+                lang.getMessage(player, "gui.admin_menu.menu_switch.action"),
                 ItemTag.TYPE_GUI_ADMIN_MENU_SWITCH
             )
         } else {
@@ -150,10 +160,11 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         })
 
         // Slot 42: ポータル管理 (portals)
-        inventory.setItem(42, createItem(
+        inventory.setItem(42, createActionItem(player,
             Material.END_PORTAL_FRAME,
             lang.getMessage(player, "gui.admin_menu.portals.display"),
             lang.getMessageList(player, "gui.admin_menu.portals.lore"),
+            lang.getMessage(player, "gui.admin_menu.portals.action"),
             ItemTag.TYPE_GUI_ADMIN_PORTALS
         ))
 
@@ -388,5 +399,40 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
     private fun createItem(material: Material, name: String, lore: List<String>, tagType: String): ItemStack {
         return GuiItemFactory.textItem(material, name, lore, tagType)
+    }
+
+    private fun createActionItem(player: Player, material: Material, name: String, lore: List<String>, action: String, tagType: String): ItemStack {
+        return GuiItemFactory.item(
+            material,
+            name,
+            GuiLoreSpec.Blocks(listOf(
+                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(lore.map(GuiLoreLine::Raw)),
+                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(plugin.languageManager, player, action)))
+            )),
+            tagType
+        )
+    }
+
+    private fun createDualActionItem(
+        player: Player,
+        material: Material,
+        name: String,
+        lore: List<String>,
+        leftAction: String,
+        rightAction: String,
+        tagType: String
+    ): ItemStack {
+        return GuiItemFactory.item(
+            material,
+            name,
+            GuiLoreSpec.Blocks(listOf(
+                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(lore.map(GuiLoreLine::Raw)),
+                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                    GuiLoreLine.Action(plugin.languageManager.getMessage(player, "lore.click.left"), leftAction),
+                    GuiLoreLine.Action(plugin.languageManager.getMessage(player, "lore.click.right"), rightAction)
+                ))
+            )),
+            tagType
+        )
     }
 }

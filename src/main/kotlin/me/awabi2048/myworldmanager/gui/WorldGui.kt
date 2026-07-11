@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -670,13 +671,18 @@ class WorldGui(private val plugin: MyWorldManager) {
                         else ""
                 val worldSizeLine = buildWorldSizeLine(player, data)
 
-                return CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
-                        listOf(firstLine, worldNameLine, ownerLine, statusLine).filter(String::isNotBlank),
-                        listOf(publishLine, generationLine),
-                        listOf(createdLine, expireLine).filter(String::isNotBlank),
-                        listOf(msptLine, worldSizeLine).filter(String::isNotBlank),
-                        listOf(actionWarp, actionSettings, actionArchive, uuidCopyHint).filter(String::isNotBlank)
-                ))
+                return CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+                        GuiLoreBlock(listOf(firstLine, worldNameLine, ownerLine, statusLine).filter(String::isNotBlank).map(GuiLoreLine::Raw)),
+                        GuiLoreBlock(listOf(publishLine, generationLine).map(GuiLoreLine::Raw)),
+                        GuiLoreBlock(listOf(createdLine, expireLine).filter(String::isNotBlank).map(GuiLoreLine::Raw)),
+                        GuiLoreBlock(listOf(msptLine, worldSizeLine).filter(String::isNotBlank).map(GuiLoreLine::Raw)),
+                        GuiLoreBlock(buildList {
+                                if (actionWarp.isNotBlank()) add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), actionWarp))
+                                add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), actionSettings))
+                                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.shift_right"), actionArchive))
+                                if (uuidCopyHint.isNotBlank()) add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.middle"), uuidCopyHint))
+                        })
+                )))
         }
 
         private fun getGenerationMethodLabel(player: Player, sourceWorld: String): String {
@@ -1174,37 +1180,46 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 meta.displayName(lang.getComponent(player, "gui.admin.filter.player.display"))
 
-                val lore = mutableListOf<Component>()
+                val information = mutableListOf<GuiLoreLine>()
 
                 // 現在の設定
                 val filterTypeName = lang.getMessage(player, session.playerFilterType.displayKey)
-                lore.add(
-                        lang.getComponent(
+                information.add(GuiLoreLine.Raw(
+                        lang.getMessage(
                                 player,
                                 "gui.admin.filter.player.current_type",
                                 mapOf("type" to filterTypeName)
                         )
-                )
+                ))
 
                 if (session.playerFilter != null) {
                         val targetName = PlayerNameUtil.getNameOrDefault(session.playerFilter!!, "Unknown")
 
-                        lore.add(
-                                lang.getComponent(
+                        information.add(GuiLoreLine.Raw(
+                                lang.getMessage(
                                         player,
                                         "gui.admin.filter.player.current_player",
                                         mapOf("player" to targetName)
                                 )
-                        )
+                        ))
                 }
 
-                lore.add(Component.empty())
-                lore.add(lang.getComponent(player, "gui.admin.filter.player.click_left"))
-                if (session.playerFilterType != PlayerFilterType.NONE) {
-                        lore.add(lang.getComponent(player, "gui.admin.filter.player.click_right"))
+                val actions = buildList {
+                        add(GuiLoreLine.Action(
+                                lang.getMessage(player, "gui.settings.click.left"),
+                                lang.getMessage(player, "gui.admin.filter.player.click_left")
+                        ))
+                        if (session.playerFilterType != PlayerFilterType.NONE) {
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "gui.settings.click.right"),
+                                        lang.getMessage(player, "gui.admin.filter.player.click_right")
+                                ))
+                        }
                 }
-
-                meta.lore(GuiItemFactory.componentMenuLore(lore))
+                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+                        GuiLoreBlock(information),
+                        GuiLoreBlock(actions)
+                ))))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER)
                 return item

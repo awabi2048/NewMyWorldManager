@@ -1,10 +1,15 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
@@ -134,13 +139,21 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                                         mapOf("cost" to cost)
                                 )
                         ),
-                        Component.text(lang.getMessage(player, "gui.environment.weather.desc")),
-                        Component.empty(),
-                        Component.text(
-                                lang.getMessage(player, "gui.environment.weather.click_cycle")
-                        ),
-                        Component.text(
-                                lang.getMessage(player, "gui.environment.weather.click_confirm")
+                        Component.text(lang.getMessage(player, "gui.environment.weather.desc"))
+                ) + CCSystem.getAPI().getLoreService().render(
+                        GuiLoreSpec.Rich(
+                                listOf(
+                                        GuiLoreLine.Spacer,
+                                        GuiLoreLine.Action(
+                                                lang.getMessage(player, "lore.click.left"),
+                                                lang.getMessage(player, "gui.environment.weather.action.cycle")
+                                        ),
+                                        GuiLoreLine.Action(
+                                                lang.getMessage(player, "lore.click.right"),
+                                                lang.getMessage(player, "gui.environment.weather.action.confirm")
+                                        )
+                                ),
+                                GuiLoreFrame.NONE
                         )
                 ))
         )

@@ -48,11 +48,11 @@ class PlayerDataListener : Listener {
         val player = event.player
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         
-        // 最終オンライン日を更新して保存
+        // 最終オンライン情報はMWMのプレイヤー統計へ秒精度で集約し、GUIも同じ値を参照する。
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val now = java.time.LocalDate.now()
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        stats.lastOnline = now.format(formatter)
+        stats.lastOnline = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.systemDefault())
+            .format(Instant.now())
         plugin.playerStatsRepository.save(stats)
         
         // キャッシュから削除してメモリを節約
