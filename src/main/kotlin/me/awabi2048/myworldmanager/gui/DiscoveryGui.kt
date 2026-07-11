@@ -22,6 +22,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import java.time.LocalDate
@@ -209,6 +210,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
                 val isCurrentWorld = currentWorldData?.uuid == data.uuid
                 val isFavoritedByViewer = plugin.playerStatsRepository.findByUuid(player.uniqueId).favoriteWorlds.containsKey(data.uuid)
+                val isMember = data.owner == player.uniqueId ||
+                        data.moderators.contains(player.uniqueId) ||
+                        data.members.contains(player.uniqueId)
 
                 val formattedDesc = if (data.description.isNotEmpty()) {
                         lang.getMessage(player, "gui.common.world_desc", mapOf("description" to data.description))
@@ -229,7 +233,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.discovery.world_item.warp_hint")
                 }
                 val previewHint = if (isCurrentWorld || isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.preview_hint")
-                val memberRequestHint = if (isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
+                val memberRequestHint = if (isBedrock || isMember) "" else lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
                 val favoriteHint = if (isBedrock) {
                         ""
                 } else if (isFavoritedByViewer) {
@@ -237,19 +241,30 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 } else {
                         lang.getMessage(player, "gui.discovery.world_item.favorite_hint_add")
                 }
+                val leftClick = lang.getMessage(player, "lore.click.left")
+                val rightClick = lang.getMessage(player, "lore.click.right")
+                val shiftLeftClick = lang.getMessage(player, "lore.click.shift_left")
+                val shiftRightClick = lang.getMessage(player, "lore.click.shift_right")
                 val ownerLine = lang.getMessage(player, "gui.discovery.world_item.owner", mapOf(
                         "owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")),
                         "status_color" to ownerColor
                 ))
                 val favoriteLine = lang.getMessage(player, "gui.discovery.world_item.favorite", mapOf("count" to favorites))
                 val visitorLine = lang.getMessage(player, "gui.discovery.world_item.recent_visitors", mapOf("count" to visitors))
-                meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
-                        *buildList {
-                                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
-                                add(listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagNames.takeIf(String::isNotBlank)))
-                                add(listOf(warpHint, previewHint, memberRequestHint, favoriteHint).filter(String::isNotBlank))
-                        }.toTypedArray()
-                )))
+                // 操作文言は内容だけを言語キーから受け取り、操作方法は共通Loreモデルで表現する。
+                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
+                        add(GuiLoreBlock(
+                                (listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagNames.takeIf(String::isNotBlank)))
+                                        .map(GuiLoreLine::Raw)
+                        ))
+                        add(GuiLoreBlock(buildList {
+                                if (warpHint.isNotBlank()) add(GuiLoreLine.Action(leftClick, warpHint))
+                                if (previewHint.isNotBlank()) add(GuiLoreLine.Action(rightClick, previewHint))
+                                if (memberRequestHint.isNotBlank()) add(GuiLoreLine.Action(shiftLeftClick, memberRequestHint))
+                                if (favoriteHint.isNotBlank()) add(GuiLoreLine.Action(shiftRightClick, favoriteHint))
+                        }))
+                })))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
@@ -281,22 +296,20 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 options.forEach { (sort, displayName) ->
                                         val selected = sort == currentSort
-                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
-                                        val color = if (selected) "\u00A7e" else "\u00A77"
-                                        add(GuiLoreLine.Raw("$marker $color$displayName"))
+                                        add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
                                 add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "gui.settings.click.left"),
+                                        lang.getMessage(player, "lore.click.left"),
                                         lang.getMessage(player, "gui.discovery.sort.action.next")
                                 ))
                                 add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "gui.settings.click.right"),
+                                        lang.getMessage(player, "lore.click.right"),
                                         lang.getMessage(player, "gui.discovery.sort.action.previous")
                                 ))
                                 if (canEditSpotlight) {
                                         add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "gui.discovery.sort.action.edit_operation"),
+                                                lang.getMessage(player, "lore.click.shift_left"),
                                                 lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight")
                                         ))
                                 }
@@ -312,8 +325,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG))
                 val meta = item.itemMeta ?: return item
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
                 meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
                 val options = listOf(
                         "" to lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
@@ -332,27 +343,17 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 options.forEach { (tagId, displayName) ->
                                         val selected = tagId == selectedOption.first
-                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
-                                        val color = if (selected) "\u00A7e" else "\u00A77"
-                                        add(GuiLoreLine.Raw("$marker $color$displayName"))
+                                        add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                if (isBedrock) {
-                                        add(GuiLoreActions.singleClick(
-                                                lang,
-                                                player,
-                                                lang.getMessage(player, "gui.discovery.tag_filter.action.next")
-                                        ))
-                                } else {
-                                        add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "gui.settings.click.left"),
-                                                lang.getMessage(player, "gui.discovery.tag_filter.action.next")
-                                        ))
-                                        add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "gui.settings.click.right"),
-                                                lang.getMessage(player, "gui.discovery.tag_filter.action.previous")
-                                        ))
-                                }
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "lore.click.left"),
+                                        lang.getMessage(player, "gui.discovery.tag_filter.action.next")
+                                ))
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "lore.click.right"),
+                                        lang.getMessage(player, "gui.discovery.tag_filter.action.previous")
+                                ))
                         }, GuiLoreFrame.BOTH)
                 ))
 
@@ -365,8 +366,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(Material.COMPASS)
                 val meta = item.itemMeta ?: return item
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
                 meta.displayName(lang.getComponent(player, "gui.discovery.special_filter.name"))
                 val display = lang.getMessage(player, "gui.discovery.special_filter.type.${filter.name.lowercase()}")
                 meta.lore(CCSystem.getAPI().getLoreService().render(
@@ -379,28 +378,18 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 DiscoverySpecialFilter.values().forEach { option ->
                                         val selected = option == filter
-                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
-                                        val color = if (selected) "\u00A7e" else "\u00A77"
                                         val name = lang.getMessage(player, "gui.discovery.special_filter.type.${option.name.lowercase()}")
-                                        add(GuiLoreLine.Raw("$marker $color$name"))
+                                        add(GuiLoreLine.Option(name, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                if (isBedrock) {
-                                        add(GuiLoreActions.singleClick(
-                                                lang,
-                                                player,
-                                                lang.getMessage(player, "gui.discovery.special_filter.action.next")
-                                        ))
-                                } else {
-                                        add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "gui.settings.click.left"),
-                                                lang.getMessage(player, "gui.discovery.special_filter.action.next")
-                                        ))
-                                        add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "gui.settings.click.right"),
-                                                lang.getMessage(player, "gui.discovery.special_filter.action.previous")
-                                        ))
-                                }
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "lore.click.left"),
+                                        lang.getMessage(player, "gui.discovery.special_filter.action.next")
+                                ))
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "lore.click.right"),
+                                        lang.getMessage(player, "gui.discovery.special_filter.action.previous")
+                                ))
                         }, GuiLoreFrame.BOTH)
                 ))
 
@@ -427,27 +416,29 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(Material.GLASS_PANE)
                 val meta = item.itemMeta ?: return item
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
                 meta.displayName(
                         lang.getComponent(player, "gui.discovery.spotlight_empty.name")
                                 .decoration(TextDecoration.ITALIC, false)
                 )
 
-                val loreLines =
-                        if (player.hasPermission("myworldmanager.admin")) {
-                                lang.getMenuLore(
-                                        player,
-                                        if (isBedrock) "gui.discovery.spotlight_empty.lore_admin_bedrock" else "gui.discovery.spotlight_empty.lore_admin"
+                meta.lore(
+                        CCSystem.getAPI().getLoreService().render(
+                                GuiLoreSpec.Rich(
+                                        buildList {
+                                                add(GuiLoreLine.Text(lang.getMessage(player, "gui.discovery.spotlight_empty.description")))
+                                                if (player.hasPermission("myworldmanager.admin")) {
+                                                        add(GuiLoreLine.Spacer)
+                                                        add(GuiLoreActions.singleClick(
+                                                                lang,
+                                                                player,
+                                                                lang.getMessage(player, "gui.discovery.spotlight_empty.action.register")
+                                                        ))
+                                                }
+                                        },
+                                        GuiLoreFrame.BOTH
                                 )
-                        } else {
-                                lang.getMenuLore(
-                                        player,
-                                        "gui.discovery.spotlight_empty.lore_visitor"
-                                )
-                        }
-
-                meta.lore(loreLines)
+                        )
+                )
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, "discovery_spotlight_empty")

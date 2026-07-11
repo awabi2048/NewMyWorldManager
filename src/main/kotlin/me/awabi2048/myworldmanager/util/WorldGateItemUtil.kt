@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.CustomModelData
 import org.bukkit.Material
@@ -17,7 +21,7 @@ object WorldGateItemUtil {
         val item = ItemStack(Material.POISONOUS_POTATO)
         val meta = item.itemMeta ?: return item
         meta.displayName(lang.getComponent(player, "gui.world_gate_item.name"))
-        meta.lore(lang.getMenuLore(player, "gui.world_gate_item.lore_unbound"))
+        meta.lore(worldGateLore(lang, player, null))
         try {
             meta.setMaxStackSize(1)
         } catch (_: Exception) {
@@ -38,7 +42,7 @@ object WorldGateItemUtil {
         meta.persistentDataContainer.set(WORLD_UUID_KEY, PersistentDataType.STRING, worldUuid.toString())
         meta.persistentDataContainer.remove(TARGET_WORLD_NAME_KEY)
         meta.setEnchantmentGlintOverride(true)
-        meta.lore(lang.getMenuLore(player, "gui.world_gate_item.lore_bound", mapOf("destination" to worldName)))
+        meta.lore(worldGateLore(lang, player, worldName))
         item.itemMeta = meta
     }
 
@@ -47,7 +51,7 @@ object WorldGateItemUtil {
         meta.persistentDataContainer.set(TARGET_WORLD_NAME_KEY, PersistentDataType.STRING, worldName)
         meta.persistentDataContainer.remove(WORLD_UUID_KEY)
         meta.setEnchantmentGlintOverride(true)
-        meta.lore(lang.getMenuLore(player, "gui.world_gate_item.lore_bound", mapOf("destination" to displayName)))
+        meta.lore(worldGateLore(lang, player, displayName))
         item.itemMeta = meta
     }
 
@@ -77,4 +81,18 @@ object WorldGateItemUtil {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(TARGET_WORLD_NAME_KEY, PersistentDataType.STRING)
     }
+
+    private fun worldGateLore(lang: LanguageManager, player: Player?, destination: String?) =
+        CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+            if (destination != null) {
+                add(GuiLoreBlock(listOf(GuiLoreLine.Raw(lang.getMessage(player, "gui.world_gate_item.destination", mapOf("destination" to destination))))))
+            }
+            add(GuiLoreBlock(buildList {
+                add(GuiLoreLine.Action(
+                    lang.getMessage(player, "lore.click.shift_right"),
+                    lang.getMessage(player, if (destination == null) "gui.world_gate_item.action.link" else "gui.world_gate_item.action.relink")
+                ))
+                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.world_gate_item.action.select_area")))
+            }))
+        }))
 }

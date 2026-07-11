@@ -16,13 +16,12 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import java.util.Locale
 
 class VisitWorldGui(private val plugin: MyWorldManager) {
-
-    private val worldsPerRow = 7
-    private val dataRowsPerPage = 4
-    private val itemsPerPage = worldsPerRow * dataRowsPerPage
 
     fun hasSearchResult(player: Player, query: String): Boolean {
         val normalizedQuery = normalize(query)
@@ -33,10 +32,10 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
         val normalizedQuery = normalize(query)
         val worlds = searchWorlds(player, normalizedQuery)
 
-        val totalPages = if (worlds.isEmpty()) 1 else (worlds.size + itemsPerPage - 1) / itemsPerPage
-        val currentPage = page.coerceIn(0, totalPages - 1)
-        val startIndex = currentPage * itemsPerPage
-        val pageWorlds = worlds.drop(startIndex).take(itemsPerPage)
+        val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(worlds.size, page)
+        val currentPage = pageLayout.page
+        val layout = pageLayout.layout
+        val pageWorlds = worlds.drop(pageLayout.startIndex).take(pageLayout.itemCount)
 
         val lang = plugin.languageManager
         val title = GuiHelper.inventoryTitle(lang.getComponent(player, "gui.visitworld.title", mapOf("query" to query)))
@@ -44,28 +43,29 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
         GuiHelper.playMenuOpen(player, "visit")
 
         val holder = VisitWorldGuiHolder(query, showBackButton, currentPage)
-        val layout = GuiHelper.settingsLayout()
         val inventory = Bukkit.createInventory(holder, layout.size, title)
         holder.inv = inventory
 
-        fillBaseLayout(inventory)
+        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
-        val worldItemSlots = buildWorldItemSlots()
+        val worldItemSlots = layout.itemSlots
         pageWorlds.forEachIndexed { index, worldData ->
             inventory.setItem(worldItemSlots[index], createWorldItem(player, worldData))
         }
 
-        GuiHelper.setSettingsFooter(
-            inventory,
-            if (showBackButton) GuiHelper.createReturnItem(plugin, player, "visit") else null,
-            createInfoItem(player, query, worlds.size, pageWorlds.size, currentPage + 1, totalPages)
+        if (showBackButton) {
+            inventory.setItem(layout.backSlot, GuiHelper.createReturnItem(plugin, player, "visit"))
+        }
+        inventory.setItem(
+            layout.actionSlot,
+            createInfoItem(player, query, worlds.size, pageWorlds.size, currentPage + 1, pageLayout.totalPages)
         )
 
         if (currentPage > 0) {
-            inventory.setItem(47, GuiHelper.createPrevPageItem(plugin, player, "visit", currentPage - 1))
+            inventory.setItem(layout.previousPageSlot, GuiHelper.createPrevPageItem(plugin, player, "visit", currentPage - 1))
         }
-        if (currentPage < totalPages - 1) {
-            inventory.setItem(51, GuiHelper.createNextPageItem(plugin, player, "visit", currentPage + 1))
+        if (currentPage < pageLayout.totalPages - 1) {
+            inventory.setItem(layout.nextPageSlot, GuiHelper.createNextPageItem(plugin, player, "visit", currentPage + 1))
         }
 
         player.openInventory(inventory)
@@ -194,12 +194,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             ""
         }
 
-        val isBedrock = plugin.playerPlatformResolver.isBedrock(viewer)
-        val warpLine = if (isBedrock) {
-            lang.getMessage(viewer, "gui.visit.world_item.warp_bedrock")
-        } else {
-            lang.getMessage(viewer, "gui.visit.world_item.warp")
-        }
+        val warpAction = lang.getMessage(viewer, "gui.visit.world_item.warp")
 
         val stats = plugin.playerStatsRepository.findByUuid(viewer.uniqueId)
         val viewerPlayerUuid = viewer.uniqueId
@@ -207,9 +202,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             world.moderators.contains(viewerPlayerUuid) ||
             world.members.contains(viewerPlayerUuid)
 
-        val favActionLine = if (isBedrock) {
-            ""
-        } else if (!isMember) {
+        val favoriteAction = if (!isMember) {
             if (stats.favoriteWorlds.containsKey(world.uuid)) {
                 lang.getMessage(viewer, "gui.visit.world_item.fav_remove")
             } else {
@@ -219,13 +212,19 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             ""
         }
 
-        meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
-            *buildList {
-                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
-                add(listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                add(listOf(warpLine, favActionLine).filter(String::isNotBlank))
-            }.toTypedArray()
-        )))
+        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+            if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
+            add(GuiLoreBlock(
+                (listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                    .map(GuiLoreLine::Raw)
+            ))
+            add(GuiLoreBlock(buildList {
+                add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.left"), warpAction))
+                if (favoriteAction.isNotBlank()) {
+                    add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.right"), favoriteAction))
+                }
+            }))
+        })))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)

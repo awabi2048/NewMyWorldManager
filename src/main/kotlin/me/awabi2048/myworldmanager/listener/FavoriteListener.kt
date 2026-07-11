@@ -28,7 +28,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         val player = event.whoClicked as? Player ?: return
         val lang = plugin.languageManager
-        val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
         val favoriteSession = plugin.favoriteSessionManager.getSession(player.uniqueId)
 
         // GUI遷移中のクリックを無視
@@ -87,7 +86,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 val returnToWorld = if (returnUuid != null) plugin.worldConfigRepository.findByUuid(returnUuid) else null
                 val returnToFavoriteMenu = ItemTag.getString(currentItem, "favorite_return_target") == "favorite_menu"
 
-                if (isBedrock || event.isLeftClick) {
+                if (event.isLeftClick) {
                     val currentIndex = if (favoriteSession.selectedTag == null) -1 else allTags.indexOf(favoriteSession.selectedTag)
                     val nextIndex = (currentIndex + 1) % (allTags.size + 1)
 
@@ -97,7 +96,9 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                         allTags[nextIndex]
                     }
                 } else if (event.isRightClick) {
-                    favoriteSession.selectedTag = null
+                    val currentIndex = if (favoriteSession.selectedTag == null) allTags.size else allTags.indexOf(favoriteSession.selectedTag)
+                    val previousIndex = (currentIndex - 1).mod(allTags.size + 1)
+                    favoriteSession.selectedTag = if (previousIndex == allTags.size) null else allTags[previousIndex]
                 }
 
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
@@ -113,23 +114,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
 
             // アーカイブ済みの場合は無反応とする
             if (worldData.isArchived) return
-
-            if (isBedrock) {
-                val isMember = worldData.owner == player.uniqueId ||
-                               worldData.moderators.contains(player.uniqueId) ||
-                               worldData.members.contains(player.uniqueId)
-
-                if (!MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, worldData, isMember)) {
-                    return
-                }
-
-                plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                player.closeInventory()
-                plugin.worldService.teleportToWorld(player, uuid) {
-                    player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                }
-                return
-            }
 
             if (event.isLeftClick) {
                 val isMember = worldData.owner == player.uniqueId || 

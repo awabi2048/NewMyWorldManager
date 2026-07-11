@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -79,8 +83,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
         meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.other_worlds.name"))
 
-        val lore = lang.getMenuLore(player, "gui.favorite.favorite_menu.other_worlds.lore")
-        meta.lore(lore)
+        meta.lore(actionLore(player, "gui.favorite.favorite_menu.other_worlds"))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_OTHER_WORLDS)
@@ -122,11 +125,14 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val loreKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.lore_remove" else "gui.favorite.favorite_menu.toggle.lore_add"
 
         meta.displayName(lang.getComponent(player, nameKey).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-        val lore = GuiLoreBuilder(lang, player)
-            .componentBlock(listOf(lang.getComponent(player, loreKey)))
-            .componentBlock(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.click")))
-            .build()
-        meta.lore(lore)
+        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            GuiLoreBlock(listOf(GuiLoreLine.Text(lang.getMessage(player, loreKey)))),
+            GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(
+                lang,
+                player,
+                lang.getMessage(player, "gui.favorite.favorite_menu.toggle.action")
+            )))
+        ))))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_TOGGLE)
@@ -140,8 +146,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
         meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.list.name"))
 
-        val lore = lang.getMenuLore(player, "gui.favorite.favorite_menu.list.lore")
-        meta.lore(lore)
+        meta.lore(actionLore(player, "gui.favorite.favorite_menu.list"))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_LIST)
@@ -190,6 +195,16 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         ItemTag.setWorldUuid(item, worldData.uuid)
         return item
     }
+
+    private fun actionLore(player: Player, key: String) =
+        CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            GuiLoreBlock(plugin.languageManager.getMessageList(player, "$key.lore").map(GuiLoreLine::Text)),
+            GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(
+                plugin.languageManager,
+                player,
+                plugin.languageManager.getMessage(player, "$key.action")
+            )))
+        )))
 
     class FavoriteMenuGuiHolder : org.bukkit.inventory.InventoryHolder {
         lateinit var inv: org.bukkit.inventory.Inventory

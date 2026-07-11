@@ -1,7 +1,14 @@
 package me.awabi2048.myworldmanager.ui.bedrock
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -9,11 +16,12 @@ import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.StructuredLore
+import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -494,7 +502,9 @@ class BedrockMenuService(
                 Material.WRITABLE_BOOK,
                 tr(player, "gui.user_settings.button.display"),
                 "open_settings",
-                lore = GuiLoreSpec.Simple(listOf(tr(player, "gui.user_settings.button.action")))
+                lore = GuiLoreSpec.Blocks(listOf(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                    GuiLoreActions.singleClick(plugin.languageManager, player, tr(player, "gui.user_settings.button.action"))
+                ))))
             )
         )
 
@@ -624,30 +634,51 @@ class BedrockMenuService(
 
         inventory.setItem(
             10,
-            createActionItem(
+            createSettingActionItem(
+                player,
                 Material.BELL,
-                tr(player, "gui.user_settings.notification.display"),
+                "gui.user_settings.notification.display",
+                "notification",
+                notifyStatus,
+                if (stats.visitorNotificationEnabled) "§a" else "§c",
                 "toggle_notification",
-                lore = settingLore(player, "notification", mapOf("status" to notifyStatus))
+                "gui.user_settings.cycle_action.toggle",
+                glint = stats.visitorNotificationEnabled
             )
         )
         inventory.setItem(
             11,
-            createActionItem(
+            createSettingActionItem(
+                player,
                 Material.WRITABLE_BOOK,
-                tr(player, "gui.user_settings.language.display"),
+                "gui.user_settings.language.display",
+                "language",
+                languageName,
+                "§f",
                 "cycle_language",
-                lore = settingLore(player, "language", mapOf("language" to languageName))
-                )
+                "gui.user_settings.cycle_action.next"
+            )
         )
         inventory.setItem(12, createCriticalVisibilityItem(player, stats.criticalSettingsEnabled))
         inventory.setItem(
             13,
-            createActionItem(
+            createSettingActionItem(
+                player,
                 Material.COMPASS,
-                tr(player, "gui.user_settings.tour_navigation.display"),
+                "gui.user_settings.tour_navigation.display",
+                "tour_navigation",
+                null,
+                "§f",
                 "cycle_tour_navigation",
-                lore = tourNavigationLore(player, stats.tourNavigationMode)
+                "gui.user_settings.cycle_action.toggle",
+                TourNavigationMode.entries.map { mode ->
+                    GuiMenuIconOption(
+                        tr(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase(Locale.ROOT)}"),
+                        mode == stats.tourNavigationMode,
+                        "§b",
+                        "§7"
+                    )
+                }
             )
         )
         if (showBackButton) {
@@ -1117,7 +1148,7 @@ class BedrockMenuService(
                 ""
             }
 
-        val warpAction = tr(player, "gui.player_world.world_item.warp_bedrock")
+        val warpAction = tr(player, "gui.player_world.world_item.warp")
         // Bedrock uses the same semantic sections as the Java menu, with its own action text.
         meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
             *buildList {
@@ -1140,7 +1171,16 @@ class BedrockMenuService(
         val item = ItemStack(Material.NETHER_STAR)
         val meta = item.itemMeta ?: return item
         meta.displayName(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display"))
-        meta.lore(plugin.languageManager.getMenuLore(player, "gui.player_world.creation_button.lore"))
+        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                plugin.languageManager.getMessageList(player, "gui.player_world.creation_button.description").map(GuiLoreLine::Text)
+            ),
+            com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(GuiLoreActions.singleClick(
+                plugin.languageManager,
+                player,
+                tr(player, "gui.player_world.creation_button.action")
+            )))
+        ))))
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
         ItemTag.setString(item, "bedrock_action", "start_creation")
@@ -1201,32 +1241,22 @@ class BedrockMenuService(
                 mapOf("player" to playerName)
             )
         )
-        meta.lore(
-            plugin.languageManager.getMenuLore(
-                player,
-                if (bypassLimits) "gui.player_world.stats_button.lore_bypass" else "gui.player_world.stats_button.lore",
-                mapOf(
+        val placeholders = mapOf(
                     "point" to worldPoint,
                     "current_occupied" to currentCreateCount,
                     "unlocked" to maxSlot,
                     "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖",
                     "pending_count" to pendingCount,
                     "latest_pending_at" to latestPendingText
-                )
-            )
         )
-        if (pendingCount == 0) {
-            val lore = meta.lore()
-            if (!lore.isNullOrEmpty() && lore.size >= 5) {
-                val pendingSectionStart = lore.size - 5
-                val pendingSectionEnd = lore.size - 1
-                meta.lore(
-                    lore.filterIndexed { index, _ ->
-                        index !in pendingSectionStart until pendingSectionEnd
-                    }
-                )
+        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(plugin.languageManager.getMessageList(player, "gui.player_world.stats_button.blocks.points", placeholders).map(GuiLoreLine::Raw)))
+            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(plugin.languageManager.getMessageList(player, if (bypassLimits) "gui.player_world.stats_button.blocks.slots_bypass" else "gui.player_world.stats_button.blocks.slots", placeholders).map(GuiLoreLine::Raw)))
+            if (pendingCount > 0) {
+                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(plugin.languageManager.getMessageList(player, "gui.player_world.stats_button.blocks.pending", placeholders).map(GuiLoreLine::Raw)))
+                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(GuiLoreActions.singleClick(plugin.languageManager, player, tr(player, "gui.player_world.stats_button.action.open_pending")))))
             }
-        }
+        })))
         if (pendingCount > 0) {
             meta.setEnchantmentGlintOverride(true)
         }
@@ -1237,40 +1267,52 @@ class BedrockMenuService(
     }
 
     private fun createCriticalVisibilityItem(player: Player, enabled: Boolean): ItemStack {
-        val item = ItemStack(Material.RECOVERY_COMPASS)
-        val meta = item.itemMeta ?: return item
         val status = if (enabled) tr(player, "messages.status_visible") else tr(player, "messages.status_hidden")
-        meta.displayName(plugin.languageManager.getComponent(player, "gui.user_settings.critical_settings_visibility.display"))
-        meta.lore(CCSystem.getAPI().getLoreService().render(
-            settingLore(player, "critical_settings_visibility", mapOf("status" to status))
-        ))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, "bedrock_menu_item")
-        ItemTag.setString(item, "bedrock_action", "toggle_critical")
-        return item
+        return createSettingActionItem(
+            player,
+            Material.RECOVERY_COMPASS,
+            "gui.user_settings.critical_settings_visibility.display",
+            "critical_settings_visibility",
+            status,
+            if (enabled) "§a" else "§7",
+            "toggle_critical",
+            "gui.user_settings.cycle_action.toggle"
+        )
     }
 
-    private fun settingLore(player: Player, setting: String, placeholders: Map<String, Any>) =
-        StructuredLore.setting(
-            plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.description", placeholders),
-            plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.current", placeholders),
-            plugin.languageManager.getMessageList(player, "gui.user_settings.$setting.blocks.action", placeholders)
+    private fun createSettingActionItem(
+        player: Player,
+        material: Material,
+        displayKey: String,
+        setting: String,
+        currentValue: String?,
+        currentValueColor: String,
+        actionId: String,
+        actionKey: String,
+        options: List<GuiMenuIconOption> = emptyList(),
+        glint: Boolean? = null
+    ): ItemStack {
+        val prefix = "gui.user_settings.$setting.blocks"
+        val item = GuiItemFactory.menuIcon(
+            GuiMenuIconSpec(
+                material,
+                GuiNameSpec.Text(tr(player, displayKey), GuiNameStyle.DEFAULT),
+                GuiElementRole.CONTENT,
+                1,
+                plugin.languageManager.getMessageList(player, "$prefix.description"),
+                currentValue?.let {
+                    listOf(GuiMenuIconData(tr(player, "$prefix.current_label"), it, currentValueColor))
+                } ?: emptyList(),
+                options,
+                emptyList(),
+                emptyList(),
+                listOf(GuiLoreActions.menuSingleClick(plugin.languageManager, player, tr(player, actionKey))),
+                glint
+            ),
+            "bedrock_menu_item"
         )
-
-    private fun tourNavigationLore(player: Player, currentMode: TourNavigationMode): GuiLoreSpec.Blocks {
-        val description = plugin.languageManager.getMessageList(player, "gui.user_settings.tour_navigation.blocks.description")
-        val options = TourNavigationMode.entries.map { mode ->
-            StructuredLore.SelectionOption(
-                label = tr(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase(Locale.ROOT)}"),
-                selected = mode == currentMode,
-                selectedColor = "§b",
-                inactiveColor = "§7"
-            )
-        }
-        val action = plugin.languageManager.getMessageList(player, "gui.user_settings.tour_navigation.blocks.action")
-
-        // Java版と同じく、現在値はリストの選択マーカーで表現する。
-        return StructuredLore.selectionSetting(description, options, action)
+        ItemTag.setString(item, "bedrock_action", actionId)
+        return item
     }
 
     private fun nextTourNavigationMode(mode: TourNavigationMode): TourNavigationMode {

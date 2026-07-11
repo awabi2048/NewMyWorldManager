@@ -39,10 +39,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private val repository = plugin.worldConfigRepository
 
-        private val worldsPerRow = 7
-        private val dataRowsPerPage = 4
-        private val itemsPerPageNum = dataRowsPerPage * worldsPerRow // 28 items
-
         fun getPlayerWorlds(player: Player): List<WorldData> {
                 return getPlayerWorlds(player.uniqueId)
         }
@@ -132,13 +128,12 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         return
                 }
 
-                val startIndex = page * itemsPerPageNum
-                val currentPageWorlds = playerWorlds.drop(startIndex).take(itemsPerPageNum)
-
-                val neededDataRows =
-                        if (currentPageWorlds.isEmpty()) 1
-                        else (currentPageWorlds.size + worldsPerRow - 1) / worldsPerRow
-                val rowCount = (neededDataRows + 2).coerceIn(3, 6)
+                // 共通レイアウトにページ帯域とフッター位置を委譲し、画面ごとの行計算を残さない。
+                val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(playerWorlds.size, page)
+                val currentPage = pageLayout.page
+                session.currentPage = currentPage
+                val currentPageWorlds = playerWorlds.drop(pageLayout.startIndex).take(pageLayout.itemCount)
+                val layout = pageLayout.layout
 
                 val lang = plugin.languageManager
                 val titleKey = "gui.player_world.title"
@@ -154,7 +149,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "player_world")
 
                 val holder = PlayerWorldGuiHolder(targetPlayerUuid, targetPlayerName)
-                val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
+                val inventory = Bukkit.createInventory(holder, layout.size, title)
                 holder.inv = inventory
 
                 plugin.settingsSessionManager.updateSessionAction(
@@ -168,29 +163,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
 
-                for (i in 0 until neededDataRows) {
-                        val rowStart = (i + 1) * 9
-                        inventory.setItem(rowStart, greyPane)
-                        inventory.setItem(rowStart + 8, greyPane)
-
-                        for (j in 0 until 7) {
-                                val worldIndexInPage = i * 7 + j
-                                if (worldIndexInPage < currentPageWorlds.size) {
-                                        inventory.setItem(
-                                                rowStart + 1 + j,
-                                                createWorldItem(
-                                                        player,
-                                                        currentPageWorlds[worldIndexInPage],
-                                                        targetPlayerUuid
-                                                )
-                                        )
-                                } else {
-                                        inventory.setItem(rowStart + 1 + j, greyPane)
-                                }
-                        }
+                layout.itemSlots.forEachIndexed { index, slot ->
+                        inventory.setItem(
+                                slot,
+                                currentPageWorlds.getOrNull(index)?.let {
+                                        createWorldItem(player, it, targetPlayerUuid)
+                                } ?: greyPane
+                        )
                 }
 
-                val footerStart = (rowCount - 1) * 9
+                val footerStart = layout.size - 9
                 // 統計情報の取得
                 val currentCreateCount = playerWorlds.count { it.owner == targetPlayerUuid }
                 val maxSlot =
@@ -218,7 +200,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
                 // プレイヤー統計ボタン (Slot 4)
                 inventory.setItem(
-                        footerStart + 4,
+                        layout.actionSlot,
                         createStatsButton(player, targetPlayerUuid, targetPlayerName, currentCreateCount, maxSlot, stats)
                 )
 
@@ -230,21 +212,21 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                if (page > 0) {
+                if (currentPage > 0) {
                         inventory.setItem(
-                                footerStart + 1,
+                                layout.previousPageSlot,
                                 me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
                                         plugin,
                                         player,
                                         "player_world",
-                                        page - 1
+                                currentPage - 1
                                 )
                         )
                 }
 
                 if (session.showBackButton) {
                         inventory.setItem(
-                                footerStart,
+                                layout.backSlot,
                                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
                                         plugin,
                                         player,
@@ -252,14 +234,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 )
                         )
                 }
-                if (startIndex + itemsPerPageNum < playerWorlds.size) {
+                if (currentPage < pageLayout.totalPages - 1) {
                         inventory.setItem(
-                                footerStart + 8,
+                                layout.nextPageSlot,
                                 me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
                                         plugin,
                                         player,
                                         "player_world",
-                                        page + 1
+                                currentPage + 1
                                 )
                         )
                 }
@@ -333,9 +315,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
                 val settingsAction = lang.getMessage(player, "gui.player_world.world_item.settings")
                 val isCurrentWorld = isCurrentWorld(player, world)
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
-                // MWM owns the semantic block order; CC-System owns all surrounding separators.
+                // MWM owns semantic block order; CC-System draws the outer frame and ordinary boundary blank lines, while explicit separators draw middle rules.
                 meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
                         if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
                         add(GuiLoreBlock(
@@ -345,10 +325,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         val lifecycle = listOf(expiresAtLine, expiredLine).filter(String::isNotBlank)
                         if (lifecycle.isNotEmpty()) add(GuiLoreBlock(lifecycle.map(GuiLoreLine::Raw)))
                         add(GuiLoreBlock(buildList {
-                                if (isBedrock) {
-                                        if (!isCurrentWorld) add(GuiLoreActions.singleClick(lang, player, warpAction))
-                                        add(GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.world_item.settings_bedrock")))
-                                } else if (isCurrentWorld) {
+                                if (isCurrentWorld) {
                                         add(GuiLoreActions.singleClick(lang, player, settingsAction))
                                 } else {
                                         add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), warpAction))
@@ -373,9 +350,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiItemSpec(
                                 material = Material.WRITABLE_BOOK,
                                 name = GuiNameSpec.Text(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
-                                lore = GuiLoreSpec.Simple(
-                                        listOf(lang.getMessage(player, "gui.user_settings.button.action"))
-                                ),
+                                lore = GuiLoreSpec.Blocks(listOf(GuiLoreBlock(listOf(GuiLoreActions.singleClick(
+                                        lang,
+                                        player,
+                                        lang.getMessage(player, "gui.user_settings.button.action")
+                                ))))),
                                 role = GuiElementRole.ACTION,
                                 amount = 1
                         )
@@ -391,7 +370,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 meta.displayName(
                         lang.getComponent(player, "gui.player_world.creation_button.display")
                 )
-                meta.lore(GuiItemFactory.menuLore(lang.getMessageList(player, "gui.player_world.creation_button.lore")))
+                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+                        GuiLoreBlock(lang.getMessageList(player, "gui.player_world.creation_button.description").map(GuiLoreLine::Text)),
+                        GuiLoreBlock(listOf(GuiLoreActions.singleClick(
+                                lang,
+                                player,
+                                lang.getMessage(player, "gui.player_world.creation_button.action")
+                        )))
+                ))))
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_CREATION_BUTTON)
                 return item
@@ -462,33 +448,22 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                meta.lore(
-                        GuiItemFactory.menuLore(lang.getMessageList(
-                                player,
-                                if (bypassLimits) "gui.player_world.stats_button.lore_bypass" else "gui.player_world.stats_button.lore",
-                                mapOf(
+                val placeholders = mapOf(
                                         "point" to stats.worldPoint,
                                         "current_occupied" to currentCreateCount,
                                         "unlocked" to maxSlot,
                                         "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖",
                                         "pending_count" to pendingCount,
                                         "latest_pending_at" to latestPendingText
-                                )
-                        ))
                 )
-
-                if (pendingCount == 0) {
-                        val lore = meta.lore()
-                        if (!lore.isNullOrEmpty() && lore.size >= 5) {
-                                val pendingSectionStart = lore.size - 5
-                                val pendingSectionEnd = lore.size - 1
-                                meta.lore(
-                                        lore.filterIndexed { index, _ ->
-                                                index !in pendingSectionStart until pendingSectionEnd
-                                        }
-                                )
+                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+                        add(GuiLoreBlock(lang.getMessageList(player, "gui.player_world.stats_button.blocks.points", placeholders).map(GuiLoreLine::Raw)))
+                        add(GuiLoreBlock(lang.getMessageList(player, if (bypassLimits) "gui.player_world.stats_button.blocks.slots_bypass" else "gui.player_world.stats_button.blocks.slots", placeholders).map(GuiLoreLine::Raw)))
+                        if (pendingCount > 0) {
+                                add(GuiLoreBlock(lang.getMessageList(player, "gui.player_world.stats_button.blocks.pending", placeholders).map(GuiLoreLine::Raw)))
+                                add(GuiLoreBlock(listOf(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.player_world.stats_button.action.open_pending")))))
                         }
-                }
+                })))
 
                 if (pendingCount > 0) {
                         meta.setEnchantmentGlintOverride(true)

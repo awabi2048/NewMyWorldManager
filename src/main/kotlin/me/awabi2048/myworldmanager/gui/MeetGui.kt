@@ -1,6 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
@@ -192,6 +195,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         lines.add(lang.getMessage(viewer, currentWorldKey, mapOf("world" to displayWorldName)))
 
         // クリックしてワールドを訪れる/申請の表示判定
+        var action: String? = null
         if (worldData != null && !isSameWorld) {
             val isMember = worldData.owner == viewer.uniqueId ||
                            worldData.moderators.contains(viewer.uniqueId) ||
@@ -200,17 +204,22 @@ class MeetGui(private val plugin: MyWorldManager) {
             // Logic based on status
             if (stats.meetStatus == "JOIN_ME") {
                 when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(viewer, target, worldData, isMember)) {
-                    MeetTargetAction.DIRECT -> lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_visit"))
-                    MeetTargetAction.REQUEST -> lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_request"))
+                    MeetTargetAction.DIRECT -> action = lang.getMessage(viewer, "gui.meet.world_item.click_visit")
+                    MeetTargetAction.REQUEST -> action = lang.getMessage(viewer, "gui.meet.world_item.click_request")
                     MeetTargetAction.DENY -> Unit
                 }
             } else if (stats.meetStatus == "ASK_ME") {
                 // Request needed
-                lines.add(lang.getMessage(viewer, "gui.meet.world_item.click_request"))
+                action = lang.getMessage(viewer, "gui.meet.world_item.click_request")
             }
         }
 
-        val lore = GuiItemFactory.menuLore(lines)
+        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+            add(GuiLoreBlock(lines.map(GuiLoreLine::Raw)))
+            action?.let {
+                add(GuiLoreBlock(listOf(GuiLoreLine.Action(lang.getMessage(viewer, "lore.click.any"), it))))
+            }
+        }))
         meta.lore(lore)
         item.itemMeta = meta
 

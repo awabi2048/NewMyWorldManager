@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -120,19 +121,24 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val ownerName = PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown")
 
 
-        val lore = lang.getMenuLore(
-            player,
-            "gui.admin_portals.portal_item.lore",
-            mapOf(
-                "owner" to ownerName,
-                "world" to portal.worldName,
-                "x" to portal.x,
-                "y" to portal.y,
-                "z" to portal.z
-            )
+        val placeholders = mapOf(
+            "owner" to ownerName,
+            "world" to portal.worldName,
+            "x" to portal.x,
+            "y" to portal.y,
+            "z" to portal.z
         )
-
-        meta.lore(lore)
+        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            GuiLoreBlock(listOf(
+                GuiLoreLine.Raw(lang.getMessage(player, "gui.admin_portals.portal_item.owner", placeholders)),
+                GuiLoreLine.Raw(lang.getMessage(player, "gui.admin_portals.portal_item.world", placeholders)),
+                GuiLoreLine.Raw(lang.getMessage(player, "gui.admin_portals.portal_item.coordinates", placeholders))
+            )),
+            GuiLoreBlock(listOf(
+                GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport")),
+                GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"))
+            ))
+        ))))
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_PORTAL)
         ItemTag.setPortalUuid(item, portal.id)

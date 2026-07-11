@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -17,7 +21,7 @@ object PortalItemUtil {
         val item = ItemStack(Material.END_PORTAL_FRAME)
         val meta = item.itemMeta ?: return item
         meta.displayName(lang.getComponent(player, "gui.portal_item.name"))
-        meta.lore(lang.getMenuLore(player, "gui.portal_item.lore_unbound"))
+        meta.lore(portalLore(lang, player, null))
         try { meta.setMaxStackSize(1) } catch (e: Exception) {}
 
         meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
@@ -35,8 +39,7 @@ object PortalItemUtil {
         meta.persistentDataContainer.remove(TARGET_WORLD_NAME_KEY)
         meta.setEnchantmentGlintOverride(true)
 
-        val lore = lang.getMenuLore(player, "gui.portal_item.lore_bound", mapOf("destination" to worldName))
-        meta.lore(lore)
+        meta.lore(portalLore(lang, player, worldName))
 
         item.itemMeta = meta
     }
@@ -47,8 +50,7 @@ object PortalItemUtil {
         meta.persistentDataContainer.remove(WORLD_UUID_KEY)
         meta.setEnchantmentGlintOverride(true)
 
-        val lore = lang.getMenuLore(player, "gui.portal_item.lore_bound", mapOf("destination" to displayName))
-        meta.lore(lore)
+        meta.lore(portalLore(lang, player, displayName))
 
         item.itemMeta = meta
     }
@@ -76,4 +78,18 @@ object PortalItemUtil {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(TARGET_WORLD_NAME_KEY, PersistentDataType.STRING)
     }
+
+    private fun portalLore(lang: LanguageManager, player: org.bukkit.entity.Player?, destination: String?) =
+        CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+            if (destination != null) {
+                add(GuiLoreBlock(listOf(GuiLoreLine.Raw(lang.getMessage(player, "gui.portal_item.destination", mapOf("destination" to destination))))))
+            }
+            add(GuiLoreBlock(buildList {
+                add(GuiLoreLine.Action(
+                    lang.getMessage(player, "lore.click.right"),
+                    lang.getMessage(player, if (destination == null) "gui.portal_item.action.link" else "gui.portal_item.action.place")
+                ))
+                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.shift_right"), lang.getMessage(player, "gui.portal_item.action.unlink")))
+            }))
+        }))
 }

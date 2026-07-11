@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import org.bukkit.entity.Player
@@ -72,7 +76,7 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.world_seed.name"))
-            meta.lore(lang.getMenuLore(player, "custom_item.world_seed.lore"))
+            meta.lore(actionLore(lang, player, "custom_item.world_seed"))
 
             meta.setMaxStackSize(1)
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
@@ -92,7 +96,7 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.tour_sign.name"))
-            meta.lore(lang.getMenuLore(player, "custom_item.tour_sign.lore"))
+            meta.lore(actionLore(lang, player, "custom_item.tour_sign"))
 
             meta.setMaxStackSize(16)
             meta.setItemModel(NamespacedKey("minecraft", "pale_oak_sign"))
@@ -135,5 +139,14 @@ enum class CustomItem(val id: String) {
 
     companion object {
         fun fromId(id: String): CustomItem? = values().find { it.id.equals(id, ignoreCase = true) }
+
+        private fun actionLore(lang: LanguageManager, player: Player?, key: String) =
+            CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+                GuiLoreBlock(lang.getMessageList(player, "$key.description").map(GuiLoreLine::Text)),
+                GuiLoreBlock(listOf(GuiLoreLine.Action(
+                    lang.getMessage(player, "lore.click.right"),
+                    lang.getMessage(player, "$key.action")
+                )))
+            )))
     }
 }

@@ -18,6 +18,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 
@@ -220,7 +221,6 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val item = ItemStack(data.icon)
                 val meta = item.itemMeta ?: return item
                 val lang = plugin.languageManager
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
                 val worldName = lang.getMessageStrict(player, data.name) ?: data.name
                 meta.displayName(
                         lang.getComponent(
@@ -252,30 +252,26 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
                 val viewerUuid = player.uniqueId
                 val isMember = data.owner == viewerUuid || data.moderators.contains(viewerUuid) || data.members.contains(viewerUuid)
-                val warpLine = if (MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, data, isMember)) {
-                        if (isBedrock) {
-                                lang.getMessage(player, "gui.favorite.world_item.warp_bedrock")
-                        } else {
-                                lang.getMessage(player, "gui.favorite.world_item.warp")
-                        }
-                } else ""
+                val canWarp = MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, data, isMember)
+                val warpAction = lang.getMessage(player, "gui.favorite.world_item.warp")
 
                 val archivedLine = if (data.isArchived) lang.getMessage(player, "gui.favorite.world_item.archived_label") else ""
-                val unfavoriteLine = if (isBedrock) {
-                        ""
-                } else if (data.isArchived) {
-                        lang.getMessage(player, "gui.favorite.world_item.unfavorite_archived")
-                } else if (!isMember) {
-                        lang.getMessage(player, "gui.favorite.world_item.unfavorite")
-                } else ""
+                val canUnfavorite = !data.isArchived && !isMember
+                val unfavoriteAction = lang.getMessage(player, "gui.favorite.world_item.unfavorite")
 
-                meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
-                        *buildList {
-                                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
-                                add(listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                                add(listOf(warpLine, archivedLine, unfavoriteLine).filter(String::isNotBlank))
-                        }.toTypedArray()
-                )))
+                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
+                        add(GuiLoreBlock(
+                                (listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
+                                        .map(GuiLoreLine::Raw)
+                        ))
+                        if (archivedLine.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Warning(archivedLine))))
+                        val actions = buildList {
+                                if (canWarp) add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), warpAction))
+                                if (canUnfavorite) add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.shift_right"), unfavoriteAction))
+                        }
+                        if (actions.isNotEmpty()) add(GuiLoreBlock(actions))
+                })))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
@@ -360,8 +356,6 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val item = ItemStack(plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG))
                 val meta = item.itemMeta ?: return item
-                val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
                 meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name").decoration(TextDecoration.ITALIC, false))
                 val options = listOf(
                         "" to lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
@@ -380,27 +374,17 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                                 add(GuiLoreLine.Spacer)
                                 options.forEach { (tagId, displayName) ->
                                         val selected = tagId == selectedOption.first
-                                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
-                                        val color = if (selected) "\u00A7e" else "\u00A77"
-                                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                                        add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                if (isBedrock) {
-                                        add(GuiLoreActions.singleClick(
-                                                lang,
-                                                player,
-                                                lang.getMessage(player, "gui.discovery.tag_filter.action.next")
-                                        ))
-                                } else {
-                                        add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "gui.settings.click.left"),
-                                                lang.getMessage(player, "gui.discovery.tag_filter.action.next")
-                                        ))
-                                        add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "gui.settings.click.right"),
-                                                lang.getMessage(player, "gui.discovery.tag_filter.action.clear")
-                                        ))
-                                }
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "lore.click.left"),
+                                        lang.getMessage(player, "gui.discovery.tag_filter.action.next")
+                                ))
+                                add(GuiLoreLine.Action(
+                                        lang.getMessage(player, "lore.click.right"),
+                                        lang.getMessage(player, "gui.discovery.tag_filter.action.clear")
+                                ))
                         }, GuiLoreFrame.BOTH)
                 ))
 

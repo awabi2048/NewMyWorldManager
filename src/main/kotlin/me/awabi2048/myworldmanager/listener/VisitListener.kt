@@ -24,8 +24,6 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
         if (view.topInventory.holder is VisitGui.VisitGuiHolder) {
             val player = event.whoClicked as? Player ?: return
             val lang = plugin.languageManager
-            val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
             event.cancelWithDebug("VisitListener.onInventoryClick: visit GUI click")
             if (event.clickedInventory != view.topInventory) return
             val currentItem = event.currentItem ?: return
@@ -43,27 +41,6 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                 }
                 ItemTag.TYPE_GUI_WORLD_ITEM -> {
                     val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-
-                    if (isBedrock) {
-                        val worldData = plugin.worldConfigRepository.findByUuid(uuid)
-                        val isMember = worldData != null && (worldData.owner == player.uniqueId ||
-                                      worldData.moderators.contains(player.uniqueId) ||
-                                      worldData.members.contains(player.uniqueId))
-
-                        if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
-                            player.sendMessage(lang.getMessage(player, "error.world_not_public"))
-                            plugin.soundManager.playActionSound(player, "visit", "access_denied")
-                            player.closeInventory()
-                            return
-                        }
-
-                        plugin.soundManager.playClickSound(player, currentItem)
-                        player.closeInventory()
-                        plugin.worldService.teleportToWorld(player, uuid) {
-                            player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-                        }
-                        return
-                    }
 
                     if (event.isLeftClick) {
                         val worldData = plugin.worldConfigRepository.findByUuid(uuid)

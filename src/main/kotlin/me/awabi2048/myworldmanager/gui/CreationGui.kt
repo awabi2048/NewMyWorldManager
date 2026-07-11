@@ -14,6 +14,8 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreAction
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
@@ -148,7 +150,14 @@ class CreationGui(private val plugin: MyWorldManager) {
                  lore.add(LegacyComponentSerializer.legacySection().deserialize(line).decoration(TextDecoration.ITALIC, false))
             }
             lore.add(Component.empty())
-            lore.add(lang.getComponent(player, "gui.creation.template_item.preview_hint").decoration(TextDecoration.ITALIC, false))
+            lore.addAll(
+                GuiLoreBuilder(lang, player)
+                    .actions(listOf(GuiLoreAction(
+                        lang.getMessage(player, "lore.click.right"),
+                        lang.getMessage(player, "gui.creation.template_item.action.preview")
+                    )))
+                    .build()
+            )
 
             inventory.setItem(slot, createItem(template.icon, template.name, ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM, lore))
         }

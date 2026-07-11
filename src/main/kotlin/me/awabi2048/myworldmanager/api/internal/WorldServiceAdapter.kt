@@ -98,7 +98,7 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
             worldData.borderCenterPos = newCenter
         }
 
-        border.setSize(newSize, 0)
+        border.setSize(newSize)
         worldData.borderExpansionLevel += 1
         val newCenter = border.center
         worldData.borderExpansionHistory.add(
@@ -125,7 +125,7 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         val oldCenter = Location(world, record.oldCenterX, world.spawnLocation.y, record.oldCenterZ)
 
         world.worldBorder.setCenter(oldCenter)
-        world.worldBorder.setSize(record.oldSize, 0)
+        world.worldBorder.setSize(record.oldSize)
         worldData.borderCenterPos = oldCenter
         worldData.borderExpansionLevel = record.levelBefore
         val removedCost = WorldRuntimePolicies.expansionCost(plugin.config, record.levelAfter)

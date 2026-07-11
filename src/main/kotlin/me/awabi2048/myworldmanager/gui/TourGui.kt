@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -55,12 +56,13 @@ class TourGui(private val plugin: MyWorldManager) {
         )
         inventory.setItem(
             40,
-            createLoreItem(
+            createActionItem(
+                player,
                 Material.LIME_WOOL,
                 "§eこのツアーをはじめる！",
-                listOf("§7クリックしてこのワールドツアーを開始します"),
-                ItemTag.TYPE_GUI_CONFIRM,
-                LoreStyle.RAW
+                emptyList(),
+                plugin.languageManager.getMessage(player, "gui.tour.menu.tour_item.action_start"),
+                ItemTag.TYPE_GUI_CONFIRM
             )
         )
         player.openInventory(inventory)
@@ -100,8 +102,7 @@ class TourGui(private val plugin: MyWorldManager) {
         val footerStart = inventory.size - 9
         inventory.setItem(footerStart + 4, createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
         if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
-            val createContent = listOf(lang.getMessage(player, "gui.tour.menu.create.description"), lang.getMessage(player, "gui.tour.menu.create.action"))
-            inventory.setItem(footerStart + 2, createLoreItem(Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), createContent, ItemTag.TYPE_GUI_TOUR_CREATE, LoreStyle.FRAMED))
+            inventory.setItem(footerStart + 2, createActionItem(player, Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), listOf(lang.getMessage(player, "gui.tour.menu.create.description")), lang.getMessage(player, "gui.tour.menu.create.action"), ItemTag.TYPE_GUI_TOUR_CREATE))
         }
         inventory.setItem(4, createCurrentWorldItem(player, worldData))
         val infoLines = lang.getMessageList(player, "gui.tour.menu.info.lore")
@@ -125,13 +126,18 @@ class TourGui(private val plugin: MyWorldManager) {
         tour.waypoints.take(28).forEachIndexed { index, waypoint ->
             inventory.setItem(slots[index], createWaypointItem(player, waypoint, lang.getMessage(player, "gui.tour.menu.remove_waypoint_action")))
         }
-        if (tour.waypoints.size < 28) inventory.setItem(slots[tour.waypoints.size], createLoreItem(Material.YELLOW_STAINED_GLASS_PANE, lang.getMessage(player, "gui.tour.menu.add_waypoint_button"), emptyList(), ItemTag.TYPE_GUI_TOUR_ADD_WAYPOINT))
+        if (tour.waypoints.size < 28) inventory.setItem(slots[tour.waypoints.size], createActionItem(player, Material.YELLOW_STAINED_GLASS_PANE, lang.getMessage(player, "gui.tour.menu.add_waypoint_button"), emptyList(), lang.getMessage(player, "gui.tour.menu.add_sign_action"), ItemTag.TYPE_GUI_TOUR_ADD_WAYPOINT))
         val bottom = inventory.size - 9
         inventory.setItem(bottom, createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
-        val editTextLines = lang.getMessageList(player, "gui.tour.menu.edit_text.lore")
-        inventory.setItem(bottom + 2, createLoreItem(Material.NAME_TAG, lang.getMessage(player, "gui.tour.menu.edit_text.display"), editTextLines, ItemTag.TYPE_GUI_TOUR_EDIT_TEXT, LoreStyle.FRAMED))
-        inventory.setItem(bottom + 4, createLoreItem(Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"), listOf(lang.getMessage(player, "gui.tour.menu.save.action")), ItemTag.TYPE_GUI_TOUR_SAVE))
-        inventory.setItem(bottom + 6, createLoreItem(Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"), listOf(lang.getMessage(player, "gui.tour.menu.delete.action")), ItemTag.TYPE_GUI_TOUR_DELETE))
+        val editTextLore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            GuiLoreBlock(listOf(
+                GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.tour.menu.edit_text.action.text")),
+                GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"))
+            ))
+        )))
+        inventory.setItem(bottom + 2, createItem(Material.NAME_TAG, lang.getMessage(player, "gui.tour.menu.edit_text.display"), editTextLore, ItemTag.TYPE_GUI_TOUR_EDIT_TEXT))
+        inventory.setItem(bottom + 4, createActionItem(player, Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.save.action"), ItemTag.TYPE_GUI_TOUR_SAVE))
+        inventory.setItem(bottom + 6, createActionItem(player, Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.delete.action"), ItemTag.TYPE_GUI_TOUR_DELETE))
         player.openInventory(inventory)
     }
 
@@ -214,7 +220,7 @@ class TourGui(private val plugin: MyWorldManager) {
             else -> lang.getMessage(player, "gui.tour.menu.tour_item.action_start")
         }
         val desc = normalizeDescription(tour.description)
-        val item = createItem(tour.icon, tour.name, framedLore(desc, countLine, action), ItemTag.TYPE_GUI_TOUR_ITEM)
+        val item = createActionItem(player, tour.icon, tour.name, listOf(desc, countLine), action, ItemTag.TYPE_GUI_TOUR_ITEM)
         ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
         return item
     }
@@ -224,7 +230,7 @@ class TourGui(private val plugin: MyWorldManager) {
     private fun createWaypointItem(player: Player, waypoint: TourWaypointData, actionLine: String): ItemStack {
         val lang = plugin.languageManager
         val coordLine = "§8${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}"
-        val item = createItem(Material.OAK_BOAT, waypoint.name, framedLore(coordLine, actionLine), ItemTag.TYPE_GUI_TOUR_WAYPOINT_ITEM)
+        val item = createActionItem(player, Material.OAK_BOAT, waypoint.name, listOf(coordLine), actionLine, ItemTag.TYPE_GUI_TOUR_WAYPOINT_ITEM)
         ItemTag.setString(item, "tour_waypoint_uuid", waypoint.uuid.toString())
         return item
     }
@@ -248,6 +254,22 @@ class TourGui(private val plugin: MyWorldManager) {
             LoreStyle.FRAMED -> framedLore(lore)
         }
         return createItem(material, name, components, type)
+    }
+
+    private fun createActionItem(
+        player: Player,
+        material: Material,
+        name: String,
+        information: List<String>,
+        action: String,
+        type: String
+    ): ItemStack {
+        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+            val visibleInformation = information.filter(String::isNotBlank)
+            if (visibleInformation.isNotEmpty()) add(GuiLoreBlock(visibleInformation.map(GuiLoreLine::Raw)))
+            add(GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(plugin.languageManager, player, action))))
+        }))
+        return createItem(material, name, lore, type)
     }
 
     private fun createItem(material: Material, name: String, lore: List<Component>, type: String): ItemStack {
@@ -284,8 +306,8 @@ class TourGui(private val plugin: MyWorldManager) {
         unboundTours.sortedBy { it.createdAt }.take((rows - 2) * 7).forEachIndexed { index, tour ->
             val row = index / 7 + 1
             val col = index % 7 + 1
-            val item = createItem(tour.icon, tour.name,
-                framedLore(normalizeDescription(tour.description), lang.getMessage(player, "gui.tour.menu.tour_item.action_bind")),
+            val item = createActionItem(player, tour.icon, tour.name,
+                listOf(normalizeDescription(tour.description)), lang.getMessage(player, "gui.tour.menu.tour_item.action_bind"),
                 ItemTag.TYPE_GUI_TOUR_ITEM)
             ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
             inventory.setItem(row * 9 + col, item)

@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -53,36 +54,36 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val nameItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "name_input", Material.NAME_TAG),
             lang.getMessage(player, "gui.template_wizard.name_input.display"),
-            lang.getComponentList(
+            GuiLoreBuilder(lang, player).block(lang.getMessageList(
                 player,
-                "gui.template_wizard.name_input.lore",
+                "gui.template_wizard.name_input.description",
                 mapOf(
                     "name" to (if (session.name.isEmpty()) "未設定" else session.name),
                     "id" to (if (session.id.isEmpty()) "未設定" else session.id)
                 )
-            ),
+            )).actions(lang.getMessage(player, "gui.template_wizard.name_input.action")).build(),
             "name_input"
         )
         // Description
         val descItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "desc_input", Material.WRITABLE_BOOK),
             lang.getMessage(player, "gui.template_wizard.desc_input.display"),
-            lang.getComponentList(
+            GuiLoreBuilder(lang, player).block(lang.getMessageList(
                 player,
-                "gui.template_wizard.desc_input.lore",
+                "gui.template_wizard.desc_input.description",
                 mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" })
-            ),
+            )).actions(lang.getMessage(player, "gui.template_wizard.desc_input.action")).build(),
             "desc_input"
         )
         // Icon
         val iconItem = createSettingItem(
             session.icon,
             lang.getMessage(player, "gui.template_wizard.icon_select.display"),
-            lang.getComponentList(
+            GuiLoreBuilder(lang, player).block(lang.getMessageList(
                 player,
-                "gui.template_wizard.icon_select.lore",
+                "gui.template_wizard.icon_select.description",
                 mapOf("icon" to session.icon.name)
-            ),
+            )).actions(lang.getMessage(player, "gui.template_wizard.icon_select.action")).build(),
             "icon_select"
         )
         GuiHelper.setThreeChoiceItems(inventory, nameItem, descItem, iconItem)
@@ -91,11 +92,11 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val originItem = createSettingItem(
             plugin.menuConfigManager.getIconMaterial(menuId, "origin_set", Material.COMPASS),
             lang.getMessage(player, "gui.template_wizard.origin_set.display"),
-            lang.getComponentList(
+            GuiLoreBuilder(lang, player).block(lang.getMessageList(
                 player,
-                "gui.template_wizard.origin_set.lore",
+                "gui.template_wizard.origin_set.description",
                 mapOf("origin" to (if (session.originLocation == null) "未設定" else "${session.originLocation!!.blockX}, ${session.originLocation!!.blockY}, ${session.originLocation!!.blockZ}"))
-            ),
+            )).actions(lang.getMessage(player, "gui.template_wizard.origin_set.action")).build(),
             "origin_set"
         )
         inventory.setItem(31, originItem)
@@ -105,7 +106,11 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             val saveItem = createSettingItem(
                 plugin.menuConfigManager.getIconMaterial(menuId, "save_confirm", Material.NETHER_STAR),
                 lang.getMessage(player, "gui.template_wizard.save_confirm.display"),
-                lang.getComponentList(player, "gui.template_wizard.save_confirm.lore"),
+                GuiLoreBuilder(lang, player)
+                    .block(lang.getMessageList(player, "gui.template_wizard.save_confirm.description"))
+                    .warning(lang.getMessage(player, "gui.template_wizard.save_confirm.warning"))
+                    .actions(lang.getMessage(player, "gui.template_wizard.save_confirm.action"))
+                    .build(),
                 "save_confirm"
             )
             inventory.setItem(40, saveItem)
