@@ -98,7 +98,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             val item = ItemStack(Material.BARRIER)
             val meta = item.itemMeta ?: return item
             meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(GuiItemFactory.componentMenuLore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed"))))
+            meta.lore(GuiItemFactory.menuLore(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed")))))
             item.itemMeta = meta
             ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
             return item
@@ -108,7 +108,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             val item = ItemStack(Material.BARRIER)
             val meta = item.itemMeta ?: return item
             meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(GuiItemFactory.componentMenuLore(listOf(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.lore_restricted_owner"))))
+            meta.lore(GuiItemFactory.menuLore(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.favorite.favorite_menu.toggle.lore_restricted_owner")))))
             item.itemMeta = meta
             ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
             return item
@@ -160,33 +160,26 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val item = ItemStack(worldData.icon)
         val meta = item.itemMeta ?: return item
         val owner = Bukkit.getOfflinePlayer(worldData.owner)
-        val formattedDesc = if (worldData.description.isNotEmpty()) {
-            lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description))
-        } else ""
-        val onlineColor = lang.getMessage(player, "publish_level.color.online")
-        val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-        val statusColor = if (owner.isOnline) onlineColor else offlineColor
-        val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to (owner.name ?: lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
-        val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to worldData.favorite))
-        val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to worldData.recentVisitors.sum()))
-        val tagLine = if (worldData.tags.isNotEmpty()) {
-            val tagNames = worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
-            lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to tagNames))
-        } else ""
-        val lines = lang.getMessageList(player, "gui.favorite.current_world.lore", mapOf(
-            "world_line" to lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
-            "description" to formattedDesc,
-            "owner_line" to ownerLine,
-            "favorite_line" to favoriteLine,
-            "visitor_line" to visitorLine,
-            "tag_line" to tagLine
-        ))
-            .filter { line ->
-                val stripped = line.replace(Regex("[§&][0-9A-FK-ORa-fk-or]"), "").trim()
-                !(stripped.isNotEmpty() && stripped.all { it == '―' || it == '－' || it == '-' || it == '—' })
-            }
-            .filter { it.isNotBlank() }
-        val lore = GuiItemFactory.menuLore(lines)
+        val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
+        val tagNames = worldData.tags.takeIf(List<String>::isNotEmpty)?.joinToString(", ") {
+            plugin.worldTagManager.getDisplayName(player, it)
+        }
+        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            GuiLoreBlock(buildList {
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.world_name"), worldData.name, "§a"))
+                if (worldData.description.isNotBlank()) add(GuiLoreLine.UserText(worldData.description))
+            }),
+            GuiLoreBlock(buildList {
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b"))
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.favorite"), worldData.favorite, "§c"))
+                add(GuiLoreLine.Data(
+                    lang.getMessage(player, "gui.common.world_item.recent_visitors"),
+                    lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to worldData.recentVisitors.sum())),
+                    "§a"
+                ))
+                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
+            })
+        )))
 
         meta.displayName(lang.getComponent(player, "gui.favorite.current_world.name"))
         meta.lore(lore)

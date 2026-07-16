@@ -20,6 +20,9 @@ import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
 import me.awabi2048.myworldmanager.api.extension.VisitMenuProvider
 import me.awabi2048.myworldmanager.api.extension.VisitMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldCreationDecision
+import me.awabi2048.myworldmanager.api.extension.WorldCreationGuard
+import me.awabi2048.myworldmanager.api.extension.WorldCreationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
 import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
 import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessProvider
@@ -28,9 +31,12 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
+import me.awabi2048.myworldmanager.api.extension.WorldPlayerStateDecision
+import me.awabi2048.myworldmanager.api.extension.WorldPlayerStatePolicy
 import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
+import me.awabi2048.myworldmanager.api.service.ApiBedrockFormService
 import me.awabi2048.myworldmanager.api.service.ApiTemplateRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldEnvironmentService
@@ -51,7 +57,8 @@ object MyWorldManagerApi {
     private var templateRepository: ApiTemplateRepository? = null
     private var memberManager: ApiMemberManager? = null
     private var worldTagService: ApiWorldTagService? = null
-    private var worldCreationControlService: WorldCreationControlService? = null
+    private val worldCreationGuards = CopyOnWriteArrayList<WorldCreationGuard>()
+    private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
     private val menuExtensions = CopyOnWriteArrayList<MenuExtension>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
@@ -72,6 +79,20 @@ object MyWorldManagerApi {
     private val worldMenuAccessProviders = CopyOnWriteArrayList<WorldMenuAccessProvider>()
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
+    private var bedrockFormService: ApiBedrockFormService? = null
+
+    @JvmStatic
+    fun registerBedrockFormService(service: ApiBedrockFormService) {
+        bedrockFormService = service
+    }
+
+    @JvmStatic
+    fun unregisterBedrockFormService(service: ApiBedrockFormService) {
+        if (bedrockFormService === service) bedrockFormService = null
+    }
+
+    @JvmStatic
+    fun getBedrockFormService(): ApiBedrockFormService? = bedrockFormService
 
     @JvmStatic
     fun registerWorldPointService(service: WorldPointService) {
@@ -169,30 +190,83 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
-    fun registerWorldCreationControlService(service: WorldCreationControlService) {
-        worldCreationControlService = service
+    fun registerWorldCreationGuard(guard: WorldCreationGuard) {
+        worldCreationGuards.removeIf { it.getId() == guard.getId() }
+        worldCreationGuards.add(guard)
     }
 
     @JvmStatic
-    fun unregisterWorldCreationControlService(service: WorldCreationControlService) {
-        if (worldCreationControlService === service) {
-            worldCreationControlService = null
+    fun unregisterWorldCreationGuard(guard: WorldCreationGuard) {
+        worldCreationGuards.removeIf { it === guard || it.getId() == guard.getId() }
+    }
+
+    @JvmStatic
+    fun getWorldCreationGuards(): List<WorldCreationGuard> = worldCreationGuards.toList()
+
+    @JvmStatic
+    fun checkWorldCreation(request: WorldCreationRequest): WorldCreationDecision {
+        return worldCreationGuards
+            .asReversed()
+            .asSequence()
+            .map { it.evaluate(request) }
+            .firstOrNull { !it.allowed }
+            ?: WorldCreationDecision.allow()
+    }
+
+    @JvmStatic
+    fun registerWorldPlayerStatePolicy(policy: WorldPlayerStatePolicy) {
+        worldPlayerStatePolicies.removeIf { it.getId() == policy.getId() }
+        worldPlayerStatePolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldPlayerStatePolicy(policy: WorldPlayerStatePolicy) {
+        worldPlayerStatePolicies.removeIf { it === policy || it.getId() == policy.getId() }
+    }
+
+    @JvmStatic
+    fun getWorldPlayerStatePolicies(): List<WorldPlayerStatePolicy> = worldPlayerStatePolicies.toList()
+
+    /** 登録されたポリシーを合成し、SPECTATORは一時表示状態として変更しない。 */
+    @JvmStatic
+    fun syncWorldPlayerState(player: Player, worldData: WorldData) {
+        if (player.gameMode == org.bukkit.GameMode.SPECTATOR) return
+        val decisions = worldPlayerStatePolicies
+            .sortedByDescending { it.getPriority() }
+            .map { it.evaluate(player, worldData) }
+        val gameMode = decisions.firstNotNullOfOrNull(WorldPlayerStateDecision::gameMode)
+        val effectiveGameMode = gameMode ?: player.gameMode
+        val gameModeAllowsFlight =
+            effectiveGameMode == org.bukkit.GameMode.CREATIVE ||
+                effectiveGameMode == org.bukkit.GameMode.SPECTATOR
+        val flightAllowed =
+            gameModeAllowsFlight ||
+                (worldData.allowFlight && decisions.all { it.flightAllowed != false })
+
+        gameMode?.let { desired ->
+            if (player.gameMode != desired) player.gameMode = desired
+        }
+        if (!flightAllowed) {
+            player.allowFlight = false
+            if (player.isFlying) player.isFlying = false
+        } else if (gameModeAllowsFlight || decisions.any { it.flightAllowed == true }) {
+            player.allowFlight = true
         }
     }
 
     @JvmStatic
-    fun isWorldCreationEnabled(): Boolean {
-        return worldCreationControlService?.isWorldCreationEnabled() ?: true
+    fun canBuildInWorld(player: Player, worldData: WorldData): Boolean {
+        return worldPlayerStatePolicies
+            .map { it.evaluate(player, worldData) }
+            .all { it.buildAllowed != false }
     }
 
     @JvmStatic
-    fun setWorldCreationEnabled(enabled: Boolean) {
-        worldCreationControlService?.setWorldCreationEnabled(enabled)
-    }
-
-    interface WorldCreationControlService {
-        fun isWorldCreationEnabled(): Boolean
-        fun setWorldCreationEnabled(enabled: Boolean)
+    fun syncOnlineWorldPlayerStates() {
+        val repository = worldRepository ?: return
+        org.bukkit.Bukkit.getOnlinePlayers().forEach { player ->
+            repository.findByWorldName(player.world.name)?.let { syncWorldPlayerState(player, it) }
+        }
     }
 
     @JvmStatic

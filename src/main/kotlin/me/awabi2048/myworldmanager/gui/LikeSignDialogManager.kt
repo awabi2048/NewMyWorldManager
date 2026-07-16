@@ -258,19 +258,22 @@ class LikeSignDialogManager : Listener {
             val center = GuiItemFactory.item(
                 org.bukkit.Material.RED_DYE,
                 lang.getMessage(player, "gui.like_sign.unlike_confirm.title"),
-                listOf(Component.text(lang.getMessage(player, "gui.like_sign.unlike_confirm.description"))),
+                GuiLoreSpec.Rich(
+                    listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.like_sign.unlike_confirm.description"))),
+                    GuiLoreFrame.BOTH
+                ),
                 ItemTag.TYPE_GUI_INFO
             )
             val confirmItem = GuiItemFactory.item(
                 org.bukkit.Material.LIME_CONCRETE,
                 lang.getMessage(player, "gui.common.confirm"),
-                emptyList(),
+                GuiLoreSpec.None,
                 ItemTag.TYPE_GUI_CONFIRM
             )
             val cancelItem = GuiItemFactory.item(
                 org.bukkit.Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.common.cancel"),
-                emptyList(),
+                GuiLoreSpec.None,
                 ItemTag.TYPE_GUI_CANCEL
             )
 

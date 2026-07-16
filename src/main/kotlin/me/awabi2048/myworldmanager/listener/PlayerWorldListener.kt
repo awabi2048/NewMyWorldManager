@@ -191,7 +191,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                         val title = LegacyComponentSerializer.legacySection().deserialize(
                             lang.getMessage(player, "gui.unarchive_confirm.title")
                         )
-                        val bodyLines = lang.getMessageList(player, "gui.unarchive_confirm.lore")
+                        val bodyLines = lang.getMessageList(player, "gui.unarchive_confirm.description")
                             .map { LegacyComponentSerializer.legacySection().deserialize(it) }
 
                         plugin.settingsSessionManager.updateSessionAction(

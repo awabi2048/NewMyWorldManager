@@ -23,7 +23,13 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.world_seed_confirm.title"))
-        infoMeta.lore(lang.getMenuLore(player, "gui.world_seed_confirm.lore", mapOf("current" to currentSlots, "next" to nextSlots)))
+        infoMeta.lore(me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
+            listOf(
+                com.awabi2048.ccsystem.api.gui.GuiLoreLine.Warning(lang.getMessage(player, "gui.world_seed_confirm.question")),
+                com.awabi2048.ccsystem.api.gui.GuiLoreLine.Data(lang.getMessage(player, "gui.world_seed_confirm.current_label"), currentSlots, "§a"),
+                com.awabi2048.ccsystem.api.gui.GuiLoreLine.Data(lang.getMessage(player, "gui.world_seed_confirm.next_label"), nextSlots, "§a")
+            ) + lang.getMessageList(player, "gui.world_seed_confirm.description").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+        ))
         infoItem.itemMeta = infoMeta
 
         // はい

@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.session.AdminGuiSession
 import me.awabi2048.myworldmanager.session.PortalSortType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
@@ -121,18 +122,15 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val ownerName = PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown")
 
 
-        val placeholders = mapOf(
-            "owner" to ownerName,
-            "world" to portal.worldName,
-            "x" to portal.x,
-            "y" to portal.y,
-            "z" to portal.z
-        )
         meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
             GuiLoreBlock(listOf(
-                GuiLoreLine.Raw(lang.getMessage(player, "gui.admin_portals.portal_item.owner", placeholders)),
-                GuiLoreLine.Raw(lang.getMessage(player, "gui.admin_portals.portal_item.world", placeholders)),
-                GuiLoreLine.Raw(lang.getMessage(player, "gui.admin_portals.portal_item.coordinates", placeholders))
+                GuiLoreLine.Data(lang.getMessage(player, "gui.admin_portals.portal_item.owner"), ownerName, "§f"),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.admin_portals.portal_item.world"), portal.worldName, "§f"),
+                GuiLoreLine.Data(
+                    lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"),
+                    "${portal.x}, ${portal.y}, ${portal.z}",
+                    "§f"
+                )
             )),
             GuiLoreBlock(listOf(
                 GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport")),
@@ -161,9 +159,9 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta ?: return item
         val lang = plugin.languageManager
         meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
-        meta.lore(GuiItemFactory.componentMenuLore(listOf(
-            lang.getComponent(null, "gui.admin.info.total_count", mapOf("count" to totalCount)),
-            lang.getComponent(null, "gui.admin.info.page", mapOf("page" to current, "total_pages" to total))
+        meta.lore(GuiItemFactory.menuLore(listOf(
+            GuiLoreLine.Data(lang.getMessage(null, "gui.admin.info.total_count_label"), totalCount, "§b"),
+            GuiLoreLine.Data(lang.getMessage(null, "gui.admin.info.page_label"), "$current/$total", "§a")
         )))
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -191,19 +189,10 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                     add(GuiLoreLine.Spacer)
                     options.forEach { (sortType, displayName) ->
                         val selected = sortType == session.portalSortBy
-                        val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
-                        val color = if (selected) "\u00A7e" else "\u00A77"
-                        add(GuiLoreLine.Raw("\u00A7f\u2759 $marker $color$displayName"))
+                        add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                     }
                     add(GuiLoreLine.Spacer)
-                    add(GuiLoreLine.Action(
-                        lang.getMessage(player, "gui.settings.click.left"),
-                        lang.getMessage(player, "gui.admin.filter.next")
-                    ))
-                    add(GuiLoreLine.Action(
-                        lang.getMessage(player, "gui.settings.click.right"),
-                        lang.getMessage(player, "gui.admin.filter.previous")
-                    ))
+                    add(GuiLoreActions.cycle(lang, player))
                 }, GuiLoreFrame.BOTH)
             )
         )

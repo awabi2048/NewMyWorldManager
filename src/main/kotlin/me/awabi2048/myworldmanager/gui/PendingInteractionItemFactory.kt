@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
@@ -52,44 +53,17 @@ object PendingInteractionItemFactory {
         )
 
         val lore = GuiLoreBuilder(lang, viewer)
-            .componentBlock(
-                listOf(
-                    lang.getComponent(
-                        viewer,
-                        "gui.pending_list.item.type_line",
-                        mapOf("type" to typeLabel(plugin, viewer, type))
-                    ),
-                    lang.getComponent(
-                        viewer,
-                        "gui.pending_list.item.world_line",
-                        mapOf("world" to worldName)
-                    ),
-                    lang.getComponent(
-                        viewer,
-                        "gui.pending_list.item.status_line",
-                        mapOf(
-                            "status" to lang.getMessage(
-                                viewer,
-                                if (isOnline) "gui.pending_list.item.status_online" else "gui.pending_list.item.status_offline"
-                            )
-                        )
-                    ),
-                    lang.getComponent(
-                        viewer,
-                        "gui.pending_list.item.received_line",
-                        mapOf("datetime" to formatDateTime(plugin, viewer, createdAt))
-                    ),
-                )
-            )
-            .componentBlock(
-                listOf(
-                    lang.getComponent(
-                        viewer,
-                        actionLineKey(actionMode, type),
-                        mapOf("type" to typeLabel(plugin, viewer, type))
-                    )
-                )
-            )
+            .block(listOf(
+                GuiLoreLine.Data(lang.getMessage(viewer, "gui.pending_list.item.type_label"), typeLabel(plugin, viewer, type), "§e"),
+                GuiLoreLine.Data(lang.getMessage(viewer, "gui.pending_list.item.world_label"), worldName, "§a"),
+                GuiLoreLine.Data(
+                    lang.getMessage(viewer, "gui.pending_list.item.status_label"),
+                    lang.getMessage(viewer, if (isOnline) "gui.pending_list.item.status_online" else "gui.pending_list.item.status_offline"),
+                    ""
+                ),
+                GuiLoreLine.Data(lang.getMessage(viewer, "gui.pending_list.item.received_label"), formatDateTime(plugin, viewer, createdAt), "§f")
+            ))
+            .actions(lang.getMessage(viewer, actionLineKey(actionMode, type), mapOf("type" to typeLabel(plugin, viewer, type))))
             .build()
         meta.lore(lore)
         meta.setEnchantmentGlintOverride(true)

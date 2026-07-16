@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.util.*
 import java.util.logging.Level
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -11,11 +13,16 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.migration.WorldDirectoryResolver
+import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
+import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.session.WorldSpawnCoordinates
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
+import me.awabi2048.myworldmanager.util.SeedSpawnSafety
 import me.awabi2048.myworldmanager.util.WorldWarpId
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -65,6 +72,11 @@ class WorldService(
             worldType: WorldType = WorldType.NORMAL,
             initialSpawn: WorldSpawnCoordinates? = null
     ): Boolean {
+
+        if (!WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) ||
+                !WorldCreationChecks.check(player, type = WorldCreationType.SEED.takeIf { seed != null } ?: WorldCreationType.RANDOM)) {
+            return false
+        }
 
         plugin.worldValidator.validateName(worldName).let { result ->
             if (result is WorldNameValidation.Failure) {
@@ -150,7 +162,7 @@ class WorldService(
                 initialSpawn
             }
 
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None", effectiveInitialSpawn)
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None", effectiveInitialSpawn, seed != null)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -217,6 +229,44 @@ class WorldService(
                 head.type.isAir
     }
 
+    private fun validateSeedSpawn(player: Player, worldData: WorldData, world: org.bukkit.World): Boolean {
+        if (!worldData.seedSpecified || worldData.seedSpawnValidated) return true
+        val requested = worldData.spawnPosMember ?: world.spawnLocation
+        val requestedPosition = SeedSpawnSafety.Position(requested.blockX, requested.blockY, requested.blockZ)
+        val radius = plugin.config.getInt("creation.seed_spawn_search_radius", 16).coerceAtLeast(0)
+        val sameXzSafeY = (world.minHeight + 1 until world.maxHeight - 1)
+            .filter { isSafeStandingLocation(world, requestedPosition.x, it, requestedPosition.z) }
+        val surroundingSafe = (-radius..radius).flatMap { dx ->
+            (-radius..radius).mapNotNull { dz ->
+                if (dx == 0 && dz == 0) return@mapNotNull null
+                findSafeSurfaceLocation(world, requestedPosition.x + dx, requestedPosition.z + dz)?.let {
+                    SeedSpawnSafety.Position(it.blockX, it.blockY, it.blockZ)
+                }
+            }
+        }
+        val chosen = SeedSpawnSafety.choose(
+            requestedPosition,
+            isSafeStandingLocation(world, requestedPosition.x, requestedPosition.y, requestedPosition.z),
+            sameXzSafeY,
+            surroundingSafe
+        ) ?: run {
+            plugin.logger.warning("シード指定ワールド ${worldData.uuid} の安全な初回スポーン地点を見つけられませんでした")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.seed_spawn.safe_location_not_found"))
+            return false
+        }
+
+        if (chosen != requestedPosition) {
+            plugin.logger.warning("シード指定ワールド ${worldData.uuid} の危険なスポーンを ${chosen.x},${chosen.y},${chosen.z} に補正しました")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.seed_spawn.corrected", mapOf("x" to chosen.x, "y" to chosen.y, "z" to chosen.z)))
+            val corrected = Location(world, chosen.x + 0.5, chosen.y.toDouble(), chosen.z + 0.5, requested.yaw, requested.pitch)
+            worldData.spawnPosMember = corrected
+            world.setSpawnLocation(chosen.x, chosen.y, chosen.z)
+        }
+        worldData.seedSpawnValidated = true
+        repository.save(worldData)
+        return true
+    }
+
     private fun finalizeWorldCreation(
             player: Player,
             uuid: UUID,
@@ -225,7 +275,8 @@ class WorldService(
             world: org.bukkit.World,
             cost: Int,
             templateName: String,
-            initialSpawn: WorldSpawnCoordinates? = null
+            initialSpawn: WorldSpawnCoordinates? = null,
+            seedSpecified: Boolean = false
     ) {
         val now = java.time.LocalDateTime.now()
         val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -269,7 +320,9 @@ class WorldService(
                         cumulativePoints = cost,
                         isArchived = false,
                         customWorldName = worldFolderName,
-                        createdAt = now.format(formatter)
+                        createdAt = now.format(formatter),
+                        seedSpecified = seedSpecified,
+                        seedSpawnValidated = !seedSpecified
                 )
 
         repository.save(worldData)
@@ -346,6 +399,12 @@ class WorldService(
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
         if (player == null) {
+            future.complete(false)
+            return future
+        }
+
+        if (!WorldCreationChecks.checkLimits(plugin, player, ownerUuid) ||
+                !WorldCreationChecks.check(player, type = WorldCreationType.TEMPLATE)) {
             future.complete(false)
             return future
         }
@@ -465,17 +524,34 @@ class WorldService(
         val worldData = repository.findByUuid(worldUuid) ?: return false
         val folderName = getWorldFolderName(worldData)
 
-        if (Bukkit.getWorld(folderName) != null) {
-            return true // すでにロードされている
+        when (WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)?.state) {
+            WorldDirectoryState.CURRENT -> Unit
+            WorldDirectoryState.LEGACY -> if (plugin.worldMigrationService.isPending(worldUuid)) {
+                plugin.logger.warning("World load requires administrator approval: $folderName")
+                return false
+            }
+            WorldDirectoryState.CONFLICT -> {
+                plugin.logger.severe("World load rejected because both legacy and current directories exist: $folderName")
+                return false
+            }
+            WorldDirectoryState.MISSING, null -> {
+                plugin.logger.warning("World load rejected because the directory is missing or unsafe: $folderName")
+                return false
+            }
         }
 
-        if (!worldFolderExists(folderName)) {
-            return false // ワールドフォルダが存在しない
+        if (Bukkit.getWorld(folderName) != null) {
+            plugin.worldEnvironmentService.applyAll(Bukkit.getWorld(folderName)!!, worldData)
+            return true // すでにロードされている
         }
 
         return try {
             val creator = WorldCreator(folderName)
-            plugin.server.createWorld(creator)
+            val world = plugin.server.createWorld(creator) ?: return false
+            if (worldData.seedSpecified && world.environment == org.bukkit.World.Environment.THE_END) {
+                prepareGeneratedEndWorld(world)
+            }
+            plugin.worldEnvironmentService.applyAll(world, worldData)
             repository.save(worldData)
 
             true
@@ -581,8 +657,11 @@ class WorldService(
             resolveWorldDirectory(getWorldFolderName(worldData))
 
     fun resolveWorldDirectory(folderName: String): File =
-            possibleWorldDirectories(folderName).firstOrNull { it.exists() && it.isDirectory }
-                    ?: File(Bukkit.getWorldContainer(), folderName)
+            resolveExistingWorldDirectory(folderName)
+                    ?: throw IllegalStateException("Existing world directory is not uniquely resolvable: $folderName")
+
+    private fun resolveExistingWorldDirectory(folderName: String): File? =
+            WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)?.existingPath?.toFile()
 
     private fun preferredActiveWorldDirectory(folderName: String): File {
         val container = Bukkit.getWorldContainer()
@@ -595,15 +674,8 @@ class WorldService(
     }
 
     private fun worldFolderExists(folderName: String): Boolean =
-            possibleWorldDirectories(folderName).any { it.exists() && it.isDirectory }
-
-    private fun possibleWorldDirectories(folderName: String): List<File> {
-        val container = Bukkit.getWorldContainer()
-        return listOf(
-                File(container, folderName),
-                File(File(File(container, "world"), "dimensions/minecraft"), folderName)
-        )
-    }
+            WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)?.state
+                    ?.let { it != WorldDirectoryState.MISSING } == true
 
     private fun generateUniqueWorldUuid(): UUID {
         val usedWarpIds = repository.findAll().mapTo(mutableSetOf()) { WorldWarpId.of(it.uuid) }
@@ -633,6 +705,13 @@ class WorldService(
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
         val needsLoad = Bukkit.getWorld(folderName) == null
+        val sessionAtStart = plugin.settingsSessionManager.getSession(player)
+        plugin.logWorldSettingsDebug(
+                "warp=start player=${player.name}/${player.uniqueId} world=$worldUuid folder=$folderName " +
+                        "needsLoad=$needsLoad closeOnLoad=$closeInventoryOnLoad reason=$reason " +
+                        "session=${sessionAtStart?.action ?: "none"}/${sessionAtStart?.worldUuid ?: "none"} " +
+                        "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
+        )
 
         if (needsLoad) {
             if (closeInventoryOnLoad) {
@@ -650,6 +729,10 @@ class WorldService(
             player.sendMessage(plugin.languageManager.getMessage(player, "error.world_load_failed"))
             return
         }
+
+        plugin.worldEnvironmentService.applyAll(world, worldData)
+
+        if (!validateSeedSpawn(player, worldData, world)) return
 
         // スポーン地点の決定
         val selectedLoc =
@@ -680,6 +763,14 @@ class WorldService(
             }
 
             player.teleport(targetLoc)
+            val sessionAfterTeleport = plugin.settingsSessionManager.getSession(player)
+            plugin.logWorldSettingsDebug(
+                    "warp=teleported player=${player.name}/${player.uniqueId} world=$worldUuid " +
+                            "actualWorld=${player.world.name} success=${player.world.uid == world.uid} " +
+                            "session=${sessionAfterTeleport?.action ?: "none"}/${sessionAfterTeleport?.worldUuid ?: "none"} " +
+                            "transition=${sessionAfterTeleport?.isGuiTransition ?: false} " +
+                            "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
+            )
 
             plugin.soundManager.playTeleportSound(player)
 
@@ -702,6 +793,12 @@ class WorldService(
             }
 
             afterTeleported?.invoke()
+            val sessionAfterCallback = plugin.settingsSessionManager.getSession(player)
+            plugin.logWorldSettingsDebug(
+                    "warp=callback_complete player=${player.name}/${player.uniqueId} world=$worldUuid " +
+                            "session=${sessionAfterCallback?.action ?: "none"}/${sessionAfterCallback?.worldUuid ?: "none"} " +
+                            "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
+            )
         }
 
         if (needsLoad) {
@@ -791,13 +888,25 @@ class WorldService(
         val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
         val archivedFile = File(archiveFolder, folderName)
         val targetFile = preferredActiveWorldDirectory(folderName)
+        val activeResolution = WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)
+        if (activeResolution == null || activeResolution.state != WorldDirectoryState.MISSING) {
+            plugin.logger.warning(
+                "World restore rejected because the active directory state is " +
+                        "${activeResolution?.state ?: "UNSAFE"}: $folderName"
+            )
+            future.complete(false)
+            return future
+        }
 
-        if (archivedFile.exists()) {
-            if (!archivedFile.renameTo(targetFile)) {
-                plugin.logger.severe("Failed to move world directory from archive: $folderName")
-                future.complete(false)
-                return future
-            }
+        if (!isSafeArchiveDirectory(archiveFolder, archivedFile)) {
+            plugin.logger.warning("World restore rejected because the archived directory is missing or unsafe: $archivedFile")
+            future.complete(false)
+            return future
+        }
+        if (!archivedFile.renameTo(targetFile)) {
+            plugin.logger.severe("Failed to move world directory from archive: $folderName")
+            future.complete(false)
+            return future
         }
 
         worldData.isArchived = false
@@ -808,6 +917,24 @@ class WorldService(
         repository.save(worldData)
         future.complete(true)
         return future
+    }
+
+    private fun isSafeArchiveDirectory(archiveFolder: File, archivedFile: File): Boolean {
+        val archiveRoot = archiveFolder.toPath().toAbsolutePath().normalize()
+        val archivedPath = archivedFile.toPath().toAbsolutePath().normalize()
+        if (!archivedPath.startsWith(archiveRoot) ||
+            !Files.isDirectory(archiveRoot, LinkOption.NOFOLLOW_LINKS) ||
+            !Files.isDirectory(archivedPath, LinkOption.NOFOLLOW_LINKS)
+        ) {
+            return false
+        }
+
+        var current = archivedPath
+        while (true) {
+            if (Files.isSymbolicLink(current)) return false
+            if (current == archiveRoot) return true
+            current = current.parent ?: return false
+        }
     }
 
     /** ワールドを完全に削除する */
@@ -855,7 +982,10 @@ class WorldService(
             val folder = if (worldData.isArchived) {
                 File(archiveFolder, folderName)
             } else {
-                getWorldDirectory(worldData)
+                resolveExistingWorldDirectory(folderName) ?: run {
+                    future.complete(false)
+                    return@thenAccept
+                }
             }
 
             if (folder.exists() && !folder.deleteRecursively()) {
@@ -903,7 +1033,10 @@ class WorldService(
             val folder = if (worldData.isArchived) {
                 File(archiveFolder, folderName)
             } else {
-                getWorldDirectory(worldData)
+                resolveExistingWorldDirectory(folderName) ?: run {
+                    future.complete(false)
+                    return@thenAccept
+                }
             }
 
             if (folder.exists() && !folder.deleteRecursively()) {
@@ -968,7 +1101,10 @@ class WorldService(
             val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
             if (!archiveFolder.exists()) archiveFolder.mkdirs()
 
-            val sourceFile = getWorldDirectory(worldData)
+            val sourceFile = resolveExistingWorldDirectory(folderName) ?: run {
+                future.complete(false)
+                return@thenAccept
+            }
             val targetFile = File(archiveFolder, folderName)
 
             if (sourceFile.exists() && !sourceFile.renameTo(targetFile)) {

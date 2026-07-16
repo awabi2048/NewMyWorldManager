@@ -32,7 +32,9 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
-        infoMeta.lore(lang.getMenuLore(player, "gui.member_request_owner_confirm.lore", mapOf("player" to requestorName)))
+        infoMeta.lore(me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
+            lang.getMessageList(player, "gui.member_request_owner_confirm.lore", mapOf("player" to requestorName)).map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+        ))
         infoItem.itemMeta = infoMeta
 
         // 承認

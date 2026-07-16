@@ -16,6 +16,7 @@ import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.StructuredLore
 import net.kyori.adventure.text.Component
@@ -267,30 +268,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val formattedDesc = if (world.description.isNotEmpty()) {
-                        lang.getMessage(player, "gui.common.world_desc", mapOf("description" to world.description))
-                } else ""
-
                 val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(player, "general.unknown"))
-
-                val ownerLine = lang.getMessage(player, "gui.player_world.world_item.owner", mapOf("owner" to ownerName))
 
                 val publishLevelColor = lang.getMessage(player, "publish_level.color.${world.publishLevel.name.lowercase()}")
                 val publishLevelName = lang.getMessage(player, "publish_level.${world.publishLevel.name.lowercase()}")
-                val publishLine = lang.getMessage(player, "gui.player_world.world_item.publish", mapOf("level" to publishLevelName, "status_color" to publishLevelColor))
 
                 val favorites = world.favorite
-                val favoriteLine = lang.getMessage(player, "gui.player_world.world_item.favorite", mapOf("count" to favorites))
 
                 val visitors = world.recentVisitors.sum()
-                val visitorLine = lang.getMessage(player, "gui.player_world.world_item.recent_visitors", mapOf("count" to visitors))
 
-                val tagLine = if (world.tags.isNotEmpty()) {
-                        val tagNames = world.tags.joinToString(", ") {
+                val tagNames = if (world.tags.isNotEmpty()) {
+                        world.tags.joinToString(", ") {
                                 plugin.worldTagManager.getDisplayName(player, it)
                         }
-                        lang.getMessage(player, "gui.player_world.world_item.tag", mapOf("tags" to tagNames))
-                } else ""
+                } else null
 
                 val now = LocalDate.now()
                 val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -302,28 +293,38 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
                 val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
 
-                val expiresAtLine = if (expireDate.year < 2900) {
+                val expiresAtValue = if (expireDate.year < 2900) {
                         if (daysRemaining < 0) meta.setEnchantmentGlintOverride(true)
-                        lang.getMessage(player, "gui.player_world.world_item.expires_at", mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate)))
-                } else ""
+                        lang.getMessage(player, "gui.player_world.world_item.expires_value", mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate)))
+                } else null
 
-                val expiredLine = if (world.isArchived) {
+                val isArchived = if (world.isArchived) {
                     meta.setEnchantmentGlintOverride(true)
-                    lang.getMessage(player, "gui.player_world.world_item.expired")
-                } else ""
+                    true
+                } else false
 
                 val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
                 val settingsAction = lang.getMessage(player, "gui.player_world.world_item.settings")
                 val isCurrentWorld = isCurrentWorld(player, world)
                 // MWM owns semantic block order; CC-System draws the outer frame and ordinary boundary blank lines, while explicit separators draw middle rules.
                 meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
-                        add(GuiLoreBlock(
-                                (listOf(ownerLine, publishLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                                        .map(GuiLoreLine::Raw)
-                        ))
-                        val lifecycle = listOf(expiresAtLine, expiredLine).filter(String::isNotBlank)
-                        if (lifecycle.isNotEmpty()) add(GuiLoreBlock(lifecycle.map(GuiLoreLine::Raw)))
+                        if (world.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(world.description))))
+                        add(GuiLoreBlock(buildList {
+                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§f"))
+                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.publish"), publishLevelName, publishLevelColor))
+                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, "§c"))
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.common.world_item.recent_visitors"),
+                                        lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
+                                        "§a"
+                                ))
+                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
+                        }))
+                        val lifecycle = buildList {
+                                if (expiresAtValue != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.player_world.world_item.expires_at"), expiresAtValue, "§f"))
+                                if (isArchived) add(GuiLoreLine.Warning(lang.getMessage(player, "gui.player_world.world_item.expired")))
+                        }
+                        if (lifecycle.isNotEmpty()) add(GuiLoreBlock(lifecycle))
                         add(GuiLoreBlock(buildList {
                                 if (isCurrentWorld) {
                                         add(GuiLoreActions.singleClick(lang, player, settingsAction))
@@ -388,7 +389,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val item = ItemStack(Material.BARRIER)
                 val meta = item.itemMeta ?: return item
                 meta.displayName(lang.getComponent(player, reason.displayKey))
-                meta.lore(GuiItemFactory.menuLore(lang.getMessageList(player, reason.loreKey)))
+                meta.lore(GuiItemFactory.menuLore(lang.getMessageList(player, reason.loreKey).map(GuiLoreLine::Text)))
                 meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
@@ -405,9 +406,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 if (!PermissionManager.checkPermission(player, PermissionManager.COMMAND_MWM_CREATE)) {
                         return CreationBlockReason.NO_PERMISSION
                 }
+                if (!WorldCreationChecks.check(player, notify = false)) return CreationBlockReason.POLICY_DENIED
                 if (bypassLimits) return null
-                // 作成期間の停止は枠不足より優先して、運営側の意図をそのまま表示する。
-                if (!MyWorldManagerApi.isWorldCreationEnabled()) return CreationBlockReason.PERIOD_DISABLED
                 if (currentCreateCount >= maxSlot) return CreationBlockReason.NO_SLOT
                 return null
         }
@@ -448,19 +448,52 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val placeholders = mapOf(
-                                        "point" to stats.worldPoint,
-                                        "current_occupied" to currentCreateCount,
-                                        "unlocked" to maxSlot,
-                                        "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖",
-                                        "pending_count" to pendingCount,
-                                        "latest_pending_at" to latestPendingText
-                )
                 meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        add(GuiLoreBlock(lang.getMessageList(player, "gui.player_world.stats_button.blocks.points", placeholders).map(GuiLoreLine::Raw)))
-                        add(GuiLoreBlock(lang.getMessageList(player, if (bypassLimits) "gui.player_world.stats_button.blocks.slots_bypass" else "gui.player_world.stats_button.blocks.slots", placeholders).map(GuiLoreLine::Raw)))
+                        val pointIcon = if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖 "
+                        add(GuiLoreBlock(listOf(
+                                GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.player_world.stats_button.points_label"),
+                                        "$pointIcon${stats.worldPoint}",
+                                        "§6"
+                                ),
+                                GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.points_description"))
+                        )))
+                        add(GuiLoreBlock(if (bypassLimits) {
+                                listOf(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
+                                                currentCreateCount,
+                                                "§a§l"
+                                        ),
+                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_bypass_description"))
+                                )
+                        } else {
+                                listOf(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.player_world.stats_button.slots_label"),
+                                                "$currentCreateCount/$maxSlot",
+                                                "§a§l"
+                                        ),
+                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_description"))
+                                )
+                        }))
                         if (pendingCount > 0) {
-                                add(GuiLoreBlock(lang.getMessageList(player, "gui.player_world.stats_button.blocks.pending", placeholders).map(GuiLoreLine::Raw)))
+                                add(GuiLoreBlock(listOf(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.player_world.stats_button.pending_label"),
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.player_world.stats_button.pending_value",
+                                                        mapOf("count" to pendingCount)
+                                                ),
+                                                "§e"
+                                        ),
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.player_world.stats_button.latest_pending_label"),
+                                                latestPendingText,
+                                                "§b"
+                                        )
+                                )))
                                 add(GuiLoreBlock(listOf(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.player_world.stats_button.action.open_pending")))))
                         }
                 })))
@@ -496,9 +529,9 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
-                PERIOD_DISABLED(
-                        "gui.player_world.creation_unavailable.period_disabled.display",
-                        "gui.player_world.creation_unavailable.period_disabled.lore"
+                POLICY_DENIED(
+                        "gui.player_world.creation_unavailable.policy_denied.display",
+                        "gui.player_world.creation_unavailable.policy_denied.lore"
                 ),
                 NO_SLOT(
                         "gui.player_world.creation_unavailable.no_slot.display",

@@ -105,7 +105,9 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         // Portal IDの保持
         val metaItem = inventory.getItem(0)!!
         val meta = metaItem.itemMeta ?: return
-        meta.lore(GuiItemFactory.componentMenuLore(listOf(lang.getComponent(player, "gui.portal.id_format", mapOf("id" to portal.id)))))
+        meta.lore(GuiItemFactory.menuLore(listOf(
+            GuiLoreLine.Data(lang.getMessage(player, "gui.portal.id_label"), portal.id, "§8")
+        )))
         metaItem.itemMeta = meta
 
         player.openInventory(inventory)
@@ -225,10 +227,6 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                 player.closeInventory()
             }
         }
-    }
-
-    private fun createItem(material: Material, name: String, lore: List<Component>, type: String): ItemStack {
-        return GuiItemFactory.item(material, name, lore, type)
     }
 
     private fun getWoolColor(color: Color): Material {

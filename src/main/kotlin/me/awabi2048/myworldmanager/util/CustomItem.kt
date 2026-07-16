@@ -29,7 +29,9 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.empty_biome_bottle.name"))
-            meta.lore(lang.getMenuLore(player, "custom_item.empty_biome_bottle.lore"))
+            meta.lore(GuiItemFactory.menuLore(
+                lang.getMessageList(player, "custom_item.empty_biome_bottle.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+            ))
 
             meta.setMaxStackSize(4)
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
@@ -56,7 +58,9 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.moon_stone.name"))
-            meta.lore(lang.getMenuLore(player, "custom_item.moon_stone.lore"))
+            meta.lore(GuiItemFactory.menuLore(
+                lang.getMessageList(player, "custom_item.moon_stone.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+            ))
 
             meta.setMaxStackSize(1)
             meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
@@ -123,7 +127,9 @@ enum class CustomItem(val id: String) {
 
         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
         meta.displayName(lang.getComponent(player, "custom_item.bottled_biome_air.name", mapOf("biome" to biomeName)))
-        meta.lore(lang.getMenuLore(player, "custom_item.bottled_biome_air.lore"))
+        meta.lore(GuiItemFactory.menuLore(
+            lang.getMessageList(player, "custom_item.bottled_biome_air.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+        ))
 
         meta.setMaxStackSize(1)
         meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))

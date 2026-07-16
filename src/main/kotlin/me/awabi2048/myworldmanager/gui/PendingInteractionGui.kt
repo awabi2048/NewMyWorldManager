@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -190,13 +191,13 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val confirmItem = GuiItemFactory.item(
             org.bukkit.Material.LIME_CONCRETE,
             confirmLabel,
-            emptyList(),
+            GuiLoreSpec.None,
             ItemTag.TYPE_GUI_CONFIRM
         )
         val cancelItem = GuiItemFactory.item(
             org.bukkit.Material.RED_CONCRETE,
             cancelLabel,
-            emptyList(),
+            GuiLoreSpec.None,
             ItemTag.TYPE_GUI_CANCEL
         )
 
@@ -258,13 +259,13 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val confirmItem = GuiItemFactory.item(
             org.bukkit.Material.LIME_CONCRETE,
             confirmLabel,
-            emptyList(),
+            GuiLoreSpec.None,
             ItemTag.TYPE_GUI_CONFIRM
         )
         val cancelItem = GuiItemFactory.item(
             org.bukkit.Material.RED_CONCRETE,
             cancelLabel,
-            emptyList(),
+            GuiLoreSpec.None,
             ItemTag.TYPE_GUI_CANCEL
         )
 
@@ -304,7 +305,9 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val item = ItemStack(Material.BARRIER)
         val meta = item.itemMeta ?: return item
         meta.displayName(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name"))
-        meta.lore(plugin.languageManager.getMenuLore(player, "gui.pending_list.empty.lore"))
+        meta.lore(GuiItemFactory.menuLore(
+            plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+        ))
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         return item

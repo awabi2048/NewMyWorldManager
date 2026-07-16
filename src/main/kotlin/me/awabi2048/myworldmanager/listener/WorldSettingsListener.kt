@@ -3,6 +3,9 @@
 package me.awabi2048.myworldmanager.listener
 
 import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import java.util.UUID
 import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -22,6 +25,7 @@ import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.BiomeResolver
@@ -29,8 +33,10 @@ import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -70,7 +76,6 @@ import io.papermc.paper.event.player.PlayerCustomClickEvent
 import net.kyori.adventure.key.Key
 import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 import io.papermc.paper.connection.PlayerGameConnection
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
@@ -83,6 +88,7 @@ class WorldSettingsListener : Listener {
         private val pendingExpansions = mutableMapOf<UUID, PendingExpansion>()
         private val spawnPreviewTasks = mutableMapOf<UUID, BukkitTask>()
         private val borderDirectionPreviewTasks = mutableMapOf<UUID, BukkitTask>()
+        private val borderResetSpawnService = BorderResetSpawnService()
         private val expansionExecutionModeMetadataKey = "expansion_execution_mode"
         private val expansionSkipPhasesMetadataKey = "expansion_skip_phases"
         private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
@@ -179,7 +185,45 @@ class WorldSettingsListener : Listener {
         @EventHandler(ignoreCancelled = false)
         fun onInventoryClick(event: InventoryClickEvent) {
                 val player = event.whoClicked as? Player ?: return
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                val topHolder = event.view.topInventory.holder
+                var session = plugin.settingsSessionManager.getSession(player)
+                if (topHolder is WorldSettingsInventoryHolder || session != null) {
+                        plugin.logWorldSettingsDebug(
+                                "click=received player=${player.name}/${player.uniqueId} " +
+                                        "holder=${topHolder?.javaClass?.name ?: "none"} rawSlot=${event.rawSlot} " +
+                                        "click=${event.click} action=${event.action} cancelled=${event.isCancelled} " +
+                                        "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"} " +
+                                        "transition=${session?.isGuiTransition ?: false}"
+                        )
+                }
+                if (session == null && topHolder is WorldSettingsGuiHolder) {
+                        val worldUuid = topHolder.worldUuid
+                                ?: event.view.topInventory.contents
+                                        .filterNotNull()
+                                        .firstNotNullOfOrNull(ItemTag::getWorldUuid)
+                        if (worldUuid != null) {
+                                plugin.logWorldSettingsDebug(
+                                        "click=session_recovery player=${player.name}/${player.uniqueId} world=$worldUuid " +
+                                                "holderWorld=${topHolder.worldUuid ?: "none"}"
+                                )
+                                plugin.settingsSessionManager.updateSessionAction(
+                                        player,
+                                        worldUuid,
+                                        SettingsAction.VIEW_SETTINGS,
+                                        isGui = false
+                                )
+                                session = plugin.settingsSessionManager.getSession(player)
+                        }
+                }
+                if (session == null) {
+                        if (topHolder is WorldSettingsInventoryHolder) {
+                                plugin.logWorldSettingsDebug(
+                                        "click=dropped_no_session player=${player.name}/${player.uniqueId} " +
+                                                "holder=${topHolder.javaClass.name}"
+                                )
+                        }
+                        return
+                }
                 if (session.action == SettingsAction.SELECT_ICON) {
                         if (event.clickedInventory == player.inventory) {
                                 if (!session.isExternalInputActive(MenuExternalInput.SELECT_ICON)) {
@@ -192,12 +236,15 @@ class WorldSettingsListener : Listener {
                         }
                 }
 
-                val topHolder = event.view.topInventory.holder
                 if (!GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
                         session.isGuiTransition = false
                         return
                 }
                 if (topHolder !is WorldSettingsGuiHolder) {
+                        plugin.logWorldSettingsDebug(
+                                "click=delegated_to_extension player=${player.name}/${player.uniqueId} " +
+                                        "holder=${topHolder?.javaClass?.name ?: "none"} session=${session.action}/${session.worldUuid}"
+                        )
                         session.isGuiTransition = false
                         return
                 }
@@ -222,6 +269,10 @@ class WorldSettingsListener : Listener {
 
                 val item = event.currentItem ?: return
                 val type = ItemTag.getType(item)
+                plugin.logWorldSettingsDebug(
+                        "click=core_dispatch player=${player.name}/${player.uniqueId} world=${session.worldUuid} " +
+                                "sessionAction=${session.action} itemType=${type ?: "none"} slot=${event.rawSlot}"
+                )
 
                 val lang = plugin.languageManager
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
@@ -310,27 +361,7 @@ class WorldSettingsListener : Listener {
                                 if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
                                                 type == ItemTag.TYPE_GUI_NAV_PREV
                                 ) {
-                                        val targetPageFromTag = ItemTag.getTargetPage(item)
-                                        val targetPage =
-                                                if (targetPageFromTag != null) {
-                                                        targetPageFromTag
-                                                } else {
-                                                        val lore = item.itemMeta?.lore().orEmpty()
-                                                        lore.firstNotNullOfOrNull { line ->
-                                                                val plainLine =
-                                                                        PlainTextComponentSerializer
-                                                                                .plainText()
-                                                                                .serialize(line)
-                                                                if (plainLine.startsWith("PAGE_TARGET: ")) {
-                                                                        plainLine
-                                                                                .removePrefix("PAGE_TARGET: ")
-                                                                                .trim()
-                                                                                .toIntOrNull()
-                                                                } else {
-                                                                        null
-                                                                }
-                                                        }
-                                                } ?: return
+                                        val targetPage = ItemTag.getTargetPage(item) ?: return
 
                                         plugin.soundManager.playClickSound(
                                                 player,
@@ -647,10 +678,11 @@ class WorldSettingsListener : Listener {
                                                                 val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
                                                                         lang.getMessage(player, "gui.member_management.transfer_confirm.title", mapOf("player" to memberName))
                                                                 )
-                                                                val bodyLines = lang.getMessageList(
-                                                                        player,
-                                                                        "gui.member_management.transfer_confirm.lore",
-                                                                        mapOf("player" to memberName, "world" to worldData.name)
+                                                                val bodyLines = listOf(
+                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.question"),
+                                                                        "${lang.getMessage(player, "gui.member_management.transfer_confirm.player_label")}: $memberName",
+                                                                        "${lang.getMessage(player, "gui.member_management.transfer_confirm.world_label")}: ${worldData.name}",
+                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.owner_warning")
                                                                 ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
 
                                                                 plugin.settingsSessionManager.updateSessionAction(
@@ -696,10 +728,11 @@ class WorldSettingsListener : Listener {
                                                                 val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
                                                                         lang.getMessage(player, "gui.member_management.remove_confirm.title", mapOf("player" to memberName))
                                                                 )
-                                                                val bodyLines = lang.getMessageList(
-                                                                        player,
-                                                                        "gui.member_management.remove_confirm.lore",
-                                                                        mapOf("player" to memberName, "world" to worldData.name)
+                                                                val bodyLines = listOf(
+                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.question"),
+                                                                        "${lang.getMessage(player, "gui.member_management.remove_confirm.player_label")}: $memberName",
+                                                                        "${lang.getMessage(player, "gui.member_management.remove_confirm.world_label")}: ${worldData.name}",
+                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.access_warning")
                                                                 ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
 
                                                                 plugin.settingsSessionManager.updateSessionAction(
@@ -825,6 +858,8 @@ class WorldSettingsListener : Listener {
                                         val infoItem = event.inventory.getItem(22) ?: return
                                         val newOwnerId = ItemTag.getWorldUuid(infoItem) ?: return
 
+                                        if (!WorldCreationChecks.checkLimits(plugin, player, newOwnerId)) return
+
                                         val oldOwnerId = worldData.owner
                                         val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
                                         val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
@@ -912,33 +947,9 @@ class WorldSettingsListener : Listener {
                                 if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
                                                 type == ItemTag.TYPE_GUI_NAV_PREV
                                 ) {
-                                        val lore = item?.itemMeta?.lore() ?: return
-                                        lore.forEach { line ->
-                                                val plainLine =
-                                                        PlainTextComponentSerializer.plainText()
-                                                                .serialize(line)
-                                                if (plainLine.startsWith("PAGE_TARGET: ")) {
-                                                        val targetPage =
-                                                                plainLine
-                                                                        .removePrefix(
-                                                                                "PAGE_TARGET: "
-                                                                        )
-                                                                        .trim()
-                                                                        .toIntOrNull()
-                                                                        ?: return@forEach
-                                                        plugin.soundManager.playClickSound(
-                                                                player,
-                                                                item,
-                                                                "world_settings"
-                                                        )
-                                                        plugin.worldSettingsGui
-                                                                .openVisitorManagement(
-                                                                        player,
-                                                                        worldData,
-                                                                        targetPage
-                                                                )
-                                                }
-                                        }
+                                        val targetPage = ItemTag.getTargetPage(item) ?: return
+                                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                                        plugin.worldSettingsGui.openVisitorManagement(player, worldData, targetPage)
                                         return
                                 }
 
@@ -960,9 +971,10 @@ class WorldSettingsListener : Listener {
                                                         LegacyComponentSerializer.legacySection().deserialize(
                                                                 lang.getMessage(player, "gui.visitor_management.kick_confirm.question")
                                                         ),
-                                                        LegacyComponentSerializer.legacySection().deserialize(
-                                                                lang.getMessage(player, "gui.visitor_management.kick_confirm.player", mapOf("player" to targetName))
-                                                        )
+                                                        Component.text(
+                                                                "${lang.getMessage(player, "gui.visitor_management.kick_confirm.player_label")}: ",
+                                                                NamedTextColor.GRAY
+                                                        ).append(Component.text(targetName, NamedTextColor.WHITE))
                                                 )
 
                                                 plugin.settingsSessionManager.updateSessionAction(
@@ -1309,19 +1321,28 @@ class WorldSettingsListener : Listener {
                                                 worldData.uuid,
                                                 closeInventoryOnLoad = false
                                         ) {
-                                                player.sendMessage(
-                                                        plugin.languageManager.getMessage(
-                                                                player,
-                                                                "messages.warp_success",
-                                                                mapOf("world" to worldData.name)
-                                                        )
-                                                )
-                                                plugin.worldSettingsGui.open(
-                                                        player,
-                                                        worldData,
-                                                        session.showBackButton,
-                                                        session.isPlayerWorldFlow,
-                                                        session.parentShowBackButton
+                                                plugin.settingsSessionManager.getSession(player)?.isGuiTransition = true
+                                                Bukkit.getScheduler().runTaskLater(
+                                                        plugin,
+                                                        Runnable {
+                                                                if (!player.isOnline) return@Runnable
+                                                                player.sendMessage(
+                                                                        plugin.languageManager.getMessage(
+                                                                                player,
+                                                                                "messages.warp_success",
+                                                                                mapOf("world" to worldData.name)
+                                                                        )
+                                                                )
+                                                                plugin.worldSettingsGui.open(
+                                                                        player,
+                                                                        worldData,
+                                                                        session.showBackButton,
+                                                                        session.isPlayerWorldFlow,
+                                                                        session.parentShowBackButton
+                                                                )
+                                                                plugin.settingsSessionManager.getSession(player)?.isGuiTransition = false
+                                                        },
+                                                        3L
                                                 )
                                         }
                                         return
@@ -2003,33 +2024,9 @@ class WorldSettingsListener : Listener {
                                 if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
                                                 type == ItemTag.TYPE_GUI_NAV_PREV
                                 ) {
-                                        val lore = item?.itemMeta?.lore() ?: return
-                                        lore.forEach { line ->
-                                                val plainLine =
-                                                        PlainTextComponentSerializer.plainText()
-                                                                .serialize(line)
-                                                if (plainLine.startsWith("PAGE_TARGET: ")) {
-                                                        val targetPage =
-                                                                plainLine
-                                                                        .removePrefix(
-                                                                                "PAGE_TARGET: "
-                                                                        )
-                                                                        .trim()
-                                                                        .toIntOrNull()
-                                                                        ?: return@forEach
-                                                        plugin.soundManager.playClickSound(
-                                                                player,
-                                                                item,
-                                                                "world_settings"
-                                                        )
-                                                        plugin.worldSettingsGui
-                                                                .openPortalManagement(
-                                                                        player,
-                                                                        worldData,
-                                                                        targetPage
-                                                                )
-                                                }
-                                        }
+                                        val targetPage = ItemTag.getTargetPage(item) ?: return
+                                        plugin.soundManager.playClickSound(player, item, "world_settings")
+                                        plugin.worldSettingsGui.openPortalManagement(player, worldData, targetPage)
                                         return
                                 }
 
@@ -2261,6 +2258,11 @@ class WorldSettingsListener : Listener {
                                                                 )
                                                         )
                                                 }
+                                                appendSpawnAdjustmentWarning(
+                                                        player,
+                                                        worldData,
+                                                        worldDataResetTarget(worldData)
+                                                )?.let(bodyTextLines::addAll)
                                                 val bodyLines = bodyTextLines
                                                         .map { LegacyComponentSerializer.legacySection().deserialize(it) }
                                                 plugin.settingsSessionManager.updateSessionAction(
@@ -2758,16 +2760,8 @@ plugin.languageManager
                         )
                 val content =
                         listOf(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.expansion.method",
-                                                mapOf("method" to methodText)
-                                        ),
-                                        lang.getMessage(
-                                                player,
-                                                "gui.expansion.cost",
-                                                mapOf("cost" to cost)
-                                        ),
+                                        "${lang.getMessage(player, "gui.expansion.method_label")}: $methodText",
+                                        "${lang.getMessage(player, "gui.expansion.cost_label")}: $cost",
                                         lang.getMessage(player, "gui.expansion.warning")
                                 )
                                 .joinToString("\n")
@@ -3671,14 +3665,22 @@ plugin.languageManager
                 val player = event.player as? Player ?: return
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val lang = plugin.languageManager
+                plugin.logWorldSettingsDebug(
+                        "close=received player=${player.name}/${player.uniqueId} " +
+                                "holder=${event.inventory.holder?.javaClass?.name ?: "none"} " +
+                                "session=${session.action}/${session.worldUuid} transition=${session.isGuiTransition} " +
+                                "external=${session.externalInput}"
+                )
 
                 if (session.isExternalInputExpired()) {
+                        plugin.logWorldSettingsDebug("close=end_expired_external player=${player.name}/${player.uniqueId}")
                         plugin.settingsSessionManager.endSession(player)
                         return
                 }
 
                 // アイコン選択はプレイヤー自身のインベントリを使うため、閉じた時点で明確にキャンセルする。
                 if (session.action == SettingsAction.SELECT_ICON) {
+                        plugin.logWorldSettingsDebug("close=end_icon_selection player=${player.name}/${player.uniqueId}")
                         plugin.settingsSessionManager.endSession(player)
                         player.sendMessage(lang.getMessage(player, "messages.icon_cancelled"))
                         return
@@ -3701,6 +3703,10 @@ plugin.languageManager
                         if (session.externalInput == MenuExternalInput.NONE) {
                                 session.beginExternalInput(externalInputFor(session.action), 300_000L)
                         }
+                        plugin.logWorldSettingsDebug(
+                                "close=preserve_external_input player=${player.name}/${player.uniqueId} " +
+                                        "action=${session.action} external=${session.externalInput}"
+                        )
                         return
                 }
 
@@ -3709,6 +3715,14 @@ plugin.languageManager
                         .runTaskLater(
                                 plugin,
                                 Runnable {
+                                        val currentSession = plugin.settingsSessionManager.getSession(player)
+                                        plugin.logWorldSettingsDebug(
+                                                "close=delayed_check player=${player.name}/${player.uniqueId} " +
+                                                        "captured=${session.action}/${session.worldUuid} " +
+                                                        "current=${currentSession?.action ?: "none"}/${currentSession?.worldUuid ?: "none"} " +
+                                                        "transition=${session.isGuiTransition} " +
+                                                        "openHolder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
+                                        )
                                         if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
                                                 // 諡｡蠑ｵ譁ｹ蜷醍｢ｺ隱堺ｸｭ縺ｮ蝣ｴ蜷医・繝懊・繝繝ｼ繝励Ξ繝薙Η繝ｼ繧呈ｶ医＆縺ｪ縺・
                                                 return@Runnable
@@ -3720,17 +3734,20 @@ plugin.languageManager
                                         }
 
                                         if (session.isGuiTransition) {
+                                                plugin.logWorldSettingsDebug("close=preserve_transition player=${player.name}/${player.uniqueId}")
                                                 session.isGuiTransition = false
                                                 return@Runnable
                                         }
 
                                         // 迴ｾ蝨ｨ髢九＞縺ｦ縺・ｋ繧､繝ｳ繝吶Φ繝医Μ縺瑚ｨｭ螳哦UI縺ｮ繝帙Ν繝繝ｼ繧呈戟縺｣縺ｦ縺・ｋ蝣ｴ蜷医・邨ゆｺ・＠縺ｪ縺・
                                         if (player.openInventory.topInventory.holder is WorldSettingsInventoryHolder) {
+                                                plugin.logWorldSettingsDebug("close=preserve_open_settings player=${player.name}/${player.uniqueId}")
                                                 return@Runnable
                                         }
 
                                         // 險ｭ螳哦UI莉･螟悶・逕ｻ髱｢・医∪縺溘・繧､繝ｳ繝吶Φ繝医Μ縺ｪ縺暦ｼ峨↓縺ｪ縺｣縺溷ｴ蜷医√そ繝・す繝ｧ繝ｳ繧堤ｵゆｺ・☆繧・
                                         clearBorderPreview(player)
+                                        plugin.logWorldSettingsDebug("close=end_no_settings_open player=${player.name}/${player.uniqueId}")
                                         plugin.settingsSessionManager.endSession(player)
                                 },
                                 2L
@@ -3739,6 +3756,14 @@ plugin.languageManager
 
         @EventHandler
         fun onWorldChange(event: PlayerChangedWorldEvent) {
+                val session = plugin.settingsSessionManager.getSession(event.player)
+                plugin.logWorldSettingsDebug(
+                        "world_change player=${event.player.name}/${event.player.uniqueId} " +
+                                "from=${event.from.name} to=${event.player.world.name} " +
+                                "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"} " +
+                                "transition=${session?.isGuiTransition ?: false} " +
+                                "openHolder=${event.player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
+                )
                 stopSpawnPreview(event.player)
                 stopBorderDirectionPreview(event.player)
                 clearBorderPreview(event.player)
@@ -4890,23 +4915,26 @@ player.sendMessage(
                                 val center = me.awabi2048.myworldmanager.util.GuiItemFactory.playerHead(
                                         Bukkit.getOfflinePlayer(invite.senderUuid),
                                         Component.text(senderName),
-                                        lang.getComponentList(
-                                                player,
-                                                "gui.member_invite_accept_confirm.lore",
-                                                mapOf("world" to worldData.name, "player" to senderName)
+                                        GuiLoreSpec.Rich(
+                                                lang.getMessageList(
+                                                        player,
+                                                        "gui.member_invite_accept_confirm.lore",
+                                                        mapOf("world" to worldData.name, "player" to senderName)
+                                                ).map(GuiLoreLine::Text),
+                                                GuiLoreFrame.BOTH
                                         ),
                                         me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_INFO
                                 )
                                 val confirmItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
                                         Material.LIME_CONCRETE,
                                         lang.getMessage(player, "gui.member_invite_accept_confirm.confirm"),
-                                        emptyList(),
+                                        GuiLoreSpec.None,
                                         me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CONFIRM
                                 )
                                 val cancelItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
                                         Material.RED_CONCRETE,
                                         lang.getMessage(player, "gui.member_invite_accept_confirm.cancel"),
-                                        emptyList(),
+                                        GuiLoreSpec.None,
                                         me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CANCEL
                                 )
                                 plugin.confirmationMenuGui.open(
@@ -5210,10 +5238,10 @@ player.sendMessage(
                 }
                 val bodyLines = listOf(
                         LegacyComponentSerializer.legacySection().deserialize(
-                                lang.getMessage(player, "gui.expansion.method", mapOf("method" to methodText))
+                                "${lang.getMessage(player, "gui.expansion.method_label")}: $methodText"
                         ),
                         LegacyComponentSerializer.legacySection().deserialize(
-                                lang.getMessage(player, "gui.expansion.cost", mapOf("cost" to cost))
+                                "${lang.getMessage(player, "gui.expansion.cost_label")}: $cost"
                         ),
                         LegacyComponentSerializer.legacySection().deserialize(
                                 lang.getMessage(player, "gui.expansion.warning")
@@ -5279,6 +5307,11 @@ player.sendMessage(
                                 )
                         )
                 }
+                appendSpawnAdjustmentWarning(
+                        player,
+                        worldData,
+                        worldDataStepBackTarget(worldData)
+                )?.let(bodyTextLines::addAll)
                 val bodyLines = bodyTextLines
                         .map { LegacyComponentSerializer.legacySection().deserialize(it) }
 
@@ -5325,22 +5358,25 @@ player.sendMessage(
             val centerItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
                 centerMaterial,
                 title,
-                listOf(
-                    Component.text(lang.getMessage(player, "gui.common.confirm_action")),
-                    Component.text(lang.getMessage(player, "gui.settings.expand.cost", mapOf("cost" to cost)))
+                GuiLoreSpec.Rich(
+                    listOf(
+                        GuiLoreLine.Text(lang.getMessage(player, "gui.common.confirm_action")),
+                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.cost"), cost, "§e")
+                    ),
+                    GuiLoreFrame.BOTH
                 ),
                 me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_INFO
             )
             val confirmItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
                 Material.LIME_CONCRETE,
                 lang.getMessage(player, "gui.common.confirm"),
-                emptyList(),
+                GuiLoreSpec.None,
                 me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CONFIRM
             )
             val cancelItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
                 Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.common.cancel"),
-                emptyList(),
+                GuiLoreSpec.None,
                 me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CANCEL
             )
 
@@ -5599,6 +5635,36 @@ player.sendMessage(
                 return Bukkit.getWorld(worldName)
         }
 
+        private fun worldDataResetTarget(worldData: WorldData): Pair<Location, Double>? {
+                val world = resolveWorld(worldData) ?: return null
+                val center = world.spawnLocation.clone()
+                val size = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
+                return center to size
+        }
+
+        private fun worldDataStepBackTarget(worldData: WorldData): Pair<Location, Double>? {
+                val record = worldData.latestBorderExpansionRecord() ?: return null
+                val world = resolveWorld(worldData) ?: return null
+                return Location(world, record.oldCenterX, world.spawnLocation.y, record.oldCenterZ) to record.oldSize
+        }
+
+        private fun appendSpawnAdjustmentWarning(
+                player: Player,
+                worldData: WorldData,
+                target: Pair<Location, Double>?
+        ): List<String>? {
+                if (target == null) return null
+                val (center, size) = target
+                val world = center.world ?: return null
+                if (!borderResetSpawnService.preview(world, worldData, center, size).hasChanges) {
+                        return null
+                }
+                return plugin.languageManager.getMessageList(
+                        player,
+                        "gui.confirm.spawn_adjustment_warning"
+                )
+        }
+
         private fun teleportPlayersOutsideBorder(world: World, targetLocation: Location) {
                 val worldBorder = world.worldBorder
                 val safeTarget = targetLocation.clone()
@@ -5642,6 +5708,7 @@ player.sendMessage(
                         worldData.borderExpansionHistory.removeAt(recordIndex)
                 }
 
+                borderResetSpawnService.apply(world, worldData)
                 teleportPlayersOutsideBorder(world, oldCenter)
                 plugin.worldConfigRepository.save(worldData)
 
@@ -5679,6 +5746,7 @@ player.sendMessage(
                         world.worldBorder.size = initialSize
                         world.worldBorder.center = spawnLocation
                         worldData.borderCenterPos = spawnLocation
+                        borderResetSpawnService.apply(world, worldData)
                         teleportPlayersOutsideBorder(world, spawnLocation)
                 }
 
@@ -5729,6 +5797,11 @@ player.sendMessage(
                                         )
                                 )
                         }
+                        appendSpawnAdjustmentWarning(
+                                player,
+                                worldData,
+                                worldDataResetTarget(worldData)
+                        )?.let(bodyTextLines::addAll)
                         val bodyLines = bodyTextLines
                                 .map { LegacyComponentSerializer.legacySection().deserialize(it) }
                         plugin.settingsSessionManager.updateSessionAction(
@@ -6026,6 +6099,7 @@ player.sendMessage(
                         } catch (_: Exception) {
                                 return
                         }
+                        if (!WorldCreationChecks.checkLimits(plugin, player, newOwnerId)) return
                         val oldOwnerId = worldData.owner
                         val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
                         val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
@@ -6265,6 +6339,7 @@ player.sendMessage(
                         DialogConfirmManager.safeCloseDialog(player)
                         val targetUuidStr = keyVal.substringAfter("confirm/member_transfer/")
                         val newOwnerId = try { UUID.fromString(targetUuidStr) } catch(e: Exception) { return }
+                        if (!WorldCreationChecks.checkLimits(plugin, player, newOwnerId)) return
                         val oldOwnerId = worldData.owner
                         val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
                         val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")

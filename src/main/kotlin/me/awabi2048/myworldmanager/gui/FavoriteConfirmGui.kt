@@ -28,7 +28,11 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
             plugin,
             player,
             worldData,
-            lang.getComponentList(player, "gui.favorite.remove_confirm.lore", mapOf("world" to worldName))
+            com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
+                lang.getMessageList(player, "gui.favorite.remove_confirm.lore", mapOf("world" to worldName))
+                    .map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Warning),
+                com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH
+            )
         )
 
         // Confirm Button

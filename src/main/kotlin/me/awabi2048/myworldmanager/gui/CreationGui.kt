@@ -19,6 +19,7 @@ import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -38,29 +39,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     fun openTypeSelection(player: Player) {
         val config = plugin.config
         val lang = plugin.languageManager
-        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-        if (!bypassLimits && !MyWorldManagerApi.isWorldCreationEnabled()) {
-            player.sendMessage(lang.getMessage(player, "gui.creation.period_disabled"))
-            plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
-            return
-        }
-
-        // サーバー全体の上限チェック
-        val totalMax = config.getInt("creation.max_total_world_count", 50)
-        val totalCurrent = plugin.worldConfigRepository.findAll().size
-        if (!bypassLimits && totalCurrent >= totalMax) {
-            player.sendMessage(lang.getMessage(player, "gui.creation.limit_reached_total", mapOf("max" to totalMax)))
-            plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER)) // エラー音の代わり
-            return
-        }
-
-        // プレイヤー個別の上限チェック
-        val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(config)
-        val playerMax = defaultMax + stats.unlockedWorldSlot
-        val playerCurrent = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
-        if (!bypassLimits && playerCurrent >= playerMax) {
-            player.sendMessage(lang.getMessage(player, "gui.creation.limit_reached", mapOf("current" to playerCurrent, "max" to playerMax)))
+        if (!WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) || !WorldCreationChecks.check(player)) {
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
             return
         }
@@ -96,7 +75,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     private fun createCreationTypeItem(player: Player, material: Material, name: String, baseLoreKey: String, tag: String): ItemStack {
         val lang = plugin.languageManager
         val lore = lang.getMessageList(player, baseLoreKey)
-            .map<String, GuiLoreLine> { GuiLoreLine.Text(it.replace(Regex("(?i)^[§&][0-9A-FK-ORX]"), "")) }
+            .map<String, GuiLoreLine>(GuiLoreLine::Text)
             .toMutableList()
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
@@ -144,20 +123,13 @@ class CreationGui(private val plugin: MyWorldManager) {
             val row = index / worldsPerRow
             val col = index % worldsPerRow
             val slot = (row + 1) * 9 + 1 + col
-            val lore = mutableListOf<Component>()
-            val desc = template.description // formatted in repo? assuming list of strings
-            desc.forEach { line ->
-                 lore.add(LegacyComponentSerializer.legacySection().deserialize(line).decoration(TextDecoration.ITALIC, false))
-            }
-            lore.add(Component.empty())
-            lore.addAll(
-                GuiLoreBuilder(lang, player)
-                    .actions(listOf(GuiLoreAction(
-                        lang.getMessage(player, "lore.click.right"),
-                        lang.getMessage(player, "gui.creation.template_item.action.preview")
-                    )))
-                    .build()
-            )
+            val lore = GuiLoreBuilder(lang, player)
+                .block(template.description.map(GuiLoreLine::Text))
+                .actions(listOf(GuiLoreAction(
+                    lang.getMessage(player, "lore.click.right"),
+                    lang.getMessage(player, "gui.creation.template_item.action.preview")
+                )))
+                .buildSpec()
 
             inventory.setItem(slot, createItem(template.icon, template.name, ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM, lore))
         }
@@ -251,13 +223,13 @@ class CreationGui(private val plugin: MyWorldManager) {
                 Material.LIME_CONCRETE,
                 lang.getMessage(player, "gui.common.confirm"),
                 ItemTag.TYPE_GUI_CONFIRM,
-                emptyList()
+                GuiLoreSpec.None
             ),
             createItem(
                 Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.common.cancel"),
                 ItemTag.TYPE_GUI_CANCEL,
-                emptyList()
+                GuiLoreSpec.None
             )
         )
 
@@ -327,16 +299,12 @@ class CreationGui(private val plugin: MyWorldManager) {
             plugin.menuConfigManager.getIconMaterial("creation", "back", Material.REDSTONE),
             lang.getMessage(player, "gui.common.return"),
             ItemTag.TYPE_GUI_BACK,
-            emptyList()
+            GuiLoreSpec.None
         )
     }
 
     private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
         GuiItemFactory.fillEmpty(inventory)
-    }
-
-    private fun createItem(material: Material, name: String, tag: String, lore: List<Component>): ItemStack {
-        return GuiItemFactory.item(material, name, lore, tag)
     }
 
     private fun createItem(material: Material, name: String, tag: String, lore: GuiLoreSpec): ItemStack {
@@ -376,9 +344,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             add(GuiLoreLine.Spacer)
             options.forEach { (environment, selectedColor) ->
                 val selected = environment == current
-                val marker = if (selected) "\u00A7a\u00BB" else "\u00A78\u30FB"
-                val color = if (selected) selectedColor else "\u00A77"
-                add(GuiLoreLine.Raw("$marker $color${seedEnvironmentDisplay(player, environment)}"))
+                add(GuiLoreLine.Option(seedEnvironmentDisplay(player, environment), selected, selectedColor, "\u00A77"))
             }
         }, GuiLoreFrame.BOTH)
     }

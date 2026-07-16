@@ -85,7 +85,11 @@ object WorldGateItemUtil {
     private fun worldGateLore(lang: LanguageManager, player: Player?, destination: String?) =
         CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
             if (destination != null) {
-                add(GuiLoreBlock(listOf(GuiLoreLine.Raw(lang.getMessage(player, "gui.world_gate_item.destination", mapOf("destination" to destination))))))
+                add(GuiLoreBlock(listOf(GuiLoreLine.Data(
+                    lang.getMessage(player, "gui.world_gate_item.destination"),
+                    destination,
+                    "§f§n"
+                ))))
             }
             add(GuiLoreBlock(buildList {
                 add(GuiLoreLine.Action(

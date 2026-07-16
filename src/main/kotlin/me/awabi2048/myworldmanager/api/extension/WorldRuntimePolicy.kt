@@ -1,7 +1,5 @@
 package me.awabi2048.myworldmanager.api.extension
 
-import me.awabi2048.myworldmanager.session.WorldCreationType
-
 interface WorldRuntimePolicy {
     fun getId(): String
 

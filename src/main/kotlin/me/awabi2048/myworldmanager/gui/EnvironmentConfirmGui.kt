@@ -6,7 +6,7 @@ import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -40,18 +40,12 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         displayItem.amount = 1
         val meta = displayItem.itemMeta
         val lore = GuiLoreBuilder(lang, player)
-                .componentBlock(meta.lore().orEmpty())
-                .componentBlock(
-                        listOf(
-                                Component.text(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.settings.expand.cost",
-                                                mapOf("cost" to cost)
-                                        )
-                                )
-                        )
-                )
+                .block(meta.lore().orEmpty().map(GuiLoreLine::Component))
+                .block(listOf(GuiLoreLine.Data(
+                        lang.getMessage(player, "gui.settings.expand.blocks.cost"),
+                        cost,
+                        "§e"
+                )))
                 .build()
         meta.lore(lore)
         displayItem.itemMeta = meta

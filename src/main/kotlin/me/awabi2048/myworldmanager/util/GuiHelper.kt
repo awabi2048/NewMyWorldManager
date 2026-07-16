@@ -165,17 +165,6 @@ object GuiHelper {
         plugin: MyWorldManager,
         player: Player,
         worldData: WorldData,
-        lore: List<Component> = emptyList(),
-        attachWorldUuid: Boolean = true
-    ): org.bukkit.inventory.ItemStack {
-        val renderedLore = if (lore.isEmpty()) emptyList() else GuiItemFactory.componentMenuLore(lore)
-        return createContextWorldIconItemRendered(plugin, player, worldData, renderedLore, attachWorldUuid)
-    }
-
-    fun createContextWorldIconItem(
-        plugin: MyWorldManager,
-        player: Player,
-        worldData: WorldData,
         lore: GuiLoreSpec,
         attachWorldUuid: Boolean = true
     ): org.bukkit.inventory.ItemStack {

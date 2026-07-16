@@ -230,42 +230,34 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         ).decoration(TextDecoration.ITALIC, false)
                 )
 
-                val formattedDesc = if (data.description.isNotEmpty()) {
-                        lang.getMessage(player, "gui.common.world_desc", mapOf("description" to data.description))
-                } else ""
-
-                val onlineColor = lang.getMessage(player, "publish_level.color.online")
-                val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-                val statusColor = if (Bukkit.getOfflinePlayer(data.owner).isOnline) onlineColor else offlineColor
-                val ownerLine = lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")), "status_color" to statusColor))
-
-
-                val favoriteLine = lang.getMessage(player, "gui.favorite.world_item.favorite", mapOf("count" to data.favorite))
-                val visitorLine = lang.getMessage(player, "gui.favorite.world_item.recent_visitors", mapOf("count" to data.recentVisitors.sum()))
-
-                val tagLine = if (data.tags.isNotEmpty()) {
-                        val tagNames = data.tags.joinToString(", ") {
+                val ownerName = PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown"))
+                val tagNames = if (data.tags.isNotEmpty()) {
+                        data.tags.joinToString(", ") {
                                 plugin.worldTagManager.getDisplayName(player, it)
                         }
-                        lang.getMessage(player, "gui.favorite.world_item.tag", mapOf("tags" to tagNames))
-                } else ""
+                } else null
 
                 val viewerUuid = player.uniqueId
                 val isMember = data.owner == viewerUuid || data.moderators.contains(viewerUuid) || data.members.contains(viewerUuid)
                 val canWarp = MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, data, isMember)
                 val warpAction = lang.getMessage(player, "gui.favorite.world_item.warp")
 
-                val archivedLine = if (data.isArchived) lang.getMessage(player, "gui.favorite.world_item.archived_label") else ""
                 val canUnfavorite = !data.isArchived && !isMember
                 val unfavoriteAction = lang.getMessage(player, "gui.favorite.world_item.unfavorite")
 
                 meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
-                        add(GuiLoreBlock(
-                                (listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                                        .map(GuiLoreLine::Raw)
-                        ))
-                        if (archivedLine.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Warning(archivedLine))))
+                        if (data.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(data.description))))
+                        add(GuiLoreBlock(buildList {
+                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b"))
+                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.favorite"), data.favorite, "§c"))
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.common.world_item.recent_visitors"),
+                                        lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to data.recentVisitors.sum())),
+                                        "§a"
+                                ))
+                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
+                        }))
+                        if (data.isArchived) add(GuiLoreBlock(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.favorite.world_item.archived_label")))))
                         val actions = buildList {
                                 if (canWarp) add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), warpAction))
                                 if (canUnfavorite) add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.shift_right"), unfavoriteAction))
@@ -284,7 +276,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 val item = GuiItemFactory.item(
                         Material.REDSTONE,
                         lang.getComponent(player, "gui.common.return"),
-                        emptyList(),
+                        GuiLoreSpec.None,
                         ItemTag.TYPE_GUI_RETURN
                 )
                 if (returnToWorld != null) ItemTag.setWorldUuid(item, returnToWorld.uuid)
@@ -335,15 +327,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 )
 
                 val lore = GuiLoreBuilder(lang, player)
-                        .componentBlock(
-                                listOf(
-                                        lang.getComponent(
-                                                player,
-                                                "gui.favorite.player_icon.lore_count",
-                                                mapOf("count" to totalCount)
-                                        )
-                                )
-                        )
+                        .block(listOf(GuiLoreLine.Data(
+                                lang.getMessage(player, "gui.favorite.player_icon.lore_count"),
+                                totalCount,
+                                "§a"
+                        )))
                         .build()
 
                 meta.lore(lore)

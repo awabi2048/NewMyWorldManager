@@ -104,8 +104,8 @@ class MeetGui(private val plugin: MyWorldManager) {
 
         val statusLore = GuiLoreBuilder(lang, player)
             .block(listOf(
-                lang.getMessage(player, "gui.meet.status_button.current", mapOf("status" to statusName)),
-                statusDescription
+                GuiLoreLine.Data(lang.getMessage(player, "gui.meet.status_button.current"), statusName, "§e"),
+                GuiLoreLine.Text(statusDescription)
             ))
             .actions(lang.getMessage(player, "gui.meet.status_button.action"))
             .build()
@@ -164,18 +164,20 @@ class MeetGui(private val plugin: MyWorldManager) {
         val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
         meta.owningPlayer = target
 
-        val isOnline = target.isOnline
-        val colorCode = if (isOnline) lang.getMessage(viewer, "publish_level.color.online") else lang.getMessage(viewer, "publish_level.color.offline")
-        // 名前を色分けしたComponentに変換
-        meta.displayName(GuiItemFactory.legacy("$colorCode${target.name}"))
+        meta.displayName(GuiItemFactory.legacy("§f${target.name}"))
 
-        val lines = mutableListOf<String>()
+        val information = mutableListOf<GuiLoreLine>()
 
         // Status
         val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
         val statusKey = "general.status.${stats.meetStatus.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else stats.meetStatus
-        lines.add(lang.getMessage(viewer, "gui.meet.world_item.status", mapOf("status" to statusName)))
+        information.add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.meet.world_item.status"), statusName, "§e"))
+        information.add(GuiLoreLine.Data(
+            lang.getMessage(viewer, "gui.meet.world_item.online_state"),
+            lang.getMessage(viewer, if (target.isOnline) "gui.meet.world_item.online" else "gui.meet.world_item.offline"),
+            if (target.isOnline) "§a" else "§8"
+        ))
 
         // 現在のワールド名取得
         val world = target.world
@@ -187,12 +189,16 @@ class MeetGui(private val plugin: MyWorldManager) {
             configMap?.getString(worldName) ?: "???"
         }
 
-        val currentWorldKey = if (isSameWorld && lang.hasKey(viewer, "gui.meet.world_item.current_world_same")) {
-            "gui.meet.world_item.current_world_same"
+        val worldValue = if (isSameWorld) {
+            "$displayWorldName (${lang.getMessage(viewer, "gui.meet.world_item.same_world")})"
         } else {
-            "gui.meet.world_item.current_world"
+            displayWorldName
         }
-        lines.add(lang.getMessage(viewer, currentWorldKey, mapOf("world" to displayWorldName)))
+        information.add(GuiLoreLine.Data(
+            lang.getMessage(viewer, "gui.meet.world_item.current_world"),
+            worldValue,
+            if (isSameWorld) "§6" else "§f"
+        ))
 
         // クリックしてワールドを訪れる/申請の表示判定
         var action: String? = null
@@ -215,7 +221,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         }
 
         val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            add(GuiLoreBlock(lines.map(GuiLoreLine::Raw)))
+            add(GuiLoreBlock(information))
             action?.let {
                 add(GuiLoreBlock(listOf(GuiLoreLine.Action(lang.getMessage(viewer, "lore.click.any"), it))))
             }

@@ -28,6 +28,7 @@ fallback_language: "ja_jp"
 
 
 creation:
+  seed_spawn_search_radius: 16
   max_create_count_default: 3
   max_total_world_count: 50
   max_world_slots_limit: 10 # Default max slots a player can reach using World Seeds
@@ -188,3 +189,7 @@ bedrock:
 # ワープ設定
 warp:
   load_wait_ticks: 10
+
+debug:
+  # ワープ後にワールド設定のクリックが反応しなくなる問題の追跡ログ
+  world_settings: true

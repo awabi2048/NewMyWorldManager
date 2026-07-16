@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.WorldCreationType as ApiWorldCreationType
 import me.awabi2048.myworldmanager.session.WorldCreationType
 import org.bukkit.configuration.file.FileConfiguration
 import kotlin.math.pow
@@ -12,7 +13,13 @@ object WorldRuntimePolicies {
             WorldCreationType.SEED -> config.getInt("creation_cost.seed", 100)
             WorldCreationType.RANDOM -> config.getInt("creation_cost.random", 50)
         }
-        return MyWorldManagerApi.getWorldRuntimePolicy().getCreationCost(type, configured)
+        return MyWorldManagerApi.getWorldRuntimePolicy().getCreationCost(type.toApiType(), configured)
+    }
+
+    private fun me.awabi2048.myworldmanager.session.WorldCreationType.toApiType(): ApiWorldCreationType = when (this) {
+        me.awabi2048.myworldmanager.session.WorldCreationType.TEMPLATE -> ApiWorldCreationType.TEMPLATE
+        me.awabi2048.myworldmanager.session.WorldCreationType.SEED -> ApiWorldCreationType.SEED
+        me.awabi2048.myworldmanager.session.WorldCreationType.RANDOM -> ApiWorldCreationType.RANDOM
     }
 
     fun maxCreateCountDefault(config: FileConfiguration): Int {

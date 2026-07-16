@@ -1,9 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
-import com.awabi2048.ccsystem.CCSystem
-import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -12,7 +9,6 @@ import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
-import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -85,28 +81,13 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
 
         meta.displayName(lang.getComponent(player, "gui.environment.gravity.display"))
-        meta.lore(
-                GuiItemFactory.componentMenuLore(listOf(
-                        Component.text(
-                                lang.getMessage(
-                                        player,
-                                        "gui.environment.gravity.current",
-                                        mapOf("multiplier" to currentName)
-                                )
-                        ),
-                        Component.text(
-                                lang.getMessage(
-                                        player,
-                                        "gui.environment.gravity.cost",
-                                        mapOf("cost" to cost)
-                                )
-                        ),
-                        Component.empty(),
-                        Component.text(
-                                lang.getMessage(player, "gui.environment.gravity.click_hint")
-                        )
-                ))
-        )
+        meta.lore(GuiItemFactory.menuLore(listOf(
+                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.current"), currentName, "§6"),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.cost"), cost, "§e"),
+                GuiLoreLine.Spacer,
+                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.gravity.requirement")),
+                GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.gravity.action"))
+        )))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_GRAVITY)
@@ -123,40 +104,14 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
 
         meta.displayName(lang.getComponent(player, "gui.environment.weather.display"))
-        meta.lore(
-                GuiItemFactory.componentMenuLore(listOf(
-                        Component.text(
-                                lang.getMessage(
-                                        player,
-                                        "gui.environment.weather.current",
-                                        mapOf("weather" to currentWeather)
-                                )
-                        ),
-                        Component.text(
-                                lang.getMessage(
-                                        player,
-                                        "gui.environment.weather.cost",
-                                        mapOf("cost" to cost)
-                                )
-                        ),
-                        Component.text(lang.getMessage(player, "gui.environment.weather.desc"))
-                ) + CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(
-                                listOf(
-                                        GuiLoreLine.Spacer,
-                                        GuiLoreLine.Action(
-                                                lang.getMessage(player, "lore.click.left"),
-                                                lang.getMessage(player, "gui.environment.weather.action.cycle")
-                                        ),
-                                        GuiLoreLine.Action(
-                                                lang.getMessage(player, "lore.click.right"),
-                                                lang.getMessage(player, "gui.environment.weather.action.confirm")
-                                        )
-                                ),
-                                GuiLoreFrame.NONE
-                        )
-                ))
-        )
+        meta.lore(GuiItemFactory.menuLore(listOf(
+                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.weather.desc")),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, "§b"),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.cost"), cost, "§e"),
+                GuiLoreLine.Spacer,
+                GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.environment.weather.action.cycle")),
+                GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.environment.weather.action.confirm"))
+        )))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_WEATHER)
@@ -172,27 +127,14 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
 
         meta.displayName(lang.getComponent(player, "gui.environment.biome.display"))
-        meta.lore(
-                GuiItemFactory.componentMenuLore(listOf(
-                        Component.text(
-                                lang.getMessage(
-                                        player,
-                                        "gui.environment.biome.current",
-                                        mapOf("biome" to currentBiome)
-                                )
-                        ),
-                        Component.text(
-                                lang.getMessage(
-                                        player,
-                                        "gui.environment.biome.cost",
-                                        mapOf("cost" to cost)
-                                )
-                        ),
-                        Component.text(lang.getMessage(player, "gui.environment.biome.desc")),
-                        Component.empty(),
-                        Component.text(lang.getMessage(player, "gui.environment.biome.click_hint"))
-                ))
-        )
+        meta.lore(GuiItemFactory.menuLore(listOf(
+                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.desc")),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, "§a"),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.cost"), cost, "§e"),
+                GuiLoreLine.Spacer,
+                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.requirement")),
+                GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.biome.action"))
+        )))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_BIOME)
