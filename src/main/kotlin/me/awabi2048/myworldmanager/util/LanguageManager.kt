@@ -96,18 +96,6 @@ class LanguageManager(private val plugin: MyWorldManager) {
         }
     }
 
-    fun getMenuLore(
-        player: Player?,
-        key: String,
-        placeholders: Map<String, Any> = emptyMap(),
-        closingSeparator: Boolean = true
-    ): List<Component> {
-        return CCSystem.getAPI().getGuiElementService().autoLore(
-            getMessageList(player, key, placeholders).flatMap { it.split("\n") },
-            closingSeparator
-        )
-    }
-
     private fun normalizeComponent(component: Component): Component {
         return component
             .colorIfAbsent(NamedTextColor.WHITE)

@@ -25,7 +25,9 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = ItemStack(Material.PAPER)
         val infoMeta = infoItem.itemMeta
         infoMeta.displayName(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
-        infoMeta.lore(lang.getMenuLore(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name)))
+        infoMeta.lore(me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
+            lang.getMessageList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name)).map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+        ))
         infoItem.itemMeta = infoMeta
 
         // はい

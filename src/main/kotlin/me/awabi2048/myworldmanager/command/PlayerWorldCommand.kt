@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -200,12 +201,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             return
         }
 
-        val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
-        val stats = plugin.playerStatsRepository.findByUuid(targetId)
-        val maxCounts = defaultMax + stats.unlockedWorldSlot
-        val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == targetId }
-        if (!PermissionManager.canBypassWorldLimits(player) && currentCounts >= maxCounts) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transfer_failed_limit"))
+        if (!WorldCreationChecks.checkLimits(plugin, player, targetId)) {
             return
         }
 

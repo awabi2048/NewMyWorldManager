@@ -187,12 +187,13 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
 
                  // Open Confirmation
                  val title = net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.title"))
-                 val loreComponents = plugin.languageManager.getComponentList(player, "gui.world_seed_confirm.lore", mapOf("current" to currentSlots, "next" to (currentSlots + 1)))
-                 val bodyLines = mutableListOf<net.kyori.adventure.text.Component>()
-                 if (loreComponents.isNotEmpty()) bodyLines.add(loreComponents[0])
-                 bodyLines.add(net.kyori.adventure.text.Component.text(""))
-                 if (loreComponents.size > 2) bodyLines.add(loreComponents[2])
-                 if (loreComponents.size > 3) bodyLines.add(loreComponents[3])
+                 val bodyLines = buildList {
+                     add(net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.question")))
+                     add(net.kyori.adventure.text.Component.text("${plugin.languageManager.getMessage(player, "gui.world_seed_confirm.current_label")}: $currentSlots"))
+                     add(net.kyori.adventure.text.Component.text("${plugin.languageManager.getMessage(player, "gui.world_seed_confirm.next_label")}: ${currentSlots + 1}"))
+                     plugin.languageManager.getMessageList(player, "gui.world_seed_confirm.description")
+                         .forEach { add(net.kyori.adventure.text.Component.text(it)) }
+                 }
 
                  me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
                       player,

@@ -386,13 +386,14 @@ class PortalManager(private val plugin: MyWorldManager) {
             return loaded to false
         }
 
-        val worldDirectory = File(plugin.server.worldContainer, worldName)
-        if (!worldDirectory.exists()) {
+        val worldDirectory = plugin.worldService.resolveWorldDirectory(worldName)
+        if (!worldDirectory.exists() || !worldDirectory.isDirectory) {
             return null
         }
 
         return try {
             val created = plugin.server.createWorld(WorldCreator(worldName)) ?: return null
+            plugin.worldEnvironmentService.applyAll(created)
             created to true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to load world by name: $worldName", e)

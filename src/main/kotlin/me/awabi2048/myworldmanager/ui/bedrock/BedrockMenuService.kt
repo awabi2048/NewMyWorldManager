@@ -19,6 +19,7 @@ import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
@@ -1083,36 +1084,14 @@ class BedrockMenuService(
             )
         )
 
-        val formattedDesc =
-            if (worldData.description.isNotEmpty()) {
-                tr(player, "gui.common.world_desc", mapOf("description" to worldData.description))
-            } else {
-                ""
-            }
-
         val ownerName = PlayerNameUtil.getNameOrDefault(worldData.owner, tr(player, "general.unknown"))
-        val ownerLine = tr(player, "gui.player_world.world_item.owner", mapOf("owner" to ownerName))
         val publishLevelColor = tr(player, "publish_level.color.${worldData.publishLevel.name.lowercase()}")
         val publishLevelName = tr(player, "publish_level.${worldData.publishLevel.name.lowercase()}")
-        val publishLine =
-            tr(
-                player,
-                "gui.player_world.world_item.publish",
-                mapOf("level" to publishLevelName, "status_color" to publishLevelColor)
-            )
-        val favoriteLine = tr(player, "gui.player_world.world_item.favorite", mapOf("count" to worldData.favorite))
-        val visitorLine =
-            tr(
-                player,
-                "gui.player_world.world_item.recent_visitors",
-                mapOf("count" to worldData.recentVisitors.sum())
-            )
-        val tagLine =
+        val tagNames =
             if (worldData.tags.isNotEmpty()) {
-                val tagNames = worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
-                tr(player, "gui.player_world.world_item.tag", mapOf("tags" to tagNames))
+                worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
             } else {
-                ""
+                null
             }
 
         val now = LocalDate.now()
@@ -1126,37 +1105,44 @@ class BedrockMenuService(
             }
         val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
 
-        val expiresAtLine =
+        val expiresAtValue =
             if (expireDate.year < 2900) {
                 if (daysRemaining < 0) {
                     meta.setEnchantmentGlintOverride(true)
                 }
                 tr(
                     player,
-                    "gui.player_world.world_item.expires_at",
+                    "gui.player_world.world_item.expires_value",
                     mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate))
                 )
             } else {
-                ""
+                null
             }
 
-        val expiredLine =
-            if (worldData.isArchived) {
-                meta.setEnchantmentGlintOverride(true)
-                tr(player, "gui.player_world.world_item.expired")
-            } else {
-                ""
-            }
+        if (worldData.isArchived) meta.setEnchantmentGlintOverride(true)
 
         val warpAction = tr(player, "gui.player_world.world_item.warp")
         // Bedrock uses the same semantic sections as the Java menu, with its own action text.
         meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
             *buildList {
-                if (formattedDesc.isNotBlank()) add(listOf(formattedDesc))
-                add(listOf(ownerLine, publishLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                val lifecycle = listOf(expiresAtLine, expiredLine).filter(String::isNotBlank)
+                if (worldData.description.isNotBlank()) add(listOf(GuiLoreLine.UserText(worldData.description)))
+                add(buildList {
+                    add(GuiLoreLine.Data(tr(player, "gui.common.world_item.owner"), ownerName, "§f"))
+                    add(GuiLoreLine.Data(tr(player, "gui.common.world_item.publish"), publishLevelName, publishLevelColor))
+                    add(GuiLoreLine.Data(tr(player, "gui.common.world_item.favorite"), worldData.favorite, "§c"))
+                    add(GuiLoreLine.Data(
+                        tr(player, "gui.common.world_item.recent_visitors"),
+                        tr(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to worldData.recentVisitors.sum())),
+                        "§a"
+                    ))
+                    if (tagNames != null) add(GuiLoreLine.Data(tr(player, "gui.common.world_item.tags"), tagNames, "§e"))
+                })
+                val lifecycle = buildList {
+                    if (expiresAtValue != null) add(GuiLoreLine.Data(tr(player, "gui.player_world.world_item.expires_at"), expiresAtValue, "§f"))
+                    if (worldData.isArchived) add(GuiLoreLine.Warning(tr(player, "gui.player_world.world_item.expired")))
+                }
                 if (lifecycle.isNotEmpty()) add(lifecycle)
-                add(listOf(warpAction))
+                add(listOf(GuiLoreActions.singleClick(plugin.languageManager, player, warpAction)))
             }.toTypedArray()
         )))
 
@@ -1191,7 +1177,7 @@ class BedrockMenuService(
         val item = ItemStack(Material.BARRIER)
         val meta = item.itemMeta ?: return item
         meta.displayName(plugin.languageManager.getComponent(player, reason.displayKey))
-        meta.lore(GuiItemFactory.menuLore(plugin.languageManager.getMessageList(player, reason.loreKey)))
+        meta.lore(GuiItemFactory.menuLore(plugin.languageManager.getMessageList(player, reason.loreKey).map(GuiLoreLine::Text)))
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
@@ -1209,9 +1195,8 @@ class BedrockMenuService(
         if (!PermissionManager.checkPermission(player, PermissionManager.COMMAND_MWM_CREATE)) {
             return CreationBlockReason.NO_PERMISSION
         }
+        if (!WorldCreationChecks.check(player, notify = false)) return CreationBlockReason.POLICY_DENIED
         if (bypassLimits) return null
-        // 作成期間の停止は枠不足より優先して、運営側の意図をそのまま表示する。
-        if (!MyWorldManagerApi.isWorldCreationEnabled()) return CreationBlockReason.PERIOD_DISABLED
         if (currentCreateCount >= maxSlot) return CreationBlockReason.NO_SLOT
         return null
     }
@@ -1241,19 +1226,23 @@ class BedrockMenuService(
                 mapOf("player" to playerName)
             )
         )
-        val placeholders = mapOf(
-                    "point" to worldPoint,
-                    "current_occupied" to currentCreateCount,
-                    "unlocked" to maxSlot,
-                    "icon" to if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖",
-                    "pending_count" to pendingCount,
-                    "latest_pending_at" to latestPendingText
-        )
         meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(plugin.languageManager.getMessageList(player, "gui.player_world.stats_button.blocks.points", placeholders).map(GuiLoreLine::Raw)))
-            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(plugin.languageManager.getMessageList(player, if (bypassLimits) "gui.player_world.stats_button.blocks.slots_bypass" else "gui.player_world.stats_button.blocks.slots", placeholders).map(GuiLoreLine::Raw)))
+            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.points_label"), worldPoint, "§6")
+            )))
+            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                if (bypassLimits) {
+                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, "§a")
+                } else {
+                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.slots_label"), "$currentCreateCount/$maxSlot", "§a")
+                },
+                GuiLoreLine.Text(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
+            )))
             if (pendingCount > 0) {
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(plugin.languageManager.getMessageList(player, "gui.player_world.stats_button.blocks.pending", placeholders).map(GuiLoreLine::Raw)))
+                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.pending_label"), pendingCount, "§e"),
+                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.latest_pending_label"), latestPendingText, "§b")
+                )))
                 add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(GuiLoreActions.singleClick(plugin.languageManager, player, tr(player, "gui.player_world.stats_button.action.open_pending")))))
             }
         })))
@@ -1384,9 +1373,9 @@ class BedrockMenuService(
     }
 
     private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
-        PERIOD_DISABLED(
-            "gui.player_world.creation_unavailable.period_disabled.display",
-            "gui.player_world.creation_unavailable.period_disabled.lore"
+        POLICY_DENIED(
+            "gui.player_world.creation_unavailable.policy_denied.display",
+            "gui.player_world.creation_unavailable.policy_denied.lore"
         ),
         NO_SLOT(
             "gui.player_world.creation_unavailable.no_slot.display",

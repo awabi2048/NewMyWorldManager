@@ -8,6 +8,7 @@ import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
@@ -23,6 +24,7 @@ import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
 internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorldService {
+    private val borderResetSpawnService = BorderResetSpawnService()
 
     override fun validateWorldName(player: Player, worldName: String): Component? {
         return when (val result = plugin.worldValidator.validateName(worldName)) {
@@ -135,6 +137,7 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
             worldData.borderExpansionHistory.removeAt(recordIndex)
         }
 
+        borderResetSpawnService.apply(world, worldData)
         teleportPlayersOutsideBorder(world, oldCenter)
         plugin.worldConfigRepository.save(worldData)
         return true

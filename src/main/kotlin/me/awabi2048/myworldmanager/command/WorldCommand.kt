@@ -14,6 +14,7 @@ import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -74,6 +75,26 @@ class WorldCommand(
         }
 
         when (args[0].lowercase()) {
+            "migration" -> {
+                val action = args.getOrNull(1)?.lowercase()
+                if (action == "list") {
+                    val pending = plugin.worldMigrationService.reportPending(sender)
+                    if (pending.isEmpty()) sender.sendMessage(plugin.languageManager.getMessage("messages.migration.none_pending"))
+                    return true
+                }
+                val uuid = args.getOrNull(2)?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+                if (uuid == null || action !in setOf("approve", "reject")) {
+                    sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
+                    return true
+                }
+                val handled = if (action == "approve") {
+                    plugin.worldMigrationService.approveAndLoad(uuid, sender)
+                } else {
+                    plugin.worldMigrationService.reject(uuid)
+                }
+                if (!handled) sender.sendMessage(plugin.languageManager.getMessage("messages.migration.not_found"))
+                return true
+            }
             "create" -> {
                 val lang = plugin.languageManager
                 if (!hasGlobalPermission && !PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)) {
@@ -94,6 +115,10 @@ class WorldCommand(
                     return true
                 }
 
+                if (!WorldCreationChecks.check(sender, targetPlayer, me.awabi2048.myworldmanager.api.extension.WorldCreationOperation.NORMAL, null)) {
+                    return true
+                }
+
                 // テンプレートのディレクトリ存在チェック
                 val missingTemplates = plugin.templateRepository.missingTemplates
                 if (missingTemplates.isNotEmpty()) {
@@ -105,49 +130,7 @@ class WorldCommand(
                 // テンプレートワールドのチャンクを事前読み込み
                 plugin.worldService.preloadTemplateChunks()
 
-                // ----- 上限チェック (Moved from CreationGuiListener) -----
-                val bypassLimits = PermissionManager.canBypassWorldLimits(sender)
-                if (!bypassLimits && !MyWorldManagerApi.isWorldCreationEnabled()) {
-                    sender.sendMessage(lang.getMessage(sender as? Player, "gui.creation.period_disabled"))
-                    return true
-                }
-                val stats = plugin.playerStatsRepository.findByUuid(targetPlayer.uniqueId)
-                val maxTotal = plugin.config.getInt("creation.max_total_world_count", 50)
-                val currentTotal = plugin.worldConfigRepository.findAll().size
-
-                if (!bypassLimits && currentTotal >= maxTotal) {
-                    val errorMessage = lang.getMessage(
-                        sender as? Player,
-                        "gui.creation.command_limit_reached_total",
-                        mapOf("max" to maxTotal)
-                    )
-                    sender.sendMessage(errorMessage)
-                    // グローバル上限エラーは対象プレイヤーがオンラインの場合も通知
-                    if (targetPlayer.isOnline) {
-                        targetPlayer.sendMessage(errorMessage)
-                    }
-                    return true
-                }
-
-                val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
-                val maxPlayer = defaultMax + stats.unlockedWorldSlot
-                val currentPlayer = plugin.worldConfigRepository.findAll().count { it.owner == targetPlayer.uniqueId }
-
-                if (!bypassLimits && currentPlayer >= maxPlayer) {
-                    sender.sendMessage(
-                        lang.getMessage(
-                            sender as? Player,
-                            "gui.creation.command_limit_reached",
-                            mapOf(
-                                "current" to currentPlayer,
-                                "max" to maxPlayer,
-                                "player" to targetPlayer.name
-                            )
-                        )
-                    )
-                    return true
-                }
-                // -------------------------------------------------------
+                if (!WorldCreationChecks.checkLimits(plugin, sender, targetPlayer.uniqueId)) return true
 
                 // ウィザード開始
                 val session = sessionManager.startSession(targetPlayer.uniqueId)
@@ -535,13 +518,12 @@ class WorldCommand(
     }
 
     private fun isSubCommandEnabled(sender: CommandSender, subCommand: String, args: List<String>): Boolean {
-        // migration は運用状態を config.yml に持ち込んでいたため完全廃止する。
-        // それ以外のサブコマンドは、公開済みの権限体系で表示と実行可否を判断する。
         return subCommand in enabledSubCommands
     }
 
     private fun hasSubcommandPermission(sender: CommandSender, subCommand: String?): Boolean {
         return when (subCommand) {
+            "migration" -> PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
             "create" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
             "reload" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
             "stats" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
@@ -562,6 +544,6 @@ class WorldCommand(
     }
 
     companion object {
-        private val enabledSubCommands = setOf("create", "reload", "stats", "give", "update-day", "list")
+        private val enabledSubCommands = setOf("create", "reload", "stats", "give", "update-day", "list", "migration")
     }
 }

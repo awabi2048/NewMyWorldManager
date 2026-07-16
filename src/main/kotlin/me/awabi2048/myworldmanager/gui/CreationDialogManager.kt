@@ -400,32 +400,21 @@ class CreationDialogManager : Listener {
 
             val cleanedName = session.worldName ?: lang.getMessage(player, "general.unknown")
 
-            val templateLine = if (session.creationType == WorldCreationType.TEMPLATE) {
+            val templateValue = if (session.creationType == WorldCreationType.TEMPLATE) {
                 val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
-                val displayName = template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
-                lang.getMessage(player, "gui.creation.confirm.template_line", mapOf("template" to displayName))
-            } else ""
+                template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
+            } else null
 
-            val seedLine = if (session.creationType == WorldCreationType.SEED) {
-                lang.getMessage(
-                    player,
-                    "gui.creation.confirm.seed_line",
-                    mapOf("seed" to (session.inputSeedString ?: ""))
-                )
-            } else ""
-            val seedDimensionLine = if (session.creationType == WorldCreationType.SEED) {
+            val seedValue = if (session.creationType == WorldCreationType.SEED) session.inputSeedString ?: "" else null
+            val seedDimensionValue = if (session.creationType == WorldCreationType.SEED) {
                 val dimensionKey = when (session.seedEnvironment) {
                     org.bukkit.World.Environment.NORMAL -> "normal"
                     org.bukkit.World.Environment.NETHER -> "nether"
                     org.bukkit.World.Environment.THE_END -> "the_end"
                     else -> "normal"
                 }
-                lang.getMessage(
-                    player,
-                    "gui.creation.confirm.dimension_line",
-                    mapOf("dimension" to lang.getMessage(player, "gui.creation.confirm.dimension.options.$dimensionKey"))
-                )
-            } else ""
+                lang.getMessage(player, "gui.creation.confirm.dimension.options.$dimensionKey")
+            } else null
 
             val nameLabel = lang.getMessage(player, "gui.creation.confirm.name_label")
             val typeLabel = lang.getMessage(player, "gui.creation.confirm.type_label")
@@ -434,9 +423,9 @@ class CreationDialogManager : Listener {
             val loreLines = mutableListOf<GuiLoreLine>()
             loreLines.add(GuiLoreLine.Data(nameLabel, cleanedName, "§a"))
             loreLines.add(GuiLoreLine.Data(typeLabel, typeName, "§e"))
-            if (templateLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(templateLine))
-            if (seedLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(seedLine))
-            if (seedDimensionLine.isNotEmpty()) loreLines.add(GuiLoreLine.Text(seedDimensionLine))
+            templateValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.template_label"), it, "§f")) }
+            seedValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.seed_label"), it, "§f")) }
+            seedDimensionValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.dimension_label"), it, "§f")) }
             loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
 
             val bodyLines = CCSystem.getAPI().getLoreService()

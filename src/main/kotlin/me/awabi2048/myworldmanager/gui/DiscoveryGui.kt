@@ -200,11 +200,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         ).decoration(TextDecoration.ITALIC, false)
                 )
 
-                val ownerRef = Bukkit.getOfflinePlayer(data.owner)
-                val onlineColor = lang.getMessage(player, "publish_level.color.online")
-                val offlineColor = lang.getMessage(player, "publish_level.color.offline")
-                val ownerColor = if (ownerRef.isOnline) onlineColor else offlineColor
-
                 val favorites = data.favorite
                 val visitors = data.recentVisitors.sum()
                 val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
@@ -214,17 +209,12 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         data.moderators.contains(player.uniqueId) ||
                         data.members.contains(player.uniqueId)
 
-                val formattedDesc = if (data.description.isNotEmpty()) {
-                        lang.getMessage(player, "gui.common.world_desc", mapOf("description" to data.description))
-                } else ""
-
                 val tagNames = if (data.tags.isNotEmpty()) {
-                        val tagsStr = data.tags.joinToString(", ") {
+                        data.tags.joinToString(", ") {
                                 plugin.worldTagManager.getDisplayName(player, it)
                         }
-                        lang.getMessage(player, "gui.discovery.world_item.tag", mapOf("tags" to tagsStr))
                 } else {
-                        ""
+                        null
                 }
 
                 val warpHint = if (isCurrentWorld) {
@@ -245,19 +235,20 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val rightClick = lang.getMessage(player, "lore.click.right")
                 val shiftLeftClick = lang.getMessage(player, "lore.click.shift_left")
                 val shiftRightClick = lang.getMessage(player, "lore.click.shift_right")
-                val ownerLine = lang.getMessage(player, "gui.discovery.world_item.owner", mapOf(
-                        "owner" to PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown")),
-                        "status_color" to ownerColor
-                ))
-                val favoriteLine = lang.getMessage(player, "gui.discovery.world_item.favorite", mapOf("count" to favorites))
-                val visitorLine = lang.getMessage(player, "gui.discovery.world_item.recent_visitors", mapOf("count" to visitors))
+                val ownerName = PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown"))
                 // 操作文言は内容だけを言語キーから受け取り、操作方法は共通Loreモデルで表現する。
                 meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
-                        add(GuiLoreBlock(
-                                (listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagNames.takeIf(String::isNotBlank)))
-                                        .map(GuiLoreLine::Raw)
-                        ))
+                        if (data.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(data.description))))
+                        add(GuiLoreBlock(buildList {
+                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§f"))
+                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, "§c"))
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.common.world_item.recent_visitors"),
+                                        lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
+                                        "§a"
+                                ))
+                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
+                        }))
                         add(GuiLoreBlock(buildList {
                                 if (warpHint.isNotBlank()) add(GuiLoreLine.Action(leftClick, warpHint))
                                 if (previewHint.isNotBlank()) add(GuiLoreLine.Action(rightClick, previewHint))
@@ -299,14 +290,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.left"),
-                                        lang.getMessage(player, "gui.discovery.sort.action.next")
-                                ))
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.right"),
-                                        lang.getMessage(player, "gui.discovery.sort.action.previous")
-                                ))
+                                add(GuiLoreActions.cycle(lang, player))
                                 if (canEditSpotlight) {
                                         add(GuiLoreLine.Action(
                                                 lang.getMessage(player, "lore.click.shift_left"),
@@ -346,14 +330,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.left"),
-                                        lang.getMessage(player, "gui.discovery.tag_filter.action.next")
-                                ))
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.right"),
-                                        lang.getMessage(player, "gui.discovery.tag_filter.action.previous")
-                                ))
+                                add(GuiLoreActions.cycle(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
 
@@ -382,14 +359,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(name, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.left"),
-                                        lang.getMessage(player, "gui.discovery.special_filter.action.next")
-                                ))
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.right"),
-                                        lang.getMessage(player, "gui.discovery.special_filter.action.previous")
-                                ))
+                                add(GuiLoreActions.cycle(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
 
@@ -457,21 +427,13 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
                 val tagName = tag?.let { plugin.worldTagManager.getDisplayName(player, it) } ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
-                val desc = lang.getMessage(player, "gui.discovery.stats.desc")
-
                 meta.displayName(lang.getComponent(player, "gui.discovery.stats.name"))
-                meta.lore(
-                        lang.getMenuLore(
-                                player,
-                                "gui.discovery.stats.lore",
-                                mapOf(
-                                        "sort" to sortName,
-                                        "tag" to tagName,
-                                        "count" to count,
-                                        "desc" to desc
-                                )
-                        )
-                )
+                meta.lore(GuiItemFactory.menuLore(listOf(
+                        GuiLoreLine.Text(lang.getMessage(player, "gui.discovery.stats.desc")),
+                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.sort_label"), sortName, "§b"),
+                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.tag_label"), tagName, "§b"),
+                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.count_label"), count, "§b")
+                )))
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)

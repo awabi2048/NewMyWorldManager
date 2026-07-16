@@ -3,18 +3,23 @@ package me.awabi2048.myworldmanager
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.internal.MemberManagerAdapter
+import me.awabi2048.myworldmanager.api.internal.BedrockFormServiceAdapter
 import me.awabi2048.myworldmanager.api.internal.TemplateRepositoryAdapter
 import me.awabi2048.myworldmanager.api.internal.WorldRepositoryAdapter
 import me.awabi2048.myworldmanager.api.internal.WorldServiceAdapter
 import me.awabi2048.myworldmanager.api.internal.WorldTagServiceAdapter
 import me.awabi2048.myworldmanager.command.*
 import me.awabi2048.myworldmanager.gui.*
+import me.awabi2048.myworldmanager.integration.MultiverseWorldExclusionService
 import me.awabi2048.myworldmanager.integration.WorldPermissionPolicyService
+import me.awabi2048.myworldmanager.integration.MyWorldManagerArchiveStatusProvider
 import me.awabi2048.myworldmanager.listener.*
 import me.awabi2048.myworldmanager.model.LikeSignData
 import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourSignData
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.migration.WorldDirectoryResolver
+import me.awabi2048.myworldmanager.migration.WorldMigrationService
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.service.*
 import me.awabi2048.myworldmanager.session.*
@@ -45,11 +50,9 @@ class MyWorldManager : JavaPlugin() {
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
     private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
-    private var worldCreationControlService: MyWorldManagerApi.WorldCreationControlService? = null
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
-    lateinit var runtimeStateRepository: RuntimeStateRepository
 
     lateinit var settingsSessionManager: SettingsSessionManager
     lateinit var inviteSessionManager: InviteSessionManager
@@ -96,6 +99,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var adminGuiSessionManager: AdminGuiSessionManager
     lateinit var macroManager: MacroManager
     lateinit var directoryManager: DirectoryManager
+    lateinit var worldMigrationService: WorldMigrationService
     lateinit var worldUnloadService: WorldUnloadService
     lateinit var msptMonitorTask: me.awabi2048.myworldmanager.task.MsptMonitorTask
     lateinit var inviteCommand: me.awabi2048.myworldmanager.command.InviteCommand
@@ -105,6 +109,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var playerPlatformResolver: PlayerPlatformResolver
     lateinit var playerVisibilityService: PlayerVisibilityService
     lateinit var floodgateFormBridge: FloodgateFormBridge
+    private var bedrockFormApiService: me.awabi2048.myworldmanager.api.service.ApiBedrockFormService? = null
     lateinit var bedrockUiRoutingService: BedrockUiRoutingService
     lateinit var bedrockMenuService: BedrockMenuService
     lateinit var menuEntryRouter: MenuEntryRouter
@@ -128,6 +133,10 @@ class MyWorldManager : JavaPlugin() {
             dataFolder.mkdirs()
         }
         saveDefaultConfig()
+        if (!config.contains("debug.world_settings", true)) {
+            config.set("debug.world_settings", true)
+            saveConfig()
+        }
 
         // langフォルダが存在しなければ作成し、デフォルトの言語ファイルをコピー
         val langFolder = java.io.File(dataFolder, "lang")
@@ -149,6 +158,10 @@ class MyWorldManager : JavaPlugin() {
         templateRepository = TemplateRepository(this)
 
         directoryManager = DirectoryManager(this, worldConfigRepository, templateRepository)
+        worldMigrationService = WorldMigrationService(
+                this,
+                WorldDirectoryResolver(server.worldContainer.toPath())
+        )
         // ワールド・テンプレートディレクトリの存在チェック
         directoryManager.checkDirectories()
 
@@ -163,8 +176,6 @@ class MyWorldManager : JavaPlugin() {
         portalRepository = PortalRepository(this)
         spotlightRepository = SpotlightRepository(this)
         pendingInteractionRepository = PendingInteractionRepository(this)
-        runtimeStateRepository = RuntimeStateRepository(this)
-
         // サービスの初期化
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
         worldEnvironmentService = WorldEnvironmentService(this)
@@ -176,6 +187,7 @@ class MyWorldManager : JavaPlugin() {
         tourManager = TourManager(this)
 
         loadWorldsFromPreviousShutdown()
+        worldMigrationService.reportPending()
 
         // MSPT監視タスクの開始
         msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
@@ -226,7 +238,7 @@ class MyWorldManager : JavaPlugin() {
         pendingDecisionManager = PendingDecisionManager(this)
 
         // 設定機能の初期化
-        settingsSessionManager = SettingsSessionManager()
+        settingsSessionManager = SettingsSessionManager(::logWorldSettingsDebug)
         discoverySessionManager = DiscoverySessionManager()
         meetSessionManager = MeetSessionManager()
         favoriteSessionManager = FavoriteSessionManager()
@@ -245,6 +257,8 @@ class MyWorldManager : JavaPlugin() {
         playerPlatformResolver = PlayerPlatformResolver(this)
         playerVisibilityService = PlayerVisibilityService(this)
         floodgateFormBridge = FloodgateFormBridge(this)
+        bedrockFormApiService = BedrockFormServiceAdapter(playerPlatformResolver, floodgateFormBridge)
+            .also(MyWorldManagerApi::registerBedrockFormService)
         bedrockUiRoutingService =
                 BedrockUiRoutingService(this, playerPlatformResolver, floodgateFormBridge)
         bedrockMenuService =
@@ -259,16 +273,10 @@ class MyWorldManager : JavaPlugin() {
         MyWorldManagerApi.registerWorldService(WorldServiceAdapter(this))
         MyWorldManagerApi.registerWorldEnvironmentService(worldEnvironmentService)
         MyWorldManagerApi.registerWorldRepository(WorldRepositoryAdapter(this))
+        com.awabi2048.ccsystem.api.lwc.WorldArchiveStatusProviders.register(MyWorldManagerArchiveStatusProvider)
         MyWorldManagerApi.registerTemplateRepository(TemplateRepositoryAdapter(this))
         MyWorldManagerApi.registerMemberManager(MemberManagerAdapter(this))
         MyWorldManagerApi.registerWorldTagService(WorldTagServiceAdapter(this))
-        worldCreationControlService = object : MyWorldManagerApi.WorldCreationControlService {
-            override fun isWorldCreationEnabled(): Boolean = runtimeStateRepository.isWorldCreationEnabled()
-
-            override fun setWorldCreationEnabled(enabled: Boolean) {
-                runtimeStateRepository.setWorldCreationEnabled(enabled)
-            }
-        }.also(MyWorldManagerApi::registerWorldCreationControlService)
         worldWorkPermissionSyncService = MyWorldManagerApi.WorldWorkPermissionSyncService { worldUuid ->
             worldConfigRepository.findByUuid(worldUuid)?.let(worldPermissionPolicyService::syncParticipants)
         }.also(MyWorldManagerApi::registerWorldWorkPermissionSyncService)
@@ -282,6 +290,7 @@ class MyWorldManager : JavaPlugin() {
 
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(this), this)
+        MultiverseWorldExclusionService(this, worldConfigRepository).start()
         server.pluginManager.registerEvents(
                 WorldPermissionPolicyListener(worldConfigRepository, worldPermissionPolicyService),
                 this
@@ -404,10 +413,11 @@ class MyWorldManager : JavaPlugin() {
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
         worldPointApiService = null
-        worldCreationControlService?.let(MyWorldManagerApi::unregisterWorldCreationControlService)
-        worldCreationControlService = null
+        bedrockFormApiService?.let(MyWorldManagerApi::unregisterBedrockFormService)
+        bedrockFormApiService = null
         worldWorkPermissionSyncService?.let(MyWorldManagerApi::unregisterWorldWorkPermissionSyncService)
         worldWorkPermissionSyncService = null
+        com.awabi2048.ccsystem.api.lwc.WorldArchiveStatusProviders.unregister(MyWorldManagerArchiveStatusProvider)
         if (::worldEnvironmentService.isInitialized) {
             MyWorldManagerApi.unregisterWorldEnvironmentService(worldEnvironmentService)
         }
@@ -464,6 +474,12 @@ class MyWorldManager : JavaPlugin() {
         if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
     }
 
+    fun logWorldSettingsDebug(message: String) {
+        if (config.getBoolean("debug.world_settings", true)) {
+            logger.info("[WorldSettingsDebug] $message")
+        }
+    }
+
     private fun loadWorldsFromPreviousShutdown() {
         val file = File(dataFolder, "data/loaded_worlds_at_shutdown.yml")
         if (!file.exists()) return
@@ -515,7 +531,6 @@ class MyWorldManager : JavaPlugin() {
         templateRepository.loadTemplates()
         portalRepository.loadAll()
         spotlightRepository.load()
-        runtimeStateRepository.load()
         macroManager.loadConfig()
         menuConfigManager.initialize() // フォルダ作成・デフォルトコピー・全読み込みを一括実行
         registerMenuSoundProvider()

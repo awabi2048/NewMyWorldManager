@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.migration.WorldDirectoryResolver
+import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.TemplateRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
 import java.io.File
@@ -16,30 +18,41 @@ class DirectoryManager(
     fun checkDirectories() {
         val allWorlds = worldConfigRepository.findAll()
         val missingWorlds = mutableListOf<String>()
+        val conflictingWorlds = mutableListOf<String>()
         val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
         
         for (world in allWorlds) {
             val folderName = world.customWorldName ?: "my_world.${world.uuid}"
-            val folder = if (world.isArchived) {
-                File(archiveFolder, folderName)
-            } else {
-                resolveActiveWorldDirectory(folderName)
+            val resolution = if (world.isArchived) null else
+                WorldDirectoryResolver(plugin.server.worldContainer.toPath()).inspect(folderName)
+            if (resolution?.state == WorldDirectoryState.CONFLICT) {
+                conflictingWorlds.add(
+                    "「${world.name}」 (UUID: ${world.uuid}, Legacy: ${resolution.legacyPath}, Current: ${resolution.currentPath})"
+                )
             }
-            
-            if (!folder.exists() || !folder.isDirectory) {
+            val folder = if (world.isArchived) File(archiveFolder, folderName) else resolution?.existingPath?.toFile()
+
+            if (resolution?.state != WorldDirectoryState.CONFLICT &&
+                (folder == null || !folder.exists() || !folder.isDirectory)
+            ) {
                 missingWorlds.add("「${world.name}」 (UUID: ${world.uuid}, Archived: ${world.isArchived})")
             }
         }
         
         val missingTemplates = templateRepository.missingTemplates
         
-        if (missingWorlds.isNotEmpty() || missingTemplates.isNotEmpty()) {
+        if (missingWorlds.isNotEmpty() || conflictingWorlds.isNotEmpty() || missingTemplates.isNotEmpty()) {
             plugin.logger.severe("====================================================")
             plugin.logger.severe("【MyWorldManager 警告】")
             
             if (missingWorlds.isNotEmpty()) {
                 plugin.logger.severe("以下のマイワールドに対応するディレクトリが見つかりませんでした:")
                 missingWorlds.forEach { plugin.logger.severe(" - $it") }
+            }
+
+            if (conflictingWorlds.isNotEmpty()) {
+                plugin.logger.severe("以下のマイワールドは旧構造と現行構造が衝突しています（自動選択しません）:")
+                conflictingWorlds.forEach { plugin.logger.severe(" - $it") }
             }
             
             if (missingTemplates.isNotEmpty()) {
@@ -54,12 +67,4 @@ class DirectoryManager(
         }
     }
 
-    private fun resolveActiveWorldDirectory(folderName: String): File {
-        val container = plugin.server.worldContainer
-        val candidates = listOf(
-            File(container, folderName),
-            File(File(File(container, "world"), "dimensions/minecraft"), folderName)
-        )
-        return candidates.firstOrNull { it.exists() && it.isDirectory } ?: candidates.first()
-    }
 }

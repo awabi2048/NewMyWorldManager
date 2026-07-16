@@ -29,6 +29,13 @@ private val guiLegacySerializer = LegacyComponentSerializer.legacySection()
 data class GuiLoreAction(val operation: String, val action: String)
 
 object GuiLoreActions {
+    fun cycle(languageManager: LanguageManager, player: Player): GuiLoreLine.Action {
+        return GuiLoreLine.Action(
+            languageManager.getMessage(player, "lore.click.left_right"),
+            languageManager.getMessage(player, "gui.common.action.cycle")
+        )
+    }
+
     fun singleClick(languageManager: LanguageManager, player: Player, action: String): GuiLoreLine.SingleAction {
         return single(
             languageManager,
@@ -90,29 +97,8 @@ class GuiLoreBuilder(
         }
     }
 
-    fun line(line: String): GuiLoreBuilder {
-        val normalized = line.trim()
-        if (normalized.isNotEmpty()) {
-            addSection(listOf(GuiLoreLine.Raw(normalized)))
-        }
-        return this
-    }
-
-    fun block(lines: List<String>): GuiLoreBuilder {
-        val normalized = lines
-            .flatMap { it.split('\n') }
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .map { raw -> if (raw.startsWith("§")) GuiLoreLine.Raw(raw) else GuiLoreLine.Text(raw) }
-        addSection(normalized)
-        return this
-    }
-
-    fun componentBlock(lines: List<Component>): GuiLoreBuilder {
-        addSection(lines.map { component ->
-            if (component == Component.empty()) GuiLoreLine.Spacer
-            else GuiLoreLine.Raw(guiLegacySerializer.serialize(component))
-        })
+    fun block(lines: List<GuiLoreLine>): GuiLoreBuilder {
+        addSection(lines)
         return this
     }
 
@@ -249,36 +235,6 @@ object GuiItemFactory {
         return item
     }
 
-    fun textItem(material: Material, name: String, loreLines: List<String>, tag: String? = null): ItemStack {
-        return item(material, legacy(name), loreLines.map { legacy(it) }, tag)
-    }
-
-    fun item(material: Material, name: String, loreComponents: List<Component>, tag: String? = null): ItemStack {
-        return item(material, legacy(name), loreComponents, tag)
-    }
-
-    fun item(material: Material, name: Component, loreComponents: List<Component>, tag: String? = null): ItemStack {
-        val item = CCSystem.getAPI().getGuiElementService().item(
-            GuiItemSpec(
-                material = material,
-                name = GuiNameSpec.Text(guiLegacySerializer.serialize(name), GuiNameStyle.DEFAULT),
-                lore = GuiLoreSpec.Rich(
-                    loreComponents.map { component ->
-                        if (component == Component.empty()) GuiLoreLine.Spacer
-                        else GuiLoreLine.Raw(guiLegacySerializer.serialize(component))
-                    },
-                    GuiLoreFrame.BOTH
-                ),
-                role = GuiElementRole.CONTENT,
-                amount = 1
-            )
-        )
-        if (tag != null) {
-            ItemTag.tagItem(item, tag)
-        }
-        return item
-    }
-
     fun item(material: Material, name: Component, lore: GuiLoreSpec, tag: String? = null): ItemStack {
         val item = CCSystem.getAPI().getGuiElementService().item(
             GuiItemSpec(
@@ -299,27 +255,13 @@ object GuiItemFactory {
         return item(material, legacy(name), lore, tag)
     }
 
-    fun playerHead(owner: OfflinePlayer, name: String, loreComponents: List<Component>, tag: String? = null): ItemStack {
-        val item = ItemStack(Material.PLAYER_HEAD)
-        val meta = item.itemMeta as? SkullMeta ?: return item
-        meta.owningPlayer = owner
-        meta.displayName(legacy(name))
-        val lore = componentMenuLore(loreComponents)
-        if (lore.isNotEmpty()) meta.lore(lore)
-        item.itemMeta = meta
-        if (tag != null) {
-            ItemTag.tagItem(item, tag)
-        }
-        return item
-    }
-
-    fun playerHead(owner: OfflinePlayer, name: Component, loreComponents: List<Component>, tag: String? = null): ItemStack {
+    fun playerHead(owner: OfflinePlayer, name: Component, lore: GuiLoreSpec, tag: String? = null): ItemStack {
         val item = ItemStack(Material.PLAYER_HEAD)
         val meta = item.itemMeta as? SkullMeta ?: return item
         meta.owningPlayer = owner
         meta.displayName(normalizeName(name))
-        val lore = componentMenuLore(loreComponents)
-        if (lore.isNotEmpty()) meta.lore(lore)
+        val renderedLore = CCSystem.getAPI().getLoreService().render(lore)
+        if (renderedLore.isNotEmpty()) meta.lore(renderedLore)
         item.itemMeta = meta
         if (tag != null) {
             ItemTag.tagItem(item, tag)
@@ -327,21 +269,10 @@ object GuiItemFactory {
         return item
     }
 
-    fun menuLore(lines: List<String>, closingSeparator: Boolean = true): List<Component> {
-        return CCSystem.getAPI().getGuiElementService().autoLore(lines, closingSeparator)
-    }
-
-    fun componentMenuLore(lines: List<Component>, closingSeparator: Boolean = true, preserveBlanks: Boolean = true): List<Component> {
-        val filtered = if (preserveBlanks) lines else lines.filter { it != Component.empty() }
+    fun menuLore(lines: List<GuiLoreLine>, closingSeparator: Boolean = true): List<Component> {
         return CCSystem.getAPI().getLoreService().render(
             GuiLoreSpec.Rich(
-                filtered.map { component ->
-                    if (component == Component.empty()) {
-                        com.awabi2048.ccsystem.api.gui.GuiLoreLine.Spacer
-                    } else {
-                        com.awabi2048.ccsystem.api.gui.GuiLoreLine.Raw(guiLegacySerializer.serialize(component))
-                    }
-                },
+                lines,
                 if (closingSeparator) GuiLoreFrame.BOTH else GuiLoreFrame.TOP
             )
         )

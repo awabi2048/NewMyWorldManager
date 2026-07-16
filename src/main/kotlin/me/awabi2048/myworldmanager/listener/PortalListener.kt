@@ -380,10 +380,11 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val infoMeta = infoItem.itemMeta
         infoMeta?.displayName(lang.getComponent(player, "messages.world_gate_confirm_title"))
         infoMeta?.lore(
-            lang.getMenuLore(
-                player,
-                "messages.world_gate_confirm_body",
-                mapOf(
+            me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
+                lang.getMessageList(
+                    player,
+                    "messages.world_gate_confirm_body",
+                    mapOf(
                     "min_x" to minX,
                     "min_y" to minY,
                     "min_z" to minZ,
@@ -393,7 +394,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     "required" to requiredPoints,
                     "current" to currentPoints,
                     "remaining" to remainingPoints
-                )
+                    )
+                ).map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
             )
         )
         infoItem.itemMeta = infoMeta

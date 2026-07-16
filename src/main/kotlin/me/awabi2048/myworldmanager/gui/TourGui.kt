@@ -43,14 +43,16 @@ class TourGui(private val plugin: MyWorldManager) {
         holder.inv = inventory
         fillBase(inventory)
 
-        val description = if (tour.description.isBlank()) "§7" else normalizeDescription(tour.description)
-        val byLine = "§7by $ownerName"
+        val previewLines = buildList {
+            if (tour.description.isNotBlank()) add(GuiLoreLine.UserText(tour.description))
+            add(GuiLoreLine.Metadata("by", ownerName))
+        }
         inventory.setItem(
             22,
             createItem(
                 Material.FILLED_MAP,
                 "§b【${tour.name}】",
-                framedLore(description, "", byLine),
+                framedLore(previewLines),
                 ItemTag.TYPE_GUI_INFO
             )
         )
@@ -102,11 +104,11 @@ class TourGui(private val plugin: MyWorldManager) {
         val footerStart = inventory.size - 9
         inventory.setItem(footerStart + 4, createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
         if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
-            inventory.setItem(footerStart + 2, createActionItem(player, Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), listOf(lang.getMessage(player, "gui.tour.menu.create.description")), lang.getMessage(player, "gui.tour.menu.create.action"), ItemTag.TYPE_GUI_TOUR_CREATE))
+            inventory.setItem(footerStart + 2, createActionItem(player, Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.create.description"))), lang.getMessage(player, "gui.tour.menu.create.action"), ItemTag.TYPE_GUI_TOUR_CREATE))
         }
         inventory.setItem(4, createCurrentWorldItem(player, worldData))
         val infoLines = lang.getMessageList(player, "gui.tour.menu.info.lore")
-        inventory.setItem(footerStart + 6, createLoreItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), infoLines, ItemTag.TYPE_GUI_TOUR_INFO, LoreStyle.FRAMED))
+        inventory.setItem(footerStart + 6, createLoreItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), infoLines.map(GuiLoreLine::Text), ItemTag.TYPE_GUI_TOUR_INFO, GuiLoreFrame.BOTH))
         if (safePage > 0) inventory.setItem(footerStart, GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1))
         if ((safePage + 1) * pageSlots.size < tours.size) inventory.setItem(footerStart + 8, GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1))
         player.openInventory(inventory)
@@ -129,12 +131,12 @@ class TourGui(private val plugin: MyWorldManager) {
         if (tour.waypoints.size < 28) inventory.setItem(slots[tour.waypoints.size], createActionItem(player, Material.YELLOW_STAINED_GLASS_PANE, lang.getMessage(player, "gui.tour.menu.add_waypoint_button"), emptyList(), lang.getMessage(player, "gui.tour.menu.add_sign_action"), ItemTag.TYPE_GUI_TOUR_ADD_WAYPOINT))
         val bottom = inventory.size - 9
         inventory.setItem(bottom, createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
-        val editTextLore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+        val editTextLore = GuiLoreSpec.Blocks(listOf(
             GuiLoreBlock(listOf(
                 GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.tour.menu.edit_text.action.text")),
                 GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"))
             ))
-        )))
+        ))
         inventory.setItem(bottom + 2, createItem(Material.NAME_TAG, lang.getMessage(player, "gui.tour.menu.edit_text.display"), editTextLore, ItemTag.TYPE_GUI_TOUR_EDIT_TEXT))
         inventory.setItem(bottom + 4, createActionItem(player, Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.save.action"), ItemTag.TYPE_GUI_TOUR_SAVE))
         inventory.setItem(bottom + 6, createActionItem(player, Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.delete.action"), ItemTag.TYPE_GUI_TOUR_DELETE))
@@ -156,9 +158,9 @@ class TourGui(private val plugin: MyWorldManager) {
                 Material.LAVA_BUCKET,
                 lang.getMessage(player, "gui.tour.menu.delete_confirm.title"),
                 listOf(
-                    lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1"),
-                    lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"),
-                    lang.getMessage(player, "gui.tour.menu.delete_confirm.warning")
+                    GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1")),
+                    GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2")),
+                    GuiLoreLine.Warning(lang.getMessage(player, "gui.tour.menu.delete_confirm.warning"))
                 ),
                 ItemTag.TYPE_GUI_INFO
             ),
@@ -189,17 +191,13 @@ class TourGui(private val plugin: MyWorldManager) {
         val owner = Bukkit.getOfflinePlayer(worldData.owner)
         val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
         meta.displayName(lang.getComponent(player, "gui.favorite.current_world.name"))
-        val lines = listOf(
-            lang.getMessage(player, "gui.favorite.current_world.world_name", mapOf("world" to worldData.name)),
-            if (worldData.description.isNotBlank()) {
-                lang.getMessage(player, "gui.common.world_desc", mapOf("description" to worldData.description))
-            } else {
-                "§7-"
-            },
-            "",
-            lang.getMessage(player, "gui.favorite.world_item.owner", mapOf("owner" to ownerName, "status_color" to ""))
-        )
-        val lore = GuiItemFactory.menuLore(lines)
+        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+            GuiLoreBlock(buildList {
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.world_name"), worldData.name, "§a"))
+                if (worldData.description.isNotBlank()) add(GuiLoreLine.UserText(worldData.description))
+            }),
+            GuiLoreBlock(listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b")))
+        )))
         meta.lore(lore)
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_TOUR_CURRENT_WORLD)
@@ -209,7 +207,7 @@ class TourGui(private val plugin: MyWorldManager) {
     private fun createTourItem(player: Player, worldData: WorldData, tour: TourData, editing: Boolean): ItemStack {
         val lang = plugin.languageManager
         val current = plugin.tourSessionManager.get(player.uniqueId)?.let { it.tourUuid == tour.uuid && it.worldUuid == worldData.uuid } == true
-        val countLine = if (tour.completedCount == 0) {
+        val countValue = if (tour.completedCount == 0) {
             lang.getMessage(player, "gui.tour.menu.tour_item.visitors_none")
         } else {
             lang.getMessage(player, "gui.tour.menu.tour_item.visitors_count", mapOf("count" to tour.completedCount.toString()))
@@ -219,8 +217,10 @@ class TourGui(private val plugin: MyWorldManager) {
             current -> lang.getMessage(player, "gui.tour.menu.tour_item.action_current")
             else -> lang.getMessage(player, "gui.tour.menu.tour_item.action_start")
         }
-        val desc = normalizeDescription(tour.description)
-        val item = createActionItem(player, tour.icon, tour.name, listOf(desc, countLine), action, ItemTag.TYPE_GUI_TOUR_ITEM)
+        val item = createActionItem(player, tour.icon, tour.name, buildList {
+            if (tour.description.isNotBlank()) add(GuiLoreLine.UserText(tour.description))
+            add(GuiLoreLine.Data(lang.getMessage(player, "gui.tour.menu.tour_item.visitors_label"), countValue, "§a"))
+        }, action, ItemTag.TYPE_GUI_TOUR_ITEM)
         ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
         return item
     }
@@ -229,66 +229,46 @@ class TourGui(private val plugin: MyWorldManager) {
 
     private fun createWaypointItem(player: Player, waypoint: TourWaypointData, actionLine: String): ItemStack {
         val lang = plugin.languageManager
-        val coordLine = "§8${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}"
-        val item = createActionItem(player, Material.OAK_BOAT, waypoint.name, listOf(coordLine), actionLine, ItemTag.TYPE_GUI_TOUR_WAYPOINT_ITEM)
+        val item = createActionItem(player, Material.OAK_BOAT, waypoint.name, listOf(
+            GuiLoreLine.Metadata("XYZ", "${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}")
+        ), actionLine, ItemTag.TYPE_GUI_TOUR_WAYPOINT_ITEM)
         ItemTag.setString(item, "tour_waypoint_uuid", waypoint.uuid.toString())
         return item
-    }
-
-    private enum class LoreStyle {
-        RAW,
-        AUTO_OPEN,
-        FRAMED
     }
 
     private fun createLoreItem(
         material: Material,
         name: String,
-        lore: List<String>,
+        lore: List<GuiLoreLine>,
         type: String,
-        style: LoreStyle = LoreStyle.AUTO_OPEN
+        frame: GuiLoreFrame = GuiLoreFrame.TOP
     ): ItemStack {
-        val components = when (style) {
-            LoreStyle.RAW -> legacyLore(lore)
-            LoreStyle.AUTO_OPEN -> GuiItemFactory.menuLore(lore, closingSeparator = false)
-            LoreStyle.FRAMED -> framedLore(lore)
-        }
-        return createItem(material, name, components, type)
+        val spec = if (lore.isEmpty()) GuiLoreSpec.None else GuiLoreSpec.Rich(lore, frame)
+        return createItem(material, name, spec, type)
     }
 
     private fun createActionItem(
         player: Player,
         material: Material,
         name: String,
-        information: List<String>,
+        information: List<GuiLoreLine>,
         action: String,
         type: String
     ): ItemStack {
-        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            val visibleInformation = information.filter(String::isNotBlank)
-            if (visibleInformation.isNotEmpty()) add(GuiLoreBlock(visibleInformation.map(GuiLoreLine::Raw)))
+        val lore = GuiLoreSpec.Blocks(buildList {
+            if (information.isNotEmpty()) add(GuiLoreBlock(information))
             add(GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(plugin.languageManager, player, action))))
-        }))
+        })
         return createItem(material, name, lore, type)
     }
 
-    private fun createItem(material: Material, name: String, lore: List<Component>, type: String): ItemStack {
+    private fun createItem(material: Material, name: String, lore: GuiLoreSpec, type: String): ItemStack {
         return GuiItemFactory.item(material, name, lore, type)
     }
 
-    private fun framedLore(vararg lines: String): List<Component> = framedLore(lines.toList())
-
-    private fun framedLore(lines: List<String>): List<Component> {
-        if (lines.isEmpty()) return emptyList()
-        return CCSystem.getAPI().getGuiElementService().autoLore(lines, true)
-    }
-
-    private fun legacyLore(vararg lines: String): List<Component> = legacyLore(lines.toList())
-
-    private fun legacyLore(lines: List<String>): List<Component> {
-        return CCSystem.getAPI().getLoreService().render(
-            GuiLoreSpec.Rich(lines.map(GuiLoreLine::Raw), GuiLoreFrame.NONE)
-        )
+    private fun framedLore(lines: List<GuiLoreLine>): GuiLoreSpec {
+        if (lines.isEmpty()) return GuiLoreSpec.None
+        return GuiLoreSpec.Rich(lines, GuiLoreFrame.BOTH)
     }
 
     private fun decoration(material: Material): ItemStack {
@@ -307,15 +287,13 @@ class TourGui(private val plugin: MyWorldManager) {
             val row = index / 7 + 1
             val col = index % 7 + 1
             val item = createActionItem(player, tour.icon, tour.name,
-                listOf(normalizeDescription(tour.description)), lang.getMessage(player, "gui.tour.menu.tour_item.action_bind"),
+                if (tour.description.isBlank()) emptyList() else listOf(GuiLoreLine.UserText(tour.description)), lang.getMessage(player, "gui.tour.menu.tour_item.action_bind"),
                 ItemTag.TYPE_GUI_TOUR_ITEM)
             ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
             inventory.setItem(row * 9 + col, item)
         }
         player.openInventory(inventory)
     }
-
-    private fun normalizeDescription(text: String): String = if (text.startsWith("§")) text else "§7$text"
 
     abstract class BaseHolder : InventoryHolder { lateinit var inv: Inventory; override fun getInventory(): Inventory = inv }
     class VisitorTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()

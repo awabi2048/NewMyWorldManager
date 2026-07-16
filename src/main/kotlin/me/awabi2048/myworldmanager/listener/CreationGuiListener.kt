@@ -11,6 +11,7 @@ import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
@@ -215,6 +216,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     openSpawnInputByPlatform(player, session)
                 } else if (tag == ItemTag.TYPE_GUI_CONFIRM) {
                     player.closeInventory()
+
+                    if (!WorldCreationChecks.check(player, type = session.creationType)) {
+                        plugin.creationSessionManager.endSession(player.uniqueId)
+                        return
+                    }
 
                     // ポイント消費
                     val cost =

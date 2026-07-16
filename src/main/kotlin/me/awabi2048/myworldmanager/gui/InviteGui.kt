@@ -71,8 +71,10 @@ class InviteGui(private val plugin: MyWorldManager) {
             listOf(
                 GuiLoreBlock(
                     listOf(
-                        GuiLoreLine.Raw(
-                            lang.getMessage(player, "gui.meet.world_item.current_world", mapOf("world" to currentWorldData.name))
+                        GuiLoreLine.Data(
+                            lang.getMessage(player, "gui.meet.world_item.current_world"),
+                            currentWorldData.name,
+                            "§f"
                         )
                     )
                 )
@@ -113,7 +115,11 @@ class InviteGui(private val plugin: MyWorldManager) {
         val statusKey = "general.status.${status.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else status
         val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-            GuiLoreBlock(listOf(GuiLoreLine.Raw(lang.getMessage(viewer, "gui.meet.world_item.status", mapOf("status" to statusName))))),
+            GuiLoreBlock(listOf(GuiLoreLine.Data(
+                lang.getMessage(viewer, "gui.meet.world_item.status"),
+                statusName,
+                "§e"
+            ))),
             GuiLoreBlock(listOf(GuiLoreLine.Action(
                 lang.getMessage(viewer, "lore.click.any"),
                 lang.getMessage(viewer, "gui.invite.target_head.click_invite")

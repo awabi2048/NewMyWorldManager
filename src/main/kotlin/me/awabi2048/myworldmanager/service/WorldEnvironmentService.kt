@@ -167,6 +167,17 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
 
     private fun applyWorldSettings(world: World, worldData: WorldData) {
         if (worldData.sourceWorld == "CONVERT" && !world.name.startsWith("my_world.")) return
+        val center = worldData.borderCenterPos
+        if (center != null) {
+            world.worldBorder.setCenter(center.x, center.z)
+        }
+        val restoredBorderSize = worldData.latestBorderExpansionRecord()?.newSize
+            ?: worldData.borderExpansionLevel.takeIf { it >= 0 }?.let { level ->
+                Math.scalb(plugin.config.getDouble("expansion.initial_size", 100.0), level)
+            }
+        if (restoredBorderSize != null && restoredBorderSize > 0.0) {
+            world.worldBorder.size = restoredBorderSize
+        }
         world.difficulty = Difficulty.PEACEFUL
         world.setGameRule(GameRules.SPAWN_MOBS, false)
     }

@@ -108,26 +108,12 @@ class VisitGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                val formattedDesc = if (world.description.isNotEmpty()) {
-                        lang.getMessage(viewer, "gui.common.world_desc", mapOf("description" to world.description))
-                } else ""
-
-                val ownerRef = Bukkit.getOfflinePlayer(world.owner)
-                val onlineColor = lang.getMessage(viewer, "publish_level.color.online")
-                val offlineColor = lang.getMessage(viewer, "publish_level.color.offline")
-                val statusColor = if (ownerRef.isOnline) onlineColor else offlineColor
-                val ownerLine = lang.getMessage(viewer, "gui.visit.world_item.owner", mapOf("owner" to PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(viewer, "general.unknown")), "status_color" to statusColor))
-
-
-                val favoriteLine = lang.getMessage(viewer, "gui.visit.world_item.favorite", mapOf("count" to world.favorite))
-                val visitorLine = lang.getMessage(viewer, "gui.visit.world_item.recent_visitors", mapOf("count" to world.recentVisitors.sum()))
-
-                val tagLine = if (world.tags.isNotEmpty()) {
-                        val tagNames = world.tags.joinToString(", ") {
+                val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(viewer, "general.unknown"))
+                val tagNames = if (world.tags.isNotEmpty()) {
+                        world.tags.joinToString(", ") {
                                 plugin.worldTagManager.getDisplayName(viewer, it)
                         }
-                        lang.getMessage(viewer, "gui.visit.world_item.tag", mapOf("tags" to tagNames))
-                } else ""
+                } else null
 
                 val warpAction = lang.getMessage(viewer, "gui.visit.world_item.warp")
 
@@ -146,11 +132,17 @@ class VisitGui(private val plugin: MyWorldManager) {
                 } else ""
 
                 meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (formattedDesc.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.Raw(formattedDesc))))
-                        add(GuiLoreBlock(
-                                (listOf(ownerLine, favoriteLine, visitorLine) + listOfNotNull(tagLine.takeIf(String::isNotBlank)))
-                                        .map(GuiLoreLine::Raw)
-                        ))
+                        if (world.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(world.description))))
+                        add(GuiLoreBlock(buildList {
+                                add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.owner"), ownerName, "§b"))
+                                add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.favorite"), world.favorite, "§c"))
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(viewer, "gui.common.world_item.recent_visitors"),
+                                        lang.getMessage(viewer, "gui.common.world_item.recent_visitors_value", mapOf("count" to world.recentVisitors.sum())),
+                                        "§a"
+                                ))
+                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.tags"), tagNames, "§e"))
+                        }))
                         add(GuiLoreBlock(buildList {
                                 add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.left"), warpAction))
                                 if (favoriteAction.isNotBlank()) {
@@ -170,7 +162,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val item = GuiItemFactory.item(
                         Material.REDSTONE,
                         lang.getComponent(player, "gui.common.return"),
-                        emptyList(),
+                        GuiLoreSpec.None,
                         ItemTag.TYPE_GUI_RETURN
                 )
                 ItemTag.setWorldUuid(item, returnToWorld.uuid)

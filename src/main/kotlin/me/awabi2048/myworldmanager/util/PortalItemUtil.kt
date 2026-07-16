@@ -82,7 +82,11 @@ object PortalItemUtil {
     private fun portalLore(lang: LanguageManager, player: org.bukkit.entity.Player?, destination: String?) =
         CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
             if (destination != null) {
-                add(GuiLoreBlock(listOf(GuiLoreLine.Raw(lang.getMessage(player, "gui.portal_item.destination", mapOf("destination" to destination))))))
+                add(GuiLoreBlock(listOf(GuiLoreLine.Data(
+                    lang.getMessage(player, "gui.portal_item.destination"),
+                    destination,
+                    "§f§n"
+                ))))
             }
             add(GuiLoreBlock(buildList {
                 add(GuiLoreLine.Action(
