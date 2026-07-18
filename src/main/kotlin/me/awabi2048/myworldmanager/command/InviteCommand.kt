@@ -4,7 +4,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
-import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import org.bukkit.command.Command
@@ -73,40 +72,19 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         // 招待の有効期限を設定
         val timeoutSeconds = plugin.config.getLong("invite.timeout_seconds", 60)
 
-        if (plugin.playerPlatformResolver.isBedrock(target)) {
-            target.sendMessage(
-                lang.getMessage(
-                    target,
-                    "messages.invite_text",
-                    mapOf("player" to player.name, "world" to worldData.name)
-                )
-            )
-            val result = plugin.pendingDecisionManager.enqueueWorldInvite(
-                target,
-                worldData.uuid,
-                player.uniqueId,
-                timeoutSeconds
-            )
-            plugin.pendingDecisionManager.sendPendingHint(target, result.count)
-        } else {
-            val result = plugin.pendingDecisionManager.enqueueWorldInvite(
-                target,
-                worldData.uuid,
-                player.uniqueId,
-                timeoutSeconds
-            )
-            target.sendMessage(
-                ClickableInviteMessageFactory.create(
-                    plugin = plugin,
-                    target = target,
-                    messageKey = "messages.invite_text",
-                    clickTextKey = "messages.invite_click_text",
-                    hoverTextKey = "messages.invite_hover",
-                    placeholders = mapOf("player" to player.name, "world" to worldData.name),
-                    arguments = listOf("/myworld", "pending_open", result.id.toString())
-                )
-            )
-        }
+        val result = plugin.pendingDecisionManager.enqueueWorldInvite(
+            target,
+            worldData.uuid,
+            player.uniqueId,
+            timeoutSeconds
+        )
+        plugin.pendingNotificationService.send(
+            target,
+            me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.WORLD_INVITE,
+            result.actionCode,
+            player.uniqueId,
+            worldData.uuid
+        )
 
         // 実行者へのメッセージ送信
         player.sendMessage(lang.getMessage(player, "messages.invite_sent_success", mapOf("player" to target.name, "world" to worldData.name)))

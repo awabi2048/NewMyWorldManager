@@ -23,8 +23,7 @@ class DirectoryManager(
         
         for (world in allWorlds) {
             val folderName = world.customWorldName ?: "my_world.${world.uuid}"
-            val resolution = if (world.isArchived) null else
-                WorldDirectoryResolver(plugin.server.worldContainer.toPath()).inspect(folderName)
+            val resolution = if (world.isArchived) null else plugin.worldDirectoryResolver.inspect(folderName)
             if (resolution?.state == WorldDirectoryState.CONFLICT) {
                 conflictingWorlds.add(
                     "「${world.name}」 (UUID: ${world.uuid}, Legacy: ${resolution.legacyPath}, Current: ${resolution.currentPath})"

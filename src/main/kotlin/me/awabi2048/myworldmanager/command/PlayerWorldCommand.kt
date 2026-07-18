@@ -10,6 +10,7 @@ import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
+import com.awabi2048.ccsystem.CCSystem
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -37,8 +38,12 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
 
         if (args.isEmpty() || (args.size == 1 && args[0].equals("-menu", ignoreCase = true))) {
             val showBackButton = args.any { it.equals("-menu", ignoreCase = true) }
-            plugin.menuEntryRouter.openPlayerWorld(sender, 0, showBackButton)
-            return true
+            return CCSystem.getAPI().getMenuCommandService().open(
+                sender,
+                sender,
+                "myworld:worlds",
+                if (showBackButton) mapOf("back" to "true") else emptyMap()
+            )
         }
 
         val sub = args[0].lowercase()
@@ -54,6 +59,29 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             }
             plugin.soundManager.playChatClickSound(sender)
             plugin.pendingInteractionGui.openDecision(sender, decisionId)
+            return true
+        }
+
+        if (sub == "confirm" || sub == "deny") {
+            val actionCode = args.getOrNull(1)
+            val result = if (actionCode == null) {
+                me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.INVALID_FORMAT
+            } else {
+                plugin.pendingDecisionManager.resolveByActionCode(
+                    sender,
+                    actionCode,
+                    accept = sub == "confirm"
+                )
+            }
+            when (result) {
+                me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.RESOLVED -> Unit
+                me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.INVALID_FORMAT ->
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_code_invalid"))
+                me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.NOT_FOUND ->
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_code_not_found"))
+                me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.EXPIRED ->
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_code_expired"))
+            }
             return true
         }
 
@@ -73,25 +101,8 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             return true
         }
 
-        if (sub != "transfer" && sub != "remove_member" && sub != "accept" && sub != "deny") {
+        if (sub != "transfer" && sub != "remove_member") {
             sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_command_usage"))
-            return true
-        }
-
-        if (sub == "accept" || sub == "deny") {
-            val singlePending = plugin.pendingDecisionManager.getSinglePendingCandidate(sender.uniqueId)
-            if (singlePending == null) {
-                val pendingCount = plugin.pendingDecisionManager.getPendingCount(sender.uniqueId)
-                if (pendingCount < 1) {
-                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_none"))
-                } else {
-                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_open_list"))
-                    plugin.pendingInteractionGui.open(sender)
-                }
-                return true
-            }
-
-            plugin.pendingInteractionGui.openDecision(sender, singlePending.id, intendedAction = sub == "accept")
             return true
         }
 
@@ -148,28 +159,24 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         if (sender !is Player) {
             return emptyList()
         }
-        if (args.size == 1 && sender.hasPermission("myworldmanager.admin")) {
-            return Bukkit.getOfflinePlayers()
-                .mapNotNull { it.name }
-                .filter { it.startsWith(args[0], ignoreCase = true) }
-                .sorted()
-                .take(50)
-        }
-        if (!plugin.playerPlatformResolver.isBedrock(sender)) {
-            return emptyList()
-        }
-
         return when (args.size) {
             1 -> {
-                val commands = mutableListOf("transfer", "remove_member")
-                if (plugin.pendingDecisionManager.getSinglePendingCandidate(sender.uniqueId) != null) {
-                    commands += listOf("accept", "deny")
-                }
-                commands.filter { it.startsWith(args[0].lowercase()) }
+                buildList {
+                    addAll(listOf("confirm", "deny"))
+                    if (plugin.playerPlatformResolver.isBedrock(sender)) {
+                        addAll(listOf("transfer", "remove_member"))
+                    }
+                    if (sender.hasPermission("myworldmanager.admin")) {
+                        addAll(Bukkit.getOfflinePlayers().mapNotNull { it.name }.take(50))
+                    }
+                }.distinct().filter { it.startsWith(args[0], ignoreCase = true) }
             }
             2 -> {
                 val sub = args[0].lowercase()
-                if (sub == "accept" || sub == "deny") {
+                if (sub == "confirm" || sub == "deny") {
+                    return emptyList()
+                }
+                if (!plugin.playerPlatformResolver.isBedrock(sender)) {
                     return emptyList()
                 }
                 val currentWorld = plugin.worldConfigRepository.findByWorldName(sender.world.name) ?: return emptyList()

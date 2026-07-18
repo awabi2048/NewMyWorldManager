@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.PermissionManager
+import com.awabi2048.ccsystem.CCSystem
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -20,15 +21,22 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
             sender.sendMessage("§cこのコマンドはプレイヤーのみ実行可能です。")
             return true
         }
+        return CCSystem.getAPI().getMenuCommandService().open(
+            sender,
+            sender,
+            "myworld:world-settings",
+            if (args.contains("-menu")) mapOf("back" to "true") else emptyMap()
+        )
+    }
 
-        val player = sender
+    fun openCurrent(player: Player, showBackButton: Boolean): Boolean {
         val currentWorld = player.world
         
         // ワールド名からマイワールドデータを取得
         val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
         if (worldData == null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldmenu_not_in_myworld"))
-            return true
+            return false
         }
 
         // 権限チェック (メンバー以上)
@@ -36,8 +44,6 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
         val isModerator = worldData.moderators.contains(player.uniqueId)
         val isMember = worldData.members.contains(player.uniqueId)
         val isAdminFlow = PermissionManager.checkPermission(player, PermissionManager.ADMIN)
-        val showBackButton = args.contains("-menu")
-
         if (!isOwner && !isModerator && !isMember && !isAdminFlow) {
             if (MyWorldManagerApi.openWorldMenuAccessOverride(player, worldData, showBackButton)) {
                 return true

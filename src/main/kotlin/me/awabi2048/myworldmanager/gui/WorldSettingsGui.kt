@@ -212,7 +212,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // Check if player is in the world for restricted settings
                 val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                val isInWorld = player.world.name == targetWorldName
+                val isInWorld = player.world.key.toString() == worldData.worldKey
                 val warningLore =
                         if (!isInWorld)
                                 lang.getMessage(player, "gui.settings.common.must_be_in_world")
@@ -978,7 +978,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val hasPortals =
                         isOwner &&
                                 plugin.portalRepository.findAll().any {
-                                        it.worldName == targetWorldName
+                                        it.worldKey == worldData.worldKey
                                 }
                 if (hasPortals) {
                         val portalLore =
@@ -2947,9 +2947,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 scheduleGuiTransitionReset(plugin, player)
 
-                val worldName = "my_world.${worldData.uuid}"
                 val allPortals =
-                        plugin.portalRepository.findAll().filter { it.worldName == worldName }
+                        plugin.portalRepository.findAll().filter { it.worldKey == worldData.worldKey }
 
                 val itemsPerPage = 21
                 val startIndex = page * itemsPerPage
@@ -3028,14 +3027,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val configName =
                                         plugin.config.getString(
-                                                "portal_targets.${portal.targetWorldName}"
+                                                "portal_targets.${portal.targetRuntimeName}"
                                         )
-                                configName ?: portal.targetWorldName ?: "Unknown"
+                                configName ?: portal.targetRuntimeName ?: "Unknown"
                         }
 
                 val displayTitle =
-                        lang.getMessage(player, "gui.admin_portals.portal_item.name")
-                                .replace("{0}", destName)
+                        lang.getMessage(
+                                player,
+                                "gui.admin_portals.portal_item.name",
+                                mapOf("id" to destName)
+                        )
                 meta.displayName(
                         LegacyComponentSerializer.legacySection()
                                 .deserialize(displayTitle)

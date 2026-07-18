@@ -24,23 +24,7 @@ class PlayerDataListener : Listener {
         stats.lastName = player.name
         plugin.playerStatsRepository.save(stats)
 
-        val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
-        if (pendingCount > 0) {
-            val latest = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
-            val latestText = latest?.let {
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                    .withZone(ZoneId.systemDefault())
-                    .format(Instant.ofEpochMilli(it))
-            } ?: plugin.languageManager.getMessage(player, "general.unknown")
-
-            player.sendMessage(
-                plugin.languageManager.getMessage(
-                    player,
-                    "messages.myworld_pending_login_notice",
-                    mapOf("count" to pendingCount, "datetime" to latestText)
-                )
-            )
-        }
+        plugin.pendingNotificationService.resendPersistent(player)
     }
 
     @EventHandler

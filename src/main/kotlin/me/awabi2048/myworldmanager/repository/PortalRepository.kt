@@ -34,7 +34,7 @@ class PortalRepository(private val plugin: MyWorldManager) {
             
             val worldUuidStr = section.getString("world_uuid")
             val worldUuid = if (worldUuidStr != null && worldUuidStr != "null") UUID.fromString(worldUuidStr) else null
-            val targetWorldName = section.getString("target_world_name")
+            val targetWorldKey = section.getString("target_world_key")
             
             val createdAtRaw = section.get("created_at")
             val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -57,37 +57,10 @@ class PortalRepository(private val plugin: MyWorldManager) {
             val ownerUuid = UUID.fromString(section.getString("owner_uuid") ?: continue)
             val type = PortalType.fromKey(section.getString("type", "portal"))
 
-            var worldName: String? = section.getString("location.world")
-            var lx = section.getInt("location.x")
-            var ly = section.getInt("location.y")
-            var lz = section.getInt("location.z")
-
-            // location.worldで取得できなかった場合、旧形式やオブジェクト形式からの取得を試みる
-            if (worldName == null) {
-                try {
-                    val locObj = section.get("location")
-                    if (locObj is org.bukkit.Location) {
-                        worldName = locObj.world?.name
-                        lx = locObj.blockX
-                        ly = locObj.blockY
-                        lz = locObj.blockZ
-                    } else if (locObj is Map<*, *>) {
-                        worldName = locObj["world"] as? String
-                        lx = (locObj["x"] as? Number)?.toInt() ?: 0
-                        ly = (locObj["y"] as? Number)?.toInt() ?: 0
-                        lz = (locObj["z"] as? Number)?.toInt() ?: 0
-                    } else if (locObj is org.bukkit.configuration.ConfigurationSection) {
-                        worldName = locObj.getString("world")
-                        lx = locObj.getInt("x")
-                        ly = locObj.getInt("y")
-                        lz = locObj.getInt("z")
-                    }
-                } catch (e: Exception) {
-                    plugin.logger.warning("ポータル $key のロケーション情報の読み込みに失敗しました (無視されます): ${e.message}")
-                }
-            }
-
-            if (worldName == null) continue
+            val worldKey = section.getString("location.world_key") ?: continue
+            val lx = section.getInt("location.x")
+            val ly = section.getInt("location.y")
+            val lz = section.getInt("location.z")
 
             val areaSection = section.getConfigurationSection("area")
             val areaMinX = if (areaSection?.contains("min_x") == true) areaSection.getInt("min_x") else null
@@ -97,25 +70,29 @@ class PortalRepository(private val plugin: MyWorldManager) {
             val areaMaxY = if (areaSection?.contains("max_y") == true) areaSection.getInt("max_y") else null
             val areaMaxZ = if (areaSection?.contains("max_z") == true) areaSection.getInt("max_z") else null
 
-            // 設置場所がマイワールドの場合、そのワールドが存在するかチェック
-            if (worldName.startsWith("my_world.")) {
-                val worldUuidStr = worldName.removePrefix("my_world.")
+            // 読み込み時は参照先のWorldDataが未初期化・一時欠損でもレコードを破棄しない。
+            // 不正なキーだけを読み飛ばし、ファイル全体の自動再保存は行わない。
+            val parsedWorldKey = org.bukkit.NamespacedKey.fromString(worldKey)
+            if (parsedWorldKey == null) {
+                plugin.logger.warning("[Portal] 不正なworld_keyを持つポータルを保持したまま読み飛ばしました: id=$id, worldKey=$worldKey")
+                continue
+            }
+            val runtimeName = parsedWorldKey.key
+            if (runtimeName.startsWith("my_world.")) {
+                val worldUuidStr = runtimeName.removePrefix("my_world.")
                 try {
                     val worldUuid = UUID.fromString(worldUuidStr)
                     if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
-                        plugin.logger.info("[Portal] 存在しないワールド($worldName)に設置されたポータルを削除しました。")
-                        continue 
+                        plugin.logger.warning("[Portal] WorldDataを確認できない設置元参照を保持します: portal=$id, worldKey=$worldKey")
                     }
                 } catch (e: Exception) {
-                    // UUID形式でない場合は無視（通常ありえない）
+                    plugin.logger.warning("[Portal] MyWorld形式のworld_keyを解釈できません。レコードは保持します: portal=$id, worldKey=$worldKey")
                 }
             }
 
-            // 行き先のマイワールドが存在するかチェック
-            var finalWorldUuid = worldUuid
+            // 行き先参照も読み込み時には解除しない。削除は明示的なワールド削除処理だけが担当する。
             if (worldUuid != null && plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
-                plugin.logger.info("[Portal] 存在しないワールド(UUID: $worldUuid)への行き先設定を解除しました。")
-                finalWorldUuid = null
+                plugin.logger.warning("[Portal] WorldDataを確認できない行き先参照を保持します: portal=$id, worldUuid=$worldUuid")
             }
 
              val textDisplayUuidStr = section.getString("text_display_uuid")
@@ -123,12 +100,12 @@ class PortalRepository(private val plugin: MyWorldManager) {
              
              portals[id] = PortalData(
                 id = id,
-                worldName = worldName,
+                worldKey = worldKey,
                 x = lx,
                 y = ly,
                 z = lz,
-                worldUuid = finalWorldUuid,
-                targetWorldName = targetWorldName,
+                worldUuid = worldUuid,
+                targetWorldKey = targetWorldKey,
                 showText = showText,
                 particleColor = Color.fromRGB(colorInt),
                 ownerUuid = ownerUuid,
@@ -144,8 +121,7 @@ class PortalRepository(private val plugin: MyWorldManager) {
             )
         }
         
-        // 読み込み後に保存してクリーンアップ結果を反映
-        saveAll()
+        // 読み込みだけで永続ファイルを書き換えない。明示的な追加・削除・更新時のみ保存する。
     }
 
      fun saveAll() {
@@ -156,7 +132,7 @@ class PortalRepository(private val plugin: MyWorldManager) {
                  val s = section.createSection(id.toString())
                  s.set("type", data.type.key)
                  s.set("location", mapOf(
-                     "world" to data.worldName,
+                     "world_key" to data.worldKey,
                      "x" to data.x,
                      "y" to data.y,
                      "z" to data.z
@@ -175,7 +151,7 @@ class PortalRepository(private val plugin: MyWorldManager) {
                      )
                  }
                  s.set("world_uuid", data.worldUuid?.toString())
-                 s.set("target_world_name", data.targetWorldName)
+                 s.set("target_world_key", data.targetWorldKey)
                  s.set("show_text", data.showText)
                  s.set("color", data.particleColor.asRGB())
                  s.set("owner_uuid", data.ownerUuid.toString())
@@ -203,7 +179,7 @@ class PortalRepository(private val plugin: MyWorldManager) {
 
     fun findByLocation(location: org.bukkit.Location): PortalData? {
         return portals.values.find {
-            it.worldName == location.world?.name &&
+            it.worldKey == location.world?.key?.toString() &&
             it.x == location.blockX &&
             it.y == location.blockY &&
             it.z == location.blockZ
@@ -211,12 +187,12 @@ class PortalRepository(private val plugin: MyWorldManager) {
     }
 
     fun findByContainingLocation(location: org.bukkit.Location): PortalData? {
-        val worldName = location.world?.name ?: return null
+        val worldKey = location.world?.key?.toString() ?: return null
         val exact = findByLocation(location)
         if (exact != null) return exact
 
         return portals.values.find {
-            it.worldName == worldName && it.containsBlock(location.blockX, location.blockY, location.blockZ)
+            it.worldKey == worldKey && it.containsBlock(location.blockX, location.blockY, location.blockZ)
         }
     }
 

@@ -59,6 +59,21 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         return plugin.worldService.getWorldDirectory(worldData)
     }
 
+    override fun getWorldCreationDirectory(worldData: WorldData): File {
+        return plugin.worldService.getWorldCreationDirectory(worldData)
+    }
+
+    override fun getWorldCreationDirectory(folderName: String): File {
+        return plugin.worldService.getWorldCreationDirectory(folderName)
+    }
+
+    override fun getMainWorldDataDirectory(): File {
+        return com.awabi2048.ccsystem.CCSystem.getAPI()
+            .getWorldDirectoryService()
+            .mainWorldDataDirectory()
+            .toFile()
+    }
+
     override fun getWorldDataFile(worldUuid: UUID): File {
         return File(File(plugin.dataFolder, "my_worlds"), "$worldUuid.yml")
     }
@@ -153,17 +168,17 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
 
     override fun getRelatedPortals(worldUuid: UUID): List<ApiPortalSnapshot> {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return emptyList()
-        val folderName = getWorldFolderName(worldData)
+        val worldKey = worldData.worldKey
         return plugin.portalRepository.findAll()
-            .filter { it.worldUuid == worldUuid || it.worldName == folderName || it.targetWorldName == folderName }
+            .filter { it.worldUuid == worldUuid || it.worldKey == worldKey || it.targetWorldKey == worldKey }
             .map(::toSnapshot)
     }
 
     override fun replaceRelatedPortals(worldUuid: UUID, portals: List<ApiPortalSnapshot>) {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-        val folderName = worldData?.let { getWorldFolderName(it) } ?: "my_world.$worldUuid"
+        val worldKey = worldData?.worldKey ?: "minecraft:my_world.$worldUuid"
         val existing = plugin.portalRepository.findAll()
-            .filter { it.worldUuid == worldUuid || it.worldName == folderName || it.targetWorldName == folderName }
+            .filter { it.worldUuid == worldUuid || it.worldKey == worldKey || it.targetWorldKey == worldKey }
             .map { it.id }
         existing.forEach(plugin.portalRepository::removePortal)
         portals.map(::toPortalData).forEach(plugin.portalRepository::addPortal)
@@ -188,12 +203,12 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
     private fun toSnapshot(portal: PortalData): ApiPortalSnapshot {
         return ApiPortalSnapshot(
             id = portal.id,
-            worldName = portal.worldName,
+            worldKey = portal.worldKey,
             x = portal.x,
             y = portal.y,
             z = portal.z,
             worldUuid = portal.worldUuid,
-            targetWorldName = portal.targetWorldName,
+            targetWorldKey = portal.targetWorldKey,
             showText = portal.showText,
             particleColorRgb = portal.particleColor.asRGB(),
             ownerUuid = portal.ownerUuid,
@@ -212,12 +227,12 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
     private fun toPortalData(snapshot: ApiPortalSnapshot): PortalData {
         return PortalData(
             id = snapshot.id,
-            worldName = snapshot.worldName,
+            worldKey = snapshot.worldKey,
             x = snapshot.x,
             y = snapshot.y,
             z = snapshot.z,
             worldUuid = snapshot.worldUuid,
-            targetWorldName = snapshot.targetWorldName,
+            targetWorldKey = snapshot.targetWorldKey,
             showText = snapshot.showText,
             particleColor = Color.fromRGB(snapshot.particleColorRgb),
             ownerUuid = snapshot.ownerUuid,

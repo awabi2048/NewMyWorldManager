@@ -13,7 +13,8 @@ data class MemberInviteInfo(
     val id: UUID,
     val worldUuid: UUID,
     val senderUuid: UUID,
-    val createdAt: Long
+    val createdAt: Long,
+    val actionCode: String
 )
 
 class MemberInviteManager(
@@ -24,17 +25,15 @@ class MemberInviteManager(
     private val languageManager = plugin.languageManager
 
     fun addInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): MemberInviteInfo {
-        val interaction = plugin.pendingInteractionRepository.add(
-            type = me.awabi2048.myworldmanager.model.PendingInteractionType.MEMBER_INVITE,
-            targetUuid = targetUuid,
-            worldUuid = worldUuid,
-            actorUuid = senderUuid
-        )
+        val result = plugin.pendingDecisionManager.enqueueMemberInvite(targetUuid, worldUuid, senderUuid)
+        val interaction = plugin.pendingInteractionRepository.findById(result.id)
+            ?: error("Created member invite is missing: ${result.id}")
         return MemberInviteInfo(
             id = interaction.id,
             worldUuid = interaction.worldUuid,
             senderUuid = interaction.actorUuid,
-            createdAt = interaction.createdAt
+            createdAt = interaction.createdAt,
+            actionCode = interaction.actionCode
         )
     }
 
@@ -49,7 +48,8 @@ class MemberInviteManager(
             id = interaction.id,
             worldUuid = interaction.worldUuid,
             senderUuid = interaction.actorUuid,
-            createdAt = interaction.createdAt
+            createdAt = interaction.createdAt,
+            actionCode = interaction.actionCode
         )
     }
 

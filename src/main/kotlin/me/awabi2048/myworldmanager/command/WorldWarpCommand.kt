@@ -88,14 +88,13 @@ class WorldWarpCommand(private val plugin: MyWorldManager) : CommandExecutor, Ta
                 mapOf("owner" to respondent.name, "world" to worldData.name)
             )
         )
-        respondent.sendMessage(
-            plugin.languageManager.getMessage(
-                respondent,
-                "messages.visit_request_received",
-                mapOf("player" to player.name, "world" to worldData.name)
-            )
+        plugin.pendingNotificationService.send(
+            respondent,
+            me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.VISIT_REQUEST,
+            result.actionCode,
+            player.uniqueId,
+            worldData.uuid
         )
-        plugin.pendingDecisionManager.sendPendingHint(respondent, result.count)
     }
 
     private fun visitRequestRespondents(worldData: WorldData, requesterUuid: UUID): List<Player> {

@@ -35,6 +35,10 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import com.awabi2048.ccsystem.api.config.ConfigClassification
+import com.awabi2048.ccsystem.api.config.ManagedConfigSpec
+import com.awabi2048.ccsystem.api.gui.MenuTargetPolicy
+import com.awabi2048.ccsystem.api.gui.PublicMenuDefinition
 import net.luckperms.api.LuckPerms
 import java.io.File
 import java.util.UUID
@@ -53,6 +57,7 @@ class MyWorldManager : JavaPlugin() {
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
+    lateinit var worldDirectoryResolver: WorldDirectoryResolver
 
     lateinit var settingsSessionManager: SettingsSessionManager
     lateinit var inviteSessionManager: InviteSessionManager
@@ -63,6 +68,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var memberInviteManager: MemberInviteManager
     lateinit var memberRequestManager: MemberRequestManager
     lateinit var pendingDecisionManager: PendingDecisionManager
+    lateinit var pendingNotificationService: PendingNotificationService
     lateinit var discoverySessionManager: DiscoverySessionManager
     lateinit var meetSessionManager: MeetSessionManager
     lateinit var favoriteSessionManager: FavoriteSessionManager
@@ -132,7 +138,8 @@ class MyWorldManager : JavaPlugin() {
         if (!dataFolder.exists()) {
             dataFolder.mkdirs()
         }
-        saveDefaultConfig()
+        registerManagedConfigs()
+        reloadConfig()
         if (!config.contains("debug.world_settings", true)) {
             config.set("debug.world_settings", true)
             saveConfig()
@@ -150,8 +157,13 @@ class MyWorldManager : JavaPlugin() {
 
         // 言語設定の初期化
         languageManager = LanguageManager(this)
+        CCSystem.getAPI().getItemGrantService().register(MyWorldItemGrantProvider(this))
         worldTagManager = WorldTagManager(this)
         worldTagManager.reload()
+
+        worldDirectoryResolver = WorldDirectoryResolver(
+                com.awabi2048.ccsystem.CCSystem.getAPI().getWorldDirectoryService()
+        )
 
         // リポジトリの初期化
         worldConfigRepository = WorldConfigRepository(this)
@@ -160,7 +172,7 @@ class MyWorldManager : JavaPlugin() {
         directoryManager = DirectoryManager(this, worldConfigRepository, templateRepository)
         worldMigrationService = WorldMigrationService(
                 this,
-                WorldDirectoryResolver(server.worldContainer.toPath())
+                worldDirectoryResolver
         )
         // ワールド・テンプレートディレクトリの存在チェック
         directoryManager.checkDirectories()
@@ -236,6 +248,7 @@ class MyWorldManager : JavaPlugin() {
         memberInviteManager = MemberInviteManager(this, worldConfigRepository, macroManager)
         memberRequestManager = MemberRequestManager(this)
         pendingDecisionManager = PendingDecisionManager(this)
+        pendingNotificationService = PendingNotificationService(this)
 
         // 設定機能の初期化
         settingsSessionManager = SettingsSessionManager(::logWorldSettingsDebug)
@@ -265,6 +278,33 @@ class MyWorldManager : JavaPlugin() {
                 BedrockMenuService(this, bedrockUiRoutingService, floodgateFormBridge)
         menuRouteHistory = MenuRouteHistory(this)
         menuEntryRouter = MenuEntryRouter(this, playerPlatformResolver, bedrockMenuService)
+        val worldMenuCommand = WorldMenuCommand(this)
+        CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld")
+        CCSystem.getAPI().getMenuCommandService().register(
+            PublicMenuDefinition(
+                owner = "myworld",
+                id = "worlds",
+                permission = PermissionManager.COMMAND_MYWORLD,
+                targetPolicy = MenuTargetPolicy.SELF_ONLY,
+                argumentKeys = setOf("back"),
+                opener = { player, arguments ->
+                    menuEntryRouter.openPlayerWorld(player, 0, arguments["back"].toBoolean())
+                    true
+                }
+            )
+        )
+        CCSystem.getAPI().getMenuCommandService().register(
+            PublicMenuDefinition(
+                owner = "myworld",
+                id = "world-settings",
+                permission = PermissionManager.COMMAND_WORLDMENU,
+                targetPolicy = MenuTargetPolicy.SELF_ONLY,
+                argumentKeys = setOf("back"),
+                opener = { player, arguments ->
+                    worldMenuCommand.openCurrent(player, arguments["back"].toBoolean())
+                }
+            )
+        )
         internalCommandTokenManager = InternalCommandTokenManager(this)
         server.scheduler.runTaskTimer(this, Runnable {
             internalCommandTokenManager.cleanupExpired()
@@ -351,7 +391,7 @@ class MyWorldManager : JavaPlugin() {
         val myWorldCmd = PlayerWorldCommand(this)
         getCommand("myworld")?.setExecutor(myWorldCmd)
         getCommand("myworld")?.setTabCompleter(myWorldCmd)
-        getCommand("worldmenu")?.setExecutor(WorldMenuCommand(this))
+        getCommand("worldmenu")?.setExecutor(worldMenuCommand)
         getCommand("worldwarp")?.let {
             val worldWarpCmd = WorldWarpCommand(this)
             it.setExecutor(worldWarpCmd)
@@ -408,6 +448,33 @@ class MyWorldManager : JavaPlugin() {
         }
     }
 
+    private fun registerManagedConfigs() {
+        val classifications = mapOf(
+            "config.yml" to ConfigClassification.MANAGED_CONFIG,
+            "templates.yml" to ConfigClassification.BUNDLED_DEFINITION,
+            "macro.yml" to ConfigClassification.MANAGED_CONFIG,
+            "spotlight.yml" to ConfigClassification.MANAGED_CONFIG
+        )
+        val specs = classifications.map { (resourcePath, classification) ->
+            ManagedConfigSpec(
+                owner = "myworld",
+                sourcePlugin = this,
+                resourcePath = resourcePath,
+                targetPath = File(dataFolder, resourcePath).toPath(),
+                currentVersion = 1,
+                classification = classification,
+                migrations = emptyMap(),
+                validator = com.awabi2048.ccsystem.api.config.ConfigValidator {},
+                reloadAction = null
+            )
+        }
+        com.awabi2048.ccsystem.CCSystem.getAPI().getConfigSchemaService().register("myworld", specs)
+        val result = com.awabi2048.ccsystem.CCSystem.getAPI().getConfigSchemaService().prepare("myworld")
+        check(result.successful) {
+            "MyWorldManager Config preparation failed: ${result.statuses.filter { it.message != null }}"
+        }
+    }
+
     override fun onDisable() {
         if (::menuRouteHistory.isInitialized) menuRouteHistory.closeOwnedMenus()
         clearAllTransientMenuState()
@@ -422,6 +489,9 @@ class MyWorldManager : JavaPlugin() {
             MyWorldManagerApi.unregisterWorldEnvironmentService(worldEnvironmentService)
         }
         runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
+        runCatching { CCSystem.getAPI().getItemGrantService().unregister("myworld") }
+        runCatching { CCSystem.getAPI().getConfigSchemaService().unregister("myworld") }
+        runCatching { CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld") }
         runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()

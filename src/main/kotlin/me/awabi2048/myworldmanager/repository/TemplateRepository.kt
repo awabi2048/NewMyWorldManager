@@ -1,13 +1,12 @@
 package me.awabi2048.myworldmanager.repository
 
+import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TemplateData
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.configuration.file.YamlConfiguration
-import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 
-class TemplateRepository(private val plugin: JavaPlugin) {
+class TemplateRepository(private val plugin: MyWorldManager) {
     private val templates = mutableMapOf<String, TemplateData>()
     val missingTemplates = mutableListOf<String>()
     private val configFile = File(plugin.dataFolder, "templates.yml")
@@ -39,8 +38,8 @@ class TemplateRepository(private val plugin: JavaPlugin) {
             val icon = Material.matchMaterial(iconStr) ?: Material.PAPER
             
             // Validate path
-            val templateDir = File(Bukkit.getWorldContainer(), path)
-            if (!templateDir.exists() || !templateDir.isDirectory) {
+            val templateDir = plugin.worldDirectoryResolver.inspect(path)?.existingPath?.toFile()
+            if (templateDir == null || !templateDir.exists() || !templateDir.isDirectory) {
                 missingTemplates.add(key)
             } else {
                 val originStr = section.getString("origin_location")

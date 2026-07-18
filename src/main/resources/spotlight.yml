@@ -2,3 +2,4 @@
 # 登録されたワールドのUUIDがここに保存されます。
 worlds: []
 description: ""
+config_version: 1

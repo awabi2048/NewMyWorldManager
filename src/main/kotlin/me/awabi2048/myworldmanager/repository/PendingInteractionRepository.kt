@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.repository
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PendingInteraction
 import me.awabi2048.myworldmanager.model.PendingInteractionType
+import me.awabi2048.myworldmanager.service.PendingActionCodeAllocator
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.UUID
@@ -26,6 +27,8 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
 
         val config = YamlConfiguration.loadConfiguration(file)
         val section = config.getConfigurationSection("entries") ?: return
+        val usedCodes = mutableMapOf<UUID, MutableSet<String>>()
+        var migrated = false
         section.getKeys(false).forEach { idStr ->
             runCatching {
                 val id = UUID.fromString(idStr)
@@ -35,6 +38,17 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
                 val worldUuid = UUID.fromString(config.getString("$path.world_uuid") ?: return@runCatching)
                 val actorUuid = UUID.fromString(config.getString("$path.actor_uuid") ?: return@runCatching)
                 val createdAt = config.getLong("$path.created_at")
+                val targetCodes = usedCodes.getOrPut(targetUuid) { mutableSetOf() }
+                val storedCode = config.getString("$path.action_code")
+                val actionCode = storedCode
+                    ?.takeIf(PendingActionCodeAllocator.CODE_PATTERN::matches)
+                    ?.takeIf(targetCodes::add)
+                    ?: PendingActionCodeAllocator().allocate(targetCodes)
+                    ?: error("action code space exhausted for $targetUuid")
+                if (actionCode != storedCode) {
+                    targetCodes += actionCode
+                    migrated = true
+                }
 
                 cache[id] = PendingInteraction(
                     id = id,
@@ -42,11 +56,16 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
                     targetUuid = targetUuid,
                     worldUuid = worldUuid,
                     actorUuid = actorUuid,
-                    createdAt = createdAt
+                    createdAt = createdAt,
+                    actionCode = actionCode
                 )
             }.onFailure {
                 plugin.logger.warning("[PendingInteraction] 無効なレコードをスキップしました: $idStr")
             }
+        }
+        if (migrated) {
+            save()
+            plugin.logger.info("[PendingInteraction] 既存通知へ4桁操作コードを割り当てました")
         }
     }
 
@@ -56,15 +75,23 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
         targetUuid: UUID,
         worldUuid: UUID,
         actorUuid: UUID,
+        actionCode: String,
         createdAt: Long = System.currentTimeMillis()
     ): PendingInteraction {
+        require(PendingActionCodeAllocator.CODE_PATTERN.matches(actionCode)) {
+            "actionCode must be a four-digit decimal string"
+        }
+        require(cache.values.none { it.targetUuid == targetUuid && it.actionCode == actionCode }) {
+            "duplicate actionCode for target"
+        }
         val interaction = PendingInteraction(
             id = UUID.randomUUID(),
             type = type,
             targetUuid = targetUuid,
             worldUuid = worldUuid,
             actorUuid = actorUuid,
-            createdAt = createdAt
+            createdAt = createdAt,
+            actionCode = actionCode
         )
         cache[interaction.id] = interaction
         save()
@@ -90,6 +117,13 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
         return cache.values
             .filter { it.targetUuid == targetUuid }
             .sortedByDescending { it.createdAt }
+    }
+
+    @Synchronized
+    fun findByTargetAndActionCode(targetUuid: UUID, actionCode: String): PendingInteraction? {
+        return cache.values.firstOrNull {
+            it.targetUuid == targetUuid && it.actionCode == actionCode
+        }
     }
 
     @Synchronized
@@ -128,6 +162,7 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
             config.set("$path.world_uuid", interaction.worldUuid.toString())
             config.set("$path.actor_uuid", interaction.actorUuid.toString())
             config.set("$path.created_at", interaction.createdAt)
+            config.set("$path.action_code", interaction.actionCode)
         }
 
         runCatching {

@@ -19,6 +19,10 @@ internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiW
         return plugin.worldConfigRepository.findByWorldName(worldName)
     }
 
+    override fun findByWorldKey(worldKey: String): WorldData? {
+        return plugin.worldConfigRepository.findByWorldKey(worldKey)
+    }
+
     override fun findAll(): List<WorldData> {
         return plugin.worldConfigRepository.findAll()
     }

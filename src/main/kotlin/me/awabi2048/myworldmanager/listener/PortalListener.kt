@@ -17,6 +17,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.Particle
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -298,7 +299,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             return item
         }
 
-        portal.targetWorldName?.let { targetWorldName ->
+        portal.targetRuntimeName?.let { targetWorldName ->
             val displayName = plugin.config.getString("portal_targets.$targetWorldName") ?: targetWorldName
             PortalItemUtil.bindExternalWorld(item, targetWorldName, displayName, lang, player)
         }
@@ -461,12 +462,12 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         plugin.playerStatsRepository.save(stats)
 
         val gate = PortalData(
-            worldName = firstWorld.name,
+            worldKey = firstWorld.key.toString(),
             x = pending.first.blockX,
             y = pending.first.blockY,
             z = pending.first.blockZ,
             worldUuid = pending.boundWorldUuid,
-            targetWorldName = pending.boundTargetWorldName,
+            targetWorldKey = pending.boundTargetWorldName?.let(::normalizeWorldKey),
             ownerUuid = player.uniqueId,
             type = PortalType.GATE,
             minX = minX,
@@ -717,16 +718,25 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         }
 
         val portal = PortalData(
-            worldName = event.block.world.name,
+            worldKey = event.block.world.key.toString(),
             x = event.block.x,
             y = event.block.y,
             z = event.block.z,
             worldUuid = worldUuid,
-            targetWorldName = targetWorldName,
+            targetWorldKey = targetWorldName?.let(::normalizeWorldKey),
             ownerUuid = event.player.uniqueId
         )
         plugin.portalRepository.addPortal(portal)
         event.player.sendMessage(lang.getMessage(event.player, "messages.portal_place_success"))
+    }
+
+    private fun normalizeWorldKey(identifier: String): String {
+        return if (':' in identifier) {
+            NamespacedKey.fromString(identifier)?.toString()
+                ?: throw IllegalArgumentException("不正なワールドキーです: $identifier")
+        } else {
+            NamespacedKey.minecraft(identifier).toString()
+        }
     }
 
      @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

@@ -180,15 +180,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
                                 stats.unlockedWorldSlot
                 val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(targetPlayerUuid)
-                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(targetPlayerUuid)
-                val latestPendingText =
-                        latestPendingAt?.let {
-                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                        .withZone(ZoneId.systemDefault())
-                                        .format(Instant.ofEpochMilli(it))
-                        } ?: lang.getMessage(player, "general.unknown")
-
                 // マイワールド新規作成ボタン (Slot 2)
                 val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
                 if (isOwnMenu && creationBlockReason == null) {
@@ -204,6 +195,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         layout.actionSlot,
                         createStatsButton(player, targetPlayerUuid, targetPlayerName, currentCreateCount, maxSlot, stats)
                 )
+
+                // 招待・申請ボタン (Slot 5)
+                if (isOwnMenu) {
+                        inventory.setItem(footerStart + 5, createPendingButton(player))
+                }
 
                 // 個人設定ボタン (Slot 6)
                 if (isOwnMenu) {
@@ -425,15 +421,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
                 meta.owningPlayer = Bukkit.getOfflinePlayer(targetPlayerUuid)
                 val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(targetPlayerUuid)
-                val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(targetPlayerUuid)
-                val latestPendingText =
-                        latestPendingAt?.let {
-                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                        .withZone(ZoneId.systemDefault())
-                                        .format(Instant.ofEpochMilli(it))
-                        } ?: lang.getMessage(player, "general.unknown")
-
                 meta.displayName(
                         lang.getComponent(
                                 player,
@@ -477,33 +464,64 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_description"))
                                 )
                         }))
-                        if (pendingCount > 0) {
-                                add(GuiLoreBlock(listOf(
-                                        GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.player_world.stats_button.pending_label"),
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.player_world.stats_button.pending_value",
-                                                        mapOf("count" to pendingCount)
-                                                ),
-                                                "§e"
-                                        ),
-                                        GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.player_world.stats_button.latest_pending_label"),
-                                                latestPendingText,
-                                                "§b"
-                                        )
-                                )))
-                                add(GuiLoreBlock(listOf(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.player_world.stats_button.action.open_pending")))))
-                        }
                 })))
-
-                if (pendingCount > 0) {
-                        meta.setEnchantmentGlintOverride(true)
-                }
 
                 item.itemMeta = meta
                 ItemTag.tagItem(item, ItemTag.TYPE_GUI_PLAYER_STATS)
+                return item
+        }
+
+        private fun createPendingButton(player: Player): ItemStack {
+                val lang = plugin.languageManager
+                val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
+                val latestPendingText = plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
+                        ?.let {
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                        .withZone(ZoneId.systemDefault())
+                                        .format(Instant.ofEpochMilli(it))
+                        }
+                        ?: lang.getMessage(player, "gui.player_world.pending_button.none")
+                val item = ItemStack(Material.WRITABLE_BOOK)
+                val meta = item.itemMeta ?: return item
+                meta.displayName(lang.getComponent(player, "gui.player_world.pending_button.display"))
+                meta.lore(
+                        CCSystem.getAPI().getLoreService().render(
+                                GuiLoreSpec.Blocks(
+                                        listOf(
+                                                GuiLoreBlock(
+                                                        lang.getMessageList(player, "gui.player_world.pending_button.description")
+                                                                .map(GuiLoreLine::Text)
+                                                ),
+                                                GuiLoreBlock(
+                                                        listOf(
+                                                                GuiLoreLine.Data(
+                                                                        lang.getMessage(player, "gui.player_world.pending_button.count_label"),
+                                                                        pendingCount,
+                                                                        if (pendingCount > 0) "§e" else "§7"
+                                                                ),
+                                                                GuiLoreLine.Data(
+                                                                        lang.getMessage(player, "gui.player_world.pending_button.latest_label"),
+                                                                        latestPendingText,
+                                                                        "§b"
+                                                                )
+                                                        )
+                                                ),
+                                                GuiLoreBlock(
+                                                        listOf(
+                                                                GuiLoreActions.singleClick(
+                                                                        lang,
+                                                                        player,
+                                                                        lang.getMessage(player, "gui.player_world.pending_button.action")
+                                                                )
+                                                        )
+                                                )
+                                        )
+                                )
+                        )
+                )
+                meta.setEnchantmentGlintOverride(pendingCount > 0)
+                item.itemMeta = meta
+                ItemTag.tagItem(item, ItemTag.TYPE_GUI_PENDING_BUTTON)
                 return item
         }
 

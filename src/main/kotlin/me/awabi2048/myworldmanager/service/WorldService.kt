@@ -13,7 +13,6 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.model.WorldData
-import me.awabi2048.myworldmanager.migration.WorldDirectoryResolver
 import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
@@ -26,6 +25,7 @@ import me.awabi2048.myworldmanager.util.SeedSpawnSafety
 import me.awabi2048.myworldmanager.util.WorldWarpId
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.NamespacedKey
 import org.bukkit.WorldCreator
 import org.bukkit.WorldType
 import org.bukkit.command.CommandSender
@@ -125,7 +125,7 @@ class WorldService(
         // ひとまずはメインスレッドで実行する。
 
         try {
-            val creator = WorldCreator(worldFolderName)
+            val creator = WorldCreator(NamespacedKey.minecraft(worldFolderName))
             creator.environment(environment)
             creator.type(worldType)
 
@@ -452,15 +452,15 @@ class WorldService(
                 )
         )
 
-        val templateFolder = File(Bukkit.getWorldContainer(), templateName)
-        if (!templateFolder.exists() || !templateFolder.isDirectory) {
+        val templateFolder = plugin.worldDirectoryResolver.inspect(templateName)?.existingPath?.toFile()
+        if (templateFolder == null || !templateFolder.exists() || !templateFolder.isDirectory) {
             player.sendMessage("§cテンプレートが見つかりません: $templateName")
             creatingWorlds.remove(player.uniqueId.toString())
             future.complete(false)
             return future
         }
 
-        val targetFolder = File(Bukkit.getWorldContainer(), worldFolderName)
+        val targetFolder = preferredActiveWorldDirectory(worldFolderName)
 
         // フォルダのコピー (非同期スレッドで実行)
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
@@ -483,7 +483,7 @@ class WorldService(
                 // ワールドの読み込みはメインスレッドで行う
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     try {
-                        val creator = WorldCreator(worldFolderName)
+                        val creator = WorldCreator(NamespacedKey.minecraft(worldFolderName))
                         val world = plugin.server.createWorld(creator)
 
                         if (world == null) {
@@ -524,7 +524,7 @@ class WorldService(
         val worldData = repository.findByUuid(worldUuid) ?: return false
         val folderName = getWorldFolderName(worldData)
 
-        when (WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)?.state) {
+        when (plugin.worldDirectoryResolver.inspect(folderName)?.state) {
             WorldDirectoryState.CURRENT -> Unit
             WorldDirectoryState.LEGACY -> if (plugin.worldMigrationService.isPending(worldUuid)) {
                 plugin.logger.warning("World load requires administrator approval: $folderName")
@@ -546,7 +546,7 @@ class WorldService(
         }
 
         return try {
-            val creator = WorldCreator(folderName)
+            val creator = WorldCreator(NamespacedKey.minecraft(folderName))
             val world = plugin.server.createWorld(creator) ?: return false
             if (worldData.seedSpecified && world.environment == org.bukkit.World.Environment.THE_END) {
                 prepareGeneratedEndWorld(world)
@@ -650,31 +650,40 @@ class WorldService(
 
     /** ワールドフォルダ名を取得する（my_world.UUID または customWorldName） */
     fun getWorldFolderName(worldData: WorldData): String {
-        return worldData.customWorldName ?: "my_world.${worldData.uuid}"
+        return NamespacedKey.fromString(worldData.worldKey)?.key
+            ?: throw IllegalStateException("Invalid world_key for ${worldData.uuid}: ${worldData.worldKey}")
     }
 
-    fun getWorldDirectory(worldData: WorldData): File =
-            resolveWorldDirectory(getWorldFolderName(worldData))
+    fun getWorldDirectory(worldData: WorldData): File {
+        val folderName = getWorldFolderName(worldData)
+        if (worldData.isArchived) {
+            return File(File(plugin.dataFolder.parentFile.parentFile, "archived_worlds"), folderName)
+        }
+        return resolveWorldDirectory(folderName)
+    }
+
+    fun getWorldCreationDirectory(worldData: WorldData): File =
+            preferredActiveWorldDirectory(getWorldFolderName(worldData))
+
+    fun getWorldCreationDirectory(folderName: String): File =
+            preferredActiveWorldDirectory(folderName)
 
     fun resolveWorldDirectory(folderName: String): File =
             resolveExistingWorldDirectory(folderName)
                     ?: throw IllegalStateException("Existing world directory is not uniquely resolvable: $folderName")
 
     private fun resolveExistingWorldDirectory(folderName: String): File? =
-            WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)?.existingPath?.toFile()
+            plugin.worldDirectoryResolver.inspect(folderName)?.existingPath?.toFile()
 
     private fun preferredActiveWorldDirectory(folderName: String): File {
-        val container = Bukkit.getWorldContainer()
-        val dimensionRoot = File(File(container, "world"), "dimensions/minecraft")
-        return if (dimensionRoot.exists() && dimensionRoot.isDirectory) {
-            File(dimensionRoot, folderName)
-        } else {
-            File(container, folderName)
-        }
+        return com.awabi2048.ccsystem.CCSystem.getAPI()
+                .getWorldDirectoryService()
+                .creationDirectory(NamespacedKey.minecraft(folderName))
+                .toFile()
     }
 
     private fun worldFolderExists(folderName: String): Boolean =
-            WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)?.state
+            plugin.worldDirectoryResolver.inspect(folderName)?.state
                     ?.let { it != WorldDirectoryState.MISSING } == true
 
     private fun generateUniqueWorldUuid(): UUID {
@@ -888,7 +897,7 @@ class WorldService(
         val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
         val archivedFile = File(archiveFolder, folderName)
         val targetFile = preferredActiveWorldDirectory(folderName)
-        val activeResolution = WorldDirectoryResolver(Bukkit.getWorldContainer().toPath()).inspect(folderName)
+        val activeResolution = plugin.worldDirectoryResolver.inspect(folderName)
         if (activeResolution == null || activeResolution.state != WorldDirectoryState.MISSING) {
             plugin.logger.warning(
                 "World restore rejected because the active directory state is " +
@@ -903,6 +912,7 @@ class WorldService(
             future.complete(false)
             return future
         }
+        targetFile.parentFile?.mkdirs()
         if (!archivedFile.renameTo(targetFile)) {
             plugin.logger.severe("Failed to move world directory from archive: $folderName")
             future.complete(false)

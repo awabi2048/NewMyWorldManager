@@ -143,8 +143,14 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         return nameCache[worldName]
     }
 
+    @Synchronized
+    fun findByWorldKey(worldKey: String): WorldData? {
+        return cache.values.firstOrNull { it.worldKey == worldKey }
+    }
+
     private fun toWorldFolderName(worldData: WorldData): String {
-        return worldData.customWorldName ?: "my_world.${worldData.uuid}"
+        return org.bukkit.NamespacedKey.fromString(worldData.worldKey)?.key
+            ?: throw IllegalStateException("Invalid world_key for ${worldData.uuid}: ${worldData.worldKey}")
     }
 
     private fun normalizeDisplayName(name: String): String {
@@ -155,7 +161,8 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         val config = YamlConfiguration.loadConfiguration(file)
         // Bukkitの自動デシリアライズ機能を使用
         // ConfigurationSerialization.registerClass(WorldData::class.java) はメインクラスで行う必要がある
-        return config.get("world_data") as? WorldData
+        val worldData = config.get("world_data") as? WorldData ?: return null
+        return worldData
     }
 
     private fun restoreCacheFromDisk(uuid: UUID) {

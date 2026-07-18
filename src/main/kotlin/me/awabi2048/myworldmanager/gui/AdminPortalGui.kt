@@ -112,8 +112,8 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             val worldData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
             worldData?.name ?: "Unknown World"
         } else {
-            val configName = plugin.config.getString("portal_targets.${portal.targetWorldName}")
-            configName ?: portal.targetWorldName ?: "Unknown"
+            val configName = plugin.config.getString("portal_targets.${portal.targetRuntimeName}")
+            configName ?: portal.targetRuntimeName ?: "Unknown"
         }
 
         val displayTitle = lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destName))
@@ -125,7 +125,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
             GuiLoreBlock(listOf(
                 GuiLoreLine.Data(lang.getMessage(player, "gui.admin_portals.portal_item.owner"), ownerName, "§f"),
-                GuiLoreLine.Data(lang.getMessage(player, "gui.admin_portals.portal_item.world"), portal.worldName, "§f"),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.admin_portals.portal_item.world"), portal.worldKey, "§f"),
                 GuiLoreLine.Data(
                     lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"),
                     "${portal.x}, ${portal.y}, ${portal.z}",
