@@ -4,7 +4,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
 import me.awabi2048.myworldmanager.util.ItemTag
-import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
@@ -141,22 +140,13 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
         player.closeInventory()
         player.sendMessage(lang.getMessage(player, "general.meet_request.sent", mapOf("player" to target.name)))
-        target.sendMessage(lang.getMessage(target, "general.meet_request.received", mapOf("player" to player.name)))
         val result = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, target.world.uid, 60)
-        if (plugin.playerPlatformResolver.isBedrock(target)) {
-            plugin.pendingDecisionManager.sendPendingHint(target, result.count)
-        } else {
-            target.sendMessage(
-                ClickableInviteMessageFactory.create(
-                    plugin = plugin,
-                    target = target,
-                    messageKey = "general.meet_request.received",
-                    clickTextKey = "general.meet_request.accept_button",
-                    hoverTextKey = "general.meet_request.hover_accept",
-                    placeholders = mapOf("player" to player.name),
-                    arguments = listOf("/myworld", "pending_open", result.id.toString())
-                )
-            )
-        }
+        plugin.pendingNotificationService.send(
+            target,
+            me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEET_REQUEST,
+            result.actionCode,
+            player.uniqueId,
+            null
+        )
     }
 }

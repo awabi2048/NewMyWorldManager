@@ -25,13 +25,22 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         val worldUuid: UUID?,
         val actorUuid: UUID,
         val createdAt: Long,
+        val actionCode: String,
         val persistent: Boolean
     )
 
     data class EnqueueResult(
         val id: UUID,
+        val actionCode: String,
         val count: Int
     )
+
+    enum class ResolveCodeResult {
+        RESOLVED,
+        INVALID_FORMAT,
+        NOT_FOUND,
+        EXPIRED
+    }
 
     private sealed interface PendingDecision {
         val id: UUID
@@ -39,6 +48,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         val actorUuid: UUID
         val worldUuid: UUID?
         val createdAt: Long
+        val actionCode: String
         val expiresAt: Long
     }
 
@@ -47,6 +57,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         override val worldUuid: UUID,
         override val actorUuid: UUID,
         override val createdAt: Long,
+        override val actionCode: String,
         override val expiresAt: Long
     ) : PendingDecision {
         override val type: PendingType = PendingType.WORLD_INVITE
@@ -59,6 +70,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         override val actorUuid: UUID,
         override val worldUuid: UUID?,
         override val createdAt: Long,
+        override val actionCode: String,
         override val expiresAt: Long
     ) : PendingDecision
 
@@ -68,6 +80,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         override val actorUuid: UUID,
         override val worldUuid: UUID,
         override val createdAt: Long,
+        override val actionCode: String,
         override val expiresAt: Long
     ) : PendingDecision {
         override val type: PendingType = PendingType.VISIT_REQUEST
@@ -78,79 +91,102 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         val type: PendingInteractionType,
         val worldUuid: UUID,
         val actorUuid: UUID,
-        val createdAt: Long
+        val createdAt: Long,
+        val actionCode: String
     )
 
     private val transientByTarget = ConcurrentHashMap<UUID, ArrayDeque<PendingDecision>>()
+    private val expiredCodesByTarget = ConcurrentHashMap<UUID, MutableMap<String, Long>>()
+    private val actionCodeAllocator = PendingActionCodeAllocator()
 
+    @Synchronized
     fun enqueueWorldInvite(target: Player, worldUuid: UUID, senderUuid: UUID, timeoutSeconds: Long): EnqueueResult {
         val now = System.currentTimeMillis()
+        val actionCode = allocateActionCode(target.uniqueId)
+            ?: error("Pending action code space exhausted for ${target.uniqueId}")
         val decision = WorldInviteDecision(
             id = UUID.randomUUID(),
             worldUuid = worldUuid,
             actorUuid = senderUuid,
             createdAt = now,
+            actionCode = actionCode,
             expiresAt = now + (timeoutSeconds * 1000L)
         )
         val count = enqueueTransient(
             target.uniqueId,
             decision
         )
-        return EnqueueResult(decision.id, count)
+        return EnqueueResult(decision.id, actionCode, count)
     }
 
-    fun enqueueMemberInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): Int {
-        plugin.pendingInteractionRepository.add(
+    @Synchronized
+    fun enqueueMemberInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): EnqueueResult {
+        val actionCode = allocateActionCode(targetUuid)
+            ?: error("Pending action code space exhausted for $targetUuid")
+        val interaction = plugin.pendingInteractionRepository.add(
             type = PendingInteractionType.MEMBER_INVITE,
             targetUuid = targetUuid,
             worldUuid = worldUuid,
-            actorUuid = senderUuid
+            actorUuid = senderUuid,
+            actionCode = actionCode
         )
-        return plugin.pendingInteractionRepository.countByTarget(targetUuid)
+        return EnqueueResult(interaction.id, actionCode, getPendingCount(targetUuid))
     }
 
-    fun enqueueMemberRequest(ownerUuid: UUID, worldUuid: UUID, requestorUuid: UUID): Int {
-        plugin.pendingInteractionRepository.add(
+    @Synchronized
+    fun enqueueMemberRequest(ownerUuid: UUID, worldUuid: UUID, requestorUuid: UUID): EnqueueResult {
+        val actionCode = allocateActionCode(ownerUuid)
+            ?: error("Pending action code space exhausted for $ownerUuid")
+        val interaction = plugin.pendingInteractionRepository.add(
             type = PendingInteractionType.MEMBER_REQUEST,
             targetUuid = ownerUuid,
             worldUuid = worldUuid,
-            actorUuid = requestorUuid
+            actorUuid = requestorUuid,
+            actionCode = actionCode
         )
-        return plugin.pendingInteractionRepository.countByTarget(ownerUuid)
+        return EnqueueResult(interaction.id, actionCode, getPendingCount(ownerUuid))
     }
 
+    @Synchronized
     fun enqueueMeetRequest(target: Player, requesterUuid: UUID, worldUuid: UUID?, timeoutSeconds: Long): EnqueueResult {
         val now = System.currentTimeMillis()
+        val actionCode = allocateActionCode(target.uniqueId)
+            ?: error("Pending action code space exhausted for ${target.uniqueId}")
         val decision = MeetRequestDecision(
             id = UUID.randomUUID(),
             requesterUuid = requesterUuid,
             actorUuid = requesterUuid,
             worldUuid = worldUuid,
             createdAt = now,
+            actionCode = actionCode,
             expiresAt = now + (timeoutSeconds * 1000L)
         )
         val count = enqueueTransient(
             target.uniqueId,
             decision
         )
-        return EnqueueResult(decision.id, count)
+        return EnqueueResult(decision.id, actionCode, count)
     }
 
+    @Synchronized
     fun enqueueVisitRequest(target: Player, requesterUuid: UUID, worldUuid: UUID, timeoutSeconds: Long): EnqueueResult? {
         if (hasPendingVisitRequest(target.uniqueId, requesterUuid, worldUuid)) {
             return null
         }
         val now = System.currentTimeMillis()
+        val actionCode = allocateActionCode(target.uniqueId)
+            ?: error("Pending action code space exhausted for ${target.uniqueId}")
         val decision = VisitRequestDecision(
             id = UUID.randomUUID(),
             requesterUuid = requesterUuid,
             actorUuid = requesterUuid,
             worldUuid = worldUuid,
             createdAt = now,
+            actionCode = actionCode,
             expiresAt = now + (timeoutSeconds * 1000L)
         )
         val count = enqueueTransient(target.uniqueId, decision)
-        return EnqueueResult(decision.id, count)
+        return EnqueueResult(decision.id, actionCode, count)
     }
 
     fun getPersistentPending(targetUuid: UUID): List<PersistentPendingView> {
@@ -160,7 +196,8 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                 type = it.type,
                 worldUuid = it.worldUuid,
                 actorUuid = it.actorUuid,
-                createdAt = it.createdAt
+                createdAt = it.createdAt,
+                actionCode = it.actionCode
             )
         }
     }
@@ -176,6 +213,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                 worldUuid = it.worldUuid,
                 actorUuid = it.actorUuid,
                 createdAt = it.createdAt,
+                actionCode = it.actionCode,
                 persistent = true
             )
         }
@@ -198,6 +236,10 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
 
     fun getLatestPersistentCreatedAt(targetUuid: UUID): Long? {
         return plugin.pendingInteractionRepository.latestByTarget(targetUuid)?.createdAt
+    }
+
+    fun getLatestPendingCreatedAt(targetUuid: UUID): Long? {
+        return getPendingEntries(targetUuid).maxOfOrNull(PendingEntryView::createdAt)
     }
 
     fun resolvePersistentById(target: Player, decisionId: UUID, accept: Boolean): Boolean {
@@ -250,25 +292,35 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         return true
     }
 
+    fun resolveByActionCode(target: Player, actionCode: String, accept: Boolean): ResolveCodeResult {
+        if (!PendingActionCodeAllocator.CODE_PATTERN.matches(actionCode)) {
+            return ResolveCodeResult.INVALID_FORMAT
+        }
+        val persistent = plugin.pendingInteractionRepository.findByTargetAndActionCode(target.uniqueId, actionCode)
+        if (persistent != null) {
+            resolvePersistentById(target, persistent.id, accept)
+            return ResolveCodeResult.RESOLVED
+        }
+        val transient = getTransientPendingEntries(target.uniqueId)
+            .firstOrNull { it.actionCode == actionCode }
+        if (transient != null) {
+            resolveById(target, transient.id, accept)
+            return ResolveCodeResult.RESOLVED
+        }
+        cleanupExpiredCodeRecords(target.uniqueId)
+        return if (expiredCodesByTarget[target.uniqueId]?.containsKey(actionCode) == true) {
+            ResolveCodeResult.EXPIRED
+        } else {
+            ResolveCodeResult.NOT_FOUND
+        }
+    }
+
     fun resolveLatest(target: Player, accept: Boolean): Boolean {
         val latest = getPendingEntries(target.uniqueId).firstOrNull() ?: run {
             target.sendMessage(plugin.languageManager.getMessage(target, "messages.myworld_pending_none"))
             return false
         }
         return resolveById(target, latest.id, accept)
-    }
-
-    fun sendPendingHint(target: Player, count: Int) {
-        if (count < 1) {
-            return
-        }
-        target.sendMessage(
-            plugin.languageManager.getMessage(
-                target,
-                "messages.myworld_pending_hint",
-                mapOf("count" to count)
-            )
-        )
     }
 
     fun getPendingCount(targetUuid: UUID): Int {
@@ -373,7 +425,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     private fun getTransientPendingCount(targetUuid: UUID): Int {
         val queue = transientByTarget[targetUuid] ?: return 0
         synchronized(queue) {
-            cleanupExpiredLocked(queue)
+            cleanupExpiredLocked(targetUuid, queue)
             val size = queue.size
             if (size == 0) {
                 transientByTarget.remove(targetUuid)
@@ -385,7 +437,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     private fun enqueueTransient(targetUuid: UUID, decision: PendingDecision): Int {
         val queue = transientByTarget.computeIfAbsent(targetUuid) { ArrayDeque() }
         synchronized(queue) {
-            cleanupExpiredLocked(queue)
+            cleanupExpiredLocked(targetUuid, queue)
             queue.addFirst(decision)
             return queue.size
         }
@@ -394,7 +446,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     private fun getTransientPendingEntries(targetUuid: UUID): List<PendingEntryView> {
         val queue = transientByTarget[targetUuid] ?: return emptyList()
         synchronized(queue) {
-            cleanupExpiredLocked(queue)
+            cleanupExpiredLocked(targetUuid, queue)
             val entries = queue.map {
                 PendingEntryView(
                     id = it.id,
@@ -402,6 +454,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                     worldUuid = it.worldUuid,
                     actorUuid = it.actorUuid,
                     createdAt = it.createdAt,
+                    actionCode = it.actionCode,
                     persistent = false
                 )
             }
@@ -415,7 +468,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     private fun removeTransientById(targetUuid: UUID, decisionId: UUID): PendingDecision? {
         val queue = transientByTarget[targetUuid] ?: return null
         synchronized(queue) {
-            cleanupExpiredLocked(queue)
+            cleanupExpiredLocked(targetUuid, queue)
             val iter = queue.iterator()
             while (iter.hasNext()) {
                 val item = iter.next()
@@ -437,7 +490,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     private fun pollLatestValidTransient(targetUuid: UUID): PendingDecision? {
         val queue = transientByTarget[targetUuid] ?: return null
         synchronized(queue) {
-            cleanupExpiredLocked(queue)
+            cleanupExpiredLocked(targetUuid, queue)
             val latest = if (queue.isEmpty()) null else queue.removeFirst()
             if (queue.isEmpty()) {
                 transientByTarget.remove(targetUuid)
@@ -446,27 +499,56 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         }
     }
 
-    private fun cleanupExpiredLocked(queue: ArrayDeque<PendingDecision>) {
+    private fun cleanupExpiredLocked(targetUuid: UUID, queue: ArrayDeque<PendingDecision>) {
         val now = System.currentTimeMillis()
         val iter = queue.iterator()
         while (iter.hasNext()) {
             val item = iter.next()
             if (item.expiresAt < now) {
+                expiredCodesByTarget
+                    .computeIfAbsent(targetUuid) { ConcurrentHashMap() }[item.actionCode] = now
                 iter.remove()
             }
         }
+        cleanupExpiredCodeRecords(targetUuid)
     }
 
     private fun hasPendingVisitRequest(targetUuid: UUID, requesterUuid: UUID, worldUuid: UUID): Boolean {
         val queue = transientByTarget[targetUuid] ?: return false
         synchronized(queue) {
-            cleanupExpiredLocked(queue)
+            cleanupExpiredLocked(targetUuid, queue)
             return queue.any {
                 it is VisitRequestDecision &&
                     it.requesterUuid == requesterUuid &&
                     it.worldUuid == worldUuid
             }
         }
+    }
+
+    private fun allocateActionCode(targetUuid: UUID): String? {
+        val used = plugin.pendingInteractionRepository.findByTarget(targetUuid)
+            .mapTo(mutableSetOf()) { it.actionCode }
+        val queue = transientByTarget[targetUuid]
+        if (queue != null) {
+            synchronized(queue) {
+                cleanupExpiredLocked(targetUuid, queue)
+                queue.mapTo(used) { it.actionCode }
+            }
+        }
+        return actionCodeAllocator.allocate(used)
+    }
+
+    private fun cleanupExpiredCodeRecords(targetUuid: UUID) {
+        val records = expiredCodesByTarget[targetUuid] ?: return
+        val threshold = System.currentTimeMillis() - EXPIRED_CODE_RETENTION_MILLIS
+        records.entries.removeIf { it.value < threshold }
+        if (records.isEmpty()) {
+            expiredCodesByTarget.remove(targetUuid)
+        }
+    }
+
+    companion object {
+        private const val EXPIRED_CODE_RETENTION_MILLIS = 5 * 60 * 1000L
     }
 
     private fun handleMeetRequestAccept(target: Player, requesterUuid: UUID) {

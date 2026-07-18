@@ -4,12 +4,12 @@ import java.util.UUID
 
 data class ApiPortalSnapshot(
     val id: UUID,
-    val worldName: String,
+    val worldKey: String,
     val x: Int,
     val y: Int,
     val z: Int,
     val worldUuid: UUID?,
-    val targetWorldName: String?,
+    val targetWorldKey: String?,
     val showText: Boolean,
     val particleColorRgb: Int,
     val ownerUuid: UUID,

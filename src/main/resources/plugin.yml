@@ -4,7 +4,8 @@ main: me.awabi2048.myworldmanager.MyWorldManager
 api-version: '26.1.2'
 authors: [awabi2048]
 description: ""
-softdepend: [PremiumVanish, CC-System, LuckPerms, WorldGuard, WorldEdit, FastAsyncWorldEdit, Multiverse-Core]
+depend: [CC-System]
+softdepend: [PremiumVanish, LuckPerms, WorldGuard, WorldEdit, FastAsyncWorldEdit, Multiverse-Core]
 commands:
   mwm:
     description: MyWorldManager main command
@@ -138,9 +139,6 @@ permissions:
     default: false
   myworldmanager.command.mwm.stats:
     description: Allows use of /mwm stats
-    default: false
-  myworldmanager.command.mwm.give:
-    description: Allows use of /mwm give
     default: false
   myworldmanager.command.mwm.list:
     description: Allows use of /mwm list

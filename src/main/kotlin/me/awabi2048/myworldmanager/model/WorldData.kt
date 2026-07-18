@@ -36,6 +36,7 @@ data class WorldData(
     var archivedAt: String? = null,
     var archiveTransitionType: String? = null,
     val customWorldName: String? = null,
+    var worldKey: String = "minecraft:${customWorldName ?: "my_world.$uuid"}",
     var gravityValue: Double? = DEFAULT_GRAVITY,
     var fixedWeather: String? = null,
     var fixedBiome: String? = null,
@@ -86,6 +87,7 @@ data class WorldData(
             "archived_at" to archivedAt,
             "archive_transition_type" to archiveTransitionType,
             "custom_world_name" to customWorldName,
+            "world_key" to worldKey,
             "gravity_value" to gravityValue,
             "fixed_weather" to fixedWeather,
             "fixed_biome" to fixedBiome,
@@ -131,8 +133,10 @@ data class WorldData(
                 java.time.LocalDateTime.now().format(formatter)
             }
 
+            val uuid = UUID.fromString(args["uuid"] as String)
+            val customWorldName = args["custom_world_name"] as? String
             return WorldData(
-                uuid = UUID.fromString(args["uuid"] as String),
+                uuid = uuid,
                 name = args["name"] as String,
                 description = args["description"] as String,
                 icon = Material.valueOf(args["icon"] as String),
@@ -161,7 +165,9 @@ data class WorldData(
                 createdAt = createdAtVal,
                 archivedAt = args["archived_at"] as? String,
                 archiveTransitionType = args["archive_transition_type"] as? String,
-                customWorldName = args["custom_world_name"] as? String,
+                customWorldName = customWorldName,
+                worldKey = args["world_key"] as? String
+                    ?: throw IllegalArgumentException("world_keyがありません: $uuid"),
                 gravityValue = (args["gravity_value"] as? Number)?.toDouble() ?: DEFAULT_GRAVITY,
                 fixedWeather = args["fixed_weather"] as? String,
                 fixedBiome = args["fixed_biome"] as? String,
@@ -203,7 +209,7 @@ data class WorldData(
 
         private fun serializeLocation(loc: Location): Map<String, Any?> {
             return mapOf(
-                "world" to loc.world?.name,
+                "world_key" to loc.world?.key?.toString(),
                 "x" to loc.blockX,
                 "y" to loc.blockY,
                 "z" to loc.blockZ,
@@ -214,18 +220,18 @@ data class WorldData(
 
         private fun deserializeLocation(obj: Any?): Location? {
             if (obj == null) return null
-            if (obj is Location) return obj
-            
             if (obj is Map<*, *>) {
                 try {
-                    val worldName = obj["world"] as? String
+                    val worldKey = obj["world_key"] as? String
                     val x = (obj["x"] as Number).toInt()
                     val y = (obj["y"] as Number).toInt()
                     val z = (obj["z"] as Number).toInt()
                     val yaw = (obj["yaw"] as? Number)?.toFloat() ?: 0.0f
                     val pitch = (obj["pitch"] as? Number)?.toFloat() ?: 0.0f
                     
-                    val world = worldName?.let { org.bukkit.Bukkit.getWorld(it) }
+                    val world = worldKey
+                        ?.let(org.bukkit.NamespacedKey::fromString)
+                        ?.let(org.bukkit.Bukkit::getWorld)
                     return Location(world, x + 0.5, y.toDouble(), z + 0.5, yaw, pitch)
                 } catch (e: Exception) {
                     return null

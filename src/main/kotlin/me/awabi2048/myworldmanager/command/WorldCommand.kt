@@ -9,7 +9,6 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.CreationSessionManager
 import me.awabi2048.myworldmanager.session.WorldCreationType
-import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
@@ -360,84 +359,6 @@ class WorldCommand(
                 }
                 return true
             }
-            "give" -> {
-                val lang = plugin.languageManager
-                if (sender !is org.bukkit.command.ConsoleCommandSender &&
-                                !hasGlobalPermission &&
-                                !PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
-                ) {
-                    PermissionManager.sendNoPermissionMessage(sender)
-                    return true
-                }
-                if (args.size < 3) {
-                    sender.sendMessage(lang.getMessage(sender as? Player, "messages.usage_give"))
-                    return true
-                }
-                val targetPlayer = Bukkit.getPlayer(args[1])
-                if (targetPlayer == null || !targetPlayer.isOnline) {
-                    sender.sendMessage(
-                            lang.getMessage(sender as? Player, "general.player_not_found")
-                    )
-                    return true
-                }
-                val customItemId = args[2]
-                val customItem = CustomItem.fromId(customItemId)
-                if (customItem == null) {
-                    sender.sendMessage(
-                            lang.getMessage(sender as? Player, "error.invalid_item_id")
-                    )
-                    return true
-                }
-                val amount = if (args.size >= 4) args[3].toIntOrNull() ?: 1 else 1
-
-                // Handle biome for bottled_biome_air
-                val item =
-                        if (customItem == CustomItem.BOTTLED_BIOME_AIR && args.size >= 5) {
-                            customItem.createWithBiome(lang, targetPlayer, args[4])
-                        } else {
-                            customItem.create(lang, targetPlayer)
-                        }
-                item.amount = amount
-
-                // インベントリに追加を試みる
-                val result = targetPlayer.inventory.addItem(item)
-                val displayName = item.itemMeta?.displayName() ?: customItem.id
-
-                // インベントリがいっぱいで、アイテムがドロップされたかどうかを確認
-                if (result.isNotEmpty()) {
-                    // ドロップされたアイテムを足元に配置
-                    result.values.forEach { droppedItem ->
-                        targetPlayer.world.dropItemNaturally(targetPlayer.location, droppedItem)
-                    }
-                    sender.sendMessage(
-                            lang.getMessage(
-                                    sender as? Player,
-                                    "messages.give_inventory_full",
-                                    mapOf(
-                                            "player" to targetPlayer.name,
-                                            "item" to displayName,
-                                            "amount" to result.values.sumOf { it.amount }
-                                    )
-                            )
-                    )
-                } else {
-                    sender.sendMessage(
-                            lang.getMessage(
-                                    sender as? Player,
-                                    "messages.give_success",
-                                    mapOf(
-                                            "player" to targetPlayer.name,
-                                            "item" to displayName,
-                                            "amount" to amount
-                                    )
-                            )
-                    )
-                }
-                return true
-            }
-
-
-
             else -> {
                 sender.sendMessage(plugin.languageManager.getMessage("error.unknown_subcommand"))
                 return true
@@ -456,10 +377,9 @@ class WorldCommand(
         val hasCreatePermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
         val hasReloadPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
         val hasStatsPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
-        val hasGivePermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
         val hasWorldListPermission =
                 hasGlobalPermission || PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
-        if (!hasGlobalPermission && !hasCreatePermission && !hasReloadPermission && !hasStatsPermission && !hasGivePermission && !hasWorldListPermission) return emptyList()
+        if (!hasGlobalPermission && !hasCreatePermission && !hasReloadPermission && !hasStatsPermission && !hasWorldListPermission) return emptyList()
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
 
         when (args.size) {
@@ -472,9 +392,6 @@ class WorldCommand(
                 }
                 if (hasStatsPermission && canSuggestSubCommand(sender, "stats", args.toList())) {
                     list.add("stats")
-                }
-                if (hasGivePermission && canSuggestSubCommand(sender, "give", args.toList())) {
-                    list.add("give")
                 }
                 if (hasGlobalPermission && sender is org.bukkit.command.ConsoleCommandSender && canSuggestSubCommand(sender, "update-day", args.toList())) {
                     list.add("update-day")
@@ -493,7 +410,6 @@ class WorldCommand(
                 if (createCompletion != null) {
                     list.addAll(createCompletion)
                 } else if (((sub == "stats" && hasStatsPermission) ||
-                    (sub == "give" && hasGivePermission) ||
                     (sub == "create" && hasCreatePermission)) &&
                     canSuggestSubCommand(sender, sub, args.toList())
                 ) {
@@ -504,8 +420,6 @@ class WorldCommand(
                 val sub = args[0].lowercase()
                 if (sub == "stats" && hasStatsPermission) {
                     list.addAll(listOf("points", "warp-slots", "world-slots"))
-                } else if (sub == "give" && hasGivePermission) {
-                    list.addAll(CustomItem.values().map { it.id }.filter { canSuggestGiveItem(sender, it) })
                 }
             }
             4 -> {
@@ -527,7 +441,6 @@ class WorldCommand(
             "create" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
             "reload" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
             "stats" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
-            "give" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE)
             "list" -> PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
             "update-day" -> sender is org.bukkit.command.ConsoleCommandSender
             else -> false
@@ -538,12 +451,7 @@ class WorldCommand(
         return isSubCommandEnabled(sender, subCommand, args) && hasSubcommandPermission(sender, subCommand)
     }
 
-    private fun canSuggestGiveItem(sender: CommandSender, itemId: String): Boolean {
-        return PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_GIVE) &&
-            CustomItem.fromId(itemId) != null
-    }
-
     companion object {
-        private val enabledSubCommands = setOf("create", "reload", "stats", "give", "update-day", "list", "migration")
+        private val enabledSubCommands = setOf("create", "reload", "stats", "update-day", "list", "migration")
     }
 }

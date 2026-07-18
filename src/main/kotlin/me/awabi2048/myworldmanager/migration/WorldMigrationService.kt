@@ -6,6 +6,8 @@ import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.WorldCreator
 import org.bukkit.command.CommandSender
+import org.bukkit.configuration.file.YamlConfiguration
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -17,6 +19,13 @@ class WorldMigrationService(
 ) {
     private val approved = ConcurrentHashMap.newKeySet<UUID>()
     private val rejected = ConcurrentHashMap.newKeySet<UUID>()
+    private val stateFile = File(plugin.dataFolder, "data/world-migration-state.yml")
+    private val state = YamlConfiguration.loadConfiguration(stateFile)
+
+    init {
+        state.getStringList("approved").mapNotNullTo(approved) { runCatching { UUID.fromString(it) }.getOrNull() }
+        state.getStringList("rejected").mapNotNullTo(rejected) { runCatching { UUID.fromString(it) }.getOrNull() }
+    }
 
     fun pendingWorlds(): List<LegacyWorldDirectory> =
         resolver.findLegacyWorlds().filterNot { it.uuid in rejected || it.uuid in approved }
@@ -59,8 +68,14 @@ class WorldMigrationService(
         }
         rejected.remove(uuid)
         approved += uuid
+        persistState(uuid, "APPROVED")
         val loaded = loadWithBukkit(worldData)
-        if (!loaded) approved.remove(uuid)
+        if (!loaded) {
+            approved.remove(uuid)
+            persistState(uuid, "FAILED")
+        } else {
+            persistState(uuid, "COMMITTED")
+        }
         sender?.sendMessage(plugin.languageManager.getMessage(if (loaded) "messages.migration.approved" else "messages.migration.load_failed", mapOf("world" to candidate.folderName)))
         return loaded
     }
@@ -69,7 +84,18 @@ class WorldMigrationService(
         if (resolver.findLegacyWorld(uuid) == null) return false
         approved.remove(uuid)
         rejected += uuid
+        persistState(uuid, "REJECTED")
         return true
+    }
+
+    @Synchronized
+    private fun persistState(uuid: UUID, status: String) {
+        state.set("approved", approved.map(UUID::toString).sorted())
+        state.set("rejected", rejected.map(UUID::toString).sorted())
+        state.set("worlds.$uuid.status", status)
+        state.set("worlds.$uuid.updated_at", java.time.Instant.now().toString())
+        stateFile.parentFile.mkdirs()
+        state.save(stateFile)
     }
 
     private fun loadWithBukkit(worldData: WorldData): Boolean {

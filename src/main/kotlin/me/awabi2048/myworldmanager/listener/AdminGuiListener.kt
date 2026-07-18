@@ -97,12 +97,12 @@ class AdminGuiListener : Listener {
                             plugin.worldService.teleportToWorld(player, portal.worldUuid!!, portal.getCenterLocation(), runMacro = false) {
                                 player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
                             }
-                        } else if (portal.targetWorldName != null) {
+                        } else if (portal.targetWorldKey != null) {
                             plugin.portalManager.addIgnorePlayer(player)
                             plugin.portalManager.addPortalGrace(player, portalUuid, 15)
                             val teleported = plugin.portalManager.teleportPlayerToWorldSpawn(
                                 player,
-                                portal.targetWorldName!!
+                                portal.targetRuntimeName!!
                             ) {
                                 player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
                             }
@@ -118,7 +118,7 @@ class AdminGuiListener : Listener {
                         plugin.portalRepository.removePortal(portalUuid)
 
                         if (!portal.isGate()) {
-                            val world = Bukkit.getWorld(portal.worldName)
+                            val world = portal.loadedWorld()
                             val block = world?.getBlockAt(portal.x, portal.y, portal.z)
                             if (block != null && block.type == org.bukkit.Material.END_PORTAL_FRAME) {
                                 block.type = org.bukkit.Material.AIR

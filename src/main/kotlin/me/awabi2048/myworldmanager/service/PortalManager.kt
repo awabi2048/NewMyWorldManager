@@ -39,6 +39,20 @@ class PortalManager(private val plugin: MyWorldManager) {
     private val portalCache = ConcurrentHashMap<String, ConcurrentHashMap<Long, PortalData>>() // WorldName -> BlockKey -> PortalData
     private val gateCache = ConcurrentHashMap<String, MutableList<PortalData>>() // WorldName -> Gate portals
 
+    private fun normalizeWorldKey(identifier: String): String {
+        return if (':' in identifier) {
+            NamespacedKey.fromString(identifier)?.toString()
+                ?: throw IllegalArgumentException("不正なワールドキーです: $identifier")
+        } else {
+            NamespacedKey.minecraft(identifier).toString()
+        }
+    }
+
+    private fun worldByKey(worldKey: String): World? {
+        val key = NamespacedKey.fromString(worldKey) ?: return null
+        return Bukkit.getWorld(key)
+    }
+
     private fun getBlockKey(x: Int, y: Int, z: Int): Long {
         return (x.toLong() and 0x7FFFFFF shl 38) or (z.toLong() and 0x7FFFFFF shl 12) or (y.toLong() and 0xFFF)
     }
@@ -106,21 +120,22 @@ class PortalManager(private val plugin: MyWorldManager) {
 
     fun refreshWorldDisplayLifecycle(worldName: String?) {
         if (worldName.isNullOrBlank()) return
+        val worldKey = normalizeWorldKey(worldName)
 
-        val world = Bukkit.getWorld(worldName)
+        val world = worldByKey(worldKey)
         if (world == null || world.players.isEmpty()) {
-            activeDisplayWorlds.remove(worldName)
-            removeTextDisplaysForWorld(worldName)
+            activeDisplayWorlds.remove(worldKey)
+            removeTextDisplaysForWorld(worldKey)
             return
         }
 
-        val portals = plugin.portalRepository.findAll().filter { it.worldName == worldName }
+        val portals = plugin.portalRepository.findAll().filter { it.worldKey == worldKey }
         if (portals.isEmpty()) {
-            activeDisplayWorlds.remove(worldName)
+            activeDisplayWorlds.remove(worldKey)
             return
         }
 
-        if (!activeDisplayWorlds.add(worldName)) {
+        if (!activeDisplayWorlds.add(worldKey)) {
             return
         }
 
@@ -137,7 +152,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         var changed = false
         for (portal in portals) {
             if (portal.textDisplayUuid != null) {
-                val world = Bukkit.getWorld(portal.worldName)
+                val world = portal.loadedWorld()
                 val legacyDisplay = world?.getEntity(portal.textDisplayUuid!!)
                 if (legacyDisplay is TextDisplay && legacyDisplay.isValid) {
                     legacyDisplay.remove()
@@ -170,7 +185,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         val portals = plugin.portalRepository.findAll()
         portalCache.clear()
         gateCache.clear()
-        val playersByWorld = Bukkit.getOnlinePlayers().groupBy { it.world.name }
+        val playersByWorld = Bukkit.getOnlinePlayers().groupBy { it.world.key.toString() }
         syncActiveDisplayWorlds(portals, playersByWorld)
         val portalById = portals.associateBy { it.id }
 
@@ -181,7 +196,7 @@ class PortalManager(private val plugin: MyWorldManager) {
             val portalId = entry.value
             val mappedDisplay = textDisplays[portalId]
             val portal = portalById[portalId]
-            if (portal == null || mappedDisplay == null || !mappedDisplay.isValid || mappedDisplay.world.name != portal.worldName) {
+            if (portal == null || mappedDisplay == null || !mappedDisplay.isValid || mappedDisplay.world.key.toString() != portal.worldKey) {
                 TextDisplayEntityUtil.removeIfValid(mappedDisplay)
                 textDisplays.remove(portalId)
                 displayIterator.remove()
@@ -189,7 +204,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         }
 
         for (portal in portals) {
-            val world = Bukkit.getWorld(portal.worldName) ?: continue
+            val world = portal.loadedWorld() ?: continue
 
             if (!portal.isGate()) {
                 val block = world.getBlockAt(portal.x, portal.y, portal.z)
@@ -255,13 +270,13 @@ class PortalManager(private val plugin: MyWorldManager) {
             }
 
             // 2. テキスト表示の更新
-            updateTextDisplay(portal, activeDisplayWorlds.contains(portal.worldName))
+            updateTextDisplay(portal, activeDisplayWorlds.contains(portal.worldKey))
 
             if (portal.isGate()) {
-                gateCache.computeIfAbsent(portal.worldName) { mutableListOf() }.add(portal)
+                gateCache.computeIfAbsent(portal.worldKey) { mutableListOf() }.add(portal)
             } else {
                 val key = getBlockKey(portal.x, portal.y, portal.z)
-                portalCache.computeIfAbsent(portal.worldName) { ConcurrentHashMap() }[key] = portal
+                portalCache.computeIfAbsent(portal.worldKey) { ConcurrentHashMap() }[key] = portal
             }
         }
 
@@ -271,7 +286,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         portals: Collection<PortalData>,
         playersByWorld: Map<String, List<Player>>
     ) {
-        val worldsWithPortals = portals.map { it.worldName }.toSet()
+        val worldsWithPortals = portals.map { it.worldKey }.toSet()
 
         for (worldName in worldsWithPortals) {
             if (playersByWorld[worldName].isNullOrEmpty()) {
@@ -321,17 +336,17 @@ class PortalManager(private val plugin: MyWorldManager) {
     }
 
     fun teleportPlayerToPortalLocation(player: Player, portal: PortalData, afterTeleported: (() -> Unit)? = null): Boolean {
-        return teleportPlayerWithLoadWait(player, portal.worldName, {
+        return teleportPlayerWithLoadWait(player, portal.worldKey, {
             buildPortalEntryLocation(player, portal, it)
         }, afterTeleported)
     }
 
     fun teleportPlayerToWorldSpawn(
         player: Player,
-        targetWorldName: String,
+        targetWorldKey: String,
         afterTeleported: (() -> Unit)? = null
     ): Boolean {
-        return teleportPlayerWithLoadWait(player, targetWorldName, { it.spawnLocation }, afterTeleported)
+        return teleportPlayerWithLoadWait(player, normalizeWorldKey(targetWorldKey), { it.spawnLocation }, afterTeleported)
     }
 
     private fun buildPortalEntryLocation(player: Player, portal: PortalData, world: World): Location {
@@ -354,11 +369,11 @@ class PortalManager(private val plugin: MyWorldManager) {
 
     private fun teleportPlayerWithLoadWait(
         player: Player,
-        targetWorldName: String,
+        targetWorldKey: String,
         locationProvider: (World) -> Location,
         afterTeleported: (() -> Unit)? = null
     ): Boolean {
-        val loadedWorld = loadWorldByName(targetWorldName) ?: return false
+        val loadedWorld = loadWorldByKey(targetWorldKey) ?: return false
         val (targetWorld, loadedNow) = loadedWorld
         val waitTicks = plugin.config.getLong("warp.load_wait_ticks", 10L).coerceAtLeast(0L)
 
@@ -380,29 +395,30 @@ class PortalManager(private val plugin: MyWorldManager) {
         return true
     }
 
-    private fun loadWorldByName(worldName: String): Pair<World, Boolean>? {
-        val loaded = Bukkit.getWorld(worldName)
+    private fun loadWorldByKey(worldKey: String): Pair<World, Boolean>? {
+        val key = NamespacedKey.fromString(normalizeWorldKey(worldKey)) ?: return null
+        val loaded = Bukkit.getWorld(key)
         if (loaded != null) {
             return loaded to false
         }
 
-        val worldDirectory = plugin.worldService.resolveWorldDirectory(worldName)
+        val worldDirectory = plugin.worldService.resolveWorldDirectory(key.key)
         if (!worldDirectory.exists() || !worldDirectory.isDirectory) {
             return null
         }
 
         return try {
-            val created = plugin.server.createWorld(WorldCreator(worldName)) ?: return null
+            val created = plugin.server.createWorld(WorldCreator(key)) ?: return null
             plugin.worldEnvironmentService.applyAll(created)
             created to true
         } catch (e: Exception) {
-            plugin.logger.log(Level.SEVERE, "Failed to load world by name: $worldName", e)
+            plugin.logger.log(Level.SEVERE, "Failed to load world by key: $worldKey", e)
             null
         }
     }
 
     private fun isPlayerInAnyPortal(player: Player): Boolean {
-        val worldName = player.world.name
+        val worldName = player.world.key.toString()
 
         val gates = gateCache[worldName]
         if (gates != null) {
@@ -442,7 +458,7 @@ class PortalManager(private val plugin: MyWorldManager) {
 
          var display = textDisplays[portal.id]
          if (display != null) {
-             val wrongWorld = display.world.name != portal.worldName
+             val wrongWorld = display.world.key.toString() != portal.worldKey
              if (!display.isValid || wrongWorld) {
                  displayToPortal.remove(display.uniqueId)
                  TextDisplayEntityUtil.removeIfValid(display)
@@ -493,8 +509,8 @@ class PortalManager(private val plugin: MyWorldManager) {
              val destinationData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
              destinationData?.name ?: "未知のワールド"
          } else {
-             val configName = plugin.config.getString("portal_targets.${portal.targetWorldName}")
-             configName ?: portal.targetWorldName ?: "未知のワールド"
+             val configName = plugin.config.getString("portal_targets.${portal.targetRuntimeName}")
+             configName ?: portal.targetRuntimeName ?: "未知のワールド"
          }
          
          val color = TextColor.color(portal.particleColor.asRGB())
@@ -527,7 +543,7 @@ class PortalManager(private val plugin: MyWorldManager) {
      fun handlePlayerMove(player: Player) {
         if (player.isSneaking) return
 
-        val worldName = player.world.name
+        val worldName = player.world.key.toString()
         val worldPortals = portalCache[worldName] ?: return
         
         val x = player.location.blockX
@@ -616,16 +632,17 @@ class PortalManager(private val plugin: MyWorldManager) {
                     plugin.worldConfigRepository.save(destData)
                 }
                 */
-        } else if (portal.targetWorldName != null) {
+        } else if (portal.targetWorldKey != null) {
             // 外部ワールドへのワープ
-            val targetWorldName = portal.targetWorldName!!
-            if (!teleportPlayerToWorldSpawn(player, targetWorldName)) {
+            val targetWorldKey = portal.targetWorldKey!!
+            if (!teleportPlayerToWorldSpawn(player, targetWorldKey)) {
                 player.sendMessage(lang.getMessage(player, "general.world_not_found"))
                 return
             }
             warpCooldowns[player.uniqueId] = System.currentTimeMillis()
 
-            val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
+            val displayName = plugin.config.getString("portal_targets.${portal.targetRuntimeName}")
+                ?: portal.targetRuntimeName!!
             player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to displayName)))
          }
      }
@@ -658,7 +675,7 @@ class PortalManager(private val plugin: MyWorldManager) {
       private fun removeTextDisplaysForWorld(worldName: String) {
           val portalIds = plugin.portalRepository.findAll()
               .asSequence()
-              .filter { it.worldName == worldName }
+              .filter { it.worldKey == worldName }
               .map { it.id }
               .toList()
           for (portalId in portalIds) {
@@ -685,13 +702,14 @@ class PortalManager(private val plugin: MyWorldManager) {
        * ワールドアンロード時にそのワールドのTextDisplayをメモリマップから削除
        */
       fun cleanupWorld(worldName: String) {
-          activeDisplayWorlds.remove(worldName)
+          val worldKey = normalizeWorldKey(worldName)
+          activeDisplayWorlds.remove(worldKey)
           val portalIdsToRemove = mutableListOf<UUID>()
           val displayUuidsToRemove = mutableListOf<UUID>()
           
           for ((portalId, display) in textDisplays) {
-              val portalWorld = plugin.portalRepository.findById(portalId)?.worldName
-              if (display.world.name == worldName || portalWorld == worldName) {
+              val portalWorld = plugin.portalRepository.findById(portalId)?.worldKey
+              if (display.world.key.toString() == worldKey || portalWorld == worldKey) {
                   portalIdsToRemove.add(portalId)
                   displayUuidsToRemove.add(display.uniqueId)
               }

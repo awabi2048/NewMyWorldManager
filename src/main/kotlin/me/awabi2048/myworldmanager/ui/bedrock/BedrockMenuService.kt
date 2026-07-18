@@ -497,6 +497,7 @@ class BedrockMenuService(
             inventory.setItem(footerStart + 2, createCreationUnavailableButtonItem(player, creationBlockReason))
         }
         inventory.setItem(footerStart + 4, createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint))
+        inventory.setItem(footerStart + 5, createPendingButtonItem(player))
         inventory.setItem(
             footerStart + 6,
             createActionItem(
@@ -723,10 +724,6 @@ class BedrockMenuService(
             "open_settings" -> openSettings(player, holder.showBackButton, holder.page)
 
             "open_pending_interactions" -> {
-                val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
-                if (pendingCount == 0) {
-                    return
-                }
                 plugin.pendingInteractionGui.open(
                     player = player,
                     page = 0,
@@ -1212,13 +1209,6 @@ class BedrockMenuService(
         meta.owningPlayer = player
         val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-        val pendingCount = plugin.pendingDecisionManager.getPersistentPendingCount(player.uniqueId)
-        val latestPendingAt = plugin.pendingDecisionManager.getLatestPersistentCreatedAt(player.uniqueId)
-        val latestPendingText = latestPendingAt?.let {
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                .withZone(ZoneId.systemDefault())
-                .format(Instant.ofEpochMilli(it))
-        } ?: tr(player, "general.unknown")
         meta.displayName(
             plugin.languageManager.getComponent(
                 player,
@@ -1238,20 +1228,59 @@ class BedrockMenuService(
                 },
                 GuiLoreLine.Text(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
             )))
-            if (pendingCount > 0) {
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.pending_label"), pendingCount, "§e"),
-                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.latest_pending_label"), latestPendingText, "§b")
-                )))
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(GuiLoreActions.singleClick(plugin.languageManager, player, tr(player, "gui.player_world.stats_button.action.open_pending")))))
-            }
         })))
-        if (pendingCount > 0) {
-            meta.setEnchantmentGlintOverride(true)
-        }
         item.itemMeta = meta
         ItemTag.tagItem(item, "bedrock_menu_item")
-        ItemTag.setString(item, "bedrock_action", "open_pending_interactions")
+        ItemTag.setString(item, "bedrock_action", "noop")
+        return item
+    }
+
+    private fun createPendingButtonItem(player: Player): ItemStack {
+        val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
+        val latest = plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
+            ?.let {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(Instant.ofEpochMilli(it))
+            }
+            ?: tr(player, "gui.player_world.pending_button.none")
+        val item = createActionItem(
+            Material.WRITABLE_BOOK,
+            tr(player, "gui.player_world.pending_button.display"),
+            "open_pending_interactions",
+            lore = GuiLoreSpec.Blocks(
+                listOf(
+                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                        plugin.languageManager.getMessageList(player, "gui.player_world.pending_button.description")
+                            .map(GuiLoreLine::Text)
+                    ),
+                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                        listOf(
+                            GuiLoreLine.Data(
+                                tr(player, "gui.player_world.pending_button.count_label"),
+                                pendingCount,
+                                if (pendingCount > 0) "§e" else "§7"
+                            ),
+                            GuiLoreLine.Data(
+                                tr(player, "gui.player_world.pending_button.latest_label"),
+                                latest,
+                                "§b"
+                            )
+                        )
+                    ),
+                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                        listOf(
+                            GuiLoreActions.singleClick(
+                                plugin.languageManager,
+                                player,
+                                tr(player, "gui.player_world.pending_button.action")
+                            )
+                        )
+                    )
+                )
+            )
+        )
+        item.editMeta { it.setEnchantmentGlintOverride(pendingCount > 0) }
         return item
     }
 

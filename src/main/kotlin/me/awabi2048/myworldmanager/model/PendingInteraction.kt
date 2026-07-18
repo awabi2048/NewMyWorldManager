@@ -13,5 +13,6 @@ data class PendingInteraction(
     val targetUuid: UUID,
     val worldUuid: UUID,
     val actorUuid: UUID,
-    val createdAt: Long
+    val createdAt: Long,
+    val actionCode: String
 )

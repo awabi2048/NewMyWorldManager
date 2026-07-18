@@ -179,7 +179,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                  plugin.portalRepository.removePortal(portal.id)
 
                   if (!portal.isGate()) {
-                      val world = Bukkit.getWorld(portal.worldName)
+                      val world = portal.loadedWorld()
                       val block = world?.getBlockAt(portal.x, portal.y, portal.z)
                       if (block != null && block.type == Material.END_PORTAL_FRAME) {
                           block.type = Material.AIR
@@ -198,12 +198,13 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                     } else {
                         PortalItemUtil.bindWorld(returnItem, portal.worldUuid!!, worldName = destData?.name ?: lang.getMessage(player, "general.unknown"), lang, player)
                     }
-                } else if (portal.targetWorldName != null) {
-                    val displayName = plugin.config.getString("portal_targets.${portal.targetWorldName}") ?: portal.targetWorldName!!
+                } else if (portal.targetWorldKey != null) {
+                    val targetRuntimeName = portal.targetRuntimeName ?: return
+                    val displayName = plugin.config.getString("portal_targets.$targetRuntimeName") ?: targetRuntimeName
                     if (portal.isGate()) {
-                        WorldGateItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
+                        WorldGateItemUtil.bindExternalWorld(returnItem, targetRuntimeName, displayName, lang, player)
                     } else {
-                        PortalItemUtil.bindExternalWorld(returnItem, portal.targetWorldName!!, displayName, lang, player)
+                        PortalItemUtil.bindExternalWorld(returnItem, targetRuntimeName, displayName, lang, player)
                     }
                 }
 

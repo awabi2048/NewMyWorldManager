@@ -3,6 +3,8 @@ package me.awabi2048.myworldmanager.model
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Location
+import org.bukkit.NamespacedKey
+import org.bukkit.World
 import java.util.UUID
 
 enum class PortalType(val key: String) {
@@ -21,12 +23,12 @@ enum class PortalType(val key: String) {
  */
 data class PortalData(
     val id: UUID = UUID.randomUUID(),
-    val worldName: String,
+    val worldKey: String,
     val x: Int,
     val y: Int,
     val z: Int,
     var worldUuid: UUID?, // 行き先のマイワールドUUID (外部ワールドの場合はnull)
-    var targetWorldName: String? = null, // 行き先の外部ワールド名
+    var targetWorldKey: String? = null, // 行き先の外部ワールドキー
     var showText: Boolean = true,
     var particleColor: Color = Color.AQUA,
     val ownerUuid: UUID, // 設置者
@@ -40,6 +42,18 @@ data class PortalData(
     var maxY: Int? = null,
     var maxZ: Int? = null
 ) {
+    val runtimeName: String
+        get() = NamespacedKey.fromString(worldKey)?.key
+            ?: throw IllegalStateException("不正なポータルworld_keyです: $worldKey")
+
+    val targetRuntimeName: String?
+        get() = targetWorldKey?.let { NamespacedKey.fromString(it)?.key }
+
+    fun loadedWorld(): World? {
+        val key = NamespacedKey.fromString(worldKey) ?: return null
+        return Bukkit.getWorld(key)
+    }
+
     fun isGate(): Boolean = type == PortalType.GATE
 
     fun getMinX(): Int = minOf(minX ?: x, maxX ?: x)
@@ -56,7 +70,7 @@ data class PortalData(
     }
 
     fun containsLocation(location: Location): Boolean {
-        if (location.world?.name != worldName) return false
+        if (location.world?.key?.toString() != worldKey) return false
         return containsBlock(location.blockX, location.blockY, location.blockZ)
     }
 
@@ -64,7 +78,7 @@ data class PortalData(
      * ブロックの中心座標(X+0.5, Z+0.5)をLocationとして取得する
      */
     fun getCenterLocation(): Location {
-        val world = Bukkit.getWorld(worldName)
+        val world = loadedWorld()
         return if (isGate()) {
             Location(
                 world,

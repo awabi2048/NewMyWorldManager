@@ -40,7 +40,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         val relativeMaxY: Int?,
         val relativeMaxZ: Int?,
         val worldUuid: UUID?,
-        val targetWorldName: String?,
+        val targetWorldKey: String?,
         val showText: Boolean,
         val particleColor: Color,
         val ownerUuid: UUID,
@@ -73,7 +73,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         if (!isPasteCommand(event.message)) return
         val player = event.player
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            pastePendingPortals(player.uniqueId, player.world.name)
+            pastePendingPortals(player.uniqueId, player.world.key.toString())
         })
     }
 
@@ -86,12 +86,12 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
             pendingClipboards.remove(player.uniqueId)
             return
         }
-        val sourceWorldName = BukkitAdapter.adapt(selection.world).name
+        val sourceWorldKey = player.world.key.toString()
         val origin = runCatching { session.getPlacementPosition(actor) }
             .getOrElse { BukkitAdapter.asBlockVector(player.location) }
 
         val portals = plugin.portalRepository.findAll()
-            .filter { it.worldName == sourceWorldName && isFullyContained(selection, it) }
+            .filter { it.worldKey == sourceWorldKey && isFullyContained(selection, it) }
             .map { toRelativePortal(it, origin) }
 
         if (portals.isEmpty()) {
@@ -127,7 +127,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         pending.sourceRemoved = true
     }
 
-    private fun pastePendingPortals(playerUuid: UUID, targetWorldName: String) {
+    private fun pastePendingPortals(playerUuid: UUID, targetWorldKey: String) {
         val pending = pendingClipboards[playerUuid] ?: return
         val player = Bukkit.getPlayer(playerUuid) ?: return
         val actor = BukkitAdapter.adapt(player)
@@ -144,7 +144,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
 
         for (relativePortal in pending.portals) {
             val portal = relativePortal.toPortalData(
-                targetWorldName = targetWorldName,
+                targetWorldKey = targetWorldKey,
                 pasteOrigin = pasteOrigin,
                 transform = transform,
                 preserveId = preserveFirstCutIds
@@ -157,7 +157,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         }
 
         // addPortal はデータ保存のみのため、ペースト先ワールドの視覚表示（TextDisplay・パーティクル）を手動で復元する。
-        plugin.portalManager.refreshWorldDisplayLifecycle(targetWorldName)
+        plugin.portalManager.refreshWorldDisplayLifecycle(targetWorldKey)
     }
 
     private fun toRelativePortal(portal: PortalData, origin: BlockVector3): RelativePortal {
@@ -173,7 +173,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
             relativeMaxY = portal.maxY?.minus(origin.y()),
             relativeMaxZ = portal.maxZ?.minus(origin.z()),
             worldUuid = portal.worldUuid,
-            targetWorldName = portal.targetWorldName,
+            targetWorldKey = portal.targetWorldKey,
             showText = portal.showText,
             particleColor = portal.particleColor,
             ownerUuid = portal.ownerUuid,
@@ -183,7 +183,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
     }
 
     private fun RelativePortal.toPortalData(
-        targetWorldName: String,
+        targetWorldKey: String,
         pasteOrigin: BlockVector3,
         transform: Transform,
         preserveId: Boolean
@@ -193,12 +193,12 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
 
         return PortalData(
             id = if (preserveId) sourceId else UUID.randomUUID(),
-            worldName = targetWorldName,
+            worldKey = targetWorldKey,
             x = pasteOrigin.x() + transformedPosition.x(),
             y = pasteOrigin.y() + transformedPosition.y(),
             z = pasteOrigin.z() + transformedPosition.z(),
             worldUuid = worldUuid,
-            targetWorldName = this.targetWorldName,
+            targetWorldKey = this.targetWorldKey,
             showText = showText,
             particleColor = particleColor,
             ownerUuid = ownerUuid,

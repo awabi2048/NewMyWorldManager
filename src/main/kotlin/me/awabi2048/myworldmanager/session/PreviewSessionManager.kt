@@ -278,7 +278,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         val section = config.getConfigurationSection(uuidStr) ?: return
         
         // 復元データを取得
-        val worldName = section.getString("world") ?: return
+        val worldKey = section.getString("world_key") ?: return
         val x = section.getDouble("x")
         val y = section.getDouble("y")
         val z = section.getDouble("z")
@@ -286,7 +286,8 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         val pitch = section.getDouble("pitch").toFloat()
         val gameModeStr = section.getString("gameMode") ?: "SURVIVAL"
         
-        val world = Bukkit.getWorld(worldName)
+        val key = org.bukkit.NamespacedKey.fromString(worldKey)
+        val world = key?.let(Bukkit::getWorld)
         if (world == null) {
             // ワールドが存在しない場合はスポーンに送る
             player.teleport(plugin.worldService.getEvacuationLocation())
@@ -328,7 +329,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         }
         
         val uuidStr = playerUuid.toString()
-        config.set("$uuidStr.world", location.world?.name ?: "world")
+        config.set("$uuidStr.world_key", location.world?.key?.toString() ?: "minecraft:world")
         config.set("$uuidStr.x", location.x)
         config.set("$uuidStr.y", location.y)
         config.set("$uuidStr.z", location.z)

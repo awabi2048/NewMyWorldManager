@@ -34,3 +34,4 @@ macros:
   # ワールドが削除されたとき
   on_world_delete:
     # - "say ワールド %world_uuid% が削除されました"
+config_version: 1

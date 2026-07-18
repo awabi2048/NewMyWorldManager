@@ -24,7 +24,6 @@ object PermissionManager {
     const val COMMAND_MWM_CREATE = "myworldmanager.command.mwm.create"
     const val COMMAND_MWM_RELOAD = "myworldmanager.command.mwm.reload"
     const val COMMAND_MWM_STATS = "myworldmanager.command.mwm.stats"
-    const val COMMAND_MWM_GIVE = "myworldmanager.command.mwm.give"
     const val COMMAND_MWM_LIST = "myworldmanager.command.mwm.list"
     const val COMMAND_MWM_INTERNAL = "myworldmanager.command.mwm_internal"
     const val TEST = "craftercrossing.test"

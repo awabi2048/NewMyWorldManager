@@ -82,6 +82,7 @@ object ItemTag {
     const val TYPE_GUI_SETTING_PORTALS = "gui_setting_portals"
     const val TYPE_GUI_CREATION_BUTTON = "gui_creation_button"
     const val TYPE_GUI_PLAYER_STATS = "gui_player_stats"
+    const val TYPE_GUI_PENDING_BUTTON = "gui_pending_button"
     const val TYPE_GUI_SETTING_ENVIRONMENT = "gui_setting_environment"
     const val TYPE_GUI_ENV_GRAVITY = "gui_env_gravity"
     const val TYPE_GUI_ENV_WEATHER = "gui_env_weather"

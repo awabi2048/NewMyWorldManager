@@ -265,7 +265,7 @@ object MyWorldManagerApi {
     fun syncOnlineWorldPlayerStates() {
         val repository = worldRepository ?: return
         org.bukkit.Bukkit.getOnlinePlayers().forEach { player ->
-            repository.findByWorldName(player.world.name)?.let { syncWorldPlayerState(player, it) }
+            repository.findByWorldKey(player.world.key.toString())?.let { syncWorldPlayerState(player, it) }
         }
     }
 

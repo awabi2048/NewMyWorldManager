@@ -1,60 +1,53 @@
 package me.awabi2048.myworldmanager.migration
 
-import java.nio.file.Files
-import java.nio.file.LinkOption
+import com.awabi2048.ccsystem.api.world.WorldDirectoryService
+import com.awabi2048.ccsystem.api.world.WorldDirectoryState as CommonWorldDirectoryState
 import java.nio.file.Path
 import java.util.UUID
 
-/** Paper 26.1.2の既存ワールド配置を、実在する安全なディレクトリだけから判定する。 */
-class WorldDirectoryResolver(serverRoot: Path) {
-    private val root = serverRoot.toAbsolutePath().normalize()
-    private val currentRoot = root.resolve("world/dimensions/minecraft").normalize()
-
+/** Paperの物理配置はCC-Systemへ委譲し、MWM固有の旧MyWorld判定だけを担当する。 */
+class WorldDirectoryResolver(
+    private val directoryService: WorldDirectoryService
+) {
     fun inspect(folderName: String): WorldDirectoryResolution? {
         if (!isValidFolderName(folderName)) return null
-
-        val legacy = root.resolve(folderName).normalize()
-        val current = currentRoot.resolve(folderName).normalize()
-        if (!legacy.startsWith(root) || !current.startsWith(currentRoot)) return null
-
-        val legacyExists = isSafeDirectory(legacy, root)
-        val currentExists = isSafeDirectory(current, currentRoot)
-        val state = when {
-            legacyExists && currentExists -> WorldDirectoryState.CONFLICT
-            legacyExists -> WorldDirectoryState.LEGACY
-            currentExists -> WorldDirectoryState.CURRENT
-            else -> WorldDirectoryState.MISSING
+        val key = org.bukkit.NamespacedKey.minecraft(folderName)
+        val common = directoryService.inspect(key, folderName)
+        val state = when (common.state) {
+            CommonWorldDirectoryState.CURRENT -> WorldDirectoryState.CURRENT
+            CommonWorldDirectoryState.LEGACY -> WorldDirectoryState.LEGACY
+            CommonWorldDirectoryState.MISSING -> WorldDirectoryState.MISSING
+            CommonWorldDirectoryState.CONFLICT -> WorldDirectoryState.CONFLICT
+            CommonWorldDirectoryState.UNSAFE -> return null
         }
-        return WorldDirectoryResolution(state, legacy.takeIf { legacyExists }, current.takeIf { currentExists })
+        return WorldDirectoryResolution(
+            state,
+            common.legacyDirectory?.takeIf { state == WorldDirectoryState.LEGACY || state == WorldDirectoryState.CONFLICT },
+            common.currentDirectory.takeIf { state == WorldDirectoryState.CURRENT || state == WorldDirectoryState.CONFLICT }
+        )
     }
 
     fun findLegacyWorlds(): List<LegacyWorldDirectory> {
-        if (!isSafeDirectory(root, root)) return emptyList()
-        return Files.list(root).use { stream ->
-            stream.iterator().asSequence().mapNotNull { path ->
-                val name = path.fileName.toString()
-                val uuid = parseWorldUuid(name) ?: return@mapNotNull null
-                val resolution = inspect(name) ?: return@mapNotNull null
-                if (resolution.state != WorldDirectoryState.LEGACY) return@mapNotNull null
-                LegacyWorldDirectory(uuid, name, path)
-            }.sortedBy { it.folderName }.toList()
-        }
+        return directoryService.listLegacyByNamePrefix(PREFIX).mapNotNull { path ->
+            val name = path.fileName.toString()
+            val uuid = parseWorldUuid(name) ?: return@mapNotNull null
+            val resolution = inspect(name) ?: return@mapNotNull null
+            if (resolution.state != WorldDirectoryState.LEGACY) return@mapNotNull null
+            LegacyWorldDirectory(uuid, name, path)
+        }.sortedBy { it.folderName }
     }
 
     fun findLegacyWorld(uuid: UUID): LegacyWorldDirectory? =
         findLegacyWorlds().firstOrNull { it.uuid == uuid }
 
     fun findConflictingWorlds(): List<LegacyWorldDirectory> {
-        if (!isSafeDirectory(root, root)) return emptyList()
-        return Files.list(root).use { stream ->
-            stream.iterator().asSequence().mapNotNull { path ->
-                val name = path.fileName.toString()
-                val uuid = parseWorldUuid(name) ?: return@mapNotNull null
-                val resolution = inspect(name) ?: return@mapNotNull null
-                if (resolution.state != WorldDirectoryState.CONFLICT) return@mapNotNull null
-                LegacyWorldDirectory(uuid, name, path)
-            }.sortedBy { it.folderName }.toList()
-        }
+        return directoryService.listLegacyByNamePrefix(PREFIX).mapNotNull { path ->
+            val name = path.fileName.toString()
+            val uuid = parseWorldUuid(name) ?: return@mapNotNull null
+            val resolution = inspect(name) ?: return@mapNotNull null
+            if (resolution.state != WorldDirectoryState.CONFLICT) return@mapNotNull null
+            LegacyWorldDirectory(uuid, name, path)
+        }.sortedBy { it.folderName }
     }
 
     private fun isValidFolderName(folderName: String): Boolean {
@@ -62,16 +55,6 @@ class WorldDirectoryResolver(serverRoot: Path) {
         if (folderName.contains('/') || folderName.contains('\\')) return false
         if (folderName.startsWith(PREFIX) && parseWorldUuid(folderName) == null) return false
         return true
-    }
-
-    private fun isSafeDirectory(path: Path, boundary: Path): Boolean {
-        if (!path.startsWith(boundary)) return false
-        var current = path
-        while (current != boundary) {
-            if (Files.isSymbolicLink(current)) return false
-            current = current.parent ?: return false
-        }
-        return Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)
     }
 
     companion object {

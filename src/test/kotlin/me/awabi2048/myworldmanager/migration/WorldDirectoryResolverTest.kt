@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.migration
 
+import com.awabi2048.ccsystem.core.world.WorldDirectoryServiceImpl
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -16,7 +17,7 @@ class WorldDirectoryResolverTest {
         val folder = "my_world.${UUID.randomUUID()}"
         Files.createDirectories(root.resolve(folder))
 
-        val result = WorldDirectoryResolver(root).inspect(folder)
+        val result = resolver(root).inspect(folder)
 
         assertEquals(WorldDirectoryState.LEGACY, result?.state)
         assertEquals(root.resolve(folder), result?.existingPath)
@@ -28,7 +29,7 @@ class WorldDirectoryResolverTest {
         val current = root.resolve("world/dimensions/minecraft/$folder")
         Files.createDirectories(current)
 
-        val result = WorldDirectoryResolver(root).inspect(folder)
+        val result = resolver(root).inspect(folder)
 
         assertEquals(WorldDirectoryState.CURRENT, result?.state)
         assertEquals(current, result?.existingPath)
@@ -36,7 +37,7 @@ class WorldDirectoryResolverTest {
 
     @Test
     fun `classifies absent directory as missing`() = withTempRoot { root ->
-        val result = WorldDirectoryResolver(root).inspect("my_world.${UUID.randomUUID()}")
+        val result = resolver(root).inspect("my_world.${UUID.randomUUID()}")
 
         assertEquals(WorldDirectoryState.MISSING, result?.state)
         assertNull(result?.existingPath)
@@ -48,18 +49,18 @@ class WorldDirectoryResolverTest {
         Files.createDirectories(root.resolve(folder))
         Files.createDirectories(root.resolve("world/dimensions/minecraft/$folder"))
 
-        val result = WorldDirectoryResolver(root).inspect(folder)
+        val result = resolver(root).inspect(folder)
 
         assertEquals(WorldDirectoryState.CONFLICT, result?.state)
         assertEquals(root.resolve(folder), result?.legacyPath)
         assertEquals(root.resolve("world/dimensions/minecraft/$folder"), result?.currentPath)
         assertNull(result?.existingPath)
-        assertTrue(WorldDirectoryResolver(root).findLegacyWorlds().isEmpty())
+        assertTrue(resolver(root).findLegacyWorlds().isEmpty())
     }
 
     @Test
     fun `rejects traversal and malformed uuid folders`() = withTempRoot { root ->
-        val resolver = WorldDirectoryResolver(root)
+        val resolver = resolver(root)
 
         assertNull(resolver.inspect("../outside"))
         assertNull(resolver.inspect("nested/my_world.${UUID.randomUUID()}"))
@@ -74,12 +75,12 @@ class WorldDirectoryResolverTest {
         val link = root.resolve("my_world.$uuid")
         runCatching { Files.createSymbolicLink(link, target) }.getOrElse { return@withTempRoot }
 
-        val result = WorldDirectoryResolver(root).inspect(link.fileName.toString())
+        val result = resolver(root).inspect(link.fileName.toString())
 
         assertNotNull(result)
         assertEquals(WorldDirectoryState.MISSING, result?.state)
         assertNull(result?.existingPath)
-        assertTrue(WorldDirectoryResolver(root).findLegacyWorlds().isEmpty())
+        assertTrue(resolver(root).findLegacyWorlds().isEmpty())
     }
 
     private fun withTempRoot(block: (Path) -> Unit) {
@@ -90,4 +91,7 @@ class WorldDirectoryResolverTest {
             root.toFile().deleteRecursively()
         }
     }
+
+    private fun resolver(root: Path): WorldDirectoryResolver =
+        WorldDirectoryResolver(WorldDirectoryServiceImpl(root, "world"))
 }

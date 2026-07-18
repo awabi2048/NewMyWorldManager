@@ -36,6 +36,12 @@ interface ApiWorldService {
 
     fun getWorldDirectory(worldData: WorldData): File
 
+    fun getWorldCreationDirectory(worldData: WorldData): File
+
+    fun getWorldCreationDirectory(folderName: String): File
+
+    fun getMainWorldDataDirectory(): File
+
     fun getWorldDataFile(worldUuid: UUID): File
 
     fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean>

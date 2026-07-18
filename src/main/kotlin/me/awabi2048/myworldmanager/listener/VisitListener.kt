@@ -79,7 +79,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                             }
                             val maxFav = plugin.config.getInt("favorite.max_count", 1000)
                             if (stats.favoriteWorlds.size >= maxFav) {
-                                player.sendMessage(lang.getMessage(player, "error.favorite_limit_reached", mapOf("max" to maxFav)))
+                                player.sendMessage(lang.getMessage(player, "error.favorite_limit_reached", mapOf("limit" to maxFav)))
                                 return
                             }
 
@@ -94,7 +94,9 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                         }
                         
                         // 表示更新
-                        val targetPlayerName = title.substringBefore(lang.getMessage(player, "gui.visit.title").replace("{player}", ""))
+                        val targetPlayerName = title.substringBefore(
+                            lang.getMessage(player, "gui.visit.title", mapOf("player" to ""))
+                        )
                         val targetPlayer = PlayerNameUtil.resolveOfflinePlayer(plugin, targetPlayerName)
                             ?: return
                         plugin.menuEntryRouter.openVisitMenu(player, targetPlayer)

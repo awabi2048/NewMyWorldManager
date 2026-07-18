@@ -33,19 +33,16 @@ class MemberRequestManager(private val plugin: MyWorldManager) {
 
         requestor.sendMessage(languageManager.getMessage(requestor, "messages.member_request_sent"))
 
-        plugin.pendingDecisionManager.enqueueMemberRequest(ownerUuid, worldUuid, requestor.uniqueId)
+        val result = plugin.pendingDecisionManager.enqueueMemberRequest(ownerUuid, worldUuid, requestor.uniqueId)
 
         val owner = Bukkit.getPlayer(ownerUuid)
         if (owner != null && owner.isOnline) {
-            owner.sendMessage(
-                languageManager.getMessage(
-                    owner,
-                    "messages.member_request_received",
-                    mapOf("player" to requestor.name, "world" to worldData.name)
-                )
-            )
-            owner.sendMessage(
-                languageManager.getMessage(owner, "messages.member_request_check_world_management")
+            plugin.pendingNotificationService.send(
+                owner,
+                PendingDecisionManager.PendingType.MEMBER_REQUEST,
+                result.actionCode,
+                requestor.uniqueId,
+                worldUuid
             )
             plugin.soundManager.playActionSound(owner, "member_request", "received")
         }

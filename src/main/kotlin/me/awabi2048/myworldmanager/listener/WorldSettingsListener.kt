@@ -80,7 +80,6 @@ import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.WorldSettingsGuiHolder
-import me.awabi2048.myworldmanager.util.ClickableInviteMessageFactory
 
 class WorldSettingsListener : Listener {
 
@@ -1272,7 +1271,7 @@ class WorldSettingsListener : Listener {
                                                                 player,
                                                                 "messages.icon_changed",
                                                                 mapOf(
-                                                                        "item" to
+                                                                        "icon" to
                                                                                 LegacyComponentSerializer
                                                                                         .legacySection()
                                                                                         .serialize(
@@ -1797,12 +1796,9 @@ class WorldSettingsListener : Listener {
                                                         return
                                                 }
 
-                                                val worldName =
-                                                        worldData.customWorldName
-                                                                ?: "my_world.${worldData.uuid}"
                                                 val hasPortals =
                                                         plugin.portalRepository.findAll().any {
-                                                                it.worldName == worldName
+                                                                it.worldKey == worldData.worldKey
                                                         }
 
                                                 plugin.soundManager.playClickSound(
@@ -2054,7 +2050,7 @@ class WorldSettingsListener : Listener {
                                                                 }
                                                         if (!portal.isGate()) {
                                                                 val world =
-                                                                        Bukkit.getWorld(portal.worldName)
+                                                                        portal.loadedWorld()
                                                                 val block =
                                                                         world?.getBlockAt(
                                                                                 portal.x,
@@ -2122,17 +2118,17 @@ class WorldSettingsListener : Listener {
                                                                                 player
                                                                         )
                                                                 }
-                                                        } else if (portal.targetWorldName != null) {
+                                                        } else if (portal.targetWorldKey != null) {
                                                                 val displayName =
                                                                         plugin.config.getString(
-                                                                                "portal_targets.${portal.targetWorldName}"
+                                                                                "portal_targets.${portal.targetRuntimeName}"
                                                                         )
-                                                                                ?: portal.targetWorldName!!
+                                                                                ?: portal.targetRuntimeName!!
                                                                 if (portal.isGate()) {
                                                                         me.awabi2048.myworldmanager.util.WorldGateItemUtil
                                                                                 .bindExternalWorld(
                                                                                         returnItem,
-                                                                                        portal.targetWorldName!!,
+                                                                                        portal.targetRuntimeName!!,
                                                                                         displayName,
                                                                                         lang,
                                                                                         player
@@ -2142,7 +2138,7 @@ class WorldSettingsListener : Listener {
                                                                                 .PortalItemUtil
                                                                                 .bindExternalWorld(
                                                                                         returnItem,
-                                                                                        portal.targetWorldName!!,
+                                                                                        portal.targetRuntimeName!!,
                                                                                         displayName,
                                                                                         lang,
                                                                                         player
@@ -2928,7 +2924,7 @@ plugin.languageManager
                                 player,
                                 "messages.icon_changed",
                                 mapOf(
-                                        "item" to
+                                        "icon" to
                                                 LegacyComponentSerializer
                                                         .legacySection()
                                                         .serialize(itemName)
@@ -3529,37 +3525,14 @@ plugin.languageManager
                         worldData.uuid,
                         player.uniqueId
                 )
-                val count = plugin.pendingDecisionManager.getPersistentPendingCount(target.uniqueId)
-
                 if (target is Player && target.isOnline) {
-                        if (plugin.playerPlatformResolver.isBedrock(target)) {
-                                target.sendMessage(
-                                        lang.getMessage(
-                                                target,
-                                                "messages.member_invite_text",
-                                                mapOf(
-                                                        "player" to player.name,
-                                                        "world" to worldData.name
-                                                )
-                                        )
-                                )
-                                plugin.pendingDecisionManager.sendPendingHint(target, count)
-                        } else {
-                                target.sendMessage(
-                                        ClickableInviteMessageFactory.create(
-                                                plugin = plugin,
-                                                target = target,
-                                                messageKey = "messages.member_invite_text",
-                                                clickTextKey = "messages.member_invite_click_text",
-                                                hoverTextKey = "messages.member_invite_hover",
-                                                placeholders = mapOf(
-                                                        "player" to player.name,
-                                                        "world" to worldData.name
-                                                ),
-                                                arguments = listOf("/myworld", "pending_open", invite.id.toString())
-                                        )
-                                )
-                        }
+                        plugin.pendingNotificationService.send(
+                                target,
+                                me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_INVITE,
+                                invite.actionCode,
+                                player.uniqueId,
+                                worldData.uuid
+                        )
                 }
                 player.sendMessage(
                         lang.getMessage(
@@ -4547,7 +4520,7 @@ player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
                                 "messages.env_cost_paid",
-                                mapOf("cost" to cost)
+                                mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
                         )
                 )
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
@@ -4628,7 +4601,7 @@ player.sendMessage(
                                 lang.getMessage(
                                         player,
                                         "messages.env_cost_paid",
-                                        mapOf("cost" to cost)
+                                        mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
                                 )
                         )
                         plugin.soundManager.playActionSound(player, "environment", "biome_change")
@@ -5504,7 +5477,7 @@ player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
                                 "messages.env_cost_paid",
-                                mapOf("cost" to cost)
+                                mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
                         )
                 )
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
@@ -5542,7 +5515,7 @@ player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
                                 "messages.env_cost_paid",
-                                mapOf("cost" to cost)
+                                mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
                         )
                 )
                 plugin.worldEnvironmentService.applyWeather(worldData.uuid)
@@ -5579,7 +5552,7 @@ player.sendMessage(
 
                         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
                         player.sendMessage(lang.getMessage(player, "messages.env_biome_changed", mapOf("biome" to biomeName)))
-                        player.sendMessage(lang.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost)))
+                        player.sendMessage(lang.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))))
                         plugin.soundManager.playActionSound(player, "environment", "biome_change")
                         applyBiomeToWorld(worldData)
                         plugin.environmentGui.open(player, worldData)
@@ -5842,7 +5815,8 @@ player.sendMessage(
                         plugin.worldSettingsGui.openCriticalSettings(player, worldData)
                         return
                 }
-                val worldName = worldData.name
+                val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
+                val refund = (worldData.cumulativePoints * refundRate).toInt()
                 plugin.worldService.deleteWorld(worldData.uuid, player).thenAccept { success ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                                 if (success) {
@@ -5850,7 +5824,7 @@ player.sendMessage(
                                                 plugin.languageManager.getMessage(
                                                         player,
                                                         "messages.world_delete_success",
-                                                        mapOf("world" to worldName)
+                                                        mapOf("points" to refund)
                                                 )
                                         )
                                         plugin.soundManager.playActionSound(player, "creation", "delete")
