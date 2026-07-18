@@ -112,7 +112,14 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
+    fun isWorldPointEconomyEnabled(): Boolean = getWorldRuntimePolicy().isWorldPointEconomyEnabled()
+
+    @JvmStatic
+    fun isWorldSlotSystemEnabled(): Boolean = getWorldRuntimePolicy().isWorldSlotSystemEnabled()
+
+    @JvmStatic
     fun addWorldPoint(playerUuid: UUID, amount: Int): Int {
+        check(isWorldPointEconomyEnabled()) { "MyWorldManager world point economy is disabled by runtime policy" }
         val service = worldPointService
             ?: throw IllegalStateException("MyWorldManager world point service is not available")
         return service.addWorldPoint(playerUuid, amount)
