@@ -59,4 +59,17 @@ class TemplateCreationSafetySourceContractTest {
         assertTrue(source.indexOf("migrateMissingWorldKey(file, uuid)")
             < source.indexOf("val worldData = loadWorldData(file)"));
     }
+
+    @Test
+    void standardCreationMenusShowPointBreakdownOnlyWhenPointEconomyIsEnabled() throws Exception {
+        String source = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.kt"
+        ));
+
+        assertTrue(source.contains("gui.creation.type.cost_label"));
+        assertTrue(source.contains("gui.creation.type.current_points_label"));
+        assertTrue(source.contains("gui.creation.type.remaining_points_label"));
+        assertTrue(source.contains("gui.creation.confirm.current_points_label"));
+        assertTrue(source.contains("if (MyWorldManagerApi.isWorldPointEconomyEnabled())"));
+    }
 }

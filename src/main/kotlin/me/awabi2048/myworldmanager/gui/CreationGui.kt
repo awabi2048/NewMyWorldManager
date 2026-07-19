@@ -61,9 +61,9 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceItems(
             inventory,
-            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE),
-            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
-            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM)
+            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE),
+            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
+            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM)
         )
 
         me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
@@ -72,13 +72,54 @@ class CreationGui(private val plugin: MyWorldManager) {
         player.openInventory(inventory)
     }
 
-    private fun createCreationTypeItem(player: Player, material: Material, name: String, baseLoreKey: String, tag: String): ItemStack {
+    private fun createCreationTypeItem(
+        player: Player,
+        material: Material,
+        name: String,
+        baseLoreKey: String,
+        creationType: WorldCreationType,
+        tag: String
+    ): ItemStack {
         val lang = plugin.languageManager
         val lore = lang.getMessageList(player, baseLoreKey)
             .map<String, GuiLoreLine>(GuiLoreLine::Text)
             .toMutableList()
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+            val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
+            lore.add(GuiLoreLine.Spacer)
+            lore.add(
+                GuiLoreLine.Data(
+                    lang.getMessage(player, "gui.creation.type.cost_label"),
+                    "§6🛖 §e$cost",
+                    ""
+                )
+            )
+            lore.add(
+                GuiLoreLine.Data(
+                    lang.getMessage(player, "gui.creation.type.current_points_label"),
+                    "§6🛖 §e${stats.worldPoint}",
+                    ""
+                )
+            )
+            lore.add(
+                GuiLoreLine.Data(
+                    lang.getMessage(player, "gui.creation.type.remaining_points_label"),
+                    "§6🛖 §e${(stats.worldPoint - cost).coerceAtLeast(0)}",
+                    ""
+                )
+            )
+            if (stats.worldPoint < cost) {
+                lore.add(GuiLoreLine.Warning(
+                    lang.getMessage(
+                        player,
+                        "gui.creation.type.insufficient",
+                        mapOf("shortage" to (cost - stats.worldPoint))
+                    ).removePrefix("§c")
+                ))
+            }
+        }
         val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
         val maxCounts = defaultMax + stats.unlockedWorldSlot
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
@@ -310,18 +351,26 @@ class CreationGui(private val plugin: MyWorldManager) {
                         "§e"
                     ))
                     add(generationLine)
-                    val cost = session.creationType?.let {
-                        WorldRuntimePolicies.creationCost(plugin.config, it)
-                    } ?: 0
-                    add(GuiLoreLine.SubData(
-                        lang.getMessage(player, "gui.creation.confirm.cost_label"),
-                        "§6🛖 §e$cost"
-                    ))
-                    val remaining = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint - cost
-                    add(GuiLoreLine.SubData(
-                        lang.getMessage(player, "gui.creation.confirm.remaining_points_label"),
-                        "§6🛖 §e${remaining.coerceAtLeast(0)}"
-                    ))
+                    if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        val cost = session.creationType?.let {
+                            WorldRuntimePolicies.creationCost(plugin.config, it)
+                        } ?: 0
+                        val currentPoints = plugin.playerStatsRepository
+                            .findByUuid(player.uniqueId)
+                            .worldPoint
+                        add(GuiLoreLine.SubData(
+                            lang.getMessage(player, "gui.creation.confirm.cost_label"),
+                            "§6🛖 §e$cost"
+                        ))
+                        add(GuiLoreLine.SubData(
+                            lang.getMessage(player, "gui.creation.confirm.current_points_label"),
+                            "§6🛖 §e$currentPoints"
+                        ))
+                        add(GuiLoreLine.SubData(
+                            lang.getMessage(player, "gui.creation.confirm.remaining_points_label"),
+                            "§6🛖 §e${(currentPoints - cost).coerceAtLeast(0)}"
+                        ))
+                    }
                     if (session.creationType == WorldCreationType.TEMPLATE) {
                         val template = session.templateId?.let(plugin.templateRepository::findById)
                         val origin = template?.originLocation
