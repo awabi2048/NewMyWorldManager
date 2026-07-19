@@ -43,4 +43,18 @@ class CreationTransactionSourceContractTest {
         assertTrue(service.contains("cleanupFailedCreatedWorld"));
         assertFalse(listener.contains("stats.worldPoint -= cost"));
     }
+
+    @Test
+    void addonManagedCreationUsesTheSameCommitPipeline() throws Exception {
+        String service = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/service/WorldService.kt"
+        ));
+        String api = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/api/service/ApiWorldService.kt"
+        ));
+        assertTrue(api.contains("fun createManagedWorld(request: ManagedWorldCreationRequest)"));
+        assertTrue(service.contains("fun createManagedWorld(request: ManagedWorldCreationRequest)"));
+        assertTrue(service.contains("finalizeWorldCreation("));
+        assertTrue(service.contains("cleanupFailedCreatedWorld(folderName"));
+    }
 }

@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldCreatedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
+import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
@@ -178,6 +179,101 @@ class WorldService(
             creatingWorlds.remove(player.uniqueId.toString())
             return false
         }
+    }
+
+    /**
+     * アドオン固有ジェネレーター用の共通作成パイプライン。
+     * アドオンは生成設定と必須初期化だけを渡し、成功確定はMWMが行う。
+     */
+    fun createManagedWorld(request: ManagedWorldCreationRequest): CompletableFuture<Boolean> {
+        val future = CompletableFuture<Boolean>()
+        val player = Bukkit.getPlayer(request.ownerUuid)
+        if (player == null) {
+            future.complete(false)
+            return future
+        }
+        val creationType = when (request.type) {
+            me.awabi2048.myworldmanager.api.extension.WorldCreationType.TEMPLATE -> WorldCreationType.TEMPLATE
+            me.awabi2048.myworldmanager.api.extension.WorldCreationType.SEED -> WorldCreationType.SEED
+            me.awabi2048.myworldmanager.api.extension.WorldCreationType.RANDOM -> WorldCreationType.RANDOM
+        }
+        if (!WorldCreationChecks.checkLimits(plugin, player, request.ownerUuid) ||
+            !WorldCreationChecks.check(player, type = creationType)
+        ) {
+            future.complete(false)
+            return future
+        }
+        plugin.worldValidator.validateName(request.worldName).let { result ->
+            if (result is WorldNameValidation.Failure) {
+                player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
+                future.complete(false)
+                return future
+            }
+        }
+        if (repository.findByOwnerAndDisplayName(request.ownerUuid, request.worldName) != null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            future.complete(false)
+            return future
+        }
+        val creationKey = player.uniqueId.toString()
+        if (!creatingWorlds.add(creationKey)) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.world_creation_in_progress"))
+            future.complete(false)
+            return future
+        }
+
+        val uuid = generateUniqueWorldUuid()
+        val folderName = "my_world.$uuid"
+        try {
+            if (Bukkit.getWorld(folderName) != null || worldFolderExists(folderName)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_already_exists"))
+                future.complete(false)
+                return future
+            }
+            player.sendMessage(
+                plugin.languageManager.getMessage(
+                    player,
+                    "messages.world_creation_started",
+                    mapOf("world" to request.worldName)
+                )
+            )
+            val creator = WorldCreator(NamespacedKey.minecraft(folderName))
+                .environment(request.environment)
+                .type(request.worldType)
+                .generateStructures(request.generateStructures)
+            request.generator?.let(creator::generator)
+            val world = plugin.server.createWorld(creator)
+                ?: error("Bukkit returned null while creating managed world")
+            request.initializeWorld(world)
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < request.cost
+            ) {
+                error("Insufficient world points at creation commit")
+            }
+            val spawn = request.initialSpawn?.let {
+                WorldSpawnCoordinates(it.x, it.y, it.z)
+            }
+            finalizeWorldCreation(
+                player,
+                uuid,
+                request.worldName,
+                folderName,
+                world,
+                request.cost,
+                request.sourceId,
+                spawn
+            )
+            future.complete(true)
+        } catch (error: Exception) {
+            plugin.logger.log(Level.SEVERE, "Failed to create managed world: ${request.worldName}", error)
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+            repository.delete(uuid)
+            cleanupFailedCreatedWorld(folderName, preferredActiveWorldDirectory(folderName))
+            future.complete(false)
+        } finally {
+            creatingWorlds.remove(creationKey)
+        }
+        return future
     }
 
     private fun prepareGeneratedEndWorld(world: org.bukkit.World) {

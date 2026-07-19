@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.service.ApiPortalSnapshot
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
+import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
 import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
@@ -43,6 +44,10 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         cost: Int
     ): CompletableFuture<Boolean> {
         return plugin.worldService.createWorld(templateId, ownerUuid, worldName, cost)
+    }
+
+    override fun createManagedWorld(request: ManagedWorldCreationRequest): CompletableFuture<Boolean> {
+        return plugin.worldService.createManagedWorld(request)
     }
 
     override fun previewTemplate(
