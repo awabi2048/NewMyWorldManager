@@ -96,7 +96,7 @@ enum class CustomItem(val id: String) {
 
     TOUR_SIGN("tour_sign") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
-            val item = ItemStack(Material.END_PORTAL_FRAME)
+            val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.tour_sign.name"))
