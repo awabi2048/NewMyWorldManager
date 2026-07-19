@@ -715,6 +715,7 @@ class BedrockMenuService(
             "open_prev_page" -> openPlayerWorld(player, holder.page - 1, holder.showBackButton)
             "open_next_page" -> openPlayerWorld(player, holder.page + 1, holder.showBackButton)
             "start_creation" -> {
+                if (!WorldCreationChecks.checkSelfCreatePermission(player)) return
                 val session = plugin.creationSessionManager.startSession(player.uniqueId)
                 session.isDialogMode = false
                 player.closeInventory()
@@ -1188,7 +1189,7 @@ class BedrockMenuService(
         bypassLimits: Boolean
     ): CreationBlockReason? {
         // 作成権限は、運営トグルや枠不足より先に本人へ表示する基本要件として扱う。
-        if (!PermissionManager.checkPermission(player, PermissionManager.COMMAND_MWM_CREATE)) {
+        if (!PermissionManager.checkPermission(player, PermissionManager.WORLD_CREATE)) {
             return CreationBlockReason.NO_PERMISSION
         }
         if (!WorldCreationChecks.check(player, notify = false)) return CreationBlockReason.POLICY_DENIED

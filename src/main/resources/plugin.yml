@@ -65,6 +65,7 @@ permissions:
     default: op
     children:
       myworldmanager.citizen: true
+      myworldmanager.world.create: true
       myworldmanager.command.mwm: true
       myworldmanager.admin.world_list: true
       myworldmanager.force_add_member: true
@@ -95,6 +96,10 @@ permissions:
       myworldmanager.command.visit: true
       myworldmanager.command.worldmenu: true
       myworldmanager.command.worldwarp: true
+      myworldmanager.world.create: true
+  myworldmanager.world.create:
+    description: Allows a player to create their own MyWorld
+    default: false
   myworldmanager.command.discovery:
     description: Allows use of /discovery
     default: false

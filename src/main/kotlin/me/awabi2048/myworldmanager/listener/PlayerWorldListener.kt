@@ -22,6 +22,7 @@ import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
@@ -124,6 +125,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
             if (type == ItemTag.TYPE_GUI_CREATION_BUTTON) {
                 if (!isOwnMenu) return
+                if (!WorldCreationChecks.checkSelfCreatePermission(player)) return
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 
                 // セッションの開始

@@ -390,7 +390,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 bypassLimits: Boolean
         ): CreationBlockReason? {
                 // 作成権限は最優先。bypassLimits や運用フラグよりも先に判定する。
-                if (!PermissionManager.checkPermission(player, PermissionManager.COMMAND_MWM_CREATE)) {
+                if (!PermissionManager.checkPermission(player, PermissionManager.WORLD_CREATE)) {
                         return CreationBlockReason.NO_PERMISSION
                 }
                 if (!WorldCreationChecks.check(player, notify = false)) return CreationBlockReason.POLICY_DENIED

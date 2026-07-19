@@ -37,7 +37,13 @@ class CreationGui(private val plugin: MyWorldManager) {
     fun openTypeSelection(player: Player) {
         val config = plugin.config
         val lang = plugin.languageManager
-        if (!WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) || !WorldCreationChecks.check(player)) {
+        val adminCommandSession = plugin.creationSessionManager.getSession(player.uniqueId)
+            ?.extras
+            ?.get(ADMIN_COMMAND_SESSION_KEY) == true
+        if (!WorldCreationChecks.checkSelfCreatePermission(player, allowAdminCommandSession = adminCommandSession) ||
+            !WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) ||
+            !WorldCreationChecks.check(player)
+        ) {
             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
             return
         }
@@ -576,6 +582,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     companion object {
+        const val ADMIN_COMMAND_SESSION_KEY = "mwm:admin_command_creation"
         const val SEED_DIMENSION_SLOT = 39
         const val SEED_SPAWN_LOCATION_SLOT = 40
     }

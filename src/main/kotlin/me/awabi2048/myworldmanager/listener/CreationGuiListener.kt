@@ -231,6 +231,16 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 } else if (tag == ItemTag.TYPE_GUI_CONFIRM) {
                     player.closeInventory()
 
+                    val adminCommandSession =
+                        session.extras[CreationGui.ADMIN_COMMAND_SESSION_KEY] == true
+                    if (!WorldCreationChecks.checkSelfCreatePermission(
+                            player,
+                            allowAdminCommandSession = adminCommandSession
+                        )
+                    ) {
+                        plugin.creationSessionManager.endSession(player.uniqueId)
+                        return
+                    }
                     if (!WorldCreationChecks.check(player, type = session.creationType)) {
                         plugin.creationSessionManager.endSession(player.uniqueId)
                         return

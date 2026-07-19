@@ -125,6 +125,7 @@ class WorldCommand(
 
                 // ウィザード開始
                 val session = sessionManager.startSession(targetPlayer.uniqueId)
+                session.extras[me.awabi2048.myworldmanager.gui.CreationGui.ADMIN_COMMAND_SESSION_KEY] = true
 
                 // JE は常にダイアログ入力、BE は FormUI 入力
                 session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(targetPlayer)
