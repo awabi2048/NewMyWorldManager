@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -81,13 +82,15 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
 
         meta.displayName(lang.getComponent(player, "gui.environment.gravity.display"))
-        meta.lore(GuiItemFactory.menuLore(listOf(
-                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.current"), currentName, "§6"),
-                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.cost"), cost, "§e"),
-                GuiLoreLine.Spacer,
-                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.gravity.requirement")),
-                GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.gravity.action"))
-        )))
+        meta.lore(GuiItemFactory.menuLore(buildList {
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.current"), currentName, "§6"))
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.cost"), cost, "§e"))
+                }
+                add(GuiLoreLine.Spacer)
+                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.gravity.requirement")))
+                add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.gravity.action")))
+        }))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_GRAVITY)
@@ -104,14 +107,16 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
 
         meta.displayName(lang.getComponent(player, "gui.environment.weather.display"))
-        meta.lore(GuiItemFactory.menuLore(listOf(
-                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.weather.desc")),
-                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, "§b"),
-                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.cost"), cost, "§e"),
-                GuiLoreLine.Spacer,
-                GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.environment.weather.action.cycle")),
-                GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.environment.weather.action.confirm"))
-        )))
+        meta.lore(GuiItemFactory.menuLore(buildList {
+                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.weather.desc")))
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, "§b"))
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.cost"), cost, "§e"))
+                }
+                add(GuiLoreLine.Spacer)
+                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.environment.weather.action.cycle")))
+                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.environment.weather.action.confirm")))
+        }))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_WEATHER)
@@ -127,14 +132,16 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
 
         meta.displayName(lang.getComponent(player, "gui.environment.biome.display"))
-        meta.lore(GuiItemFactory.menuLore(listOf(
-                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.desc")),
-                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, "§a"),
-                GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.cost"), cost, "§e"),
-                GuiLoreLine.Spacer,
-                GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.requirement")),
-                GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.biome.action"))
-        )))
+        meta.lore(GuiItemFactory.menuLore(buildList {
+                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.desc")))
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, "§a"))
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.cost"), cost, "§e"))
+                }
+                add(GuiLoreLine.Spacer)
+                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.requirement")))
+                add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.biome.action")))
+        }))
 
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_BIOME)

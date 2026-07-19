@@ -9,7 +9,9 @@ class MwmMemberAddedEvent(
     val memberUuid: UUID,
     val memberName: String,
     val addedByUuid: UUID?,
-    val source: MwmMemberAddSource
+    val source: MwmMemberAddSource,
+    val providerId: String? = null,
+    val detail: String? = null
 ) : Event() {
     override fun getHandlers(): HandlerList = HANDLER_LIST
 

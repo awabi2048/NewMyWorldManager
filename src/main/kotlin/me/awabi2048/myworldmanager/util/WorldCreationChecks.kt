@@ -13,12 +13,18 @@ import java.util.UUID
 object WorldCreationChecks {
     fun checkLimits(plugin: MyWorldManager, actor: CommandSender, targetOwner: UUID, notify: Boolean = true): Boolean {
         val stats = plugin.playerStatsRepository.findByUuid(targetOwner)
+        val slotSystemEnabled = MyWorldManagerApi.isWorldSlotSystemEnabled()
+        val ownerLimit = if (slotSystemEnabled) {
+            WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
+        } else {
+            Int.MAX_VALUE
+        }
         val decision = WorldCreationLimitPolicy.evaluate(
             actor = actor,
             totalCount = plugin.worldConfigRepository.findAll().size,
             ownerCount = plugin.worldConfigRepository.findAll().count { it.owner == targetOwner },
             totalLimit = plugin.config.getInt("creation.max_total_world_count", 50),
-            ownerLimit = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
+            ownerLimit = ownerLimit
         )
         if (decision.allowed) return true
         if (notify) {
@@ -30,11 +36,22 @@ object WorldCreationChecks {
             val placeholders = if (decision.reason == WorldCreationLimitDecision.Reason.TOTAL) {
                 mapOf("max" to plugin.config.getInt("creation.max_total_world_count", 50))
             } else {
-                val max = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
+                val max = ownerLimit
                 mapOf("current" to plugin.worldConfigRepository.findAll().count { it.owner == targetOwner }, "max" to max)
             }
             actor.sendMessage(plugin.languageManager.getMessage(actor as? Player, key, placeholders))
         }
+        return false
+    }
+
+    fun checkSelfCreatePermission(
+        player: Player,
+        notify: Boolean = true,
+        allowAdminCommandSession: Boolean = false
+    ): Boolean {
+        if (allowAdminCommandSession) return true
+        if (PermissionManager.checkPermission(player, PermissionManager.WORLD_CREATE)) return true
+        if (notify) PermissionManager.sendNoPermissionMessage(player)
         return false
     }
 

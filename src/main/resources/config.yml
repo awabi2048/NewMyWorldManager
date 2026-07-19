@@ -190,7 +190,4 @@ bedrock:
 warp:
   load_wait_ticks: 10
 
-debug:
-  # ワープ後にワールド設定のクリックが反応しなくなる問題の追跡ログ
-  world_settings: true
 config_version: 1

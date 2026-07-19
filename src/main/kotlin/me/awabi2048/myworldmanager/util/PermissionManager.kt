@@ -9,6 +9,7 @@ object PermissionManager {
     const val ADMIN_BYPASS_WORLD_LIMITS = "myworldmanager.admin.bypass_world_limits"
     const val FORCE_ADD_MEMBER = "myworldmanager.force_add_member"
     const val CITIZEN = "myworldmanager.citizen"
+    const val WORLD_CREATE = "myworldmanager.world.create"
     const val COMMAND_DISCOVERY = "myworldmanager.command.discovery"
     const val COMMAND_FAVORITE = "myworldmanager.command.favorite"
     const val COMMAND_FINDWORLD = "myworldmanager.command.findworld"

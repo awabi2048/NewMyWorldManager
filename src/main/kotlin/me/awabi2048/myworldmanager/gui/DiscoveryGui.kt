@@ -290,7 +290,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
+                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                                 if (canEditSpotlight) {
                                         add(GuiLoreLine.Action(
                                                 lang.getMessage(player, "lore.click.shift_left"),
@@ -330,7 +330,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
+                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
 
@@ -359,7 +359,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(name, selected, "\u00A7e", "\u00A77"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
+                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
 

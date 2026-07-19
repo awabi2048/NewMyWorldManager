@@ -3,19 +3,15 @@ package me.awabi2048.myworldmanager.api.extension
 interface WorldRuntimePolicy {
     fun getId(): String
 
-    fun getCreationCost(type: WorldCreationType, configuredCost: Int): Int = configuredCost
+    /** ワールドポイントの表示・決済・付与を運用上利用できるか。 */
+    fun isWorldPointEconomyEnabled(): Boolean = true
 
-    fun getMaxCreateCountDefault(configuredLimit: Int): Int = configuredLimit
+    /** ワールドスロットとWorld Seedを運用上利用できるか。 */
+    fun isWorldSlotSystemEnabled(): Boolean = true
 
-    fun getMaxWorldSlotLimit(configuredLimit: Int): Int = configuredLimit
+    /** MWM標準の期限判定と自動アーカイブを実行するか。 */
+    fun isExpirationArchiveEnabled(): Boolean = true
 
-    fun shouldReduceOwnerSlotOnDelete(configured: Boolean): Boolean = configured
-
-    fun getExpansionCost(targetLevel: Int, configuredCost: Int): Int = configuredCost
-
-    fun getEnvironmentCost(type: String, configuredCost: Int): Int = configuredCost
-
-    fun getPortalWorldGatePointCostPerBlock(configuredCost: Int): Int = configuredCost
 }
 
 object DefaultWorldRuntimePolicy : WorldRuntimePolicy {

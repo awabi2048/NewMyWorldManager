@@ -140,11 +140,6 @@ class MyWorldManager : JavaPlugin() {
         }
         registerManagedConfigs()
         reloadConfig()
-        if (!config.contains("debug.world_settings", true)) {
-            config.set("debug.world_settings", true)
-            saveConfig()
-        }
-
         // langフォルダが存在しなければ作成し、デフォルトの言語ファイルをコピー
         val langFolder = java.io.File(dataFolder, "lang")
         if (!langFolder.exists()) {
@@ -200,6 +195,7 @@ class MyWorldManager : JavaPlugin() {
 
         loadWorldsFromPreviousShutdown()
         worldMigrationService.reportPending()
+        worldMigrationService.resumeAfterStartup()
 
         // MSPT監視タスクの開始
         msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
@@ -330,6 +326,7 @@ class MyWorldManager : JavaPlugin() {
 
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(this), this)
+        server.pluginManager.registerEvents(worldMigrationService, this)
         MultiverseWorldExclusionService(this, worldConfigRepository).start()
         server.pluginManager.registerEvents(
                 WorldPermissionPolicyListener(worldConfigRepository, worldPermissionPolicyService),
@@ -476,6 +473,7 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        MyWorldManagerApi.clearWorldOperationLocks()
         if (::menuRouteHistory.isInitialized) menuRouteHistory.closeOwnedMenus()
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
@@ -544,11 +542,8 @@ class MyWorldManager : JavaPlugin() {
         if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
     }
 
-    fun logWorldSettingsDebug(message: String) {
-        if (config.getBoolean("debug.world_settings", true)) {
-            logger.info("[WorldSettingsDebug] $message")
-        }
-    }
+    @Suppress("UNUSED_PARAMETER")
+    fun logWorldSettingsDebug(message: String) = Unit
 
     private fun loadWorldsFromPreviousShutdown() {
         val file = File(dataFolder, "data/loaded_worlds_at_shutdown.yml")

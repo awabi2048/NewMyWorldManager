@@ -12,6 +12,10 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldCreatedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
+import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
+import me.awabi2048.myworldmanager.api.service.WorldOperation
+import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
@@ -70,8 +74,11 @@ class WorldService(
             environment: org.bukkit.World.Environment,
             generator: String? = null,
             worldType: WorldType = WorldType.NORMAL,
-            initialSpawn: WorldSpawnCoordinates? = null
-    ): Boolean {
+             initialSpawn: WorldSpawnCoordinates? = null,
+             cost: Int = 0,
+             billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
+     ): Boolean {
+        val chargedCost = billableCost(cost, billingMode)
 
         if (!WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) ||
                 !WorldCreationChecks.check(player, type = WorldCreationType.SEED.takeIf { seed != null } ?: WorldCreationType.RANDOM)) {
@@ -162,14 +169,117 @@ class WorldService(
                 initialSpawn
             }
 
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None", effectiveInitialSpawn, seed != null)
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < chargedCost
+            ) {
+                throw IllegalStateException("Insufficient world points at creation commit")
+            }
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, chargedCost, "None", effectiveInitialSpawn, seed != null)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
             player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+            repository.delete(uuid)
+            cleanupFailedCreatedWorld(worldFolderName, preferredActiveWorldDirectory(worldFolderName))
             creatingWorlds.remove(player.uniqueId.toString())
             return false
         }
+    }
+
+    /**
+     * アドオン固有ジェネレーター用の共通作成パイプライン。
+     * アドオンは生成設定と必須初期化だけを渡し、成功確定はMWMが行う。
+     */
+    fun createManagedWorld(request: ManagedWorldCreationRequest): CompletableFuture<Boolean> {
+        val future = CompletableFuture<Boolean>()
+        val player = Bukkit.getPlayer(request.ownerUuid)
+        if (player == null) {
+            future.complete(false)
+            return future
+        }
+        val chargedCost = billableCost(request.cost, request.billingMode)
+        val creationType = when (request.type) {
+            me.awabi2048.myworldmanager.api.extension.WorldCreationType.TEMPLATE -> WorldCreationType.TEMPLATE
+            me.awabi2048.myworldmanager.api.extension.WorldCreationType.SEED -> WorldCreationType.SEED
+            me.awabi2048.myworldmanager.api.extension.WorldCreationType.RANDOM -> WorldCreationType.RANDOM
+        }
+        if (!WorldCreationChecks.checkLimits(plugin, player, request.ownerUuid) ||
+            !WorldCreationChecks.check(player, type = creationType)
+        ) {
+            future.complete(false)
+            return future
+        }
+        plugin.worldValidator.validateName(request.worldName).let { result ->
+            if (result is WorldNameValidation.Failure) {
+                player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
+                future.complete(false)
+                return future
+            }
+        }
+        if (repository.findByOwnerAndDisplayName(request.ownerUuid, request.worldName) != null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            future.complete(false)
+            return future
+        }
+        val creationKey = player.uniqueId.toString()
+        if (!creatingWorlds.add(creationKey)) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.world_creation_in_progress"))
+            future.complete(false)
+            return future
+        }
+
+        val uuid = generateUniqueWorldUuid()
+        val folderName = "my_world.$uuid"
+        try {
+            if (Bukkit.getWorld(folderName) != null || worldFolderExists(folderName)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_already_exists"))
+                future.complete(false)
+                return future
+            }
+            player.sendMessage(
+                plugin.languageManager.getMessage(
+                    player,
+                    "messages.world_creation_started",
+                    mapOf("world" to request.worldName)
+                )
+            )
+            val creator = WorldCreator(NamespacedKey.minecraft(folderName))
+                .environment(request.environment)
+                .type(request.worldType)
+                .generateStructures(request.generateStructures)
+            request.generator?.let(creator::generator)
+            val world = plugin.server.createWorld(creator)
+                ?: error("Bukkit returned null while creating managed world")
+            request.initializeWorld(world)
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < chargedCost
+            ) {
+                error("Insufficient world points at creation commit")
+            }
+            val spawn = request.initialSpawn?.let {
+                WorldSpawnCoordinates(it.x, it.y, it.z)
+            }
+            finalizeWorldCreation(
+                player,
+                uuid,
+                request.worldName,
+                folderName,
+                world,
+                chargedCost,
+                request.sourceId,
+                spawn
+            )
+            future.complete(true)
+        } catch (error: Exception) {
+            plugin.logger.log(Level.SEVERE, "Failed to create managed world: ${request.worldName}", error)
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+            repository.delete(uuid)
+            cleanupFailedCreatedWorld(folderName, preferredActiveWorldDirectory(folderName))
+            future.complete(false)
+        } finally {
+            creatingWorlds.remove(creationKey)
+        }
+        return future
     }
 
     private fun prepareGeneratedEndWorld(world: org.bukkit.World) {
@@ -274,7 +384,7 @@ class WorldService(
             worldFolderName: String,
             world: org.bukkit.World,
             cost: Int,
-            templateName: String,
+            templateId: String,
             initialSpawn: WorldSpawnCoordinates? = null,
             seedSpecified: Boolean = false
     ) {
@@ -308,7 +418,7 @@ class WorldService(
                         name = worldName,
                         description = "My World",
                         icon = org.bukkit.Material.GRASS_BLOCK,
-                        sourceWorld = "template:$templateName",
+                        sourceWorld = "template:$templateId",
                         expireDate = expireDate.toString(),
                         owner = player.uniqueId,
                         members = mutableListOf(),
@@ -325,40 +435,66 @@ class WorldService(
                         seedSpawnValidated = !seedSpecified
                 )
 
-        repository.save(worldData)
-
-        Bukkit.getPluginManager().callEvent(
-                MwmWorldCreatedEvent(
-                        worldUuid = worldData.uuid,
-                        worldName = worldData.name,
-                        ownerUuid = worldData.owner,
-                        ownerName = player.name,
-                        templateName = templateName,
-                        createdAt = worldData.createdAt
-                )
-        )
-
-        player.sendMessage(
-                plugin.languageManager.getMessage(
+        var pointsCharged = false
+        try {
+            repository.save(worldData)
+            if (cost > 0 && MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                val remaining = playerStatsRepository.adjustWorldPoints(player.uniqueId, -cost).worldPoint
+                pointsCharged = true
+                player.sendMessage(
+                    plugin.languageManager.getMessage(
                         player,
-                        "messages.world_creation_success",
-                        mapOf("world" to worldName)
+                        "messages.template_creation_cost_paid",
+                        mapOf("cost" to cost, "remaining" to remaining)
+                    )
                 )
-        )
+            }
 
-        teleportToWorld(player, uuid)
-        creatingWorlds.remove(player.uniqueId.toString())
+            Bukkit.getPluginManager().callEvent(
+                    MwmWorldCreatedEvent(
+                            worldUuid = worldData.uuid,
+                            worldName = worldData.name,
+                            ownerUuid = worldData.owner,
+                            ownerName = player.name,
+                            templateName = templateId,
+                            createdAt = worldData.createdAt
+                    )
+            )
 
-        // マクロ実行
-        plugin.macroManager.execute(
+            player.sendMessage(
+                    plugin.languageManager.getMessage(
+                            player,
+                            "messages.world_creation_success",
+                            mapOf("world" to worldName)
+                    )
+            )
+
+            teleportToWorld(player, uuid)
+            creatingWorlds.remove(player.uniqueId.toString())
+        } catch (e: Exception) {
+            repository.delete(uuid)
+            if (pointsCharged) {
+                runCatching { playerStatsRepository.adjustWorldPoints(player.uniqueId, cost) }
+                    .onFailure {
+                        plugin.logger.log(Level.SEVERE, "Failed to refund creation cost for ${player.uniqueId}", it)
+                    }
+            }
+            throw e
+        }
+
+        runCatching {
+            plugin.macroManager.execute(
                 "on_world_create",
                 mapOf(
-                        "owner" to player.name,
-                        "world_uuid" to uuid.toString(),
-                        "world_name" to worldName,
-                        "template_name" to templateName
+                    "owner" to player.name,
+                    "world_uuid" to uuid.toString(),
+                    "world_name" to worldName,
+                    "template_name" to templateId
                 )
-        )
+            )
+        }.onFailure {
+            plugin.logger.log(Level.SEVERE, "World creation macro failed after commit: $worldName", it)
+        }
     }
 
     /** ワールドの生成処理（async互換用） */
@@ -366,9 +502,10 @@ class WorldService(
             ownerUuid: UUID,
             worldName: String,
             seed: String?,
-            cost: Int,
-            initialSpawn: WorldSpawnCoordinates? = null,
-            environment: org.bukkit.World.Environment = org.bukkit.World.Environment.NORMAL
+             cost: Int,
+             initialSpawn: WorldSpawnCoordinates? = null,
+             environment: org.bukkit.World.Environment = org.bukkit.World.Environment.NORMAL,
+             billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
     ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
@@ -381,21 +518,23 @@ class WorldService(
                 worldName,
                 seed,
                 environment,
-                initialSpawn = initialSpawn
+                 initialSpawn = initialSpawn,
+                 cost = cost,
+                 billingMode = billingMode
         )
-        // Note: Currently createWorld(player, ...) doesn't take cost. 
-        // If it's used elsewhere, it might need update. For now, matching the call.
         future.complete(success)
         return future
     }
 
     /** ワールドの作成処理（テンプレート用、async互換用） */
     fun createWorld(
-            templateName: String,
-            ownerUuid: UUID,
-            worldName: String,
-            cost: Int
-    ): java.util.concurrent.CompletableFuture<Boolean> {
+            templateId: String,
+             ownerUuid: UUID,
+             worldName: String,
+             cost: Int,
+             billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
+     ): java.util.concurrent.CompletableFuture<Boolean> {
+        val chargedCost = billableCost(cost, billingMode)
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
         if (player == null) {
@@ -418,6 +557,32 @@ class WorldService(
         }
         if (repository.findByOwnerAndDisplayName(ownerUuid, worldName) != null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            future.complete(false)
+            return future
+        }
+
+        val template = plugin.templateRepository.findById(templateId)
+        if (template == null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_not_found"))
+            future.complete(false)
+            return future
+        }
+        when (plugin.templateRepository.validationIssue(template)) {
+            me.awabi2048.myworldmanager.repository.TemplateRepository.ValidationIssue.MISSING_DIRECTORY -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.template_directory_missing"))
+                future.complete(false)
+                return future
+            }
+            me.awabi2048.myworldmanager.repository.TemplateRepository.ValidationIssue.MISSING_ORIGIN -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.template_origin_missing"))
+                future.complete(false)
+                return future
+            }
+            null -> Unit
+        }
+        val currentStats = playerStatsRepository.findByUuid(ownerUuid)
+        if (currentStats.worldPoint < chargedCost) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
             future.complete(false)
             return future
         }
@@ -452,9 +617,9 @@ class WorldService(
                 )
         )
 
-        val templateFolder = plugin.worldDirectoryResolver.inspect(templateName)?.existingPath?.toFile()
+        val templateFolder = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
         if (templateFolder == null || !templateFolder.exists() || !templateFolder.isDirectory) {
-            player.sendMessage("§cテンプレートが見つかりません: $templateName")
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.template_directory_missing"))
             creatingWorlds.remove(player.uniqueId.toString())
             future.complete(false)
             return future
@@ -467,11 +632,16 @@ class WorldService(
             try {
                 // 手動での再帰的コピー (session.lock 等を避けるため)
                 templateFolder.walkTopDown().forEach { file ->
-                    val relativePath = file.relativeTo(templateFolder).path
+                    val relativePath = file.relativeTo(templateFolder).path.replace('\\', '/')
                     val targetFile = File(targetFolder, relativePath)
 
                     // スキップするファイル/ディレクトリ
-                    if (file.name == "session.lock" || file.name == "uid.dat") return@forEach
+                    if (file.name == "session.lock" ||
+                            file.name == "uid.dat" ||
+                            relativePath.equals("data/paper/metadata.dat", ignoreCase = true)
+                    ) {
+                        return@forEach
+                    }
 
                     if (file.isDirectory) {
                         targetFile.mkdirs()
@@ -489,24 +659,38 @@ class WorldService(
                         if (world == null) {
                             player.sendMessage(plugin.languageManager.getMessage(player, "error.world_creation_failed"))
                             creatingWorlds.remove(player.uniqueId.toString())
+                            cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                             future.complete(false)
                             return@Runnable
                         }
 
-                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, templateName, null)
+                        val origin = template.originLocation!!
+                        val initialSpawn = WorldSpawnCoordinates(origin.blockX, origin.blockY, origin.blockZ)
+                        val latestStats = playerStatsRepository.findByUuid(ownerUuid)
+                        if (latestStats.worldPoint < chargedCost) {
+                            cleanupFailedTemplateWorld(worldFolderName, targetFolder)
+                            creatingWorlds.remove(player.uniqueId.toString())
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
+                            future.complete(false)
+                            return@Runnable
+                        }
+                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, chargedCost, template.id, initialSpawn)
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+                        repository.delete(uuid)
                         creatingWorlds.remove(player.uniqueId.toString())
+                        cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                         future.complete(false)
                     }
                 })
             } catch (e: Exception) {
-                plugin.logger.log(Level.SEVERE, "Failed to copy template: $templateName", e)
+                plugin.logger.log(Level.SEVERE, "Failed to copy template: ${template.id}", e)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                    player.sendMessage("§cテンプレートのコピーに失敗しました。")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.template_copy_failed"))
                     creatingWorlds.remove(player.uniqueId.toString())
+                    cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                     future.complete(false)
                 })
             }
@@ -521,6 +705,16 @@ class WorldService(
      * @return 読み込み成功ならtrue
      */
     fun loadWorld(worldUuid: UUID): Boolean {
+        val lease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.LOAD)
+            ?: return false
+        return try {
+            loadWorldUnlocked(worldUuid)
+        } finally {
+            lease.close()
+        }
+    }
+
+    private fun loadWorldUnlocked(worldUuid: UUID): Boolean {
         val worldData = repository.findByUuid(worldUuid) ?: return false
         val folderName = getWorldFolderName(worldData)
 
@@ -563,6 +757,16 @@ class WorldService(
 
     /** ワールドのアンロードを行う */
     fun unloadWorld(worldUuid: UUID, save: Boolean = true): Boolean {
+        val lease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.UNLOAD)
+            ?: return false
+        return try {
+            unloadWorldUnlocked(worldUuid, save)
+        } finally {
+            lease.close()
+        }
+    }
+
+    private fun unloadWorldUnlocked(worldUuid: UUID, save: Boolean): Boolean {
         val worldData = repository.findByUuid(worldUuid) ?: return false
         val folderName = getWorldFolderName(worldData)
         val world = Bukkit.getWorld(folderName) ?: return true // すでにアンロードされている
@@ -586,8 +790,20 @@ class WorldService(
         return plugin.server.unloadWorld(world, save)
     }
 
-    fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
-        return unloadWorldAfterEvacuation(worldUuid, save)
+    fun unloadWorldForMaintenance(
+        worldUuid: UUID,
+        save: Boolean,
+        lease: WorldOperationLease? = null
+    ): CompletableFuture<Boolean> {
+        if (lease != null) {
+            if (lease.worldUuid != worldUuid || !MyWorldManagerApi.isWorldOperationLeaseActive(lease)) {
+                return CompletableFuture.completedFuture(false)
+            }
+            return unloadWorldAfterEvacuation(worldUuid, save)
+        }
+        val ownLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.UNLOAD)
+            ?: return CompletableFuture.completedFuture(false)
+        return unloadWorldAfterEvacuation(worldUuid, save).whenComplete { _, _ -> ownLease.close() }
     }
 
     private fun unloadWorldAfterEvacuation(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
@@ -711,6 +927,13 @@ class WorldService(
             closeInventoryOnLoad: Boolean = true,
             afterTeleported: (() -> Unit)? = null
     ) {
+        if (MyWorldManagerApi.getActiveWorldOperation(worldUuid) != null) {
+            plugin.logger.info(
+                "World warp rejected while operation ${MyWorldManagerApi.getActiveWorldOperation(worldUuid)} is active: $worldUuid"
+            )
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_operation_locked"))
+            return
+        }
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
         val needsLoad = Bukkit.getWorld(folderName) == null
@@ -887,6 +1110,12 @@ class WorldService(
     /** ワールドをアーカイブから戻す */
     fun unarchiveWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.RESTORE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         val worldData = repository.findByUuid(worldUuid)
         if (worldData == null) {
             future.complete(false)
@@ -929,6 +1158,32 @@ class WorldService(
         return future
     }
 
+    private fun billableCost(cost: Int, billingMode: WorldPointBillingMode): Int {
+        if (billingMode == WorldPointBillingMode.NONE) return 0
+        if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) return 0
+        return cost.coerceAtLeast(0)
+    }
+
+    private fun cleanupFailedTemplateWorld(worldFolderName: String, targetFolder: File) {
+        cleanupFailedCreatedWorld(worldFolderName, targetFolder)
+    }
+
+    private fun cleanupFailedCreatedWorld(worldFolderName: String, targetFolder: File) {
+        val loaded = Bukkit.getWorld(NamespacedKey.minecraft(worldFolderName))
+        if (loaded != null) {
+            plugin.server.unloadWorld(loaded, false)
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            runCatching {
+                if (targetFolder.exists()) {
+                    targetFolder.deleteRecursively()
+                }
+            }.onFailure {
+                plugin.logger.log(Level.WARNING, "作成失敗後のワールドフォルダ削除に失敗しました: $worldFolderName", it)
+            }
+        })
+    }
+
     private fun isSafeArchiveDirectory(archiveFolder: File, archivedFile: File): Boolean {
         val archiveRoot = archiveFolder.toPath().toAbsolutePath().normalize()
         val archivedPath = archivedFile.toPath().toAbsolutePath().normalize()
@@ -950,6 +1205,12 @@ class WorldService(
     /** ワールドを完全に削除する */
     fun deleteWorld(worldUuid: UUID, caller: CommandSender? = null): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.DELETE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         val guardTarget = repository.findByUuid(worldUuid)
         if (guardTarget == null) {
             future.complete(false)
@@ -978,29 +1239,63 @@ class WorldService(
                 return@thenAccept
             }
 
-            val stats = playerStatsRepository.findByUuid(worldData.owner)
             val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
-            val refund = (worldData.cumulativePoints * refundRate).toInt()
-
-            if (refund > 0) {
-                stats.worldPoint += refund
-                playerStatsRepository.save(stats)
+            val refund = if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                (worldData.cumulativePoints * refundRate).toInt()
+            } else {
+                0
             }
 
             val folderName = getWorldFolderName(worldData)
             val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
-            val folder = if (worldData.isArchived) {
+            val folder: File? = if (worldData.isArchived) {
                 File(archiveFolder, folderName)
             } else {
-                resolveExistingWorldDirectory(folderName) ?: run {
-                    future.complete(false)
-                    return@thenAccept
+                when (val resolution = plugin.worldDirectoryResolver.inspect(folderName)) {
+                    null -> {
+                        future.complete(false)
+                        return@thenAccept
+                    }
+                    else -> when (resolution.state) {
+                        WorldDirectoryState.CURRENT,
+                        WorldDirectoryState.LEGACY -> resolution.existingPath?.toFile()
+                        WorldDirectoryState.MISSING -> null
+                        WorldDirectoryState.CONFLICT -> {
+                            future.complete(false)
+                            return@thenAccept
+                        }
+                    }
                 }
             }
 
-            if (folder.exists() && !folder.deleteRecursively()) {
+            if (folder != null && folder.exists() && !folder.deleteRecursively()) {
                 future.complete(false)
                 return@thenAccept
+            }
+
+            if (refund > 0 && !worldData.deletionRefundApplied) {
+                var refunded = false
+                try {
+                    playerStatsRepository.adjustWorldPoints(worldData.owner, refund)
+                    refunded = true
+                    worldData.deletionRefundApplied = true
+                    repository.save(worldData)
+                } catch (error: Exception) {
+                    if (refunded) {
+                        runCatching {
+                            playerStatsRepository.adjustWorldPoints(worldData.owner, -refund)
+                        }.onFailure {
+                            plugin.logger.log(
+                                Level.SEVERE,
+                                "Failed to compensate deletion refund for ${worldData.uuid}",
+                                it
+                            )
+                        }
+                    }
+                    plugin.logger.log(Level.SEVERE, "Failed to commit deletion refund for ${worldData.uuid}", error)
+                    future.complete(false)
+                    return@thenAccept
+                }
             }
 
             repository.delete(worldUuid)
@@ -1026,6 +1321,12 @@ class WorldService(
 
     fun deleteWorldForMaintenance(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.DELETE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         unloadWorldAfterEvacuation(worldUuid, false).thenAccept { unloaded ->
             if (!unloaded) {
                 future.complete(false)
@@ -1076,6 +1377,9 @@ class WorldService(
     }
 
     private fun reduceOwnerSlotOnDeleteIfEnabled(ownerUuid: UUID) {
+        if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+            return
+        }
         if (!WorldRuntimePolicies.reduceOwnerSlotOnDelete(plugin.config)) {
             return
         }
@@ -1095,6 +1399,12 @@ class WorldService(
             isAutomaticTransition: Boolean = false
     ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.ARCHIVE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         val worldData = repository.findByUuid(worldUuid)
         if (worldData == null) {
             future.complete(false)
@@ -1197,8 +1507,8 @@ class WorldService(
             repository.save(worldData)
             updatedCount++
 
-            // 期限切れワールドのアーカイブ
-            if (!worldData.isArchived) {
+            // 期限切れワールドのアーカイブ（訪問統計等の日次処理とは独立して抑止可能）
+            if (WorldRuntimePolicies.isExpirationArchiveEnabled() && !worldData.isArchived) {
                 try {
                     val expireDate = java.time.LocalDate.parse(worldData.expireDate, dateFormatter)
                     if (expireDate.isBefore(today)) {

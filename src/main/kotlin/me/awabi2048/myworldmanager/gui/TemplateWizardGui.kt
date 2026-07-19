@@ -28,6 +28,8 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
     private val sessions = ConcurrentHashMap<UUID, WizardSession>()
 
     data class WizardSession(
+        val sourceWorldName: String,
+        val sourceWorldKey: String,
         var id: String = "",
         var name: String = "",
         var description: List<String> = emptyList(),
@@ -41,7 +43,12 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player) {
-        val session = sessions.getOrPut(player.uniqueId) { WizardSession() }
+        val session = sessions.getOrPut(player.uniqueId) {
+            WizardSession(
+                sourceWorldName = player.world.name,
+                sourceWorldKey = player.world.key.toString()
+            )
+        }
         val lang = plugin.languageManager
         val title = lang.getMessage(player, "gui.template_wizard.title")
         val settingsLayout = GuiHelper.settingsLayout()
@@ -51,6 +58,29 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
         // Template editing is a settings-style screen; use the shared frame before placing wizard controls.
         GuiItemFactory.applyStandardFrame(inventory)
+
+        val statusItem = createSettingItem(
+            Material.FILLED_MAP,
+            lang.getMessage(player, "gui.template_wizard.status.display"),
+            GuiLoreBuilder(lang, player)
+                .data(
+                    lang.getMessage(player, "gui.template_wizard.status.source_world"),
+                    session.sourceWorldKey
+                )
+                .data(
+                    lang.getMessage(player, "gui.template_wizard.status.template_id"),
+                    session.id.ifEmpty { lang.getMessage(player, "general.unknown") }
+                )
+                .data(
+                    lang.getMessage(player, "gui.template_wizard.status.spawn"),
+                    session.originLocation?.let {
+                        "(${it.blockX}, ${it.blockY}, ${it.blockZ})"
+                    } ?: lang.getMessage(player, "general.unknown")
+                )
+                .buildSpec(),
+            ItemTag.TYPE_GUI_INFO
+        )
+        inventory.setItem(13, statusItem)
 
         // ID & Name (IDはNameの英字版などにする想定)
         val nameItem = createSettingItem(
@@ -104,19 +134,63 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         inventory.setItem(31, originItem)
 
         // Save
-        if (session.id.isNotEmpty() && session.name.isNotEmpty() && session.originLocation != null) {
+        val missing = buildList {
+            if (session.id.isEmpty() || session.name.isEmpty()) {
+                add(lang.getMessage(player, "gui.template_wizard.requirement.name"))
+            }
+            if (session.originLocation == null) {
+                add(lang.getMessage(player, "gui.template_wizard.requirement.spawn"))
+            }
+            if (session.originLocation?.world?.name != session.sourceWorldName) {
+                add(lang.getMessage(player, "gui.template_wizard.requirement.source_world"))
+            }
+        }
+        if (missing.isEmpty()) {
             val saveItem = createSettingItem(
                 plugin.menuConfigManager.getIconMaterial(menuId, "save_confirm", Material.NETHER_STAR),
                 lang.getMessage(player, "gui.template_wizard.save_confirm.display"),
                 GuiLoreBuilder(lang, player)
                     .block(lang.getMessageList(player, "gui.template_wizard.save_confirm.description").map(GuiLoreLine::Text))
-                    .warning(lang.getMessage(player, "gui.template_wizard.save_confirm.warning"))
                     .actions(lang.getMessage(player, "gui.template_wizard.save_confirm.action"))
                     .buildSpec(),
                 "save_confirm"
             )
             inventory.setItem(40, saveItem)
+        } else {
+            val warningItem = createSettingItem(
+                Material.BARRIER,
+                lang.getMessage(player, "gui.template_wizard.requirement.display"),
+                GuiLoreBuilder(lang, player)
+                    .block(missing.map(GuiLoreLine::Warning))
+                    .buildSpec(),
+                ItemTag.TYPE_GUI_INFO
+            )
+            inventory.setItem(40, warningItem)
         }
+
+        inventory.setItem(
+            39,
+            createSettingItem(
+                Material.SPYGLASS,
+                lang.getMessage(player, "gui.template_wizard.validate.display"),
+                GuiLoreBuilder(lang, player)
+                    .actions(lang.getMessage(player, "gui.template_wizard.validate.action"))
+                    .buildSpec(),
+                "wizard_validate"
+            )
+        )
+
+        inventory.setItem(
+            49,
+            createSettingItem(
+                Material.RED_CONCRETE,
+                lang.getMessage(player, "gui.template_wizard.cancel.display"),
+                GuiLoreBuilder(lang, player)
+                    .actions(lang.getMessage(player, "gui.template_wizard.cancel.action"))
+                    .buildSpec(),
+                "wizard_cancel"
+            )
+        )
 
         player.openInventory(inventory)
 

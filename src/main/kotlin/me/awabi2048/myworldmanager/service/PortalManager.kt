@@ -80,6 +80,9 @@ class PortalManager(private val plugin: MyWorldManager) {
 
     fun refundPointsForRemovedGate(portal: PortalData): GateRefundResult? {
         if (!portal.isGate()) return null
+        if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+            return GateRefundResult(0, 0, portal.ownerUuid)
+        }
 
         val rate = plugin.config.getDouble(
             "portal.world_gate.remove_refund_rate",

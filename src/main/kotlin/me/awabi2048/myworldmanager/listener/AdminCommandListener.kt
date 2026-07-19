@@ -42,7 +42,6 @@ class AdminCommandListener : Listener {
 
         // GUI遷移中のクリックを無視
         if (session.isGuiTransition) {
-            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             session.isGuiTransition = false
         }
 
@@ -304,7 +303,9 @@ class AdminCommandListener : Listener {
                                 world.members.addAll(duplicateInMembers)
 
                                 // ポイント補完
-                                if (world.cumulativePoints <= 0) {
+                                if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+                                    world.cumulativePoints <= 0
+                                ) {
                                     val worldConfig = plugin.config
                                     var estimatedPoints =
                                             WorldRuntimePolicies.creationCost(worldConfig, WorldCreationType.TEMPLATE)

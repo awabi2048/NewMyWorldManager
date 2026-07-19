@@ -170,9 +170,12 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
         // World Seed Logic
         if (ItemTag.isType(item, ItemTag.TYPE_WORLD_SEED)) {
              if (event.action == Action.RIGHT_CLICK_AIR || event.action == Action.RIGHT_CLICK_BLOCK) {
-                 event.isCancelled = true
+                  event.isCancelled = true
+                  if (!me.awabi2048.myworldmanager.api.MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                      return
+                  }
 
-                 // Check limits
+                  // Check limits
                  val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                  val bypassLimits = PermissionManager.canBypassWorldLimits(player)
                  val defaultSlots = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)

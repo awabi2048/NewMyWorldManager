@@ -43,6 +43,7 @@ data class WorldData(
     var fixedTime: Long? = null,
     var fixedScale: Double? = null,
     var allowFlight: Boolean = false,
+    var deletionRefundApplied: Boolean = false,
     var seedSpecified: Boolean = false,
     var seedSpawnValidated: Boolean = true,
     val borderExpansionHistory: MutableList<BorderExpansionRecord> = mutableListOf(),
@@ -94,6 +95,7 @@ data class WorldData(
             "fixed_time" to fixedTime,
             "fixed_scale" to fixedScale,
             "allow_flight" to allowFlight,
+            "deletion_refund_applied" to deletionRefundApplied,
             "seed_specified" to seedSpecified,
             "seed_spawn_validated" to seedSpawnValidated,
             "border_expansion_history" to borderExpansionHistory.map { it.serialize() },
@@ -174,6 +176,7 @@ data class WorldData(
                 fixedTime = (args["fixed_time"] as? Number)?.toLong(),
                 fixedScale = (args["fixed_scale"] as? Number)?.toDouble(),
                 allowFlight = args["allow_flight"] as? Boolean ?: false,
+                deletionRefundApplied = args["deletion_refund_applied"] as? Boolean ?: false,
                 seedSpecified = args["seed_specified"] as? Boolean ?: false,
                 seedSpawnValidated = args["seed_spawn_validated"] as? Boolean ?: true,
                 borderExpansionHistory = (args["border_expansion_history"] as? List<*>)

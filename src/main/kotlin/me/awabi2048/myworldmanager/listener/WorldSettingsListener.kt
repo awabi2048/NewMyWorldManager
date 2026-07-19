@@ -640,17 +640,9 @@ class WorldSettingsListener : Listener {
                                                                         "world_settings"
                                                                 )
                                                                 // オーナー権限の移譲
-                                                                val config = plugin.config
-                                                                val stats =
-                                                                        plugin.playerStatsRepository
-                                                                                .findByUuid(memberId)
-                                                                val defaultMax =
-                                                                        config.getInt(
-                                                                                "creation.max_create_count_default",
-                                                                                3
-                                                                        )
-                                                                val maxCounts =
-                                                                        defaultMax + stats.unlockedWorldSlot
+                                                                val stats = plugin.playerStatsRepository.findByUuid(memberId)
+                                                                val maxCounts = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
+                                                                        stats.unlockedWorldSlot
                                                                 val currentCounts =
                                                                         plugin.worldConfigRepository
                                                                                 .findAll()
@@ -658,7 +650,21 @@ class WorldSettingsListener : Listener {
                                                                                         it.owner == memberId
                                                                                 }
 
-                                                                if (!PermissionManager.canBypassWorldLimits(player) && currentCounts >= maxCounts) {
+                                                                val standardLimitReached =
+                                                                        MyWorldManagerApi.isWorldSlotSystemEnabled() &&
+                                                                        currentCounts >= maxCounts
+                                                                val addonDecision = MyWorldManagerApi.checkWorldCreation(
+                                                                        me.awabi2048.myworldmanager.api.extension.WorldCreationRequest(
+                                                                                actor = player,
+                                                                                player = null,
+                                                                                operation = me.awabi2048.myworldmanager.api.extension.WorldCreationOperation.NORMAL,
+                                                                                type = null,
+                                                                                targetUuid = memberId
+                                                                        )
+                                                                )
+                                                                if (!PermissionManager.canBypassWorldLimits(player) &&
+                                                                        (standardLimitReached || !addonDecision.allowed)
+                                                                ) {
                                                                         player.sendMessage(
                                                                                 plugin.languageManager
                                                                                         .getMessage(
@@ -1173,7 +1179,7 @@ class WorldSettingsListener : Listener {
                                                         player.uniqueId
                                                 )
 
-                                        if (stats.worldPoint < cost) {
+                                        if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                                                  player.sendMessage("§cポイントが不足しています。")
                                                 player.closeInventory()
                                                 return
@@ -1558,7 +1564,7 @@ class WorldSettingsListener : Listener {
                                                         GuiCycle.select(
                                                                 worldData.publishLevel,
                                                                 PublishLevel.values(),
-                                                                reverse = event.isRightClick
+                                                                reverse = event.isLeftClick
                                                         )
                                                 worldData.publishLevel = nextLevel
                                                 if (worldData.publishLevel == PublishLevel.PUBLIC) {
@@ -4132,8 +4138,7 @@ plugin.languageManager
         ) {
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 if (performExpansion(worldData, direction)) {
-                        stats.worldPoint -= cost
-                        worldData.cumulativePoints += cost
+                        chargeWorldPoints(stats, worldData, cost)
                         plugin.playerStatsRepository.save(stats)
                         plugin.worldConfigRepository.save(worldData)
                         player.sendMessage(
@@ -4484,7 +4489,7 @@ player.sendMessage(
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-                if (stats.worldPoint < cost) {
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
@@ -4501,8 +4506,7 @@ player.sendMessage(
                 }
 
                 worldData.gravityValue = 0.02
-                stats.worldPoint -= cost
-                worldData.cumulativePoints += cost
+                chargeWorldPoints(stats, worldData, cost)
 
                 plugin.playerStatsRepository.save(stats)
                 plugin.worldConfigRepository.save(worldData)
@@ -4516,13 +4520,7 @@ player.sendMessage(
                                 mapOf("gravity" to "Moon", "multiplier" to "0.17")
                         )
                 )
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                "messages.env_cost_paid",
-                                mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
-                        )
-                )
+                sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                 plugin.worldEnvironmentService.applyAttributes(worldData.uuid)
                 plugin.environmentGui.open(player, worldData)
@@ -4561,7 +4559,7 @@ player.sendMessage(
                         return
                 }
 
-                if (stats.worldPoint < cost) {
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
@@ -4581,8 +4579,7 @@ player.sendMessage(
                         BiomeResolver.match(biomeId) ?: throw IllegalArgumentException()
                         worldData.fixedBiome = biomeId.uppercase()
                         worldData.partialBiomes.clear()
-                        stats.worldPoint -= cost
-                        worldData.cumulativePoints += cost
+                        chargeWorldPoints(stats, worldData, cost)
 
                         plugin.playerStatsRepository.save(stats)
                         plugin.worldConfigRepository.save(worldData)
@@ -4597,13 +4594,7 @@ player.sendMessage(
                                         mapOf("biome" to biomeName)
                                 )
                         )
-                        player.sendMessage(
-                                lang.getMessage(
-                                        player,
-                                        "messages.env_cost_paid",
-                                        mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
-                                )
-                        )
+                        sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                         plugin.soundManager.playActionSound(player, "environment", "biome_change")
                         applyBiomeToWorld(worldData)
                         plugin.environmentGui.open(player, worldData)
@@ -5332,10 +5323,12 @@ player.sendMessage(
                 centerMaterial,
                 title,
                 GuiLoreSpec.Rich(
-                    listOf(
-                        GuiLoreLine.Text(lang.getMessage(player, "gui.common.confirm_action")),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.cost"), cost, "§e")
-                    ),
+                    buildList {
+                        add(GuiLoreLine.Text(lang.getMessage(player, "gui.common.confirm_action")))
+                        if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                            add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.cost"), cost, "§e"))
+                        }
+                    },
                     GuiLoreFrame.BOTH
                 ),
                 me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_INFO
@@ -5447,7 +5440,7 @@ player.sendMessage(
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-                if (stats.worldPoint < cost) {
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
@@ -5460,8 +5453,7 @@ player.sendMessage(
                 }
 
                 worldData.gravityValue = 0.02
-                stats.worldPoint -= cost
-                worldData.cumulativePoints += cost
+                chargeWorldPoints(stats, worldData, cost)
 
                 plugin.playerStatsRepository.save(stats)
                 plugin.worldConfigRepository.save(worldData)
@@ -5473,13 +5465,7 @@ player.sendMessage(
                                 mapOf("gravity" to "Moon", "multiplier" to "0.17")
                         )
                 )
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                "messages.env_cost_paid",
-                                mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
-                        )
-                )
+                sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                 plugin.worldEnvironmentService.applyAttributes(worldData.uuid)
                 plugin.environmentGui.open(player, worldData)
@@ -5491,7 +5477,7 @@ player.sendMessage(
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-                if (stats.worldPoint < cost) {
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
@@ -5503,21 +5489,14 @@ player.sendMessage(
                         return
                 }
 
-                stats.worldPoint -= cost
+                chargeWorldPoints(stats, worldData, cost)
                 worldData.fixedWeather = if (nextWeather == "DEFAULT") null else nextWeather
-                worldData.cumulativePoints += cost
                 session.tempWeather = null
 
                 plugin.playerStatsRepository.save(stats)
                 plugin.worldConfigRepository.save(worldData)
 
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                "messages.env_cost_paid",
-                                mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))
-                        )
-                )
+                sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                 plugin.worldEnvironmentService.applyWeather(worldData.uuid)
                 plugin.soundManager.playActionSound(player, "environment", "weather_change")
                 plugin.environmentGui.open(player, worldData)
@@ -5528,7 +5507,7 @@ player.sendMessage(
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-                if (stats.worldPoint < cost) {
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
@@ -5544,15 +5523,14 @@ player.sendMessage(
                         BiomeResolver.match(biomeId) ?: throw IllegalArgumentException()
                         worldData.fixedBiome = biomeId.uppercase()
                         worldData.partialBiomes.clear()
-                        stats.worldPoint -= cost
-                        worldData.cumulativePoints += cost
+                        chargeWorldPoints(stats, worldData, cost)
 
                         plugin.playerStatsRepository.save(stats)
                         plugin.worldConfigRepository.save(worldData)
 
                         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
                         player.sendMessage(lang.getMessage(player, "messages.env_biome_changed", mapOf("biome" to biomeName)))
-                        player.sendMessage(lang.getMessage(player, "messages.env_cost_paid", mapOf("cost" to cost, "remaining_info" to plugin.languageManager.getMessage(player, "messages.env_cost_paid_remaining", mapOf("remaining" to stats.worldPoint)))))
+                        sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                         plugin.soundManager.playActionSound(player, "environment", "biome_change")
                         applyBiomeToWorld(worldData)
                         plugin.environmentGui.open(player, worldData)
@@ -5568,7 +5546,7 @@ player.sendMessage(
                 val direction = session.expansionDirection
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-                if (stats.worldPoint < cost) {
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
@@ -5581,8 +5559,7 @@ player.sendMessage(
                 }
 
                 if (performExpansion(worldData, direction)) {
-                        stats.worldPoint -= cost
-                        worldData.cumulativePoints += cost
+                        chargeWorldPoints(stats, worldData, cost)
                         plugin.playerStatsRepository.save(stats)
                         plugin.worldConfigRepository.save(worldData)
 
@@ -5675,7 +5652,9 @@ player.sendMessage(
                 worldData.borderCenterPos = oldCenter
                 worldData.borderExpansionLevel = record.levelBefore
                 val removedCost = WorldRuntimePolicies.expansionCost(plugin.config, record.levelAfter)
-                worldData.cumulativePoints = (worldData.cumulativePoints - removedCost).coerceAtLeast(0)
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        worldData.cumulativePoints = (worldData.cumulativePoints - removedCost).coerceAtLeast(0)
+                }
                 val recordIndex = worldData.borderExpansionHistory.indexOfLast { it == record }
                 if (recordIndex >= 0) {
                         worldData.borderExpansionHistory.removeAt(recordIndex)
@@ -5724,10 +5703,16 @@ player.sendMessage(
                 }
 
                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
-                val refund = (totalExpCost * refundRate).toInt()
+                val refund = if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        (totalExpCost * refundRate).toInt()
+                } else {
+                        0
+                }
 
-                stats.worldPoint += refund
-                worldData.cumulativePoints = (worldData.cumulativePoints - totalExpCost).coerceAtLeast(0)
+                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        stats.worldPoint += refund
+                        worldData.cumulativePoints = (worldData.cumulativePoints - totalExpCost).coerceAtLeast(0)
+                }
                 worldData.borderExpansionLevel = 0
                 worldData.borderExpansionHistory.clear()
 
@@ -5737,7 +5722,11 @@ player.sendMessage(
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
-                                "messages.expansion_reset_success",
+                                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                                        "messages.expansion_reset_success"
+                                } else {
+                                        "messages.expansion_reset_success_without_points"
+                                },
                                 mapOf("points" to refund)
                         )
                 )
@@ -5838,7 +5827,36 @@ player.sendMessage(
                 }
         }
 
+        private fun chargeWorldPoints(
+                stats: me.awabi2048.myworldmanager.model.PlayerStats,
+                worldData: WorldData,
+                cost: Int
+        ) {
+                if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) return
+                stats.worldPoint -= cost
+                worldData.cumulativePoints += cost
+        }
+
+        private fun sendEnvironmentCostPaid(player: Player, cost: Int, remaining: Int) {
+                if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) return
+                player.sendMessage(
+                        plugin.languageManager.getMessage(
+                                player,
+                                "messages.env_cost_paid",
+                                mapOf(
+                                        "cost" to cost,
+                                        "remaining_info" to plugin.languageManager.getMessage(
+                                                player,
+                                                "messages.env_cost_paid_remaining",
+                                                mapOf("remaining" to remaining)
+                                        )
+                                )
+                        )
+                )
+        }
+
         private fun canOwnerExecuteDelete(worldData: WorldData): Boolean {
+                if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) return true
                 val ownerStats = plugin.playerStatsRepository.findByUuid(worldData.owner)
                 return ownerStats.unlockedWorldSlot > 0
         }

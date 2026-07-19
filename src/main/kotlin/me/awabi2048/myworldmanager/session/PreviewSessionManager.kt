@@ -28,7 +28,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
      * プレビュー対象
      */
     sealed class PreviewTarget {
-        data class Template(val path: String) : PreviewTarget()
+        data class Template(val templateId: String) : PreviewTarget()
         data class World(val worldData: me.awabi2048.myworldmanager.model.WorldData) : PreviewTarget()
     }
 
@@ -45,7 +45,12 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
     /**
      * プレビューを開始する（共通処理）
      */
-    fun startPreview(player: Player, target: PreviewTarget, source: PreviewSource): Boolean {
+    fun startPreview(
+        player: Player,
+        target: PreviewTarget,
+        source: PreviewSource,
+        onReturn: (() -> Unit)? = null
+    ): Boolean {
         if (isInPreview(player)) return false
 
         // プレビュー開始音（グローバルクリック音）
@@ -58,26 +63,30 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
 
         when (target) {
             is PreviewTarget.Template -> {
-                val template = plugin.templateRepository.findAll().find { it.path == target.path }
+                val template = plugin.templateRepository.findById(target.templateId)
                 if (template == null) {
                     player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_not_found"))
                     return false
                 }
+                if (!plugin.templateRepository.isUsable(template)) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_invalid"))
+                    return false
+                }
 
                 // テンプレートワールドのロード確認
-                if (Bukkit.getWorld(target.path) == null) {
+                if (Bukkit.getWorld(template.path) == null) {
                     player.closeInventory() // ロード前に閉じる
-                    val creator = org.bukkit.WorldCreator(target.path)
+                    val creator = org.bukkit.WorldCreator(template.path)
                     Bukkit.createWorld(creator) ?: run {
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
                         return false
                     }
                 }
 
-                world = Bukkit.getWorld(target.path) ?: return false
-                folderName = target.path
+                world = Bukkit.getWorld(template.path) ?: return false
+                folderName = template.path
                 templateName = template.name
-                originLoc = template.originLocation?.clone() ?: Location(world, 0.5, 64.0, 0.5)
+                originLoc = template.originLocation!!.clone()
 
                 // プレビュー時の天気・時間を設定
                 template.previewTime?.let { world.fullTime = it }
@@ -119,6 +128,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             originalGameMode = player.gameMode,
             templatePath = folderName,
             source = source,
+            onReturn = onReturn
         )
         sessions[player.uniqueId] = session
 
@@ -251,6 +261,23 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 }
                 PreviewSource.FAVORITE_MENU -> {
                     plugin.menuEntryRouter.openFavoriteList(player)
+                }
+                PreviewSource.TEMPLATE_DETAIL -> {
+                    val creationSession = plugin.creationSessionManager.getSession(player.uniqueId)
+                    if (creationSession != null) {
+                        creationSession.phase = WorldCreationPhase.TEMPLATE_DETAIL
+                        plugin.creationGui.openTemplateDetail(player, creationSession)
+                    }
+                }
+                PreviewSource.CREATION_CONFIRM -> {
+                    val creationSession = plugin.creationSessionManager.getSession(player.uniqueId)
+                    if (creationSession != null) {
+                        creationSession.phase = WorldCreationPhase.CONFIRM
+                        plugin.creationGui.openConfirmation(player, creationSession)
+                    }
+                }
+                PreviewSource.EXTERNAL -> {
+                    session.onReturn?.invoke()
                 }
                 PreviewSource.DISCOVERY_MENU -> {
                     plugin.menuEntryRouter.openDiscovery(player)

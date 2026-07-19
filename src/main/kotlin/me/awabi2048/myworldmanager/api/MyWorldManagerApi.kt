@@ -11,6 +11,7 @@ import me.awabi2048.myworldmanager.api.extension.FavoriteMenuProvider
 import me.awabi2048.myworldmanager.api.extension.MenuExtension
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
+import me.awabi2048.myworldmanager.api.extension.CreationConfirmationMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
@@ -42,13 +43,32 @@ import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldEnvironmentService
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ApiWorldTagService
+import me.awabi2048.myworldmanager.api.service.WorldOperation
+import me.awabi2048.myworldmanager.api.service.WorldOperationLease
+import me.awabi2048.myworldmanager.api.service.WorldOperationLocks
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import org.bukkit.Location
 import org.bukkit.OfflinePlayer
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 object MyWorldManagerApi {
+
+    @JvmStatic
+    fun tryAcquireWorldOperation(worldUuid: UUID, operation: WorldOperation): WorldOperationLease? =
+        WorldOperationLocks.tryAcquire(worldUuid, operation)
+
+    @JvmStatic
+    fun isWorldOperationLeaseActive(lease: WorldOperationLease): Boolean =
+        WorldOperationLocks.isActive(lease)
+
+    @JvmStatic
+    fun getActiveWorldOperation(worldUuid: UUID): WorldOperation? =
+        WorldOperationLocks.current(worldUuid)
+
+    @JvmStatic
+    fun clearWorldOperationLocks() = WorldOperationLocks.clear()
 
     private var worldPointService: WorldPointService? = null
     private var worldService: ApiWorldService? = null
@@ -71,6 +91,7 @@ object MyWorldManagerApi {
     private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
     private val adminMenuProviders = CopyOnWriteArrayList<AdminMenuProvider>()
     private val playerWorldMenuProviders = CopyOnWriteArrayList<PlayerWorldMenuProvider>()
+    private val creationConfirmationMenuProviders = CopyOnWriteArrayList<CreationConfirmationMenuProvider>()
     private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
     private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
@@ -112,7 +133,14 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
+    fun isWorldPointEconomyEnabled(): Boolean = getWorldRuntimePolicy().isWorldPointEconomyEnabled()
+
+    @JvmStatic
+    fun isWorldSlotSystemEnabled(): Boolean = getWorldRuntimePolicy().isWorldSlotSystemEnabled()
+
+    @JvmStatic
     fun addWorldPoint(playerUuid: UUID, amount: Int): Int {
+        check(isWorldPointEconomyEnabled()) { "MyWorldManager world point economy is disabled by runtime policy" }
         val service = worldPointService
             ?: throw IllegalStateException("MyWorldManager world point service is not available")
         return service.addWorldPoint(playerUuid, amount)
@@ -473,6 +501,39 @@ object MyWorldManagerApi {
     @JvmStatic
     fun openPlayerWorldMenuOverride(player: Player, request: PlayerWorldMenuRequest): Boolean {
         return playerWorldMenuProviders.asReversed().any { it.open(player, request) }
+    }
+
+    @JvmStatic
+    fun registerCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
+        creationConfirmationMenuProviders.removeIf { it.getId() == provider.getId() }
+        creationConfirmationMenuProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
+        creationConfirmationMenuProviders.removeIf {
+            it === provider || it.getId() == provider.getId()
+        }
+    }
+
+    @JvmStatic
+    fun openCreationConfirmationMenuOverride(
+        player: Player,
+        session: me.awabi2048.myworldmanager.session.WorldCreationSession
+    ): Boolean {
+        for (provider in creationConfirmationMenuProviders.asReversed()) {
+            val handled = runCatching { provider.open(player, session) }
+                .onFailure { error ->
+                    Bukkit.getLogger().log(
+                        java.util.logging.Level.SEVERE,
+                        "Creation confirmation provider '${provider.getId()}' failed; using the next provider or MWM fallback.",
+                        error
+                    )
+                }
+                .getOrDefault(false)
+            if (handled) return true
+        }
+        return false
     }
 
     @JvmStatic

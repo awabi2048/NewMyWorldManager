@@ -17,11 +17,15 @@ data class PreviewSession(
     var previewLocation: Location? = null,
     var rotationTask: BukkitTask? = null,
     var currentYaw: Float = 0f,
-    val source: PreviewSource = PreviewSource.TEMPLATE_SELECTION
+    val source: PreviewSource = PreviewSource.TEMPLATE_SELECTION,
+    val onReturn: (() -> Unit)? = null
 )
 
 enum class PreviewSource {
     TEMPLATE_SELECTION,
+    TEMPLATE_DETAIL,
+    CREATION_CONFIRM,
+    EXTERNAL,
     FAVORITE_MENU,
     DISCOVERY_MENU
 }

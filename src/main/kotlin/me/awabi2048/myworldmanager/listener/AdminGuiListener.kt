@@ -39,12 +39,10 @@ class AdminGuiListener : Listener {
         val player = event.whoClicked as? Player ?: return
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         // Debug: リスナー呼び出し確認
-        // player.sendMessage("§d[Debug-System] AdminGuiListener called. Cancelled: ${event.isCancelled}, Title: ${event.view.title}")
 
         // GUI遷移中のクリックを無視
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
-            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
                 session.isGuiTransition = false
             } else {
@@ -76,7 +74,7 @@ class AdminGuiListener : Listener {
                 }
                 ItemTag.TYPE_GUI_ADMIN_PORTAL_SORT -> {
                     plugin.soundManager.playAdminClickSound(player)
-                    plugin.adminGuiSessionManager.cyclePortalSortType(player.uniqueId, event.isRightClick)
+                    plugin.adminGuiSessionManager.cyclePortalSortType(player.uniqueId, event.isLeftClick)
                     plugin.adminPortalGui.open(player)
                 }
                 ItemTag.TYPE_PORTAL -> {
@@ -171,7 +169,7 @@ class AdminGuiListener : Listener {
             // アーカイブフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cycleArchiveFilter(player.uniqueId, event.isRightClick)
+                plugin.adminGuiSessionManager.cycleArchiveFilter(player.uniqueId, event.isLeftClick)
                 plugin.worldGui.open(player)
                 return
             }
@@ -179,7 +177,7 @@ class AdminGuiListener : Listener {
             // 公開レベルフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cyclePublishFilter(player.uniqueId, event.isRightClick)
+                plugin.adminGuiSessionManager.cyclePublishFilter(player.uniqueId, event.isLeftClick)
                 plugin.worldGui.open(player)
                 return
             }
@@ -204,7 +202,7 @@ class AdminGuiListener : Listener {
             // ソートボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_SORT) {
                 plugin.soundManager.playAdminClickSound(player)
-                plugin.adminGuiSessionManager.cycleSortType(player.uniqueId, event.isRightClick)
+                plugin.adminGuiSessionManager.cycleSortType(player.uniqueId, event.isLeftClick)
                 plugin.worldGui.open(player)
                 return
             }

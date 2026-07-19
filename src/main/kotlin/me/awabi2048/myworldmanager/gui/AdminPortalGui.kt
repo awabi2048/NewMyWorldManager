@@ -192,7 +192,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                         add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                     }
                     add(GuiLoreLine.Spacer)
-                    add(GuiLoreActions.cycle(lang, player))
+                    addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                 }, GuiLoreFrame.BOTH)
             )
         )

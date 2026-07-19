@@ -16,6 +16,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.WorldCreationPhase
 import me.awabi2048.myworldmanager.session.WorldCreationSession
@@ -102,8 +103,8 @@ class CreationDialogManager : Listener {
         if (identifier == Key.key("mwm:creation/name_input_back")) {
             when (session.creationType) {
                 WorldCreationType.TEMPLATE -> {
-                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                    plugin.creationGui.openTemplateSelection(player)
+                    session.phase = WorldCreationPhase.TEMPLATE_DETAIL
+                    plugin.creationGui.openTemplateDetail(player, session)
                 }
                 WorldCreationType.SEED -> {
                     session.phase = WorldCreationPhase.SEED_INPUT
@@ -195,14 +196,14 @@ class CreationDialogManager : Listener {
 
         // 最終確認 -> テンプレートプレビュー
         if (identifier == Key.key("mwm:creation/confirm_preview")) {
-            if (session.creationType == WorldCreationType.TEMPLATE && session.templateName != null) {
-                session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                val target = PreviewSessionManager.PreviewTarget.Template(session.templateName!!)
+            if (session.creationType == WorldCreationType.TEMPLATE && session.templateId != null) {
+                session.phase = WorldCreationPhase.CONFIRM
+                val target = PreviewSessionManager.PreviewTarget.Template(session.templateId!!)
                 val started =
                     plugin.previewSessionManager.startPreview(
                         player,
                         target,
-                        PreviewSource.TEMPLATE_SELECTION
+                        PreviewSource.CREATION_CONFIRM
                     )
                 if (started) {
                     safeCloseDialog(player)
@@ -220,6 +221,13 @@ class CreationDialogManager : Listener {
         if (identifier == Key.key("mwm:creation/confirm_back")) {
             session.phase = WorldCreationPhase.NAME_INPUT
             showNameInputDialog(player, session)
+            return
+        }
+
+        if (identifier == Key.key("mwm:creation/confirm_change_template")) {
+            session.phase = WorldCreationPhase.TEMPLATE_SELECT
+            safeCloseDialog(player)
+            plugin.creationGui.openTemplateSelection(player)
             return
         }
     }
@@ -258,13 +266,13 @@ class CreationDialogManager : Listener {
                     .type(
                         DialogType.confirmation(
                             ActionButton.create(
-                                Component.text("Next", NamedTextColor.GREEN),
+                                lang.getComponent(player, "gui.creation.confirm.proceed_button"),
                                 null,
                                 100,
                                 DialogAction.customClick(Key.key("mwm:creation/name_input_next"), null)
                             ),
                             ActionButton.create(
-                                Component.text("Back", NamedTextColor.GRAY),
+                                lang.getComponent(player, "gui.creation.confirm.action_back"),
                                 null,
                                 200,
                                 DialogAction.customClick(Key.key("mwm:creation/name_input_back"), null)
@@ -306,13 +314,13 @@ class CreationDialogManager : Listener {
                     .type(
                         DialogType.confirmation(
                             ActionButton.create(
-                                Component.text("Next", NamedTextColor.GREEN),
+                                lang.getComponent(player, "gui.creation.confirm.proceed_button"),
                                 null,
                                 100,
                                 DialogAction.customClick(Key.key("mwm:creation/seed_input_next"), null)
                             ),
                             ActionButton.create(
-                                Component.text("Back", NamedTextColor.GRAY),
+                                lang.getComponent(player, "gui.creation.confirm.action_back"),
                                 null,
                                 200,
                                 DialogAction.customClick(Key.key("mwm:creation/seed_input_back"), null)
@@ -401,8 +409,8 @@ class CreationDialogManager : Listener {
             val cleanedName = session.worldName ?: lang.getMessage(player, "general.unknown")
 
             val templateValue = if (session.creationType == WorldCreationType.TEMPLATE) {
-                val template = plugin.templateRepository.findAll().find { it.path == session.templateName }
-                template?.name ?: (session.templateName ?: lang.getMessage(player, "general.unknown"))
+                val template = session.templateId?.let(plugin.templateRepository::findById)
+                template?.name ?: (session.templateId ?: lang.getMessage(player, "general.unknown"))
             } else null
 
             val seedValue = if (session.creationType == WorldCreationType.SEED) session.inputSeedString ?: "" else null
@@ -424,9 +432,32 @@ class CreationDialogManager : Listener {
             loreLines.add(GuiLoreLine.Data(nameLabel, cleanedName, "§a"))
             loreLines.add(GuiLoreLine.Data(typeLabel, typeName, "§e"))
             templateValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.template_label"), it, "§f")) }
+            if (session.creationType == WorldCreationType.TEMPLATE) {
+                val origin = session.templateId
+                    ?.let(plugin.templateRepository::findById)
+                    ?.originLocation
+                loreLines.add(
+                    GuiLoreLine.Data(
+                        lang.getMessage(player, "gui.creation.confirm.template_spawn_label"),
+                        origin?.let { "(${it.blockX}, ${it.blockY}, ${it.blockZ})" }
+                            ?: lang.getMessage(player, "general.unknown"),
+                        "§6"
+                    )
+                )
+            }
             seedValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.seed_label"), it, "§f")) }
             seedDimensionValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.dimension_label"), it, "§f")) }
-            loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
+                val remaining = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint - cost
+                loreLines.add(
+                    GuiLoreLine.Data(
+                        lang.getMessage(player, "gui.creation.confirm.remaining_points_label"),
+                        "§6🛖 §e${remaining.coerceAtLeast(0)}",
+                        ""
+                    )
+                )
+            }
 
             val bodyLines = CCSystem.getAPI().getLoreService()
                 .render(GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH))
@@ -434,7 +465,7 @@ class CreationDialogManager : Listener {
             val actionButtons =
                 mutableListOf(
                     ActionButton.create(
-                        Component.text("進む", NamedTextColor.GREEN),
+                        lang.getComponent(player, "gui.creation.confirm.action_create"),
                         null,
                         100,
                         DialogAction.customClick(Key.key("mwm:creation/confirm_next"), null)
@@ -444,17 +475,25 @@ class CreationDialogManager : Listener {
             if (session.creationType == WorldCreationType.TEMPLATE) {
                 actionButtons.add(
                     ActionButton.create(
-                        Component.text("テンプレートをプレビュー", NamedTextColor.YELLOW),
+                        lang.getComponent(player, "gui.creation.confirm.action_preview"),
                         null,
                         200,
                         DialogAction.customClick(Key.key("mwm:creation/confirm_preview"), null)
+                    )
+                )
+                actionButtons.add(
+                    ActionButton.create(
+                        lang.getComponent(player, "gui.creation.confirm.change_template"),
+                        null,
+                        250,
+                        DialogAction.customClick(Key.key("mwm:creation/confirm_change_template"), null)
                     )
                 )
             }
 
             val backButton =
                 ActionButton.create(
-                    Component.text("戻る", NamedTextColor.GRAY),
+                    lang.getComponent(player, "gui.creation.confirm.change_name"),
                     null,
                     300,
                     DialogAction.customClick(Key.key("mwm:creation/confirm_back"), null)
@@ -485,11 +524,6 @@ class CreationDialogManager : Listener {
         ) {
             val cost = session.creationType?.let { WorldRuntimePolicies.creationCost(plugin.config, it) } ?: 0
 
-            // ポイント消費
-            val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-            stats.worldPoint -= cost
-            plugin.playerStatsRepository.save(stats)
-
             val name = session.worldName ?: "New World"
             if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, name) != null) {
                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
@@ -498,8 +532,8 @@ class CreationDialogManager : Listener {
 
             when (session.creationType) {
                 WorldCreationType.TEMPLATE -> {
-                    val templatePath = session.templateName ?: "skyblock"
-                    plugin.worldService.createWorld(templatePath, player.uniqueId, name, cost)
+                    val templateId = session.templateId ?: return
+                    plugin.worldService.createWorld(templateId, player.uniqueId, name, cost, session.billingMode)
                 }
                 WorldCreationType.SEED -> {
                     val seedStr = session.inputSeedString ?: ""
@@ -507,13 +541,20 @@ class CreationDialogManager : Listener {
                         player.uniqueId,
                         name,
                         seedStr,
-                        cost,
-                        session.spawnCoordinates,
-                        session.seedEnvironment
+                         cost,
+                         session.spawnCoordinates,
+                         session.seedEnvironment,
+                         session.billingMode
                     )
                 }
                 WorldCreationType.RANDOM -> {
-                    plugin.worldService.generateWorld(player.uniqueId, name, null, cost)
+                    plugin.worldService.generateWorld(
+                        player.uniqueId,
+                        name,
+                        null,
+                        cost,
+                        billingMode = session.billingMode
+                    )
                 }
                 else -> {}
             }

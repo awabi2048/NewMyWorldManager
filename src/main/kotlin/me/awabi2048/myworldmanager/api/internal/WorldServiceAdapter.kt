@@ -4,6 +4,10 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.service.ApiPortalSnapshot
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
+import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
+import me.awabi2048.myworldmanager.api.service.WorldOperationLease
+import me.awabi2048.myworldmanager.api.service.WorldOperation
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
@@ -12,6 +16,8 @@ import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.session.PreviewSessionManager
+import me.awabi2048.myworldmanager.session.PreviewSource
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Color
@@ -35,12 +41,30 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
     }
 
     override fun createFromTemplate(
-        templateName: String,
+        templateId: String,
         ownerUuid: UUID,
         worldName: String,
-        cost: Int
+        cost: Int,
+        billingMode: WorldPointBillingMode
     ): CompletableFuture<Boolean> {
-        return plugin.worldService.createWorld(templateName, ownerUuid, worldName, cost)
+        return plugin.worldService.createWorld(templateId, ownerUuid, worldName, cost, billingMode)
+    }
+
+    override fun createManagedWorld(request: ManagedWorldCreationRequest): CompletableFuture<Boolean> {
+        return plugin.worldService.createManagedWorld(request)
+    }
+
+    override fun previewTemplate(
+        player: Player,
+        templateId: String,
+        onReturn: () -> Unit
+    ): Boolean {
+        return plugin.previewSessionManager.startPreview(
+            player,
+            PreviewSessionManager.PreviewTarget.Template(templateId),
+            PreviewSource.EXTERNAL,
+            onReturn
+        )
     }
 
     override fun teleportToWorld(player: Player, worldUuid: UUID) {
@@ -78,8 +102,12 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         return File(File(plugin.dataFolder, "my_worlds"), "$worldUuid.yml")
     }
 
-    override fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
-        return plugin.worldService.unloadWorldForMaintenance(worldUuid, save)
+    override fun unloadWorldForMaintenance(
+        worldUuid: UUID,
+        save: Boolean,
+        lease: WorldOperationLease?
+    ): CompletableFuture<Boolean> {
+        return plugin.worldService.unloadWorldForMaintenance(worldUuid, save, lease)
     }
 
     override fun startWorldBorderExpansionSequence(
@@ -91,6 +119,16 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
     }
 
     override fun expandWorldBorder(worldUuid: UUID, direction: BlockFace?): Boolean {
+        val lease = me.awabi2048.myworldmanager.api.MyWorldManagerApi
+            .tryAcquireWorldOperation(worldUuid, WorldOperation.EXPAND) ?: return false
+        return try {
+            expandWorldBorderUnlocked(worldUuid, direction)
+        } finally {
+            lease.close()
+        }
+    }
+
+    private fun expandWorldBorderUnlocked(worldUuid: UUID, direction: BlockFace?): Boolean {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         val world = Bukkit.getWorld(getWorldFolderName(worldData)) ?: return false
         val border = world.worldBorder
@@ -146,7 +184,9 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         worldData.borderCenterPos = oldCenter
         worldData.borderExpansionLevel = record.levelBefore
         val removedCost = WorldRuntimePolicies.expansionCost(plugin.config, record.levelAfter)
-        worldData.cumulativePoints = (worldData.cumulativePoints - removedCost).coerceAtLeast(0)
+        if (me.awabi2048.myworldmanager.api.MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+            worldData.cumulativePoints = (worldData.cumulativePoints - removedCost).coerceAtLeast(0)
+        }
         val recordIndex = worldData.borderExpansionHistory.indexOfLast { it == record }
         if (recordIndex >= 0) {
             worldData.borderExpansionHistory.removeAt(recordIndex)

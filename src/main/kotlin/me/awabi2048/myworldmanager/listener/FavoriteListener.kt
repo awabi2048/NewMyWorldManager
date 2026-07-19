@@ -33,7 +33,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
         // GUI遷移中のクリックを無視
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
-            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
                 session.isGuiTransition = false
             } else {

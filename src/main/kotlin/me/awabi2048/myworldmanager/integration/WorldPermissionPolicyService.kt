@@ -106,8 +106,6 @@ class WorldPermissionPolicyService(
         val world = player.world
         world.setGameRule(org.bukkit.GameRules.MOB_GRIEFING, true)
         world.setGameRule(org.bukkit.GameRules.GLOBAL_SOUND_EVENTS, false)
-        // This replaces the former macro while keeping the cleanup scoped to MyWorld entry.
-        world.getEntitiesByClass(org.bukkit.entity.Shulker::class.java).forEach(org.bukkit.entity.Entity::remove)
     }
 
     private fun syncWorldGuardDomains(worldData: WorldData) {

@@ -76,22 +76,14 @@ class WorldCommand(
         when (args[0].lowercase()) {
             "migration" -> {
                 val action = args.getOrNull(1)?.lowercase()
-                if (action == "list") {
-                    val pending = plugin.worldMigrationService.reportPending(sender)
-                    if (pending.isEmpty()) sender.sendMessage(plugin.languageManager.getMessage("messages.migration.none_pending"))
-                    return true
+                when (action) {
+                    "execute" -> plugin.worldMigrationService.requestExecute(
+                        sender,
+                        confirmed = args.getOrNull(2).equals("confirm", ignoreCase = true)
+                    )
+                    "status" -> plugin.worldMigrationService.status(sender)
+                    else -> sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
                 }
-                val uuid = args.getOrNull(2)?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
-                if (uuid == null || action !in setOf("approve", "reject")) {
-                    sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
-                    return true
-                }
-                val handled = if (action == "approve") {
-                    plugin.worldMigrationService.approveAndLoad(uuid, sender)
-                } else {
-                    plugin.worldMigrationService.reject(uuid)
-                }
-                if (!handled) sender.sendMessage(plugin.languageManager.getMessage("messages.migration.not_found"))
                 return true
             }
             "create" -> {
@@ -118,14 +110,6 @@ class WorldCommand(
                     return true
                 }
 
-                // テンプレートのディレクトリ存在チェック
-                val missingTemplates = plugin.templateRepository.missingTemplates
-                if (missingTemplates.isNotEmpty()) {
-                    sender.sendMessage("§c[Error] 以下のテンプレートワールドのディレクトリが見つからないため、開始できません:")
-                    missingTemplates.forEach { sender.sendMessage("§c - $it") }
-                    return true
-                }
-
                 // テンプレートワールドのチャンクを事前読み込み
                 plugin.worldService.preloadTemplateChunks()
 
@@ -133,6 +117,7 @@ class WorldCommand(
 
                 // ウィザード開始
                 val session = sessionManager.startSession(targetPlayer.uniqueId)
+                session.extras[me.awabi2048.myworldmanager.gui.CreationGui.ADMIN_COMMAND_SESSION_KEY] = true
 
                 // JE は常にダイアログ入力、BE は FormUI 入力
                 session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(targetPlayer)
@@ -399,6 +384,9 @@ class WorldCommand(
                 if (hasWorldListPermission && canSuggestSubCommand(sender, "list", args.toList())) {
                     list.add("list")
                 }
+                if (hasGlobalPermission && canSuggestSubCommand(sender, "migration", args.toList())) {
+                    list.add("migration")
+                }
             }
             2 -> {
                 val sub = args[0].lowercase()
@@ -409,6 +397,8 @@ class WorldCommand(
                 }
                 if (createCompletion != null) {
                     list.addAll(createCompletion)
+                } else if (sub == "migration" && hasGlobalPermission) {
+                    list.addAll(listOf("execute", "status"))
                 } else if (((sub == "stats" && hasStatsPermission) ||
                     (sub == "create" && hasCreatePermission)) &&
                     canSuggestSubCommand(sender, sub, args.toList())
@@ -418,12 +408,18 @@ class WorldCommand(
             }
             3 -> {
                 val sub = args[0].lowercase()
-                if (sub == "stats" && hasStatsPermission) {
+                if (sub == "stats" &&
+                    hasStatsPermission &&
+                    canSuggestSubCommand(sender, sub, args.toList())
+                ) {
                     list.addAll(listOf("points", "warp-slots", "world-slots"))
                 }
             }
             4 -> {
-                if (args[0].lowercase() == "stats" && hasStatsPermission) {
+                if (args[0].lowercase() == "stats" &&
+                    hasStatsPermission &&
+                    canSuggestSubCommand(sender, "stats", args.toList())
+                ) {
                     list.addAll(listOf("get", "set", "add", "remove"))
                 }
             }

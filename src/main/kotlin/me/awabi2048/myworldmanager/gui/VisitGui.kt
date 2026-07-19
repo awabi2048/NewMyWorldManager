@@ -92,6 +92,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                         inventory.setItem(layout.nextPageSlot, GuiHelper.createNextPageItem(plugin, player, "visit", currentPage + 1))
                 }
 
+                GuiItemFactory.fillEmpty(inventory)
                 player.openInventory(inventory)
         }
 

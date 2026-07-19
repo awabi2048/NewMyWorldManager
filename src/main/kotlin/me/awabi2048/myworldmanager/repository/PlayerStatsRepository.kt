@@ -5,6 +5,11 @@ import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
+import java.nio.channels.FileChannel
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -42,9 +47,30 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
     /**
      * プレイヤーの統計情報を保存する。
      */
+    @Synchronized
     fun save(stats: PlayerStats) {
-        cache[stats.playerUuid] = stats
-        saveToFile(stats)
+        try {
+            saveToFile(stats)
+            cache[stats.playerUuid] = stats
+        } catch (e: Exception) {
+            loadFromFile(stats.playerUuid)?.let { cache[stats.playerUuid] = it }
+                ?: cache.remove(stats.playerUuid)
+            throw e
+        }
+    }
+
+    @Synchronized
+    fun adjustWorldPoints(uuid: UUID, delta: Int): PlayerStats {
+        val stats = findByUuid(uuid)
+        val previous = stats.worldPoint
+        stats.worldPoint = Math.addExact(previous, delta)
+        return try {
+            save(stats)
+            stats
+        } catch (e: Exception) {
+            stats.worldPoint = previous
+            throw e
+        }
     }
 
     private fun loadFromFile(uuid: UUID): PlayerStats? {
@@ -133,6 +159,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
 
     private fun saveToFile(stats: PlayerStats) {
         val file = File(statsFolder, "${stats.playerUuid}.yml")
+        val temporary = File(statsFolder, "${stats.playerUuid}.yml.tmp")
         val config = YamlConfiguration()
 
         config.set("world_point", stats.worldPoint)
@@ -167,9 +194,30 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         }
 
         try {
-            config.save(file)
+            config.save(temporary)
+            FileChannel.open(temporary.toPath(), StandardOpenOption.WRITE).use { it.force(true) }
+            val verified = YamlConfiguration.loadConfiguration(temporary)
+            check(verified.getInt("world_point") == stats.worldPoint) {
+                "Temporary player stats verification failed for ${stats.playerUuid}"
+            }
+            try {
+                Files.move(
+                    temporary.toPath(),
+                    file.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE
+                )
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(
+                    temporary.toPath(),
+                    file.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING
+                )
+            }
         } catch (e: Exception) {
+            temporary.delete()
             plugin.logger.severe("Could not save player stats for ${stats.playerUuid}: ${e.message}")
+            throw IllegalStateException("Could not save player stats for ${stats.playerUuid}", e)
         }
     }
     

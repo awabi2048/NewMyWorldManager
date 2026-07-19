@@ -60,9 +60,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
                 val currentPage = page ?: session.currentPage
                 session.currentPage = currentPage
-                if (session.sortBy == AdminSortType.EXPIRE_ASC || session.sortBy == AdminSortType.EXPIRE_DESC) {
-                        session.sortBy = AdminSortType.CREATED_DESC
-                }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         player.uniqueId,
@@ -1032,7 +1029,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
+                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta
@@ -1064,7 +1061,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
+                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta
@@ -1130,8 +1127,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 meta.displayName(lang.getComponent(player, "gui.admin.sort.display"))
 
                 var sortTypes = AdminSortType.values()
-                        .filter { it != AdminSortType.EXPIRE_ASC && it != AdminSortType.EXPIRE_DESC }
-                        .toTypedArray()
                 if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
                         sortTypes =
                                 sortTypes.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()
@@ -1153,7 +1148,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
+                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta

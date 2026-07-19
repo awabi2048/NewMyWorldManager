@@ -100,14 +100,15 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
         applyScale(entity, worldData.fixedScale)
     }
 
-    fun applyFlight(player: Player, worldName: String) {
-        val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
-        applyFlight(player, worldData?.allowFlight ?: true)
+    fun applyFlight(player: Player, worldName: String): Boolean {
+        val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return false
+        applyFlight(player, worldData.allowFlight)
+        return true
     }
 
-    fun computeFlightAllowed(player: Player, worldName: String): Boolean {
+    fun computeFlightAllowed(player: Player, worldName: String): Boolean? {
         if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return true
-        return plugin.worldConfigRepository.findByWorldName(worldName)?.allowFlight ?: true
+        return plugin.worldConfigRepository.findByWorldName(worldName)?.allowFlight
     }
 
     private fun applyWeather(world: World, worldData: WorldData) {

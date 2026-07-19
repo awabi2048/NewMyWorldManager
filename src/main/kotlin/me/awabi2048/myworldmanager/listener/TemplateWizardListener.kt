@@ -13,6 +13,7 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.TemplateWizardGui
+import me.awabi2048.myworldmanager.model.TemplateData
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -69,13 +70,17 @@ class TemplateWizardListener : Listener {
                     plugin.templateWizardGui.open(player)
                     return
                 }
-                player.sendMessage("§e[MyWorldManager] アイコンにしたいアイテムを持ってクリックしてください。")
+                player.sendMessage(lang.getMessage(player, "messages.template_wizard_icon_help"))
             }
 
             "origin_set" -> {
                 plugin.soundManager.playClickSound(player, currentItem)
-                session.originLocation = player.location
-                player.sendMessage("§a現在位置を原点に設定しました。")
+                if (player.world.name != session.sourceWorldName) {
+                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_source_changed"))
+                    return
+                }
+                session.originLocation = player.location.clone()
+                player.sendMessage(lang.getMessage(player, "messages.template_wizard_spawn_set"))
                 plugin.templateWizardGui.open(player)
             }
 
@@ -84,35 +89,67 @@ class TemplateWizardListener : Listener {
 
                 val templateId = session.id
                 if (templateId.isEmpty()) {
-                    player.sendMessage("§cIDが設定されていません。")
+                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_missing"))
+                    return
+                }
+                val origin = session.originLocation
+                if (origin == null || origin.world?.name != session.sourceWorldName) {
+                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_source_changed"))
+                    return
+                }
+                if (plugin.templateRepository.findById(templateId) != null) {
+                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_exists"))
                     return
                 }
 
-                val config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(java.io.File(plugin.dataFolder, "templates.yml"))
-                val key = templateId
+                plugin.templateRepository.saveTemplate(
+                    TemplateData(
+                        id = templateId,
+                        path = session.sourceWorldName,
+                        name = session.name,
+                        description = session.description,
+                        icon = session.icon,
+                        originLocation = origin.clone()
+                    )
+                )
 
-                if (config.contains(key)) {
-                    player.sendMessage("§cそのIDは既に存在します。")
-                    return
-                }
-
-                config.set("$key.name", session.name)
-                config.set("$key.description", session.description)
-                config.set("$key.icon", session.icon.name)
-                config.set("$key.path", player.world.name)
-
-                val loc = session.originLocation!!
-                config.set("$key.origin.x", loc.blockX)
-                config.set("$key.origin.y", loc.blockY)
-                config.set("$key.origin.z", loc.blockZ)
-                config.set("$key.cost", 0)
-
-                config.save(java.io.File(plugin.dataFolder, "templates.yml"))
-
-                player.sendMessage("§aテンプレート「$key」を登録しました！")
+                player.sendMessage(
+                    lang.getMessage(
+                        player,
+                        "messages.wizard_registered",
+                        mapOf("template" to templateId)
+                    )
+                )
                 player.closeInventory()
                 plugin.templateWizardGui.removeSession(player.uniqueId)
                 plugin.templateRepository.loadTemplates()
+            }
+
+            "wizard_cancel" -> {
+                plugin.templateWizardGui.removeSession(player.uniqueId)
+                player.closeInventory()
+                player.sendMessage(lang.getMessage(player, "messages.operation_cancelled"))
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    plugin.adminCommandGui.open(player)
+                })
+            }
+
+            "wizard_validate" -> {
+                val valid =
+                    session.id.isNotEmpty() &&
+                        session.name.isNotEmpty() &&
+                        session.originLocation?.world?.name == session.sourceWorldName
+                player.sendMessage(
+                    lang.getMessage(
+                        player,
+                        if (valid) {
+                            "messages.template_wizard_validation_success"
+                        } else {
+                            "messages.template_wizard_validation_failed"
+                        }
+                    )
+                )
+                plugin.templateWizardGui.open(player)
             }
         }
     }
@@ -345,7 +382,7 @@ class TemplateWizardListener : Listener {
         input: String
     ) {
         if (input.isEmpty()) {
-            player.sendMessage("§cテンプレート名を入力してください。")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.template_wizard_name_required"))
             openTemplateNameInput(plugin, player, session)
             return
         }
@@ -355,7 +392,13 @@ class TemplateWizardListener : Listener {
         if (session.id.isEmpty()) {
             session.id = "tpl_" + java.util.UUID.randomUUID().toString().substring(0, 8)
         }
-        player.sendMessage("§aテンプレート名を設定しました: ${session.name} (ID: ${session.id})")
+        player.sendMessage(
+            plugin.languageManager.getMessage(
+                player,
+                "messages.template_wizard_name_set",
+                mapOf("name" to session.name, "id" to session.id)
+            )
+        )
         plugin.templateWizardGui.open(player)
     }
 
@@ -366,7 +409,7 @@ class TemplateWizardListener : Listener {
         input: String
     ) {
         session.description = if (input.isEmpty()) emptyList() else listOf(input)
-        player.sendMessage("§a説明文を設定しました。")
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.template_wizard_description_set"))
         plugin.templateWizardGui.open(player)
     }
 }

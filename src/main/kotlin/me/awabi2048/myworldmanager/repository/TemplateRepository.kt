@@ -7,6 +7,11 @@ import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 
 class TemplateRepository(private val plugin: MyWorldManager) {
+    enum class ValidationIssue {
+        MISSING_DIRECTORY,
+        MISSING_ORIGIN
+    }
+
     private val templates = mutableMapOf<String, TemplateData>()
     val missingTemplates = mutableListOf<String>()
     private val configFile = File(plugin.dataFolder, "templates.yml")
@@ -37,49 +42,61 @@ class TemplateRepository(private val plugin: MyWorldManager) {
             val iconStr = section.getString("icon") ?: "PAPER"
             val icon = Material.matchMaterial(iconStr) ?: Material.PAPER
             
-            // Validate path
+            val originStr = section.getString("origin_location")
+            var originLocation: org.bukkit.Location? = null
+            if (originStr != null) {
+                val parts = originStr.split(",").map { it.trim() }
+                if (parts.size >= 3) {
+                    try {
+                        val x = parts[0].toDouble()
+                        val y = parts[1].toDouble()
+                        val z = parts[2].toDouble()
+                        // Worldはロード時に設定されるため、ここではnullのままLocationを作成
+                        // x, zはブロック中心(+0.5)に合わせる
+                        originLocation = org.bukkit.Location(null, x + 0.5, y, z + 0.5)
+                    } catch (e: Exception) {
+                        plugin.logger.warning("Template '$key' has an invalid origin_location format: $originStr")
+                    }
+                }
+            }
+
             val templateDir = plugin.worldDirectoryResolver.inspect(path)?.existingPath?.toFile()
             if (templateDir == null || !templateDir.exists() || !templateDir.isDirectory) {
                 missingTemplates.add(key)
-            } else {
-                val originStr = section.getString("origin_location")
-                var originLocation: org.bukkit.Location? = null
-                if (originStr != null) {
-                    val parts = originStr.split(",").map { it.trim() }
-                    if (parts.size >= 3) {
-                        try {
-                            val x = parts[0].toDouble()
-                            val y = parts[1].toDouble()
-                            val z = parts[2].toDouble()
-                            // Worldはロード時に設定されるため、ここではnullのままLocationを作成
-                            // x, zはブロック中心(+0.5)に合わせる
-                            originLocation = org.bukkit.Location(null, x + 0.5, y, z + 0.5)
-                        } catch (e: Exception) {
-                            plugin.logger.warning("Template '$key' has an invalid origin_location format: $originStr")
-                        }
-                    }
-                }
-
-                val previewTime = if (section.contains("preview_time")) section.getLong("preview_time") else null
-                val previewWeather = section.getString("preview_weather")
-
-                templates[key] = TemplateData(
-                    id = key,
-                    path = path,
-                    name = name,
-                    description = description,
-                    icon = icon,
-                    originLocation = originLocation,
-                    previewTime = previewTime,
-                    previewWeather = previewWeather
-                )
             }
+
+            val previewTime = if (section.contains("preview_time")) section.getLong("preview_time") else null
+            val previewWeather = section.getString("preview_weather")
+
+            templates[key] = TemplateData(
+                id = key,
+                path = path,
+                name = name,
+                description = description,
+                icon = icon,
+                originLocation = originLocation,
+                previewTime = previewTime,
+                previewWeather = previewWeather
+            )
         }
     }
 
     fun findAll(): List<TemplateData> = templates.values.toList()
 
     fun findById(id: String): TemplateData? = templates[id]
+
+    fun validationIssue(template: TemplateData): ValidationIssue? {
+        val templateDir = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
+        if (templateDir == null || !templateDir.exists() || !templateDir.isDirectory) {
+            return ValidationIssue.MISSING_DIRECTORY
+        }
+        if (template.originLocation == null) {
+            return ValidationIssue.MISSING_ORIGIN
+        }
+        return null
+    }
+
+    fun isUsable(template: TemplateData): Boolean = validationIssue(template) == null
 
     fun saveTemplate(template: TemplateData) {
         templates[template.id] = template

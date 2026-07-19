@@ -17,6 +17,7 @@ object ItemTag {
     val TARGET_PAGE = NamespacedKey("myworldmanager", "target_page")
     val BIOME_ID = NamespacedKey("myworldmanager", "biome_id")
     val EXTENSION_ID = NamespacedKey("myworldmanager", "extension_id")
+    val TEMPLATE_ID = NamespacedKey("myworldmanager", "template_id")
 
     // Types
     const val TYPE_PORTAL = "portal"
@@ -52,6 +53,9 @@ object ItemTag {
     const val TYPE_GUI_CREATION_TYPE_SEED = "gui_creation_type_seed"
     const val TYPE_GUI_CREATION_TYPE_RANDOM = "gui_creation_type_random"
     const val TYPE_GUI_CREATION_TEMPLATE_ITEM = "gui_creation_template_item"
+    const val TYPE_GUI_CREATION_TEMPLATE_USE = "gui_creation_template_use"
+    const val TYPE_GUI_CREATION_TEMPLATE_PREVIEW = "gui_creation_template_preview"
+    const val TYPE_GUI_CREATION_TEMPLATE_CHANGE = "gui_creation_template_change"
     const val TYPE_GUI_CREATION_SPAWN_LOCATION = "gui_creation_spawn_location"
     const val TYPE_GUI_CREATION_DIMENSION = "gui_creation_dimension"
     const val TYPE_GUI_MEMBER_ITEM = "gui_member_item"
@@ -177,6 +181,17 @@ object ItemTag {
         val meta = item.itemMeta ?: return null
         return meta.persistentDataContainer.get(ITEM_TYPE, PersistentDataType.STRING)
     }
+
+    @JvmStatic
+    fun setTemplateId(item: ItemStack, templateId: String) {
+        val meta = item.itemMeta ?: return
+        meta.persistentDataContainer.set(TEMPLATE_ID, PersistentDataType.STRING, templateId)
+        item.itemMeta = meta
+    }
+
+    @JvmStatic
+    fun getTemplateId(item: ItemStack): String? =
+        item.itemMeta?.persistentDataContainer?.get(TEMPLATE_ID, PersistentDataType.STRING)
 
     @JvmStatic
     fun isType(item: ItemStack, type: String): Boolean {
