@@ -9,7 +9,7 @@ enum class MwmMemberAddSource {
     INVITE,
     REQUEST_APPROVE,
     FORCE_ADD,
-    PASSWORD
+    EXTERNAL
 }
 
 enum class MwmMemberRemoveSource {

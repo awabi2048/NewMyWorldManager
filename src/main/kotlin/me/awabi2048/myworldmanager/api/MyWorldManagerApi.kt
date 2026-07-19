@@ -47,6 +47,7 @@ import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import org.bukkit.Location
 import org.bukkit.OfflinePlayer
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 object MyWorldManagerApi {
@@ -502,7 +503,19 @@ object MyWorldManagerApi {
         player: Player,
         session: me.awabi2048.myworldmanager.session.WorldCreationSession
     ): Boolean {
-        return creationConfirmationMenuProviders.asReversed().any { it.open(player, session) }
+        for (provider in creationConfirmationMenuProviders.asReversed()) {
+            val handled = runCatching { provider.open(player, session) }
+                .onFailure { error ->
+                    Bukkit.getLogger().log(
+                        java.util.logging.Level.SEVERE,
+                        "Creation confirmation provider '${provider.getId()}' failed; using the next provider or MWM fallback.",
+                        error
+                    )
+                }
+                .getOrDefault(false)
+            if (handled) return true
+        }
+        return false
     }
 
     @JvmStatic

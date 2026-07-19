@@ -1982,7 +1982,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 } else {
                         val onlineLabel = lang.getMessage(viewer, "gui.member_management.item.last_online_label")
-                        val lastOnline = stats.lastOnline ?: lang.getMessage(viewer, "general.unknown")
+                        val lastOnline = stats.lastOnline
+                                ?.let { formatStoredDateTimeForPlayer(viewer, it) }
+                                ?: lang.getMessage(viewer, "general.unknown")
                         itemLore += GuiLoreLine.Data(onlineLabel, lastOnline, "§f")
                 }
                 itemLore += GuiLoreLine.Data(lang.getMessage(viewer, "gui.member_management.item.role_label"), role, "§f")
@@ -2073,6 +2075,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 } else {
                         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 }
+        }
+
+        private fun formatStoredDateTimeForPlayer(player: Player, stored: String): String {
+                val parsed = runCatching {
+                        java.time.LocalDateTime.parse(
+                                stored,
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        )
+                }.getOrNull() ?: return stored
+                return parsed.format(pendingInviteDateTimeFormatterFor(player))
         }
 
         fun openVisitorManagement(player: Player, worldData: WorldData, page: Int = 0) {

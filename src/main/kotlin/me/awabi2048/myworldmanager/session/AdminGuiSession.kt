@@ -101,8 +101,6 @@ class AdminGuiSessionManager {
     fun cycleSortType(playerUuid: UUID, reverse: Boolean = false) {
         val session = getSession(playerUuid)
         var values = AdminSortType.values()
-            .filter { it != AdminSortType.EXPIRE_ASC && it != AdminSortType.EXPIRE_DESC }
-            .toTypedArray()
         
         // Chiyogamiが有効でない場合はMSPTソートを除外
         if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {

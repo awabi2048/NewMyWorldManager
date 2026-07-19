@@ -7,6 +7,9 @@ import org.bukkit.configuration.file.FileConfiguration
 import kotlin.math.pow
 
 object WorldRuntimePolicies {
+    fun isExpirationArchiveEnabled(): Boolean =
+        MyWorldManagerApi.getWorldRuntimePolicy().isExpirationArchiveEnabled()
+
     fun creationCost(config: FileConfiguration, type: WorldCreationType): Int {
         val configured = when (type) {
             WorldCreationType.TEMPLATE -> config.getInt("creation_cost.template", 0)

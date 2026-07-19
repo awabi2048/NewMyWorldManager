@@ -1295,8 +1295,8 @@ class WorldService(
             repository.save(worldData)
             updatedCount++
 
-            // 期限切れワールドのアーカイブ
-            if (!worldData.isArchived) {
+            // 期限切れワールドのアーカイブ（訪問統計等の日次処理とは独立して抑止可能）
+            if (WorldRuntimePolicies.isExpirationArchiveEnabled() && !worldData.isArchived) {
                 try {
                     val expireDate = java.time.LocalDate.parse(worldData.expireDate, dateFormatter)
                     if (expireDate.isBefore(today)) {

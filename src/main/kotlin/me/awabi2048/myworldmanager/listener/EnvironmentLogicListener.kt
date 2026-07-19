@@ -28,7 +28,9 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
             plugin.worldEnvironmentService.applyFlight(player, player.world.name)
         }
         val currentAllow = plugin.worldEnvironmentService.computeFlightAllowed(player, player.world.name)
-        notifyFlightChange(player, previousAllow, currentAllow)
+        if (previousAllow != null && currentAllow != null) {
+            notifyFlightChange(player, previousAllow, currentAllow)
+        }
     }
 
     @EventHandler

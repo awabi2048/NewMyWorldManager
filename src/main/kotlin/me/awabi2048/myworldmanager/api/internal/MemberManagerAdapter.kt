@@ -27,7 +27,9 @@ internal class MemberManagerAdapter(private val plugin: MyWorldManager) : ApiMem
         player: Player,
         worldUuid: UUID,
         addedByUuid: UUID?,
-        source: MwmMemberAddSource
+        source: MwmMemberAddSource,
+        providerId: String?,
+        detail: String?
     ): Boolean {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         if (worldData.owner == player.uniqueId ||
@@ -45,7 +47,9 @@ internal class MemberManagerAdapter(private val plugin: MyWorldManager) : ApiMem
                 memberUuid = player.uniqueId,
                 memberName = player.name,
                 addedByUuid = addedByUuid,
-                source = source
+                source = source,
+                providerId = providerId,
+                detail = detail
             )
         )
         plugin.macroManager.execute("on_member_add", mapOf(

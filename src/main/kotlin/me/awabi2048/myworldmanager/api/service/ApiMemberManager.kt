@@ -10,5 +10,12 @@ interface ApiMemberManager {
     fun addInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): MemberInviteInfo
     fun acceptInvite(player: Player, decisionId: UUID?)
     fun sendRequest(requestor: Player, worldUuid: UUID)
-    fun addMemberDirect(player: Player, worldUuid: UUID, addedByUuid: UUID?, source: MwmMemberAddSource): Boolean
+    fun addMemberDirect(
+        player: Player,
+        worldUuid: UUID,
+        addedByUuid: UUID?,
+        source: MwmMemberAddSource,
+        providerId: String? = null,
+        detail: String? = null
+    ): Boolean
 }

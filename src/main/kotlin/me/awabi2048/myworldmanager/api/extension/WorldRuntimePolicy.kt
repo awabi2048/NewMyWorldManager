@@ -9,6 +9,9 @@ interface WorldRuntimePolicy {
     /** ワールドスロットとWorld Seedを運用上利用できるか。 */
     fun isWorldSlotSystemEnabled(): Boolean = true
 
+    /** MWM標準の期限判定と自動アーカイブを実行するか。 */
+    fun isExpirationArchiveEnabled(): Boolean = true
+
     fun getCreationCost(type: WorldCreationType, configuredCost: Int): Int = configuredCost
 
     fun getMaxCreateCountDefault(configuredLimit: Int): Int = configuredLimit

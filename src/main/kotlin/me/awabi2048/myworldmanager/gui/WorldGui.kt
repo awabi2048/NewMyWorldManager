@@ -60,9 +60,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
                 val currentPage = page ?: session.currentPage
                 session.currentPage = currentPage
-                if (session.sortBy == AdminSortType.EXPIRE_ASC || session.sortBy == AdminSortType.EXPIRE_DESC) {
-                        session.sortBy = AdminSortType.CREATED_DESC
-                }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         player.uniqueId,
@@ -1130,8 +1127,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 meta.displayName(lang.getComponent(player, "gui.admin.sort.display"))
 
                 var sortTypes = AdminSortType.values()
-                        .filter { it != AdminSortType.EXPIRE_ASC && it != AdminSortType.EXPIRE_DESC }
-                        .toTypedArray()
                 if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
                         sortTypes =
                                 sortTypes.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()
