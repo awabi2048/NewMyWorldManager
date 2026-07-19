@@ -128,6 +128,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         plugin.creationGui.openTemplateSelection(player)
                     }
                     ItemTag.TYPE_GUI_CREATION_TYPE_SEED -> {
+                        if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) return
                         plugin.soundManager.playClickSound(player, currentItem)
                         session.creationType = WorldCreationType.SEED
                         session.phase = WorldCreationPhase.SEED_INPUT

@@ -7,8 +7,6 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.CreationConfirmationLayout
-import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
@@ -59,12 +57,19 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         setupHeaderFooter(inventory, 5)
 
-        me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceItems(
-            inventory,
-            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE),
-            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
-            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM)
-        )
+        val templateItem = createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE)
+        val randomItem = createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM)
+        if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+            me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceItems(
+                inventory,
+                templateItem,
+                createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
+                randomItem
+            )
+        } else {
+            inventory.setItem(layout.leftSlot, templateItem)
+            inventory.setItem(layout.rightSlot, randomItem)
+        }
 
         me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
 
@@ -294,6 +299,9 @@ class CreationGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
+        if (MyWorldManagerApi.openCreationConfirmationMenuOverride(player, session)) {
+            return
+        }
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
 
@@ -303,21 +311,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         holder.inv = inventory
 
         me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
-
-        val layout = CreationConfirmationLayout()
-        val context = MenuExtensionContext(
-            "creation_confirm",
-            mutableMapOf(
-                "session" to session,
-                "worldName" to cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown")),
-                "creationType" to session.creationType,
-                "layout" to layout
-            )
-        )
-        // アドオンには作成処理を渡さず、コア項目と競合する表示位置だけを事前調整させる。
-        MyWorldManagerApi.getMenuExtensions().forEach { extension ->
-            extension.onPrepare(context)
-        }
 
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
         val generationLine: GuiLoreLine = when (session.creationType) {
@@ -441,7 +434,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 )
             )
             inventory.setItem(
-                layout.spawnLocationSlot,
+                SEED_SPAWN_LOCATION_SLOT,
                 createItem(
                     Material.COMPASS,
                     lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
@@ -477,10 +470,6 @@ class CreationGui(private val plugin: MyWorldManager) {
                     GuiLoreSpec.None
                 )
             )
-        }
-
-        MyWorldManagerApi.getMenuExtensions().forEach { extension ->
-            extension.onRender(inventory, player, context)
         }
 
         player.openInventory(inventory)
@@ -588,6 +577,7 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     companion object {
         const val SEED_DIMENSION_SLOT = 39
+        const val SEED_SPAWN_LOCATION_SLOT = 40
     }
 
     class CreationGuiHolder(val menuType: CreationMenuType) : InventoryHolder {

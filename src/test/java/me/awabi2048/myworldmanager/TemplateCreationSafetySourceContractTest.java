@@ -71,5 +71,22 @@ class TemplateCreationSafetySourceContractTest {
         assertTrue(source.contains("gui.creation.type.remaining_points_label"));
         assertTrue(source.contains("gui.creation.confirm.current_points_label"));
         assertTrue(source.contains("if (MyWorldManagerApi.isWorldPointEconomyEnabled())"));
+        assertTrue(source.contains("if (MyWorldManagerApi.isWorldSlotSystemEnabled())"));
+    }
+
+    @Test
+    void addonOwnedConfirmationUsesAFullMenuProvider() throws Exception {
+        String apiSource = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/api/MyWorldManagerApi.kt"
+        ));
+        String guiSource = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.kt"
+        ));
+
+        assertTrue(apiSource.contains("registerCreationConfirmationMenuProvider"));
+        assertTrue(apiSource.contains("unregisterCreationConfirmationMenuProvider"));
+        assertTrue(guiSource.contains("openCreationConfirmationMenuOverride(player, session)"));
+        assertFalse(guiSource.contains("CreationConfirmationLayout"));
+        assertTrue(guiSource.contains("const val SEED_SPAWN_LOCATION_SLOT = 40"));
     }
 }

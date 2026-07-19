@@ -11,6 +11,7 @@ import me.awabi2048.myworldmanager.api.extension.FavoriteMenuProvider
 import me.awabi2048.myworldmanager.api.extension.MenuExtension
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
+import me.awabi2048.myworldmanager.api.extension.CreationConfirmationMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
@@ -71,6 +72,7 @@ object MyWorldManagerApi {
     private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
     private val adminMenuProviders = CopyOnWriteArrayList<AdminMenuProvider>()
     private val playerWorldMenuProviders = CopyOnWriteArrayList<PlayerWorldMenuProvider>()
+    private val creationConfirmationMenuProviders = CopyOnWriteArrayList<CreationConfirmationMenuProvider>()
     private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
     private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
@@ -480,6 +482,27 @@ object MyWorldManagerApi {
     @JvmStatic
     fun openPlayerWorldMenuOverride(player: Player, request: PlayerWorldMenuRequest): Boolean {
         return playerWorldMenuProviders.asReversed().any { it.open(player, request) }
+    }
+
+    @JvmStatic
+    fun registerCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
+        creationConfirmationMenuProviders.removeIf { it.getId() == provider.getId() }
+        creationConfirmationMenuProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
+        creationConfirmationMenuProviders.removeIf {
+            it === provider || it.getId() == provider.getId()
+        }
+    }
+
+    @JvmStatic
+    fun openCreationConfirmationMenuOverride(
+        player: Player,
+        session: me.awabi2048.myworldmanager.session.WorldCreationSession
+    ): Boolean {
+        return creationConfirmationMenuProviders.asReversed().any { it.open(player, session) }
     }
 
     @JvmStatic
