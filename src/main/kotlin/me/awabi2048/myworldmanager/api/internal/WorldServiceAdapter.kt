@@ -12,6 +12,8 @@ import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.session.PreviewSessionManager
+import me.awabi2048.myworldmanager.session.PreviewSource
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Color
@@ -35,12 +37,25 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
     }
 
     override fun createFromTemplate(
-        templateName: String,
+        templateId: String,
         ownerUuid: UUID,
         worldName: String,
         cost: Int
     ): CompletableFuture<Boolean> {
-        return plugin.worldService.createWorld(templateName, ownerUuid, worldName, cost)
+        return plugin.worldService.createWorld(templateId, ownerUuid, worldName, cost)
+    }
+
+    override fun previewTemplate(
+        player: Player,
+        templateId: String,
+        onReturn: () -> Unit
+    ): Boolean {
+        return plugin.previewSessionManager.startPreview(
+            player,
+            PreviewSessionManager.PreviewTarget.Template(templateId),
+            PreviewSource.EXTERNAL,
+            onReturn
+        )
     }
 
     override fun teleportToWorld(player: Player, worldUuid: UUID) {

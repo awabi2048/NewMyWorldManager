@@ -13,4 +13,9 @@ internal class TemplateRepositoryAdapter(private val plugin: MyWorldManager) : A
     override fun findById(id: String): TemplateData? {
         return plugin.templateRepository.findById(id)
     }
+
+    override fun isUsable(id: String): Boolean {
+        val template = plugin.templateRepository.findById(id) ?: return false
+        return plugin.templateRepository.isUsable(template)
+    }
 }

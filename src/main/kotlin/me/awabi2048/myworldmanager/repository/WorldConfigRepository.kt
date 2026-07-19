@@ -5,6 +5,10 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.StandardCopyOption
 import java.util.Locale
 import java.util.UUID
 
@@ -33,6 +37,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         for (file in files) {
             try {
                 val uuid = UUID.fromString(file.nameWithoutExtension)
+                migrateMissingWorldKey(file, uuid)
                 val worldData = loadWorldData(file)
                 if (worldData != null) {
                     cache[uuid] = worldData
@@ -163,6 +168,41 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         // ConfigurationSerialization.registerClass(WorldData::class.java) はメインクラスで行う必要がある
         val worldData = config.get("world_data") as? WorldData ?: return null
         return worldData
+    }
+
+    /**
+     * Paper 26移行前の保存データへ、通常のデシリアライズより前に永続識別子を追加する。
+     * deserialize側へ旧形式の読み替えを残さず、移行したファイルだけを通常経路へ渡す。
+     */
+    private fun migrateMissingWorldKey(file: File, uuid: UUID) {
+        val lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)
+        val migrated = WorldKeyYamlMigration.migrate(lines, uuid) ?: return
+
+        val backup = File(file.parentFile, "${file.name}.pre-world-key-migration.bak")
+        if (!backup.exists()) {
+            Files.copy(file.toPath(), backup.toPath())
+        }
+        val temporary = File(file.parentFile, "${file.name}.world-key-migration.tmp")
+        Files.write(
+            temporary.toPath(),
+            (migrated.joinToString(System.lineSeparator()) + System.lineSeparator())
+                .toByteArray(StandardCharsets.UTF_8)
+        )
+        try {
+            Files.move(
+                temporary.toPath(),
+                file.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE
+            )
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(
+                temporary.toPath(),
+                file.toPath(),
+                StandardCopyOption.REPLACE_EXISTING
+            )
+        }
+        plugin.logger.info("旧ワールドデータをworld_key形式へ移行しました: ${file.name}")
     }
 
     private fun restoreCacheFromDisk(uuid: UUID) {

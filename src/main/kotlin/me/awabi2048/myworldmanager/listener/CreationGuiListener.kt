@@ -74,6 +74,10 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     session.phase = WorldCreationPhase.TYPE_SELECT
                     plugin.creationGui.openTypeSelection(player)
                 }
+                WorldCreationPhase.TEMPLATE_DETAIL -> {
+                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                    plugin.creationGui.openTemplateSelection(player)
+                }
                 WorldCreationPhase.CONFIRM -> {
                     session.phase = WorldCreationPhase.NAME_INPUT
                     player.closeInventory()
@@ -157,38 +161,32 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             }
             WorldCreationPhase.TEMPLATE_SELECT -> {
                 if (tag != ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM) return
-                val displayName =
-                        PlainTextComponentSerializer.plainText()
-                                .serialize(currentItem.itemMeta.displayName()!!)
-                val template = plugin.templateRepository.findAll().find { it.name == displayName }
-
-                if (template != null) {
-                    // 右クリックでプレビュー
-                    if (event.isRightClick) {
-                        player.closeInventory()
-                        val target = PreviewSessionManager.PreviewTarget.Template(template.path)
-                        plugin.previewSessionManager.startPreview(
-                                player,
-                                target,
-                                me.awabi2048.myworldmanager.session.PreviewSource.TEMPLATE_SELECTION
-                        )
-                        return
-                    }
-
-                    // 左クリックで選択確定
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    session.templateName = template.path
-                    
-                    if (session.isDialogMode) {
+                val templateId = ItemTag.getTemplateId(currentItem) ?: return
+                val template = plugin.templateRepository.findById(templateId) ?: return
+                plugin.soundManager.playClickSound(player, currentItem)
+                session.templateId = template.id
+                session.phase = WorldCreationPhase.TEMPLATE_DETAIL
+                plugin.creationGui.openTemplateDetail(player, session)
+            }
+            WorldCreationPhase.TEMPLATE_DETAIL -> {
+                when (tag) {
+                    ItemTag.TYPE_GUI_CREATION_TEMPLATE_USE -> {
+                        val template = session.templateId?.let(plugin.templateRepository::findById) ?: return
+                        if (!plugin.templateRepository.isUsable(template)) return
+                        plugin.soundManager.playClickSound(player, currentItem)
                         session.phase = WorldCreationPhase.NAME_INPUT
                         player.closeInventory()
-                        me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
-                        return
+                        openNameInputByPlatform(player, session)
                     }
-                    
-                    session.phase = WorldCreationPhase.NAME_INPUT
-                    player.closeInventory()
-                    openNameInputByPlatform(player, session)
+                    ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW -> {
+                        val templateId = session.templateId ?: return
+                        player.closeInventory()
+                        plugin.previewSessionManager.startPreview(
+                            player,
+                            PreviewSessionManager.PreviewTarget.Template(templateId),
+                            PreviewSource.TEMPLATE_DETAIL
+                        )
+                    }
                 }
             }
             WorldCreationPhase.CONFIRM -> {
@@ -213,6 +211,21 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     session.phase = WorldCreationPhase.SPAWN_INPUT
                     player.closeInventory()
                     openSpawnInputByPlatform(player, session)
+                } else if (tag == ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW &&
+                    session.creationType == WorldCreationType.TEMPLATE
+                ) {
+                    val templateId = session.templateId ?: return
+                    player.closeInventory()
+                    plugin.previewSessionManager.startPreview(
+                        player,
+                        PreviewSessionManager.PreviewTarget.Template(templateId),
+                        PreviewSource.CREATION_CONFIRM
+                    )
+                } else if (tag == ItemTag.TYPE_GUI_CREATION_TEMPLATE_CHANGE &&
+                    session.creationType == WorldCreationType.TEMPLATE
+                ) {
+                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                    plugin.creationGui.openTemplateSelection(player)
                 } else if (tag == ItemTag.TYPE_GUI_CONFIRM) {
                     player.closeInventory()
 
@@ -221,7 +234,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         return
                     }
 
-                    // ポイント消費
                     val cost =
                             session.creationType?.let {
                                 WorldRuntimePolicies.creationCost(plugin.config, it)
@@ -236,30 +248,25 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         return
                     }
 
-                    stats.worldPoint -= cost
-                    plugin.playerStatsRepository.save(stats)
-                    if (cost > 0) {
-                        player.sendMessage(
-                                "§e§6🛖 §e${cost} §eを消費しました。(残り: §6🛖 §e${stats.worldPoint}§e)"
-                        )
-                    }
-
-                    player.sendMessage("§aワールドを作成しています...")
+                    player.sendMessage(lang.getMessage(player, "messages.world_creation_processing"))
 
                     when (session.creationType) {
                         WorldCreationType.TEMPLATE -> {
                             plugin.worldService.createWorld(
-                                            session.templateName!!,
+                                            session.templateId!!,
                                             player.uniqueId,
                                             session.worldName!!,
                                             cost
                                     )
                                     .thenAccept { success: Boolean ->
-                                        if (success) player.sendMessage("§aワールド作成完了！")
-                                        else player.sendMessage("§c作成に失敗しました。")
+                                        if (!success) {
+                                            player.sendMessage(lang.getMessage(player, "messages.creation_failed"))
+                                        }
                                     }
                         }
                         WorldCreationType.SEED -> {
+                            stats.worldPoint -= cost
+                            plugin.playerStatsRepository.save(stats)
                             plugin.worldService.generateWorld(
                                             player.uniqueId,
                                             session.worldName!!,
@@ -269,11 +276,18 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                             session.seedEnvironment
                                     )
                                     .thenAccept { success: Boolean ->
-                                        if (success) player.sendMessage("§aワールド作成完了！")
-                                        else player.sendMessage("§c作成に失敗しました。")
+                                        player.sendMessage(
+                                            lang.getMessage(
+                                                player,
+                                                if (success) "messages.creation_success"
+                                                else "messages.creation_failed"
+                                            )
+                                        )
                                     }
                         }
                         WorldCreationType.RANDOM -> {
+                            stats.worldPoint -= cost
+                            plugin.playerStatsRepository.save(stats)
                             plugin.worldService.generateWorld(
                                             player.uniqueId,
                                             session.worldName!!,
@@ -281,8 +295,13 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                             cost
                                     )
                                     .thenAccept { success: Boolean ->
-                                        if (success) player.sendMessage("§aワールド作成完了！")
-                                        else player.sendMessage("§c作成に失敗しました。")
+                                        player.sendMessage(
+                                            lang.getMessage(
+                                                player,
+                                                if (success) "messages.creation_success"
+                                                else "messages.creation_failed"
+                                            )
+                                        )
                                     }
                         }
                         null -> {}

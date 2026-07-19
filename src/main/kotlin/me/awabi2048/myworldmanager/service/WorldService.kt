@@ -274,7 +274,7 @@ class WorldService(
             worldFolderName: String,
             world: org.bukkit.World,
             cost: Int,
-            templateName: String,
+            templateId: String,
             initialSpawn: WorldSpawnCoordinates? = null,
             seedSpecified: Boolean = false
     ) {
@@ -308,7 +308,7 @@ class WorldService(
                         name = worldName,
                         description = "My World",
                         icon = org.bukkit.Material.GRASS_BLOCK,
-                        sourceWorld = "template:$templateName",
+                        sourceWorld = "template:$templateId",
                         expireDate = expireDate.toString(),
                         owner = player.uniqueId,
                         members = mutableListOf(),
@@ -333,7 +333,7 @@ class WorldService(
                         worldName = worldData.name,
                         ownerUuid = worldData.owner,
                         ownerName = player.name,
-                        templateName = templateName,
+                        templateName = templateId,
                         createdAt = worldData.createdAt
                 )
         )
@@ -356,7 +356,7 @@ class WorldService(
                         "owner" to player.name,
                         "world_uuid" to uuid.toString(),
                         "world_name" to worldName,
-                        "template_name" to templateName
+                        "template_name" to templateId
                 )
         )
     }
@@ -391,7 +391,7 @@ class WorldService(
 
     /** ワールドの作成処理（テンプレート用、async互換用） */
     fun createWorld(
-            templateName: String,
+            templateId: String,
             ownerUuid: UUID,
             worldName: String,
             cost: Int
@@ -418,6 +418,32 @@ class WorldService(
         }
         if (repository.findByOwnerAndDisplayName(ownerUuid, worldName) != null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            future.complete(false)
+            return future
+        }
+
+        val template = plugin.templateRepository.findById(templateId)
+        if (template == null) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_not_found"))
+            future.complete(false)
+            return future
+        }
+        when (plugin.templateRepository.validationIssue(template)) {
+            me.awabi2048.myworldmanager.repository.TemplateRepository.ValidationIssue.MISSING_DIRECTORY -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.template_directory_missing"))
+                future.complete(false)
+                return future
+            }
+            me.awabi2048.myworldmanager.repository.TemplateRepository.ValidationIssue.MISSING_ORIGIN -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.template_origin_missing"))
+                future.complete(false)
+                return future
+            }
+            null -> Unit
+        }
+        val currentStats = playerStatsRepository.findByUuid(ownerUuid)
+        if (currentStats.worldPoint < cost) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
             future.complete(false)
             return future
         }
@@ -452,9 +478,9 @@ class WorldService(
                 )
         )
 
-        val templateFolder = plugin.worldDirectoryResolver.inspect(templateName)?.existingPath?.toFile()
+        val templateFolder = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
         if (templateFolder == null || !templateFolder.exists() || !templateFolder.isDirectory) {
-            player.sendMessage("§cテンプレートが見つかりません: $templateName")
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.template_directory_missing"))
             creatingWorlds.remove(player.uniqueId.toString())
             future.complete(false)
             return future
@@ -467,11 +493,16 @@ class WorldService(
             try {
                 // 手動での再帰的コピー (session.lock 等を避けるため)
                 templateFolder.walkTopDown().forEach { file ->
-                    val relativePath = file.relativeTo(templateFolder).path
+                    val relativePath = file.relativeTo(templateFolder).path.replace('\\', '/')
                     val targetFile = File(targetFolder, relativePath)
 
                     // スキップするファイル/ディレクトリ
-                    if (file.name == "session.lock" || file.name == "uid.dat") return@forEach
+                    if (file.name == "session.lock" ||
+                            file.name == "uid.dat" ||
+                            relativePath.equals("data/paper/metadata.dat", ignoreCase = true)
+                    ) {
+                        return@forEach
+                    }
 
                     if (file.isDirectory) {
                         targetFile.mkdirs()
@@ -489,24 +520,52 @@ class WorldService(
                         if (world == null) {
                             player.sendMessage(plugin.languageManager.getMessage(player, "error.world_creation_failed"))
                             creatingWorlds.remove(player.uniqueId.toString())
+                            cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                             future.complete(false)
                             return@Runnable
                         }
 
-                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, templateName, null)
+                        val origin = template.originLocation!!
+                        val initialSpawn = WorldSpawnCoordinates(origin.blockX, origin.blockY, origin.blockZ)
+                        val latestStats = playerStatsRepository.findByUuid(ownerUuid)
+                        if (latestStats.worldPoint < cost) {
+                            cleanupFailedTemplateWorld(worldFolderName, targetFolder)
+                            creatingWorlds.remove(player.uniqueId.toString())
+                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
+                            future.complete(false)
+                            return@Runnable
+                        }
+                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, template.id, initialSpawn)
+                        if (cost > 0) {
+                            latestStats.worldPoint -= cost
+                            playerStatsRepository.save(latestStats)
+                            player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                    player,
+                                    "messages.template_creation_cost_paid",
+                                    mapOf(
+                                        "cost" to cost,
+                                        "remaining" to latestStats.worldPoint
+                                    )
+                                )
+                            )
+                        }
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+                        repository.delete(uuid)
                         creatingWorlds.remove(player.uniqueId.toString())
+                        cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                         future.complete(false)
                     }
                 })
             } catch (e: Exception) {
-                plugin.logger.log(Level.SEVERE, "Failed to copy template: $templateName", e)
+                plugin.logger.log(Level.SEVERE, "Failed to copy template: ${template.id}", e)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                    player.sendMessage("§cテンプレートのコピーに失敗しました。")
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.template_copy_failed"))
                     creatingWorlds.remove(player.uniqueId.toString())
+                    cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                     future.complete(false)
                 })
             }
@@ -927,6 +986,22 @@ class WorldService(
         repository.save(worldData)
         future.complete(true)
         return future
+    }
+
+    private fun cleanupFailedTemplateWorld(worldFolderName: String, targetFolder: File) {
+        val loaded = Bukkit.getWorld(NamespacedKey.minecraft(worldFolderName))
+        if (loaded != null) {
+            plugin.server.unloadWorld(loaded, false)
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            runCatching {
+                if (targetFolder.exists()) {
+                    targetFolder.deleteRecursively()
+                }
+            }.onFailure {
+                plugin.logger.log(Level.WARNING, "作成失敗後のワールドフォルダ削除に失敗しました: $worldFolderName", it)
+            }
+        })
     }
 
     private fun isSafeArchiveDirectory(archiveFolder: File, archivedFile: File): Boolean {

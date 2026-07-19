@@ -118,14 +118,6 @@ class WorldCommand(
                     return true
                 }
 
-                // テンプレートのディレクトリ存在チェック
-                val missingTemplates = plugin.templateRepository.missingTemplates
-                if (missingTemplates.isNotEmpty()) {
-                    sender.sendMessage("§c[Error] 以下のテンプレートワールドのディレクトリが見つからないため、開始できません:")
-                    missingTemplates.forEach { sender.sendMessage("§c - $it") }
-                    return true
-                }
-
                 // テンプレートワールドのチャンクを事前読み込み
                 plugin.worldService.preloadTemplateChunks()
 

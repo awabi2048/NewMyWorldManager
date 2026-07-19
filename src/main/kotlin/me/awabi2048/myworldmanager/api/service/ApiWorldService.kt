@@ -19,11 +19,17 @@ interface ApiWorldService {
     fun validateWorldName(player: Player, worldName: String): Component?
 
     fun createFromTemplate(
-        templateName: String,
+        templateId: String,
         ownerUuid: UUID,
         worldName: String,
         cost: Int
     ): CompletableFuture<Boolean>
+
+    fun previewTemplate(
+        player: Player,
+        templateId: String,
+        onReturn: () -> Unit
+    ): Boolean
 
     fun teleportToWorld(
         player: Player,
