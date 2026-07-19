@@ -39,12 +39,10 @@ class AdminGuiListener : Listener {
         val player = event.whoClicked as? Player ?: return
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         // Debug: リスナー呼び出し確認
-        // player.sendMessage("§d[Debug-System] AdminGuiListener called. Cancelled: ${event.isCancelled}, Title: ${event.view.title}")
 
         // GUI遷移中のクリックを無視
         val session = plugin.settingsSessionManager.getSession(player)
         if (session != null && session.isGuiTransition) {
-            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
                 session.isGuiTransition = false
             } else {

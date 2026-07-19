@@ -41,7 +41,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
 
         // GUI遷移中のクリックを無視
         val lang = plugin.languageManager
-            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
         val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
 
         if (tag == ItemTag.TYPE_GUI_EXTENSION) {

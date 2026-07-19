@@ -42,7 +42,6 @@ class AdminCommandListener : Listener {
 
         // GUI遷移中のクリックを無視
         if (session.isGuiTransition) {
-            // player.sendMessage("§7[Debug] Click cancelled (GuiTransition: true)")
             session.isGuiTransition = false
         }
 

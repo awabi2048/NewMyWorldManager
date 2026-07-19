@@ -140,11 +140,6 @@ class MyWorldManager : JavaPlugin() {
         }
         registerManagedConfigs()
         reloadConfig()
-        if (!config.contains("debug.world_settings", true)) {
-            config.set("debug.world_settings", true)
-            saveConfig()
-        }
-
         // langフォルダが存在しなければ作成し、デフォルトの言語ファイルをコピー
         val langFolder = java.io.File(dataFolder, "lang")
         if (!langFolder.exists()) {
@@ -544,11 +539,8 @@ class MyWorldManager : JavaPlugin() {
         if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
     }
 
-    fun logWorldSettingsDebug(message: String) {
-        if (config.getBoolean("debug.world_settings", true)) {
-            logger.info("[WorldSettingsDebug] $message")
-        }
-    }
+    @Suppress("UNUSED_PARAMETER")
+    fun logWorldSettingsDebug(message: String) = Unit
 
     private fun loadWorldsFromPreviousShutdown() {
         val file = File(dataFolder, "data/loaded_worlds_at_shutdown.yml")
