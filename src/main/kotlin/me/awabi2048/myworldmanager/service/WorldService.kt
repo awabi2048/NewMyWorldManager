@@ -1307,6 +1307,12 @@ class WorldService(
 
     fun deleteWorldForMaintenance(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.DELETE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         unloadWorldAfterEvacuation(worldUuid, false).thenAccept { unloaded ->
             if (!unloaded) {
                 future.complete(false)
