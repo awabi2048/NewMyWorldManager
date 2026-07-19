@@ -68,6 +68,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             inventory.setItem(layout.nextPageSlot, GuiHelper.createNextPageItem(plugin, player, "visit", currentPage + 1))
         }
 
+        GuiItemFactory.fillEmpty(inventory)
         player.openInventory(inventory)
     }
 
@@ -93,28 +94,6 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             )
             .map { it.world }
             .toList()
-    }
-
-    private fun fillBaseLayout(inventory: Inventory) {
-        val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = Material.WHITE_STAINED_GLASS_PANE)
-
-        for (row in 1..4) {
-            val rowStart = row * 9
-            inventory.setItem(rowStart, grayPane)
-            inventory.setItem(rowStart + 8, grayPane)
-        }
-    }
-
-    private fun buildWorldItemSlots(): List<Int> {
-        val result = mutableListOf<Int>()
-        for (row in 1..4) {
-            val rowStart = row * 9
-            for (column in 1..7) {
-                result += rowStart + column
-            }
-        }
-        return result
     }
 
     private fun createInfoItem(

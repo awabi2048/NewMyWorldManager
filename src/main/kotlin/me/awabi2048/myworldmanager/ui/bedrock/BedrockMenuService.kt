@@ -1193,7 +1193,9 @@ class BedrockMenuService(
         }
         if (!WorldCreationChecks.check(player, notify = false)) return CreationBlockReason.POLICY_DENIED
         if (bypassLimits) return null
-        if (currentCreateCount >= maxSlot) return CreationBlockReason.NO_SLOT
+        if (MyWorldManagerApi.isWorldSlotSystemEnabled() && currentCreateCount >= maxSlot) {
+            return CreationBlockReason.NO_SLOT
+        }
         return null
     }
 
@@ -1217,17 +1219,25 @@ class BedrockMenuService(
             )
         )
         meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.points_label"), worldPoint, "§6")
-            )))
-            add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                if (bypassLimits) {
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.points_label"), worldPoint, "§6")
+                )))
+            }
+            if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
+                    if (bypassLimits) {
+                        GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, "§a")
+                    } else {
+                        GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.slots_label"), "$currentCreateCount/$maxSlot", "§a")
+                    },
+                    GuiLoreLine.Text(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
+                )))
+            } else {
+                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
                     GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, "§a")
-                } else {
-                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.slots_label"), "$currentCreateCount/$maxSlot", "§a")
-                },
-                GuiLoreLine.Text(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
-            )))
+                )))
+            }
             if (pendingCount > 0) {
                 val latest = plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
                     ?.let {
