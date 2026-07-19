@@ -70,7 +70,8 @@ class WorldService(
             environment: org.bukkit.World.Environment,
             generator: String? = null,
             worldType: WorldType = WorldType.NORMAL,
-            initialSpawn: WorldSpawnCoordinates? = null
+            initialSpawn: WorldSpawnCoordinates? = null,
+            cost: Int = 0
     ): Boolean {
 
         if (!WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) ||
@@ -162,11 +163,18 @@ class WorldService(
                 initialSpawn
             }
 
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, 0, "None", effectiveInitialSpawn, seed != null)
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < cost
+            ) {
+                throw IllegalStateException("Insufficient world points at creation commit")
+            }
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, "None", effectiveInitialSpawn, seed != null)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
             player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+            repository.delete(uuid)
+            cleanupFailedCreatedWorld(worldFolderName, preferredActiveWorldDirectory(worldFolderName))
             creatingWorlds.remove(player.uniqueId.toString())
             return false
         }
@@ -325,40 +333,66 @@ class WorldService(
                         seedSpawnValidated = !seedSpecified
                 )
 
-        repository.save(worldData)
-
-        Bukkit.getPluginManager().callEvent(
-                MwmWorldCreatedEvent(
-                        worldUuid = worldData.uuid,
-                        worldName = worldData.name,
-                        ownerUuid = worldData.owner,
-                        ownerName = player.name,
-                        templateName = templateId,
-                        createdAt = worldData.createdAt
-                )
-        )
-
-        player.sendMessage(
-                plugin.languageManager.getMessage(
+        var pointsCharged = false
+        try {
+            repository.save(worldData)
+            if (cost > 0 && MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                val remaining = playerStatsRepository.adjustWorldPoints(player.uniqueId, -cost).worldPoint
+                pointsCharged = true
+                player.sendMessage(
+                    plugin.languageManager.getMessage(
                         player,
-                        "messages.world_creation_success",
-                        mapOf("world" to worldName)
+                        "messages.template_creation_cost_paid",
+                        mapOf("cost" to cost, "remaining" to remaining)
+                    )
                 )
-        )
+            }
 
-        teleportToWorld(player, uuid)
-        creatingWorlds.remove(player.uniqueId.toString())
+            Bukkit.getPluginManager().callEvent(
+                    MwmWorldCreatedEvent(
+                            worldUuid = worldData.uuid,
+                            worldName = worldData.name,
+                            ownerUuid = worldData.owner,
+                            ownerName = player.name,
+                            templateName = templateId,
+                            createdAt = worldData.createdAt
+                    )
+            )
 
-        // マクロ実行
-        plugin.macroManager.execute(
+            player.sendMessage(
+                    plugin.languageManager.getMessage(
+                            player,
+                            "messages.world_creation_success",
+                            mapOf("world" to worldName)
+                    )
+            )
+
+            teleportToWorld(player, uuid)
+            creatingWorlds.remove(player.uniqueId.toString())
+        } catch (e: Exception) {
+            repository.delete(uuid)
+            if (pointsCharged) {
+                runCatching { playerStatsRepository.adjustWorldPoints(player.uniqueId, cost) }
+                    .onFailure {
+                        plugin.logger.log(Level.SEVERE, "Failed to refund creation cost for ${player.uniqueId}", it)
+                    }
+            }
+            throw e
+        }
+
+        runCatching {
+            plugin.macroManager.execute(
                 "on_world_create",
                 mapOf(
-                        "owner" to player.name,
-                        "world_uuid" to uuid.toString(),
-                        "world_name" to worldName,
-                        "template_name" to templateId
+                    "owner" to player.name,
+                    "world_uuid" to uuid.toString(),
+                    "world_name" to worldName,
+                    "template_name" to templateId
                 )
-        )
+            )
+        }.onFailure {
+            plugin.logger.log(Level.SEVERE, "World creation macro failed after commit: $worldName", it)
+        }
     }
 
     /** ワールドの生成処理（async互換用） */
@@ -381,10 +415,9 @@ class WorldService(
                 worldName,
                 seed,
                 environment,
-                initialSpawn = initialSpawn
+                initialSpawn = initialSpawn,
+                cost = cost
         )
-        // Note: Currently createWorld(player, ...) doesn't take cost. 
-        // If it's used elsewhere, it might need update. For now, matching the call.
         future.complete(success)
         return future
     }
@@ -536,20 +569,6 @@ class WorldService(
                             return@Runnable
                         }
                         finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, template.id, initialSpawn)
-                        if (cost > 0) {
-                            latestStats.worldPoint -= cost
-                            playerStatsRepository.save(latestStats)
-                            player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                    player,
-                                    "messages.template_creation_cost_paid",
-                                    mapOf(
-                                        "cost" to cost,
-                                        "remaining" to latestStats.worldPoint
-                                    )
-                                )
-                            )
-                        }
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
@@ -989,6 +1008,10 @@ class WorldService(
     }
 
     private fun cleanupFailedTemplateWorld(worldFolderName: String, targetFolder: File) {
+        cleanupFailedCreatedWorld(worldFolderName, targetFolder)
+    }
+
+    private fun cleanupFailedCreatedWorld(worldFolderName: String, targetFolder: File) {
         val loaded = Bukkit.getWorld(NamespacedKey.minecraft(worldFolderName))
         if (loaded != null) {
             plugin.server.unloadWorld(loaded, false)

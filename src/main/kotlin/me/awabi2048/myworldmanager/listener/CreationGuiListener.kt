@@ -277,8 +277,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                     }
                         }
                         WorldCreationType.SEED -> {
-                            stats.worldPoint -= cost
-                            plugin.playerStatsRepository.save(stats)
                             plugin.worldService.generateWorld(
                                             player.uniqueId,
                                             session.worldName!!,
@@ -298,8 +296,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                     }
                         }
                         WorldCreationType.RANDOM -> {
-                            stats.worldPoint -= cost
-                            plugin.playerStatsRepository.save(stats)
                             plugin.worldService.generateWorld(
                                             player.uniqueId,
                                             session.worldName!!,
