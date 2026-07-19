@@ -1558,7 +1558,7 @@ class WorldSettingsListener : Listener {
                                                         GuiCycle.select(
                                                                 worldData.publishLevel,
                                                                 PublishLevel.values(),
-                                                                reverse = event.isRightClick
+                                                                reverse = event.isLeftClick
                                                         )
                                                 worldData.publishLevel = nextLevel
                                                 if (worldData.publishLevel == PublishLevel.PUBLIC) {

@@ -461,7 +461,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 }
                                         ))
                                         add(GuiLoreLine.Spacer)
-                                        add(GuiLoreActions.cycle(lang, player))
+                                        addAll(GuiLoreActions.cyclePreviousNext(lang, player))
                                 }, GuiLoreFrame.BOTH)
 
                         inventory.setItem(

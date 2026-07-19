@@ -202,7 +202,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                             org.bukkit.World.Environment.NETHER,
                             org.bukkit.World.Environment.THE_END
                         ),
-                        reverse = event.isRightClick
+                        reverse = event.isLeftClick
                     )
                     plugin.creationGui.openConfirmation(player, session)
                 } else if (tag == ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION &&

@@ -242,7 +242,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 session.selectedTag = GuiCycle.selectNullable(
                     session.selectedTag,
                     options,
-                    reverse = !isBedrock && event.isRightClick
+                    reverse = !isBedrock && event.isLeftClick
                 )
 
                 plugin.soundManager.playClickSound(player, item, "discovery")
@@ -263,7 +263,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 session.sort = GuiCycle.select(
                     session.sort,
                     DiscoverySort.values(),
-                    reverse = !isBedrock && event.isRightClick
+                    reverse = !isBedrock && event.isLeftClick
                 )
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)
@@ -272,7 +272,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 session.specialFilter = GuiCycle.select(
                     session.specialFilter,
                     DiscoverySpecialFilter.values(),
-                    reverse = !isBedrock && event.isRightClick
+                    reverse = !isBedrock && event.isLeftClick
                 )
 
                 plugin.soundManager.playClickSound(player, item, "discovery")
