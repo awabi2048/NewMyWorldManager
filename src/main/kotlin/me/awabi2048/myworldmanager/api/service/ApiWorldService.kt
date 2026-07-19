@@ -74,7 +74,11 @@ interface ApiWorldService {
 
     fun getWorldDataFile(worldUuid: UUID): File
 
-    fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean>
+    fun unloadWorldForMaintenance(
+        worldUuid: UUID,
+        save: Boolean,
+        lease: WorldOperationLease? = null
+    ): CompletableFuture<Boolean>
 
     fun startWorldBorderExpansionSequence(
         player: Player,

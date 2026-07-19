@@ -13,6 +13,8 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
+import me.awabi2048.myworldmanager.api.service.WorldOperation
+import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
@@ -695,6 +697,16 @@ class WorldService(
      * @return 読み込み成功ならtrue
      */
     fun loadWorld(worldUuid: UUID): Boolean {
+        val lease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.LOAD)
+            ?: return false
+        return try {
+            loadWorldUnlocked(worldUuid)
+        } finally {
+            lease.close()
+        }
+    }
+
+    private fun loadWorldUnlocked(worldUuid: UUID): Boolean {
         val worldData = repository.findByUuid(worldUuid) ?: return false
         val folderName = getWorldFolderName(worldData)
 
@@ -737,6 +749,16 @@ class WorldService(
 
     /** ワールドのアンロードを行う */
     fun unloadWorld(worldUuid: UUID, save: Boolean = true): Boolean {
+        val lease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.UNLOAD)
+            ?: return false
+        return try {
+            unloadWorldUnlocked(worldUuid, save)
+        } finally {
+            lease.close()
+        }
+    }
+
+    private fun unloadWorldUnlocked(worldUuid: UUID, save: Boolean): Boolean {
         val worldData = repository.findByUuid(worldUuid) ?: return false
         val folderName = getWorldFolderName(worldData)
         val world = Bukkit.getWorld(folderName) ?: return true // すでにアンロードされている
@@ -760,8 +782,20 @@ class WorldService(
         return plugin.server.unloadWorld(world, save)
     }
 
-    fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
-        return unloadWorldAfterEvacuation(worldUuid, save)
+    fun unloadWorldForMaintenance(
+        worldUuid: UUID,
+        save: Boolean,
+        lease: WorldOperationLease? = null
+    ): CompletableFuture<Boolean> {
+        if (lease != null) {
+            if (lease.worldUuid != worldUuid || !MyWorldManagerApi.isWorldOperationLeaseActive(lease)) {
+                return CompletableFuture.completedFuture(false)
+            }
+            return unloadWorldAfterEvacuation(worldUuid, save)
+        }
+        val ownLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.UNLOAD)
+            ?: return CompletableFuture.completedFuture(false)
+        return unloadWorldAfterEvacuation(worldUuid, save).whenComplete { _, _ -> ownLease.close() }
     }
 
     private fun unloadWorldAfterEvacuation(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
@@ -885,6 +919,13 @@ class WorldService(
             closeInventoryOnLoad: Boolean = true,
             afterTeleported: (() -> Unit)? = null
     ) {
+        if (MyWorldManagerApi.getActiveWorldOperation(worldUuid) != null) {
+            plugin.logger.info(
+                "World warp rejected while operation ${MyWorldManagerApi.getActiveWorldOperation(worldUuid)} is active: $worldUuid"
+            )
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_operation_locked"))
+            return
+        }
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
         val needsLoad = Bukkit.getWorld(folderName) == null
@@ -1061,6 +1102,12 @@ class WorldService(
     /** ワールドをアーカイブから戻す */
     fun unarchiveWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.RESTORE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         val worldData = repository.findByUuid(worldUuid)
         if (worldData == null) {
             future.complete(false)
@@ -1144,6 +1191,12 @@ class WorldService(
     /** ワールドを完全に削除する */
     fun deleteWorld(worldUuid: UUID, caller: CommandSender? = null): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.DELETE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         val guardTarget = repository.findByUuid(worldUuid)
         if (guardTarget == null) {
             future.complete(false)
@@ -1172,29 +1225,63 @@ class WorldService(
                 return@thenAccept
             }
 
-            val stats = playerStatsRepository.findByUuid(worldData.owner)
             val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
-            val refund = (worldData.cumulativePoints * refundRate).toInt()
-
-            if (refund > 0) {
-                stats.worldPoint += refund
-                playerStatsRepository.save(stats)
+            val refund = if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                (worldData.cumulativePoints * refundRate).toInt()
+            } else {
+                0
             }
 
             val folderName = getWorldFolderName(worldData)
             val archiveFolder = File(plugin.dataFolder.parentFile.parentFile, "archived_worlds")
-            val folder = if (worldData.isArchived) {
+            val folder: File? = if (worldData.isArchived) {
                 File(archiveFolder, folderName)
             } else {
-                resolveExistingWorldDirectory(folderName) ?: run {
-                    future.complete(false)
-                    return@thenAccept
+                when (val resolution = plugin.worldDirectoryResolver.inspect(folderName)) {
+                    null -> {
+                        future.complete(false)
+                        return@thenAccept
+                    }
+                    else -> when (resolution.state) {
+                        WorldDirectoryState.CURRENT,
+                        WorldDirectoryState.LEGACY -> resolution.existingPath?.toFile()
+                        WorldDirectoryState.MISSING -> null
+                        WorldDirectoryState.CONFLICT -> {
+                            future.complete(false)
+                            return@thenAccept
+                        }
+                    }
                 }
             }
 
-            if (folder.exists() && !folder.deleteRecursively()) {
+            if (folder != null && folder.exists() && !folder.deleteRecursively()) {
                 future.complete(false)
                 return@thenAccept
+            }
+
+            if (refund > 0 && !worldData.deletionRefundApplied) {
+                var refunded = false
+                try {
+                    playerStatsRepository.adjustWorldPoints(worldData.owner, refund)
+                    refunded = true
+                    worldData.deletionRefundApplied = true
+                    repository.save(worldData)
+                } catch (error: Exception) {
+                    if (refunded) {
+                        runCatching {
+                            playerStatsRepository.adjustWorldPoints(worldData.owner, -refund)
+                        }.onFailure {
+                            plugin.logger.log(
+                                Level.SEVERE,
+                                "Failed to compensate deletion refund for ${worldData.uuid}",
+                                it
+                            )
+                        }
+                    }
+                    plugin.logger.log(Level.SEVERE, "Failed to commit deletion refund for ${worldData.uuid}", error)
+                    future.complete(false)
+                    return@thenAccept
+                }
             }
 
             repository.delete(worldUuid)
@@ -1289,6 +1376,12 @@ class WorldService(
             isAutomaticTransition: Boolean = false
     ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.ARCHIVE)
+        if (operationLease == null) {
+            future.complete(false)
+            return future
+        }
+        future.whenComplete { _, _ -> operationLease.close() }
         val worldData = repository.findByUuid(worldUuid)
         if (worldData == null) {
             future.complete(false)

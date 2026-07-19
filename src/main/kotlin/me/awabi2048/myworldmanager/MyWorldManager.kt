@@ -195,6 +195,7 @@ class MyWorldManager : JavaPlugin() {
 
         loadWorldsFromPreviousShutdown()
         worldMigrationService.reportPending()
+        worldMigrationService.resumeAfterStartup()
 
         // MSPT監視タスクの開始
         msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
@@ -325,6 +326,7 @@ class MyWorldManager : JavaPlugin() {
 
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(this), this)
+        server.pluginManager.registerEvents(worldMigrationService, this)
         MultiverseWorldExclusionService(this, worldConfigRepository).start()
         server.pluginManager.registerEvents(
                 WorldPermissionPolicyListener(worldConfigRepository, worldPermissionPolicyService),
@@ -471,6 +473,7 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        MyWorldManagerApi.clearWorldOperationLocks()
         if (::menuRouteHistory.isInitialized) menuRouteHistory.closeOwnedMenus()
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }

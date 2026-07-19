@@ -57,4 +57,16 @@ class CreationTransactionSourceContractTest {
         assertTrue(service.contains("finalizeWorldCreation("));
         assertTrue(service.contains("cleanupFailedCreatedWorld(folderName"));
     }
+
+    @Test
+    void deletionRefundHappensAfterPhysicalDeletionAndIsIdempotent() throws Exception {
+        String service = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/service/WorldService.kt"
+        ));
+        int physicalDelete = service.indexOf("folder.deleteRecursively()");
+        int refund = service.indexOf("adjustWorldPoints(worldData.owner, refund)");
+        assertTrue(physicalDelete >= 0 && physicalDelete < refund);
+        assertTrue(service.contains("!worldData.deletionRefundApplied"));
+        assertTrue(service.contains("refund = if (MyWorldManagerApi.isWorldPointEconomyEnabled())"));
+    }
 }

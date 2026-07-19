@@ -76,22 +76,14 @@ class WorldCommand(
         when (args[0].lowercase()) {
             "migration" -> {
                 val action = args.getOrNull(1)?.lowercase()
-                if (action == "list") {
-                    val pending = plugin.worldMigrationService.reportPending(sender)
-                    if (pending.isEmpty()) sender.sendMessage(plugin.languageManager.getMessage("messages.migration.none_pending"))
-                    return true
+                when (action) {
+                    "execute" -> plugin.worldMigrationService.requestExecute(
+                        sender,
+                        confirmed = args.getOrNull(2).equals("confirm", ignoreCase = true)
+                    )
+                    "status" -> plugin.worldMigrationService.status(sender)
+                    else -> sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
                 }
-                val uuid = args.getOrNull(2)?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
-                if (uuid == null || action !in setOf("approve", "reject")) {
-                    sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
-                    return true
-                }
-                val handled = if (action == "approve") {
-                    plugin.worldMigrationService.approveAndLoad(uuid, sender)
-                } else {
-                    plugin.worldMigrationService.reject(uuid)
-                }
-                if (!handled) sender.sendMessage(plugin.languageManager.getMessage("messages.migration.not_found"))
                 return true
             }
             "create" -> {
@@ -392,6 +384,9 @@ class WorldCommand(
                 if (hasWorldListPermission && canSuggestSubCommand(sender, "list", args.toList())) {
                     list.add("list")
                 }
+                if (hasGlobalPermission && canSuggestSubCommand(sender, "migration", args.toList())) {
+                    list.add("migration")
+                }
             }
             2 -> {
                 val sub = args[0].lowercase()
@@ -402,6 +397,8 @@ class WorldCommand(
                 }
                 if (createCompletion != null) {
                     list.addAll(createCompletion)
+                } else if (sub == "migration" && hasGlobalPermission) {
+                    list.addAll(listOf("execute", "status"))
                 } else if (((sub == "stats" && hasStatsPermission) ||
                     (sub == "create" && hasCreatePermission)) &&
                     canSuggestSubCommand(sender, sub, args.toList())

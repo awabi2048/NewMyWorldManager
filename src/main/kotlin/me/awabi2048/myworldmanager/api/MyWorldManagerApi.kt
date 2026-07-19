@@ -43,6 +43,9 @@ import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldEnvironmentService
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ApiWorldTagService
+import me.awabi2048.myworldmanager.api.service.WorldOperation
+import me.awabi2048.myworldmanager.api.service.WorldOperationLease
+import me.awabi2048.myworldmanager.api.service.WorldOperationLocks
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import org.bukkit.Location
@@ -51,6 +54,21 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 object MyWorldManagerApi {
+
+    @JvmStatic
+    fun tryAcquireWorldOperation(worldUuid: UUID, operation: WorldOperation): WorldOperationLease? =
+        WorldOperationLocks.tryAcquire(worldUuid, operation)
+
+    @JvmStatic
+    fun isWorldOperationLeaseActive(lease: WorldOperationLease): Boolean =
+        WorldOperationLocks.isActive(lease)
+
+    @JvmStatic
+    fun getActiveWorldOperation(worldUuid: UUID): WorldOperation? =
+        WorldOperationLocks.current(worldUuid)
+
+    @JvmStatic
+    fun clearWorldOperationLocks() = WorldOperationLocks.clear()
 
     private var worldPointService: WorldPointService? = null
     private var worldService: ApiWorldService? = null

@@ -5,6 +5,8 @@ import me.awabi2048.myworldmanager.api.service.ApiPortalSnapshot
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
 import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
+import me.awabi2048.myworldmanager.api.service.WorldOperationLease
+import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
@@ -98,8 +100,12 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         return File(File(plugin.dataFolder, "my_worlds"), "$worldUuid.yml")
     }
 
-    override fun unloadWorldForMaintenance(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
-        return plugin.worldService.unloadWorldForMaintenance(worldUuid, save)
+    override fun unloadWorldForMaintenance(
+        worldUuid: UUID,
+        save: Boolean,
+        lease: WorldOperationLease?
+    ): CompletableFuture<Boolean> {
+        return plugin.worldService.unloadWorldForMaintenance(worldUuid, save, lease)
     }
 
     override fun startWorldBorderExpansionSequence(
@@ -111,6 +117,16 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
     }
 
     override fun expandWorldBorder(worldUuid: UUID, direction: BlockFace?): Boolean {
+        val lease = me.awabi2048.myworldmanager.api.MyWorldManagerApi
+            .tryAcquireWorldOperation(worldUuid, WorldOperation.EXPAND) ?: return false
+        return try {
+            expandWorldBorderUnlocked(worldUuid, direction)
+        } finally {
+            lease.close()
+        }
+    }
+
+    private fun expandWorldBorderUnlocked(worldUuid: UUID, direction: BlockFace?): Boolean {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         val world = Bukkit.getWorld(getWorldFolderName(worldData)) ?: return false
         val border = world.worldBorder
