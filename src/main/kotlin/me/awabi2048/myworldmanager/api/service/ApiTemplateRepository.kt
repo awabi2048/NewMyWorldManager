@@ -6,5 +6,6 @@ interface ApiTemplateRepository {
 
     fun findAll(): List<TemplateData>
     fun findById(id: String): TemplateData?
-    fun isUsable(id: String): Boolean
+    fun validationIssue(id: String): ApiTemplateValidationIssue?
+    fun isUsable(id: String): Boolean = validationIssue(id) == null
 }
