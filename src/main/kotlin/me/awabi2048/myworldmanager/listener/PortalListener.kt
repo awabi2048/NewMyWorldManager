@@ -318,6 +318,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val maxX = maxOf(first.blockX, second.blockX)
         val maxY = maxOf(first.blockY, second.blockY)
         val maxZ = maxOf(first.blockZ, second.blockZ)
+        val pointEconomyEnabled = MyWorldManagerApi.isWorldPointEconomyEnabled()
         val requiredPoints = plugin.portalManager.calculateWorldGatePlacementCost(minX, minY, minZ, maxX, maxY, maxZ)
         val currentPoints = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint
         val remainingPoints = (currentPoints - requiredPoints).coerceAtLeast(0)
@@ -327,7 +328,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         )
         val bodyLines = lang.getMessageList(
             player,
-            "messages.world_gate_confirm_body",
+            if (pointEconomyEnabled) "messages.world_gate_confirm_body"
+            else "messages.world_gate_confirm_body_without_points",
             mapOf(
                 "min_x" to minX,
                 "min_y" to minY,
@@ -364,6 +366,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val maxX = maxOf(pending.first.blockX, pending.second.blockX)
         val maxY = maxOf(pending.first.blockY, pending.second.blockY)
         val maxZ = maxOf(pending.first.blockZ, pending.second.blockZ)
+        val pointEconomyEnabled = MyWorldManagerApi.isWorldPointEconomyEnabled()
         val requiredPoints = plugin.portalManager.calculateWorldGatePlacementCost(minX, minY, minZ, maxX, maxY, maxZ)
         val currentPoints = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint
         val remainingPoints = (currentPoints - requiredPoints).coerceAtLeast(0)
@@ -384,7 +387,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
                 lang.getMessageList(
                     player,
-                    "messages.world_gate_confirm_body",
+                    if (pointEconomyEnabled) "messages.world_gate_confirm_body"
+                    else "messages.world_gate_confirm_body_without_points",
                     mapOf(
                     "min_x" to minX,
                     "min_y" to minY,
@@ -432,7 +436,9 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val requiredPoints = plugin.portalManager.calculateWorldGatePlacementCost(minX, minY, minZ, maxX, maxY, maxZ).toLong()
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-        if (requiredPoints > stats.worldPoint.toLong()) {
+        if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+            requiredPoints > stats.worldPoint.toLong()
+        ) {
             player.sendMessage(
                 lang.getMessage(
                     player,
@@ -458,8 +464,10 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        stats.worldPoint -= requiredPoints.toInt()
-        plugin.playerStatsRepository.save(stats)
+        if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+            stats.worldPoint -= requiredPoints.toInt()
+            plugin.playerStatsRepository.save(stats)
+        }
 
         val gate = PortalData(
             worldKey = firstWorld.key.toString(),

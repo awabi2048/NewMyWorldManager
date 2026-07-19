@@ -273,14 +273,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                     val creationSession = plugin.creationSessionManager.getSession(player.uniqueId)
                     if (creationSession != null) {
                         creationSession.phase = WorldCreationPhase.CONFIRM
-                        if (creationSession.isDialogMode) {
-                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showConfirmationDialog(
-                                player,
-                                creationSession
-                            )
-                        } else {
-                            plugin.creationGui.openConfirmation(player, creationSession)
-                        }
+                        plugin.creationGui.openConfirmation(player, creationSession)
                     }
                 }
                 PreviewSource.EXTERNAL -> {

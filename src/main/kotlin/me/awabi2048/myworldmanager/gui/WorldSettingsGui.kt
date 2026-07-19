@@ -330,7 +330,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 val targetLevel = currentLevel + 1
                                 if (currentLevel < maxLevel) {
-                                        if (stats.worldPoint < cost) {
+                                        if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                                                expansionLoreBuilder.block(listOf(
+                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.current_level"), "$currentLevel/$maxLevel", "§e"),
+                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.next_level"), targetLevel, "§e")
+                                                ))
+                                        } else if (stats.worldPoint < cost) {
                                                 // Insufficient points
                                                 val insufficient = cost - stats.worldPoint
                                                 expansionLoreBuilder.block(listOf(
@@ -2463,7 +2468,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 払い戻し額の計算
                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
-                val refund = (worldData.cumulativePoints * refundRate).toInt()
+                 val refund = if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                         (worldData.cumulativePoints * refundRate).toInt()
+                 } else {
+                         0
+                 }
                 val percent = (refundRate * 100).toInt()
 
                 // プレイヤーごとのクールタイムチェック
@@ -2560,7 +2569,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 削除ボタン
                 val ownerStats = plugin.playerStatsRepository.findByUuid(worldData.owner)
-                val canDeleteWorld = ownerStats.unlockedWorldSlot > 0
+                val canDeleteWorld = !MyWorldManagerApi.isWorldSlotSystemEnabled() ||
+                        ownerStats.unlockedWorldSlot > 0
                 val deletePlaceholders = mapOf(
                         "points" to refund,
                         "percent" to percent,

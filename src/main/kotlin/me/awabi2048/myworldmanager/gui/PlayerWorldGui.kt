@@ -428,17 +428,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 )
 
                 meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        val pointIcon = if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖 "
-                        add(GuiLoreBlock(listOf(
-                                GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.player_world.stats_button.points_label"),
-                                        "$pointIcon${stats.worldPoint}",
-                                        "§6"
-                                ),
-                                GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.points_description"))
-                        )))
-                        add(GuiLoreBlock(if (bypassLimits) {
-                                listOf(
+                        if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                                val pointIcon = if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖 "
+                                add(GuiLoreBlock(listOf(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.player_world.stats_button.points_label"),
+                                                "$pointIcon${stats.worldPoint}",
+                                                "§6"
+                                        ),
+                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.points_description"))
+                                )))
+                        }
+                        if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                                add(GuiLoreBlock(if (bypassLimits) {
+                                 listOf(
                                         GuiLoreLine.Data(
                                                 lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
                                                 currentCreateCount,
@@ -455,7 +458,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         ),
                                         GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_description"))
                                 )
-                        }))
+                                }))
+                        } else {
+                                add(GuiLoreBlock(listOf(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
+                                                currentCreateCount,
+                                                "§a§l"
+                                        )
+                                )))
+                        }
                 })))
 
                 item.itemMeta = meta

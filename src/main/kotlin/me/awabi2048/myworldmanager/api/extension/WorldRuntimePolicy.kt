@@ -12,19 +12,6 @@ interface WorldRuntimePolicy {
     /** MWM標準の期限判定と自動アーカイブを実行するか。 */
     fun isExpirationArchiveEnabled(): Boolean = true
 
-    fun getCreationCost(type: WorldCreationType, configuredCost: Int): Int = configuredCost
-
-    fun getMaxCreateCountDefault(configuredLimit: Int): Int = configuredLimit
-
-    fun getMaxWorldSlotLimit(configuredLimit: Int): Int = configuredLimit
-
-    fun shouldReduceOwnerSlotOnDelete(configured: Boolean): Boolean = configured
-
-    fun getExpansionCost(targetLevel: Int, configuredCost: Int): Int = configuredCost
-
-    fun getEnvironmentCost(type: String, configuredCost: Int): Int = configuredCost
-
-    fun getPortalWorldGatePointCostPerBlock(configuredCost: Int): Int = configuredCost
 }
 
 object DefaultWorldRuntimePolicy : WorldRuntimePolicy {

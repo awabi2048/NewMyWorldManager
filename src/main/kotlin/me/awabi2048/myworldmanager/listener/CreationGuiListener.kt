@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.gui.CreationGui
 import me.awabi2048.myworldmanager.model.*
@@ -107,7 +108,10 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                             else -> 0
                         }
 
-                if (stats.worldPoint < cost) {
+                if (session.billingMode == WorldPointBillingMode.STANDARD &&
+                    MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+                    stats.worldPoint < cost
+                ) {
                     player.sendMessage(
                             lang.getMessage(player, "messages.creation_insufficient_points")
                     )
@@ -128,7 +132,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         plugin.creationGui.openTemplateSelection(player)
                     }
                     ItemTag.TYPE_GUI_CREATION_TYPE_SEED -> {
-                        if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) return
                         plugin.soundManager.playClickSound(player, currentItem)
                         session.creationType = WorldCreationType.SEED
                         session.phase = WorldCreationPhase.SEED_INPUT
@@ -252,7 +255,10 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                             } ?: 0
                     val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
-                    if (stats.worldPoint < cost) {
+                    if (session.billingMode == WorldPointBillingMode.STANDARD &&
+                        MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+                        stats.worldPoint < cost
+                    ) {
                         player.sendMessage(
                                 lang.getMessage(player, "messages.creation_insufficient_points")
                         )
@@ -267,8 +273,9 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                             plugin.worldService.createWorld(
                                             session.templateId!!,
                                             player.uniqueId,
-                                            session.worldName!!,
-                                            cost
+                                             session.worldName!!,
+                                             cost,
+                                             session.billingMode
                                     )
                                     .thenAccept { success: Boolean ->
                                         if (!success) {
@@ -281,9 +288,10 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                             player.uniqueId,
                                             session.worldName!!,
                                             session.inputSeedString,
-                                            cost,
-                                            session.spawnCoordinates,
-                                            session.seedEnvironment
+                                             cost,
+                                             session.spawnCoordinates,
+                                             session.seedEnvironment,
+                                             session.billingMode
                                     )
                                     .thenAccept { success: Boolean ->
                                         player.sendMessage(
@@ -298,9 +306,10 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         WorldCreationType.RANDOM -> {
                             plugin.worldService.generateWorld(
                                             player.uniqueId,
-                                            session.worldName!!,
-                                            null,
-                                            cost
+                                             session.worldName!!,
+                                             null,
+                                             cost,
+                                             billingMode = session.billingMode
                                     )
                                     .thenAccept { success: Boolean ->
                                         player.sendMessage(

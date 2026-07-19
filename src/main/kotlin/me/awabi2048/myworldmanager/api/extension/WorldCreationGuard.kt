@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.api.extension
 import net.kyori.adventure.text.Component
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import java.util.UUID
 
 enum class WorldCreationOperation {
     NORMAL,
@@ -13,7 +14,8 @@ data class WorldCreationRequest(
     val actor: CommandSender?,
     val player: Player?,
     val operation: WorldCreationOperation,
-    val type: WorldCreationType?
+    val type: WorldCreationType?,
+    val targetUuid: UUID? = player?.uniqueId
 )
 
 data class WorldCreationDecision(

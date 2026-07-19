@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.session
 
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import org.bukkit.World
 import java.util.UUID
 
@@ -29,6 +30,7 @@ data class WorldCreationSession(
     var seedEnvironment: World.Environment = World.Environment.NORMAL,
     var spawnCoordinates: WorldSpawnCoordinates? = null,
     var isDialogMode: Boolean = false,
+    var billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
     val extras: MutableMap<String, Any?> = mutableMapOf(),
     var lastActivity: Long = System.currentTimeMillis()
 ) {

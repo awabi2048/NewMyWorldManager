@@ -16,6 +16,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.WorldCreationPhase
 import me.awabi2048.myworldmanager.session.WorldCreationSession
@@ -446,15 +447,17 @@ class CreationDialogManager : Listener {
             }
             seedValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.seed_label"), it, "§f")) }
             seedDimensionValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.dimension_label"), it, "§f")) }
-            loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
-            val remaining = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint - cost
-            loreLines.add(
-                GuiLoreLine.Data(
-                    lang.getMessage(player, "gui.creation.confirm.remaining_points_label"),
-                    "§6🛖 §e${remaining.coerceAtLeast(0)}",
-                    ""
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
+                val remaining = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint - cost
+                loreLines.add(
+                    GuiLoreLine.Data(
+                        lang.getMessage(player, "gui.creation.confirm.remaining_points_label"),
+                        "§6🛖 §e${remaining.coerceAtLeast(0)}",
+                        ""
+                    )
                 )
-            )
+            }
 
             val bodyLines = CCSystem.getAPI().getLoreService()
                 .render(GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH))
@@ -530,35 +533,28 @@ class CreationDialogManager : Listener {
             when (session.creationType) {
                 WorldCreationType.TEMPLATE -> {
                     val templateId = session.templateId ?: return
-                    plugin.worldService.createWorld(templateId, player.uniqueId, name, cost)
+                    plugin.worldService.createWorld(templateId, player.uniqueId, name, cost, session.billingMode)
                 }
                 WorldCreationType.SEED -> {
-                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                    if (stats.worldPoint < cost) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
-                        return
-                    }
-                    stats.worldPoint -= cost
-                    plugin.playerStatsRepository.save(stats)
                     val seedStr = session.inputSeedString ?: ""
                     plugin.worldService.generateWorld(
                         player.uniqueId,
                         name,
                         seedStr,
-                        cost,
-                        session.spawnCoordinates,
-                        session.seedEnvironment
+                         cost,
+                         session.spawnCoordinates,
+                         session.seedEnvironment,
+                         session.billingMode
                     )
                 }
                 WorldCreationType.RANDOM -> {
-                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                    if (stats.worldPoint < cost) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
-                        return
-                    }
-                    stats.worldPoint -= cost
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.worldService.generateWorld(player.uniqueId, name, null, cost)
+                    plugin.worldService.generateWorld(
+                        player.uniqueId,
+                        name,
+                        null,
+                        cost,
+                        billingMode = session.billingMode
+                    )
                 }
                 else -> {}
             }

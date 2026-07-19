@@ -7,6 +7,7 @@ import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
 import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.api.service.WorldOperation
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import me.awabi2048.myworldmanager.model.BorderExpansionRecord
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
@@ -43,9 +44,10 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         templateId: String,
         ownerUuid: UUID,
         worldName: String,
-        cost: Int
+        cost: Int,
+        billingMode: WorldPointBillingMode
     ): CompletableFuture<Boolean> {
-        return plugin.worldService.createWorld(templateId, ownerUuid, worldName, cost)
+        return plugin.worldService.createWorld(templateId, ownerUuid, worldName, cost, billingMode)
     }
 
     override fun createManagedWorld(request: ManagedWorldCreationRequest): CompletableFuture<Boolean> {
@@ -182,7 +184,9 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         worldData.borderCenterPos = oldCenter
         worldData.borderExpansionLevel = record.levelBefore
         val removedCost = WorldRuntimePolicies.expansionCost(plugin.config, record.levelAfter)
-        worldData.cumulativePoints = (worldData.cumulativePoints - removedCost).coerceAtLeast(0)
+        if (me.awabi2048.myworldmanager.api.MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+            worldData.cumulativePoints = (worldData.cumulativePoints - removedCost).coerceAtLeast(0)
+        }
         val recordIndex = worldData.borderExpansionHistory.indexOfLast { it == record }
         if (recordIndex >= 0) {
             worldData.borderExpansionHistory.removeAt(recordIndex)

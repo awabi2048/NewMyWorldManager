@@ -71,7 +71,7 @@ class TemplateCreationSafetySourceContractTest {
         assertTrue(source.contains("gui.creation.type.remaining_points_label"));
         assertTrue(source.contains("gui.creation.confirm.current_points_label"));
         assertTrue(source.contains("if (MyWorldManagerApi.isWorldPointEconomyEnabled())"));
-        assertTrue(source.contains("if (MyWorldManagerApi.isWorldSlotSystemEnabled())"));
+        assertFalse(source.contains("if (MyWorldManagerApi.isWorldSlotSystemEnabled())"));
     }
 
     @Test

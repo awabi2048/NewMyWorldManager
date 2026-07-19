@@ -13,6 +13,7 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.model.WorldData
@@ -73,9 +74,11 @@ class WorldService(
             environment: org.bukkit.World.Environment,
             generator: String? = null,
             worldType: WorldType = WorldType.NORMAL,
-            initialSpawn: WorldSpawnCoordinates? = null,
-            cost: Int = 0
-    ): Boolean {
+             initialSpawn: WorldSpawnCoordinates? = null,
+             cost: Int = 0,
+             billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
+     ): Boolean {
+        val chargedCost = billableCost(cost, billingMode)
 
         if (!WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) ||
                 !WorldCreationChecks.check(player, type = WorldCreationType.SEED.takeIf { seed != null } ?: WorldCreationType.RANDOM)) {
@@ -167,11 +170,11 @@ class WorldService(
             }
 
             if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
-                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < cost
+                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < chargedCost
             ) {
                 throw IllegalStateException("Insufficient world points at creation commit")
             }
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, "None", effectiveInitialSpawn, seed != null)
+            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, chargedCost, "None", effectiveInitialSpawn, seed != null)
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -194,6 +197,7 @@ class WorldService(
             future.complete(false)
             return future
         }
+        val chargedCost = billableCost(request.cost, request.billingMode)
         val creationType = when (request.type) {
             me.awabi2048.myworldmanager.api.extension.WorldCreationType.TEMPLATE -> WorldCreationType.TEMPLATE
             me.awabi2048.myworldmanager.api.extension.WorldCreationType.SEED -> WorldCreationType.SEED
@@ -248,7 +252,7 @@ class WorldService(
                 ?: error("Bukkit returned null while creating managed world")
             request.initializeWorld(world)
             if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
-                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < request.cost
+                playerStatsRepository.findByUuid(player.uniqueId).worldPoint < chargedCost
             ) {
                 error("Insufficient world points at creation commit")
             }
@@ -261,7 +265,7 @@ class WorldService(
                 request.worldName,
                 folderName,
                 world,
-                request.cost,
+                chargedCost,
                 request.sourceId,
                 spawn
             )
@@ -498,9 +502,10 @@ class WorldService(
             ownerUuid: UUID,
             worldName: String,
             seed: String?,
-            cost: Int,
-            initialSpawn: WorldSpawnCoordinates? = null,
-            environment: org.bukkit.World.Environment = org.bukkit.World.Environment.NORMAL
+             cost: Int,
+             initialSpawn: WorldSpawnCoordinates? = null,
+             environment: org.bukkit.World.Environment = org.bukkit.World.Environment.NORMAL,
+             billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
     ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
@@ -513,8 +518,9 @@ class WorldService(
                 worldName,
                 seed,
                 environment,
-                initialSpawn = initialSpawn,
-                cost = cost
+                 initialSpawn = initialSpawn,
+                 cost = cost,
+                 billingMode = billingMode
         )
         future.complete(success)
         return future
@@ -523,10 +529,12 @@ class WorldService(
     /** ワールドの作成処理（テンプレート用、async互換用） */
     fun createWorld(
             templateId: String,
-            ownerUuid: UUID,
-            worldName: String,
-            cost: Int
-    ): java.util.concurrent.CompletableFuture<Boolean> {
+             ownerUuid: UUID,
+             worldName: String,
+             cost: Int,
+             billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
+     ): java.util.concurrent.CompletableFuture<Boolean> {
+        val chargedCost = billableCost(cost, billingMode)
         val future = java.util.concurrent.CompletableFuture<Boolean>()
         val player = Bukkit.getPlayer(ownerUuid)
         if (player == null) {
@@ -573,7 +581,7 @@ class WorldService(
             null -> Unit
         }
         val currentStats = playerStatsRepository.findByUuid(ownerUuid)
-        if (currentStats.worldPoint < cost) {
+        if (currentStats.worldPoint < chargedCost) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
             future.complete(false)
             return future
@@ -659,14 +667,14 @@ class WorldService(
                         val origin = template.originLocation!!
                         val initialSpawn = WorldSpawnCoordinates(origin.blockX, origin.blockY, origin.blockZ)
                         val latestStats = playerStatsRepository.findByUuid(ownerUuid)
-                        if (latestStats.worldPoint < cost) {
+                        if (latestStats.worldPoint < chargedCost) {
                             cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                             creatingWorlds.remove(player.uniqueId.toString())
                             player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
                             future.complete(false)
                             return@Runnable
                         }
-                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, cost, template.id, initialSpawn)
+                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, chargedCost, template.id, initialSpawn)
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
@@ -1150,6 +1158,12 @@ class WorldService(
         return future
     }
 
+    private fun billableCost(cost: Int, billingMode: WorldPointBillingMode): Int {
+        if (billingMode == WorldPointBillingMode.NONE) return 0
+        if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) return 0
+        return cost.coerceAtLeast(0)
+    }
+
     private fun cleanupFailedTemplateWorld(worldFolderName: String, targetFolder: File) {
         cleanupFailedCreatedWorld(worldFolderName, targetFolder)
     }
@@ -1363,6 +1377,9 @@ class WorldService(
     }
 
     private fun reduceOwnerSlotOnDeleteIfEnabled(ownerUuid: UUID) {
+        if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+            return
+        }
         if (!WorldRuntimePolicies.reduceOwnerSlotOnDelete(plugin.config)) {
             return
         }

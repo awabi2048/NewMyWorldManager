@@ -14,6 +14,11 @@ import java.util.concurrent.CompletableFuture
 
 data class ManagedWorldSpawn(val x: Int, val y: Int, val z: Int)
 
+enum class WorldPointBillingMode {
+    STANDARD,
+    NONE
+}
+
 data class ManagedWorldCreationRequest(
     val ownerUuid: UUID,
     val worldName: String,
@@ -24,7 +29,8 @@ data class ManagedWorldCreationRequest(
     val generator: ChunkGenerator? = null,
     val generateStructures: Boolean = true,
     val initialSpawn: ManagedWorldSpawn? = null,
-    val cost: Int = 0,
+    val cost: Int,
+    val billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
     val initializeWorld: (World) -> Unit = {}
 )
 
@@ -41,7 +47,8 @@ interface ApiWorldService {
         templateId: String,
         ownerUuid: UUID,
         worldName: String,
-        cost: Int
+        cost: Int,
+        billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
     ): CompletableFuture<Boolean>
 
     /**

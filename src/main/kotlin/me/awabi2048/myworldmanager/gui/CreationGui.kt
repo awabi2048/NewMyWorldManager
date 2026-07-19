@@ -65,17 +65,12 @@ class CreationGui(private val plugin: MyWorldManager) {
 
         val templateItem = createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE)
         val randomItem = createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM)
-        if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
-            me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceItems(
-                inventory,
-                templateItem,
-                createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
-                randomItem
-            )
-        } else {
-            inventory.setItem(layout.leftSlot, templateItem)
-            inventory.setItem(layout.rightSlot, randomItem)
-        }
+        me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceItems(
+            inventory,
+            templateItem,
+            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
+            randomItem
+        )
 
         me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
 
@@ -136,7 +131,10 @@ class CreationGui(private val plugin: MyWorldManager) {
         val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
-        if (!bypassLimits && currentCounts >= maxCounts) {
+        if (MyWorldManagerApi.isWorldSlotSystemEnabled() &&
+            !bypassLimits &&
+            currentCounts >= maxCounts
+        ) {
             lore.add(GuiLoreLine.Spacer)
             lore.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.creation.limit_reached", mapOf("current" to currentCounts, "max" to maxCounts)).removePrefix("§c")))
         }

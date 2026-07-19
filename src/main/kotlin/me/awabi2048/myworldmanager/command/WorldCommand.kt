@@ -408,12 +408,18 @@ class WorldCommand(
             }
             3 -> {
                 val sub = args[0].lowercase()
-                if (sub == "stats" && hasStatsPermission) {
+                if (sub == "stats" &&
+                    hasStatsPermission &&
+                    canSuggestSubCommand(sender, sub, args.toList())
+                ) {
                     list.addAll(listOf("points", "warp-slots", "world-slots"))
                 }
             }
             4 -> {
-                if (args[0].lowercase() == "stats" && hasStatsPermission) {
+                if (args[0].lowercase() == "stats" &&
+                    hasStatsPermission &&
+                    canSuggestSubCommand(sender, "stats", args.toList())
+                ) {
                     list.addAll(listOf("get", "set", "add", "remove"))
                 }
             }

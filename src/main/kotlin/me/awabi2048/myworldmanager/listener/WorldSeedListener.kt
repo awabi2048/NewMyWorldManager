@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
@@ -17,6 +18,7 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
 
     companion object {
         fun expandWorldSlot(plugin: MyWorldManager, player: Player): Boolean {
+            if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) return false
             val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
             val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
