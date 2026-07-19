@@ -137,10 +137,8 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 return
             }
 
-            if (type == ItemTag.TYPE_GUI_PLAYER_STATS) {
+            if (type == ItemTag.TYPE_GUI_PENDING_BUTTON) {
                 if (!isOwnMenu) return
-                val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
-                if (pendingCount == 0) return
                 plugin.soundManager.playClickSound(player, currentItem, "player_world")
                 val currentPage = plugin.playerWorldSessionManager.getSession(player.uniqueId).currentPage
                 val showBack = plugin.playerWorldSessionManager.getSession(player.uniqueId).showBackButton

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 class PlayerWorldMenuLayoutSourceContractTest {
 
     @Test
-    void javaMenuUsesTheChanponThreePointFooterAndCompleteBackground() throws Exception {
+    void javaMenuUsesTheHistoricalNotificationAndNextPageFooterSlots() throws Exception {
         String source = Files.readString(
             Path.of("src/main/kotlin/me/awabi2048/myworldmanager/gui/PlayerWorldGui.kt"),
             StandardCharsets.UTF_8
@@ -20,13 +20,15 @@ class PlayerWorldMenuLayoutSourceContractTest {
         assertTrue(source.contains("layout.actionSlot - 2, createCreationButton(player)"));
         assertTrue(source.contains("layout.actionSlot,"));
         assertTrue(source.contains("layout.actionSlot + 2,"));
+        assertTrue(source.contains("footerStart + 7,"));
+        assertTrue(source.contains("footerStart + 8,"));
+        assertTrue(source.contains("createPendingButton(player)"));
         assertTrue(source.contains("GuiItemFactory.fillEmpty(inventory)"));
         assertFalse(source.contains("footerStart + 5"));
-        assertFalse(source.contains("createPendingButton"));
     }
 
     @Test
-    void pendingInteractionsRemainAvailableFromTheCenterPlayerHead() throws Exception {
+    void pendingInteractionsUseTheDedicatedNotificationButton() throws Exception {
         String guiSource = Files.readString(
             Path.of("src/main/kotlin/me/awabi2048/myworldmanager/gui/PlayerWorldGui.kt"),
             StandardCharsets.UTF_8
@@ -40,11 +42,10 @@ class PlayerWorldMenuLayoutSourceContractTest {
             StandardCharsets.UTF_8
         );
 
-        assertTrue(guiSource.contains("getPendingCount(targetPlayerUuid)"));
+        assertTrue(guiSource.contains("getPendingCount(player.uniqueId)"));
         assertTrue(guiSource.contains("gui.player_world.pending_button.action"));
-        assertTrue(listenerSource.contains("if (type == ItemTag.TYPE_GUI_PLAYER_STATS)"));
+        assertTrue(listenerSource.contains("if (type == ItemTag.TYPE_GUI_PENDING_BUTTON)"));
         assertTrue(listenerSource.contains("plugin.pendingInteractionGui.open("));
-        assertFalse(listenerSource.contains("TYPE_GUI_PENDING_BUTTON"));
         assertTrue(bedrockSource.contains("if (pendingCount > 0) \"open_pending_interactions\" else \"noop\""));
         assertFalse(bedrockSource.contains("footerStart + 5"));
         assertFalse(bedrockSource.contains("createPendingButtonItem"));
