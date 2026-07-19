@@ -35,6 +35,20 @@ class TemplateCreationSafetySourceContractTest {
     }
 
     @Test
+    void playerTemplateSelectionOnlyShowsUsableTemplates() throws Exception {
+        String guiSource = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.kt"
+        ));
+        String listenerSource = Files.readString(Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/listener/CreationGuiListener.kt"
+        ));
+
+        assertTrue(guiSource.contains(".filter(plugin.templateRepository::isUsable)"));
+        assertTrue(listenerSource.contains(".none(plugin.templateRepository::isUsable)"));
+        assertTrue(listenerSource.contains("if (!plugin.templateRepository.isUsable(template)) return"));
+    }
+
+    @Test
     void legacyWorldKeyIsMigratedBeforeDeserialization() throws Exception {
         String source = Files.readString(Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/repository/WorldConfigRepository.kt"

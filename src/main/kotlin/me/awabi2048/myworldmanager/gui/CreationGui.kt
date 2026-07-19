@@ -103,6 +103,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
 
         val templates = plugin.templateRepository.findAll()
+            .filter(plugin.templateRepository::isUsable)
         if (templates.isEmpty()) {
             player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
             return
@@ -161,7 +162,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     fun openTemplateDetail(player: Player, session: WorldCreationSession) {
         val lang = plugin.languageManager
         val template = session.templateId?.let(plugin.templateRepository::findById)
-        if (template == null) {
+        if (template == null || !plugin.templateRepository.isUsable(template)) {
             player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
             session.phase = WorldCreationPhase.TEMPLATE_SELECT
             openTemplateSelection(player)

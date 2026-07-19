@@ -118,7 +118,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 when (tag) {
                     ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE -> {
                         plugin.soundManager.playClickSound(player, currentItem)
-                        if (plugin.templateRepository.findAll().isEmpty()) {
+                        if (plugin.templateRepository.findAll().none(plugin.templateRepository::isUsable)) {
                             player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
                             plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
                             return
@@ -163,6 +163,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 if (tag != ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM) return
                 val templateId = ItemTag.getTemplateId(currentItem) ?: return
                 val template = plugin.templateRepository.findById(templateId) ?: return
+                if (!plugin.templateRepository.isUsable(template)) return
                 plugin.soundManager.playClickSound(player, currentItem)
                 session.templateId = template.id
                 session.phase = WorldCreationPhase.TEMPLATE_DETAIL
