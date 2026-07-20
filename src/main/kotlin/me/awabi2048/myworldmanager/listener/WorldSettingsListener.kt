@@ -1564,7 +1564,7 @@ class WorldSettingsListener : Listener {
                                                         GuiCycle.select(
                                                                 worldData.publishLevel,
                                                                 PublishLevel.values(),
-                                                                reverse = event.isLeftClick
+                                                                GuiCycle.direction(event.click) ?: return
                                                         )
                                                 worldData.publishLevel = nextLevel
                                                 if (worldData.publishLevel == PublishLevel.PUBLIC) {
@@ -4475,7 +4475,11 @@ player.sendMessage(
 
                 val currentTemp = session.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
                 session.tempWeather =
-                        GuiCycle.select(currentTemp, options)
+                        GuiCycle.select(
+                                currentTemp,
+                                options,
+                                com.awabi2048.ccsystem.api.gui.GuiCycleDirection.NEXT
+                        )
 
                 plugin.soundManager.playClickSound(player, null, "world_settings")
                 plugin.environmentGui.open(player, worldData)

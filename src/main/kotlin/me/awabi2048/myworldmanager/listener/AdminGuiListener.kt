@@ -2,6 +2,7 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
@@ -74,7 +75,10 @@ class AdminGuiListener : Listener {
                 }
                 ItemTag.TYPE_GUI_ADMIN_PORTAL_SORT -> {
                     plugin.soundManager.playAdminClickSound(player)
-                    plugin.adminGuiSessionManager.cyclePortalSortType(player.uniqueId, event.isLeftClick)
+                    plugin.adminGuiSessionManager.cyclePortalSortType(
+                        player.uniqueId,
+                        GuiCycle.direction(event.click) ?: return
+                    )
                     plugin.adminPortalGui.open(player)
                 }
                 ItemTag.TYPE_PORTAL -> {
@@ -169,7 +173,10 @@ class AdminGuiListener : Listener {
             // アーカイブフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cycleArchiveFilter(player.uniqueId, event.isLeftClick)
+                plugin.adminGuiSessionManager.cycleArchiveFilter(
+                    player.uniqueId,
+                    GuiCycle.direction(event.click) ?: return
+                )
                 plugin.worldGui.open(player)
                 return
             }
@@ -177,7 +184,10 @@ class AdminGuiListener : Listener {
             // 公開レベルフィルターボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH) {
                 plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cyclePublishFilter(player.uniqueId, event.isLeftClick)
+                plugin.adminGuiSessionManager.cyclePublishFilter(
+                    player.uniqueId,
+                    GuiCycle.direction(event.click) ?: return
+                )
                 plugin.worldGui.open(player)
                 return
             }
@@ -186,7 +196,10 @@ class AdminGuiListener : Listener {
             if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER) {
                 plugin.soundManager.playClickSound(player, currentItem)
                 if (event.isLeftClick) {
-                    plugin.adminGuiSessionManager.cyclePlayerFilterType(player.uniqueId)
+                    plugin.adminGuiSessionManager.cyclePlayerFilterType(
+                        player.uniqueId,
+                        GuiCycle.direction(event.click) ?: return
+                    )
                     plugin.worldGui.open(player)
                 } else if (event.isRightClick) {
                     if (session.playerFilterType != me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
@@ -202,7 +215,10 @@ class AdminGuiListener : Listener {
             // ソートボタン
             if (type == ItemTag.TYPE_GUI_ADMIN_SORT) {
                 plugin.soundManager.playAdminClickSound(player)
-                plugin.adminGuiSessionManager.cycleSortType(player.uniqueId, event.isLeftClick)
+                plugin.adminGuiSessionManager.cycleSortType(
+                    player.uniqueId,
+                    GuiCycle.direction(event.click) ?: return
+                )
                 plugin.worldGui.open(player)
                 return
             }

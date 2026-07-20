@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -158,13 +159,11 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
             }
             ItemTag.TYPE_GUI_PORTAL_CYCLE_COLOR -> {
                 plugin.soundManager.playClickSound(player, item)
-                val currentIndex = colors.indexOf(portal.particleColor)
-                val nextIndex = if (event.isLeftClick) {
-                    (currentIndex + colors.size - 1) % colors.size
-                } else {
-                    (currentIndex + 1) % colors.size
-                }
-                portal.particleColor = colors[nextIndex]
+                portal.particleColor = GuiCycle.select(
+                    portal.particleColor,
+                    colors,
+                    GuiCycle.direction(event.click) ?: return
+                )
                 plugin.portalRepository.saveAll()
                 open(player, portal)
             }

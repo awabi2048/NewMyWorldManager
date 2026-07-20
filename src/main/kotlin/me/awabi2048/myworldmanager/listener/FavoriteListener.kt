@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
@@ -85,20 +86,11 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 val returnToWorld = if (returnUuid != null) plugin.worldConfigRepository.findByUuid(returnUuid) else null
                 val returnToFavoriteMenu = ItemTag.getString(currentItem, "favorite_return_target") == "favorite_menu"
 
-                if (event.isLeftClick) {
-                    val currentIndex = if (favoriteSession.selectedTag == null) -1 else allTags.indexOf(favoriteSession.selectedTag)
-                    val nextIndex = (currentIndex + 1) % (allTags.size + 1)
-
-                    favoriteSession.selectedTag = if (nextIndex == allTags.size) {
-                        null
-                    } else {
-                        allTags[nextIndex]
-                    }
-                } else if (event.isRightClick) {
-                    val currentIndex = if (favoriteSession.selectedTag == null) allTags.size else allTags.indexOf(favoriteSession.selectedTag)
-                    val previousIndex = (currentIndex - 1).mod(allTags.size + 1)
-                    favoriteSession.selectedTag = if (previousIndex == allTags.size) null else allTags[previousIndex]
-                }
+                favoriteSession.selectedTag = GuiCycle.selectNullable(
+                    favoriteSession.selectedTag,
+                    allTags + null,
+                    GuiCycle.direction(event.click) ?: return
+                )
 
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
                 plugin.menuEntryRouter.openFavoriteList(player, 0, returnToWorld, returnToFavoriteMenu)
