@@ -40,11 +40,11 @@ object GuiLoreActions {
         return listOf(
             GuiLoreLine.Action(
                 languageManager.getMessage(player, "lore.click.left"),
-                languageManager.getMessage(player, "gui.common.action.previous")
+                languageManager.getMessage(player, "gui.common.action.next")
             ),
             GuiLoreLine.Action(
                 languageManager.getMessage(player, "lore.click.right"),
-                languageManager.getMessage(player, "gui.common.action.next")
+                languageManager.getMessage(player, "gui.common.action.previous")
             )
         )
     }

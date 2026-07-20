@@ -3,6 +3,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import io.papermc.paper.registry.data.dialog.ActionButton
@@ -242,7 +243,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 session.selectedTag = GuiCycle.selectNullable(
                     session.selectedTag,
                     options,
-                    reverse = !isBedrock && event.isLeftClick
+                    if (isBedrock) GuiCycleDirection.NEXT else GuiCycle.direction(event.click) ?: return
                 )
 
                 plugin.soundManager.playClickSound(player, item, "discovery")
@@ -263,7 +264,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 session.sort = GuiCycle.select(
                     session.sort,
                     DiscoverySort.values(),
-                    reverse = !isBedrock && event.isLeftClick
+                    if (isBedrock) GuiCycleDirection.NEXT else GuiCycle.direction(event.click) ?: return
                 )
                 plugin.soundManager.playClickSound(player, item, "discovery")
                 plugin.menuEntryRouter.openDiscovery(player)
@@ -272,7 +273,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                 session.specialFilter = GuiCycle.select(
                     session.specialFilter,
                     DiscoverySpecialFilter.values(),
-                    reverse = !isBedrock && event.isLeftClick
+                    if (isBedrock) GuiCycleDirection.NEXT else GuiCycle.direction(event.click) ?: return
                 )
 
                 plugin.soundManager.playClickSound(player, item, "discovery")
