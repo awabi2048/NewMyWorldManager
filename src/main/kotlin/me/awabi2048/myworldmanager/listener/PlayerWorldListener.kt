@@ -290,7 +290,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                     stats.tourNavigationMode = GuiCycle.select(
                         stats.tourNavigationMode,
                         TourNavigationMode.entries,
-                        reverse = event.isLeftClick
+                        reverse = event.isRightClick
                     )
                     plugin.playerStatsRepository.save(stats)
                     plugin.tourManager.refreshNavigation(player)
