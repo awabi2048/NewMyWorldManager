@@ -96,14 +96,14 @@ enum class CustomItem(val id: String) {
 
     TOUR_SIGN("tour_sign") {
         override fun create(lang: LanguageManager, player: Player?): ItemStack {
-            val item = ItemStack(Material.POISONOUS_POTATO)
+            val item = ItemStack(TourSignItemPolicy.baseMaterial)
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.tour_sign.name"))
             meta.lore(actionLore(lang, player, "custom_item.tour_sign"))
 
             meta.setMaxStackSize(16)
-            meta.setItemModel(NamespacedKey("minecraft", "pale_oak_sign"))
+            meta.setItemModel(TourSignItemPolicy.itemModel)
             item.itemMeta = meta
 
             item.unsetData(DataComponentTypes.CONSUMABLE)
@@ -155,4 +155,9 @@ enum class CustomItem(val id: String) {
                 )))
             )))
     }
+}
+
+internal object TourSignItemPolicy {
+    val baseMaterial: Material = Material.POISONOUS_POTATO
+    val itemModel: NamespacedKey = NamespacedKey("minecraft", "pale_oak_sign")
 }

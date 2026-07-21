@@ -38,23 +38,17 @@ class PendingNotificationService(
             "messages.pending_notification.$key.body",
             placeholders
         )
-        val action = plugin.languageManager.getComponent(
+        val actionText = plugin.languageManager.getComponent(
             target,
             "messages.pending_notification.$key.action",
             placeholders
         )
-            .color(NamedTextColor.AQUA)
-            .decoration(TextDecoration.UNDERLINED, true)
-            .clickEvent(ClickEvent.runCommand(command))
-            .hoverEvent(
-                HoverEvent.showText(
-                    plugin.languageManager.getComponent(
-                        target,
-                        "messages.pending_notification.hover",
-                        mapOf("command" to command)
-                    )
-                )
-            )
+        val hoverText = plugin.languageManager.getComponent(
+            target,
+            "messages.pending_notification.hover",
+            mapOf("command" to command)
+        )
+        val action = PendingNotificationAction.create(actionText, hoverText, actionCode)
         target.sendMessage(Component.text().append(body).append(Component.newline()).append(action).build())
     }
 
@@ -65,5 +59,16 @@ class PendingNotificationService(
             .forEach { entry ->
                 send(target, entry.type, entry.actionCode, entry.actorUuid, entry.worldUuid)
             }
+    }
+}
+
+internal object PendingNotificationAction {
+    fun create(action: Component, hover: Component, actionCode: String): Component {
+        val command = "/myworld confirm $actionCode"
+        return action
+            .color(NamedTextColor.AQUA)
+            .decoration(TextDecoration.UNDERLINED, true)
+            .clickEvent(ClickEvent.runCommand(command))
+            .hoverEvent(HoverEvent.showText(hover))
     }
 }

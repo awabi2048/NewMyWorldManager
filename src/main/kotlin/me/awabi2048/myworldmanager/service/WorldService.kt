@@ -1159,9 +1159,11 @@ class WorldService(
     }
 
     private fun billableCost(cost: Int, billingMode: WorldPointBillingMode): Int {
-        if (billingMode == WorldPointBillingMode.NONE) return 0
-        if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) return 0
-        return cost.coerceAtLeast(0)
+        return WorldPointBillingPolicy.billableCost(
+            cost,
+            billingMode,
+            MyWorldManagerApi.isWorldPointEconomyEnabled()
+        )
     }
 
     private fun cleanupFailedTemplateWorld(worldFolderName: String, targetFolder: File) {
