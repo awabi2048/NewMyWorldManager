@@ -9,8 +9,6 @@ import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
-import io.papermc.paper.datacomponent.DataComponentTypes
-import io.papermc.paper.datacomponent.item.CustomModelData
 import java.util.UUID
 
 object PortalItemUtil {
@@ -24,10 +22,7 @@ object PortalItemUtil {
         meta.lore(portalLore(lang, player, null))
         try { meta.setMaxStackSize(1) } catch (e: Exception) {}
 
-        meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
         item.itemMeta = meta
-
-        item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("world_portal").build())
 
         ItemTag.tagItem(item, ItemTag.TYPE_PORTAL)
         return item

@@ -32,6 +32,12 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.atan2
 import kotlin.math.ceil
 
+object TourParticipationPolicy {
+    fun cannotStartTour(worldData: WorldData, playerUuid: UUID): Boolean {
+        return worldData.owner == playerUuid || worldData.moderators.contains(playerUuid)
+    }
+}
+
 class TourManager(private val plugin: MyWorldManager) {
     companion object {
         const val DEFAULT_TOUR_LIMIT = 7
@@ -94,6 +100,10 @@ class TourManager(private val plugin: MyWorldManager) {
         return worldData.owner == playerUuid ||
             worldData.moderators.contains(playerUuid) ||
             worldData.members.contains(playerUuid)
+    }
+
+    fun cannotStartTour(worldData: WorldData, playerUuid: UUID): Boolean {
+        return TourParticipationPolicy.cannotStartTour(worldData, playerUuid)
     }
 
     fun canManage(worldData: WorldData, playerUuid: UUID): Boolean {
@@ -296,7 +306,7 @@ class TourManager(private val plugin: MyWorldManager) {
     }
 
     fun startTour(player: Player, worldData: WorldData, tour: TourData): StartTourResult {
-        if (isWorldMember(worldData, player.uniqueId)) return StartTourResult.WORLD_MEMBER
+        if (cannotStartTour(worldData, player.uniqueId)) return StartTourResult.WORLD_MEMBER
         if (tour.startSignUuid == null || tour.waypoints.size < 2) return StartTourResult.INVALID_TOUR
         val world = Bukkit.getWorld(plugin.worldService.getWorldFolderName(worldData)) ?: return StartTourResult.WRONG_WORLD
         if (player.world.uid != world.uid) return StartTourResult.WRONG_WORLD
@@ -563,7 +573,7 @@ class TourManager(private val plugin: MyWorldManager) {
         startSignNoticeTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             Bukkit.getOnlinePlayers().forEach { player ->
                 val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return@forEach
-                if (isWorldMember(worldData, player.uniqueId)) return@forEach
+                if (cannotStartTour(worldData, player.uniqueId)) return@forEach
                 val startSigns = worldData.tours
                     .filter { it.startSignUuid != null && it.waypoints.size >= 2 }
                     .mapNotNull { tour ->

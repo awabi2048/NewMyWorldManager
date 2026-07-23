@@ -60,6 +60,7 @@ object ItemTag {
     const val TYPE_GUI_CREATION_DIMENSION = "gui_creation_dimension"
     const val TYPE_GUI_MEMBER_ITEM = "gui_member_item"
     const val TYPE_GUI_MEMBER_INVITE = "gui_member_invite"
+    const val TYPE_GUI_MEMBER_ADMIN_OWNER_RESET = "gui_member_admin_owner_reset"
     const val TYPE_GUI_MEMBER_PENDING_INVITE = "gui_member_pending_invite"
     const val TYPE_GUI_MEMBER_PENDING_REQUEST = "gui_member_pending_request"
     const val TYPE_GUI_SETTING_TAGS = "gui_setting_tags"

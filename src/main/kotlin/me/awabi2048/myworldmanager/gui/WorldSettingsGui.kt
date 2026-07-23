@@ -1642,6 +1642,53 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                if (isAdminFlow) {
+                        val ownerName =
+                                PlayerNameUtil.getNameOrDefault(
+                                        worldData.owner,
+                                        lang.getMessage(player, "general.unknown")
+                                )
+                        inventory.setItem(
+                                footerStart + 7,
+                                createItem(
+                                        Material.NAME_TAG,
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.admin_owner_reset.name"
+                                        ),
+                                        GuiLoreSpec.Blocks(
+                                                listOf(
+                                                        com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                                                                listOf(
+                                                                        GuiLoreLine.Data(
+                                                                                lang.getMessage(
+                                                                                        player,
+                                                                                        "gui.member_management.admin_owner_reset.current_owner"
+                                                                                ),
+                                                                                ownerName,
+                                                                                "§e"
+                                                                        )
+                                                                )
+                                                        ),
+                                                        com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
+                                                                listOf(
+                                                                        GuiLoreActions.singleClick(
+                                                                                lang,
+                                                                                player,
+                                                                                lang.getMessage(
+                                                                                        player,
+                                                                                        "gui.member_management.admin_owner_reset.action"
+                                                                                )
+                                                                        )
+                                                                )
+                                                        )
+                                                )
+                                        ),
+                                        ItemTag.TYPE_GUI_MEMBER_ADMIN_OWNER_RESET
+                                )
+                        )
+                }
+
                 MyWorldManagerApi.getMenuExtensions().forEach { extension ->
                         extension.onRender(
                                 inventory,
