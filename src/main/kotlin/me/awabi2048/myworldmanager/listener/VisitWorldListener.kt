@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.VisitWorldGui
@@ -49,13 +51,13 @@ class VisitWorldListener(private val plugin: MyWorldManager) : Listener {
                 if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                     player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                     plugin.soundManager.playActionSound(player, "visit", "access_denied")
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     return
                 }
 
                 if (event.isLeftClick) {
                     plugin.soundManager.playClickSound(player, currentItem, "visit")
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     plugin.worldService.teleportToWorld(player, uuid) {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     }

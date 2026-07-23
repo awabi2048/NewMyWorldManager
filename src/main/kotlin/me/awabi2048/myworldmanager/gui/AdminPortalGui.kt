@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -90,7 +92,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_RETURN)
         }
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
         me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
     }
 

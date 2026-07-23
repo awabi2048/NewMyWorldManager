@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
@@ -209,7 +211,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         }
                 }
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
                 GuiHelper.scheduleGuiTransitionReset(plugin, player)
         }
 

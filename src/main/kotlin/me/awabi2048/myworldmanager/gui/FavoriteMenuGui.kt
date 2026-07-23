@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -73,7 +75,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             inventory.setItem(layout.backSlot, createWorldInfoItem(player, worldData))
         }
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
         GuiHelper.scheduleGuiTransitionReset(plugin, player)
     }
 

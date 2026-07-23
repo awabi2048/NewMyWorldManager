@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.Bukkit
@@ -47,12 +49,12 @@ class InviteListener(private val plugin: MyWorldManager) : Listener {
         val target = Bukkit.getPlayer(targetUuid)
         if (target == null || !target.isOnline) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
             return
         }
 
         plugin.soundManager.playClickSound(player, currentItem, "meet")
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
         player.performCommand("invite ${target.name}")
     }
 }

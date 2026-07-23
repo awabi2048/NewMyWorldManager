@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -52,7 +54,7 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
         ItemTag.setWorldUuid(cancelItem, worldData.uuid)
         GuiHelper.setConfirmationItems(inventory, worldItem, confirmItem, cancelItem)
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     class FavoriteConfirmGuiHolder : org.bukkit.inventory.InventoryHolder {

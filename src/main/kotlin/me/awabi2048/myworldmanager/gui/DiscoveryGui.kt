@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -182,7 +184,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 GuiHelper.playMenuOpen(player, "discovery")
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.service
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -947,7 +949,7 @@ class WorldService(
 
         if (needsLoad) {
             if (closeInventoryOnLoad) {
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
             }
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
             if (!loadWorld(worldUuid)) {

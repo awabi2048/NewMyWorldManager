@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -62,7 +64,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_CANCEL)
         GuiHelper.setThreeChoiceBack(inventory, backItem)
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun createGravityItem(player: Player, worldData: WorldData): ItemStack {

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -68,7 +70,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             plugin.soundManager.playClickSound(player, currentItem)
             when (session.phase) {
                 WorldCreationPhase.TYPE_SELECT -> {
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     cancelAndReturnToMyWorld(player)
                 }
                 WorldCreationPhase.TEMPLATE_SELECT -> {
@@ -81,7 +83,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 }
                 WorldCreationPhase.CONFIRM -> {
                     session.phase = WorldCreationPhase.NAME_INPUT
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     openNameInputByPlatform(player, session)
                 }
                 else -> {}
@@ -137,12 +139,12 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         session.phase = WorldCreationPhase.SEED_INPUT
                         
                         if (session.isDialogMode) {
-                            player.closeInventory()
+                            ManagedMenuPresenter.close(player)
                             me.awabi2048.myworldmanager.gui.CreationDialogManager.showSeedInputDialog(player, session)
                             return
                         }
 
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         openSeedInputByPlatform(player, session)
                     }
                     ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> {
@@ -151,13 +153,13 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         
                         if (session.isDialogMode) {
                             session.phase = WorldCreationPhase.NAME_INPUT
-                            player.closeInventory()
+                            ManagedMenuPresenter.close(player)
                             me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
                             return
                         }
                         
                         session.phase = WorldCreationPhase.NAME_INPUT
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         openNameInputByPlatform(player, session)
                     }
                     else -> {}
@@ -180,12 +182,12 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                         if (!plugin.templateRepository.isUsable(template)) return
                         plugin.soundManager.playClickSound(player, currentItem)
                         session.phase = WorldCreationPhase.NAME_INPUT
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         openNameInputByPlatform(player, session)
                     }
                     ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW -> {
                         val templateId = session.templateId ?: return
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         plugin.previewSessionManager.startPreview(
                             player,
                             PreviewSessionManager.PreviewTarget.Template(templateId),
@@ -214,13 +216,13 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 ) {
                     plugin.soundManager.playClickSound(player, currentItem)
                     session.phase = WorldCreationPhase.SPAWN_INPUT
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     openSpawnInputByPlatform(player, session)
                 } else if (tag == ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW &&
                     session.creationType == WorldCreationType.TEMPLATE
                 ) {
                     val templateId = session.templateId ?: return
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     plugin.previewSessionManager.startPreview(
                         player,
                         PreviewSessionManager.PreviewTarget.Template(templateId),
@@ -232,7 +234,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     session.phase = WorldCreationPhase.TEMPLATE_SELECT
                     plugin.creationGui.openTemplateSelection(player)
                 } else if (tag == ItemTag.TYPE_GUI_CONFIRM) {
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
 
                     val adminCommandSession =
                         session.extras[CreationGui.ADMIN_COMMAND_SESSION_KEY] == true
@@ -327,7 +329,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                     plugin.creationSessionManager.endSession(player.uniqueId)
                 } else if (tag == ItemTag.TYPE_GUI_CANCEL) {
                     plugin.soundManager.playActionSound(player, "creation", "cancel")
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     cancelAndReturnToMyWorld(player)
                 }
             }

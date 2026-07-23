@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.TourDialogManager
@@ -163,7 +165,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         plugin.soundManager.playClickSound(player, item, "confirm")
         val tour = plugin.tourManager.getTour(worldData, holder.tourUuid) ?: return
         when (plugin.tourManager.startTour(player, worldData, tour)) {
-            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> player.closeInventory()
+            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> ManagedMenuPresenter.close(player)
             me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WORLD_MEMBER ->
                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.invite_already_member"))
             me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR ->
@@ -282,7 +284,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
                     return
                 }
                 session.awaitingWaypointPick = true
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
                 startWaypointPreview(player)
             }
@@ -332,7 +334,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             signData,
             worldData
         )
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour_sign.bound"))
     }
 

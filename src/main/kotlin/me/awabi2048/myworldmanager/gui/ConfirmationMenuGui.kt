@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.GuiHelper
 import net.kyori.adventure.text.Component
@@ -28,7 +30,7 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         GuiHelper.setConfirmationItems(inventory, centerItem, confirmItem, cancelItem)
 
         GuiHelper.playMenuOpen(player, menuId)
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     class ConfirmationMenuHolder(

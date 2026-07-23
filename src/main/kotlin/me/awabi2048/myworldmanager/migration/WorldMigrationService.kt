@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.migration
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldOperation
@@ -297,7 +299,7 @@ class WorldMigrationService(
             item(Material.LIME_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.execute")),
             item(Material.RED_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.cancel"))
         )
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     @EventHandler
@@ -308,10 +310,10 @@ class WorldMigrationService(
         val player = event.whoClicked as? Player ?: return
         when (event.rawSlot) {
             GuiHelper.confirmationLayout().confirmSlot -> {
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 requestExecute(player, confirmed = true)
             }
-            GuiHelper.confirmationLayout().cancelSlot -> player.closeInventory()
+            GuiHelper.confirmationLayout().cancelSlot -> ManagedMenuPresenter.close(player)
         }
     }
 

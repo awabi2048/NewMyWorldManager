@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -66,6 +68,6 @@ class EnvironmentConfirmGui(private val plugin: MyWorldManager) {
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
         GuiHelper.setConfirmationItems(inventory, displayItem, confirmItem, cancelItem)
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 }

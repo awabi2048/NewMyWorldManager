@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
@@ -88,7 +90,7 @@ class AdminGuiListener : Listener {
                     if (event.isLeftClick) {
                         // テレポート
                         plugin.soundManager.playClickSound(player, currentItem)
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         if (portal.worldUuid != null) {
                             plugin.portalManager.addIgnorePlayer(player)
                             plugin.portalManager.addPortalGrace(player, portalUuid, 15)
@@ -205,7 +207,7 @@ class AdminGuiListener : Listener {
                     if (session.playerFilterType != me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
                         plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
                         plugin.settingsSessionManager.getSession(player)?.beginExternalInput(MenuExternalInput.ADMIN_PLAYER_FILTER)
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         openAdminPlayerFilterInput(plugin, player)
                     }
                 }
@@ -467,7 +469,7 @@ class AdminGuiListener : Listener {
         val lang = plugin.languageManager
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         if (Bukkit.getWorld(folderName) == null) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
             player.sendMessage(lang.getMessage(player, "messages.world_loading"))
             plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
                 player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
@@ -475,7 +477,7 @@ class AdminGuiListener : Listener {
             return
         }
 
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
         plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
             player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
         }
@@ -485,7 +487,7 @@ class AdminGuiListener : Listener {
         val lang = plugin.languageManager
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         if (!worldData.isArchived && Bukkit.getWorld(folderName) == null) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
             player.sendMessage(lang.getMessage(player, "messages.world_loading"))
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 if (!player.isOnline) {

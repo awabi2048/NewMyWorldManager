@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -54,7 +56,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         ItemTag.setString(noItem, "key", key)
         GuiHelper.setConfirmationItems(inventory, infoItem, yesItem, noItem)
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     class MemberRequestOwnerConfirmHolder : InventoryHolder {

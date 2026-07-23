@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.MemberRequestOwnerConfirmGui
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -76,15 +78,15 @@ class MemberRequestOwnerConfirmListener(private val plugin: MyWorldManager) : Li
     private fun reopenMemberManagement(player: Player, worldUuid: java.util.UUID?) {
         val session = plugin.settingsSessionManager.getSession(player)
         if (worldUuid == null || session == null) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
             return
         }
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: run {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
             return
         }
         val page = (session.getMetadata("member_management_page") as? Int)?.coerceAtLeast(0) ?: 0
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
         // 承認処理でメンバーリストが変化するため、次tickで開き直して反映する。
         Bukkit.getScheduler().runTask(plugin, Runnable {
             if (player.isOnline) {

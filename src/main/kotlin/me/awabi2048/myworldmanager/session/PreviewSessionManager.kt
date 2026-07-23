@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.session
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
@@ -75,7 +77,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
 
                 // テンプレートワールドのロード確認
                 if (Bukkit.getWorld(template.path) == null) {
-                    player.closeInventory() // ロード前に閉じる
+                    ManagedMenuPresenter.close(player) // ロード前に閉じる
                     val creator = org.bukkit.WorldCreator(template.path)
                     Bukkit.createWorld(creator) ?: run {
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
@@ -106,7 +108,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 // ワールドがロードされていない場合はロード
                 folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (Bukkit.getWorld(folderName) == null) {
-                    player.closeInventory() // ロード前に閉じる
+                    ManagedMenuPresenter.close(player) // ロード前に閉じる
                     if (!plugin.worldService.loadWorld(worldData.uuid)) {
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
                         return false

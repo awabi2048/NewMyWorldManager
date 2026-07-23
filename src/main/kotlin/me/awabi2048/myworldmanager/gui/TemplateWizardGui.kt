@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -192,7 +194,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             )
         )
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
 
         // サウンド
 

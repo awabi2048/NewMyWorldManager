@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -67,7 +69,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 ItemTag.TYPE_GUI_CONFIRM
             )
         )
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun openPagedTourMenu(player: Player, worldData: WorldData, title: Component, holder: BaseHolder, page: Int, showWorldIcon: Boolean, filterSignUuid: java.util.UUID?) {
@@ -85,7 +87,7 @@ class TourGui(private val plugin: MyWorldManager) {
         if (showWorldIcon) inventory.setItem(4, createCurrentWorldItem(player, worldData))
         if (safePage > 0) inventory.setItem(footerStart, GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1))
         if ((safePage + 1) * pageSlots.size < tours.size) inventory.setItem(footerStart + 8, GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1))
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     fun openEditMenu(player: Player, worldData: WorldData, page: Int = 0) {
@@ -111,7 +113,7 @@ class TourGui(private val plugin: MyWorldManager) {
         inventory.setItem(footerStart + 6, createLoreItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), infoLines.map(GuiLoreLine::Text), ItemTag.TYPE_GUI_TOUR_INFO, GuiLoreFrame.BOTH))
         if (safePage > 0) inventory.setItem(footerStart, GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1))
         if ((safePage + 1) * pageSlots.size < tours.size) inventory.setItem(footerStart + 8, GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1))
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     fun openSingleEditMenu(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
@@ -140,7 +142,7 @@ class TourGui(private val plugin: MyWorldManager) {
         inventory.setItem(bottom + 2, createItem(Material.NAME_TAG, lang.getMessage(player, "gui.tour.menu.edit_text.display"), editTextLore, ItemTag.TYPE_GUI_TOUR_EDIT_TEXT))
         inventory.setItem(bottom + 4, createActionItem(player, Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.save.action"), ItemTag.TYPE_GUI_TOUR_SAVE))
         inventory.setItem(bottom + 6, createActionItem(player, Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.delete.action"), ItemTag.TYPE_GUI_TOUR_DELETE))
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     fun openDeleteConfirm(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
@@ -177,7 +179,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 ItemTag.TYPE_GUI_CANCEL
             )
         )
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun fillBase(inventory: Inventory) {
@@ -292,7 +294,7 @@ class TourGui(private val plugin: MyWorldManager) {
             ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
             inventory.setItem(row * 9 + col, item)
         }
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     abstract class BaseHolder : InventoryHolder { lateinit var inv: Inventory; override fun getInventory(): Inventory = inv }
