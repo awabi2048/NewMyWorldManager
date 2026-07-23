@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
@@ -93,7 +95,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                 }
 
                 GuiItemFactory.fillEmpty(inventory)
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         private fun createWorldItem(viewer: Player, world: WorldData): ItemStack {

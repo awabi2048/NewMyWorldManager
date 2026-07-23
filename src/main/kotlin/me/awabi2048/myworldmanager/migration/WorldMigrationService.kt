@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.migration
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldOperation
@@ -297,7 +299,7 @@ class WorldMigrationService(
             item(Material.LIME_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.execute")),
             item(Material.RED_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.cancel"))
         )
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     @EventHandler

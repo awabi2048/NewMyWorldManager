@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
@@ -419,7 +421,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
         me.awabi2048.myworldmanager.util.GuiHelper.setConfirmationItems(inventory, infoItem, confirmItem, cancelItem)
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun confirmGatePlacement(player: org.bukkit.entity.Player) {

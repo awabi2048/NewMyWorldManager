@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.ui.bedrock
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -516,7 +518,7 @@ class BedrockMenuService(
             )
         }
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun openWorldActionsInventory(
@@ -607,7 +609,7 @@ class BedrockMenuService(
             )
         }
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun openSettingsInventory(player: Player, showBackButton: Boolean, returnPage: Int) {
@@ -689,7 +691,7 @@ class BedrockMenuService(
             )
         }
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun handlePlayerWorldInventoryClick(

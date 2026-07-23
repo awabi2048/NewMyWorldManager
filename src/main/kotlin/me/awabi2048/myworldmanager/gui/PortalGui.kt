@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -111,7 +113,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
         )))
         metaItem.itemMeta = meta
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun structuredItem(

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -47,6 +49,6 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         ItemTag.tagItem(noItem, "world_seed_confirm_no")
         GuiHelper.setConfirmationItems(inventory, infoItem, yesItem, noItem)
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 }

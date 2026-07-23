@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
@@ -97,7 +99,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list")
         )
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     fun handleInventoryClick(player: Player, event: InventoryClickEvent): Boolean {

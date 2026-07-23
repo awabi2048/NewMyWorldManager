@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -1040,7 +1042,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 
@@ -1101,7 +1103,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                         scheduleGuiTransitionReset(plugin, player)
                 }
         }
@@ -1167,7 +1169,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 
@@ -1254,7 +1256,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         fun openExpansionStepBackConfirmation(player: Player, worldData: WorldData) {
@@ -1323,7 +1325,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 
@@ -1423,7 +1425,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         fun openMemberManagement(
@@ -1663,7 +1665,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         fun openMemberPendingInviteCancelConfirmation(
@@ -1746,7 +1748,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         fun openMemberRemoveConfirmation(
@@ -1848,7 +1850,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         fun openMemberTransferConfirmation(
@@ -1946,7 +1948,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         private fun createMemberItem(
@@ -2205,7 +2207,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         fun openVisitorKickConfirmation(
@@ -2303,7 +2305,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
         }
 
         private fun createVisitorItem(
@@ -2622,7 +2624,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 
@@ -2696,7 +2698,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 
@@ -2766,7 +2768,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
                 plugin.logWorldSettingsDebug(
                         "open=core_inventory player=${player.name}/${player.uniqueId} world=${worldData.uuid} " +
@@ -2875,7 +2877,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 
@@ -2948,7 +2950,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 
@@ -3032,7 +3034,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        player.openInventory(inventory)
+                        ManagedMenuPresenter.open(player, inventory)
                 }
         }
 

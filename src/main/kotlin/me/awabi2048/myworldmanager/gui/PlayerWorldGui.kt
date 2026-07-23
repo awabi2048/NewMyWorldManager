@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -234,7 +236,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
 
                 GuiItemFactory.fillEmpty(inventory)
-                player.openInventory(inventory)
+                ManagedMenuPresenter.open(player, inventory)
                 me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
         }
 

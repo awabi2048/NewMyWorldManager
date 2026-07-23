@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -134,7 +136,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             inventory.setItem(36, GuiHelper.createReturnItem(plugin, player, "meet"))
         }
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun createReturnButton(player: Player): ItemStack {

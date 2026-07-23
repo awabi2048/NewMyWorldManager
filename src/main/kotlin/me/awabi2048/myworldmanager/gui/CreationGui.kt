@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -75,7 +77,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
 
         fillBackground(inventory)
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun createCreationTypeItem(
@@ -206,7 +208,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         inventory.setItem((rowCount - 1) * 9 + 4, createBackButton(player))
 
         fillBackground(inventory)
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     fun openTemplateDetail(player: Player, session: WorldCreationSession) {
@@ -293,7 +295,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
         me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
         fillBackground(inventory)
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     fun openConfirmation(player: Player, session: WorldCreationSession) {
@@ -476,7 +478,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         }
 
-        player.openInventory(inventory)
+        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun setupHeaderFooter(inventory: org.bukkit.inventory.Inventory, rowCount: Int) {
