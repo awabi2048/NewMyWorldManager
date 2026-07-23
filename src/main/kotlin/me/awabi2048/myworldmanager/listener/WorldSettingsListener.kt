@@ -631,6 +631,20 @@ class WorldSettingsListener : Listener {
                                         return
                                 }
 
+                                if (type == ItemTag.TYPE_GUI_MEMBER_ADMIN_OWNER_RESET) {
+                                        if (!session.isAdminFlow) {
+                                                PermissionManager.sendNoPermissionMessage(player)
+                                                return
+                                        }
+                                        plugin.soundManager.playClickSound(
+                                                player,
+                                                item,
+                                                "world_settings"
+                                        )
+                                        showAdminOwnerResetDialog(player, worldData)
+                                        return
+                                }
+
                                 if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
                                         val memberId = ItemTag.getWorldUuid(item)
                                         if (memberId != null && memberId != player.uniqueId) {
@@ -4991,6 +5005,29 @@ player.sendMessage(
                 return
             }
 
+            if (identifier == Key.key("mwm:settings/admin_owner_reset_submit")) {
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                if (!session.isAdminFlow || session.action != SettingsAction.MANAGE_MEMBERS) {
+                    PermissionManager.sendNoPermissionMessage(player)
+                    return
+                }
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                val targetName =
+                    event.getDialogResponseView()
+                        ?.getText("new_owner_name")
+                        ?.toString()
+                        .orEmpty()
+                        .trim()
+                applyAdminOwnerReset(player, worldData, targetName)
+                return
+            }
+
+            if (identifier == Key.key("mwm:settings/admin_owner_reset_cancel")) {
+                val session = plugin.settingsSessionManager.getSession(player) ?: return
+                reopenMemberManagementLatest(player, session.worldUuid)
+                return
+            }
+
             // Cancel
             if (identifier == Key.key("mwm:settings/cancel")) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
@@ -5917,6 +5954,183 @@ player.sendMessage(
                                 )
                         }
                 plugin.settingsSessionManager.endSession(player)
+        }
+
+        private fun showAdminOwnerResetDialog(player: Player, worldData: WorldData) {
+                val lang = plugin.languageManager
+                val currentOwner =
+                        PlayerNameUtil.getNameOrDefault(
+                                worldData.owner,
+                                lang.getMessage(player, "general.unknown")
+                        )
+                val dialog =
+                        Dialog.create { builder ->
+                                builder.empty()
+                                        .base(
+                                                DialogBase.builder(
+                                                                lang.getComponent(
+                                                                        player,
+                                                                        "gui.member_management.admin_owner_reset.dialog.title"
+                                                                )
+                                                        )
+                                                        .body(
+                                                                listOf(
+                                                                        DialogBody.plainMessage(
+                                                                                lang.getComponent(
+                                                                                        player,
+                                                                                        "gui.member_management.admin_owner_reset.dialog.body",
+                                                                                        mapOf(
+                                                                                                "world" to worldData.name,
+                                                                                                "owner" to currentOwner
+                                                                                        )
+                                                                                )
+                                                                        )
+                                                                )
+                                                        )
+                                                        .inputs(
+                                                                listOf(
+                                                                        DialogInput.text(
+                                                                                        "new_owner_name",
+                                                                                        lang.getComponent(
+                                                                                                player,
+                                                                                                "gui.member_management.admin_owner_reset.dialog.input"
+                                                                                        )
+                                                                                )
+                                                                                .width(300)
+                                                                                .build()
+                                                                )
+                                                        )
+                                                        .canCloseWithEscape(true)
+                                                        .build()
+                                        )
+                                        .type(
+                                                DialogType.confirmation(
+                                                        ActionButton.builder(
+                                                                        lang.getComponent(
+                                                                                player,
+                                                                                "gui.member_management.admin_owner_reset.dialog.confirm"
+                                                                        )
+                                                                )
+                                                                .action(
+                                                                        DialogAction.customClick(
+                                                                                Key.key("mwm:settings/admin_owner_reset_submit"),
+                                                                                null
+                                                                        )
+                                                                )
+                                                                .build(),
+                                                        ActionButton.builder(
+                                                                        lang.getComponent(
+                                                                                player,
+                                                                                "gui.member_management.admin_owner_reset.dialog.cancel"
+                                                                        )
+                                                                )
+                                                                .action(
+                                                                        DialogAction.customClick(
+                                                                                Key.key("mwm:settings/admin_owner_reset_cancel"),
+                                                                                null
+                                                                        )
+                                                                )
+                                                                .build()
+                                                )
+                                        )
+                        }
+                player.showDialog(dialog)
+        }
+
+        private fun applyAdminOwnerReset(
+                player: Player,
+                worldData: WorldData,
+                targetName: String
+        ) {
+                val lang = plugin.languageManager
+                if (targetName.isBlank()) {
+                        player.sendMessage(
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.admin_owner_reset.error.empty"
+                                )
+                        )
+                        showAdminOwnerResetDialog(player, worldData)
+                        return
+                }
+
+                val newOwner = PlayerNameUtil.resolveOfflinePlayer(plugin, targetName)
+                if (newOwner == null) {
+                        player.sendMessage(
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.admin_owner_reset.error.not_found",
+                                        mapOf("player" to targetName)
+                                )
+                        )
+                        showAdminOwnerResetDialog(player, worldData)
+                        return
+                }
+                if (newOwner.uniqueId == worldData.owner) {
+                        player.sendMessage(
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.admin_owner_reset.error.same_owner"
+                                )
+                        )
+                        showAdminOwnerResetDialog(player, worldData)
+                        return
+                }
+                if (!WorldCreationChecks.checkLimits(plugin, player, newOwner.uniqueId)) {
+                        showAdminOwnerResetDialog(player, worldData)
+                        return
+                }
+
+                val oldOwnerId = worldData.owner
+                val oldOwnerName =
+                        PlayerNameUtil.getNameOrDefault(
+                                oldOwnerId,
+                                lang.getMessage(player, "general.unknown")
+                        )
+                val newOwnerName =
+                        newOwner.name
+                                ?: PlayerNameUtil.getNameOrDefault(
+                                        newOwner.uniqueId,
+                                        lang.getMessage(player, "general.unknown")
+                                )
+
+                worldData.owner = newOwner.uniqueId
+                if (oldOwnerId != newOwner.uniqueId &&
+                                !worldData.moderators.contains(oldOwnerId)
+                ) {
+                        worldData.moderators.add(oldOwnerId)
+                }
+                worldData.moderators.remove(newOwner.uniqueId)
+                worldData.members.remove(newOwner.uniqueId)
+                plugin.worldConfigRepository.save(worldData)
+
+                Bukkit.getPluginManager().callEvent(
+                        MwmOwnerTransferredEvent(
+                                worldUuid = worldData.uuid,
+                                oldOwnerUuid = oldOwnerId,
+                                oldOwnerName = oldOwnerName,
+                                newOwnerUuid = newOwner.uniqueId,
+                                newOwnerName = newOwnerName,
+                                transferredByUuid = player.uniqueId,
+                                source = MwmOwnerTransferSource.ADMIN_RESET
+                        )
+                )
+                plugin.macroManager.execute(
+                        "on_owner_transfer",
+                        mapOf(
+                                "old_owner" to oldOwnerName,
+                                "new_owner" to newOwnerName,
+                                "world_uuid" to worldData.uuid.toString()
+                        )
+                )
+                player.sendMessage(
+                        lang.getMessage(
+                                player,
+                                "gui.member_management.admin_owner_reset.success",
+                                mapOf("player" to newOwnerName)
+                        )
+                )
+                reopenMemberManagementLatest(player, worldData.uuid)
         }
 
         private fun handleVisitorKickConfirm(player: Player, worldData: WorldData, visitorUuid: UUID) {

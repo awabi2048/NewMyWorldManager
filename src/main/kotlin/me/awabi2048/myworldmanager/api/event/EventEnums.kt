@@ -17,7 +17,8 @@ enum class MwmMemberRemoveSource {
 }
 
 enum class MwmOwnerTransferSource {
-    MANUAL
+    MANUAL,
+    ADMIN_RESET
 }
 
 enum class MwmFavoriteAddSource {
