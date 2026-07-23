@@ -57,7 +57,7 @@ object GuiHelper {
      * 間接的なタイトル/ホルダー比較には依存しない。
      */
     fun playMenuOpen(player: Player, menuId: String) {
-        menuSoundService.onMenuOpen(player, menuId)
+        // 開く音はManagedMenuPresenterからCC-System Runtimeが一度だけ再生する。
     }
 
     /**
