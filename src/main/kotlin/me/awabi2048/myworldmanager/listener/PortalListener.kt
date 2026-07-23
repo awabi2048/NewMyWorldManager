@@ -826,11 +826,11 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         when (ItemTag.getType(item)) {
             ItemTag.TYPE_GUI_CONFIRM -> {
                 confirmGatePlacement(player)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
             }
             ItemTag.TYPE_GUI_CANCEL -> {
                 cancelGatePlacement(player)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
             }
         }
     }

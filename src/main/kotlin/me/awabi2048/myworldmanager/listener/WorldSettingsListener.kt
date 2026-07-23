@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -154,7 +156,7 @@ class WorldSettingsListener : Listener {
                         }
                         ExpansionSequencePhase.DIRECTION_SELECT -> {
                                 startExpansionDirectionSelection(player, session)
-                                player.closeInventory()
+                                ManagedMenuPresenter.close(player)
                                 true
                         }
                         ExpansionSequencePhase.PREVIEW,
@@ -417,7 +419,7 @@ class WorldSettingsListener : Listener {
                                                         "member_invite_force_add_mode",
                                                         forceAddMode
                                                 )
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
                                         Bukkit.getScheduler().runTask(
                                                 plugin,
                                                 Runnable {
@@ -496,7 +498,7 @@ class WorldSettingsListener : Listener {
                                                         "member_pending_invite_cancel_id",
                                                         decisionId.toString()
                                                 )
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
 
                                         val title =
                                                 LegacyComponentSerializer.legacySection().deserialize(
@@ -1097,7 +1099,7 @@ class WorldSettingsListener : Listener {
                                                 "world_settings"
                                         )
                                         startExpansionDirectionSelection(player, session)
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
                                         val promptKey =
                                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                                         "messages.expand_direction_prompt"
@@ -1181,7 +1183,7 @@ class WorldSettingsListener : Listener {
 
                                         if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                                                  player.sendMessage("§cポイントが不足しています。")
-                                                player.closeInventory()
+                                                ManagedMenuPresenter.close(player)
                                                 return
                                         }
 
@@ -1190,7 +1192,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
 
                                         val messageList =
                                                 plugin.languageManager.getMessageList(
@@ -1424,7 +1426,7 @@ class WorldSettingsListener : Listener {
                                                         SettingsAction.RENAME_WORLD
                                                 )
 
-                                                player.closeInventory()
+                                                ManagedMenuPresenter.close(player)
                                                 Bukkit.getScheduler().runTask(plugin, Runnable {
                                                         showWorldInfoDialog(player, worldData)
                                                 })
@@ -1477,7 +1479,7 @@ class WorldSettingsListener : Listener {
                                                         action
                                                 )
                                                 startSpawnPreview(player)
-                                                player.closeInventory()
+                                                ManagedMenuPresenter.close(player)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_ICON -> {
                                                 plugin.soundManager.playClickSound(
@@ -1658,7 +1660,7 @@ class WorldSettingsListener : Listener {
                                                         SettingsAction.MANAGE_TAGS,
                                                         isGui = true
                                                 )
-                                                player.closeInventory()
+                                                ManagedMenuPresenter.close(player)
                                                 Bukkit.getScheduler().runTask(plugin, Runnable {
                                                         showTagEditorDialog(player, worldData)
                                                 })
@@ -1777,7 +1779,7 @@ class WorldSettingsListener : Listener {
                                                                 worldData.uuid,
                                                                 SettingsAction.SET_ANNOUNCEMENT
                                                         )
-                                                player.closeInventory()
+                                                ManagedMenuPresenter.close(player)
                                                 Bukkit.getScheduler().runTask(plugin, Runnable {
                                                         me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
                                                 })
@@ -2203,7 +2205,7 @@ class WorldSettingsListener : Listener {
                                                                 "world_settings"
                                                         )
                                                         plugin.portalManager.addIgnorePlayer(player)
-                                                        player.closeInventory()
+                                                        ManagedMenuPresenter.close(player)
                                                         val teleported = plugin.portalManager
                                                                 .teleportPlayerToPortalLocation(player, portal) {
                                                                         plugin.soundManager.playTeleportSound(
@@ -2550,7 +2552,7 @@ class WorldSettingsListener : Listener {
                                         val refund =
                                                 (worldData.cumulativePoints * refundRate).toInt()
 
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
                                                         player,
@@ -2614,7 +2616,7 @@ class WorldSettingsListener : Listener {
                                         worldData.isArchived = true
                                         plugin.worldConfigRepository.save(worldData)
                                         plugin.settingsSessionManager.endSession(player)
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
                                 }
                         }
                         SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> {
@@ -2626,7 +2628,7 @@ class WorldSettingsListener : Listener {
                                         plugin.worldSettingsGui.openCriticalSettings(player, worldData)
                                 } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
                                         plugin.soundManager.playClickSound(player, item, "world_settings")
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
                                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
                                         plugin.worldService.archiveWorld(worldData.uuid)
                                             .thenAccept { success: Boolean ->
@@ -2672,7 +2674,7 @@ class WorldSettingsListener : Listener {
                                                 item,
                                                 "world_settings"
                                         )
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
                                                         player,
@@ -2835,7 +2837,7 @@ plugin.languageManager
                 val initialValue = if (isDescriptionInput) worldData.description else worldData.name
                 val worldUuid = worldData.uuid
 
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
 
                 val opened =
                         plugin.floodgateFormBridge.sendCustomInputForm(
@@ -2878,7 +2880,7 @@ plugin.languageManager
                 plugin.settingsSessionManager.updateSessionAction(
                         player, worldData.uuid, SettingsAction.RENAME_WORLD
                 )
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                         showWorldInfoDialog(player, worldData)
                 })
@@ -2954,7 +2956,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
 
                 return plugin.floodgateFormBridge.sendCustomForm(
                         player = player,
@@ -3029,7 +3031,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
 
                 return plugin.floodgateFormBridge.sendCustomInputForm(
                         player = player,
@@ -3063,7 +3065,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
 
                 return plugin.floodgateFormBridge.sendSimpleForm(
                         player = player,
@@ -3159,7 +3161,7 @@ plugin.languageManager
                                         )
                         }
 
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
 
                 return plugin.floodgateFormBridge.sendCustomForm(
                         player = player,
@@ -3277,7 +3279,7 @@ plugin.languageManager
                                 ?.getMetadata("member_management_page") as? Int)
                                 ?.coerceAtLeast(0)
                                 ?: 0
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {
@@ -4930,7 +4932,7 @@ player.sendMessage(
                             val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
                             val tour = plugin.tourManager.getTour(worldData, tourUuid) ?: return
                             when (plugin.tourManager.startTour(player, worldData, tour)) {
-                                me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> player.closeInventory()
+                                me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> ManagedMenuPresenter.close(player)
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WORLD_MEMBER ->
                                     player.sendMessage(lang.getMessage(player, "messages.invite_already_member"))
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR ->
@@ -5680,7 +5682,7 @@ player.sendMessage(
                 )
 
                 if (closeInventory) {
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         plugin.settingsSessionManager.endSession(player)
                 } else {
                         plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
@@ -5736,7 +5738,7 @@ player.sendMessage(
                 )
 
                 if (closeInventory) {
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         plugin.settingsSessionManager.endSession(player)
                 } else {
                         plugin.worldSettingsGui.open(player, worldData)
@@ -5822,7 +5824,7 @@ player.sendMessage(
                                         )
                                         plugin.soundManager.playActionSound(player, "creation", "delete")
                                         plugin.settingsSessionManager.endSession(player)
-                                        player.closeInventory()
+                                        ManagedMenuPresenter.close(player)
                                 } else {
                                         player.sendMessage(plugin.languageManager.getMessage("error.delete_failed"))
                                         plugin.worldSettingsGui.open(player, worldData)
@@ -5875,7 +5877,7 @@ player.sendMessage(
         }
 
         private fun handleUnarchiveWorldConfirm(player: Player, worldData: WorldData) {
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
@@ -5990,7 +5992,7 @@ player.sendMessage(
                         worldData.isArchived = true
                         plugin.worldConfigRepository.save(worldData)
                         plugin.settingsSessionManager.endSession(player)
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         return
                 }
 
@@ -6216,7 +6218,7 @@ player.sendMessage(
                         worldData.isArchived = true
                         plugin.worldConfigRepository.save(worldData)
                         plugin.settingsSessionManager.endSession(player)
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         return
                 }
 

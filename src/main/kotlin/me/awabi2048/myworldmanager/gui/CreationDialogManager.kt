@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import com.awabi2048.ccsystem.CCSystem
@@ -560,7 +562,7 @@ class CreationDialogManager : Listener {
             }
 
             plugin.creationSessionManager.endSession(player.uniqueId)
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
         }
 
         fun cleanWorldName(name: String): String {

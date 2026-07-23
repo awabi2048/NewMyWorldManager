@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiConfirmationLayout
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -158,7 +160,7 @@ object GuiHelper {
         // 全てのセッション終了を試みる（安全のため）
         plugin.settingsSessionManager.endSession(player)
 
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
     }
 
     fun createContextWorldIconItem(

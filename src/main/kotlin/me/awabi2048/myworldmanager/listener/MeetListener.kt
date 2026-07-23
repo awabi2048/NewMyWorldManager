@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
@@ -65,13 +67,13 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                 val skullMeta = currentItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return
                 val target = skullMeta.owningPlayer?.player ?: run {
                     player.sendMessage(lang.getMessage(player, "error.target_offline"))
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     return
                 }
 
                 if (!plugin.playerVisibilityService.isVisibleTo(player, target)) {
                     player.sendMessage(lang.getMessage(player, "error.target_offline"))
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     return
                 }
 
@@ -113,7 +115,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                 when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(player, target, worldData, isMember)) {
                     MeetTargetAction.DIRECT -> {
                         plugin.soundManager.playClickSound(player, currentItem, "meet")
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         plugin.worldService.teleportToWorld(player, worldData.uuid) {
                             player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
 
@@ -138,7 +140,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
 
     private fun sendMeetRequest(player: Player, target: Player) {
         val lang = plugin.languageManager
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
         player.sendMessage(lang.getMessage(player, "general.meet_request.sent", mapOf("player" to target.name)))
         val result = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, target.world.uid, 60)
         plugin.pendingNotificationService.send(

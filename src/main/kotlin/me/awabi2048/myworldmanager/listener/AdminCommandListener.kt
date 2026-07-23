@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -239,7 +241,7 @@ class AdminCommandListener : Listener {
 
         if (tagType == ItemTag.TYPE_GUI_CONFIRM) {
             plugin.soundManager.playAdminClickSound(player)
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
 
             // アクション実行
             when (action) {

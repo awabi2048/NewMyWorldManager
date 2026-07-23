@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -117,7 +119,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                 }
                 
                 plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 plugin.worldService.teleportToWorld(player, uuid) {
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                 }
@@ -179,7 +181,7 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     }
                 } else {
                     // プレビュー
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     val target = PreviewSessionManager.PreviewTarget.World(worldData)
                     plugin.previewSessionManager.startPreview(player, target, me.awabi2048.myworldmanager.session.PreviewSource.FAVORITE_MENU)
                 }

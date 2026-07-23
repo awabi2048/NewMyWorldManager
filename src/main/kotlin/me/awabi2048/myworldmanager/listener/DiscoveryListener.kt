@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import io.papermc.paper.dialog.Dialog
@@ -78,12 +80,12 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     if (!MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                         player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                         plugin.soundManager.playActionSound(player, "discovery", "access_denied")
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         return
                     }
 
                     plugin.soundManager.playClickSound(player, item, "discovery")
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     plugin.worldService.teleportToWorld(player, uuid) {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     }
@@ -99,7 +101,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     if (!MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
                         player.sendMessage(lang.getMessage(player, "error.world_not_public"))
                         plugin.soundManager.playActionSound(player, "discovery", "access_denied")
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         return
                     }
 
@@ -139,7 +141,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
 
                     // ワープ
                     plugin.soundManager.playClickSound(player, item, "discovery")
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     plugin.worldService.teleportToWorld(player, uuid) {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     }
@@ -232,7 +234,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                         plugin.menuEntryRouter.openDiscovery(player)
                     } else {
                         // プレビュー (通常右クリック)
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                         val target = PreviewSessionManager.PreviewTarget.World(worldData)
                         plugin.previewSessionManager.startPreview(player, target, me.awabi2048.myworldmanager.session.PreviewSource.DISCOVERY_MENU)
                     }

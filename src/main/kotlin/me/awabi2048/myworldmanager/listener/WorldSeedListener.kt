@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -86,11 +88,11 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
         when (tag) {
             "world_seed_confirm_yes" -> {
                 expandWorldSlot(plugin, player)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
             }
             "world_seed_confirm_no" -> {
                 plugin.soundManager.playClickSound(player, item)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
             }
         }
     }

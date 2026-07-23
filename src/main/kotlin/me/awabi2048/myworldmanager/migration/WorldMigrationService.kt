@@ -310,10 +310,10 @@ class WorldMigrationService(
         val player = event.whoClicked as? Player ?: return
         when (event.rawSlot) {
             GuiHelper.confirmationLayout().confirmSlot -> {
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 requestExecute(player, confirmed = true)
             }
-            GuiHelper.confirmationLayout().cancelSlot -> player.closeInventory()
+            GuiHelper.confirmationLayout().cancelSlot -> ManagedMenuPresenter.close(player)
         }
     }
 

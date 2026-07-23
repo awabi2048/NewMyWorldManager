@@ -226,7 +226,7 @@ class PortalGui(private val plugin: MyWorldManager) : Listener {
                 } else {
                     player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
                 }
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
             }
         }
     }

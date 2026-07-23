@@ -3105,7 +3105,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 plugin.soundManager.playClickSound(player, null, "world_settings")
                 val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action, isGui = true)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
 
                 plugin.worldSettingsListener.startSpawnPreview(player)
 
@@ -3131,7 +3131,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         worldData.uuid,
                         SettingsAction.SET_ANNOUNCEMENT
                 )
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                         AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
                 })

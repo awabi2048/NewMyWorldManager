@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
@@ -51,13 +53,13 @@ class TemplateWizardListener : Listener {
         when (id) {
             "name_input" -> {
                 plugin.soundManager.playClickSound(player, currentItem)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 openTemplateNameInput(plugin, player, session)
             }
 
             "desc_input" -> {
                 plugin.soundManager.playClickSound(player, currentItem)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 openTemplateDescriptionInput(plugin, player, session)
             }
 
@@ -120,14 +122,14 @@ class TemplateWizardListener : Listener {
                         mapOf("template" to templateId)
                     )
                 )
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 plugin.templateWizardGui.removeSession(player.uniqueId)
                 plugin.templateRepository.loadTemplates()
             }
 
             "wizard_cancel" -> {
                 plugin.templateWizardGui.removeSession(player.uniqueId)
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 player.sendMessage(lang.getMessage(player, "messages.operation_cancelled"))
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     plugin.adminCommandGui.open(player)

@@ -233,7 +233,7 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.player_world.button.close"), Material.REDSTONE) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
         }
 
         val title = tr(player, "gui.bedrock.player_world.title")
@@ -318,7 +318,7 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.world_action.button.close"), Material.REDSTONE) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
         }
 
         val content =
@@ -389,7 +389,7 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.settings.button.close"), Material.REDSTONE) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
         }
 
         return sendActionForm(
@@ -720,7 +720,7 @@ class BedrockMenuService(
                 if (!WorldCreationChecks.checkSelfCreatePermission(player)) return
                 val session = plugin.creationSessionManager.startSession(player.uniqueId)
                 session.isDialogMode = false
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 plugin.creationGui.openTypeSelection(player)
             }
             "open_settings" -> openSettings(player, holder.showBackButton, holder.page)
@@ -831,7 +831,7 @@ class BedrockMenuService(
 
             "back_to_worlds" -> openPlayerWorld(player, holder.returnPage, holder.showBackButton)
             "return_command" -> performConfiguredReturn(player)
-            "close_menu" -> player.closeInventory()
+            "close_menu" -> ManagedMenuPresenter.close(player)
         }
     }
 
@@ -951,7 +951,7 @@ class BedrockMenuService(
 
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         if (Bukkit.getWorld(folderName) == null) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
             player.sendMessage(tr(player, "messages.world_loading"))
             plugin.worldService.teleportToWorld(player, worldData.uuid) {
                 completeWarpToWorld(player, worldData)
@@ -959,7 +959,7 @@ class BedrockMenuService(
             return
         }
 
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
         plugin.worldService.teleportToWorld(player, worldData.uuid) {
             completeWarpToWorld(player, worldData)
         }
@@ -967,7 +967,7 @@ class BedrockMenuService(
 
     private fun completeWarpToWorld(player: Player, worldData: WorldData) {
         player.sendMessage(tr(player, "messages.warp_success", mapOf("world" to worldData.name)))
-        player.closeInventory()
+        ManagedMenuPresenter.close(player)
     }
 
     private fun cyclePublishLevel(player: Player, worldData: WorldData) {
@@ -1051,7 +1051,7 @@ class BedrockMenuService(
 
     private fun performConfiguredReturn(player: Player) {
         if (!plugin.menuRouteHistory.openPrevious(player)) {
-            player.closeInventory()
+            ManagedMenuPresenter.close(player)
         }
     }
 

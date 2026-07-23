@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
@@ -107,17 +109,17 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 
                 if (worldData == null) {
                     player.sendMessage(lang.getMessage(player, "messages.no_in_myworld"))
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     return
                 }
                 
                 if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(player, worldData)) {
                     player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     return
                 }
 
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
 
                 plugin.inviteGui.open(player, showBackButton = true)
                 return
@@ -134,7 +136,7 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 // JE は常にダイアログ、BE は FormUI を使用
                 session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(player)
 
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 plugin.creationGui.openTypeSelection(player)
                 return
             }
@@ -229,21 +231,21 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
                 if (isCurrentWorld) return
                 val folderName = worldData.customWorldName ?: "my_world.$uuid"
                 if (Bukkit.getWorld(folderName) == null) {
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                     player.sendMessage(lang.getMessage(player, "messages.world_loading"))
                     plugin.worldService.teleportToWorld(player, uuid) {
                         player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                         plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                        player.closeInventory()
+                        ManagedMenuPresenter.close(player)
                     }
                     return
                 }
 
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 plugin.worldService.teleportToWorld(player, uuid) {
                     player.sendMessage(lang.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
                     plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                    player.closeInventory()
+                    ManagedMenuPresenter.close(player)
                 }
             } else if (event.isRightClick) {
 

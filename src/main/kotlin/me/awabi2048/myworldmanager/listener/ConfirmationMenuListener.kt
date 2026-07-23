@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.gui.ConfirmationMenuGui
 import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.entity.Player
@@ -25,12 +27,12 @@ class ConfirmationMenuListener : Listener {
         when (ItemTag.getType(item)) {
             ItemTag.TYPE_GUI_CONFIRM -> {
                 holder.resolved = true
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 holder.onConfirm()
             }
             ItemTag.TYPE_GUI_CANCEL -> {
                 holder.resolved = true
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 holder.onCancel()
             }
         }

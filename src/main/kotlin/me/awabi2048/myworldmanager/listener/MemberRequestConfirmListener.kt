@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+
 import me.awabi2048.myworldmanager.gui.MemberRequestConfirmGui
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -25,12 +27,12 @@ class MemberRequestConfirmListener(private val plugin: MyWorldManager) : Listene
         when (tag) {
             ItemTag.TYPE_GUI_CONFIRM -> {
                 val worldUuid = ItemTag.getWorldUuid(item) ?: return
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 plugin.memberRequestManager.sendRequest(player, worldUuid)
                 plugin.soundManager.playClickSound(player, item)
             }
             ItemTag.TYPE_GUI_CANCEL -> {
-                player.closeInventory()
+                ManagedMenuPresenter.close(player)
                 plugin.soundManager.playActionSound(player, "member_request", "cancel")
             }
         }
