@@ -12,6 +12,7 @@ import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
+import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
@@ -41,7 +42,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             return false
         }
         if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(player, currentWorldData)) {
-            player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
+            player.sendMessage(WorldAccessMessageResolver.inviteToWorld(lang, player, currentWorldData))
             return false
         }
 

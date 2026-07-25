@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
+import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -43,7 +44,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
 
         // 封鎖中チェック
         if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(player, worldData)) {
-            player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
+            player.sendMessage(WorldAccessMessageResolver.inviteToWorld(lang, player, worldData))
             return true
         }
 

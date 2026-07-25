@@ -51,7 +51,7 @@ class VisitListener(private val plugin: MyWorldManager) : Listener {
                                       worldData.members.contains(player.uniqueId))
 
                         if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
-                            player.sendMessage(lang.getMessage(player, "error.world_not_public"))
+                            player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.visit(lang, player, worldData, isMember))
                             plugin.soundManager.playActionSound(player, "visit", "access_denied")
                             ManagedMenuPresenter.close(player)
                             return

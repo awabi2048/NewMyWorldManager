@@ -78,7 +78,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
 
                 if (isBedrock) {
                     if (!MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
-                        player.sendMessage(lang.getMessage(player, "error.world_not_public"))
+                        player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.visit(lang, player, worldData, isMember))
                         plugin.soundManager.playActionSound(player, "discovery", "access_denied")
                         ManagedMenuPresenter.close(player)
                         return
@@ -99,7 +99,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
 
                     // アクセス判定
                     if (!MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
-                        player.sendMessage(lang.getMessage(player, "error.world_not_public"))
+                        player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.visit(lang, player, worldData, isMember))
                         plugin.soundManager.playActionSound(player, "discovery", "access_denied")
                         ManagedMenuPresenter.close(player)
                         return
