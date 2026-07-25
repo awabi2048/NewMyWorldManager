@@ -444,3 +444,8 @@ standalone_export:
 - EPHEMERAL画面を閉じた場合に親ナビゲーションを消去しないセッション寿命テストを追加し、CC-Systemの全90テストに成功した。
 - `PortalGui`を`InventoryMenuDefinition`、Route payload、Runtime Actionへ完全移行した。直接Inventory生成、個別`InventoryClickEvent`、個別クリック音、ItemTagによるAction判定を撤去した。
 - `PortalListener`は単一登録済み`PortalGui`を使用し、ポータル設定を`openEphemeral`で開く。閉じた後も親メニューのRoute追跡を維持する。
+- CC-System 2.11.0（SHA-256 `60B41956A3A97053104BC84ABCB49BB0662CB780D204C704DE7B30D5CA63E9AE`）とMyWorldManager 1.10.1（SHA-256 `95620A70220323D59A72CCCE623C2CC289B82275C437A7A1FC52C17824E62AB8`）を`D:\Minecraft\Chiyogami-26.1.2`へ配置した。
+- RCON保存後に正常停止し、規定ショートカットからPID 5256で再起動した。RCONで両バージョン、起動完了、対象プラグインの起動例外なしを確認した。
+- 資源収集側commit `6090a30`の実質差分から、ProgressPath線長、Loreテスト、日英`tutorial_rank.unit`キーだけをCC-System 2.11.0へ統合した。`pom.xml`は取り込まず、commit `f7ffa32`として保存した。
+- JAR内の日英`content/tutorial_rank.yml`に`unit`、`minute`、`experience`が存在することを確認した。
+- Minecraft画面取得は`インターフェイスがサポートされていません (0x80004002)`で失敗した。推測座標による入力は行わず、ポータル設定を閉じた後の親Route保持と実際の可聴音は未検証として残す。
