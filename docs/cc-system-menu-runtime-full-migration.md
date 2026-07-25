@@ -140,7 +140,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `MeetGui`
 - [ ] `PendingInteractionGui`
 - [ ] `PlayerWorldGui`
-- [ ] `PortalGui`
+- [x] `PortalGui`
 - [ ] `TemplateWizardGui`
 - [ ] `TourGui`
 - [ ] `UserSettingsGui`
@@ -440,3 +440,7 @@ standalone_export:
 - Phase 0の4モジュールで`mvn clean package`成功。Runtimeアーキテクチャテストは各モジュールで実行成功。
 - Chanpon-Utilitiesへ未許可の`Bukkit.createInventory`参照を一時追加する負例試験を行い、契約テストが`CREATE_INVENTORY`の新規レコードを検出して失敗することを確認後、試験差分を除去して再ビルドした。
 - Phase 0完了。次はPhase 1の管理画面・ポータル移行から開始する。
+- CC-System 2.11.0へ、登録済み画面を親Routeと履歴を変更せず開く`MenuRuntimeService.openEphemeral`を追加した。
+- EPHEMERAL画面を閉じた場合に親ナビゲーションを消去しないセッション寿命テストを追加し、CC-Systemの全90テストに成功した。
+- `PortalGui`を`InventoryMenuDefinition`、Route payload、Runtime Actionへ完全移行した。直接Inventory生成、個別`InventoryClickEvent`、個別クリック音、ItemTagによるAction判定を撤去した。
+- `PortalListener`は単一登録済み`PortalGui`を使用し、ポータル設定を`openEphemeral`で開く。閉じた後も親メニューのRoute追跡を維持する。

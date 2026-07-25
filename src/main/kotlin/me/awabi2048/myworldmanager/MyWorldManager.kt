@@ -89,6 +89,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var pendingInteractionGui: PendingInteractionGui
     lateinit var userSettingsGui: UserSettingsGui
     lateinit var adminPortalGui: AdminPortalGui
+    lateinit var portalGui: PortalGui
     lateinit var templateWizardGui: TemplateWizardGui
     lateinit var adminCommandGui: AdminCommandGui
     lateinit var spotlightConfirmGui: SpotlightConfirmGui
@@ -217,6 +218,7 @@ class MyWorldManager : JavaPlugin() {
         worldSettingsGui = WorldSettingsGui(this)
         userSettingsGui = UserSettingsGui(this)
         adminPortalGui = AdminPortalGui(this)
+        portalGui = PortalGui(this)
         adminCommandGui = AdminCommandGui(this)
         templateWizardGui = TemplateWizardGui(this)
         spotlightConfirmGui = SpotlightConfirmGui(this)
@@ -358,7 +360,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(WorldExpirationListener(worldConfigRepository), this)
         server.pluginManager.registerEvents(PortalListener(this), this)
         server.pluginManager.registerEvents(PortalDisplayLifecycleListener(this), this)
-        server.pluginManager.registerEvents(PortalGui(this), this)
         if (server.pluginManager.isPluginEnabled("WorldEdit") || server.pluginManager.isPluginEnabled("FastAsyncWorldEdit")) {
             // WorldEditのcut/copy/pasteはBukkitの通常ブロックイベントを通らないため、ポータルメタデータを別途同期する。
             server.pluginManager.registerEvents(WorldEditPortalSyncListener(this), this)
@@ -490,6 +491,7 @@ class MyWorldManager : JavaPlugin() {
         runCatching { CCSystem.getAPI().getItemGrantService().unregister("myworld") }
         runCatching { CCSystem.getAPI().getConfigSchemaService().unregister("myworld") }
         runCatching { CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld") }
+        runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("mwm") }
         runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()

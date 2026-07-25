@@ -261,7 +261,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         if (!canOpenPortalMenu(player, portal)) return
 
         event.isCancelled = true
-        PortalGui(plugin).open(player, portal)
+        plugin.portalGui.open(player, portal)
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -284,7 +284,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         if (!canOpenPortalMenu(player, portal)) return
 
         event.isCancelled = true
-        PortalGui(plugin).open(player, portal)
+        plugin.portalGui.open(player, portal)
     }
 
     private fun canOpenPortalMenu(player: org.bukkit.entity.Player, portal: PortalData): Boolean {
