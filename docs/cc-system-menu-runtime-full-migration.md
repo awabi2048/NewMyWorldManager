@@ -183,7 +183,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `SubmissionAdminMenu`
 - [ ] `SubmittedWorldMenuProvider`
 - [ ] `ToolPermissionMenu`
-- [ ] `WorldDataExportMenu`
+- [x] `WorldDataExportMenu`
 - [ ] `WorldDataManagementMenu`
 - [ ] `ProductionToggleExtension`
 - [ ] `WorldBackupMenuExtension`
@@ -300,11 +300,11 @@ standalone_export:
 
 - [ ] `AdminCommandGui`
 - [ ] `AdminPortalGui`
-- [ ] `PortalGui`
+- [x] `PortalGui`
 - [ ] `ChanponAdminMenu`
 - [ ] `ChanponAdminWorldListMenu`
 - [ ] `WorldDataManagementMenu`
-- [ ] `WorldDataExportMenu`
+- [x] `WorldDataExportMenu`
 - [ ] `AutomationSettingsMenu`
 
 完了条件:
@@ -318,17 +318,17 @@ standalone_export:
 
 対象: MWM-Chanpon、MyWorldManager
 
-- [ ] 年度config
+- [x] 年度config
 - [ ] 不正ワールド名の入口拒否
-- [ ] 順序付き選択と代表ワールド
-- [ ] Runtime確認画面
-- [ ] 出力名
-- [ ] `level.dat`再構成
-- [ ] クリエイティブ・チートあり
-- [ ] スポーン保存
+- [x] 順序付き選択と代表ワールド
+- [x] Runtime確認画面
+- [x] 出力名
+- [x] `level.dat`再構成
+- [x] クリエイティブ・チートあり
+- [x] スポーン保存
 - [ ] 追加ワールドデータ分類
-- [ ] コマンドブロック・感圧板ポータル
-- [ ] manifest拡張
+- [x] コマンドブロック・感圧板ポータル
+- [x] manifest拡張
 
 完了条件:
 
