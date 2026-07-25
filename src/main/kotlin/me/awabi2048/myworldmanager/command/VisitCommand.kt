@@ -212,7 +212,19 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             return
         }
 
-        requestVisitPermission(player, ownerName, worldData)
+        if (accessPolicy.canRequestWorldWarp(player, worldData, isMember)) {
+            requestVisitPermission(player, ownerName, worldData)
+            return
+        }
+
+        player.sendMessage(
+            me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.visit(
+                plugin.languageManager,
+                player,
+                worldData,
+                isMember
+            )
+        )
     }
 
     private fun requestVisitPermission(player: Player, ownerName: String, worldData: WorldData) {

@@ -607,7 +607,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                 destData.members.contains(player.uniqueId) ||
                 destData.moderators.contains(player.uniqueId)
             if (!MyWorldManagerApi.getWorldAccessPolicy().canEnterWorld(player, destData, isMember)) {
-                player.sendMessage(lang.getMessage(player, "error.portal_dest_locked"))
+                player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.enter(lang, player, destData, isMember))
                 return
             }
 

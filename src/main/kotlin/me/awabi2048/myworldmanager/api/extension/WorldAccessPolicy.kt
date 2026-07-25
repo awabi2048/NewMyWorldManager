@@ -30,6 +30,22 @@ interface WorldAccessPolicy {
 
     fun canInviteTarget(sender: Player, worldData: WorldData, target: OfflinePlayer): Boolean = true
 
+    /**
+     * Optional, user-facing explanation supplied by an overlay policy when an
+     * access decision differs from MWM's normal publish-level rules.
+     */
+    fun inviteToWorldDeniedMessageKey(sender: Player, worldData: WorldData): String? = null
+
+    fun inviteTargetDeniedMessageKey(sender: Player, worldData: WorldData, target: OfflinePlayer): String? = null
+
+    fun visitDeniedMessageKey(viewer: Player, worldData: WorldData, isMember: Boolean): String? = null
+
+    fun enterDeniedMessageKey(player: Player, worldData: WorldData, isMember: Boolean): String? = null
+
+    fun sharedEntryDeniedMessageKey(player: Player, worldData: WorldData, isMember: Boolean): String? = null
+
+    fun meetDeniedMessageKey(viewer: Player, target: Player, worldData: WorldData, isMember: Boolean): String? = null
+
     fun canEnterWorld(player: Player, worldData: WorldData, isMember: Boolean): Boolean {
         if (worldData.isArchived) return false
         if (player.hasPermission("myworldmanager.admin") || isMember) return true

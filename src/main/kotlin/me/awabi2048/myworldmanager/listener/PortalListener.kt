@@ -98,7 +98,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
                     val isMember = worldData.owner == player.uniqueId || worldData.moderators.contains(player.uniqueId)
                     if (!MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, worldData, isMember)) {
-                        player.sendMessage(lang.getMessage(player, "error.portal_bind_invalid_publish"))
+                        player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.sharedEntry(lang, player, worldData, isMember))
                         return
                     }
 
@@ -137,7 +137,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 val worldData = managedWorld
                 val isMember = worldData.owner == player.uniqueId || worldData.moderators.contains(player.uniqueId)
                 if (!MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, worldData, isMember)) {
-                    player.sendMessage(lang.getMessage(player, "error.portal_bind_invalid_publish"))
+                    player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.sharedEntry(lang, player, worldData, isMember))
                     event.isCancelled = true
                     return
                 }

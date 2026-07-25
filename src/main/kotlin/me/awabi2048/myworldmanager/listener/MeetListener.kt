@@ -129,7 +129,7 @@ class MeetListener(private val plugin: MyWorldManager) : Listener {
                         sendMeetRequest(player, target)
                     }
                     MeetTargetAction.DENY -> {
-                        player.sendMessage(lang.getMessage(player, "error.world_not_public"))
+                        player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.meet(lang, player, target, worldData, isMember))
                         plugin.soundManager.playActionSound(player, "meet", "access_denied")
                     }
                 }

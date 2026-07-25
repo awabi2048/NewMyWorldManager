@@ -56,7 +56,7 @@ class WorldWarpCommand(private val plugin: MyWorldManager) : CommandExecutor, Ta
         }
 
         if (!accessPolicy.canEnterWorld(player, worldData, isMember)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldwarp_access_denied"))
+            player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.warp(plugin.languageManager, player, worldData, isMember))
             return
         }
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldwarp_access_denied"))

@@ -3441,7 +3441,7 @@ plugin.languageManager
                 }
 
                 if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteTarget(player, worldData, target)) {
-                        player.sendMessage(lang.getMessage(player, "error.invite_locked_error"))
+                        player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.inviteTarget(lang, player, worldData, target))
                         player.playSound(
                                 player.location,
                                 org.bukkit.Sound.ENTITY_VILLAGER_NO,

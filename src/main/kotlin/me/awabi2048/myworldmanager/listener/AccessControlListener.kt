@@ -34,7 +34,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
 
         val isMember = isMember(player, worldData)
         if (!MyWorldManagerApi.getWorldAccessPolicy().canEnterWorld(player, worldData, isMember)) {
-            player.sendMessage(lang.getMessage(player, "error.portal_dest_locked"))
+            player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.enter(lang, player, worldData, isMember))
             event.isCancelled = true
         }
     }
