@@ -34,9 +34,8 @@ class WorldValidator(private val plugin: JavaPlugin) {
             // 基本的な文字種チェック：英数字、アンダースコア、ハイフン、日本語など。
             // ここでは簡易的に、制御文字を含まない程度にするか、必要に応じて厳格に
             // 今回はConfig見直しがメインなので、ファイルシステム的に危険な文字だけ弾く
-            name.contains("/") || name.contains("\\") || name.contains(":") || name.contains("*") ||
-                name.contains("?") || name.contains("\"") || name.contains("<") || name.contains(">") ||
-                name.contains("|") -> WorldNameValidation.Failure.ForbiddenSymbol()
+            WorldNamePolicy.containsFileNameForbiddenCharacter(name) ->
+                WorldNameValidation.Failure.ForbiddenSymbol()
             else -> WorldNameValidation.Ok
         }
     }
@@ -55,4 +54,11 @@ class WorldValidator(private val plugin: JavaPlugin) {
 
         return null
     }
+}
+
+internal object WorldNamePolicy {
+    private val forbidden = Regex("""[\\/:*?"<>|\u0000-\u001f]""")
+
+    fun containsFileNameForbiddenCharacter(name: String): Boolean =
+        forbidden.containsMatchIn(name)
 }

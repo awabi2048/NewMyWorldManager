@@ -319,7 +319,7 @@ standalone_export:
 対象: MWM-Chanpon、MyWorldManager
 
 - [x] 年度config
-- [ ] 不正ワールド名の入口拒否
+- [x] 不正ワールド名の入口拒否
 - [x] 順序付き選択と代表ワールド
 - [x] Runtime確認画面
 - [x] 出力名
