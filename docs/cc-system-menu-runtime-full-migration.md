@@ -280,14 +280,14 @@ standalone_export:
 
 対象: CC-System、MyWorldManager、MWM-Chanpon、Chanpon-Utilities
 
-- [ ] Runtime契約のアーキテクチャテストを作る。
-- [ ] 許可された基盤コード以外の`Bukkit.createInventory`を禁止する。
-- [ ] GUI Action用`InventoryClickEvent`を禁止する。
-- [ ] 直接`Dialog.create`を禁止する。
-- [ ] 直接Cumulus Form生成を禁止する。
-- [ ] 個別クリック音を禁止する。
-- [ ] 旧`ManagedMenuPresenter`を非推奨化し、最終フェーズで削除する。
-- [ ] 例外が必要なInteractiveStationは、入力スロット契約としてRuntimeへ実装する。
+- [x] Runtime契約のアーキテクチャテストを作る。
+- [x] 許可された基盤コード以外の`Bukkit.createInventory`を禁止する。
+- [x] GUI Action用`InventoryClickEvent`を禁止する。
+- [x] 直接`Dialog.create`を禁止する。
+- [x] 直接Cumulus Form生成を禁止する。
+- [x] 個別クリック音を禁止する。
+- [x] 旧`ManagedMenuPresenter`を非推奨化し、最終フェーズで削除する。
+- [x] 例外が必要なInteractiveStationは、入力スロット契約としてRuntimeへ実装する。
 
 完了条件:
 
@@ -432,5 +432,11 @@ standalone_export:
 - Runtime横断監査を実施。
 - Inventoryの完全Runtime定義がMWM / MWM-Chanponとも0件であることを確認。
 - 直接Dialog、個別音、手動履歴を移行対象として確定。
-- 完全移行は未着手。
-
+- 4モジュールで、禁止APIのファイル別件数を完全一致で検査するRuntimeアーキテクチャテストを追加。
+- 既存違反はテストリソースの一時許可リストへ固定し、新規追加と無断の件数変化を失敗させる構造にした。
+- Chanpon-Utilitiesの`InventoryClickEvent`はGUI Actionではなく、安全制御とFreeCam保護の2 Listenerだけを明示許可した。
+- CC-System、MyWorldManager、MWM-Chanponの`ManagedMenuPresenter`を非推奨化した。
+- InteractiveStation用の`InventoryMenuView.inputSlots`、表示要素との排他検証、再描画時の入力保持が既にRuntimeへ実装済みであることを確認した。
+- Phase 0の4モジュールで`mvn clean package`成功。Runtimeアーキテクチャテストは各モジュールで実行成功。
+- Chanpon-Utilitiesへ未許可の`Bukkit.createInventory`参照を一時追加する負例試験を行い、契約テストが`CREATE_INVENTORY`の新規レコードを検出して失敗することを確認後、試験差分を除去して再ビルドした。
+- Phase 0完了。次はPhase 1の管理画面・ポータル移行から開始する。
