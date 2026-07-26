@@ -129,7 +129,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 
 ### MyWorldManager Inventory
 
-- [x] `AdminCommandGui`
+- [ ] `AdminCommandGui`（主画面は移行済み、旧確認Inventory 8経路が残存）
 - [x] `AdminPortalGui`
 - [ ] `CreationGui`
 - [x] `DiscoveryGui`
@@ -200,7 +200,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] 独自Inventory GUIなし
 - [x] 直接Dialogなし
 - [x] 直接Formなし
-- [ ] 今後GUIを追加する場合にCC-System Runtimeを必須とする構造テストを追加
+- [x] 今後GUIを追加する場合にCC-System Runtimeを必須とする構造テストを追加
 
 ## ワールド出力の確定仕様
 
