@@ -175,9 +175,9 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `BackupListMenu`
 - [x] `ChanponAdminMenu`
 - [x] `ChanponAdminWorldListMenu`
-- [ ] `ChanponDiscoveryMenuProvider`
+- [x] `ChanponDiscoveryMenuProvider`（未登録の旧実装を削除）
 - [ ] `ChanponEnvironmentGui`
-- [ ] `ChanponFavoriteVisitMenuProvider`
+- [x] `ChanponFavoriteVisitMenuProvider`（未登録の旧実装を削除）
 - [ ] `ChanponPlayerWorldMenuProvider`
 - [ ] `ChanponWorldSettingsMenuProvider`
 - [x] `SubmissionAdminMenu`
