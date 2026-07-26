@@ -65,10 +65,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
         val title = PlainTextComponentSerializer.plainText().serialize(view.title())
         val lang = plugin.languageManager
 
-        if (plugin.pendingInteractionGui.handleInventoryClick(player, event)) {
-            return
-        }
-
         // プレイヤー用ワールド一覧
         val playerWorldHolder = view.topInventory.holder as? me.awabi2048.myworldmanager.gui.PlayerWorldGui.PlayerWorldGuiHolder
         if (playerWorldHolder != null) {

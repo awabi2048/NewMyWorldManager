@@ -1,8 +1,16 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
 import me.awabi2048.myworldmanager.util.GuiItemFactory
@@ -10,13 +18,8 @@ import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
-import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import java.time.Instant
 import java.time.ZoneId
@@ -26,6 +29,22 @@ import java.util.UUID
 class PendingInteractionGui(private val plugin: MyWorldManager) {
 
     private val itemsPerPage = 28
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_PAGE to MenuActionHandler(::changePage),
+                    ACTION_BACK to MenuActionHandler(::back),
+                    ACTION_OPEN to MenuActionHandler(::openEntry),
+                ),
+            ),
+        )
+    }
 
     fun open(
         player: Player,
@@ -34,113 +53,109 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         showBackButton: Boolean = false,
         fromBedrockMenu: Boolean = false
     ) {
+        runtime.navigate(
+            player,
+            route(page, returnPage, showBackButton, fromBedrockMenu),
+        )
+    }
+
+    private fun render(player: Player, route: MenuRoute): InventoryMenuView {
         val entries = plugin.pendingDecisionManager.getPendingEntries(player.uniqueId)
         val maxPage = if (entries.isEmpty()) 1 else ((entries.size - 1) / itemsPerPage) + 1
-        val currentPage = page.coerceIn(0, maxPage - 1)
+        val currentPage = page(route).coerceIn(0, maxPage - 1)
         val start = currentPage * itemsPerPage
         val pageEntries = entries.drop(start).take(itemsPerPage)
-
         val contentRows = if (pageEntries.isEmpty()) 1 else ((pageEntries.size - 1) / 7) + 1
         val rowCount = (contentRows + 2).coerceIn(3, 6)
-        val holder = PendingInteractionHolder(currentPage, returnPage, showBackButton, fromBedrockMenu)
-        val inventory = Bukkit.createInventory(holder, rowCount * 9, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(plugin.languageManager.getComponent(player, "gui.pending_list.title")))
-        holder.inv = inventory
-
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
         val footerStart = (rowCount - 1) * 9
-
-        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
-        for (row in 1 until rowCount - 1) {
-            val rowStart = row * 9
-            inventory.setItem(rowStart, grayPane)
-            inventory.setItem(rowStart + 8, grayPane)
-            for (col in 1..7) {
-                inventory.setItem(rowStart + col, grayPane)
-            }
-        }
-
+        val elements = mutableListOf<MenuElement>()
         pageEntries.forEachIndexed { index, entry ->
             val row = index / 7
             val col = index % 7
             val slot = (row + 1) * 9 + 1 + col
-            inventory.setItem(slot, createEntryItem(player, entry))
+            elements += MenuElement(
+                slot,
+                createEntryItem(player, entry),
+                GuiElementRole.ACTION,
+                ACTION_OPEN,
+                mapOf(DECISION_ID to entry.id.toString()),
+            )
         }
-
         if (pageEntries.isEmpty()) {
-            inventory.setItem(22, createEmptyItem(player))
+            elements += MenuElement(22, createEmptyItem(player), GuiElementRole.CONTENT)
         }
-
         if (currentPage > 0) {
-            inventory.setItem(
+            elements += MenuElement(
                 footerStart + 1,
                 me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
                     plugin,
                     player,
                     "pending_list",
                     currentPage - 1
-                )
+                ),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf(PAGE to (currentPage - 1).toString()),
             )
         }
-
         if (start + pageEntries.size < entries.size) {
-            inventory.setItem(
+            elements += MenuElement(
                 footerStart + 8,
                 me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
                     plugin,
                     player,
                     "pending_list",
                     currentPage + 1
-                )
+                ),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf(PAGE to (currentPage + 1).toString()),
             )
         }
-
-        inventory.setItem(
+        elements += MenuElement(
             footerStart,
-            me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list")
+            me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list"),
+            GuiElementRole.BACK,
+            ACTION_BACK,
         )
-
-        ManagedMenuPresenter.open(player, inventory)
+        return InventoryMenuView(
+            rowCount * 9,
+            me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                plugin.languageManager.getComponent(player, "gui.pending_list.title"),
+            ),
+            elements,
+        )
     }
 
-    fun handleInventoryClick(player: Player, event: InventoryClickEvent): Boolean {
-        val holder = event.view.topInventory.holder as? PendingInteractionHolder ?: return false
-        event.cancelWithDebug("PendingInteractionGui.handleInventoryClick: plugin GUI click")
+    private fun changePage(context: MenuActionContext): MenuActionResult {
+        val target = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(
+                route(target, returnPage(context.route), showBack(context.route), fromBedrock(context.route)),
+            ),
+        )
+    }
 
-        if (event.clickedInventory != event.view.topInventory) {
-            return true
-        }
-
-        val item = event.currentItem ?: return true
-        val type = ItemTag.getType(item) ?: return true
-
-        if (type == ItemTag.TYPE_GUI_NAV_PREV || type == ItemTag.TYPE_GUI_NAV_NEXT) {
-            val targetPage = ItemTag.getTargetPage(item) ?: return true
-            open(player, targetPage, holder.returnPage, holder.showBackButton, holder.fromBedrockMenu)
-            return true
-        }
-
-        if (type == ItemTag.TYPE_GUI_RETURN) {
-            if (holder.fromBedrockMenu) {
-                plugin.menuEntryRouter.openPlayerWorld(player, holder.returnPage, holder.showBackButton)
-            } else {
-                plugin.playerWorldGui.open(player, holder.returnPage, holder.showBackButton)
-            }
-            return true
-        }
-
-        if (type != ItemTag.TYPE_GUI_PENDING_ENTRY) {
-            return true
-        }
-
-        val idStr = ItemTag.getString(item, "pending_decision_id") ?: return true
-        val decisionId = runCatching { UUID.fromString(idStr) }.getOrNull() ?: return true
-
-        if (plugin.playerPlatformResolver.isBedrock(player)) {
-            openBedrockDecisionForm(player, decisionId)
+    private fun back(context: MenuActionContext): MenuActionResult {
+        val player = context.player
+        if (fromBedrock(context.route)) {
+            plugin.menuEntryRouter.openPlayerWorld(player, returnPage(context.route), showBack(context.route))
         } else {
-            openJavaDecisionDialog(player, decisionId, holder.page)
+            plugin.playerWorldGui.open(player, returnPage(context.route), showBack(context.route))
         }
-        return true
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun openEntry(context: MenuActionContext): MenuActionResult {
+        val decisionId = context.payload[DECISION_ID]
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            ?: return MenuActionResult.Rejected()
+        if (plugin.playerPlatformResolver.isBedrock(context.player)) {
+            openBedrockDecisionForm(context.player, decisionId)
+        } else {
+            openJavaDecisionDialog(context.player, decisionId, page(context.route))
+        }
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     fun handleDialogResponse(player: Player, identifier: Key): Boolean {
@@ -335,13 +350,33 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         return GuiItemFactory.decoration(material)
     }
 
-    class PendingInteractionHolder(
-        val page: Int,
-        val returnPage: Int,
-        val showBackButton: Boolean,
-        val fromBedrockMenu: Boolean
-    ) : InventoryHolder {
-        lateinit var inv: Inventory
-        override fun getInventory(): Inventory = inv
+    private fun route(page: Int, returnPage: Int, showBack: Boolean, fromBedrock: Boolean) =
+        MenuRoute(
+            OWNER,
+            ROUTE_ID,
+            mapOf(
+                PAGE to page.toString(),
+                RETURN_PAGE to returnPage.toString(),
+                SHOW_BACK to showBack.toString(),
+                FROM_BEDROCK to fromBedrock.toString(),
+            ),
+        )
+
+    private fun page(route: MenuRoute) = route.payload[PAGE]?.toIntOrNull() ?: 0
+    private fun returnPage(route: MenuRoute) = route.payload[RETURN_PAGE]?.toIntOrNull() ?: 0
+    private fun showBack(route: MenuRoute) = route.payload[SHOW_BACK].toBoolean()
+    private fun fromBedrock(route: MenuRoute) = route.payload[FROM_BEDROCK].toBoolean()
+
+    private companion object {
+        const val OWNER = "mwm"
+        const val ROUTE_ID = "pending_interactions"
+        const val PAGE = "page"
+        const val RETURN_PAGE = "return_page"
+        const val SHOW_BACK = "show_back"
+        const val FROM_BEDROCK = "from_bedrock"
+        const val DECISION_ID = "decision_id"
+        const val ACTION_PAGE = "page"
+        const val ACTION_BACK = "back"
+        const val ACTION_OPEN = "open"
     }
 }
