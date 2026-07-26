@@ -347,7 +347,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(PlayerWorldListener(this), this)
         server.pluginManager.registerEvents(FavoriteListener(this), this)
         server.pluginManager.registerEvents(MeetListener(this), this)
-        server.pluginManager.registerEvents(InviteListener(this), this)
 
         server.pluginManager.registerEvents(AdminGuiListener(), this)
         server.pluginManager.registerEvents(AdminCommandListener(), this)

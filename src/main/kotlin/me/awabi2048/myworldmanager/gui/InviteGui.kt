@@ -1,15 +1,22 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
@@ -21,6 +28,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 
 class InviteGui(private val plugin: MyWorldManager) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
     private val playerSlots = listOf(
         10, 11, 12, 13, 14, 15, 16,
@@ -28,6 +36,20 @@ class InviteGui(private val plugin: MyWorldManager) {
         28, 29, 30, 31, 32, 33, 34,
         37, 38, 39, 40, 41, 42, 43
     )
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_BACK to MenuActionHandler(::back),
+                    ACTION_INVITE to MenuActionHandler(::invite),
+                ),
+            ),
+        )
+    }
 
     fun collectAvailableTargets(viewer: Player): List<Player> {
         val currentWorldData = plugin.worldConfigRepository.findByWorldName(viewer.world.name)
@@ -51,23 +73,42 @@ class InviteGui(private val plugin: MyWorldManager) {
             player.sendMessage(lang.getMessage(player, "messages.invite_no_available_targets"))
             return false
         }
+        return runtime.open(
+            player,
+            MenuRoute(
+                OWNER,
+                ROUTE_ID,
+                mapOf(
+                    WORLD_UUID to currentWorldData.uuid.toString(),
+                    SHOW_BACK to showBackButton.toString(),
+                ),
+            ),
+        )
+    }
 
+    private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+        val lang = plugin.languageManager
+        val currentWorldData = route.uuid(WORLD_UUID)?.let(plugin.worldConfigRepository::findByUuid)
+            ?: error("招待元ワールドが見つかりません。")
+        val targets = InviteTargetResolver.collectAvailableTargets(plugin, player, currentWorldData)
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "meet")
-
         val userCount = targets.size
         val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6
         val statusSlot = (rowCount - 1) * 9 + 4
-        val holder = InviteGuiHolder()
-        val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
-        holder.inv = inventory
-
-        GuiItemFactory.applyStandardFrame(inventory)
-
-        val headSlots = playerSlots.filter { it < inventory.size && it != statusSlot }
+        val inventorySize = rowCount * 9
+        val headSlots = playerSlots.filter { it < inventorySize && it != statusSlot }
+        val elements = mutableListOf<MenuElement>()
         targets.take(headSlots.size).forEachIndexed { index, target ->
-            val slot = headSlots[index]
-            inventory.setItem(slot, createTargetHead(target, player))
+            elements += MenuElement(
+                headSlots[index],
+                createTargetHead(target, player),
+                GuiElementRole.ACTION,
+                ACTION_INVITE,
+                mapOf(
+                    TARGET_UUID to target.uniqueId.toString(),
+                    TARGET_NAME to target.name,
+                ),
+            )
         }
 
         val statusLore = GuiLoreSpec.Blocks(
@@ -83,23 +124,58 @@ class InviteGui(private val plugin: MyWorldManager) {
                 )
             )
         )
-        inventory.setItem(
+        elements += MenuElement(
             statusSlot,
             me.awabi2048.myworldmanager.util.GuiHelper.createContextWorldIconItem(
                 plugin,
                 player,
                 currentWorldData,
                 statusLore
-            )
+            ),
+            GuiElementRole.CONTENT,
         )
 
-        if (showBackButton) {
+        if (route.payload[SHOW_BACK]?.toBooleanStrictOrNull() == true) {
             val backButtonSlot = (rowCount - 1) * 9
-            inventory.setItem(backButtonSlot, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"))
+            elements += MenuElement(
+                backButtonSlot,
+                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"),
+                GuiElementRole.BACK,
+                ACTION_BACK,
+            )
         }
 
-        ManagedMenuPresenter.open(player, inventory)
-        return true
+        return InventoryMenuView(inventorySize, title, elements)
+    }
+
+    private fun back(context: MenuActionContext): MenuActionResult {
+        val player = context.player
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (!plugin.menuRouteHistory.openPrevious(player)) {
+                plugin.settingsSessionManager.endSession(player)
+            }
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun invite(context: MenuActionContext): MenuActionResult {
+        val targetUuid = context.payload[TARGET_UUID]
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            ?: return MenuActionResult.Rejected()
+        val targetName = context.payload[TARGET_NAME].orEmpty()
+        val target = Bukkit.getPlayer(targetUuid)
+        if (target == null || !target.isOnline) {
+            context.player.sendMessage(
+                plugin.languageManager.getMessage(
+                    context.player,
+                    "messages.invite_target_offline",
+                    mapOf("player" to targetName),
+                ),
+            )
+            return MenuActionResult.Rejected()
+        }
+        context.player.performCommand("invite ${target.name}")
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     private fun createTargetHead(target: Player, viewer: Player): ItemStack {
@@ -137,8 +213,17 @@ class InviteGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    class InviteGuiHolder : org.bukkit.inventory.InventoryHolder {
-        lateinit var inv: org.bukkit.inventory.Inventory
-        override fun getInventory(): org.bukkit.inventory.Inventory = inv
+    private fun MenuRoute.uuid(key: String): UUID? =
+        payload[key]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
+    companion object {
+        private const val OWNER = "myworldmanager"
+        private const val ROUTE_ID = "invite"
+        private const val WORLD_UUID = "world_uuid"
+        private const val SHOW_BACK = "show_back"
+        private const val TARGET_UUID = "target_uuid"
+        private const val TARGET_NAME = "target_name"
+        private const val ACTION_BACK = "back"
+        private const val ACTION_INVITE = "invite"
     }
 }
