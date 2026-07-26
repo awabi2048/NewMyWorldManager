@@ -487,6 +487,12 @@ standalone_export:
 - ポータル管理スロットと、54/45スロット画面におけるポータル取得位置を固定テストへ追加した。
 - FreeCam開始案内を2行へ分割し、`/fcam`のコマンド定義、登録、既定設定、既存設定移行から削除した。
 - 実機操作はユーザーが手動で行う方針を維持する。自動検証はビルド、単体・構造テスト、JAR・設定・ログ確認までとする。
+- CC-System 2.19.0、MyWorldManager 2.0.1、MWM-Chanpon 1.24.3、Chanpon-Utilities 0.3.1をビルドし、それぞれ97件、36件、39件、14件のテストに成功した。
+- 稼働中PID 8776をRCON保存後に正常停止し、4対象JARを配置して規定ショートカットからPID 20680で再起動した。
+- 配置済みSHA-256はCC-System `9C3D6ED7B82F1608BB601AFB11A2996BE5750377D5093B9A8ECD0DFB04869EE3`、MyWorldManager `3ECAFCA2F2054397539E59CA2AD61D0D00CF96A722C8A4C2414FEFD6A36624A8`、MWM-Chanpon `E3A2BD896BF69613F4CC8C6AA3AE9AE7E7CBE7EE53A2E171CB3CC05FF60D0821`、Chanpon-Utilities `166E118CD0D2FBBF8EF6B1AA5B45BCCE75733C5C03A09983A05803F210B52C89`。
+- RCONで4対象のバージョンと全対象の有効化を確認した。起動ログに対象由来の`NoSuchMethodError`または有効化例外はない。
+- 実行時Chanpon-Utilities設定の許可コマンドから`fcam`が削除され、配置済みCC-System JAR内のFreeCam開始案内が2行であることを確認した。
+- 起動ログには今回の対象外であるGeyser UDPポート競合と、既存の無効な資源ワールドフォルダーのエラーが残る。
 
 ### 2026-07-26
 
