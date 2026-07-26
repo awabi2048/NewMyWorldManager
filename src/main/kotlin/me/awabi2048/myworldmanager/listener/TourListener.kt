@@ -20,8 +20,6 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
@@ -96,22 +94,6 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         }
         event.isCancelled = true
         TourDialogManager.startPlacement(player, plugin, event.blockPlaced, blockFace, event.hand)
-    }
-
-    @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        if (event.clickedInventory == event.view.topInventory) return
-        if (plugin.tourSessionManager.getEdit(player.uniqueId)?.awaitingIconPick != true) return
-        val picked = event.currentItem?.type ?: return
-        if (picked.isAir) return
-        event.cancelWithDebug("TourListener.onInventoryClick: tour icon pick click", force = true)
-        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-        session.draft.icon = picked
-        session.awaitingIconPick = false
-        plugin.soundManager.playGlobalClickSound(player)
-        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-        plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, session.isNew)
     }
 
     private fun startWaypointPreview(player: Player) {

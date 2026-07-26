@@ -1,7 +1,14 @@
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
@@ -26,14 +33,10 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockPlaceEvent
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
-import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import java.util.*
 
@@ -52,15 +55,35 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val hand: EquipmentSlot?
     )
 
-    private class WorldGateConfirmHolder : InventoryHolder {
-        lateinit var inv: Inventory
-        override fun getInventory(): Inventory = inv
-    }
-
     private val gateSelections = mutableMapOf<UUID, GateSelectionSession>()
     private val pendingGatePlacements = mutableMapOf<UUID, PendingGatePlacement>()
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = RUNTIME_OWNER,
+                id = WORLD_GATE_CONFIRM_ROUTE,
+                renderer = { context -> renderWorldGateConfirmation(context.player) },
+                actions = mapOf(
+                    ACTION_CONFIRM_GATE to MenuActionHandler { context ->
+                        confirmGatePlacement(context.player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                    ACTION_CANCEL_GATE to MenuActionHandler { context ->
+                        cancelGatePlacement(context.player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
+    }
 
     companion object {
+        private const val RUNTIME_OWNER = "myworldmanager"
+        private const val WORLD_GATE_CONFIRM_ROUTE = "world_gate_confirmation"
+        private const val ACTION_CONFIRM_GATE = "confirm_gate"
+        private const val ACTION_CANCEL_GATE = "cancel_gate"
         private const val WORLD_GATE_CONFIRM_ACTION = "mwm:confirm/world_gate_place"
         private const val WORLD_GATE_CANCEL_ACTION = "mwm:confirm/world_gate_place_cancel"
     }
@@ -360,8 +383,13 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
     }
 
     private fun openWorldGateConfirmGui(player: org.bukkit.entity.Player) {
+        runtime.openEphemeral(player, MenuRoute(RUNTIME_OWNER, WORLD_GATE_CONFIRM_ROUTE))
+    }
+
+    private fun renderWorldGateConfirmation(player: org.bukkit.entity.Player): InventoryMenuView {
         val lang = plugin.languageManager
-        val pending = pendingGatePlacements[player.uniqueId] ?: return
+        val pending = pendingGatePlacements[player.uniqueId]
+            ?: error("ワールドゲート設置確認の保留情報がありません")
         val minX = minOf(pending.first.blockX, pending.second.blockX)
         val minY = minOf(pending.first.blockY, pending.second.blockY)
         val minZ = minOf(pending.first.blockZ, pending.second.blockZ)
@@ -373,14 +401,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val currentPoints = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint
         val remainingPoints = (currentPoints - requiredPoints).coerceAtLeast(0)
 
-        val holder = WorldGateConfirmHolder()
-        val inventory = me.awabi2048.myworldmanager.util.GuiHelper.createConfirmationInventory(
-            holder,
-            me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "messages.world_gate_confirm_title"))
-        )
-        holder.inv = inventory
-
-        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
+        val layout = me.awabi2048.myworldmanager.util.GuiHelper.confirmationLayout()
 
         val infoItem = ItemStack(Material.BOOK)
         val infoMeta = infoItem.itemMeta
@@ -419,9 +440,27 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         cancelMeta?.displayName(lang.getComponent(player, "gui.common.cancel"))
         cancelItem.itemMeta = cancelMeta
         ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
-        me.awabi2048.myworldmanager.util.GuiHelper.setConfirmationItems(inventory, infoItem, confirmItem, cancelItem)
-
-        ManagedMenuPresenter.open(player, inventory)
+        return InventoryMenuView(
+            size = layout.size,
+            title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                lang.getMessage(player, "messages.world_gate_confirm_title"),
+            ),
+            elements = listOf(
+                MenuElement(layout.previewSlot, infoItem, GuiElementRole.CONTENT),
+                MenuElement(
+                    layout.confirmSlot,
+                    confirmItem,
+                    GuiElementRole.CONFIRM,
+                    ACTION_CONFIRM_GATE,
+                ),
+                MenuElement(
+                    layout.cancelSlot,
+                    cancelItem,
+                    GuiElementRole.CANCEL,
+                    ACTION_CANCEL_GATE,
+                ),
+            ),
+        )
     }
 
     private fun confirmGatePlacement(player: org.bukkit.entity.Player) {
@@ -811,26 +850,6 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             WORLD_GATE_CONFIRM_ACTION -> {
                 DialogConfirmManager.safeCloseDialog(player)
                 confirmGatePlacement(player)
-            }
-        }
-    }
-
-    @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        if (event.view.topInventory.holder !is WorldGateConfirmHolder) return
-        event.cancelWithDebug("PortalListener.onInventoryClick: world gate confirm GUI click")
-        if (event.clickedInventory != event.view.topInventory) return
-
-        val player = event.whoClicked as? org.bukkit.entity.Player ?: return
-        val item = event.currentItem ?: return
-        when (ItemTag.getType(item)) {
-            ItemTag.TYPE_GUI_CONFIRM -> {
-                confirmGatePlacement(player)
-                ManagedMenuPresenter.close(player)
-            }
-            ItemTag.TYPE_GUI_CANCEL -> {
-                cancelGatePlacement(player)
-                ManagedMenuPresenter.close(player)
             }
         }
     }

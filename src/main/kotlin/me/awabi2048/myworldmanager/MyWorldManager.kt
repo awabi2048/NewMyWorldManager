@@ -371,7 +371,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(CustomItemListener(this), this)
         server.pluginManager.registerEvents(WorldSeedListener(this), this)
         templateWizardListener = TemplateWizardListener()
-        server.pluginManager.registerEvents(templateWizardListener, this)
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)

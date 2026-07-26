@@ -10,6 +10,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -25,12 +26,9 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 
-class EnvironmentGui(private val plugin: MyWorldManager) : Listener {
+class EnvironmentGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
     init {
@@ -44,10 +42,11 @@ class EnvironmentGui(private val plugin: MyWorldManager) : Listener {
                     ACTION_WEATHER to MenuActionHandler(::weather),
                     ACTION_BIOME to MenuActionHandler(::biome),
                     ACTION_BACK to MenuActionHandler(::back),
+                    MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
+                        MenuActionHandler(::selectPlayerInventoryItem),
                 ),
             ),
         )
-        plugin.server.pluginManager.registerEvents(this, plugin)
     }
 
     fun open(player: Player, worldData: WorldData) {
@@ -74,6 +73,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) : Listener {
                 MenuElement(layout.rightSlot, createBiomeItem(player, worldData), GuiElementRole.ACTION, ACTION_BIOME),
                 MenuElement(layout.backSlot, createBackItem(player), GuiElementRole.BACK, ACTION_BACK),
             ),
+            allowPlayerInventoryInteraction = true,
         )
     }
 
@@ -126,31 +126,37 @@ class EnvironmentGui(private val plugin: MyWorldManager) : Listener {
         return MenuActionResult.Success(MenuUpdate.Close)
     }
 
-    @EventHandler(ignoreCancelled = false)
-    fun onPlayerInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        val session = plugin.settingsSessionManager.getSession(player) ?: return
-        if (session.action != SettingsAction.VIEW_ENVIRONMENT_SETTINGS) return
-        if (event.clickedInventory != player.inventory) return
-
-        event.isCancelled = true
-        val clickedItem = event.currentItem ?: return
-        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+    private fun selectPlayerInventoryItem(context: MenuActionContext): MenuActionResult {
+        val player = context.player
+        val session = plugin.settingsSessionManager.getSession(player)
+            ?: return MenuActionResult.Ignored
+        if (session.action != SettingsAction.VIEW_ENVIRONMENT_SETTINGS) {
+            return MenuActionResult.Ignored
+        }
+        val clickedItem = context.item
+        if (clickedItem.type == Material.AIR) return MenuActionResult.Ignored
+        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+            ?: return MenuActionResult.Ignored
         when {
             ItemTag.isType(clickedItem, ItemTag.TYPE_MOON_STONE) -> {
                 session.confirmItem = clickedItem.clone()
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
                 showConfirmationNextTick(player, worldData, "gravity", cost)
+                return MenuActionResult.Success(MenuUpdate.Close)
             }
             ItemTag.isType(clickedItem, ItemTag.TYPE_BOTTLED_BIOME_AIR) -> {
-                if (!canUseBiomeBottle(player, worldData, session.isAdminFlow)) return
-                val biomeId = ItemTag.getBiomeId(clickedItem) ?: return
+                if (!canUseBiomeBottle(player, worldData, session.isAdminFlow)) {
+                    return MenuActionResult.Ignored
+                }
+                val biomeId = ItemTag.getBiomeId(clickedItem) ?: return MenuActionResult.Ignored
                 session.confirmItem = clickedItem.clone()
                 session.setMetadata("temp_biome", biomeId)
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
                 showConfirmationNextTick(player, worldData, "biome", cost)
+                return MenuActionResult.Success(MenuUpdate.Close)
             }
         }
+        return MenuActionResult.Ignored
     }
 
     private fun showConfirmationNextTick(player: Player, worldData: WorldData, type: String, cost: Int) {

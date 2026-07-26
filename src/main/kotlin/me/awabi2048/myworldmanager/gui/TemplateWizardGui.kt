@@ -11,6 +11,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -56,6 +57,8 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
                     ACTION_SAVE to MenuActionHandler(::save),
                     ACTION_VALIDATE to MenuActionHandler(::validate),
                     ACTION_CANCEL to MenuActionHandler(::cancel),
+                    MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
+                        MenuActionHandler(::selectPlayerInventoryItem),
                 ),
             ),
         )
@@ -247,7 +250,15 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             layout.size,
             GuiHelper.inventoryTitle(lang.getMessage(player, "gui.template_wizard.title")),
             elements,
+            allowPlayerInventoryInteraction = true,
         )
+    }
+
+    private fun selectPlayerInventoryItem(context: MenuActionContext): MenuActionResult {
+        val session = session(context) ?: return MenuActionResult.Rejected()
+        if (context.item.type == Material.AIR) return MenuActionResult.Ignored
+        session.icon = context.item.type
+        return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun name(context: MenuActionContext): MenuActionResult {

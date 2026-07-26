@@ -2,8 +2,6 @@
 
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -13,43 +11,13 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.TemplateWizardGui
-import me.awabi2048.myworldmanager.model.TemplateData
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
-import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
-import org.bukkit.plugin.java.JavaPlugin
 
-class TemplateWizardListener : Listener {
-
-    @EventHandler(ignoreCancelled = false)
-    fun onPlayerInventoryClick(event: InventoryClickEvent) {
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val player = event.whoClicked as? Player ?: return
-        val session = plugin.templateWizardGui.getSession(player.uniqueId) ?: return
-
-        val view = event.view
-        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
-        val lang = plugin.languageManager
-        if (!lang.isKeyMatch(title, "gui.template_wizard.title")) return
-
-        if (event.clickedInventory == player.inventory) {
-            val item = event.currentItem
-            if (item != null && item.type != Material.AIR) {
-                session.icon = item.type
-                plugin.soundManager.playClickSound(player, item)
-                event.cancelWithDebug("TemplateWizardListener.onPlayerInventoryClick: template wizard icon pick click", force = true)
-                plugin.templateWizardGui.open(player)
-            }
-        }
-    }
+class TemplateWizardListener {
 
     fun openTemplateNameInput(
         plugin: MyWorldManager,

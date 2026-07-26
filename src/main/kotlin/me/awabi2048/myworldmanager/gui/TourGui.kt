@@ -13,6 +13,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
@@ -67,6 +68,8 @@ class TourGui(private val plugin: MyWorldManager) {
                     ACTION_DELETE to MenuActionHandler(::openDelete),
                     ACTION_ADD_WAYPOINT to MenuActionHandler(::addWaypoint),
                     ACTION_REMOVE_WAYPOINT to MenuActionHandler(::removeWaypoint),
+                    MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
+                        MenuActionHandler(::selectEditIcon),
                 ),
             ),
         )
@@ -409,6 +412,17 @@ class TourGui(private val plugin: MyWorldManager) {
             player,
             tourRoute(DELETE_CONFIRM_ROUTE, worldData.uuid, tour.uuid, isNew),
         )
+    }
+
+    private fun selectEditIcon(context: MenuActionContext): MenuActionResult {
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Ignored
+        if (!session.awaitingIconPick || context.item.type.isAir) {
+            return MenuActionResult.Ignored
+        }
+        session.draft.icon = context.item.type
+        session.awaitingIconPick = false
+        return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun renderDeleteConfirm(player: Player, route: MenuRoute): InventoryMenuView {

@@ -502,6 +502,10 @@ standalone_export:
 - `CreationGui`のテンプレート一覧と詳細をRuntime Routeへ移し、テンプレート選択、使用、プレビュー、各戻り操作をRuntime Action化した。テンプレートIDをAction payloadと作成セッションで一意に管理し、検証エラー表示を維持した。
 - `CreationGui`の最終確認をRuntime Routeへ移し、確認情報、シードのディメンション・スポーン設定、テンプレートのプレビュー・変更、確定・キャンセルをRuntime要素として描画するようにした。確認処理の業務ロジックは既存Listenerから呼び出し、画面生成とクリック管理だけをRuntimeへ移した。
 - `CreationGui`の全画面移行後、到達不能になった旧`InventoryClickEvent`・`InventoryCloseEvent`・Holder・個別クリック音を削除した。`CreationGuiListener`はRuntime Actionから呼ばれる確定処理とJava版Dialog／Bedrock版Form入力の制御だけを担当する。
+- CC-System Runtimeへプレイヤーインベントリ側のクリックを予約Actionとして受け取る経路を追加した。`EnvironmentGui`の月の石・バイオーム瓶選択は個別Listenerを廃止し、Runtime Actionで入力を確定して確認Dialogへ遷移する。
+- `TemplateWizardGui`のプレイヤーインベントリからのアイコン選択も予約Actionへ移し、`TemplateWizardListener`からInventoryイベントと個別クリック音を削除した。
+- ツアー編集のアイコン選択も`TourGui`の予約Actionへ移し、ツアー固有Listenerはブロック・プレイヤー操作だけを担当するようにした。
+- ワールドゲート設置確認をRuntimeの一時Routeへ移し、専用Holder・Inventory生成・InventoryクリックListenerを削除した。
 - 全Creation Routeへ共通Close Handlerを追加した。Dialog・Form入力中とテンプレートプレビュー中は作成セッションを維持し、Route遷移ではなくユーザーが画面を閉じた場合だけセッションを終了してマイワールド画面へ戻す。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。

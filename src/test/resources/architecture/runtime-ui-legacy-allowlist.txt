@@ -2,12 +2,8 @@
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
 CREATE_INVENTORY|18|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
 CREATE_INVENTORY|3|src/main/kotlin/me/awabi2048/myworldmanager/ui/bedrock/BedrockMenuService.kt
-INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/gui/EnvironmentGui.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/BedrockInventoryListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/GlobalMenuListener.kt
-INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/PortalListener.kt
-INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TourListener.kt
-INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
 INVENTORY_CLICK_EVENT|5|src/main/kotlin/me/awabi2048/myworldmanager/ui/bedrock/BedrockMenuService.kt
@@ -15,5 +11,4 @@ MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/Custom
 MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/util/SoundManager.kt
 MANUAL_CLICK_SOUND|5|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
 MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/SpotlightListener.kt
-MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
 MANUAL_CLICK_SOUND|74|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt
