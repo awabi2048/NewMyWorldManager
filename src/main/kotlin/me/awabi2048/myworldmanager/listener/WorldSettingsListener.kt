@@ -300,7 +300,8 @@ class WorldSettingsListener : Listener {
                                 }
                         val handled =
                                 extension.onClick(
-                                        event,
+                                        event.click,
+                                        item,
                                         player,
                                         MenuExtensionContext(
                                                 extensionMenuType,
@@ -337,7 +338,7 @@ class WorldSettingsListener : Listener {
                         )
                 if (
                         MyWorldManagerApi.getMenuExtensions()
-                                .any { extension -> extension.onClick(event, player, extensionContext) }
+                                .any { extension -> extension.onClick(event.click, item, player, extensionContext) }
                 ) {
                         event.cancelWithDebug("WorldSettingsListener.onInventoryClick: any extension click")
                         plugin.soundManager.playClickSound(player, item, "world_settings")

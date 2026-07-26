@@ -60,7 +60,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                                     "creationType" to session.creationType
                             )
                     )
-            if (extension.onClick(event, player, context)) {
+            if (extension.onClick(event.click, currentItem, player, context)) {
                 plugin.soundManager.playClickSound(player, currentItem)
             }
             return
