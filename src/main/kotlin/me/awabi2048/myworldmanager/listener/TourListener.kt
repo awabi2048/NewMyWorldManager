@@ -12,7 +12,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.Particle
-import org.bukkit.Sound
 import org.bukkit.block.BlockFace
 import org.bukkit.block.Sign
 import org.bukkit.entity.Player
@@ -125,40 +124,14 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         val type = ItemTag.getType(item) ?: return
         if (type == ItemTag.TYPE_GUI_DECORATION) return
         val worldUuid = when (top) {
-            is TourGui.EditTourHolder -> top.worldUuid
             is TourGui.SingleTourHolder -> top.worldUuid
             is TourGui.BindSignHolder -> top.worldUuid
             else -> return
         }
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
         when (top) {
-            is TourGui.EditTourHolder -> handleEditMenuClick(player, worldData, type, item)
             is TourGui.SingleTourHolder -> handleSingleEditClick(player, worldData, type, item, top, event.click)
             is TourGui.BindSignHolder -> handleBindSignClick(player, worldData, type, item, top)
-        }
-    }
-
-    private fun handleEditMenuClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack) {
-        when (type) {
-            ItemTag.TYPE_GUI_TOUR_BACK -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
-                    plugin.menuEntryRouter.openWorldSettings(player, worldData, false)
-                }
-            }
-            ItemTag.TYPE_GUI_TOUR_CREATE -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1.4f)
-                TourDialogManager.startTourCreation(player, plugin, worldData.uuid)
-            }
-            ItemTag.TYPE_GUI_TOUR_ITEM -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                val tourUuid = ItemTag.getString(item, "tour_uuid")?.let(UUID::fromString) ?: return
-                plugin.tourManager.getTour(worldData, tourUuid)?.let {
-                    val session = plugin.tourManager.openEditSession(player, worldData, it)
-                    plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, false)
-                }
-            }
         }
     }
 

@@ -28,6 +28,7 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
@@ -46,6 +47,21 @@ class TourGui(private val plugin: MyWorldManager) {
                 id = START_CONFIRM_ROUTE,
                 renderer = { context -> renderStartConfirm(context.player, context.route) },
                 actions = mapOf(ACTION_START to MenuActionHandler(::startTour)),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = EDIT_ROUTE,
+                renderer = { context -> renderEditMenu(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_PAGE to MenuActionHandler(::changeTourPage),
+                    ACTION_BACK to MenuActionHandler {
+                        MenuActionResult.Success(MenuUpdate.Back)
+                    },
+                    ACTION_CREATE to MenuActionHandler(::createTour),
+                    ACTION_EDIT to MenuActionHandler(::editTour),
+                ),
             ),
         )
         runtime.register(
@@ -205,29 +221,77 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openEditMenu(player: Player, worldData: WorldData, page: Int = 0) {
-        GuiHelper.playMenuOpen(player, "tour")
+        runtime.navigate(
+            player,
+            MenuRoute(
+                OWNER,
+                EDIT_ROUTE,
+                mapOf("world" to worldData.uuid.toString(), "page" to page.coerceAtLeast(0).toString()),
+            ),
+        )
+    }
+
+    private fun renderEditMenu(player: Player, route: MenuRoute): InventoryMenuView {
+        val worldData = world(route) ?: error("ツアー対象ワールドがありません")
         val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
-        val rows = 5
-        val holder = EditTourHolder(worldData.uuid, page)
-        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.edit_title"))))
-        holder.inv = inventory
-        fillBase(inventory)
-        val safePage = page.coerceAtLeast(0)
+        val maxPage = ((tours.size - 1).coerceAtLeast(0) / pageSlots.size)
+        val safePage = (route.payload["page"]?.toIntOrNull() ?: 0).coerceIn(0, maxPage)
+        val elements = mutableListOf<MenuElement>()
         tours.drop(safePage * pageSlots.size).take(pageSlots.size).forEachIndexed { index, tour ->
-            inventory.setItem(pageSlots[index], createEditTourItem(player, worldData, tour))
+            elements += MenuElement(
+                pageSlots[index],
+                createEditTourItem(player, worldData, tour),
+                GuiElementRole.ACTION,
+                ACTION_EDIT,
+                mapOf("tour" to tour.uuid.toString()),
+            )
         }
-        val footerStart = inventory.size - 9
-        inventory.setItem(footerStart + 4, createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK))
+        val footerStart = 36
+        elements += MenuElement(
+            footerStart + 4,
+            createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK),
+            GuiElementRole.NAVIGATION,
+            ACTION_BACK,
+        )
         if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
-            inventory.setItem(footerStart + 2, createActionItem(player, Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.create.description"))), lang.getMessage(player, "gui.tour.menu.create.action"), ItemTag.TYPE_GUI_TOUR_CREATE))
+            elements += MenuElement(
+                footerStart + 2,
+                createActionItem(player, Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.create.description"))), lang.getMessage(player, "gui.tour.menu.create.action"), ItemTag.TYPE_GUI_TOUR_CREATE),
+                GuiElementRole.ACTION,
+                ACTION_CREATE,
+            )
         }
-        inventory.setItem(4, createCurrentWorldItem(player, worldData))
+        elements += MenuElement(4, createCurrentWorldItem(player, worldData), GuiElementRole.CONTENT)
         val infoLines = lang.getMessageList(player, "gui.tour.menu.info.lore")
-        inventory.setItem(footerStart + 6, createLoreItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), infoLines.map(GuiLoreLine::Text), ItemTag.TYPE_GUI_TOUR_INFO, GuiLoreFrame.BOTH))
-        if (safePage > 0) inventory.setItem(footerStart, GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1))
-        if ((safePage + 1) * pageSlots.size < tours.size) inventory.setItem(footerStart + 8, GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1))
-        ManagedMenuPresenter.open(player, inventory)
+        elements += MenuElement(
+            footerStart + 6,
+            createLoreItem(Material.REDSTONE_TORCH, lang.getMessage(player, "gui.tour.menu.info.display"), infoLines.map(GuiLoreLine::Text), ItemTag.TYPE_GUI_TOUR_INFO, GuiLoreFrame.BOTH),
+            GuiElementRole.CONTENT,
+        )
+        if (safePage > 0) {
+            elements += MenuElement(
+                footerStart,
+                GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf("page" to (safePage - 1).toString()),
+            )
+        }
+        if ((safePage + 1) * pageSlots.size < tours.size) {
+            elements += MenuElement(
+                footerStart + 8,
+                GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf("page" to (safePage + 1).toString()),
+            )
+        }
+        return InventoryMenuView(
+            size = 45,
+            title = GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.edit_title"))),
+            elements = elements,
+        )
     }
 
     fun openSingleEditMenu(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
@@ -345,6 +409,33 @@ class TourGui(private val plugin: MyWorldManager) {
                 ),
             ),
         )
+    }
+
+    private fun createTour(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        context.player.playSound(
+            context.player.location,
+            Sound.ENTITY_EXPERIENCE_ORB_PICKUP,
+            0.9f,
+            1.4f,
+        )
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            TourDialogManager.startTourCreation(context.player, plugin, worldData.uuid)
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun editTour(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val tourUuid = context.payload["tour"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        val tour = plugin.tourManager.getTour(worldData, tourUuid)
+            ?: return MenuActionResult.Rejected()
+        val session = plugin.tourManager.openEditSession(context.player, worldData, tour)
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            openSingleEditMenu(context.player, worldData, session.draft, false)
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     private fun confirmDelete(context: MenuActionContext): MenuActionResult {
@@ -517,7 +608,6 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     abstract class BaseHolder : InventoryHolder { lateinit var inv: Inventory; override fun getInventory(): Inventory = inv }
-    class EditTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()
     class SingleTourHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean) : BaseHolder()
     class BindSignHolder(val worldUuid: java.util.UUID) : BaseHolder()
 
@@ -527,9 +617,13 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val DELETE_CONFIRM_ROUTE = "tour_delete_confirmation"
         private const val VISITOR_ROUTE = "tour_visitor"
         private const val START_SELECTION_ROUTE = "tour_start_selection"
+        private const val EDIT_ROUTE = "tour_edit"
         private const val ACTION_START = "start"
         private const val ACTION_PAGE = "page"
         private const val ACTION_SELECT = "select"
+        private const val ACTION_BACK = "back"
+        private const val ACTION_CREATE = "create"
+        private const val ACTION_EDIT = "edit"
         private const val ACTION_DELETE_CONFIRM = "delete_confirm"
         private const val ACTION_DELETE_CANCEL = "delete_cancel"
     }
