@@ -4,20 +4,17 @@ package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 
-import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.TemplateWizardGui
 import me.awabi2048.myworldmanager.model.TemplateData
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -178,39 +175,6 @@ class TemplateWizardListener : Listener {
         }
     }
 
-    @EventHandler
-    fun onTemplateWizardDialog(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-
-        if (
-            identifier != Key.key("mwm:template_wizard/name_submit") &&
-                identifier != Key.key("mwm:template_wizard/desc_submit") &&
-                identifier != Key.key("mwm:template_wizard/input_cancel")
-        ) {
-            return
-        }
-
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-        val session = plugin.templateWizardGui.getSession(player.uniqueId) ?: return
-
-        if (identifier == Key.key("mwm:template_wizard/input_cancel")) {
-            plugin.templateWizardGui.open(player)
-            return
-        }
-
-        val view = event.getDialogResponseView() ?: return
-        if (identifier == Key.key("mwm:template_wizard/name_submit")) {
-            val input = view.getText("template_name")?.toString().orEmpty().trim()
-            applyTemplateName(plugin, player, session, input)
-            return
-        }
-
-        val input = view.getText("template_desc")?.toString().orEmpty().trim()
-        applyTemplateDescription(plugin, player, session, input)
-    }
-
     private fun openTemplateNameInput(
         plugin: MyWorldManager,
         player: Player,
@@ -253,45 +217,17 @@ class TemplateWizardListener : Listener {
             return
         }
 
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(Component.text(lang.getMessage(player, "gui.template_wizard.name_input.display"), NamedTextColor.YELLOW))
-                        .body(
-                            listOf(
-                                DialogBody.plainMessage(
-                                    Component.text(lang.getMessage(player, "gui.bedrock.input.template_wizard_name.label"))
-                                )
-                            )
-                        )
-                        .inputs(
-                            listOf(
-                                DialogInput.text(
-                                    "template_name",
-                                    Component.text(lang.getMessage(player, "gui.bedrock.input.template_wizard_name.label"))
-                                ).initial(session.name).maxLength(30).build()
-                            )
-                        )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key("mwm:template_wizard/name_submit"), null)
-                        ),
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key("mwm:template_wizard/input_cancel"), null)
-                        )
-                    )
-                )
-        }
-        player.showDialog(dialog)
+        showTextInputDialog(
+            plugin = plugin,
+            player = player,
+            id = "template-wizard-name",
+            title = lang.getMessage(player, "gui.template_wizard.name_input.display"),
+            label = lang.getMessage(player, "gui.bedrock.input.template_wizard_name.label"),
+            inputId = "template_name",
+            initial = session.name,
+            maxLength = 30,
+            onSubmit = { value -> applyTemplateName(plugin, player, session, value.trim()) },
+        )
     }
 
     private fun openTemplateDescriptionInput(
@@ -336,45 +272,57 @@ class TemplateWizardListener : Listener {
             return
         }
 
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(Component.text(lang.getMessage(player, "gui.template_wizard.desc_input.display"), NamedTextColor.YELLOW))
-                        .body(
-                            listOf(
-                                DialogBody.plainMessage(
-                                    Component.text(lang.getMessage(player, "gui.bedrock.input.template_wizard_desc.label"))
-                                )
-                            )
-                        )
-                        .inputs(
-                            listOf(
-                                DialogInput.text(
-                                    "template_desc",
-                                    Component.text(lang.getMessage(player, "gui.bedrock.input.template_wizard_desc.label"))
-                                ).initial(session.description.firstOrNull().orEmpty()).maxLength(120).build()
-                            )
-                        )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key("mwm:template_wizard/desc_submit"), null)
-                        ),
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key("mwm:template_wizard/input_cancel"), null)
-                        )
-                    )
-                )
-        }
-        player.showDialog(dialog)
+        showTextInputDialog(
+            plugin = plugin,
+            player = player,
+            id = "template-wizard-description",
+            title = lang.getMessage(player, "gui.template_wizard.desc_input.display"),
+            label = lang.getMessage(player, "gui.bedrock.input.template_wizard_desc.label"),
+            inputId = "template_desc",
+            initial = session.description.firstOrNull().orEmpty(),
+            maxLength = 120,
+            onSubmit = { value -> applyTemplateDescription(plugin, player, session, value.trim()) },
+        )
+    }
+
+    private fun showTextInputDialog(
+        plugin: MyWorldManager,
+        player: Player,
+        id: String,
+        title: String,
+        label: String,
+        inputId: String,
+        initial: String,
+        maxLength: Int,
+        onSubmit: (String) -> Unit,
+    ) {
+        val lang = plugin.languageManager
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = id,
+                title = Component.text(title, NamedTextColor.YELLOW),
+                body = listOf(Component.text(label)),
+                inputs = listOf(
+                    MenuDialogInput.Text(inputId, Component.text(label), initial, maxLength = maxLength),
+                ),
+                confirm = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    MenuDialogHandler { _, response ->
+                        onSubmit(response.textValue(inputId))
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    MenuDialogHandler { target, _ ->
+                        plugin.templateWizardGui.open(target)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
     }
 
     private fun applyTemplateName(
