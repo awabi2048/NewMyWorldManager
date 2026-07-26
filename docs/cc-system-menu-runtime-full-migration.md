@@ -171,7 +171,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 ### MWM-Chanpon Inventory
 
 - [ ] `AnnualArchiveFlow`
-- [ ] `AutomationSettingsMenu`
+- [x] `AutomationSettingsMenu`
 - [ ] `BackupListMenu`
 - [x] `ChanponAdminMenu`
 - [ ] `ChanponAdminWorldListMenu`
@@ -447,6 +447,7 @@ standalone_export:
 - 共有データのコピー前に稼働サーバーのメインワールドを保存し、メモリ上の最新状態を`level.dat`と`data/`へ反映してから出力するようにした。
 - 追加ワールドの`data/`をディメンション固有、サーバーメインワールド使用、除外へ分類し、方針をmanifestへ記録するようにした。
 - `ChanponAdminMenu`とスポーンワールド確認画面をRuntime Route、Action、Roleへ移行し、個別Inventory生成と個別クリックListenerを削除した。
+- `AutomationSettingsMenu`の本体、設定切替確認、復元点作成確認をRuntimeへ移行し、3個の直接Inventory生成と4個の個別クリックイベント分岐を削除した。
 - CC-System 2.11.0へ、登録済み画面を親Routeと履歴を変更せず開く`MenuRuntimeService.openEphemeral`を追加した。
 - EPHEMERAL画面を閉じた場合に親ナビゲーションを消去しないセッション寿命テストを追加し、CC-Systemの全90テストに成功した。
 - `PortalGui`を`InventoryMenuDefinition`、Route payload、Runtime Actionへ完全移行した。直接Inventory生成、個別`InventoryClickEvent`、個別クリック音、ItemTagによるAction判定を撤去した。
