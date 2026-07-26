@@ -263,20 +263,14 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
     private fun name(context: MenuActionContext): MenuActionResult {
         val session = session(context) ?: return MenuActionResult.Rejected()
-        Bukkit.getScheduler().runTask(
-            plugin,
-            Runnable { plugin.templateWizardListener.openTemplateNameInput(plugin, context.player, session) },
-        )
-        return MenuActionResult.Success(MenuUpdate.Close)
+        plugin.templateWizardListener.openTemplateNameInput(plugin, context.player, session)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun description(context: MenuActionContext): MenuActionResult {
         val session = session(context) ?: return MenuActionResult.Rejected()
-        Bukkit.getScheduler().runTask(
-            plugin,
-            Runnable { plugin.templateWizardListener.openTemplateDescriptionInput(plugin, context.player, session) },
-        )
-        return MenuActionResult.Success(MenuUpdate.Close)
+        plugin.templateWizardListener.openTemplateDescriptionInput(plugin, context.player, session)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun icon(context: MenuActionContext): MenuActionResult {

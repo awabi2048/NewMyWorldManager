@@ -72,6 +72,23 @@ class MenuNavigationContractTest {
         }
     }
 
+    @Test
+    fun `dialog transitions do not return a destructive inventory update`() {
+        val wizard = guiRoot.resolve("TemplateWizardGui.kt").readText()
+        listOf("name", "description").forEach { function ->
+            val body = functionBody(wizard, function)
+            assertTrue("MenuUpdate.None" in body)
+            assertFalse("MenuUpdate.Close" in body)
+            assertFalse("runTask" in body)
+        }
+
+        val discovery = guiRoot.resolve("DiscoveryGui.kt").readText()
+        val sortBody = functionBody(discovery, "sort")
+        assertTrue("MenuUpdate.None" in sortBody)
+        assertFalse("MenuUpdate.Close" in sortBody)
+        assertFalse("runTask" in sortBody)
+    }
+
     private fun functionBody(source: String, name: String): String {
         val start = source.indexOf("private fun $name")
         require(start >= 0) { "$name が見つかりません" }

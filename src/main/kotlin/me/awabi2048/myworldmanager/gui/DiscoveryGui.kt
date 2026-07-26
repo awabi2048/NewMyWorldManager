@@ -247,11 +247,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         session.sort == DiscoverySort.SPOTLIGHT &&
                         canManageSpotlight(player)
                 ) {
-                        Bukkit.getScheduler().runTask(
-                                plugin,
-                                Runnable { plugin.discoveryListener.openSpotlightDescriptionDialog(player) },
-                        )
-                        return MenuActionResult.Success(MenuUpdate.Close)
+                        plugin.discoveryListener.openSpotlightDescriptionDialog(player)
+                        return MenuActionResult.Success(MenuUpdate.None)
                 }
                 val direction = cycleDirection(context) ?: return MenuActionResult.Ignored
                 session.sort = GuiCycle.select(session.sort, DiscoverySort.values(), direction)
