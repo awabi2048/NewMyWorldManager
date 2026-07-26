@@ -142,7 +142,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `PlayerWorldGui`
 - [x] `PortalGui`
 - [x] `TemplateWizardGui`
-- [ ] `TourGui`
+- [x] `TourGui`
 - [x] `UserSettingsGui`
 - [x] `VisitGui`
 - [x] `VisitWorldGui`
@@ -497,5 +497,6 @@ standalone_export:
 - `TourGui`の訪問者向け一覧と看板開始候補一覧を共通ページRendererへ統合し、ページ移動とツアー選択をRuntime Action化した。ワールド、ページ、看板をRoute payloadへ移し、対応する旧HolderとListener分岐を削除した。
 - `TourGui`の編集一覧をRuntime Routeへ移し、戻る、新規作成、既存ツアー選択、ページ移動をRuntime Action化した。対応する旧Holder、Listener分岐、個別クリック音を削除した。
 - `TourGui`の単体編集と新規破棄確認をRuntime Routeへ移した。保存、テキスト・アイコン編集、削除確認、ウェイポイント追加・削除、戻る、破棄をRuntime Action化し、ワールド内ウェイポイント選択の開始だけを物理操作Listenerへ明示委譲した。
+- `TourGui`の看板紐付け画面をRuntime Routeへ移し、紐付け処理をRuntime Action化した。これにより`TourGui`から直接Inventory生成、旧Holder、ManagedMenuPresenterをすべて削除した。`TourListener`には物理的な看板・ブロック操作と、明示的なアイコン選択入力だけを残した。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。

@@ -1,7 +1,5 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -30,9 +28,9 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
-import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
+import org.bukkit.block.BlockFace
+import org.bukkit.inventory.EquipmentSlot
 import java.util.UUID
 
 class TourGui(private val plugin: MyWorldManager) {
@@ -47,6 +45,14 @@ class TourGui(private val plugin: MyWorldManager) {
                 id = START_CONFIRM_ROUTE,
                 renderer = { context -> renderStartConfirm(context.player, context.route) },
                 actions = mapOf(ACTION_START to MenuActionHandler(::startTour)),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = BIND_SIGN_ROUTE,
+                renderer = { context -> renderBindSignMenu(context.player, context.route) },
+                actions = mapOf(ACTION_BIND_SIGN to MenuActionHandler(::bindSign)),
             ),
         )
         runtime.register(
@@ -647,6 +653,43 @@ class TourGui(private val plugin: MyWorldManager) {
         )
     }
 
+    private fun bindSign(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val tourUuid = context.payload["tour"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        val tour = plugin.tourManager.getTour(worldData, tourUuid)
+            ?: return MenuActionResult.Rejected()
+        val placement = TourDialogManager.consumePlacement(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val placementItem = if (placement.hand == EquipmentSlot.HAND) {
+            context.player.inventory.itemInMainHand
+        } else {
+            context.player.inventory.itemInOffHand
+        }
+        if (!ItemTag.isType(placementItem, ItemTag.TYPE_TOUR_SIGN) || placementItem.amount <= 0) {
+            return MenuActionResult.Rejected()
+        }
+        val signBlock = context.player.world.getBlockAt(placement.x, placement.y, placement.z)
+        val blockFace = runCatching { BlockFace.valueOf(placement.blockFace) }
+            .getOrDefault(BlockFace.UP)
+        val signData = plugin.tourManager.createTourSignAt(
+            worldData,
+            context.player,
+            signBlock,
+            blockFace,
+            "",
+            "",
+        )
+        placementItem.amount -= 1
+        tour.startSignUuid = signData.uuid
+        plugin.worldConfigRepository.save(worldData)
+        plugin.tourManager.updateTourSign(signData, worldData)
+        context.player.sendMessage(
+            plugin.languageManager.getMessage(context.player, "messages.tour_sign.bound"),
+        )
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
     private fun canSaveTour(player: Player, tour: TourData): Boolean {
         if (tour.waypoints.size >= 2) return true
         player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.not_enough_signs"))
@@ -706,10 +749,6 @@ class TourGui(private val plugin: MyWorldManager) {
             if (isNew != null) put("is_new", isNew.toString())
         },
     )
-
-    private fun fillBase(inventory: Inventory) {
-        GuiItemFactory.applyStandardFrame(inventory)
-    }
 
     private fun createCurrentWorldItem(player: Player, worldData: WorldData): ItemStack {
         val lang = plugin.languageManager
@@ -798,18 +837,19 @@ class TourGui(private val plugin: MyWorldManager) {
         return GuiLoreSpec.Rich(lines, GuiLoreFrame.BOTH)
     }
 
-    private fun decoration(material: Material): ItemStack {
-        return GuiItemFactory.decoration(material)
+    fun openBindSignToTourMenu(player: Player, worldData: WorldData) {
+        runtime.navigate(
+            player,
+            MenuRoute(OWNER, BIND_SIGN_ROUTE, mapOf("world" to worldData.uuid.toString())),
+        )
     }
 
-    fun openBindSignToTourMenu(player: Player, worldData: WorldData) {
+    private fun renderBindSignMenu(player: Player, route: MenuRoute): InventoryMenuView {
+        val worldData = world(route) ?: error("ツアー対象ワールドがありません")
         val lang = plugin.languageManager
         val unboundTours = worldData.tours.filter { it.startSignUuid == null }
         val rows = (((minOf(pageSlots.size, maxOf(7, unboundTours.size)) + 6) / 7) + 2).coerceIn(3, 6)
-        val holder = BindSignHolder(worldData.uuid)
-        val inventory = Bukkit.createInventory(holder, rows * 9, GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.bind_sign_title"))))
-        holder.inv = inventory
-        fillBase(inventory)
+        val elements = mutableListOf<MenuElement>()
         unboundTours.sortedBy { it.createdAt }.take((rows - 2) * 7).forEachIndexed { index, tour ->
             val row = index / 7 + 1
             val col = index % 7 + 1
@@ -817,13 +857,20 @@ class TourGui(private val plugin: MyWorldManager) {
                 if (tour.description.isBlank()) emptyList() else listOf(GuiLoreLine.UserText(tour.description)), lang.getMessage(player, "gui.tour.menu.tour_item.action_bind"),
                 ItemTag.TYPE_GUI_TOUR_ITEM)
             ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
-            inventory.setItem(row * 9 + col, item)
+            elements += MenuElement(
+                row * 9 + col,
+                item,
+                GuiElementRole.ACTION,
+                ACTION_BIND_SIGN,
+                mapOf("tour" to tour.uuid.toString()),
+            )
         }
-        ManagedMenuPresenter.open(player, inventory)
+        return InventoryMenuView(
+            size = rows * 9,
+            title = GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.bind_sign_title"))),
+            elements = elements,
+        )
     }
-
-    abstract class BaseHolder : InventoryHolder { lateinit var inv: Inventory; override fun getInventory(): Inventory = inv }
-    class BindSignHolder(val worldUuid: java.util.UUID) : BaseHolder()
 
     private companion object {
         private const val OWNER = "myworldmanager"
@@ -834,6 +881,7 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val EDIT_ROUTE = "tour_edit"
         private const val SINGLE_EDIT_ROUTE = "tour_single_edit"
         private const val DISCARD_CONFIRM_ROUTE = "tour_discard_confirmation"
+        private const val BIND_SIGN_ROUTE = "tour_bind_sign"
         private const val ACTION_START = "start"
         private const val ACTION_PAGE = "page"
         private const val ACTION_SELECT = "select"
@@ -848,6 +896,7 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val ACTION_REMOVE_WAYPOINT = "remove_waypoint"
         private const val ACTION_DISCARD_CONFIRM = "discard_confirm"
         private const val ACTION_DISCARD_CANCEL = "discard_cancel"
+        private const val ACTION_BIND_SIGN = "bind_sign"
         private const val ACTION_DELETE_CONFIRM = "delete_confirm"
         private const val ACTION_DELETE_CANCEL = "delete_cancel"
     }

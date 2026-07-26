@@ -1,7 +1,5 @@
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.TourDialogManager
@@ -103,56 +101,17 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler(ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
-        val top = event.view.topInventory.holder
-        if (event.clickedInventory != event.view.topInventory) {
-            if (plugin.tourSessionManager.getEdit(player.uniqueId)?.awaitingIconPick == true) {
-                val picked = event.currentItem?.type ?: return
-                if (picked.isAir) return
-                event.cancelWithDebug("TourListener.onInventoryClick: tour icon pick click", force = true)
-                val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-                session.draft.icon = picked
-                session.awaitingIconPick = false
-                plugin.soundManager.playGlobalClickSound(player)
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-                plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, session.isNew)
-            }
-            return
-        }
-        if (top !is TourGui.BaseHolder) return
-        event.cancelWithDebug("TourListener.onInventoryClick: tour GUI click")
-        val item = event.currentItem ?: return
-        val type = ItemTag.getType(item) ?: return
-        if (type == ItemTag.TYPE_GUI_DECORATION) return
-        val worldUuid = when (top) {
-            is TourGui.BindSignHolder -> top.worldUuid
-            else -> return
-        }
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-        when (top) {
-            is TourGui.BindSignHolder -> handleBindSignClick(player, worldData, type, item, top)
-        }
-    }
-
-    private fun handleBindSignClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: TourGui.BindSignHolder) {
-        if (type != ItemTag.TYPE_GUI_TOUR_ITEM) return
-        plugin.soundManager.playClickSound(player, item, "tour")
-        val tourUuid = ItemTag.getString(item, "tour_uuid")?.let(UUID::fromString) ?: return
-        val tour = plugin.tourManager.getTour(worldData, tourUuid) ?: return
-        val placement = TourDialogManager.consumePlacement(player.uniqueId) ?: return
-        val placementItem = if (placement.hand == EquipmentSlot.HAND) player.inventory.itemInMainHand else player.inventory.itemInOffHand
-        if (!ItemTag.isType(placementItem, ItemTag.TYPE_TOUR_SIGN) || placementItem.amount <= 0) return
-        val signBlock = player.world.getBlockAt(placement.x, placement.y, placement.z)
-        val blockFace = runCatching { BlockFace.valueOf(placement.blockFace) }.getOrDefault(BlockFace.UP)
-        val signData = plugin.tourManager.createTourSignAt(worldData, player, signBlock, blockFace, "", "")
-        placementItem.amount -= 1
-        tour.startSignUuid = signData.uuid
-        plugin.worldConfigRepository.save(worldData)
-        plugin.tourManager.updateTourSign(
-            signData,
-            worldData
-        )
-        ManagedMenuPresenter.close(player)
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour_sign.bound"))
+        if (event.clickedInventory == event.view.topInventory) return
+        if (plugin.tourSessionManager.getEdit(player.uniqueId)?.awaitingIconPick != true) return
+        val picked = event.currentItem?.type ?: return
+        if (picked.isAir) return
+        event.cancelWithDebug("TourListener.onInventoryClick: tour icon pick click", force = true)
+        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
+        session.draft.icon = picked
+        session.awaitingIconPick = false
+        plugin.soundManager.playGlobalClickSound(player)
+        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+        plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, session.isNew)
     }
 
     private fun startWaypointPreview(player: Player) {
