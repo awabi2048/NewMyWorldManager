@@ -3,7 +3,6 @@ package me.awabi2048.myworldmanager.util
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuClickType
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -25,7 +24,7 @@ class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     fun playClickSound(player: Player, item: ItemStack?, menuId: String? = null) {
         val type = item?.let(ItemTag::getType)
         if (menuId == null) {
-            ManagedMenuPresenter.success(player)
+            CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
             return
         }
 
@@ -48,7 +47,7 @@ class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     }
 
     fun playAdminClickSound(player: Player) {
-        ManagedMenuPresenter.success(player)
+        CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
     }
 
     fun playTeleportSound(player: Player) {
@@ -56,11 +55,11 @@ class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     }
 
     fun playGlobalClickSound(player: Player) {
-        ManagedMenuPresenter.success(player)
+        CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
     }
 
     fun playChatClickSound(player: Player) {
-        ManagedMenuPresenter.success(player)
+        CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
     }
 
     private fun iconIdFor(type: String?): String? {

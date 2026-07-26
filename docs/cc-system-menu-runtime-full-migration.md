@@ -489,3 +489,4 @@ standalone_export:
 - `DiscoveryListener`からInventoryクリック処理と個別クリック音15参照を削除し、スポットライト説明の共通Dialog入力だけを残した。
 - `PlayerWorldGui`の対象プレイヤー、ページ、戻り導線、作成、個人設定、保留操作、並び順変更、ワープ、設定遷移、アーカイブ解除確認をRuntime RouteとActionへ移行した。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
+- `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。
