@@ -392,14 +392,12 @@ class MyWorldManager : JavaPlugin() {
             val visitCmd = VisitCommand(this)
             it.setExecutor(visitCmd)
             it.setTabCompleter(visitCmd)
-            server.pluginManager.registerEvents(visitCmd, this)
         }
 
         getCommand("findworld")?.let {
             val visitWorldCmd = VisitWorldCommand(this)
             it.setExecutor(visitWorldCmd)
             it.setTabCompleter(visitWorldCmd)
-            server.pluginManager.registerEvents(visitWorldCmd, this)
         }
 
         getCommand("invite")?.setExecutor(inviteCommand)
