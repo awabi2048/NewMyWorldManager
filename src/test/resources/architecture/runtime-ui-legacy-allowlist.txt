@@ -1,6 +1,5 @@
 # Phase 1以降で削減する既存違反の完全な一時許可リスト。
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/DiscoveryGui.kt
-CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/EnvironmentGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/FavoriteGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/PlayerWorldGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/TemplateWizardGui.kt
@@ -11,6 +10,7 @@ CREATE_INVENTORY|3|src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.k
 CREATE_INVENTORY|3|src/main/kotlin/me/awabi2048/myworldmanager/ui/bedrock/BedrockMenuService.kt
 CREATE_INVENTORY|5|src/main/kotlin/me/awabi2048/myworldmanager/gui/TourGui.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/AdminGuiListener.kt
+INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/gui/EnvironmentGui.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/BedrockInventoryListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/CreationGuiListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/DiscoveryListener.kt
@@ -41,4 +41,4 @@ MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/util/SoundManag
 MANUAL_CLICK_SOUND|5|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
 MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/SpotlightListener.kt
 MANUAL_CLICK_SOUND|7|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
-MANUAL_CLICK_SOUND|78|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt
+MANUAL_CLICK_SOUND|74|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt

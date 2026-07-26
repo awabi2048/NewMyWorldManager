@@ -133,7 +133,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `AdminPortalGui`
 - [ ] `CreationGui`
 - [ ] `DiscoveryGui`
-- [ ] `EnvironmentGui`
+- [x] `EnvironmentGui`
 - [ ] `FavoriteGui`
 - [x] `FavoriteMenuGui`
 - [x] `InviteGui`
@@ -476,3 +476,6 @@ standalone_export:
 - `ChanponWorldSettingsMenuProvider`のメイン設定、拡張、変更済み警告、実行確認、危険設定、二段階削除を単一Runtime Routeへ移行した。
 - 画面種別、ワールドUUID、呼出元設定、確認操作、方向、削除段階をRoute payloadへ統一し、6個の直接Inventory生成、専用クリックListener、旧Holder、個別クリック音を削除した。
 - MWM-Chanpon内の旧`ManagedMenuPresenter`と未使用のクリックキャンセル補助を削除し、Runtimeアーキテクチャ許可リストを空にした。
+- `EnvironmentGui`の重力、天候、バイオーム案内、戻る操作をRuntime RouteとActionへ移行し、直接Inventory生成と`WorldSettingsListener`内の旧上段クリック分岐を削除した。
+- 月の石とバイオーム瓶は画面ActionではなくプレイヤーInventoryからの外部入力であるため、専用の下段入力Listenerとして境界を明示した。旧共通下段ガードにより到達不能だった確認導線も復旧した。
+- 環境変更確認は重力・天候・バイオームを共通確認画面から各実行処理へ接続し、MyWorldManagerの全36テストと`mvn clean package`に成功した。

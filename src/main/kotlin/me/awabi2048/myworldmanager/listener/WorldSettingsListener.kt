@@ -1879,123 +1879,7 @@ class WorldSettingsListener : Listener {
                                         }
                                 }
                         }
-                        SettingsAction.VIEW_ENVIRONMENT_SETTINGS -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: view environment settings")
-                                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                        player.sendMessage(
-                                                plugin.languageManager.getMessage(
-                                                        player,
-                                                        "messages.bedrock_option_unavailable"
-                                                )
-                                        )
-                                        plugin.worldSettingsGui.open(player, worldData)
-                                        return
-                                }
-
-                                // Handle player inventory clicks for biome bottle / Moon stone
-                                if (event.clickedInventory != event.view.topInventory) {
-                                        val clickedItem = event.currentItem ?: return
-                                        if (ItemTag.isType(clickedItem, ItemTag.TYPE_MOON_STONE)) {
-                                                plugin.soundManager.playClickSound(
-                                                        player,
-                                                        clickedItem,
-                                                        "world_settings"
-                                                )
-                                                val cost =
-                                                        WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-                                                showEnvConfirmDialog(player, "gravity", cost)
-                                        } else if (ItemTag.isType(
-                                                        clickedItem,
-                                                        ItemTag.TYPE_BOTTLED_BIOME_AIR
-                                                )
-                                        ) {
-                                                // Permission & Logic Check
-                                                val isMember =
-                                                        player.uniqueId == worldData.owner ||
-                                                                worldData.moderators.contains(
-                                                                        player.uniqueId
-                                                                ) ||
-                                                                worldData.members.contains(
-                                                                        player.uniqueId
-                                                                ) ||
-                                                                session.isAdminFlow
-                                                val isAdminWorld = worldData.customWorldName != null
-
-                                                if (isAdminWorld) {
-                                                        player.playSound(
-                                                                player.location,
-                                                                Sound.ENTITY_VILLAGER_NO,
-                                                                1.0f,
-                                                                1.0f
-                                                        )
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "messages.custom_item.biome_bottle_disabled"
-                                                                )
-                                                        )
-                                                        return
-                                                }
-
-                                                if (!isMember) {
-                                                        player.playSound(
-                                                                player.location,
-                                                                Sound.ENTITY_VILLAGER_NO,
-                                                                1.0f,
-                                                                1.0f
-                                                        )
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "error.custom_item.no_permission"
-                                                                )
-                                                        )
-                                                        return
-                                                }
-
-                                                plugin.soundManager.playClickSound(
-                                                        player,
-                                                        clickedItem,
-                                                        "world_settings"
-                                                )
-                                                val cost =
-                                                        WorldRuntimePolicies.environmentCost(plugin.config, "biome")
-
-                                                val biomeId = ItemTag.getBiomeId(clickedItem)
-                                                if (biomeId != null) {
-                                                        session.setMetadata("temp_biome", biomeId)
-                                                        showEnvConfirmDialog(player, "biome", cost)
-                                                }
-                                        }
-                                        return
-                                }
-
-                                when (type) {
-                                        ItemTag.TYPE_GUI_CANCEL -> {
-                                                handleCommandCancel()
-                                        }
-                                        ItemTag.TYPE_GUI_ENV_WEATHER -> {
-                                                if (event.isLeftClick) {
-                                                        handleWeatherClickCycle(player, worldData)
-                                                } else if (event.isRightClick) {
-                                                        val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
-                                                        showEnvConfirmDialog(player, "weather", cost)
-                                                }
-                                        }
-                                        ItemTag.TYPE_GUI_ENV_GRAVITY -> {
-                                                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-                                                showEnvConfirmDialog(player, "gravity", cost)
-                                        }
-                                        ItemTag.TYPE_GUI_ENV_BIOME -> {
-                                                player.sendMessage(
-                                                        plugin.languageManager.getMessage(
-                                                                player,
-                                                                "gui.environment.biome.click_bottle_hint"
-                                                        )
-                                                )
-                                        }
-                                }
-                        }
+                        SettingsAction.VIEW_ENVIRONMENT_SETTINGS -> Unit
                         SettingsAction.ENV_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: env confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
@@ -4483,7 +4367,7 @@ player.sendMessage(
                 return true
         }
 
-        private fun handleWeatherClickCycle(player: Player, worldData: WorldData) {
+        fun cycleEnvironmentWeather(player: Player, worldData: WorldData) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val config = plugin.config
                 val options = config.getStringList("environment.weather.options")
@@ -4497,8 +4381,6 @@ player.sendMessage(
                                 com.awabi2048.ccsystem.api.gui.GuiCycleDirection.NEXT
                         )
 
-                plugin.soundManager.playClickSound(player, null, "world_settings")
-                plugin.environmentGui.open(player, worldData)
         }
 
         private fun executeGravityChange(
@@ -5392,7 +5274,12 @@ player.sendMessage(
         }
 
         // Helper to show generic simple confirmation
-        private fun showEnvConfirmDialog(player: Player, type: String, cost: Int) {
+        fun showEnvironmentConfirmDialog(
+            player: Player,
+            worldData: WorldData,
+            type: String,
+            cost: Int,
+        ) {
             val lang = plugin.languageManager
 
             val titleKey = "gui.environment.$type.display" // e.g. gui.environment.gravity.display
@@ -5439,22 +5326,17 @@ player.sendMessage(
                 confirmItem = confirmItem,
                 cancelItem = cancelItem,
                 onConfirm = {
-                    val worldData = plugin.worldConfigRepository.findByUuid(
-                        plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@open
-                    ) ?: return@open
                     val session = plugin.settingsSessionManager.getSession(player) ?: return@open
-                    val confirmItem = session.confirmItem ?: return@open
-                    if (ItemTag.isType(confirmItem, ItemTag.TYPE_MOON_STONE)) {
-                        executeGravityChange(player, worldData, confirmItem)
-                    } else if (ItemTag.isType(confirmItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
-                        executeBiomeChange(player, worldData, confirmItem)
+                    when (type) {
+                        "gravity" -> handleEnvGravityConfirm(player, worldData)
+                        "weather" -> handleWeatherConfirm(player, worldData)
+                        "biome" -> {
+                            val biomeId = session.getMetadata("temp_biome") as? String ?: return@open
+                            handleEnvBiomeConfirm(player, worldData, biomeId)
+                        }
                     }
                 },
                 onCancel = {
-                    val worldData = plugin.worldConfigRepository.findByUuid(
-                        plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return@open
-                    ) ?: return@open
-                    plugin.soundManager.playClickSound(player, null, "world_settings")
                     plugin.environmentGui.open(player, worldData)
                 }
             )

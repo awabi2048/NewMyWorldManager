@@ -1,8 +1,17 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
@@ -14,86 +23,182 @@ import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.Sound
 import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 
-class EnvironmentGui(private val plugin: MyWorldManager) {
+class EnvironmentGui(private val plugin: MyWorldManager) : Listener {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_GRAVITY to MenuActionHandler(::gravity),
+                    ACTION_WEATHER to MenuActionHandler(::weather),
+                    ACTION_BIOME to MenuActionHandler(::biome),
+                    ACTION_BACK to MenuActionHandler(::back),
+                ),
+            ),
+        )
+        plugin.server.pluginManager.registerEvents(this, plugin)
+    }
 
     fun open(player: Player, worldData: WorldData) {
-        val lang = plugin.languageManager
-        val title = lang.getMessage(player, "gui.environment.title")
-        val titleComponent = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(title)
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "environment")
-        val currentTitle =
-                net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-                        .serialize(player.openInventory.title())
-
         plugin.settingsSessionManager.updateSessionAction(
-                player,
-                worldData.uuid,
-                SettingsAction.VIEW_ENVIRONMENT_SETTINGS,
-                isGui = true
+            player,
+            worldData.uuid,
+            SettingsAction.VIEW_ENVIRONMENT_SETTINGS,
+            isGui = true,
         )
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+        runtime.navigate(player, route(worldData.uuid))
+    }
 
-        val inventory =
-                if (player.openInventory.topInventory.size == GuiHelper.threeChoiceLayout().size && currentTitle == title) {
-                    player.openInventory.topInventory
-                } else {
-                    val holder = WorldSettingsGuiHolder()
-                    val inventory = Bukkit.createInventory(holder, GuiHelper.threeChoiceLayout().size, titleComponent)
-                    holder.inv = inventory
-                    inventory
+    private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+        val worldData = worldData(route)
+        val layout = GuiHelper.threeChoiceLayout()
+        return InventoryMenuView(
+            size = layout.size,
+            title = GuiHelper.inventoryTitle(
+                plugin.languageManager.getMessage(player, "gui.environment.title"),
+            ),
+            elements = listOf(
+                MenuElement(layout.leftSlot, createGravityItem(player, worldData), GuiElementRole.ACTION, ACTION_GRAVITY),
+                MenuElement(layout.centerSlot, createWeatherItem(player, worldData), GuiElementRole.ACTION, ACTION_WEATHER),
+                MenuElement(layout.rightSlot, createBiomeItem(player, worldData), GuiElementRole.ACTION, ACTION_BIOME),
+                MenuElement(layout.backSlot, createBackItem(player), GuiElementRole.BACK, ACTION_BACK),
+            ),
+        )
+    }
+
+    private fun gravity(context: MenuActionContext): MenuActionResult {
+        val worldData = worldData(context.route)
+        val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
+        Bukkit.getScheduler().runTask(
+            plugin,
+            Runnable { plugin.worldSettingsListener.showEnvironmentConfirmDialog(context.player, worldData, "gravity", cost) },
+        )
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun weather(context: MenuActionContext): MenuActionResult {
+        val worldData = worldData(context.route)
+        return when {
+            context.click.isLeftClick -> {
+                plugin.worldSettingsListener.cycleEnvironmentWeather(context.player, worldData)
+                MenuActionResult.Success(MenuUpdate.Refresh)
+            }
+            context.click.isRightClick -> {
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
+                Bukkit.getScheduler().runTask(
+                    plugin,
+                    Runnable { plugin.worldSettingsListener.showEnvironmentConfirmDialog(context.player, worldData, "weather", cost) },
+                )
+                MenuActionResult.Success(MenuUpdate.Close)
+            }
+            else -> MenuActionResult.Ignored
+        }
+    }
+
+    private fun biome(context: MenuActionContext): MenuActionResult {
+        context.player.sendMessage(
+            plugin.languageManager.getMessage(context.player, "gui.environment.biome.click_bottle_hint"),
+        )
+        return MenuActionResult.Success(MenuUpdate.None)
+    }
+
+    private fun back(context: MenuActionContext): MenuActionResult {
+        val worldData = worldData(context.route)
+        Bukkit.getScheduler().runTask(
+            plugin,
+            Runnable {
+                if (!plugin.menuRouteHistory.openPrevious(context.player)) {
+                    plugin.worldSettingsGui.open(context.player, worldData)
                 }
-
-        GuiItemFactory.applyStandardFrame(inventory)
-
-        // Keep the three environment choices aligned with the shared layout.
-        GuiHelper.setThreeChoiceItems(
-                inventory,
-                createGravityItem(player, worldData),
-                createWeatherItem(player, worldData),
-                createBiomeItem(player, worldData)
+            },
         )
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
 
-        // 戻るボタン (スロット40)
-        val backItem = ItemStack(Material.REDSTONE)
-        val backMeta = backItem.itemMeta
-        backMeta?.displayName(lang.getComponent(player, "gui.common.back"))
-        backItem.itemMeta = backMeta
-        ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_CANCEL)
-        GuiHelper.setThreeChoiceBack(inventory, backItem)
+    @EventHandler(ignoreCancelled = false)
+    fun onPlayerInventoryClick(event: InventoryClickEvent) {
+        val player = event.whoClicked as? Player ?: return
+        val session = plugin.settingsSessionManager.getSession(player) ?: return
+        if (session.action != SettingsAction.VIEW_ENVIRONMENT_SETTINGS) return
+        if (event.clickedInventory != player.inventory) return
 
-        ManagedMenuPresenter.open(player, inventory)
+        event.isCancelled = true
+        val clickedItem = event.currentItem ?: return
+        val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+        when {
+            ItemTag.isType(clickedItem, ItemTag.TYPE_MOON_STONE) -> {
+                session.confirmItem = clickedItem.clone()
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
+                showConfirmationNextTick(player, worldData, "gravity", cost)
+            }
+            ItemTag.isType(clickedItem, ItemTag.TYPE_BOTTLED_BIOME_AIR) -> {
+                if (!canUseBiomeBottle(player, worldData, session.isAdminFlow)) return
+                val biomeId = ItemTag.getBiomeId(clickedItem) ?: return
+                session.confirmItem = clickedItem.clone()
+                session.setMetadata("temp_biome", biomeId)
+                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
+                showConfirmationNextTick(player, worldData, "biome", cost)
+            }
+        }
+    }
+
+    private fun showConfirmationNextTick(player: Player, worldData: WorldData, type: String, cost: Int) {
+        Bukkit.getScheduler().runTask(
+            plugin,
+            Runnable { plugin.worldSettingsListener.showEnvironmentConfirmDialog(player, worldData, type, cost) },
+        )
+    }
+
+    private fun canUseBiomeBottle(player: Player, worldData: WorldData, isAdminFlow: Boolean): Boolean {
+        if (worldData.customWorldName != null) {
+            player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.biome_bottle_disabled"))
+            return false
+        }
+        val isMember = player.uniqueId == worldData.owner ||
+            player.uniqueId in worldData.moderators ||
+            player.uniqueId in worldData.members ||
+            isAdminFlow
+        if (!isMember) {
+            player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.no_permission"))
+            return false
+        }
+        return true
     }
 
     private fun createGravityItem(player: Player, worldData: WorldData): ItemStack {
         val lang = plugin.languageManager
         val item = ItemStack(Material.FEATHER)
         val meta = item.itemMeta ?: return item
-
-        val currentGravity = worldData.gravityValue ?: 0.08
-        val gravityKey =
-            when (currentGravity) {
-                0.01 -> "moon"
-                0.02 -> "mars"
-                0.08 -> "earth"
-                else -> "earth"
-            }
+        val gravityKey = when (worldData.gravityValue ?: 0.08) {
+            0.01 -> "moon"
+            0.02 -> "mars"
+            else -> "earth"
+        }
         val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-
         meta.displayName(lang.getComponent(player, "gui.environment.gravity.display"))
         meta.lore(GuiItemFactory.menuLore(buildList {
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.current"), currentName, "§6"))
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.cost"), cost, "§e"))
-                }
-                add(GuiLoreLine.Spacer)
-                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.gravity.requirement")))
-                add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.gravity.action")))
+            add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.current"), currentName, "§6"))
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.cost"), cost, "§e"))
+            }
+            add(GuiLoreLine.Spacer)
+            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.gravity.requirement")))
+            add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.gravity.action")))
         }))
-
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_GRAVITY)
         return item
@@ -103,23 +208,20 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.WHITE_WOOL)
         val meta = item.itemMeta ?: return item
-
         val session = plugin.settingsSessionManager.getSession(player)
         val currentWeather = session?.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
-
         meta.displayName(lang.getComponent(player, "gui.environment.weather.display"))
         meta.lore(GuiItemFactory.menuLore(buildList {
-                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.weather.desc")))
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, "§b"))
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.cost"), cost, "§e"))
-                }
-                add(GuiLoreLine.Spacer)
-                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.environment.weather.action.cycle")))
-                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.environment.weather.action.confirm")))
+            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.weather.desc")))
+            add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, "§b"))
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.cost"), cost, "§e"))
+            }
+            add(GuiLoreLine.Spacer)
+            add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.environment.weather.action.cycle")))
+            add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.environment.weather.action.confirm")))
         }))
-
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_WEATHER)
         return item
@@ -129,24 +231,49 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val item = ItemStack(Material.GRASS_BLOCK)
         val meta = item.itemMeta ?: return item
-
         val currentBiome = worldData.fixedBiome ?: "DEFAULT"
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
-
         meta.displayName(lang.getComponent(player, "gui.environment.biome.display"))
         meta.lore(GuiItemFactory.menuLore(buildList {
-                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.desc")))
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, "§a"))
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.cost"), cost, "§e"))
-                }
-                add(GuiLoreLine.Spacer)
-                add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.requirement")))
-                add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.biome.action")))
+            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.desc")))
+            add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, "§a"))
+            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.cost"), cost, "§e"))
+            }
+            add(GuiLoreLine.Spacer)
+            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.requirement")))
+            add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.biome.action")))
         }))
-
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_BIOME)
         return item
+    }
+
+    private fun createBackItem(player: Player): ItemStack {
+        val item = ItemStack(Material.REDSTONE)
+        item.itemMeta = item.itemMeta?.also {
+            it.displayName(plugin.languageManager.getComponent(player, "gui.common.back"))
+        }
+        ItemTag.tagItem(item, ItemTag.TYPE_GUI_CANCEL)
+        return item
+    }
+
+    private fun worldData(route: MenuRoute): WorldData {
+        val uuid = route.payload[WORLD_UUID]?.let(UUID::fromString)
+            ?: error("環境設定のワールドUUIDがありません")
+        return plugin.worldConfigRepository.findByUuid(uuid)
+            ?: error("環境設定のワールドが見つかりません: $uuid")
+    }
+
+    private fun route(worldUuid: UUID) = MenuRoute(OWNER, ROUTE_ID, mapOf(WORLD_UUID to worldUuid.toString()))
+
+    companion object {
+        private const val OWNER = "myworldmanager"
+        private const val ROUTE_ID = "environment"
+        private const val WORLD_UUID = "worldUuid"
+        private const val ACTION_GRAVITY = "gravity"
+        private const val ACTION_WEATHER = "weather"
+        private const val ACTION_BIOME = "biome"
+        private const val ACTION_BACK = "back"
     }
 }
