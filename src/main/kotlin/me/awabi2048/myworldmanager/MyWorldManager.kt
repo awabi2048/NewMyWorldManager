@@ -353,7 +353,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(adminGuiListener, this)
         adminCommandListener = AdminCommandListener()
         creationGuiListener = CreationGuiListener(this)
-        server.pluginManager.registerEvents(creationGuiListener, this)
         server.pluginManager.registerEvents(PlayerDataListener(), this)
         worldSettingsListener = WorldSettingsListener()
         server.pluginManager.registerEvents(worldSettingsListener, this)

@@ -114,7 +114,6 @@ class CreationGui(private val plugin: MyWorldManager) {
             !WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) ||
             !WorldCreationChecks.check(player)
         ) {
-            plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
             return
         }
 
@@ -726,17 +725,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun setupHeaderFooter(inventory: org.bukkit.inventory.Inventory, rowCount: Int) {
-        val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-
-        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
-
-        for (i in 1 until rowCount - 1) {
-            inventory.setItem(i * 9, greyPane)
-            inventory.setItem(i * 9 + 8, greyPane)
-        }
-    }
-
     private fun createBackButton(player: Player): ItemStack {
         val lang = plugin.languageManager
         return createItem(
@@ -745,10 +733,6 @@ class CreationGui(private val plugin: MyWorldManager) {
             ItemTag.TYPE_GUI_BACK,
             GuiLoreSpec.None
         )
-    }
-
-    private fun fillBackground(inventory: org.bukkit.inventory.Inventory) {
-        GuiItemFactory.fillEmpty(inventory)
     }
 
     private fun createItem(material: Material, name: String, tag: String, lore: GuiLoreSpec): ItemStack {
@@ -819,13 +803,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         plugin.settingsSessionManager.getSession(player)?.isGuiTransition = false
     }
 
-    enum class CreationMenuType {
-        TYPE_SELECT,
-        TEMPLATE_SELECT,
-        TEMPLATE_DETAIL,
-        CONFIRM
-    }
-
     companion object {
         const val ADMIN_COMMAND_SESSION_KEY = "mwm:admin_command_creation"
         const val SEED_DIMENSION_SLOT = 39
@@ -845,9 +822,4 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val ACTION_CONFIRM_INTERACTION = "confirm_interaction"
     }
 
-    class CreationGuiHolder(val menuType: CreationMenuType) : InventoryHolder {
-        lateinit var inv: Inventory
-
-        override fun getInventory(): Inventory = inv
-    }
 }
