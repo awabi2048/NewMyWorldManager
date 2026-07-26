@@ -179,7 +179,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `ChanponEnvironmentGui`
 - [x] `ChanponFavoriteVisitMenuProvider`（未登録の旧実装を削除）
 - [x] `ChanponPlayerWorldMenuProvider`
-- [ ] `ChanponWorldSettingsMenuProvider`
+- [x] `ChanponWorldSettingsMenuProvider`
 - [x] `SubmissionAdminMenu`
 - [x] `SubmittedWorldMenuProvider`
 - [x] `ToolPermissionMenu`
@@ -473,3 +473,6 @@ standalone_export:
 - MyWorldManagerとMWM-Chanponはいずれも全36テストに成功した。旧APIシグネチャは残していない。
 - 作成確認操作をMWM本体のイベント非依存ハンドラへ集約し、従来InventoryとRuntimeのどちらからも同一の権限・課金・生成処理を呼べるようにした。
 - `ChanponCreationConfirmationMenuProvider`を`InventoryMenuDefinition`へ移行し、直接Inventory生成、専用クリックListener、専用開閉音を削除した。
+- `ChanponWorldSettingsMenuProvider`のメイン設定、拡張、変更済み警告、実行確認、危険設定、二段階削除を単一Runtime Routeへ移行した。
+- 画面種別、ワールドUUID、呼出元設定、確認操作、方向、削除段階をRoute payloadへ統一し、6個の直接Inventory生成、専用クリックListener、旧Holder、個別クリック音を削除した。
+- MWM-Chanpon内の旧`ManagedMenuPresenter`と未使用のクリックキャンセル補助を削除し、Runtimeアーキテクチャ許可リストを空にした。
