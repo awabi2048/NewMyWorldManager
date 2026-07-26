@@ -11,6 +11,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuCloseContext
+import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -54,6 +56,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     ACTION_SELECT_TYPE to MenuActionHandler(::selectCreationType),
                     ACTION_BACK to MenuActionHandler(::cancelCreation),
                 ),
+                onClose = MenuCloseHandler(::closed),
             ),
         )
         runtime.register(
@@ -71,6 +74,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                         MenuActionResult.Ignored
                     },
                 ),
+                onClose = MenuCloseHandler(::closed),
             ),
         )
         runtime.register(
@@ -82,6 +86,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     ACTION_SELECT_TEMPLATE to MenuActionHandler(::selectTemplate),
                     ACTION_TEMPLATE_LIST_BACK to MenuActionHandler(::templateListBack),
                 ),
+                onClose = MenuCloseHandler(::closed),
             ),
         )
         runtime.register(
@@ -94,6 +99,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     ACTION_PREVIEW_TEMPLATE to MenuActionHandler(::previewTemplate),
                     ACTION_TEMPLATE_DETAIL_BACK to MenuActionHandler(::templateDetailBack),
                 ),
+                onClose = MenuCloseHandler(::closed),
             ),
         )
     }
@@ -258,6 +264,24 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         })
         return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun closed(context: MenuCloseContext) {
+        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            if (!context.player.isOnline) return@Runnable
+            val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+                ?: return@Runnable
+            if (
+                session.phase == WorldCreationPhase.SEED_INPUT ||
+                session.phase == WorldCreationPhase.NAME_INPUT ||
+                session.phase == WorldCreationPhase.SPAWN_INPUT ||
+                plugin.previewSessionManager.isInPreview(context.player)
+            ) {
+                return@Runnable
+            }
+            if (runtime.refresh(context.player)) return@Runnable
+            plugin.creationGuiListener.cancelAndReturnToMyWorld(context.player)
+        }, 2L)
     }
 
     private fun createCreationTypeItem(
