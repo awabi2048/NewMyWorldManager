@@ -48,9 +48,7 @@ class AdminCommandListener : Listener {
         }
 
         // アクションに応じた処理
-        if (session.action == SettingsAction.ADMIN_MENU) {
-            handleAdminMenuClick(event, player, plugin, session.action)
-        } else if (isAdminConfirmAction(session.action)) {
+        if (isAdminConfirmAction(session.action)) {
             handleAdminConfirmClick(event, player, plugin, session.action)
         }
     }
@@ -131,95 +129,6 @@ class AdminCommandListener : Listener {
             else -> return false
         }
         return lang.isKeyMatch(title, key)
-    }
-
-    private fun handleAdminMenuClick(
-            event: InventoryClickEvent,
-            player: Player,
-            plugin: MyWorldManager,
-            action: SettingsAction
-    ) {
-        event.cancelWithDebug("AdminCommandListener.handleAdminMenuClick: admin menu click")
-        if (event.clickedInventory != event.view.topInventory) return
-        val item = event.currentItem ?: return
-
-        val tagType = ItemTag.getType(item) ?: return
-
-        when (tagType) {
-            ItemTag.TYPE_GUI_ADMIN_UPDATE_DATA -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openUpdateDataConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_REPAIR_TEMPLATES -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openRepairTemplatesConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_CREATE_TEMPLATE -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.templateWizardGui.open(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_ARCHIVE_ALL -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openArchiveAllConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_CONVERT -> {
-                plugin.soundManager.playAdminClickSound(player)
-                if (event.isLeftClick) {
-                    plugin.adminCommandGui.openConvertConfirmation(
-                            player,
-                            WorldService.ConversionMode.NORMAL
-                    )
-                } else if (event.isRightClick) {
-                    plugin.adminCommandGui.openConvertConfirmation(
-                            player,
-                            WorldService.ConversionMode.ADMIN
-                    )
-                }
-            }
-            ItemTag.TYPE_GUI_ADMIN_UNLINK -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openUnlinkConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_EXPORT -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openExportConfirmation(player, player.world.name)
-            }
-            ItemTag.TYPE_GUI_ADMIN_INFO -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.worldGui.open(player, fromAdminMenu = true)
-            }
-            ItemTag.TYPE_GUI_ADMIN_PORTALS -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminPortalGui.open(player, fromAdminMenu = true)
-            }
-            ItemTag.TYPE_GUI_ADMIN_MENU_SWITCH -> {
-                plugin.soundManager.playAdminClickSound(player)
-                MyWorldManagerApi.openNextAdminMenu(player)
-            }
-            ItemTag.TYPE_GUI_EXTENSION -> {
-                val extensionId = ItemTag.getExtensionId(item) ?: return
-                val handled = MyWorldManagerApi.getMenuExtensions()
-                    .firstOrNull { it.getId() == extensionId }
-                    ?.onClick(
-                        event,
-                        player,
-                        MenuExtensionContext("admin_menu", mutableMapOf("action" to action))
-                    )
-                    ?: false
-                if (handled) {
-                    plugin.soundManager.playAdminClickSound(player)
-                }
-            }
-            ItemTag.TYPE_GUI_RETURN -> {
-                plugin.soundManager.playAdminClickSound(player)
-                // Return from sub-menus to the main admin menu
-                if (action == SettingsAction.ADMIN_PORTAL_GUI ||
-                                action == SettingsAction.ADMIN_WORLD_GUI
-                ) {
-                    plugin.adminCommandGui.open(player)
-                }
-            }
-        }
     }
 
     private fun handleAdminConfirmClick(

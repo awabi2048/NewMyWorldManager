@@ -129,7 +129,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 
 ### MyWorldManager Inventory
 
-- [ ] `AdminCommandGui`
+- [x] `AdminCommandGui`
 - [x] `AdminPortalGui`
 - [ ] `CreationGui`
 - [ ] `DiscoveryGui`
@@ -298,7 +298,7 @@ standalone_export:
 
 対象: MyWorldManager、MWM-Chanpon
 
-- [ ] `AdminCommandGui`
+- [x] `AdminCommandGui`
 - [x] `AdminPortalGui`
 - [x] `PortalGui`
 - [x] `ChanponAdminMenu`

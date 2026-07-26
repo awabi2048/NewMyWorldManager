@@ -1,113 +1,145 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import java.util.UUID
 
 class AdminCommandGui(private val plugin: MyWorldManager) {
     private val titleKey = "gui.admin_menu.title"
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player) },
+                actions = mapOf(
+                    ACTION_UPDATE_DATA to MenuActionHandler { context ->
+                        openUpdateDataConfirmation(context.player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                    ACTION_REPAIR_TEMPLATES to MenuActionHandler { context ->
+                        openRepairTemplatesConfirmation(context.player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                    ACTION_CREATE_TEMPLATE to MenuActionHandler(::createTemplate),
+                    ACTION_ARCHIVE_ALL to MenuActionHandler { context ->
+                        openArchiveAllConfirmation(context.player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                    ACTION_CONVERT to MenuActionHandler(::convert),
+                    ACTION_UNLINK to MenuActionHandler { context ->
+                        openUnlinkConfirmation(context.player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                    ACTION_EXPORT to MenuActionHandler { context ->
+                        openExportConfirmation(context.player, context.player.world.name)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                    ACTION_INFO to MenuActionHandler(::openWorldList),
+                    ACTION_MENU_SWITCH to MenuActionHandler(::switchMenu),
+                    ACTION_PORTALS to MenuActionHandler(::openPortals),
+                ),
+            ),
+        )
+    }
 
     fun open(player: Player) {
-        val lang = plugin.languageManager
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-
         plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_MENU, isGui = true)
+        runtime.open(player, MenuRoute(OWNER, ROUTE_ID))
+    }
 
-        val inventory = Bukkit.createInventory(null, 45, title)
-
-        GuiItemFactory.applyStandardFrame(inventory)
-
-        // Slot 19: データ更新 (update-data)
-        inventory.setItem(19, createActionItem(player,
+    private fun render(player: Player): InventoryMenuView {
+        val lang = plugin.languageManager
+        val elements = mutableListOf<MenuElement>()
+        elements += actionElement(19, createActionItem(player,
             Material.COMMAND_BLOCK,
             lang.getMessage(player, "gui.admin_menu.update_data.display"),
             textLore(player, "gui.admin_menu.update_data.lore"),
             lang.getMessage(player, "gui.admin_menu.update_data.action"),
             ItemTag.TYPE_GUI_ADMIN_UPDATE_DATA
-        ))
+        ), ACTION_UPDATE_DATA)
 
-        // Slot 20: テンプレート修復 (complete_templates)
-        inventory.setItem(20, createActionItem(player,
+        elements += actionElement(20, createActionItem(player,
             Material.ANVIL,
             lang.getMessage(player, "gui.admin_menu.repair_templates.display"),
             textLore(player, "gui.admin_menu.repair_templates.lore"),
             lang.getMessage(player, "gui.admin_menu.repair_templates.action"),
             ItemTag.TYPE_GUI_ADMIN_REPAIR_TEMPLATES
-        ))
+        ), ACTION_REPAIR_TEMPLATES)
 
-        // Slot 21: テンプレート作成 (create-template)
-        inventory.setItem(21, createActionItem(player,
+        elements += actionElement(21, createActionItem(player,
             Material.CRAFTING_TABLE,
             lang.getMessage(player, "gui.admin_menu.create_template.display"),
             textLore(player, "gui.admin_menu.create_template.lore"),
             lang.getMessage(player, "gui.admin_menu.create_template.action"),
             ItemTag.TYPE_GUI_ADMIN_CREATE_TEMPLATE
-        ))
+        ), ACTION_CREATE_TEMPLATE)
 
-        // Slot 23: アーカイブ実行 (archive)
-        inventory.setItem(23, createActionItem(player,
+        elements += actionElement(23, createActionItem(player,
             Material.CHEST,
             lang.getMessage(player, "gui.admin_menu.archive.display"),
             textLore(player, "gui.admin_menu.archive.lore"),
             lang.getMessage(player, "gui.admin_menu.archive.action"),
             ItemTag.TYPE_GUI_ADMIN_ARCHIVE_ALL
-        ))
+        ), ACTION_ARCHIVE_ALL)
 
-        // Check current world status
         val currentWorld = player.world
         val isMyWorld = currentWorld.name.startsWith("my_world.") || plugin.worldConfigRepository.findAll().any { it.customWorldName == currentWorld.name }
 
-        // Slot 24: ワールド変換 (convert) / 紐づけ解除 (unlink)
         if (isMyWorld) {
-            inventory.setItem(24, createActionItem(player,
-                // 1.21.11 APIではCHAINが利用できないため、紐づけ解除の意味に近いLEADを使う。
+            elements += actionElement(24, createActionItem(player,
                 Material.LEAD,
                 lang.getMessage(player, "gui.admin_menu.unlink.display"),
                 textLore(player, "gui.admin_menu.unlink.lore"),
                 lang.getMessage(player, "gui.admin_menu.unlink.action"),
                 ItemTag.TYPE_GUI_ADMIN_UNLINK
-            ))
+            ), ACTION_UNLINK)
         } else {
-            inventory.setItem(24, createDualActionItem(player,
+            elements += actionElement(24, createDualActionItem(player,
                 Material.WRITABLE_BOOK,
                 lang.getMessage(player, "gui.admin_menu.convert.display"),
                 textLore(player, "gui.admin_menu.convert.lore"),
                 lang.getMessage(player, "gui.admin_menu.convert.action.normal"),
                 lang.getMessage(player, "gui.admin_menu.convert.action.admin"),
                 ItemTag.TYPE_GUI_ADMIN_CONVERT
-            ))
+            ), ACTION_CONVERT)
         }
 
-        // Slot 25: ワールドエクスポート (export)
         if (isMyWorld) {
-            inventory.setItem(25, createActionItem(player,
+            elements += actionElement(25, createActionItem(player,
                 Material.DISPENSER,
                 lang.getMessage(player, "gui.admin_menu.export.display"),
                 textLore(player, "gui.admin_menu.export.lore"),
                 lang.getMessage(player, "gui.admin_menu.export.action"),
                 ItemTag.TYPE_GUI_ADMIN_EXPORT
-            ))
+            ), ACTION_EXPORT)
         } else {
             val loreLines = mutableListOf<GuiLoreLine>()
             lang.getMessageList(player, "gui.admin_menu.export.lore").forEach { line ->
@@ -116,62 +148,94 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             }
             loreLines.add(GuiLoreLine.Spacer)
             loreLines.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.admin_menu.export.unavailable_warning")))
-            inventory.setItem(25, GuiItemFactory.item(
-                Material.BARRIER,
-                lang.getMessage(player, "gui.admin_menu.export.display"),
-                GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH),
-                ItemTag.TYPE_GUI_INFO
-            ))
+            elements += MenuElement(
+                25,
+                GuiItemFactory.item(
+                    Material.BARRIER,
+                    lang.getMessage(player, "gui.admin_menu.export.display"),
+                    GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH),
+                    ItemTag.TYPE_GUI_INFO
+                ),
+                GuiElementRole.CONTENT,
+            )
         }
 
-        // Slot 38: ワールド一覧 (info)
-        inventory.setItem(38, createActionItem(player,
+        elements += actionElement(38, createActionItem(player,
             Material.FILLED_MAP,
             lang.getMessage(player, "gui.admin_menu.info.display"),
             textLore(player, "gui.admin_menu.info.lore"),
             lang.getMessage(player, "gui.admin_menu.info.action"),
             ItemTag.TYPE_GUI_ADMIN_INFO
-        ))
+        ), ACTION_INFO)
 
-        // Slot 40: プラグイン情報
         val adminMenuProviders = MyWorldManagerApi.getAdminMenuProviders()
-        inventory.setItem(40, if (adminMenuProviders.isNotEmpty()) {
-            createActionItem(player,
+        if (adminMenuProviders.isNotEmpty()) {
+            elements += actionElement(40, createActionItem(player,
                 Material.NETHER_STAR,
                 lang.getMessage(player, "gui.admin_menu.menu_switch.display"),
                 textLore(player, "gui.admin_menu.menu_switch.lore", mapOf("next" to adminMenuProviders.first().getDisplayName(player))),
                 lang.getMessage(player, "gui.admin_menu.menu_switch.action"),
                 ItemTag.TYPE_GUI_ADMIN_MENU_SWITCH
-            )
+            ), ACTION_MENU_SWITCH)
         } else {
-            // 追加の管理メニュー種別がない環境では、従来どおりプラグイン情報を中央に置く。
-            createItem(
-                Material.NETHER_STAR,
-                lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
-                textLore(player, "gui.admin_menu.plugin_info.lore", mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048")),
-                ItemTag.TYPE_GUI_INFO
+            elements += MenuElement(
+                40,
+                createItem(
+                    Material.NETHER_STAR,
+                    lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
+                    textLore(player, "gui.admin_menu.plugin_info.lore", mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048")),
+                    ItemTag.TYPE_GUI_INFO
+                ),
+                GuiElementRole.CONTENT,
             )
-        })
+        }
 
-        // Slot 42: ポータル管理 (portals)
-        inventory.setItem(42, createActionItem(player,
+        elements += actionElement(42, createActionItem(player,
             Material.END_PORTAL_FRAME,
             lang.getMessage(player, "gui.admin_menu.portals.display"),
             textLore(player, "gui.admin_menu.portals.lore"),
             lang.getMessage(player, "gui.admin_menu.portals.action"),
             ItemTag.TYPE_GUI_ADMIN_PORTALS
-        ))
+        ), ACTION_PORTALS)
 
-        MyWorldManagerApi.getMenuExtensions().forEach { extension ->
-            extension.onRender(
-                inventory,
-                player,
-                MenuExtensionContext("admin_menu", mutableMapOf())
-            )
+        return InventoryMenuView(
+            size = 45,
+            title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey)),
+            elements = elements,
+        )
+    }
+
+    private fun actionElement(slot: Int, item: ItemStack, actionId: String) =
+        MenuElement(slot, item, GuiElementRole.ACTION, actionId)
+
+    private fun createTemplate(context: MenuActionContext): MenuActionResult {
+        plugin.templateWizardGui.open(context.player)
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun convert(context: MenuActionContext): MenuActionResult {
+        val mode = when (context.click) {
+            ClickType.LEFT, ClickType.SHIFT_LEFT -> WorldService.ConversionMode.NORMAL
+            ClickType.RIGHT, ClickType.SHIFT_RIGHT -> WorldService.ConversionMode.ADMIN
+            else -> return MenuActionResult.Ignored
         }
+        openConvertConfirmation(context.player, mode)
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
 
-        ManagedMenuPresenter.open(player, inventory)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
+    private fun openWorldList(context: MenuActionContext): MenuActionResult {
+        plugin.worldGui.open(context.player, fromAdminMenu = true)
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun switchMenu(context: MenuActionContext): MenuActionResult {
+        MyWorldManagerApi.openNextAdminMenu(context.player)
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun openPortals(context: MenuActionContext): MenuActionResult {
+        plugin.adminPortalGui.open(context.player, fromAdminMenu = true)
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     // --- 確認画面 ---
@@ -435,5 +499,20 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
     private fun textLore(player: Player, key: String, placeholders: Map<String, Any> = emptyMap()): List<GuiLoreLine> {
         return plugin.languageManager.getMessageList(player, key, placeholders).map(GuiLoreLine::Text)
+    }
+
+    companion object {
+        private const val OWNER = "myworldmanager"
+        private const val ROUTE_ID = "admin_command"
+        private const val ACTION_UPDATE_DATA = "update_data"
+        private const val ACTION_REPAIR_TEMPLATES = "repair_templates"
+        private const val ACTION_CREATE_TEMPLATE = "create_template"
+        private const val ACTION_ARCHIVE_ALL = "archive_all"
+        private const val ACTION_CONVERT = "convert"
+        private const val ACTION_UNLINK = "unlink"
+        private const val ACTION_EXPORT = "export"
+        private const val ACTION_INFO = "info"
+        private const val ACTION_MENU_SWITCH = "menu_switch"
+        private const val ACTION_PORTALS = "portals"
     }
 }
