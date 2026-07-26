@@ -17,7 +17,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -25,7 +24,6 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import java.util.UUID
 
@@ -65,6 +63,17 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     ACTION_INFO to MenuActionHandler(::openWorldList),
                     ACTION_MENU_SWITCH to MenuActionHandler(::switchMenu),
                     ACTION_PORTALS to MenuActionHandler(::openPortals),
+                ),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = CONFIRM_ROUTE_ID,
+                renderer = { context -> renderConfirmation(context.player) },
+                actions = mapOf(
+                    ACTION_CONFIRM to MenuActionHandler(::confirm),
+                    ACTION_CANCEL to MenuActionHandler(::cancel),
                 ),
             ),
         )
@@ -238,6 +247,21 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.Close)
     }
 
+    private fun confirm(context: MenuActionContext): MenuActionResult {
+        plugin.adminCommandListener.executeCurrentConfirmation(context.player, plugin)
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun cancel(context: MenuActionContext): MenuActionResult {
+        plugin.settingsSessionManager.updateSessionAction(
+            context.player,
+            context.player.uniqueId,
+            SettingsAction.ADMIN_MENU,
+            isGui = true,
+        )
+        return MenuActionResult.Success(MenuUpdate.Replace(MenuRoute(OWNER, ROUTE_ID)))
+    }
+
     // --- 確認画面 ---
 
     fun openConvertConfirmation(player: Player, mode: WorldService.ConversionMode) {
@@ -250,13 +274,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         } else {
             "mwm:confirm/admin/convert_admin"
         }
-        showDialogOrGuiConfirmation(player, player.uniqueId, action, title, confirmId) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, mode == WorldService.ConversionMode.NORMAL)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        showDialogOrGuiConfirmation(player, player.uniqueId, action, title, confirmId) {}
     }
 
     fun openUnlinkConfirmation(player: Player) {
@@ -268,13 +286,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             SettingsAction.ADMIN_UNLINK_CONFIRM,
             title,
             "mwm:confirm/admin/unlink"
-        ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, true)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        ) {}
     }
 
     fun openExportConfirmation(player: Player, worldName: String) {
@@ -288,13 +300,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title,
             "mwm:confirm/admin/export",
             extraInfo
-        ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        ) {}
     }
 
     fun openArchiveAllConfirmation(player: Player) {
@@ -306,13 +312,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
             title,
             "mwm:confirm/admin/archive_all"
-        ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, true)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        ) {}
     }
 
     fun openUpdateDataConfirmation(player: Player) {
@@ -324,13 +324,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
             title,
             "mwm:confirm/admin/update_data"
-        ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, true)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        ) {}
     }
 
     fun openRepairTemplatesConfirmation(player: Player) {
@@ -342,13 +336,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM,
             title,
             "mwm:confirm/admin/repair_templates"
-        ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, true)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        ) {}
     }
 
     fun openArchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
@@ -362,13 +350,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title,
             "mwm:confirm/admin/archive_world/$worldUuid",
             extraInfo
-        ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        ) {}
     }
 
     fun openUnarchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
@@ -382,13 +364,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title,
             "mwm:confirm/admin/unarchive_world/$worldUuid",
             extraInfo
-        ) {
-            me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "admin_manage")
-            val inventory = GuiHelper.createConfirmationInventory(null, title)
-            setupConfirmationGui(inventory, player, true, extraInfo = extraInfo)
-            ManagedMenuPresenter.open(player, inventory)
-            me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        ) {}
     }
 
     private fun showDialogOrGuiConfirmation(
@@ -398,32 +374,52 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         title: Component,
         confirmActionId: String,
         extraInfo: List<GuiLoreLine> = emptyList(),
-        onGuiFallback: () -> Unit
+        @Suppress("UNUSED_PARAMETER") onGuiFallback: () -> Unit
     ) {
-        val lang = plugin.languageManager
         plugin.settingsSessionManager.updateSessionAction(player, worldUuid, action, isGui = true)
-        val bodyLines = GuiItemFactory.menuLore(extraInfo + GuiLoreLine.Warning(lang.getMessage(player, "gui.common.confirm_warning")))
-
-        DialogConfirmManager.showConfirmationByPreference(
-            player,
-            plugin,
-            title,
-            bodyLines,
-            confirmActionId,
-            "mwm:confirm/cancel",
-            lang.getMessage(player, "gui.common.confirm"),
-            lang.getMessage(player, "gui.common.cancel")
-        ) {
-            onGuiFallback()
-        }
+        runtime.navigate(player, MenuRoute(OWNER, CONFIRM_ROUTE_ID))
     }
 
-    private fun setupConfirmationGui(inventory: Inventory, player: Player, isDanger: Boolean, extraInfo: List<GuiLoreLine> = emptyList()) {
+    private fun renderConfirmation(player: Player): InventoryMenuView {
+        val session = plugin.settingsSessionManager.getSession(player)
+            ?: error("管理確認画面のセッションがありません")
+        val action = session.action
+        val titleKey = when (action) {
+            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> "gui.admin_menu.convert.confirm_normal"
+            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> "gui.admin_menu.convert.confirm_admin"
+            SettingsAction.ADMIN_EXPORT_CONFIRM -> "gui.admin_menu.export.confirm_title"
+            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> "gui.admin_menu.archive.confirm_title"
+            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> "gui.admin_menu.update_data.confirm_title"
+            SettingsAction.ADMIN_UNLINK_CONFIRM -> "gui.admin_menu.unlink.confirm_title"
+            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> "gui.admin_menu.repair_templates.confirm_title"
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.archive_world.confirm_title"
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.unarchive_world.confirm_title"
+            else -> error("管理確認画面ではないアクションです: $action")
+        }
+        val extraInfo = when (action) {
+            SettingsAction.ADMIN_EXPORT_CONFIRM -> listOf(
+                GuiLoreLine.Data(
+                    plugin.languageManager.getMessage(player, "gui.admin_menu.target_world_label"),
+                    player.world.name,
+                    "§b",
+                ),
+            )
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM,
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> {
+                val worldName = plugin.worldConfigRepository.findByUuid(session.worldUuid)?.name
+                    ?: session.worldUuid.toString()
+                listOf(
+                    GuiLoreLine.Data(
+                        plugin.languageManager.getMessage(player, "gui.admin_menu.target_world_label"),
+                        worldName,
+                        "§b",
+                    ),
+                )
+            }
+            else -> emptyList()
+        }
+        val isDanger = action != SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM
         val lang = plugin.languageManager
-
-        GuiHelper.applyConfirmationFrame(inventory)
-
-        // メイン情報
         val infoLore: MutableList<GuiLoreLine> = extraInfo.toMutableList()
         infoLore.add(GuiLoreLine.Spacer)
         infoLore.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.common.confirm_warning")))
@@ -450,7 +446,16 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.common.cancel_desc"))),
             ItemTag.TYPE_GUI_CANCEL
         )
-        GuiHelper.setConfirmationItems(inventory, infoItem, confirmItem, cancelItem)
+        val layout = GuiHelper.confirmationLayout()
+        return InventoryMenuView(
+            size = layout.size,
+            title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey)),
+            elements = listOf(
+                MenuElement(layout.previewSlot, infoItem, GuiElementRole.CONTENT),
+                MenuElement(layout.confirmSlot, confirmItem, GuiElementRole.ACTION, ACTION_CONFIRM),
+                MenuElement(layout.cancelSlot, cancelItem, GuiElementRole.NAVIGATION, ACTION_CANCEL),
+            ),
+        )
     }
 
     private fun createItem(material: Material, name: String, lore: List<GuiLoreLine>, tagType: String): ItemStack {
@@ -504,6 +509,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     companion object {
         private const val OWNER = "myworldmanager"
         private const val ROUTE_ID = "admin_command"
+        private const val CONFIRM_ROUTE_ID = "admin_command_confirmation"
+        private const val ACTION_CONFIRM = "confirm"
+        private const val ACTION_CANCEL = "cancel"
         private const val ACTION_UPDATE_DATA = "update_data"
         private const val ACTION_REPAIR_TEMPLATES = "repair_templates"
         private const val ACTION_CREATE_TEMPLATE = "create_template"
