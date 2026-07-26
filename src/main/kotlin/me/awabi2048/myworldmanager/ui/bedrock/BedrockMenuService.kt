@@ -1109,7 +1109,7 @@ class BedrockMenuService(
     }
 
     private fun performConfiguredReturn(player: Player) {
-        if (!plugin.menuRouteHistory.openPrevious(player)) {
+        if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
             runtime.close(player)
         }
     }

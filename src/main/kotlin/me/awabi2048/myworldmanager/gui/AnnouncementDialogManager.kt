@@ -169,7 +169,7 @@ object AnnouncementDialogManager {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         Bukkit.getScheduler().runTask(plugin, Runnable {
             plugin.settingsSessionManager.endSession(player)
-            if (!plugin.menuRouteHistory.openPrevious(player)) {
+            if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                 plugin.worldConfigRepository.findByUuid(worldUuid)?.let {
                     plugin.worldSettingsGui.open(player, it)
                 }

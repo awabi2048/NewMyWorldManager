@@ -169,7 +169,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        if (!plugin.menuRouteHistory.openPrevious(context.player)) {
+        if (!CCSystem.getAPI().getMenuRuntimeService().back(context.player)) {
             val currentPage = plugin.playerWorldSessionManager.getSession(context.player.uniqueId).currentPage
             plugin.playerWorldGui.open(context.player, currentPage)
         }

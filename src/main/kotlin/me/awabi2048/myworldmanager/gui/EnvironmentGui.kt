@@ -118,7 +118,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         Bukkit.getScheduler().runTask(
             plugin,
             Runnable {
-                if (!plugin.menuRouteHistory.openPrevious(context.player)) {
+                if (!CCSystem.getAPI().getMenuRuntimeService().back(context.player)) {
                     plugin.worldSettingsGui.open(context.player, worldData)
                 }
             },

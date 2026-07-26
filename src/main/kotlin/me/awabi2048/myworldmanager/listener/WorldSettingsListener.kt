@@ -352,7 +352,7 @@ class WorldSettingsListener : Listener {
                 // 蜈ｱ騾壹Γ繧ｽ繝・ラ: 繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺ｨ繧ｯ繝ｪ繝・け髻ｳ
                 fun handleCommandCancel() {
                         stopBorderDirectionPreview(player)
-                        if (!plugin.menuRouteHistory.openPrevious(player)) {
+                        if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                                 plugin.worldSettingsGui.open(player, worldData)
                         }
                 }
@@ -1284,7 +1284,7 @@ class WorldSettingsListener : Listener {
                                         ItemTag.TYPE_GUI_RETURN -> {
                                                 if (session.isAdminFlow) {
                                                         plugin.worldGui.open(player, fromAdminMenu = true)
-                                                } else if (plugin.menuRouteHistory.openPrevious(player)) {
+                                                } else if (CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                                                 } else if (session.isPlayerWorldFlow) {
                                                         plugin.playerWorldGui.open(player, 0, showBackButton = session.parentShowBackButton)
                                                 } else {
@@ -2540,7 +2540,7 @@ plugin.languageManager
                         )
                 )
                 plugin.settingsSessionManager.endSession(player)
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                     plugin.worldSettingsGui.open(player, worldData)
                 }
                 return MenuActionResult.Success(MenuUpdate.None)
@@ -3201,7 +3201,7 @@ plugin.languageManager
                         plugin.worldConfigRepository.save(worldData)
                 }
                 plugin.settingsSessionManager.endSession(player)
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                     plugin.worldSettingsGui.open(player, worldData)
                 }
         }
@@ -3220,7 +3220,7 @@ plugin.languageManager
                 }
 
                 plugin.settingsSessionManager.endSession(player)
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                     plugin.worldSettingsGui.open(player, worldData)
                 }
         }
@@ -3236,7 +3236,7 @@ plugin.languageManager
                 player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
 
                 plugin.settingsSessionManager.endSession(player)
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                     plugin.worldSettingsGui.open(player, worldData)
                 }
         }
@@ -3796,7 +3796,7 @@ player.sendMessage(
                 }
                 clearBorderPreview(player)
                 plugin.settingsSessionManager.endSession(player)
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
+                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                     plugin.worldSettingsGui.open(player, worldData)
                 }
         }
@@ -4590,7 +4590,7 @@ player.sendMessage(
                         Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY),
                         MenuDialogHandler { target, _ ->
                             plugin.settingsSessionManager.endSession(target)
-                            if (!plugin.menuRouteHistory.openPrevious(target)) {
+                            if (!CCSystem.getAPI().getMenuRuntimeService().back(target)) {
                                 plugin.worldSettingsGui.open(target, worldData)
                             }
                             MenuActionResult.Success(MenuUpdate.Close)

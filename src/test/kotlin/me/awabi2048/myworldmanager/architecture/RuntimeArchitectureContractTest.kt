@@ -42,6 +42,8 @@ class RuntimeArchitectureContractTest {
             "DIALOG_CREATE" to Regex("""Dialog\s*\.\s*create"""),
             "CUMULUS_FORM" to Regex("""org\.geysermc\.cumulus|(?:SimpleForm|CustomForm|ModalForm)\s*\.\s*builder"""),
             "MANUAL_CLICK_SOUND" to Regex("""playClickSound|playAdminClickSound"""),
+            "PAPER_CUSTOM_CLICK" to Regex("""PlayerCustomClickEvent"""),
+            "LEGACY_MENU_PRESENTER" to Regex("""ManagedMenuPresenter"""),
         )
     }
 }

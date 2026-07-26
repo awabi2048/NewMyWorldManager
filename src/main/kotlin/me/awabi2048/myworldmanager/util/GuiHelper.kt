@@ -98,7 +98,7 @@ object GuiHelper {
     }
 
     fun handleReturnClick(plugin: MyWorldManager, player: Player) {
-        if (plugin.menuRouteHistory.openPrevious(player)) {
+        if (CCSystem.getAPI().getMenuRuntimeService().back(player)) {
             return
         }
 

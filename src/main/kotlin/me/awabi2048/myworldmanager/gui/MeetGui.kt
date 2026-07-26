@@ -191,7 +191,7 @@ class MeetGui(private val plugin: MyWorldManager) {
     private fun back(context: MenuActionContext): MenuActionResult {
         val player = context.player
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!plugin.menuRouteHistory.openPrevious(player)) {
+            if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                 plugin.settingsSessionManager.endSession(player)
             }
         })
