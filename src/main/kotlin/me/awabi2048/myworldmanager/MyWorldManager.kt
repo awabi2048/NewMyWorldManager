@@ -123,6 +123,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
+    lateinit var creationGuiListener: CreationGuiListener
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
     override fun onEnable() {
@@ -347,7 +348,8 @@ class MyWorldManager : JavaPlugin() {
 
         server.pluginManager.registerEvents(AdminGuiListener(), this)
         server.pluginManager.registerEvents(AdminCommandListener(), this)
-        server.pluginManager.registerEvents(CreationGuiListener(this), this)
+        creationGuiListener = CreationGuiListener(this)
+        server.pluginManager.registerEvents(creationGuiListener, this)
         server.pluginManager.registerEvents(PlayerDataListener(), this)
         worldSettingsListener = WorldSettingsListener()
         server.pluginManager.registerEvents(worldSettingsListener, this)
