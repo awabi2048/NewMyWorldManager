@@ -370,7 +370,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)
-        server.pluginManager.registerEvents(AnnouncementDialogManager(), this)
         server.pluginManager.registerEvents(TourListener(this), this)
         server.pluginManager.registerEvents(TourDialogManager(), this)
         server.pluginManager.registerEvents(BedrockInventoryListener(this), this)

@@ -155,7 +155,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 
 ### MyWorldManager Dialog
 
-- [ ] `AnnouncementDialogManager`
+- [x] `AnnouncementDialogManager`
 - [ ] `CreationDialogManager`
 - [x] `DialogConfirmManager`
 - [ ] `LikeSignDialogManager`

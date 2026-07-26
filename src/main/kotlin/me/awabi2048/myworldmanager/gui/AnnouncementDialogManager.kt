@@ -1,257 +1,179 @@
 package me.awabi2048.myworldmanager.gui
 
-import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuDialogResponse
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.plugin.java.JavaPlugin
 
 /**
- * 案内メッセージ編集用ダイアログ管理クラス
- * ベータ機能として、configのmax_lines分のテキスト入力フィールドを提供する
+ * ワールド入場時の案内メッセージを編集する共通Dialogです。
  */
-class AnnouncementDialogManager : Listener {
+object AnnouncementDialogManager {
 
-    companion object {
-        private const val ACTION_PREFIX = "mwm:announcement"
-
-        /**
-         * 案内メッセージ編集ダイアログを表示
-         */
-        fun showAnnouncementEditDialog(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
-            val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-            val lang = plugin.languageManager
-            val maxLines = plugin.config.getInt("announcement.max_lines", 5)
-            val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
-
-            val title = Component.text(
-                lang.getMessage(player, "gui.announcement_dialog.title"),
-                NamedTextColor.YELLOW
-            )
-
-            // 本文（説明文）
-            val bodyLines = mutableListOf<Component>()
-            bodyLines.add(Component.text("§7" + lang.getMessage(player, "gui.announcement_dialog.help")))
-            bodyLines.add(Component.text("§7" + lang.getMessage(player, "gui.announcement_dialog.max_lines", mapOf("max" to maxLines))))
-            bodyLines.add(Component.text("§7" + lang.getMessage(player, "gui.announcement_dialog.max_length", mapOf("max" to maxLength))))
-
-            // 現在のメッセージを取得（存在しない場合は空文字）
-            val currentMessages = worldData.announcementMessages.map { it.replace("§f", "").replace("§", "&") }
-
-            // テキスト入力フィールドを生成
-            val inputs = mutableListOf<DialogInput>()
-            for (i in 0 until maxLines) {
-                val lineValue = if (i < currentMessages.size) currentMessages[i] else ""
-                val lineLabel = lang.getMessage(player, "gui.announcement_dialog.line_label", mapOf("number" to (i + 1)))
-
-                inputs.add(
-                    DialogInput.text("announcement_line_$i", Component.text(lineLabel))
-                        .maxLength(maxLength)
-                        .initial(lineValue)
-                        .build()
-                )
-            }
-
-            // ボタンを作成
-            val saveButton = ActionButton.create(
-                Component.text(lang.getMessage(player, "gui.announcement_dialog.save"), NamedTextColor.GREEN),
-                null,
-                100,
-                DialogAction.customClick(Key.key("$ACTION_PREFIX/save/${worldData.uuid}"), null)
-            )
-
-            val resetButton = ActionButton.create(
-                Component.text(lang.getMessage(player, "gui.announcement_dialog.reset"), NamedTextColor.YELLOW),
-                null,
-                150,
-                DialogAction.customClick(Key.key("$ACTION_PREFIX/reset/${worldData.uuid}"), null)
-            )
-
-            val cancelButton = ActionButton.create(
-                Component.text(lang.getMessage(player, "gui.announcement_dialog.cancel"), NamedTextColor.RED),
-                null,
-                200,
-                DialogAction.customClick(Key.key("$ACTION_PREFIX/cancel/${worldData.uuid}"), null)
-            )
-
-            // ダイアログを作成
-            val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(title)
-                            .body(bodyLines.map { DialogBody.plainMessage(it) })
-                            .inputs(inputs)
-                            .build()
-                    )
-                    .type(
-                        DialogType.confirmation(saveButton, cancelButton)
-                    )
-            }
-
-            player.showDialog(dialog)
-            GuiHelper.playMenuOpen(player, "world_settings")
-        }
-    }
-
-    @EventHandler
-    fun handleAnnouncementDialog(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
+    fun showAnnouncementEditDialog(player: Player, worldData: WorldData) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val lang = plugin.languageManager
-
-        // 保存アクション
-        if (identifier.toString().startsWith("$ACTION_PREFIX/save/")) {
-            val worldUuidStr = identifier.toString().substringAfter("$ACTION_PREFIX/save/")
-            val worldUuid = try {
-                java.util.UUID.fromString(worldUuidStr)
-            } catch (e: IllegalArgumentException) {
-                return
-            }
-
-            val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-            val view = event.getDialogResponseView() ?: return
-
-            // configから設定値を取得
-            val maxLines = plugin.config.getInt("announcement.max_lines", 5)
-            val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
-            val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
-
-            // 各行の入力を収集
-            val newMessages = mutableListOf<String>()
-            var hasError = false
-
-            loop@ for (i in 0 until maxLines) {
-                val lineKey = "announcement_line_$i"
-                val lineInput = view.getText(lineKey) ?: ""
-
-                if (lineInput.isNotBlank()) {
-                    // 禁止文字列チェック
-                    for (blocked in blockedStrings) {
-                        if (lineInput.contains(blocked, ignoreCase = true)) {
-                            player.sendMessage(
-                                lang.getMessage(
-                                    player,
-                                    "messages.announcement_blocked_string",
-                                    mapOf("string" to blocked)
-                                )
-                            )
-                            hasError = true
-                            break@loop
-                        }
-                    }
-
-                    // 文字数チェック
-                    if (lineInput.length > maxLength) {
-                        player.sendMessage(
-                            lang.getMessage(
-                                player,
-                                "messages.announcement_invalid_length",
-                                mapOf("max_lines" to maxLines, "max_length" to maxLength)
-                            )
-                        )
-                        hasError = true
-                        break@loop
-                    }
-
-                    if (!hasError) {
-                        // 色コード変換 (初期色を白にする)
-                        val formatted = "§f" + lineInput.replace("&", "§")
-                        newMessages.add(formatted)
-                    }
-                }
-            }
-
-            if (!hasError) {
-                // メッセージを保存
-                worldData.announcementMessages.clear()
-                worldData.announcementMessages.addAll(newMessages)
-                plugin.worldConfigRepository.save(worldData)
-
-                player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
-                plugin.soundManager.playActionSound(player, "world_settings", "success")
-
-                // 設定GUIに戻る
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    plugin.settingsSessionManager.endSession(player)
-                    plugin.worldSettingsGui.open(player, worldData)
-                })
-            } else {
-                // エラー時はダイアログを再表示
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    showAnnouncementEditDialog(player, worldData)
-                })
-            }
-
-            return
+        val maxLines = plugin.config.getInt("announcement.max_lines", 5)
+        val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
+        val currentMessages = worldData.announcementMessages.map {
+            it.removePrefix("§f").replace("§", "&")
         }
 
-        // キャンセルアクション
-        if (identifier.toString().startsWith("$ACTION_PREFIX/cancel/")) {
-            val worldUuidStr = identifier.toString().substringAfter("$ACTION_PREFIX/cancel/")
-            val worldUuid = try {
-                java.util.UUID.fromString(worldUuidStr)
-            } catch (e: IllegalArgumentException) {
-                null
-            }
-
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                plugin.settingsSessionManager.endSession(player)
-
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
-                    if (worldUuid != null) {
-                        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-                        if (worldData != null) {
-                            plugin.worldSettingsGui.open(player, worldData)
-                        }
-                    }
-                }
-            })
-            return
+        val inputs = (0 until maxLines).map { index ->
+            MenuDialogInput.Text(
+                id = "announcement_line_$index",
+                label = Component.text(
+                    lang.getMessage(
+                        player,
+                        "gui.announcement_dialog.line_label",
+                        mapOf("number" to index + 1),
+                    ),
+                ),
+                initial = currentMessages.getOrElse(index) { "" },
+                maxLength = maxLength,
+            )
         }
 
-        // リセットアクション
-        if (identifier.toString().startsWith("$ACTION_PREFIX/reset/")) {
-            val worldUuidStr = identifier.toString().substringAfter("$ACTION_PREFIX/reset/")
-            val worldUuid = try {
-                java.util.UUID.fromString(worldUuidStr)
-            } catch (e: IllegalArgumentException) {
-                return
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = "announcement-edit",
+                title = Component.text(
+                    lang.getMessage(player, "gui.announcement_dialog.title"),
+                    NamedTextColor.YELLOW,
+                ),
+                body = listOf(
+                    Component.text(
+                        lang.getMessage(player, "gui.announcement_dialog.help"),
+                        NamedTextColor.GRAY,
+                    ),
+                    Component.text(
+                        lang.getMessage(
+                            player,
+                            "gui.announcement_dialog.max_lines",
+                            mapOf("max" to maxLines),
+                        ),
+                        NamedTextColor.GRAY,
+                    ),
+                    Component.text(
+                        lang.getMessage(
+                            player,
+                            "gui.announcement_dialog.max_length",
+                            mapOf("max" to maxLength),
+                        ),
+                        NamedTextColor.GRAY,
+                    ),
+                ),
+                inputs = inputs,
+                confirm = MenuDialogButton(
+                    label = Component.text(
+                        lang.getMessage(player, "gui.announcement_dialog.save"),
+                        NamedTextColor.GREEN,
+                    ),
+                    handler = MenuDialogHandler { editPlayer, response ->
+                        save(editPlayer, worldData.uuid, response, maxLines, maxLength)
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    label = Component.text(
+                        lang.getMessage(player, "gui.announcement_dialog.cancel"),
+                        NamedTextColor.RED,
+                    ),
+                    handler = MenuDialogHandler { cancelPlayer, _ ->
+                        returnToSettings(cancelPlayer, worldData.uuid)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
+        GuiHelper.playMenuOpen(player, "world_settings")
+    }
+
+    private fun save(
+        player: Player,
+        worldUuid: java.util.UUID,
+        response: MenuDialogResponse,
+        maxLines: Int,
+        maxLength: Int,
+    ): MenuActionResult {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val lang = plugin.languageManager
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+            ?: return MenuActionResult.Rejected()
+        val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
+        val newMessages = mutableListOf<String>()
+
+        for (index in 0 until maxLines) {
+            val line = response.textValue("announcement_line_$index")
+            if (line.isBlank()) continue
+
+            val blocked = blockedStrings.firstOrNull { line.contains(it, ignoreCase = true) }
+            if (blocked != null) {
+                player.sendMessage(
+                    lang.getMessage(
+                        player,
+                        "messages.announcement_blocked_string",
+                        mapOf("string" to blocked),
+                    ),
+                )
+                reopenNextTick(plugin, player, worldData)
+                return MenuActionResult.Rejected()
             }
 
-            val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-
-            // メッセージをクリア
-            worldData.announcementMessages.clear()
-            plugin.worldConfigRepository.save(worldData)
-
-            player.sendMessage(lang.getMessage(player, "messages.announcement_reset"))
-            plugin.soundManager.playActionSound(player, "world_settings", "reset")
-
-            // 設定GUIに戻る
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                plugin.settingsSessionManager.endSession(player)
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
-                    plugin.worldSettingsGui.open(player, worldData)
-                }
-            })
-
-            return
+            if (line.length > maxLength) {
+                player.sendMessage(
+                    lang.getMessage(
+                        player,
+                        "messages.announcement_invalid_length",
+                        mapOf("max_lines" to maxLines, "max_length" to maxLength),
+                    ),
+                )
+                reopenNextTick(plugin, player, worldData)
+                return MenuActionResult.Rejected()
+            }
+            newMessages += "§f${line.replace("&", "§")}"
         }
+
+        worldData.announcementMessages.clear()
+        worldData.announcementMessages.addAll(newMessages)
+        plugin.worldConfigRepository.save(worldData)
+        player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
+        plugin.soundManager.playActionSound(player, "world_settings", "success")
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            plugin.settingsSessionManager.endSession(player)
+            plugin.worldSettingsGui.open(player, worldData)
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun reopenNextTick(plugin: MyWorldManager, player: Player, worldData: WorldData) {
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            showAnnouncementEditDialog(player, worldData)
+        })
+    }
+
+    private fun returnToSettings(player: Player, worldUuid: java.util.UUID) {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            plugin.settingsSessionManager.endSession(player)
+            if (!plugin.menuRouteHistory.openPrevious(player)) {
+                plugin.worldConfigRepository.findByUuid(worldUuid)?.let {
+                    plugin.worldSettingsGui.open(player, it)
+                }
+            }
+        })
     }
 }
