@@ -124,112 +124,12 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         val type = ItemTag.getType(item) ?: return
         if (type == ItemTag.TYPE_GUI_DECORATION) return
         val worldUuid = when (top) {
-            is TourGui.SingleTourHolder -> top.worldUuid
             is TourGui.BindSignHolder -> top.worldUuid
             else -> return
         }
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
         when (top) {
-            is TourGui.SingleTourHolder -> handleSingleEditClick(player, worldData, type, item, top, event.click)
             is TourGui.BindSignHolder -> handleBindSignClick(player, worldData, type, item, top)
-        }
-    }
-
-    private fun handleSingleEditClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: TourGui.SingleTourHolder, click: ClickType) {
-        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-        when (type) {
-            ItemTag.TYPE_GUI_TOUR_BACK -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (holder.isNew) {
-                    val lang = plugin.languageManager
-                    DialogConfirmManager.showConfirmationByPreference(
-                        player = player,
-                        plugin = plugin,
-                        title = Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.title")),
-                        bodyLines = listOf(
-                            Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.body_line1")),
-                            Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.body_line2"))
-                        ),
-                        confirmActionId = "mwm:tour/discard_new",
-                        cancelActionId = "mwm:tour/discard_new_cancel",
-                        onBedrockConfirm = {
-                            plugin.tourSessionManager.clearEdit(player.uniqueId)
-                            plugin.tourGui.openEditMenu(player, worldData)
-                        },
-                        onBedrockCancel = {
-                            plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, true)
-                        },
-                        onGuiFallback = {
-                            plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, true)
-                        }
-                    )
-                }
-                else {
-                    if (!canSaveTour(player, session.draft)) return
-                    plugin.tourManager.saveEditSession(player, worldData)
-                    plugin.tourGui.openEditMenu(player, worldData)
-                }
-            }
-            ItemTag.TYPE_GUI_TOUR_EDIT_TEXT -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (click.isRightClick) {
-                    session.awaitingIconPick = true
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_prompt"))
-                } else {
-                    TourDialogManager.startTourTextEdit(player, plugin, worldData.uuid, session.draft.uuid, session.draft.name, session.draft.description)
-                }
-            }
-            ItemTag.TYPE_GUI_TOUR_SAVE -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (!canSaveTour(player, session.draft)) return
-                plugin.tourManager.saveEditSession(player, worldData)
-                plugin.tourGui.openEditMenu(player, worldData)
-            }
-            ItemTag.TYPE_GUI_TOUR_DELETE -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                val lang = plugin.languageManager
-                DialogConfirmManager.showConfirmationByPreference(
-                    player = player,
-                    plugin = plugin,
-                    title = Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title")),
-                    bodyLines = listOf(
-                        Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1")),
-                        Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"))
-                    ),
-                    confirmActionId = "mwm:tour/delete_confirm",
-                    cancelActionId = "mwm:tour/delete_cancel",
-                    onBedrockConfirm = {
-                        if (!holder.isNew) {
-                            plugin.tourManager.deleteTour(worldData, session.originalTourUuid ?: return@showConfirmationByPreference)
-                        }
-                        plugin.tourSessionManager.clearEdit(player.uniqueId)
-                        plugin.tourGui.openEditMenu(player, worldData)
-                    },
-                    onBedrockCancel = {
-                        plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
-                    },
-                    onGuiFallback = {
-                        plugin.tourGui.openDeleteConfirm(player, worldData, session.draft, holder.isNew)
-                    }
-                )
-            }
-            ItemTag.TYPE_GUI_TOUR_ADD_WAYPOINT -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (session.draft.waypoints.size >= 28) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.waypoint_limit"))
-                    return
-                }
-                session.awaitingWaypointPick = true
-                ManagedMenuPresenter.close(player)
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
-                startWaypointPreview(player)
-            }
-            ItemTag.TYPE_GUI_TOUR_WAYPOINT_ITEM -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                val waypointUuid = ItemTag.getString(item, "tour_waypoint_uuid")?.let(UUID::fromString) ?: return
-                session.draft.waypoints.removeIf { it.uuid == waypointUuid }
-                plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
-            }
         }
     }
 
@@ -255,12 +155,6 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour_sign.bound"))
     }
 
-    private fun canSaveTour(player: Player, tour: me.awabi2048.myworldmanager.model.TourData): Boolean {
-        if (tour.waypoints.size >= 2) return true
-        player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.not_enough_signs"))
-        return false
-    }
-
     private fun startWaypointPreview(player: Player) {
         stopWaypointPreview(player)
         waypointPreviewTasks[player.uniqueId] = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
@@ -280,6 +174,17 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             val z = targetBlock.z
             spawnBlockOutline(player, x, y, z, frameDust)
         }, 0L, 2L)
+    }
+
+    fun beginWaypointPick(player: Player) {
+        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
+        if (session.draft.waypoints.size >= 28) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.waypoint_limit"))
+            return
+        }
+        session.awaitingWaypointPick = true
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
+        startWaypointPreview(player)
     }
 
     private fun stopWaypointPreview(player: Player) {

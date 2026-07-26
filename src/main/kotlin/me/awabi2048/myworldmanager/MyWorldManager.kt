@@ -128,6 +128,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var adminGuiListener: AdminGuiListener
     lateinit var adminCommandListener: AdminCommandListener
     lateinit var creationGuiListener: CreationGuiListener
+    lateinit var tourListener: TourListener
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
     override fun onEnable() {
@@ -375,7 +376,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)
-        server.pluginManager.registerEvents(TourListener(this), this)
+        tourListener = TourListener(this)
+        server.pluginManager.registerEvents(tourListener, this)
         server.pluginManager.registerEvents(TourDialogManager(), this)
         server.pluginManager.registerEvents(BedrockInventoryListener(this), this)
 
