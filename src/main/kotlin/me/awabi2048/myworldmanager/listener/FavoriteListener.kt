@@ -263,42 +263,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        
-        // お気に入り解除確認メニュー
-        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteConfirmGui.FavoriteConfirmGuiHolder) {
-            event.cancelWithDebug("FavoriteListener.onInventoryClick: favorite remove confirm GUI click")
-            if (event.clickedInventory != view.topInventory) return
-            val currentItem = event.currentItem ?: return
-            val type = ItemTag.getType(currentItem)
-            val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-            val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-
-            if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                // 解除実行
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                if (stats.favoriteWorlds.containsKey(uuid)) {
-                    stats.favoriteWorlds.remove(uuid)
-                    worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.worldConfigRepository.save(worldData)
-                    player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
-                    plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
-                }
-                plugin.menuEntryRouter.openFavoriteList(
-                    player,
-                    0,
-                    returnToFavoriteMenu = favoriteSession.returnToFavoriteMenu
-                )
-            } else if (type == ItemTag.TYPE_GUI_CANCEL) {
-                // キャンセルしてリストに戻る
-                plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                plugin.menuEntryRouter.openFavoriteList(
-                    player,
-                    0,
-                    returnToFavoriteMenu = favoriteSession.returnToFavoriteMenu
-                )
-            }
-        }
     }
 
     @EventHandler

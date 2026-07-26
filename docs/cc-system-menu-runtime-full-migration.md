@@ -130,7 +130,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 ### MyWorldManager Inventory
 
 - [ ] `AdminCommandGui`
-- [ ] `AdminPortalGui`
+- [x] `AdminPortalGui`
 - [ ] `CreationGui`
 - [ ] `DiscoveryGui`
 - [ ] `EnvironmentGui`
@@ -138,7 +138,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `FavoriteMenuGui`
 - [ ] `InviteGui`
 - [ ] `MeetGui`
-- [ ] `PendingInteractionGui`
+- [x] `PendingInteractionGui`
 - [ ] `PlayerWorldGui`
 - [x] `PortalGui`
 - [ ] `TemplateWizardGui`
@@ -299,7 +299,7 @@ standalone_export:
 対象: MyWorldManager、MWM-Chanpon
 
 - [ ] `AdminCommandGui`
-- [ ] `AdminPortalGui`
+- [x] `AdminPortalGui`
 - [x] `PortalGui`
 - [ ] `ChanponAdminMenu`
 - [ ] `ChanponAdminWorldListMenu`
@@ -326,7 +326,7 @@ standalone_export:
 - [x] `level.dat`再構成
 - [x] クリエイティブ・チートあり
 - [x] スポーン保存
-- [ ] 追加ワールドデータ分類
+- [x] 追加ワールドデータ分類
 - [x] コマンドブロック・感圧板ポータル
 - [x] manifest拡張
 
@@ -440,6 +440,11 @@ standalone_export:
 - Phase 0の4モジュールで`mvn clean package`成功。Runtimeアーキテクチャテストは各モジュールで実行成功。
 - Chanpon-Utilitiesへ未許可の`Bukkit.createInventory`参照を一時追加する負例試験を行い、契約テストが`CREATE_INVENTORY`の新規レコードを検出して失敗することを確認後、試験差分を除去して再ビルドした。
 - Phase 0完了。次はPhase 1の管理画面・ポータル移行から開始する。
+- CC-System 2.12.0へ画面終了ハンドラを追加し、個別`InventoryCloseEvent`なしで確認画面の未決定終了を扱えるようにした。
+- `AdminPortalGui`をRuntime Route、Action、Role、既定音へ移行し、`AdminGuiListener`内のタイトル判定、ポータル操作、個別クリック音を削除した。
+- `PendingInteractionGui`と共通`ConfirmationMenuGui`をRuntimeへ移行し、確認画面のコールバックと未決定終了をRouteセッションで管理するようにした。
+- 単一ワールド出力では、overworld地形を選択した代表ワールドから取得し、`level.dat`と共有`data/`を稼働サーバーのメインワールドディレクトリから取得するようにした。
+- 追加ワールドの`data/`をディメンション固有、サーバーメインワールド使用、除外へ分類し、方針をmanifestへ記録するようにした。
 - CC-System 2.11.0へ、登録済み画面を親Routeと履歴を変更せず開く`MenuRuntimeService.openEphemeral`を追加した。
 - EPHEMERAL画面を閉じた場合に親ナビゲーションを消去しないセッション寿命テストを追加し、CC-Systemの全90テストに成功した。
 - `PortalGui`を`InventoryMenuDefinition`、Route payload、Runtime Actionへ完全移行した。直接Inventory生成、個別`InventoryClickEvent`、個別クリック音、ItemTagによるAction判定を撤去した。

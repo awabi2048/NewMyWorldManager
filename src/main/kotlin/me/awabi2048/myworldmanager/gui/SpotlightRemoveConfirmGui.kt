@@ -1,53 +1,47 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
+import me.awabi2048.myworldmanager.util.GuiItemFactory
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.util.*
 
 class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
-
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "spotlight_remove_confirm")
-        val inventory = GuiHelper.createConfirmationInventory(null, title)
-        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
-
-        // 情報
-        val infoItem = ItemStack(Material.PAPER)
-        val infoMeta = infoItem.itemMeta
-        infoMeta.displayName(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
-        infoMeta.lore(me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
-            lang.getMessageList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name)).map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
-        ))
-        infoItem.itemMeta = infoMeta
-
-        // はい
-        val yesItem = ItemStack(Material.LIME_CONCRETE)
-        val yesMeta = yesItem.itemMeta
-        yesMeta.displayName(lang.getComponent(player, "gui.common.confirm"))
-        yesItem.itemMeta = yesMeta
-        ItemTag.tagItem(yesItem, "spotlight_remove_confirm_yes")
-        ItemTag.setWorldUuid(yesItem, worldData.uuid)
-
-        // いいえ
-        val noItem = ItemStack(Material.RED_CONCRETE)
-        val noMeta = noItem.itemMeta
-        noMeta.displayName(lang.getComponent(player, "gui.common.cancel"))
-        noItem.itemMeta = noMeta
-        ItemTag.tagItem(noItem, "spotlight_remove_confirm_no")
-        GuiHelper.setConfirmationItems(inventory, infoItem, yesItem, noItem)
-
-        ManagedMenuPresenter.open(player, inventory)
+        val info = ItemStack(Material.PAPER).apply {
+            editMeta { meta ->
+                meta.displayName(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"))
+                meta.lore(
+                    GuiItemFactory.menuLore(
+                        lang.getMessageList(
+                            player,
+                            "gui.discovery.spotlight_remove_confirm.lore",
+                            mapOf("world" to worldData.name),
+                        ).map(GuiLoreLine::Text),
+                    ),
+                )
+            }
+        }
+        plugin.confirmationMenuGui.open(
+            player,
+            "spotlight_remove_confirm",
+            GuiHelper.inventoryTitle(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title")),
+            info,
+            button(player, Material.LIME_CONCRETE, "gui.common.confirm"),
+            button(player, Material.RED_CONCRETE, "gui.common.cancel"),
+            onConfirm = {
+                plugin.spotlightRepository.remove(worldData.uuid)
+                player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
+                plugin.menuEntryRouter.openDiscovery(player)
+            },
+            onCancel = { plugin.menuEntryRouter.openDiscovery(player) },
+        )
     }
+
+    private fun button(player: Player, material: Material, key: String) =
+        ItemStack(material).apply { editMeta { it.displayName(plugin.languageManager.getComponent(player, key)) } }
 }

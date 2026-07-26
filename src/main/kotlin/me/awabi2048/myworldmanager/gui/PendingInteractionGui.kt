@@ -230,7 +230,8 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 if (intendedAction == null) {
                     plugin.pendingDecisionManager.resolveById(player, decisionId, false)
                 }
-            }
+            },
+            onAbandon = { player.sendMessage(PENDING_MESSAGE) },
         )
     }
 
@@ -298,7 +299,8 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 if (intendedAction == null) {
                     plugin.pendingDecisionManager.resolveById(player, decisionId, false)
                 }
-            }
+            },
+            onAbandon = { player.sendMessage(PENDING_MESSAGE) },
         )
     }
 
@@ -378,5 +380,6 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         const val ACTION_PAGE = "page"
         const val ACTION_BACK = "back"
         const val ACTION_OPEN = "open"
+        const val PENDING_MESSAGE = "§7保留しました。/myworld メニューから、保留中の申請などを確認できます。"
     }
 }

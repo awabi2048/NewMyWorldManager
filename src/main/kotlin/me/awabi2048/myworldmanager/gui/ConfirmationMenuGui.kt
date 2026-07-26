@@ -1,16 +1,44 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy
+import com.awabi2048.ccsystem.api.gui.MenuCloseContext
+import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.util.GuiHelper
 import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
-import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 
 class ConfirmationMenuGui(private val plugin: MyWorldManager) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+    private val sessions = ConcurrentHashMap<UUID, ConfirmationSession>()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.route) },
+                actions = mapOf(
+                    ACTION_CONFIRM to MenuActionHandler(::confirm),
+                    ACTION_CANCEL to MenuActionHandler(::cancel),
+                ),
+                onClose = MenuCloseHandler(::closed),
+            ),
+        )
+    }
 
     fun open(
         player: Player,
@@ -20,25 +48,103 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         confirmItem: ItemStack,
         cancelItem: ItemStack,
         onConfirm: () -> Unit,
-        onCancel: () -> Unit = {}
+        onCancel: () -> Unit = {},
+        onAbandon: () -> Unit = {},
+        confirmSound: MenuSoundPolicy = MenuSoundPolicy.Default,
+        cancelSound: MenuSoundPolicy = MenuSoundPolicy.Default,
     ) {
-        val holder = ConfirmationMenuHolder(onConfirm, onCancel)
-        val inventory = GuiHelper.createConfirmationInventory(holder, title)
-        holder.inv = inventory
-
-        GuiHelper.applyConfirmationFrame(inventory)
-        GuiHelper.setConfirmationItems(inventory, centerItem, confirmItem, cancelItem)
-
-        GuiHelper.playMenuOpen(player, menuId)
-        ManagedMenuPresenter.open(player, inventory)
+        val token = UUID.randomUUID()
+        sessions[token] = ConfirmationSession(
+            player.uniqueId,
+            title,
+            centerItem.clone(),
+            confirmItem.clone(),
+            cancelItem.clone(),
+            onConfirm,
+            onCancel,
+            onAbandon,
+            confirmSound,
+            cancelSound,
+        )
+        if (!runtime.navigate(player, MenuRoute(OWNER, ROUTE_ID, mapOf(TOKEN to token.toString(), MENU_ID to menuId)))) {
+            sessions.remove(token)
+        }
     }
 
-    class ConfirmationMenuHolder(
+    private fun render(route: MenuRoute): InventoryMenuView {
+        val session = session(route)
+        return InventoryMenuView(
+            size = 27,
+            title = session.title,
+            elements = listOf(
+                MenuElement(
+                    11,
+                    session.confirmItem.clone(),
+                    GuiElementRole.CONFIRM,
+                    ACTION_CONFIRM,
+                    sounds = MenuActionSoundPolicy(success = session.confirmSound),
+                ),
+                MenuElement(13, session.centerItem.clone(), GuiElementRole.CONTENT),
+                MenuElement(
+                    15,
+                    session.cancelItem.clone(),
+                    GuiElementRole.CANCEL,
+                    ACTION_CANCEL,
+                    sounds = MenuActionSoundPolicy(success = session.cancelSound),
+                ),
+            ),
+        )
+    }
+
+    private fun confirm(context: MenuActionContext): MenuActionResult {
+        val session = removeOwned(context.player, context.route) ?: return MenuActionResult.Rejected()
+        session.onConfirm()
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun cancel(context: MenuActionContext): MenuActionResult {
+        val session = removeOwned(context.player, context.route) ?: return MenuActionResult.Rejected()
+        session.onCancel()
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun closed(context: MenuCloseContext) {
+        val session = removeOwned(context.player, context.route) ?: return
+        session.onAbandon()
+    }
+
+    private fun session(route: MenuRoute): ConfirmationSession =
+        token(route)?.let(sessions::get) ?: error("確認画面セッションが見つかりません")
+
+    private fun removeOwned(player: Player, route: MenuRoute): ConfirmationSession? {
+        val token = token(route) ?: return null
+        val session = sessions[token] ?: return null
+        if (session.playerId != player.uniqueId) return null
+        return sessions.remove(token)
+    }
+
+    private fun token(route: MenuRoute): UUID? =
+        route.payload[TOKEN]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
+    private data class ConfirmationSession(
+        val playerId: UUID,
+        val title: Component,
+        val centerItem: ItemStack,
+        val confirmItem: ItemStack,
+        val cancelItem: ItemStack,
         val onConfirm: () -> Unit,
         val onCancel: () -> Unit,
-    ) : InventoryHolder {
-        lateinit var inv: Inventory
-        var resolved: Boolean = false
-        override fun getInventory(): Inventory = inv
+        val onAbandon: () -> Unit,
+        val confirmSound: MenuSoundPolicy,
+        val cancelSound: MenuSoundPolicy,
+    )
+
+    private companion object {
+        const val OWNER = "mwm"
+        const val ROUTE_ID = "confirmation"
+        const val TOKEN = "token"
+        const val MENU_ID = "menu_id"
+        const val ACTION_CONFIRM = "confirm"
+        const val ACTION_CANCEL = "cancel"
     }
 }

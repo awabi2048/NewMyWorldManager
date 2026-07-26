@@ -3,47 +3,12 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.gui.MemberRequestOwnerConfirmGui
-import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
 
 class MemberRequestOwnerConfirmListener(private val plugin: MyWorldManager) : Listener {
-
-    @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        event.view.topInventory.holder as? MemberRequestOwnerConfirmGui.MemberRequestOwnerConfirmHolder ?: return
-
-        event.cancelWithDebug("MemberRequestOwnerConfirmListener.onInventoryClick: member request owner confirm GUI click")
-        if (event.clickedInventory != event.view.topInventory) return
-
-        val item = event.currentItem ?: return
-        val tag = ItemTag.getType(item) ?: return
-
-        when (tag) {
-            "member_request_owner_yes" -> {
-                val key = ItemTag.getString(item, "key") ?: return
-                val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
-                val worldUuid = plugin.pendingDecisionManager.getPendingEntry(player.uniqueId, decisionId)?.worldUuid
-                plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, true)
-                plugin.soundManager.playClickSound(player, item)
-                reopenMemberManagement(player, worldUuid)
-            }
-            "member_request_owner_no" -> {
-                val key = ItemTag.getString(item, "key") ?: return
-                val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
-                val worldUuid = plugin.pendingDecisionManager.getPendingEntry(player.uniqueId, decisionId)?.worldUuid
-                plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, false)
-                plugin.soundManager.playActionSound(player, "member_request", "rejected")
-                reopenMemberManagement(player, worldUuid)
-            }
-        }
-    }
 
     @EventHandler
     fun onDialogResponse(event: io.papermc.paper.event.player.PlayerCustomClickEvent) {
