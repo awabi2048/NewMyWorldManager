@@ -10,6 +10,13 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuDialogResponse
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import io.papermc.paper.registry.data.dialog.ActionButton
 import io.papermc.paper.registry.data.dialog.DialogBase
@@ -242,47 +249,37 @@ class CreationDialogManager : Listener {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
             val lang = plugin.languageManager
             // 入力指示は入力欄の枠タイトルに集約し、同じ文面を本文へ重複表示しない。
-            val body = mutableListOf<DialogBody>()
-            if (errorMessage != null) {
-                body += DialogBody.plainMessage(errorMessage)
-            }
-
-            val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(
-                            LegacyComponentSerializer.legacySection()
-                                .deserialize(lang.getMessage(player, "gui.creation.dialog.name_title"))
-                        )
-                            .body(body)
-                            .inputs(
-                                listOf(
-                                    DialogInput.text("world_name", lang.getComponent(player, "messages.wizard_name_prompt"))
-                                        .initial(session.worldName ?: "")
-                                        .maxLength(32)
-                                        .build()
-                                )
-                            )
-                            .build()
-                    )
-                    .type(
-                        DialogType.confirmation(
-                            ActionButton.create(
-                                lang.getComponent(player, "gui.creation.confirm.proceed_button"),
-                                null,
-                                100,
-                                DialogAction.customClick(Key.key("mwm:creation/name_input_next"), null)
-                            ),
-                            ActionButton.create(
-                                lang.getComponent(player, "gui.creation.confirm.action_back"),
-                                null,
-                                200,
-                                DialogAction.customClick(Key.key("mwm:creation/name_input_back"), null)
-                            )
-                        )
-                    )
-            }
-            player.showDialog(dialog)
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "creation-name-input",
+                    title = LegacyComponentSerializer.legacySection()
+                        .deserialize(lang.getMessage(player, "gui.creation.dialog.name_title")),
+                    body = listOfNotNull(errorMessage),
+                    inputs = listOf(
+                        MenuDialogInput.Text(
+                            "world_name",
+                            lang.getComponent(player, "messages.wizard_name_prompt"),
+                            session.worldName ?: "",
+                            maxLength = 32,
+                        ),
+                    ),
+                    confirm = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.proceed_button"),
+                        MenuDialogHandler { target, response ->
+                            applyWorldName(target, session, plugin, response.textValue("world_name"))
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.action_back"),
+                        MenuDialogHandler { target, _ ->
+                            backFromName(target, session, plugin)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                ),
+            )
         }
 
         /**
@@ -292,45 +289,42 @@ class CreationDialogManager : Listener {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
             val lang = plugin.languageManager
             // 入力指示は入力欄の枠タイトルに集約し、本文は検証エラー専用にする。
-            val body = mutableListOf<DialogBody>()
-            if (!errorMessage.isNullOrBlank()) {
-                body += DialogBody.plainMessage(
-                    LegacyComponentSerializer.legacySection().deserialize(errorMessage)
-                )
-            }
-
-            val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(Component.text(lang.getMessage(player, "gui.creation.dialog.seed_title"), NamedTextColor.YELLOW))
-                            .body(body)
-                            .inputs(
-                                listOf(
-                                    DialogInput.text("seed_value", lang.getComponent(player, "messages.wizard_seed_prompt"))
-                                        .initial(session.inputSeedString ?: "")
-                                        .build()
-                                )
-                            )
-                            .build()
-                    )
-                    .type(
-                        DialogType.confirmation(
-                            ActionButton.create(
-                                lang.getComponent(player, "gui.creation.confirm.proceed_button"),
-                                null,
-                                100,
-                                DialogAction.customClick(Key.key("mwm:creation/seed_input_next"), null)
-                            ),
-                            ActionButton.create(
-                                lang.getComponent(player, "gui.creation.confirm.action_back"),
-                                null,
-                                200,
-                                DialogAction.customClick(Key.key("mwm:creation/seed_input_back"), null)
-                            )
-                        )
-                    )
-            }
-            player.showDialog(dialog)
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "creation-seed-input",
+                    title = Component.text(
+                        lang.getMessage(player, "gui.creation.dialog.seed_title"),
+                        NamedTextColor.YELLOW,
+                    ),
+                    body = errorMessage
+                        ?.takeIf(String::isNotBlank)
+                        ?.let { listOf(LegacyComponentSerializer.legacySection().deserialize(it)) }
+                        .orEmpty(),
+                    inputs = listOf(
+                        MenuDialogInput.Text(
+                            "seed_value",
+                            lang.getComponent(player, "messages.wizard_seed_prompt"),
+                            session.inputSeedString ?: "",
+                        ),
+                    ),
+                    confirm = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.proceed_button"),
+                        MenuDialogHandler { target, response ->
+                            applySeed(target, session, plugin, response.textValue("seed_value"))
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.action_back"),
+                        MenuDialogHandler { target, _ ->
+                            session.phase = WorldCreationPhase.TYPE_SELECT
+                            plugin.creationGui.openTypeSelection(target)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                ),
+            )
         }
 
         fun showSpawnLocationInputDialog(
@@ -341,54 +335,64 @@ class CreationDialogManager : Listener {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
             val lang = plugin.languageManager
             val body = mutableListOf(
-                DialogBody.plainMessage(
-                    lang.getComponent(player, "gui.creation.confirm.spawn_location.input.help")
-                )
+                lang.getComponent(player, "gui.creation.confirm.spawn_location.input.help")
             )
             if (!errorMessage.isNullOrBlank()) {
-                body += DialogBody.plainMessage(LegacyComponentSerializer.legacySection().deserialize(errorMessage))
+                body += LegacyComponentSerializer.legacySection().deserialize(errorMessage)
             }
             val coordinates = session.spawnCoordinates
-            val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(
-                            lang.getComponent(player, "gui.creation.confirm.spawn_location.input.title")
-                        )
-                            .body(body)
-                            .inputs(
-                                listOf(
-                                    DialogInput.text("spawn_x", lang.getComponent(player, "gui.creation.confirm.spawn_location.input.axis", mapOf("axis" to "X")))
-                                        .initial(coordinates?.x?.toString() ?: "")
-                                        .build(),
-                                    DialogInput.text("spawn_y", lang.getComponent(player, "gui.creation.confirm.spawn_location.input.axis", mapOf("axis" to "Y")))
-                                        .initial(coordinates?.y?.toString() ?: "")
-                                        .build(),
-                                    DialogInput.text("spawn_z", lang.getComponent(player, "gui.creation.confirm.spawn_location.input.axis", mapOf("axis" to "Z")))
-                                        .initial(coordinates?.z?.toString() ?: "")
-                                        .build()
-                                )
-                            )
-                            .build()
-                    )
-                    .type(
-                        DialogType.confirmation(
-                            ActionButton.create(
-                                lang.getComponent(player, "gui.creation.confirm.spawn_location.input.apply"),
-                                null,
-                                100,
-                                DialogAction.customClick(Key.key("mwm:creation/spawn_input_next"), null)
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "creation-spawn-input",
+                    title = lang.getComponent(player, "gui.creation.confirm.spawn_location.input.title"),
+                    body = body,
+                    inputs = listOf(
+                        MenuDialogInput.Text(
+                            "spawn_x",
+                            lang.getComponent(
+                                player,
+                                "gui.creation.confirm.spawn_location.input.axis",
+                                mapOf("axis" to "X"),
                             ),
-                            ActionButton.create(
-                                lang.getComponent(player, "gui.creation.confirm.spawn_location.input.back"),
-                                null,
-                                200,
-                                DialogAction.customClick(Key.key("mwm:creation/spawn_input_back"), null)
-                            )
-                        )
-                    )
-            }
-            player.showDialog(dialog)
+                            coordinates?.x?.toString() ?: "",
+                        ),
+                        MenuDialogInput.Text(
+                            "spawn_y",
+                            lang.getComponent(
+                                player,
+                                "gui.creation.confirm.spawn_location.input.axis",
+                                mapOf("axis" to "Y"),
+                            ),
+                            coordinates?.y?.toString() ?: "",
+                        ),
+                        MenuDialogInput.Text(
+                            "spawn_z",
+                            lang.getComponent(
+                                player,
+                                "gui.creation.confirm.spawn_location.input.axis",
+                                mapOf("axis" to "Z"),
+                            ),
+                            coordinates?.z?.toString() ?: "",
+                        ),
+                    ),
+                    confirm = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.spawn_location.input.apply"),
+                        MenuDialogHandler { target, response ->
+                            applySpawnCoordinates(target, session, plugin, response)
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.spawn_location.input.back"),
+                        MenuDialogHandler { target, _ ->
+                            session.phase = WorldCreationPhase.CONFIRM
+                            plugin.creationGui.openConfirmation(target, session)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                ),
+            )
         }
 
         /**
@@ -517,6 +521,127 @@ class CreationDialogManager : Listener {
             }
 
             player.showDialog(dialog)
+        }
+
+        private fun applyWorldName(
+            player: Player,
+            session: WorldCreationSession,
+            plugin: MyWorldManager,
+            rawName: String,
+        ): MenuActionResult {
+            val result = plugin.worldValidator.validateName(rawName)
+            if (result is WorldNameValidation.Failure) {
+                val message = plugin.languageManager.getComponent(
+                    player,
+                    result.messageKey,
+                    result.placeholders,
+                )
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                    showNameInputDialog(player, session, message)
+                })
+                return MenuActionResult.Rejected()
+            }
+            val cleanName = cleanWorldName(rawName)
+            if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, cleanName) != null) {
+                val message = plugin.languageManager.getComponent(player, "messages.world_name_duplicate")
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                    showNameInputDialog(player, session, message)
+                })
+                return MenuActionResult.Rejected()
+            }
+            session.worldName = cleanName
+            if (session.creationType == null) {
+                session.phase = WorldCreationPhase.TYPE_SELECT
+                plugin.creationGui.openTypeSelection(player)
+            } else {
+                session.phase = WorldCreationPhase.CONFIRM
+                plugin.creationGui.openConfirmation(player, session)
+            }
+            return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun backFromName(
+            player: Player,
+            session: WorldCreationSession,
+            plugin: MyWorldManager,
+        ) {
+            when (session.creationType) {
+                WorldCreationType.TEMPLATE -> {
+                    session.phase = WorldCreationPhase.TEMPLATE_DETAIL
+                    plugin.creationGui.openTemplateDetail(player, session)
+                }
+                WorldCreationType.SEED -> {
+                    session.phase = WorldCreationPhase.SEED_INPUT
+                    showSeedInputDialog(player, session)
+                }
+                WorldCreationType.RANDOM, null -> {
+                    session.phase = WorldCreationPhase.TYPE_SELECT
+                    plugin.creationGui.openTypeSelection(player)
+                }
+            }
+        }
+
+        private fun applySeed(
+            player: Player,
+            session: WorldCreationSession,
+            plugin: MyWorldManager,
+            seed: String,
+        ): MenuActionResult {
+            if (seed.isBlank()) {
+                val message = plugin.languageManager.getMessage(
+                    player,
+                    "gui.creation.dialog.seed_required",
+                )
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                    showSeedInputDialog(player, session, message)
+                })
+                return MenuActionResult.Rejected()
+            }
+            session.inputSeedString = seed
+            session.phase = WorldCreationPhase.NAME_INPUT
+            showNameInputDialog(player, session)
+            return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun applySpawnCoordinates(
+            player: Player,
+            session: WorldCreationSession,
+            plugin: MyWorldManager,
+            response: MenuDialogResponse,
+        ): MenuActionResult {
+            when (
+                val result = WorldSpawnCoordinates.parse(
+                    response.textValue("spawn_x"),
+                    response.textValue("spawn_y"),
+                    response.textValue("spawn_z"),
+                )
+            ) {
+                is WorldSpawnCoordinates.ParseResult.Valid -> session.spawnCoordinates = result.coordinates
+                WorldSpawnCoordinates.ParseResult.Unset -> session.spawnCoordinates = null
+                WorldSpawnCoordinates.ParseResult.InvalidNumber -> {
+                    val message = plugin.languageManager.getMessage(
+                        player,
+                        "gui.creation.confirm.spawn_location.error.number",
+                    )
+                    org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                        showSpawnLocationInputDialog(player, session, message)
+                    })
+                    return MenuActionResult.Rejected()
+                }
+                WorldSpawnCoordinates.ParseResult.OutOfRange -> {
+                    val message = plugin.languageManager.getMessage(
+                        player,
+                        "gui.creation.confirm.spawn_location.error.range",
+                    )
+                    org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                        showSpawnLocationInputDialog(player, session, message)
+                    })
+                    return MenuActionResult.Rejected()
+                }
+            }
+            session.phase = WorldCreationPhase.CONFIRM
+            plugin.creationGui.openConfirmation(player, session)
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
 
         private fun performWorldCreation(
