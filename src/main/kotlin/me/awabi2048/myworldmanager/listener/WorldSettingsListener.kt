@@ -4,10 +4,17 @@ package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 
+import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -67,16 +74,8 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
 import io.papermc.paper.event.player.PlayerCustomClickEvent
 import net.kyori.adventure.key.Key
-import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 import io.papermc.paper.connection.PlayerGameConnection
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
@@ -5109,81 +5108,112 @@ player.sendMessage(
 
 
         private fun showWorldInfoDialog(player: Player, worldData: WorldData) {
-             val lang = plugin.languageManager
-             val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(DialogBase.builder(Component.text(lang.getMessage(player, "gui.bedrock.input.info_form.title"), NamedTextColor.YELLOW))
-                        .body(listOf(
-                            DialogBody.plainMessage(Component.text(lang.getMessage(player, "gui.settings.info.dialog.body"))),
-                        ))
-                        .inputs(listOf(
-                            DialogInput.text("world_name", Component.text(lang.getMessage(player, "gui.bedrock.input.rename.label")))
-                                .initial(worldData.name.take(16))
-                                .maxLength(16)
-                                .build(),
-                            DialogInput.text("world_desc", Component.text(lang.getMessage(player, "gui.bedrock.input.description.label")))
-                                .initial(worldData.description.take(100))
-                                .maxLength(100)
-                                .build()
-                        ))
-                        .build()
-                    )
-                    .type(DialogType.confirmation(
-                        ActionButton.create(Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/world_info_submit"), null)),
-                        ActionButton.create(Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/cancel"), null))
-                    ))
-            }
-            player.showDialog(dialog)
+            val lang = plugin.languageManager
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "settings-world-info",
+                    title = Component.text(
+                        lang.getMessage(player, "gui.bedrock.input.info_form.title"),
+                        NamedTextColor.YELLOW,
+                    ),
+                    body = listOf(Component.text(lang.getMessage(player, "gui.settings.info.dialog.body"))),
+                    inputs = listOf(
+                        MenuDialogInput.Text(
+                            "world_name",
+                            Component.text(lang.getMessage(player, "gui.bedrock.input.rename.label")),
+                            worldData.name.take(16),
+                            maxLength = 16,
+                        ),
+                        MenuDialogInput.Text(
+                            "world_desc",
+                            Component.text(lang.getMessage(player, "gui.bedrock.input.description.label")),
+                            worldData.description.take(100),
+                            maxLength = 100,
+                        ),
+                    ),
+                    confirm = MenuDialogButton(
+                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                        MenuDialogHandler { target, response ->
+                            applyWorldInfoUpdate(
+                                target,
+                                worldData,
+                                response.textValue("world_name").trim(),
+                                response.textValue("world_desc").trim(),
+                            )
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY),
+                        MenuDialogHandler { target, _ ->
+                            plugin.settingsSessionManager.endSession(target)
+                            if (!plugin.menuRouteHistory.openPrevious(target)) {
+                                plugin.worldSettingsGui.open(target, worldData)
+                            }
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                ),
+            )
         }
 
         private fun showMemberInviteDialog(
                 player: Player,
                 forceAddMode: Boolean
         ) {
-             val lang = plugin.languageManager
-             val inviteInputMessageKey =
-                     if (forceAddMode) {
-                             "messages.member_force_add_input"
-                     } else {
-                             "messages.member_invite_input"
-                     }
-             val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(Component.text(lang.getMessage(player, "gui.member_management.invite.name"), NamedTextColor.YELLOW))
-                            .body(
-                                listOf(
-                                    DialogBody.plainMessage(Component.text(lang.getMessage(player, inviteInputMessageKey)))
+            val lang = plugin.languageManager
+            val inviteInputMessageKey =
+                if (forceAddMode) "messages.member_force_add_input" else "messages.member_invite_input"
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "settings-member-invite",
+                    title = Component.text(
+                        lang.getMessage(player, "gui.member_management.invite.name"),
+                        NamedTextColor.YELLOW,
+                    ),
+                    body = listOf(Component.text(lang.getMessage(player, inviteInputMessageKey))),
+                    inputs = listOf(
+                        MenuDialogInput.Text(
+                            "member_invite_target",
+                            Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label")),
+                            maxLength = 32,
+                        ),
+                    ),
+                    confirm = MenuDialogButton(
+                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                        MenuDialogHandler { target, response ->
+                            val session = plugin.settingsSessionManager.getSession(target)
+                                ?: return@MenuDialogHandler MenuActionResult.Rejected(
+                                    lang.getComponent(target, "messages.member_invite_input"),
                                 )
-                            )
-                            .inputs(
-                                listOf(
-                                    DialogInput.text(
-                                        "member_invite_target",
-                                        Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label"))
-                                    ).maxLength(32).build()
+                            val currentWorld = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+                                ?: return@MenuDialogHandler MenuActionResult.Rejected(
+                                    lang.getComponent(target, "general.world_not_found"),
                                 )
+                            applyMemberInvite(
+                                target,
+                                currentWorld,
+                                response.textValue("member_invite_target").trim(),
+                                forceAddMode,
                             )
-                            .build()
-                    )
-                    .type(
-                        DialogType.confirmation(
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                                null,
-                                100,
-                                DialogAction.customClick(Key.key("mwm:settings/member_invite_submit"), null)
-                            ),
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                                null,
-                                200,
-                                DialogAction.customClick(Key.key("mwm:settings/member_invite_cancel"), null)
-                            )
-                        )
-                    )
-            }
-            player.showDialog(dialog)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                        MenuDialogHandler { target, _ ->
+                            plugin.settingsSessionManager.getSession(target)?.let { session ->
+                                reopenMemberManagementLatest(target, session.worldUuid)
+                            }
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                ),
+            )
         }
 
         private fun showTagEditorDialog(player: Player, worldData: WorldData) {
@@ -5191,32 +5221,43 @@ player.sendMessage(
                 val currentTags = worldData.tags
                 val allTags = plugin.worldTagManager.getEditableTagIds(currentTags)
 
-                // Build Inputs
-                // Create a boolean input for each tag
                 val inputs = allTags.map { tagId ->
                         val tagName = plugin.worldTagManager.getDisplayName(player, tagId)
                         val isSelected = currentTags.contains(tagId)
-
-                        DialogInput.bool("tag_$tagId", Component.text(tagName))
-                                .initial(isSelected)
-                                .build()
+                        MenuDialogInput.BooleanInput("tag_$tagId", Component.text(tagName), isSelected)
                 }
 
-                val dialog = Dialog.create { builder ->
-                        builder.empty()
-                                .base(DialogBase.builder(Component.text("タグ設定", NamedTextColor.YELLOW))
-                                        .body(listOf(
-                                                DialogBody.plainMessage(Component.text("ワールドのタグを設定します。\n有効にするタグのスイッチをオンにしてください。")),
-                                        ))
-                                        .inputs(inputs)
-                                        .build()
+                CCSystem.getAPI().getMenuDialogService().show(
+                    player,
+                    MenuDialogRequest(
+                        owner = "myworldmanager",
+                        id = "settings-tags",
+                        title = Component.text("タグ設定", NamedTextColor.YELLOW),
+                        body = listOf(
+                            Component.text("ワールドのタグを設定します。\n有効にするタグのスイッチをオンにしてください。"),
+                        ),
+                        inputs = inputs,
+                        confirm = MenuDialogButton(
+                            Component.text("Submit", NamedTextColor.GREEN),
+                            MenuDialogHandler { target, response ->
+                                worldData.tags.clear()
+                                worldData.tags.addAll(
+                                    allTags.filter { tagId -> response.booleanValue("tag_$tagId") },
                                 )
-                                .type(DialogType.confirmation(
-                                        ActionButton.create(Component.text("Submit", NamedTextColor.GREEN), null, 100, DialogAction.customClick(Key.key("mwm:settings/tags/submit"), null)),
-                                        ActionButton.create(Component.text("Close", NamedTextColor.GRAY), null, 200, DialogAction.customClick(Key.key("mwm:settings/tags/close"), null))
-                                ))
-                }
-                player.showDialog(dialog)
+                                plugin.worldConfigRepository.save(worldData)
+                                plugin.worldSettingsGui.open(target, worldData)
+                                MenuActionResult.Success(MenuUpdate.Close)
+                            },
+                        ),
+                        cancel = MenuDialogButton(
+                            Component.text("Close", NamedTextColor.GRAY),
+                            MenuDialogHandler { target, _ ->
+                                plugin.worldSettingsGui.open(target, worldData)
+                                MenuActionResult.Success(MenuUpdate.Close)
+                            },
+                        ),
+                    ),
+                )
         }
 
         private fun openExpandConfirmationByPreference(
@@ -5962,78 +6003,66 @@ player.sendMessage(
                                 worldData.owner,
                                 lang.getMessage(player, "general.unknown")
                         )
-                val dialog =
-                        Dialog.create { builder ->
-                                builder.empty()
-                                        .base(
-                                                DialogBase.builder(
-                                                                lang.getComponent(
-                                                                        player,
-                                                                        "gui.member_management.admin_owner_reset.dialog.title"
-                                                                )
-                                                        )
-                                                        .body(
-                                                                listOf(
-                                                                        DialogBody.plainMessage(
-                                                                                lang.getComponent(
-                                                                                        player,
-                                                                                        "gui.member_management.admin_owner_reset.dialog.body",
-                                                                                        mapOf(
-                                                                                                "world" to worldData.name,
-                                                                                                "owner" to currentOwner
-                                                                                        )
-                                                                                )
-                                                                        )
-                                                                )
-                                                        )
-                                                        .inputs(
-                                                                listOf(
-                                                                        DialogInput.text(
-                                                                                        "new_owner_name",
-                                                                                        lang.getComponent(
-                                                                                                player,
-                                                                                                "gui.member_management.admin_owner_reset.dialog.input"
-                                                                                        )
-                                                                                )
-                                                                                .width(300)
-                                                                                .build()
-                                                                )
-                                                        )
-                                                        .canCloseWithEscape(true)
-                                                        .build()
-                                        )
-                                        .type(
-                                                DialogType.confirmation(
-                                                        ActionButton.builder(
-                                                                        lang.getComponent(
-                                                                                player,
-                                                                                "gui.member_management.admin_owner_reset.dialog.confirm"
-                                                                        )
-                                                                )
-                                                                .action(
-                                                                        DialogAction.customClick(
-                                                                                Key.key("mwm:settings/admin_owner_reset_submit"),
-                                                                                null
-                                                                        )
-                                                                )
-                                                                .build(),
-                                                        ActionButton.builder(
-                                                                        lang.getComponent(
-                                                                                player,
-                                                                                "gui.member_management.admin_owner_reset.dialog.cancel"
-                                                                        )
-                                                                )
-                                                                .action(
-                                                                        DialogAction.customClick(
-                                                                                Key.key("mwm:settings/admin_owner_reset_cancel"),
-                                                                                null
-                                                                        )
-                                                                )
-                                                                .build()
-                                                )
-                                        )
-                        }
-                player.showDialog(dialog)
+                CCSystem.getAPI().getMenuDialogService().show(
+                    player,
+                    MenuDialogRequest(
+                        owner = "myworldmanager",
+                        id = "settings-admin-owner-reset",
+                        title = lang.getComponent(
+                            player,
+                            "gui.member_management.admin_owner_reset.dialog.title",
+                        ),
+                        body = listOf(
+                            lang.getComponent(
+                                player,
+                                "gui.member_management.admin_owner_reset.dialog.body",
+                                mapOf("world" to worldData.name, "owner" to currentOwner),
+                            ),
+                        ),
+                        inputs = listOf(
+                            MenuDialogInput.Text(
+                                "new_owner_name",
+                                lang.getComponent(
+                                    player,
+                                    "gui.member_management.admin_owner_reset.dialog.input",
+                                ),
+                                width = 300,
+                            ),
+                        ),
+                        confirm = MenuDialogButton(
+                            lang.getComponent(
+                                player,
+                                "gui.member_management.admin_owner_reset.dialog.confirm",
+                            ),
+                            MenuDialogHandler { target, response ->
+                                val session = plugin.settingsSessionManager.getSession(target)
+                                if (session == null ||
+                                    !session.isAdminFlow ||
+                                    session.action != SettingsAction.MANAGE_MEMBERS
+                                ) {
+                                    PermissionManager.sendNoPermissionMessage(target)
+                                    return@MenuDialogHandler MenuActionResult.Success(MenuUpdate.Close)
+                                }
+                                applyAdminOwnerReset(
+                                    target,
+                                    worldData,
+                                    response.textValue("new_owner_name").trim(),
+                                )
+                                MenuActionResult.Success(MenuUpdate.Close)
+                            },
+                        ),
+                        cancel = MenuDialogButton(
+                            lang.getComponent(
+                                player,
+                                "gui.member_management.admin_owner_reset.dialog.cancel",
+                            ),
+                            MenuDialogHandler { target, _ ->
+                                reopenMemberManagementLatest(target, worldData.uuid)
+                                MenuActionResult.Success(MenuUpdate.Close)
+                            },
+                        ),
+                    ),
+                )
         }
 
         private fun applyAdminOwnerReset(
