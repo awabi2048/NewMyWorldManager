@@ -73,17 +73,15 @@ class InviteGui(private val plugin: MyWorldManager) {
             player.sendMessage(lang.getMessage(player, "messages.invite_no_available_targets"))
             return false
         }
-        return runtime.open(
-            player,
-            MenuRoute(
-                OWNER,
-                ROUTE_ID,
-                mapOf(
-                    WORLD_UUID to currentWorldData.uuid.toString(),
-                    SHOW_BACK to showBackButton.toString(),
-                ),
+        val route = MenuRoute(
+            OWNER,
+            ROUTE_ID,
+            mapOf(
+                WORLD_UUID to currentWorldData.uuid.toString(),
+                SHOW_BACK to showBackButton.toString(),
             ),
         )
+        return if (showBackButton) runtime.navigate(player, route) else runtime.open(player, route)
     }
 
     private fun render(player: Player, route: MenuRoute): InventoryMenuView {
@@ -149,13 +147,7 @@ class InviteGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        val player = context.player
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                plugin.settingsSessionManager.endSession(player)
-            }
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun invite(context: MenuActionContext): MenuActionResult {

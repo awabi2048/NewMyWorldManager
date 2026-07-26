@@ -114,16 +114,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        val worldData = worldData(context.route)
-        Bukkit.getScheduler().runTask(
-            plugin,
-            Runnable {
-                if (!CCSystem.getAPI().getMenuRuntimeService().back(context.player)) {
-                    plugin.worldSettingsGui.open(context.player, worldData)
-                }
-            },
-        )
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun selectPlayerInventoryItem(context: MenuActionContext): MenuActionResult {

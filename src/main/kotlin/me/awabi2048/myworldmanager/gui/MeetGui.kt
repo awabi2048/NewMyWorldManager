@@ -67,7 +67,12 @@ class MeetGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
-        runtime.open(player, MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to session.currentPage.toString())))
+        val route = MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to session.currentPage.toString()))
+        if (session.showBackButton) {
+            runtime.navigate(player, route)
+        } else {
+            runtime.open(player, route)
+        }
     }
 
     private fun render(player: Player, route: MenuRoute): InventoryMenuView {
@@ -189,13 +194,7 @@ class MeetGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        val player = context.player
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                plugin.settingsSessionManager.endSession(player)
-            }
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun target(context: MenuActionContext): MenuActionResult {

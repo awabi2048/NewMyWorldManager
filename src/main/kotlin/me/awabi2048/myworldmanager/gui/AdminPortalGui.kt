@@ -112,8 +112,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        Bukkit.getScheduler().runTask(plugin, Runnable { plugin.adminCommandGui.open(context.player) })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun page(context: MenuActionContext): MenuActionResult {

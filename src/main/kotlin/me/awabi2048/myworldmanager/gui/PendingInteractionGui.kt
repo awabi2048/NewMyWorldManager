@@ -136,13 +136,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        val player = context.player
-        if (fromBedrock(context.route)) {
-            plugin.menuEntryRouter.openPlayerWorld(player, returnPage(context.route), showBack(context.route))
-        } else {
-            plugin.playerWorldGui.open(player, returnPage(context.route), showBack(context.route))
-        }
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun openEntry(context: MenuActionContext): MenuActionResult {
@@ -154,7 +148,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         } else {
             openJavaDecisionDialog(context.player, decisionId, page(context.route))
         }
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     fun openDecision(player: Player, decisionId: UUID, page: Int = 0, intendedAction: Boolean? = null) {

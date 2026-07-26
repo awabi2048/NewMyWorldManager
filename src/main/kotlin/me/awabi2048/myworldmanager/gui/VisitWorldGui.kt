@@ -54,7 +54,12 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player, query: String, page: Int = 0, showBackButton: Boolean = false) {
-        runtime.open(player, route(query, page, showBackButton))
+        val route = route(query, page, showBackButton)
+        if (showBackButton) {
+            runtime.navigate(player, route)
+        } else {
+            runtime.open(player, route)
+        }
     }
 
     private fun render(player: Player, route: MenuRoute): InventoryMenuView {
@@ -119,13 +124,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        val player = context.player
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                plugin.settingsSessionManager.endSession(player)
-            }
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun page(context: MenuActionContext): MenuActionResult {

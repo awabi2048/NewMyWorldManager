@@ -160,21 +160,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        val returnWorld = returnWorldUuid(context.route)?.let(plugin.worldConfigRepository::findByUuid)
-        Bukkit.getScheduler().runTask(
-            plugin,
-            Runnable {
-                when {
-                    returnWorld != null -> plugin.menuEntryRouter.openFavoriteMenu(context.player, returnWorld)
-                    returnsToFavoriteMenu(context.route) -> plugin.menuEntryRouter.openFavoriteMenu(context.player, null)
-                    else -> GuiHelper.handleReturnClick(
-                        plugin,
-                        context.player,
-                    )
-                }
-            },
-        )
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun tag(context: MenuActionContext): MenuActionResult {
