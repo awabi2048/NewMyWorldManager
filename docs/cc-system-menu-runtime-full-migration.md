@@ -493,5 +493,6 @@ standalone_export:
 - `WorldMigrationService`の実行確認をRuntime Routeへ移し、専用InventoryHolderとInventoryClickEventを削除した。
 - Runtime Actionから利用する`GuiHelper.handleReturnClick`の重複クリック音を削除し、共通補助層の手動クリック音経路を廃止した。
 - `DialogConfirmManager.showConfirmationByPreference`がRuntime Inventoryへ統一済みで到達不能だったFavorite・参加申請・申請承認のCustomClick Listener 3個を削除した。確認処理は各Runtime確認画面のコールバックを正本とする。
+- `TourGui`の開始確認と削除確認をRuntime Routeへ移し、開始・削除・キャンセルをRuntime Action化した。対応する旧Holder、Listener分岐、個別クリック音を削除した。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。

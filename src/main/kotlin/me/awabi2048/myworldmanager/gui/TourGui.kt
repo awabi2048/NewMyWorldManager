@@ -7,6 +7,15 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourWaypointData
@@ -23,10 +32,34 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
+import java.util.UUID
 
 class TourGui(private val plugin: MyWorldManager) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
     // ツアー一覧は5行固定にし、ヘッダー中央を現在ワールド表示、下段を操作領域として使う。
     private val pageSlots = listOf(10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34)
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = START_CONFIRM_ROUTE,
+                renderer = { context -> renderStartConfirm(context.player, context.route) },
+                actions = mapOf(ACTION_START to MenuActionHandler(::startTour)),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = DELETE_CONFIRM_ROUTE,
+                renderer = { context -> renderDeleteConfirm(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_DELETE_CONFIRM to MenuActionHandler(::confirmDelete),
+                    ACTION_DELETE_CANCEL to MenuActionHandler(::cancelDelete),
+                ),
+            ),
+        )
+    }
 
     fun openVisitorMenu(player: Player, worldData: WorldData, page: Int = 0) {
         openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, "gui.tour.menu.visitor_title"))), VisitorTourHolder(worldData.uuid, page), page, true, null)
@@ -37,39 +70,39 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openStartConfirm(player: Player, worldData: WorldData, tour: TourData) {
-        GuiHelper.playMenuOpen(player, "tour")
+        runtime.navigate(player, tourRoute(START_CONFIRM_ROUTE, worldData.uuid, tour.uuid))
+    }
+
+    private fun renderStartConfirm(player: Player, route: MenuRoute): InventoryMenuView {
+        val worldData = world(route) ?: error("ツアー対象ワールドがありません")
+        val tour = tour(worldData, route) ?: error("開始対象ツアーがありません")
         val ownerName = Bukkit.getOfflinePlayer(tour.createdBy ?: worldData.owner).name
             ?: plugin.languageManager.getMessage(player, "general.unknown")
-        val holder = StartConfirmHolder(worldData.uuid, tour.uuid)
-        val inventory = Bukkit.createInventory(holder, 45, GuiHelper.inventoryTitle(Component.text("§b【${tour.name}】")))
-        holder.inv = inventory
-        fillBase(inventory)
 
         val previewLines = buildList {
             if (tour.description.isNotBlank()) add(GuiLoreLine.UserText(tour.description))
             add(GuiLoreLine.Metadata("by", ownerName))
         }
-        inventory.setItem(
-            22,
-            createItem(
+        return InventoryMenuView(
+            size = 45,
+            title = GuiHelper.inventoryTitle(Component.text("§b【${tour.name}】")),
+            elements = listOf(
+                MenuElement(22, createItem(
                 Material.FILLED_MAP,
                 "§b【${tour.name}】",
                 framedLore(previewLines),
                 ItemTag.TYPE_GUI_INFO
-            )
-        )
-        inventory.setItem(
-            40,
-            createActionItem(
+                ), GuiElementRole.CONTENT),
+                MenuElement(40, createActionItem(
                 player,
                 Material.LIME_WOOL,
                 "§eこのツアーをはじめる！",
                 emptyList(),
                 plugin.languageManager.getMessage(player, "gui.tour.menu.tour_item.action_start"),
                 ItemTag.TYPE_GUI_CONFIRM
-            )
+                ), GuiElementRole.ACTION, ACTION_START),
+            ),
         )
-        ManagedMenuPresenter.open(player, inventory)
     }
 
     private fun openPagedTourMenu(player: Player, worldData: WorldData, title: Component, holder: BaseHolder, page: Int, showWorldIcon: Boolean, filterSignUuid: java.util.UUID?) {
@@ -146,17 +179,22 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openDeleteConfirm(player: Player, worldData: WorldData, tour: TourData, isNew: Boolean = false) {
-        val lang = plugin.languageManager
-        val holder = DeleteTourHolder(worldData.uuid, tour.uuid, isNew)
-        val inventory = GuiHelper.createConfirmationInventory(
-            holder,
-            Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title"))
+        runtime.navigate(
+            player,
+            tourRoute(DELETE_CONFIRM_ROUTE, worldData.uuid, tour.uuid, isNew),
         )
-        holder.inv = inventory
-        GuiHelper.applyConfirmationFrame(inventory)
-        GuiHelper.setConfirmationItems(
-            inventory,
-            createLoreItem(
+    }
+
+    private fun renderDeleteConfirm(player: Player, route: MenuRoute): InventoryMenuView {
+        val lang = plugin.languageManager
+        val layout = GuiHelper.confirmationLayout()
+        return InventoryMenuView(
+            size = layout.size,
+            title = GuiHelper.inventoryTitle(
+                Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title")),
+            ),
+            elements = listOf(
+                MenuElement(layout.previewSlot, createLoreItem(
                 Material.LAVA_BUCKET,
                 lang.getMessage(player, "gui.tour.menu.delete_confirm.title"),
                 listOf(
@@ -165,22 +203,97 @@ class TourGui(private val plugin: MyWorldManager) {
                     GuiLoreLine.Warning(lang.getMessage(player, "gui.tour.menu.delete_confirm.warning"))
                 ),
                 ItemTag.TYPE_GUI_INFO
-            ),
-            createLoreItem(
+                ), GuiElementRole.CONTENT),
+                MenuElement(layout.confirmSlot, createLoreItem(
                 Material.LIME_WOOL,
                 lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"),
                 emptyList(),
                 ItemTag.TYPE_GUI_CONFIRM
-            ),
-            createLoreItem(
+                ), GuiElementRole.ACTION, ACTION_DELETE_CONFIRM),
+                MenuElement(layout.cancelSlot, createLoreItem(
                 Material.RED_WOOL,
                 lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"),
                 emptyList(),
                 ItemTag.TYPE_GUI_CANCEL
-            )
+                ), GuiElementRole.NAVIGATION, ACTION_DELETE_CANCEL),
+            ),
         )
-        ManagedMenuPresenter.open(player, inventory)
     }
+
+    private fun startTour(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val tour = tour(worldData, context.route) ?: return MenuActionResult.Rejected()
+        return when (plugin.tourManager.startTour(context.player, worldData, tour)) {
+            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED ->
+                MenuActionResult.Success(MenuUpdate.Close)
+            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WORLD_MEMBER -> {
+                context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.invite_already_member"))
+                MenuActionResult.Rejected()
+            }
+            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR -> {
+                context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.tour.none_available"))
+                MenuActionResult.Rejected()
+            }
+            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WRONG_WORLD -> {
+                context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.no_in_myworld"))
+                MenuActionResult.Rejected()
+            }
+        }
+    }
+
+    private fun confirmDelete(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val isNew = context.route.payload["is_new"].toBoolean()
+        if (!isNew) {
+            val tourUuid = session.originalTourUuid
+                ?: context.route.payload["tour"]?.let(UUID::fromString)
+                ?: return MenuActionResult.Rejected()
+            plugin.tourManager.deleteTour(worldData, tourUuid)
+        }
+        plugin.tourSessionManager.clearEdit(context.player.uniqueId)
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            openEditMenu(context.player, worldData)
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun cancelDelete(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            openSingleEditMenu(
+                context.player,
+                worldData,
+                session.draft,
+                context.route.payload["is_new"].toBoolean(),
+            )
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun world(route: MenuRoute): WorldData? =
+        route.payload["world"]?.let(UUID::fromString)?.let(plugin.worldConfigRepository::findByUuid)
+
+    private fun tour(worldData: WorldData, route: MenuRoute): TourData? =
+        route.payload["tour"]?.let(UUID::fromString)?.let { plugin.tourManager.getTour(worldData, it) }
+
+    private fun tourRoute(
+        id: String,
+        worldUuid: UUID,
+        tourUuid: UUID,
+        isNew: Boolean? = null,
+    ): MenuRoute = MenuRoute(
+        OWNER,
+        id,
+        buildMap {
+            put("world", worldUuid.toString())
+            put("tour", tourUuid.toString())
+            if (isNew != null) put("is_new", isNew.toString())
+        },
+    )
 
     private fun fillBase(inventory: Inventory) {
         GuiItemFactory.applyStandardFrame(inventory)
@@ -301,8 +414,15 @@ class TourGui(private val plugin: MyWorldManager) {
     class VisitorTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()
     class EditTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()
     class SingleTourHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean) : BaseHolder()
-    class DeleteTourHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean) : BaseHolder()
     class StartSelectionHolder(val worldUuid: java.util.UUID, val signUuid: java.util.UUID) : BaseHolder()
-    class StartConfirmHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID) : BaseHolder()
     class BindSignHolder(val worldUuid: java.util.UUID) : BaseHolder()
+
+    private companion object {
+        private const val OWNER = "myworldmanager"
+        private const val START_CONFIRM_ROUTE = "tour_start_confirmation"
+        private const val DELETE_CONFIRM_ROUTE = "tour_delete_confirmation"
+        private const val ACTION_START = "start"
+        private const val ACTION_DELETE_CONFIRM = "delete_confirm"
+        private const val ACTION_DELETE_CANCEL = "delete_cancel"
+    }
 }
