@@ -372,12 +372,10 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(WorldSeedListener(this), this)
         templateWizardListener = TemplateWizardListener()
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
-        server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)
         tourListener = TourListener(this)
         server.pluginManager.registerEvents(tourListener, this)
         server.pluginManager.registerEvents(TourDialogManager(), this)
-        server.pluginManager.registerEvents(BedrockInventoryListener(this), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)

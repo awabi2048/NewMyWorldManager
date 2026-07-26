@@ -148,7 +148,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `VisitWorldGui`
 - [x] `WorldGui`
 - [ ] `WorldSettingsGui`
-- [ ] `BedrockMenuService`のInventory代替画面
+- [x] `BedrockMenuService`のInventory代替画面
 - [ ] `GuiHelper`内の旧Inventory生成経路
 - [ ] 各種Confirmation Inventory
 - [x] `WorldMigrationService`の確認画面
@@ -506,6 +506,8 @@ standalone_export:
 - `TemplateWizardGui`のプレイヤーインベントリからのアイコン選択も予約Actionへ移し、`TemplateWizardListener`からInventoryイベントと個別クリック音を削除した。
 - ツアー編集のアイコン選択も`TourGui`の予約Actionへ移し、ツアー固有Listenerはブロック・プレイヤー操作だけを担当するようにした。
 - ワールドゲート設置確認をRuntimeの一時Routeへ移し、専用Holder・Inventory生成・InventoryクリックListenerを削除した。
+- Runtimeが画面遷移とクリックを管理するため不要になった、全メニュー共通の旧遷移フラグ解除Listenerを削除した。
+- `BedrockMenuService`のプレイヤーワールド一覧・ワールド操作・ユーザー設定Inventory代替画面をRuntime Routeへ移し、専用Holderと全体クリックListenerを削除した。Formを利用できない場合もRuntimeが履歴・保護・クリック音を管理する。
 - 全Creation Routeへ共通Close Handlerを追加した。Dialog・Form入力中とテンプレートプレビュー中は作成セッションを維持し、Route遷移ではなくユーザーが画面を閉じた場合だけセッションを終了してマイワールド画面へ戻す。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。

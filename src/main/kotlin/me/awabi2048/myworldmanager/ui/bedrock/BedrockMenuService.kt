@@ -1,7 +1,5 @@
 package me.awabi2048.myworldmanager.ui.bedrock
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -11,6 +9,14 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuIconOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -31,8 +37,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.inventory.ItemStack
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -48,6 +52,76 @@ class BedrockMenuService(
     private val routingService: BedrockUiRoutingService,
     private val formBridge: FloodgateFormBridge
 ) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+    init {
+        listOf(
+            PLAYER_WORLD_ROUTE to { context: com.awabi2048.ccsystem.api.gui.MenuRenderContext ->
+                renderPlayerWorldInventory(
+                    context.player,
+                    context.route.payload["page"]?.toIntOrNull() ?: 0,
+                    context.route.payload["back"]?.toBooleanStrictOrNull() ?: false,
+                )
+            },
+            WORLD_ACTION_ROUTE to { context: com.awabi2048.ccsystem.api.gui.MenuRenderContext ->
+                val worldUuid = UUID.fromString(context.route.payload.getValue("world"))
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                    ?: error("Bedrockワールド操作対象が見つかりません: $worldUuid")
+                renderWorldActionsInventory(
+                    context.player,
+                    worldData,
+                    context.route.payload["page"]?.toIntOrNull() ?: 0,
+                    context.route.payload["back"]?.toBooleanStrictOrNull() ?: false,
+                )
+            },
+            SETTINGS_ROUTE to { context: com.awabi2048.ccsystem.api.gui.MenuRenderContext ->
+                renderSettingsInventory(
+                    context.player,
+                    context.route.payload["back"]?.toBooleanStrictOrNull() ?: false,
+                    context.route.payload["page"]?.toIntOrNull() ?: 0,
+                )
+            },
+        ).forEach { (id, renderer) ->
+            runtime.register(
+                InventoryMenuDefinition(
+                    owner = RUNTIME_OWNER,
+                    id = id,
+                    renderer = renderer,
+                    actions = RUNTIME_ACTION_IDS.associateWith {
+                        MenuActionHandler(::handleRuntimeAction)
+                    },
+                ),
+            )
+        }
+    }
+
+    private class RuntimeItemBuffer {
+        private val items = linkedMapOf<Int, ItemStack>()
+
+        fun setItem(slot: Int, item: ItemStack?) {
+            if (item == null || item.type == Material.AIR) {
+                items.remove(slot)
+            } else {
+                items[slot] = item
+            }
+        }
+
+        fun elements(): List<MenuElement> = items.map { (slot, item) ->
+            val action = ItemTag.getString(item, "bedrock_action")
+            val role = when (action) {
+                "return_command", "close_menu" -> GuiElementRole.CANCEL
+                "open_prev_page", "open_next_page", "back_to_worlds" -> GuiElementRole.NAVIGATION
+                null -> GuiElementRole.CONTENT
+                else -> GuiElementRole.ACTION
+            }
+            MenuElement(
+                slot = slot,
+                item = item,
+                role = role,
+                actionId = action,
+            )
+        }
+    }
 
     private data class FormAction(
         val label: String,
@@ -71,7 +145,7 @@ class BedrockMenuService(
 
     fun openPlayerWorld(player: Player, page: Int = 0, showBackButton: Boolean = false) {
         val safePage = page.coerceAtLeast(0)
-        openPlayerWorldInventory(player, safePage, showBackButton)
+        runtime.navigate(player, playerWorldRoute(safePage, showBackButton))
     }
 
     fun openCurrentWorldMenu(player: Player, worldData: WorldData, showBackButton: Boolean = false) {
@@ -79,7 +153,7 @@ class BedrockMenuService(
     }
 
     fun openSettings(player: Player, showBackButton: Boolean = false, returnPage: Int = 0) {
-        openSettingsInventory(player, showBackButton, returnPage)
+        runtime.navigate(player, settingsRoute(showBackButton, returnPage))
     }
 
     fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
@@ -164,27 +238,6 @@ class BedrockMenuService(
         return true
     }
 
-    fun handleInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        val holder = event.view.topInventory.holder
-
-        when (holder) {
-            is BedrockPlayerWorldListHolder -> {
-                handlePlayerWorldInventoryClick(player, holder, event)
-            }
-
-            is BedrockWorldActionHolder -> {
-                handleWorldActionInventoryClick(player, holder, event)
-            }
-
-            is BedrockSettingsHolder -> {
-                handleSettingsInventoryClick(player, holder, event)
-            }
-
-            else -> return
-        }
-    }
-
     private fun openPlayerWorldForm(player: Player, requestedPage: Int, showBackButton: Boolean): Boolean {
         val worlds = getAccessibleWorlds(player)
         val totalPages = if (worlds.isEmpty()) 1 else (worlds.size + formPageSize - 1) / formPageSize
@@ -233,7 +286,7 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.player_world.button.close"), Material.REDSTONE) {
-            ManagedMenuPresenter.close(player)
+            runtime.close(player)
         }
 
         val title = tr(player, "gui.bedrock.player_world.title")
@@ -318,7 +371,7 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.world_action.button.close"), Material.REDSTONE) {
-            ManagedMenuPresenter.close(player)
+            runtime.close(player)
         }
 
         val content =
@@ -389,7 +442,7 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.settings.button.close"), Material.REDSTONE) {
-            ManagedMenuPresenter.close(player)
+            runtime.close(player)
         }
 
         return sendActionForm(
@@ -429,7 +482,11 @@ class BedrockMenuService(
         )
     }
 
-    private fun openPlayerWorldInventory(player: Player, requestedPage: Int, showBackButton: Boolean) {
+    private fun renderPlayerWorldInventory(
+        player: Player,
+        requestedPage: Int,
+        showBackButton: Boolean,
+    ): InventoryMenuView {
         val worlds = getAccessibleWorlds(player)
         val pageSize = playerWorldPageSize
         val totalPages = if (worlds.isEmpty()) 1 else (worlds.size + pageSize - 1) / pageSize
@@ -445,14 +502,10 @@ class BedrockMenuService(
         val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
-        val holder = BedrockPlayerWorldListHolder(page, showBackButton)
-        val inventory =
-            Bukkit.createInventory(
-                holder,
-                rowCount * 9,
-                me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, "gui.player_world.title"))
-            )
-        holder.inv = inventory
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+            tr(player, "gui.player_world.title"),
+        )
+        val inventory = RuntimeItemBuffer()
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
@@ -518,23 +571,24 @@ class BedrockMenuService(
             )
         }
 
-        ManagedMenuPresenter.open(player, inventory)
+        return InventoryMenuView(
+            size = rowCount * 9,
+            title = title,
+            elements = inventory.elements(),
+            standardFrame = false,
+        )
     }
 
-    private fun openWorldActionsInventory(
+    private fun renderWorldActionsInventory(
         player: Player,
         worldData: WorldData,
         returnPage: Int,
         showBackButton: Boolean
-    ) {
-        val holder = BedrockWorldActionHolder(worldData.uuid, returnPage, showBackButton)
-        val inventory =
-            Bukkit.createInventory(
-                holder,
-                27,
-                me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)))
-            )
-        holder.inv = inventory
+    ): InventoryMenuView {
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+            tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)),
+        )
+        val inventory = RuntimeItemBuffer()
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         for (slot in 0 until 27) {
@@ -609,14 +663,21 @@ class BedrockMenuService(
             )
         }
 
-        ManagedMenuPresenter.open(player, inventory)
+        return InventoryMenuView(
+            size = 27,
+            title = title,
+            elements = inventory.elements(),
+            standardFrame = false,
+        )
     }
 
-    private fun openSettingsInventory(player: Player, showBackButton: Boolean, returnPage: Int) {
-        val holder = BedrockSettingsHolder(showBackButton, returnPage)
+    private fun renderSettingsInventory(
+        player: Player,
+        showBackButton: Boolean,
+        returnPage: Int,
+    ): InventoryMenuView {
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, "gui.user_settings.title"))
-        val inventory = Bukkit.createInventory(holder, 27, title)
-        holder.inv = inventory
+        val inventory = RuntimeItemBuffer()
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
         val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
@@ -691,148 +752,12 @@ class BedrockMenuService(
             )
         }
 
-        ManagedMenuPresenter.open(player, inventory)
-    }
-
-    private fun handlePlayerWorldInventoryClick(
-        player: Player,
-        holder: BedrockPlayerWorldListHolder,
-        event: InventoryClickEvent
-    ) {
-        event.cancelWithDebug("BedrockMenuService.handlePlayerWorldInventoryClick: bedrock player world list click")
-        if (event.clickedInventory != event.view.topInventory) {
-            return
-        }
-
-        val item = event.currentItem ?: return
-        val action = ItemTag.getString(item, "bedrock_action") ?: return
-
-        when (action) {
-            "warp_world" -> {
-                val worldUuid = ItemTag.getWorldUuid(item) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-                warpToWorld(player, worldData)
-            }
-
-            "open_prev_page" -> openPlayerWorld(player, holder.page - 1, holder.showBackButton)
-            "open_next_page" -> openPlayerWorld(player, holder.page + 1, holder.showBackButton)
-            "start_creation" -> {
-                if (!WorldCreationChecks.checkSelfCreatePermission(player)) return
-                val session = plugin.creationSessionManager.startSession(player.uniqueId)
-                session.isDialogMode = false
-                ManagedMenuPresenter.close(player)
-                plugin.creationGui.openTypeSelection(player)
-            }
-            "open_settings" -> openSettings(player, holder.showBackButton, holder.page)
-
-            "open_pending_interactions" -> {
-                plugin.pendingInteractionGui.open(
-                    player = player,
-                    page = 0,
-                    returnPage = holder.page,
-                    showBackButton = holder.showBackButton,
-                    fromBedrockMenu = true
-                )
-            }
-
-            "return_command" -> performConfiguredReturn(player)
-        }
-    }
-
-    private fun handleWorldActionInventoryClick(
-        player: Player,
-        holder: BedrockWorldActionHolder,
-        event: InventoryClickEvent
-    ) {
-        event.cancelWithDebug("BedrockMenuService.handleWorldActionInventoryClick: bedrock world action click")
-        if (event.clickedInventory != event.view.topInventory) {
-            return
-        }
-
-        val item = event.currentItem ?: return
-        val action = ItemTag.getString(item, "bedrock_action") ?: return
-        val worldData = plugin.worldConfigRepository.findByUuid(holder.worldUuid) ?: run {
-            openPlayerWorld(player, holder.returnPage, holder.showBackButton)
-            return
-        }
-
-        when (action) {
-            "warp_world" -> {
-                warpToWorld(player, worldData)
-            }
-
-            "cycle_publish" -> {
-                cyclePublishLevel(player, worldData)
-                val refreshed = plugin.worldConfigRepository.findByUuid(holder.worldUuid) ?: return
-                openWorldActionMenu(player, refreshed, holder.returnPage, holder.showBackButton)
-            }
-
-            "toggle_archive" -> {
-                toggleArchiveState(player, worldData) {
-                    val refreshed = plugin.worldConfigRepository.findByUuid(holder.worldUuid)
-                    if (refreshed != null) {
-                        openWorldActionMenu(player, refreshed, holder.returnPage, holder.showBackButton)
-                    } else {
-                        openPlayerWorld(player, holder.returnPage, holder.showBackButton)
-                    }
-                }
-            }
-
-            "open_advanced_settings" -> {
-                pushWorldActionRoute(player, worldData, holder.returnPage, holder.showBackButton)
-                plugin.worldSettingsGui.open(player, worldData, holder.showBackButton)
-            }
-
-            "open_settings" -> {
-                openSettings(player, holder.showBackButton, holder.returnPage)
-            }
-
-            "return_command" -> performConfiguredReturn(player)
-        }
-    }
-
-    private fun handleSettingsInventoryClick(
-        player: Player,
-        holder: BedrockSettingsHolder,
-        event: InventoryClickEvent
-    ) {
-        event.cancelWithDebug("BedrockMenuService.handleSettingsInventoryClick: bedrock settings click")
-        if (event.clickedInventory != event.view.topInventory) {
-            return
-        }
-
-        val item = event.currentItem ?: return
-        val action = ItemTag.getString(item, "bedrock_action") ?: return
-        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-        when (action) {
-            "toggle_notification" -> {
-                stats.visitorNotificationEnabled = !stats.visitorNotificationEnabled
-                plugin.playerStatsRepository.save(stats)
-                openSettings(player, holder.showBackButton, holder.returnPage)
-            }
-
-            "cycle_language" -> {
-                openSettings(player, holder.showBackButton, holder.returnPage)
-            }
-
-            "toggle_critical" -> {
-                stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
-                plugin.playerStatsRepository.save(stats)
-                openSettings(player, holder.showBackButton, holder.returnPage)
-            }
-
-            "cycle_tour_navigation" -> {
-                stats.tourNavigationMode = nextTourNavigationMode(stats.tourNavigationMode)
-                plugin.playerStatsRepository.save(stats)
-                plugin.tourManager.refreshNavigation(player)
-                openSettings(player, holder.showBackButton, holder.returnPage)
-            }
-
-            "back_to_worlds" -> openPlayerWorld(player, holder.returnPage, holder.showBackButton)
-            "return_command" -> performConfiguredReturn(player)
-            "close_menu" -> ManagedMenuPresenter.close(player)
-        }
+        return InventoryMenuView(
+            size = 27,
+            title = title,
+            elements = inventory.elements(),
+            standardFrame = false,
+        )
     }
 
     private fun openWorldActionMenu(
@@ -849,7 +774,141 @@ class BedrockMenuService(
             routingService.markFormFailure(player, "world_action_form_open_failed")
         }
 
-        openWorldActionsInventory(player, worldData, returnPage, showBackButton)
+        runtime.navigate(player, worldActionRoute(worldData.uuid, returnPage, showBackButton))
+    }
+
+    private fun handleRuntimeAction(context: MenuActionContext): MenuActionResult {
+        val player = context.player
+        val page = context.route.payload["page"]?.toIntOrNull() ?: 0
+        val showBackButton = context.route.payload["back"]?.toBooleanStrictOrNull() ?: false
+        return when (context.route.id) {
+            PLAYER_WORLD_ROUTE -> when (context.actionId) {
+                "warp_world" -> {
+                    val worldUuid = ItemTag.getWorldUuid(context.item)
+                        ?: return MenuActionResult.Rejected()
+                    val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Rejected()
+                    warpToWorld(player, worldData)
+                    MenuActionResult.Success(MenuUpdate.Close)
+                }
+                "open_prev_page" ->
+                    MenuActionResult.Success(MenuUpdate.Replace(playerWorldRoute(page - 1, showBackButton)))
+                "open_next_page" ->
+                    MenuActionResult.Success(MenuUpdate.Replace(playerWorldRoute(page + 1, showBackButton)))
+                "start_creation" -> {
+                    if (!WorldCreationChecks.checkSelfCreatePermission(player)) {
+                        return MenuActionResult.Rejected()
+                    }
+                    val session = plugin.creationSessionManager.startSession(player.uniqueId)
+                    session.isDialogMode = false
+                    Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable { plugin.creationGui.openTypeSelection(player) },
+                    )
+                    MenuActionResult.Success(MenuUpdate.Close)
+                }
+                "open_settings" ->
+                    MenuActionResult.Success(MenuUpdate.Navigate(settingsRoute(showBackButton, page)))
+                "open_pending_interactions" -> {
+                    Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                            plugin.pendingInteractionGui.open(
+                                player = player,
+                                page = 0,
+                                returnPage = page,
+                                showBackButton = showBackButton,
+                                fromBedrockMenu = true,
+                            )
+                        },
+                    )
+                    MenuActionResult.Success(MenuUpdate.Close)
+                }
+                "return_command" -> {
+                    performConfiguredReturn(player)
+                    MenuActionResult.Success(MenuUpdate.Close)
+                }
+                else -> MenuActionResult.Ignored
+            }
+            WORLD_ACTION_ROUTE -> {
+                val worldUuid = context.route.payload["world"]?.let(UUID::fromString)
+                    ?: return MenuActionResult.Rejected()
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                    ?: return MenuActionResult.Success(
+                        MenuUpdate.Replace(playerWorldRoute(page, showBackButton)),
+                    )
+                when (context.actionId) {
+                    "warp_world" -> {
+                        warpToWorld(player, worldData)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    }
+                    "cycle_publish" -> {
+                        cyclePublishLevel(player, worldData)
+                        MenuActionResult.Success(MenuUpdate.Refresh)
+                    }
+                    "toggle_archive" -> {
+                        toggleArchiveState(player, worldData) {
+                            val refreshed = plugin.worldConfigRepository.findByUuid(worldUuid)
+                            if (refreshed != null) {
+                                runtime.replace(player, worldActionRoute(worldUuid, page, showBackButton))
+                            } else {
+                                runtime.replace(player, playerWorldRoute(page, showBackButton))
+                            }
+                        }
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    }
+                    "open_advanced_settings" -> {
+                        pushWorldActionRoute(player, worldData, page, showBackButton)
+                        Bukkit.getScheduler().runTask(
+                            plugin,
+                            Runnable { plugin.worldSettingsGui.open(player, worldData, showBackButton) },
+                        )
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    }
+                    "open_settings" ->
+                        MenuActionResult.Success(MenuUpdate.Navigate(settingsRoute(showBackButton, page)))
+                    "back_to_worlds" ->
+                        MenuActionResult.Success(MenuUpdate.Back)
+                    "return_command" -> {
+                        performConfiguredReturn(player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    }
+                    "close_menu" -> MenuActionResult.Success(MenuUpdate.Close)
+                    else -> MenuActionResult.Ignored
+                }
+            }
+            SETTINGS_ROUTE -> {
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                when (context.actionId) {
+                    "toggle_notification" -> {
+                        stats.visitorNotificationEnabled = !stats.visitorNotificationEnabled
+                        plugin.playerStatsRepository.save(stats)
+                        MenuActionResult.Success(MenuUpdate.Refresh)
+                    }
+                    "cycle_language" -> MenuActionResult.Success(MenuUpdate.Refresh)
+                    "toggle_critical" -> {
+                        stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
+                        plugin.playerStatsRepository.save(stats)
+                        MenuActionResult.Success(MenuUpdate.Refresh)
+                    }
+                    "cycle_tour_navigation" -> {
+                        stats.tourNavigationMode = nextTourNavigationMode(stats.tourNavigationMode)
+                        plugin.playerStatsRepository.save(stats)
+                        plugin.tourManager.refreshNavigation(player)
+                        MenuActionResult.Success(MenuUpdate.Refresh)
+                    }
+                    "back_to_worlds" ->
+                        MenuActionResult.Success(MenuUpdate.Back)
+                    "return_command" -> {
+                        performConfiguredReturn(player)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    }
+                    "close_menu" -> MenuActionResult.Success(MenuUpdate.Close)
+                    else -> MenuActionResult.Ignored
+                }
+            }
+            else -> MenuActionResult.Ignored
+        }
     }
 
     private fun openSimpleConfirmationForm(
@@ -951,7 +1010,7 @@ class BedrockMenuService(
 
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         if (Bukkit.getWorld(folderName) == null) {
-            ManagedMenuPresenter.close(player)
+            runtime.close(player)
             player.sendMessage(tr(player, "messages.world_loading"))
             plugin.worldService.teleportToWorld(player, worldData.uuid) {
                 completeWarpToWorld(player, worldData)
@@ -959,7 +1018,7 @@ class BedrockMenuService(
             return
         }
 
-        ManagedMenuPresenter.close(player)
+        runtime.close(player)
         plugin.worldService.teleportToWorld(player, worldData.uuid) {
             completeWarpToWorld(player, worldData)
         }
@@ -967,7 +1026,7 @@ class BedrockMenuService(
 
     private fun completeWarpToWorld(player: Player, worldData: WorldData) {
         player.sendMessage(tr(player, "messages.warp_success", mapOf("world" to worldData.name)))
-        ManagedMenuPresenter.close(player)
+        runtime.close(player)
     }
 
     private fun cyclePublishLevel(player: Player, worldData: WorldData) {
@@ -1051,7 +1110,7 @@ class BedrockMenuService(
 
     private fun performConfiguredReturn(player: Player) {
         if (!plugin.menuRouteHistory.openPrevious(player)) {
-            ManagedMenuPresenter.close(player)
+            runtime.close(player)
         }
     }
 
@@ -1396,6 +1455,66 @@ class BedrockMenuService(
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
+    }
+
+    private fun playerWorldRoute(page: Int, showBackButton: Boolean): MenuRoute =
+        MenuRoute(
+            RUNTIME_OWNER,
+            PLAYER_WORLD_ROUTE,
+            mapOf(
+                "page" to page.coerceAtLeast(0).toString(),
+                "back" to showBackButton.toString(),
+            ),
+        )
+
+    private fun worldActionRoute(
+        worldUuid: UUID,
+        page: Int,
+        showBackButton: Boolean,
+    ): MenuRoute =
+        MenuRoute(
+            RUNTIME_OWNER,
+            WORLD_ACTION_ROUTE,
+            mapOf(
+                "world" to worldUuid.toString(),
+                "page" to page.coerceAtLeast(0).toString(),
+                "back" to showBackButton.toString(),
+            ),
+        )
+
+    private fun settingsRoute(showBackButton: Boolean, returnPage: Int): MenuRoute =
+        MenuRoute(
+            RUNTIME_OWNER,
+            SETTINGS_ROUTE,
+            mapOf(
+                "page" to returnPage.coerceAtLeast(0).toString(),
+                "back" to showBackButton.toString(),
+            ),
+        )
+
+    private companion object {
+        const val RUNTIME_OWNER = "myworldmanager"
+        const val PLAYER_WORLD_ROUTE = "bedrock_player_world"
+        const val WORLD_ACTION_ROUTE = "bedrock_world_action"
+        const val SETTINGS_ROUTE = "bedrock_user_settings"
+        val RUNTIME_ACTION_IDS = setOf(
+            "warp_world",
+            "open_prev_page",
+            "open_next_page",
+            "start_creation",
+            "open_settings",
+            "open_pending_interactions",
+            "return_command",
+            "cycle_publish",
+            "toggle_archive",
+            "open_advanced_settings",
+            "back_to_worlds",
+            "close_menu",
+            "toggle_notification",
+            "cycle_language",
+            "toggle_critical",
+            "cycle_tour_navigation",
+        )
     }
 
     private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
