@@ -4,16 +4,14 @@ package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 
+import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
-import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.PlayerFilterType
@@ -21,7 +19,6 @@ import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -202,32 +199,6 @@ class AdminGuiListener : Listener {
         }
     }
 
-    @EventHandler
-    fun onAdminFilterDialog(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        if (
-            identifier != Key.key("mwm:admin/player_filter_submit") &&
-                identifier != Key.key("mwm:admin/player_filter_cancel")
-        ) {
-            return
-        }
-
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-
-        if (identifier == Key.key("mwm:admin/player_filter_cancel")) {
-            plugin.settingsSessionManager.endSession(player)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
-            plugin.worldGui.open(player)
-            return
-        }
-
-        val view = event.getDialogResponseView() ?: return
-        val input = view.getText("admin_player_name")?.toString().orEmpty()
-        applyAdminPlayerFilter(plugin, player, input)
-    }
-
     private fun openAdminPlayerFilterInput(plugin: MyWorldManager, player: Player) {
         val lang = plugin.languageManager
 
@@ -270,39 +241,39 @@ class AdminGuiListener : Listener {
         }
 
         val prompt = lang.getMessage(player, "messages.admin_player_filter_prompt")
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(Component.text(prompt, NamedTextColor.YELLOW))
-                        .body(listOf(DialogBody.plainMessage(Component.text(prompt))))
-                        .inputs(
-                            listOf(
-                                DialogInput.text(
-                                    "admin_player_name",
-                                    Component.text(lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label"))
-                                ).build()
-                            )
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = "admin-player-filter",
+                title = Component.text(prompt, NamedTextColor.YELLOW),
+                body = listOf(Component.text(prompt)),
+                inputs = listOf(
+                    MenuDialogInput.Text(
+                        "admin_player_name",
+                        Component.text(lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label")),
+                    ),
+                ),
+                confirm = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    MenuDialogHandler { target, response ->
+                        applyAdminPlayerFilter(plugin, target, response.textValue("admin_player_name"))
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    MenuDialogHandler { target, _ ->
+                        plugin.settingsSessionManager.endSession(target)
+                        target.sendMessage(
+                            plugin.languageManager.getMessage(target, "messages.operation_cancelled"),
                         )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key("mwm:admin/player_filter_submit"), null)
-                        ),
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key("mwm:admin/player_filter_cancel"), null)
-                        )
-                    )
-                )
-        }
-        player.showDialog(dialog)
+                        plugin.worldGui.open(target)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
     }
 
     private fun applyAdminPlayerFilter(plugin: MyWorldManager, player: Player, targetNameRaw: String) {

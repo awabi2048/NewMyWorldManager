@@ -10,7 +10,6 @@ CREATE_INVENTORY|18|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSetting
 CREATE_INVENTORY|3|src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.kt
 CREATE_INVENTORY|3|src/main/kotlin/me/awabi2048/myworldmanager/ui/bedrock/BedrockMenuService.kt
 CREATE_INVENTORY|5|src/main/kotlin/me/awabi2048/myworldmanager/gui/TourGui.kt
-DIALOG_CREATE|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/AdminGuiListener.kt
 DIALOG_CREATE|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/DiscoveryListener.kt
 DIALOG_CREATE|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/PlayerWorldListener.kt
 DIALOG_CREATE|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
