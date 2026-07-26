@@ -191,7 +191,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 ### MWM-Chanpon Dialog
 
 - [ ] `ChanponWorldMenuAccessProvider`
-- [ ] `EasyVoidWorldCreationService`
+- [x] `EasyVoidWorldCreationService`
 - [ ] `WorldBackupMenuExtension`
 - [ ] `ChanponEnvironmentGui`
 
