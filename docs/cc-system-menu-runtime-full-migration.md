@@ -186,7 +186,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `WorldDataExportMenu`
 - [x] `WorldDataManagementMenu`
 - [ ] `ProductionToggleExtension`
-- [ ] `WorldBackupMenuExtension`
+- [x] `WorldBackupMenuExtension`
 
 ### MWM-Chanpon Dialog
 
