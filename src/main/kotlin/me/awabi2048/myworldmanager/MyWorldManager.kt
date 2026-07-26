@@ -347,7 +347,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
         // 旧 GuiListener を分割して登録
         server.pluginManager.registerEvents(PlayerWorldListener(this), this)
-        server.pluginManager.registerEvents(FavoriteListener(this), this)
 
         adminGuiListener = AdminGuiListener()
         server.pluginManager.registerEvents(adminGuiListener, this)
@@ -370,8 +369,6 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(TemplatePreviewListener(), this)
         server.pluginManager.registerEvents(EnvironmentLogicListener(this), this)
         server.pluginManager.registerEvents(CustomItemListener(this), this)
-        server.pluginManager.registerEvents(MemberRequestConfirmListener(this), this)
-        server.pluginManager.registerEvents(MemberRequestOwnerConfirmListener(this), this)
         server.pluginManager.registerEvents(WorldSeedListener(this), this)
         templateWizardListener = TemplateWizardListener()
         server.pluginManager.registerEvents(templateWizardListener, this)

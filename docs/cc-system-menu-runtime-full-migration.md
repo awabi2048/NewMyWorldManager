@@ -492,5 +492,6 @@ standalone_export:
 - `AdminCommandGui`に残っていた管理操作の確認Inventory 8経路を単一のRuntime Routeへ統合した。確認とキャンセルをRuntime Actionへ移し、`AdminCommandListener`からInventoryClickEvent、CustomClick、個別クリック音を除去して実行処理だけを残した。
 - `WorldMigrationService`の実行確認をRuntime Routeへ移し、専用InventoryHolderとInventoryClickEventを削除した。
 - Runtime Actionから利用する`GuiHelper.handleReturnClick`の重複クリック音を削除し、共通補助層の手動クリック音経路を廃止した。
+- `DialogConfirmManager.showConfirmationByPreference`がRuntime Inventoryへ統一済みで到達不能だったFavorite・参加申請・申請承認のCustomClick Listener 3個を削除した。確認処理は各Runtime確認画面のコールバックを正本とする。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。
