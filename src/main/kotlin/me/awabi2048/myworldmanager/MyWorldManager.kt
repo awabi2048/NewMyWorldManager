@@ -331,7 +331,6 @@ class MyWorldManager : JavaPlugin() {
 
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(this), this)
-        server.pluginManager.registerEvents(worldMigrationService, this)
         MultiverseWorldExclusionService(this, worldConfigRepository).start()
         server.pluginManager.registerEvents(
                 WorldPermissionPolicyListener(worldConfigRepository, worldPermissionPolicyService),

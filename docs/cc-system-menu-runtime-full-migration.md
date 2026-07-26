@@ -151,7 +151,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `BedrockMenuService`のInventory代替画面
 - [ ] `GuiHelper`内の旧Inventory生成経路
 - [ ] 各種Confirmation Inventory
-- [ ] `WorldMigrationService`の確認画面
+- [x] `WorldMigrationService`の確認画面
 
 ### MyWorldManager Dialog
 
@@ -490,5 +490,6 @@ standalone_export:
 - `PlayerWorldGui`の対象プレイヤー、ページ、戻り導線、作成、個人設定、保留操作、並び順変更、ワープ、設定遷移、アーカイブ解除確認をRuntime RouteとActionへ移行した。
 - `WorldGui`のページ、各種フィルタ、並び替え、ワールド操作、ワープ、設定遷移、戻り導線、自動更新をRuntime RouteとActionへ移行した。`AdminGuiListener`から一覧画面のクリック分岐と個別クリック音を除去し、チャット入力とディレクトリ案内だけを補助処理として残した。
 - `AdminCommandGui`に残っていた管理操作の確認Inventory 8経路を単一のRuntime Routeへ統合した。確認とキャンセルをRuntime Actionへ移し、`AdminCommandListener`からInventoryClickEvent、CustomClick、個別クリック音を除去して実行処理だけを残した。
+- `WorldMigrationService`の実行確認をRuntime Routeへ移し、専用InventoryHolderとInventoryClickEventを削除した。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。

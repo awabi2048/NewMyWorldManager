@@ -1,7 +1,14 @@
 package me.awabi2048.myworldmanager.migration
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldOperation
@@ -13,11 +20,6 @@ import org.bukkit.WorldCreator
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
-import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException
@@ -58,13 +60,30 @@ data class MigrationStatusSnapshot(
 class WorldMigrationService(
     private val plugin: MyWorldManager,
     private val resolver: WorldDirectoryResolver
-) : Listener {
+) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
     private val stateFile = File(plugin.dataFolder, "data/world-migration-state.yml")
     private val states = ConcurrentHashMap<UUID, MigrationWorldState>()
     @Volatile private var running = false
     @Volatile private var currentWorld: UUID? = null
 
     init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> renderConfirmation(context.player) },
+                actions = mapOf(
+                    ACTION_EXECUTE to MenuActionHandler { context ->
+                        requestExecute(context.player, confirmed = true)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                    ACTION_CANCEL to MenuActionHandler {
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
         loadState()
         states.values.filter { it.status == MigrationWorldStatus.RUNNING }.forEach {
             it.status = MigrationWorldStatus.RETRY
@@ -286,35 +305,36 @@ class WorldMigrationService(
     }
 
     private fun openConfirmation(player: Player) {
-        val holder = MigrationConfirmationHolder()
-        val inventory = GuiHelper.createConfirmationInventory(
-            holder,
-            plugin.languageManager.getComponent(player, "gui.migration.confirm.title")
-        )
-        holder.backingInventory = inventory
-        GuiHelper.applyConfirmationFrame(inventory)
-        GuiHelper.setConfirmationItems(
-            inventory,
-            item(Material.COMPASS, plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
-            item(Material.LIME_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.execute")),
-            item(Material.RED_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.cancel"))
-        )
-        ManagedMenuPresenter.open(player, inventory)
+        runtime.navigate(player, MenuRoute(OWNER, ROUTE_ID))
     }
 
-    @EventHandler
-    fun onConfirmationClick(event: InventoryClickEvent) {
-        val holder = event.view.topInventory.holder as? MigrationConfirmationHolder ?: return
-        event.isCancelled = true
-        if (event.rawSlot !in 0 until event.view.topInventory.size) return
-        val player = event.whoClicked as? Player ?: return
-        when (event.rawSlot) {
-            GuiHelper.confirmationLayout().confirmSlot -> {
-                ManagedMenuPresenter.close(player)
-                requestExecute(player, confirmed = true)
-            }
-            GuiHelper.confirmationLayout().cancelSlot -> ManagedMenuPresenter.close(player)
-        }
+    private fun renderConfirmation(player: Player): InventoryMenuView {
+        val layout = GuiHelper.confirmationLayout()
+        return InventoryMenuView(
+            size = layout.size,
+            title = GuiHelper.inventoryTitle(
+                plugin.languageManager.getComponent(player, "gui.migration.confirm.title"),
+            ),
+            elements = listOf(
+                MenuElement(
+                    layout.previewSlot,
+                    item(Material.COMPASS, plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
+                    GuiElementRole.CONTENT,
+                ),
+                MenuElement(
+                    layout.confirmSlot,
+                    item(Material.LIME_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.execute")),
+                    GuiElementRole.ACTION,
+                    ACTION_EXECUTE,
+                ),
+                MenuElement(
+                    layout.cancelSlot,
+                    item(Material.RED_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.cancel")),
+                    GuiElementRole.NAVIGATION,
+                    ACTION_CANCEL,
+                ),
+            ),
+        )
     }
 
     @Synchronized
@@ -381,12 +401,11 @@ class WorldMigrationService(
         (sender ?: plugin.server.consoleSender).sendMessage(message)
     }
 
-    private class MigrationConfirmationHolder : InventoryHolder {
-        lateinit var backingInventory: Inventory
-        override fun getInventory(): Inventory = backingInventory
-    }
-
     private companion object {
+        private const val OWNER = "myworldmanager"
+        private const val ROUTE_ID = "world_migration_confirmation"
+        private const val ACTION_EXECUTE = "execute"
+        private const val ACTION_CANCEL = "cancel"
         private const val MAX_ATTEMPTS = 2
         private const val YIELD_THRESHOLD_MILLIS = 1_000L
     }

@@ -10,7 +10,6 @@ INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/Cre
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/GlobalMenuListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/PortalListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TourListener.kt
-INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/migration/WorldMigrationService.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
