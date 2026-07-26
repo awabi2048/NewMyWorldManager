@@ -1,7 +1,7 @@
 # Phase 1以降で削減する既存違反の完全な一時許可リスト。
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
 CREATE_INVENTORY|18|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
-CREATE_INVENTORY|3|src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.kt
+CREATE_INVENTORY|2|src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.kt
 CREATE_INVENTORY|3|src/main/kotlin/me/awabi2048/myworldmanager/ui/bedrock/BedrockMenuService.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/gui/EnvironmentGui.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/BedrockInventoryListener.kt

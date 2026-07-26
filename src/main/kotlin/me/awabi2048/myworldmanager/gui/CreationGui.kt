@@ -7,6 +7,15 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.*
@@ -35,6 +44,21 @@ import java.io.File
 import java.util.UUID
 
 class CreationGui(private val plugin: MyWorldManager) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = TYPE_ROUTE,
+                renderer = { context -> renderTypeSelection(context.player) },
+                actions = mapOf(
+                    ACTION_SELECT_TYPE to MenuActionHandler(::selectCreationType),
+                    ACTION_BACK to MenuActionHandler(::cancelCreation),
+                ),
+            ),
+        )
+    }
 
     fun openTypeSelection(player: Player) {
         val config = plugin.config
@@ -50,34 +74,98 @@ class CreationGui(private val plugin: MyWorldManager) {
             return
         }
 
-        val titleKey = "gui.creation.title_type"
-        if (!lang.hasKey(player, titleKey)) {
-             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-             return
-        }
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
         clearSettingsGuiTransition(player)
-        val holder = CreationGuiHolder(CreationMenuType.TYPE_SELECT)
+        runtime.navigate(player, MenuRoute(OWNER, TYPE_ROUTE))
+    }
+
+    private fun renderTypeSelection(player: Player): InventoryMenuView {
+        val lang = plugin.languageManager
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.threeChoiceLayout()
-        val inventory = Bukkit.createInventory(holder, layout.size, title)
-        holder.inv = inventory
-
-        setupHeaderFooter(inventory, 5)
-
         val templateItem = createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE, ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE)
         val randomItem = createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM, ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM)
-        me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceItems(
-            inventory,
-            templateItem,
-            createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
-            randomItem
+        return InventoryMenuView(
+            size = layout.size,
+            title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                lang.getMessage(player, "gui.creation.title_type"),
+            ),
+            elements = listOf(
+                MenuElement(layout.leftSlot, templateItem, GuiElementRole.ACTION, ACTION_SELECT_TYPE, mapOf("type" to WorldCreationType.TEMPLATE.name)),
+                MenuElement(
+                    layout.centerSlot,
+                    createCreationTypeItem(player, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, ItemTag.TYPE_GUI_CREATION_TYPE_SEED),
+                    GuiElementRole.ACTION,
+                    ACTION_SELECT_TYPE,
+                    mapOf("type" to WorldCreationType.SEED.name),
+                ),
+                MenuElement(layout.rightSlot, randomItem, GuiElementRole.ACTION, ACTION_SELECT_TYPE, mapOf("type" to WorldCreationType.RANDOM.name)),
+                MenuElement(layout.backSlot, createBackButton(player), GuiElementRole.NAVIGATION, ACTION_BACK),
+            ),
         )
+    }
 
-        me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
+    private fun selectCreationType(context: MenuActionContext): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val creationType = context.payload["type"]?.let {
+            runCatching { WorldCreationType.valueOf(it) }.getOrNull()
+        } ?: return MenuActionResult.Rejected()
+        val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
+        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+        if (
+            session.billingMode == me.awabi2048.myworldmanager.api.service.WorldPointBillingMode.STANDARD &&
+            MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+            stats.worldPoint < cost
+        ) {
+            context.player.sendMessage(
+                plugin.languageManager.getMessage(context.player, "messages.creation_insufficient_points"),
+            )
+            return MenuActionResult.Rejected()
+        }
 
-        fillBackground(inventory)
-        ManagedMenuPresenter.open(player, inventory)
+        session.creationType = creationType
+        return when (creationType) {
+            WorldCreationType.TEMPLATE -> {
+                if (plugin.templateRepository.findAll().none(plugin.templateRepository::isUsable)) {
+                    context.player.sendMessage(
+                        plugin.languageManager.getMessage(context.player, "error.preview_template_not_found"),
+                    )
+                    MenuActionResult.Rejected()
+                } else {
+                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        openTemplateSelection(context.player)
+                    })
+                    MenuActionResult.Success(MenuUpdate.Close)
+                }
+            }
+            WorldCreationType.SEED -> {
+                session.phase = WorldCreationPhase.SEED_INPUT
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (session.isDialogMode) {
+                        CreationDialogManager.showSeedInputDialog(context.player, session)
+                    } else {
+                        plugin.creationGuiListener.openSeedInputByPlatform(context.player, session)
+                    }
+                })
+                MenuActionResult.Success(MenuUpdate.Close)
+            }
+            WorldCreationType.RANDOM -> {
+                session.phase = WorldCreationPhase.NAME_INPUT
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (session.isDialogMode) {
+                        CreationDialogManager.showNameInputDialog(context.player, session)
+                    } else {
+                        plugin.creationGuiListener.openNameInputByPlatform(context.player, session)
+                    }
+                })
+                MenuActionResult.Success(MenuUpdate.Close)
+            }
+        }
+    }
+
+    private fun cancelCreation(context: MenuActionContext): MenuActionResult {
+        plugin.creationGuiListener.cancelAndReturnToMyWorld(context.player)
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     private fun createCreationTypeItem(
@@ -585,6 +673,10 @@ class CreationGui(private val plugin: MyWorldManager) {
         const val ADMIN_COMMAND_SESSION_KEY = "mwm:admin_command_creation"
         const val SEED_DIMENSION_SLOT = 39
         const val SEED_SPAWN_LOCATION_SLOT = 40
+        private const val OWNER = "myworldmanager"
+        private const val TYPE_ROUTE = "creation_type"
+        private const val ACTION_SELECT_TYPE = "select_type"
+        private const val ACTION_BACK = "back"
     }
 
     class CreationGuiHolder(val menuType: CreationMenuType) : InventoryHolder {

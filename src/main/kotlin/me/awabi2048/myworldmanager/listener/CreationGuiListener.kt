@@ -349,7 +349,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         return true
     }
 
-    private fun openSeedInputByPlatform(
+    fun openSeedInputByPlatform(
         player: Player,
         session: WorldCreationSession,
         errorMessage: String? = null
@@ -495,7 +495,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    private fun openNameInputByPlatform(player: Player, session: WorldCreationSession, errorMessage: Component? = null) {
+    fun openNameInputByPlatform(player: Player, session: WorldCreationSession, errorMessage: Component? = null) {
         if (!plugin.playerPlatformResolver.isBedrock(player)) {
             me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session, errorMessage)
             return
@@ -613,7 +613,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
                 )
     }
 
-    private fun cancelAndReturnToMyWorld(player: Player) {
+    fun cancelAndReturnToMyWorld(player: Player) {
         plugin.creationSessionManager.endSession(player.uniqueId)
         Bukkit.getScheduler().runTask(plugin, Runnable {
             if (player.isOnline) plugin.menuEntryRouter.openPlayerWorld(player, 0, false)
