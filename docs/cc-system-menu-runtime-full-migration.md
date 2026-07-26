@@ -132,7 +132,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `AdminCommandGui`
 - [x] `AdminPortalGui`
 - [ ] `CreationGui`
-- [ ] `DiscoveryGui`
+- [x] `DiscoveryGui`
 - [x] `EnvironmentGui`
 - [x] `FavoriteGui`
 - [x] `FavoriteMenuGui`
@@ -484,3 +484,6 @@ standalone_export:
 - CC-System 2.16.0で`MenuActionContext.cursor`を追加し、カーソルで保持中のアイテムをRuntime Actionへ安全な複製として渡すようにした。全90テストに成功した。
 - `TemplateWizardGui`の名前・説明入力、カーソルからのアイコン選択、原点設定、検証、保存、取消をRuntime RouteとActionへ移行した。
 - `TemplateWizardListener`はプレイヤーInventoryからアイコンを選ぶ外部入力とDialog/Form入力だけに縮小し、上段Inventoryクリック分岐と個別クリック音6参照を削除した。
+- `DiscoveryGui`のワールド一覧、ページ移動、タグ・未訪問フィルタ、並び替え、ワープ、プレビュー、メンバー申請、お気に入り、スポットライト登録・解除をRuntime RouteとActionへ移行した。
+- 旧画面で生成済みなのに配置されていなかったタグフィルターを共通フッターへ配置し、常に先頭10件を表示していたページ計算をRouteの現在ページへ接続した。
+- `DiscoveryListener`からInventoryクリック処理と個別クリック音15参照を削除し、スポットライト説明の共通Dialog入力だけを残した。

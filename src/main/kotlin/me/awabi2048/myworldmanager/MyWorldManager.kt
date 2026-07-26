@@ -124,6 +124,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
     lateinit var templateWizardListener: TemplateWizardListener
+    lateinit var discoveryListener: DiscoveryListener
     lateinit var creationGuiListener: CreationGuiListener
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
@@ -361,7 +362,8 @@ class MyWorldManager : JavaPlugin() {
             // WorldEditのcut/copy/pasteはBukkitの通常ブロックイベントを通らないため、ポータルメタデータを別途同期する。
             server.pluginManager.registerEvents(WorldEditPortalSyncListener(this), this)
         }
-        server.pluginManager.registerEvents(DiscoveryListener(this), this)
+        discoveryListener = DiscoveryListener(this)
+        server.pluginManager.registerEvents(discoveryListener, this)
         server.pluginManager.registerEvents(SpotlightListener(this), this)
         server.pluginManager.registerEvents(TemplatePreviewListener(), this)
         server.pluginManager.registerEvents(EnvironmentLogicListener(this), this)

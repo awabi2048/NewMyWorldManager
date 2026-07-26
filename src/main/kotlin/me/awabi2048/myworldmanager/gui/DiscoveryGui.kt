@@ -1,12 +1,25 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
+import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
+import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.session.PreviewSessionManager
+import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -17,8 +30,10 @@ import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
+import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
+import net.kyori.adventure.text.Component
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -30,17 +45,33 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import java.time.LocalDate
 
 class DiscoveryGui(private val plugin: MyWorldManager) {
-
+        private val runtime = CCSystem.getAPI().getMenuRuntimeService()
         private val itemsPerPage = 10
 
-        fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
-                val lang = plugin.languageManager
-                val session = plugin.discoverySessionManager.getSession(player.uniqueId)
+        init {
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = OWNER,
+                                id = ROUTE_ID,
+                                renderer = { context -> render(context.player, context.route) },
+                                actions = mapOf(
+                                        ACTION_WORLD to MenuActionHandler(::world),
+                                        ACTION_TAG to MenuActionHandler(::tag),
+                                        ACTION_SORT to MenuActionHandler(::sort),
+                                        ACTION_SPECIAL_FILTER to MenuActionHandler(::specialFilter),
+                                        ACTION_SPOTLIGHT_EMPTY to MenuActionHandler(::spotlightEmpty),
+                                        ACTION_PAGE to MenuActionHandler(::page),
+                                        ACTION_BACK to MenuActionHandler(::back),
+                                ),
+                        ),
+                )
+        }
 
+        fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
+                val session = plugin.discoverySessionManager.getSession(player.uniqueId)
                 if (showBackButton != null) {
                         session.showBackButton = showBackButton
                 }
-
                 if (
                         MyWorldManagerApi.openDiscoveryMenuOverride(
                                 player,
@@ -52,8 +83,12 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 ) {
                         return
                 }
+                runtime.navigate(player, route(page))
+        }
 
-                // ワールドの取得とフィルタリング
+        private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+                val lang = plugin.languageManager
+                val session = plugin.discoverySessionManager.getSession(player.uniqueId)
                 val selectedTag = session.selectedTag?.takeIf {
                         it in plugin.worldTagManager.getEnabledTagIds()
                 }
@@ -73,7 +108,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 !playerStats.visitedWorlds.containsKey(it.uuid)
                                 }
 
-                // ソート
                 val sortedWorlds =
                         when (session.sort) {
                                 DiscoverySort.HOT ->
@@ -99,47 +133,19 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val totalPages =
                         if (sortedWorlds.isEmpty()) 1
                         else (sortedWorlds.size + itemsPerPage - 1) / itemsPerPage
-                val currentPage = page.coerceIn(0, totalPages - 1)
-
-                val titleKey = "gui.discovery.title"
-                val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-                val inventorySize = GuiHelper.settingsLayout().size
-                val inventory =
-                        if (player.openInventory.topInventory.holder is DiscoveryGuiHolder) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = DiscoveryGuiHolder()
-                                val inv = Bukkit.createInventory(holder, inventorySize, title)
-                                holder.inv = inv
-                                inv
-                        }
-
-                // 背景
-                val grayPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-                val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-                val whitePane = GuiItemFactory.decoration(Material.WHITE_STAINED_GLASS_PANE)
-
-                // Clear content area if reusing
-                if (player.openInventory.topInventory == inventory) {
-                        for (i in 0 until inventorySize) inventory.setItem(i, null)
-                }
-
-                GuiItemFactory.applyStandardFrame(inventory)
-
-                // ワールド表示エリアの背景 (21-23, 28-34)
+                val currentPage = route.payload[PAGE]?.toIntOrNull()?.coerceIn(0, totalPages - 1) ?: 0
                 val worldItemSlots = listOf(21, 22, 23, 28, 29, 30, 31, 32, 33, 34)
-                worldItemSlots.forEach { inventory.setItem(it, whitePane) }
-
-                // ページ内アイテムの配置 (1ページのみ, 上位10件)
-                val pageWorlds = sortedWorlds.take(itemsPerPage)
+                val pageWorlds = sortedWorlds.drop(currentPage * itemsPerPage).take(itemsPerPage)
+                val elements = mutableListOf<MenuElement>()
 
                 if (sortedWorlds.isEmpty()) {
-                        // SPOTLIGHT ソート時は空枠を表示
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
-                                for (i in 0 until worldItemSlots.size) {
-                                        inventory.setItem(
-                                                worldItemSlots[i],
-                                                createSpotlightEmptyItem(player)
+                                worldItemSlots.forEach { slot ->
+                                        elements += MenuElement(
+                                                slot,
+                                                createSpotlightEmptyItem(player),
+                                                GuiElementRole.ACTION,
+                                                ACTION_SPOTLIGHT_EMPTY,
                                         )
                                 }
                         } else {
@@ -151,42 +157,419 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 )
                                 noResultItem.itemMeta = noResultMeta
                                 ItemTag.tagItem(noResultItem, ItemTag.TYPE_GUI_DECORATION)
-                                inventory.setItem(31, noResultItem)
+                                elements += MenuElement(31, noResultItem, GuiElementRole.CONTENT)
                         }
                 } else {
                         pageWorlds.forEachIndexed { index, worldData ->
-                                inventory.setItem(
+                                elements += MenuElement(
                                         worldItemSlots[index],
-                                        createWorldItem(player, worldData)
+                                        createWorldItem(player, worldData),
+                                        GuiElementRole.ACTION,
+                                        ACTION_WORLD,
+                                        mapOf(WORLD_UUID to worldData.uuid.toString()),
                                 )
                         }
-
-                        // SPOTLIGHT ソート時の空枠埋め
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
                                 for (i in pageWorlds.size until worldItemSlots.size) {
-                                        inventory.setItem(
+                                        elements += MenuElement(
                                                 worldItemSlots[i],
-                                                createSpotlightEmptyItem(player)
+                                                createSpotlightEmptyItem(player),
+                                                GuiElementRole.ACTION,
+                                                ACTION_SPOTLIGHT_EMPTY,
                                         )
                                 }
                         }
                 }
-
-                // ソート & フィルタ
-                inventory.setItem(48, createSortButton(player, session.sort))
-                GuiHelper.setSettingsFooter(
-                        inventory,
-                        if (session.showBackButton) GuiHelper.createReturnItem(plugin, player, "discovery") else null,
-                        createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size)
+                if (session.showBackButton) {
+                        elements += MenuElement(
+                                45,
+                                GuiHelper.createReturnItem(plugin, player, "discovery"),
+                                GuiElementRole.BACK,
+                                ACTION_BACK,
+                        )
+                }
+                if (currentPage > 0) {
+                        elements += MenuElement(
+                                46,
+                                GuiHelper.createPrevPageItem(plugin, player, "discovery", currentPage - 1),
+                                GuiElementRole.NAVIGATION,
+                                ACTION_PAGE,
+                                mapOf(PAGE to (currentPage - 1).toString()),
+                        )
+                }
+                elements += MenuElement(47, createTagFilterButton(player, session.selectedTag), GuiElementRole.ACTION, ACTION_TAG)
+                elements += MenuElement(48, createSortButton(player, session.sort), GuiElementRole.ACTION, ACTION_SORT)
+                elements += MenuElement(49, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size), GuiElementRole.CONTENT)
+                elements += MenuElement(50, createSpecialFilterButton(player, session.specialFilter), GuiElementRole.ACTION, ACTION_SPECIAL_FILTER)
+                if (currentPage < totalPages - 1) {
+                        elements += MenuElement(
+                                53,
+                                GuiHelper.createNextPageItem(plugin, player, "discovery", currentPage + 1),
+                                GuiElementRole.NAVIGATION,
+                                ACTION_PAGE,
+                                mapOf(PAGE to (currentPage + 1).toString()),
+                        )
+                }
+                return InventoryMenuView(
+                        GuiHelper.settingsLayout().size,
+                        GuiHelper.inventoryTitle(lang.getMessage(player, "gui.discovery.title")),
+                        elements,
                 )
-                inventory.setItem(50, createSpecialFilterButton(player, session.specialFilter))
+        }
 
-                GuiHelper.playMenuOpen(player, "discovery")
+        private fun page(context: MenuActionContext): MenuActionResult {
+                val target = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+                return MenuActionResult.Success(MenuUpdate.Replace(route(target)))
+        }
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
+        private fun back(context: MenuActionContext): MenuActionResult {
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                GuiHelper.handleReturnClick(
+                                        plugin,
+                                        context.player,
+                                        GuiHelper.createReturnItem(plugin, context.player, "discovery"),
+                                )
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun tag(context: MenuActionContext): MenuActionResult {
+                val session = plugin.discoverySessionManager.getSession(context.player.uniqueId)
+                val direction = cycleDirection(context) ?: return MenuActionResult.Ignored
+                session.selectedTag = GuiCycle.selectNullable(
+                        session.selectedTag,
+                        plugin.worldTagManager.getEnabledTagIds() + null,
+                        direction,
+                )
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
+
+        private fun sort(context: MenuActionContext): MenuActionResult {
+                val player = context.player
+                val session = plugin.discoverySessionManager.getSession(player.uniqueId)
+                if (
+                        !plugin.playerPlatformResolver.isBedrock(player) &&
+                        context.click.isShiftClick &&
+                        context.click.isLeftClick &&
+                        session.sort == DiscoverySort.SPOTLIGHT &&
+                        canManageSpotlight(player)
+                ) {
+                        Bukkit.getScheduler().runTask(
+                                plugin,
+                                Runnable { plugin.discoveryListener.openSpotlightDescriptionDialog(player) },
+                        )
+                        return MenuActionResult.Success(MenuUpdate.Close)
+                }
+                val direction = cycleDirection(context) ?: return MenuActionResult.Ignored
+                session.sort = GuiCycle.select(session.sort, DiscoverySort.values(), direction)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
+
+        private fun specialFilter(context: MenuActionContext): MenuActionResult {
+                val session = plugin.discoverySessionManager.getSession(context.player.uniqueId)
+                val direction = cycleDirection(context) ?: return MenuActionResult.Ignored
+                session.specialFilter = GuiCycle.select(
+                        session.specialFilter,
+                        DiscoverySpecialFilter.values(),
+                        direction,
+                )
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
+
+        private fun world(context: MenuActionContext): MenuActionResult {
+                val uuid = context.payload[WORLD_UUID]
+                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return MenuActionResult.Rejected()
+                val worldData = plugin.worldConfigRepository.findByUuid(uuid)
+                        ?: return MenuActionResult.Rejected()
+                val player = context.player
+                val isMember = player.uniqueId == worldData.owner ||
+                        player.uniqueId in worldData.moderators ||
+                        player.uniqueId in worldData.members
+                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                        return visit(player, worldData, isMember)
+                }
+                val currentWorld = plugin.worldConfigRepository.findByWorldName(player.world.name)
+                val isCurrentWorld = currentWorld?.uuid == worldData.uuid
+                return when {
+                        context.click.isShiftClick && context.click.isLeftClick ->
+                                requestMembership(player, worldData, isMember)
+                        context.click.isLeftClick && !isCurrentWorld ->
+                                visit(player, worldData, isMember)
+                        context.click.isShiftClick && context.click.isRightClick &&
+                                plugin.discoverySessionManager.getSession(player.uniqueId).sort == DiscoverySort.SPOTLIGHT &&
+                                canManageSpotlight(player) ->
+                                removeSpotlight(player, worldData)
+                        context.click.isShiftClick && context.click.isRightClick ->
+                                toggleFavorite(player, worldData, isMember)
+                        context.click.isRightClick && !isCurrentWorld ->
+                                preview(player, worldData)
+                        else -> MenuActionResult.Ignored
                 }
         }
+
+        private fun visit(player: Player, worldData: WorldData, isMember: Boolean): MenuActionResult {
+                if (!MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
+                        player.sendMessage(
+                                WorldAccessMessageResolver.visit(
+                                        plugin.languageManager,
+                                        player,
+                                        worldData,
+                                        isMember,
+                                ),
+                        )
+                        plugin.soundManager.playActionSound(player, "discovery", "access_denied")
+                        return MenuActionResult.Success(MenuUpdate.Close)
+                }
+                plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.warp_success",
+                                        mapOf("world" to worldData.name),
+                                ),
+                        )
+                }
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun requestMembership(
+                player: Player,
+                worldData: WorldData,
+                isMember: Boolean,
+        ): MenuActionResult {
+                val lang = plugin.languageManager
+                if (isMember) {
+                        player.sendMessage(lang.getMessage(player, "error.member_request_already_member"))
+                        return MenuActionResult.Rejected()
+                }
+                val title = Component.text(lang.getMessage(player, "gui.member_request_confirm.title"))
+                val body = lang.getMessageList(
+                        player,
+                        "gui.member_request_confirm.lore",
+                        mapOf("world" to worldData.name),
+                ).map(Component::text)
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player,
+                                        plugin,
+                                        title,
+                                        body,
+                                        "mwm:confirm/member_request_send/${worldData.uuid}",
+                                        "mwm:confirm/cancel",
+                                ) {
+                                        plugin.menuEntryRouter.openMemberRequestConfirm(
+                                                player,
+                                                worldData,
+                                                onBedrockConfirm = {
+                                                        plugin.memberRequestManager.sendRequest(player, worldData.uuid)
+                                                },
+                                                onBedrockCancel = {
+                                                        plugin.soundManager.playActionSound(
+                                                                player,
+                                                                "member_request",
+                                                                "cancel",
+                                                        )
+                                                },
+                                        )
+                                }
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun removeSpotlight(player: Player, worldData: WorldData): MenuActionResult {
+                val lang = plugin.languageManager
+                val title = Component.text(lang.getMessage(player, "gui.discovery.spotlight_remove_confirm.title"))
+                val body = lang.getMessageList(
+                        player,
+                        "gui.discovery.spotlight_remove_confirm.lore",
+                        mapOf("world" to worldData.name),
+                ).map(Component::text)
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player,
+                                        plugin,
+                                        title,
+                                        body,
+                                        "mwm:confirm/spotlight_remove/${worldData.uuid}",
+                                        "mwm:confirm/cancel",
+                                ) {
+                                        plugin.menuEntryRouter.openSpotlightRemoveConfirm(
+                                                player,
+                                                worldData,
+                                                onBedrockConfirm = {
+                                                        plugin.spotlightRepository.remove(worldData.uuid)
+                                                        player.sendMessage(
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "messages.spotlight_removed",
+                                                                        mapOf("world" to worldData.name),
+                                                                ),
+                                                        )
+                                                        plugin.menuEntryRouter.openDiscovery(player)
+                                                },
+                                                onBedrockCancel = {
+                                                        plugin.menuEntryRouter.openDiscovery(player)
+                                                },
+                                        )
+                                }
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun toggleFavorite(
+                player: Player,
+                worldData: WorldData,
+                isMember: Boolean,
+        ): MenuActionResult {
+                if (isMember) return MenuActionResult.Ignored
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                val lang = plugin.languageManager
+                var added = false
+                if (stats.favoriteWorlds.containsKey(worldData.uuid)) {
+                        stats.favoriteWorlds.remove(worldData.uuid)
+                        worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
+                        player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
+                        plugin.soundManager.playActionSound(player, "discovery", "favorite_remove")
+                } else {
+                        val limit = plugin.config.getInt("favorite.max_count", 1000)
+                        if (stats.favoriteWorlds.size >= limit) {
+                                player.sendMessage(
+                                        lang.getMessage(
+                                                player,
+                                                "error.favorite_limit_reached",
+                                                mapOf("limit" to limit),
+                                        ),
+                                )
+                                return MenuActionResult.Rejected()
+                        }
+                        val date = java.time.LocalDate.now()
+                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                        stats.favoriteWorlds[worldData.uuid] = date
+                        worldData.favorite++
+                        added = true
+                        player.sendMessage(lang.getMessage(player, "messages.favorite_added"))
+                        plugin.soundManager.playActionSound(player, "discovery", "favorite_add")
+                }
+                plugin.playerStatsRepository.save(stats)
+                plugin.worldConfigRepository.save(worldData)
+                if (added) {
+                        Bukkit.getPluginManager().callEvent(
+                                MwmWorldFavoritedEvent(
+                                        worldData.uuid,
+                                        worldData.name,
+                                        player.uniqueId,
+                                        player.name,
+                                        MwmFavoriteAddSource.DISCOVERY_MENU,
+                                ),
+                        )
+                }
+                return MenuActionResult.Success(MenuUpdate.Refresh)
+        }
+
+        private fun preview(player: Player, worldData: WorldData): MenuActionResult {
+                plugin.previewSessionManager.startPreview(
+                        player,
+                        PreviewSessionManager.PreviewTarget.World(worldData),
+                        PreviewSource.DISCOVERY_MENU,
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun spotlightEmpty(context: MenuActionContext): MenuActionResult {
+                val player = context.player
+                if (!canManageSpotlight(player)) return MenuActionResult.Ignored
+                val worldData = currentManagedWorld(player) ?: run {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(player, "error.spotlight_not_in_myworld"),
+                        )
+                        return MenuActionResult.Rejected()
+                }
+                val lang = plugin.languageManager
+                val title = Component.text(lang.getMessage(player, "gui.spotlight_confirm.title"))
+                val body = lang.getMessageList(
+                        player,
+                        "gui.spotlight_confirm.lore",
+                        mapOf("world" to worldData.name),
+                ).map(Component::text)
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player,
+                                        plugin,
+                                        title,
+                                        body,
+                                        "mwm:confirm/spotlight_add/${worldData.uuid}",
+                                        "mwm:confirm/cancel",
+                                ) {
+                                        plugin.menuEntryRouter.openSpotlightConfirm(
+                                                player,
+                                                worldData,
+                                                onBedrockConfirm = {
+                                                        if (plugin.spotlightRepository.isSpotlight(worldData.uuid)) {
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "error.spotlight_already_registered",
+                                                                        ),
+                                                                )
+                                                        } else if (plugin.spotlightRepository.add(worldData.uuid)) {
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "messages.spotlight_added",
+                                                                                mapOf("world" to worldData.name),
+                                                                        ),
+                                                                )
+                                                        } else {
+                                                                player.sendMessage(
+                                                                        lang.getMessage(
+                                                                                player,
+                                                                                "error.spotlight_limit_reached",
+                                                                        ),
+                                                                )
+                                                        }
+                                                        plugin.menuEntryRouter.openDiscovery(player)
+                                                },
+                                                onBedrockCancel = {
+                                                        plugin.menuEntryRouter.openDiscovery(player)
+                                                },
+                                        )
+                                }
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun currentManagedWorld(player: Player): WorldData? {
+                if (player.world.name.startsWith("my_world.")) {
+                        val uuid = runCatching {
+                                UUID.fromString(player.world.name.removePrefix("my_world."))
+                        }.getOrNull()
+                        uuid?.let(plugin.worldConfigRepository::findByUuid)?.let { return it }
+                }
+                return plugin.worldConfigRepository.findByWorldName(player.world.name)
+        }
+
+        private fun cycleDirection(context: MenuActionContext): GuiCycleDirection? =
+                if (plugin.playerPlatformResolver.isBedrock(context.player)) {
+                        GuiCycleDirection.NEXT
+                } else {
+                        GuiCycle.direction(context.click)
+                }
+
+        private fun route(page: Int): MenuRoute =
+                MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to page.toString()))
 
         private fun createWorldItem(player: Player, data: WorldData): ItemStack {
                 val item = ItemStack(data.icon)
@@ -480,8 +863,17 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 return item
         }
 
-        class DiscoveryGuiHolder : org.bukkit.inventory.InventoryHolder {
-                lateinit var inv: org.bukkit.inventory.Inventory
-                override fun getInventory(): org.bukkit.inventory.Inventory = inv
+        companion object {
+                private const val OWNER = "myworldmanager"
+                private const val ROUTE_ID = "discovery"
+                private const val PAGE = "page"
+                private const val WORLD_UUID = "worldUuid"
+                private const val ACTION_WORLD = "world"
+                private const val ACTION_TAG = "tag"
+                private const val ACTION_SORT = "sort"
+                private const val ACTION_SPECIAL_FILTER = "specialFilter"
+                private const val ACTION_SPOTLIGHT_EMPTY = "spotlightEmpty"
+                private const val ACTION_PAGE = "page"
+                private const val ACTION_BACK = "back"
         }
 }
