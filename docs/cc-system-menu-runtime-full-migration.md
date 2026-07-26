@@ -134,7 +134,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `CreationGui`
 - [ ] `DiscoveryGui`
 - [x] `EnvironmentGui`
-- [ ] `FavoriteGui`
+- [x] `FavoriteGui`
 - [x] `FavoriteMenuGui`
 - [x] `InviteGui`
 - [x] `MeetGui`
@@ -479,3 +479,5 @@ standalone_export:
 - `EnvironmentGui`の重力、天候、バイオーム案内、戻る操作をRuntime RouteとActionへ移行し、直接Inventory生成と`WorldSettingsListener`内の旧上段クリック分岐を削除した。
 - 月の石とバイオーム瓶は画面ActionではなくプレイヤーInventoryからの外部入力であるため、専用の下段入力Listenerとして境界を明示した。旧共通下段ガードにより到達不能だった確認導線も復旧した。
 - 環境変更確認は重力・天候・バイオームを共通確認画面から各実行処理へ接続し、MyWorldManagerの全36テストと`mvn clean package`に成功した。
+- `FavoriteGui`の一覧、ページ移動、タグ絞り込み、戻り先、ワープ、プレビュー、お気に入り解除確認をRuntime RouteとActionへ移行した。
+- `FavoriteListener`から専用Inventoryクリック処理を削除し、Java/Bedrock共通のDialog応答だけを残した。直接Inventory生成1件、Inventoryクリックイベント2参照、個別クリック音6参照を削減した。
