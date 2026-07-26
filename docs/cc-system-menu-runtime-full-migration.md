@@ -144,7 +144,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `TemplateWizardGui`
 - [ ] `TourGui`
 - [x] `UserSettingsGui`
-- [ ] `VisitGui`
+- [x] `VisitGui`
 - [x] `VisitWorldGui`
 - [ ] `WorldGui`
 - [ ] `WorldSettingsGui`

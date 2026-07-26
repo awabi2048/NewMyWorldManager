@@ -6,7 +6,6 @@ CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/InviteGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/MeetGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/PlayerWorldGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/TemplateWizardGui.kt
-CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/VisitGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
 CREATE_INVENTORY|18|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
@@ -37,7 +36,6 @@ INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/Mee
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/PlayerWorldListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/PortalListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TourListener.kt
-INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/VisitListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSeedListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/migration/WorldMigrationService.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
@@ -59,7 +57,6 @@ MANUAL_CLICK_SOUND|15|src/main/kotlin/me/awabi2048/myworldmanager/listener/TourL
 MANUAL_CLICK_SOUND|4|src/main/kotlin/me/awabi2048/myworldmanager/listener/AdminCommandListener.kt
 MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/MemberRequestConfirmListener.kt
 MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/MemberRequestOwnerConfirmListener.kt
-MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/VisitListener.kt
 MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/util/SoundManager.kt
 MANUAL_CLICK_SOUND|5|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
 MANUAL_CLICK_SOUND|5|src/main/kotlin/me/awabi2048/myworldmanager/listener/MeetListener.kt
