@@ -346,7 +346,6 @@ class MyWorldManager : JavaPlugin() {
         // 旧 GuiListener を分割して登録
         server.pluginManager.registerEvents(PlayerWorldListener(this), this)
         server.pluginManager.registerEvents(FavoriteListener(this), this)
-        server.pluginManager.registerEvents(MeetListener(this), this)
 
         server.pluginManager.registerEvents(AdminGuiListener(), this)
         server.pluginManager.registerEvents(AdminCommandListener(), this)

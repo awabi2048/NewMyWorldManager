@@ -137,7 +137,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `FavoriteGui`
 - [x] `FavoriteMenuGui`
 - [x] `InviteGui`
-- [ ] `MeetGui`
+- [x] `MeetGui`
 - [x] `PendingInteractionGui`
 - [ ] `PlayerWorldGui`
 - [x] `PortalGui`
