@@ -229,7 +229,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 GuiHelper.handleReturnClick(
                                         plugin,
                                         context.player,
-                                        GuiHelper.createReturnItem(plugin, context.player, "discovery"),
                                 )
                         },
                 )

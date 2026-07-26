@@ -491,5 +491,6 @@ standalone_export:
 - `WorldGui`のページ、各種フィルタ、並び替え、ワールド操作、ワープ、設定遷移、戻り導線、自動更新をRuntime RouteとActionへ移行した。`AdminGuiListener`から一覧画面のクリック分岐と個別クリック音を除去し、チャット入力とディレクトリ案内だけを補助処理として残した。
 - `AdminCommandGui`に残っていた管理操作の確認Inventory 8経路を単一のRuntime Routeへ統合した。確認とキャンセルをRuntime Actionへ移し、`AdminCommandListener`からInventoryClickEvent、CustomClick、個別クリック音を除去して実行処理だけを残した。
 - `WorldMigrationService`の実行確認をRuntime Routeへ移し、専用InventoryHolderとInventoryClickEventを削除した。
+- Runtime Actionから利用する`GuiHelper.handleReturnClick`の重複クリック音を削除し、共通補助層の手動クリック音経路を廃止した。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。

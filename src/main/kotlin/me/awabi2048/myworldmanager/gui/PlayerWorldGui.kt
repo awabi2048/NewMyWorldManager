@@ -288,7 +288,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 GuiHelper.handleReturnClick(
                                         plugin,
                                         context.player,
-                                        GuiHelper.createReturnItem(plugin, context.player, "player_world"),
                                 )
                         },
                 )

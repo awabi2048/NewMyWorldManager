@@ -7,7 +7,6 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiPagedListLayout
 import com.awabi2048.ccsystem.api.gui.GuiSettingsLayout
 import com.awabi2048.ccsystem.api.gui.GuiThreeChoiceLayout
-import com.awabi2048.ccsystem.api.gui.MenuClickType
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import net.kyori.adventure.text.Component
@@ -25,9 +24,6 @@ import org.bukkit.inventory.ItemStack
 object GuiHelper {
     private val layoutService
         get() = CCSystem.getAPI().getGuiLayoutService()
-
-    private val menuSoundService
-        get() = CCSystem.getAPI().getMenuSoundService()
 
     fun isPluginGuiInventory(inventory: Inventory): Boolean {
         val holderClassName = inventory.holder?.javaClass?.name
@@ -57,13 +53,6 @@ object GuiHelper {
      */
     fun playMenuOpen(player: Player, menuId: String) {
         // 開く音はManagedMenuPresenterからCC-System Runtimeが一度だけ再生する。
-    }
-
-    /**
-     * メニュー内のボタンクリック音を明示的に再生する。
-     */
-    fun playMenuClick(player: Player, menuId: String, clickType: MenuClickType = MenuClickType.DEFAULT) {
-        menuSoundService.onMenuClick(player, menuId, clickType)
     }
 
     /**
@@ -150,8 +139,7 @@ object GuiHelper {
         return item
     }
 
-    fun handleReturnClick(plugin: MyWorldManager, player: Player, item: org.bukkit.inventory.ItemStack) {
-        plugin.soundManager.playClickSound(player, item)
+    fun handleReturnClick(plugin: MyWorldManager, player: Player) {
         if (plugin.menuRouteHistory.openPrevious(player)) {
             return
         }

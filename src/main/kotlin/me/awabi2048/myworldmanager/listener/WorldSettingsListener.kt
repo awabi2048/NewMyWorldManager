@@ -1413,8 +1413,7 @@ class WorldSettingsListener : Listener {
                                                         me.awabi2048.myworldmanager.util.GuiHelper
                                                                 .handleReturnClick(
                                                                         plugin,
-                                                                        player,
-                                                                        clickedItem
+                                                                        player
                                                                 )
                                                 }
                                         }

@@ -170,7 +170,6 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                     else -> GuiHelper.handleReturnClick(
                         plugin,
                         context.player,
-                        GuiHelper.createReturnItem(plugin, context.player, "favorite"),
                     )
                 }
             },
