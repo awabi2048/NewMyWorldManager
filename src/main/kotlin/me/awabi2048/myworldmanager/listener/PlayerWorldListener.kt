@@ -4,26 +4,25 @@ package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PlayerWorldGui
 import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
@@ -268,20 +267,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        if (identifier != Key.key("mwm:invite/input_submit") && identifier != Key.key("mwm:invite/input_cancel")) {
-            return
-        }
-
-        if (identifier == Key.key("mwm:invite/input_cancel")) {
-            plugin.inviteSessionManager.endSession(player.uniqueId)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
-            plugin.playerWorldGui.open(player)
-            return
-        }
-
-        val view = event.getDialogResponseView() ?: return
-        val input = view.getText("invite_player")?.toString().orEmpty()
-        processInviteInput(player, input)
     }
 
     private fun openBedrockInviteInputForm(player: Player): Boolean {
@@ -314,42 +299,43 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
 
     private fun showInviteInputDialog(player: Player) {
         val lang = plugin.languageManager
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(Component.text(lang.getMessage(player, "gui.member_management.invite.name"), NamedTextColor.YELLOW))
-                        .body(
-                            listOf(
-                                DialogBody.plainMessage(Component.text(lang.getMessage(player, "messages.member_invite_input")))
-                            )
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = "member-invite-input",
+                title = Component.text(
+                    lang.getMessage(player, "gui.member_management.invite.name"),
+                    NamedTextColor.YELLOW,
+                ),
+                body = listOf(Component.text(lang.getMessage(player, "messages.member_invite_input"))),
+                inputs = listOf(
+                    MenuDialogInput.Text(
+                        "invite_player",
+                        Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label")),
+                        maxLength = 16,
+                    ),
+                ),
+                confirm = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    MenuDialogHandler { target, response ->
+                        processInviteInput(target, response.textValue("invite_player"))
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    MenuDialogHandler { target, _ ->
+                        plugin.inviteSessionManager.endSession(target.uniqueId)
+                        target.sendMessage(
+                            plugin.languageManager.getMessage(target, "messages.operation_cancelled"),
                         )
-                        .inputs(
-                            listOf(
-                                DialogInput.text("invite_player", Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label")))
-                                    .maxLength(16)
-                                    .build()
-                            )
-                        )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key("mwm:invite/input_submit"), null)
-                        ),
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key("mwm:invite/input_cancel"), null)
-                        )
-                    )
-                )
-        }
-        player.showDialog(dialog)
+                        plugin.playerWorldGui.open(target)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
     }
 
     private fun processInviteInput(player: Player, rawInput: String) {
