@@ -123,6 +123,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
+    lateinit var templateWizardListener: TemplateWizardListener
     lateinit var creationGuiListener: CreationGuiListener
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
@@ -368,7 +369,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(MemberRequestConfirmListener(this), this)
         server.pluginManager.registerEvents(MemberRequestOwnerConfirmListener(this), this)
         server.pluginManager.registerEvents(WorldSeedListener(this), this)
-        server.pluginManager.registerEvents(TemplateWizardListener(), this)
+        templateWizardListener = TemplateWizardListener()
+        server.pluginManager.registerEvents(templateWizardListener, this)
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
         server.pluginManager.registerEvents(GlobalMenuListener(this), this)
         server.pluginManager.registerEvents(CreationDialogManager(), this)

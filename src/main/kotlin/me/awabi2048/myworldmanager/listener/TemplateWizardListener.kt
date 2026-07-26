@@ -30,130 +30,6 @@ import org.bukkit.plugin.java.JavaPlugin
 class TemplateWizardListener : Listener {
 
     @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val view = event.view
-        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
-        val player = event.whoClicked as? Player ?: return
-        val lang = plugin.languageManager
-
-        if (!lang.isKeyMatch(title, "gui.template_wizard.title")) return
-
-        event.cancelWithDebug("TemplateWizardListener.onInventoryClick: template wizard GUI click")
-        if (event.clickedInventory != view.topInventory) return
-        val currentItem = event.currentItem ?: return
-        if (currentItem.type == Material.AIR) return
-
-        val id = ItemTag.getType(currentItem) ?: return
-        val session = plugin.templateWizardGui.getSession(player.uniqueId) ?: return
-
-        when (id) {
-            "name_input" -> {
-                plugin.soundManager.playClickSound(player, currentItem)
-                ManagedMenuPresenter.close(player)
-                openTemplateNameInput(plugin, player, session)
-            }
-
-            "desc_input" -> {
-                plugin.soundManager.playClickSound(player, currentItem)
-                ManagedMenuPresenter.close(player)
-                openTemplateDescriptionInput(plugin, player, session)
-            }
-
-            "icon_select" -> {
-                plugin.soundManager.playClickSound(player, currentItem)
-                val cursor = event.cursor
-                if (cursor.type != Material.AIR) {
-                    session.icon = cursor.type
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    plugin.templateWizardGui.open(player)
-                    return
-                }
-                player.sendMessage(lang.getMessage(player, "messages.template_wizard_icon_help"))
-            }
-
-            "origin_set" -> {
-                plugin.soundManager.playClickSound(player, currentItem)
-                if (player.world.name != session.sourceWorldName) {
-                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_source_changed"))
-                    return
-                }
-                session.originLocation = player.location.clone()
-                player.sendMessage(lang.getMessage(player, "messages.template_wizard_spawn_set"))
-                plugin.templateWizardGui.open(player)
-            }
-
-            "save_confirm" -> {
-                plugin.soundManager.playClickSound(player, currentItem)
-
-                val templateId = session.id
-                if (templateId.isEmpty()) {
-                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_missing"))
-                    return
-                }
-                val origin = session.originLocation
-                if (origin == null || origin.world?.name != session.sourceWorldName) {
-                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_source_changed"))
-                    return
-                }
-                if (plugin.templateRepository.findById(templateId) != null) {
-                    player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_exists"))
-                    return
-                }
-
-                plugin.templateRepository.saveTemplate(
-                    TemplateData(
-                        id = templateId,
-                        path = session.sourceWorldName,
-                        name = session.name,
-                        description = session.description,
-                        icon = session.icon,
-                        originLocation = origin.clone()
-                    )
-                )
-
-                player.sendMessage(
-                    lang.getMessage(
-                        player,
-                        "messages.wizard_registered",
-                        mapOf("template" to templateId)
-                    )
-                )
-                ManagedMenuPresenter.close(player)
-                plugin.templateWizardGui.removeSession(player.uniqueId)
-                plugin.templateRepository.loadTemplates()
-            }
-
-            "wizard_cancel" -> {
-                plugin.templateWizardGui.removeSession(player.uniqueId)
-                ManagedMenuPresenter.close(player)
-                player.sendMessage(lang.getMessage(player, "messages.operation_cancelled"))
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    plugin.adminCommandGui.open(player)
-                })
-            }
-
-            "wizard_validate" -> {
-                val valid =
-                    session.id.isNotEmpty() &&
-                        session.name.isNotEmpty() &&
-                        session.originLocation?.world?.name == session.sourceWorldName
-                player.sendMessage(
-                    lang.getMessage(
-                        player,
-                        if (valid) {
-                            "messages.template_wizard_validation_success"
-                        } else {
-                            "messages.template_wizard_validation_failed"
-                        }
-                    )
-                )
-                plugin.templateWizardGui.open(player)
-            }
-        }
-    }
-
-    @EventHandler(ignoreCancelled = false)
     fun onPlayerInventoryClick(event: InventoryClickEvent) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val player = event.whoClicked as? Player ?: return
@@ -175,7 +51,7 @@ class TemplateWizardListener : Listener {
         }
     }
 
-    private fun openTemplateNameInput(
+    fun openTemplateNameInput(
         plugin: MyWorldManager,
         player: Player,
         session: TemplateWizardGui.WizardSession
@@ -230,7 +106,7 @@ class TemplateWizardListener : Listener {
         )
     }
 
-    private fun openTemplateDescriptionInput(
+    fun openTemplateDescriptionInput(
         plugin: MyWorldManager,
         player: Player,
         session: TemplateWizardGui.WizardSession

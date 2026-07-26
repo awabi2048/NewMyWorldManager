@@ -1,7 +1,6 @@
 # Phase 1以降で削減する既存違反の完全な一時許可リスト。
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/DiscoveryGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/PlayerWorldGui.kt
-CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/TemplateWizardGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
 CREATE_INVENTORY|18|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
@@ -18,7 +17,7 @@ INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/Pla
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/PortalListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TourListener.kt
 INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/migration/WorldMigrationService.kt
-INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
+INVENTORY_CLICK_EVENT|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
 INVENTORY_CLICK_EVENT|3|src/main/kotlin/me/awabi2048/myworldmanager/listener/AdminCommandListener.kt
@@ -38,5 +37,5 @@ MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/Member
 MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/util/SoundManager.kt
 MANUAL_CLICK_SOUND|5|src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt
 MANUAL_CLICK_SOUND|2|src/main/kotlin/me/awabi2048/myworldmanager/listener/SpotlightListener.kt
-MANUAL_CLICK_SOUND|7|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
+MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/TemplateWizardListener.kt
 MANUAL_CLICK_SOUND|74|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt

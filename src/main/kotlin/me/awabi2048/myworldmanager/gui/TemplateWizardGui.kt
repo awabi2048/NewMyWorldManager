@@ -1,32 +1,32 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.model.*
-import me.awabi2048.myworldmanager.repository.*
-import me.awabi2048.myworldmanager.util.CustomItem
+import me.awabi2048.myworldmanager.model.TemplateData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
-import java.io.File
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 class TemplateWizardGui(private val plugin: MyWorldManager) {
-
-    private val menuId = "template_wizard"
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
     private val sessions = ConcurrentHashMap<UUID, WizardSession>()
 
     data class WizardSession(
@@ -37,105 +37,145 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         var description: List<String> = emptyList(),
         var icon: Material = Material.GRASS_BLOCK,
         var originLocation: org.bukkit.Location? = null,
-        var inputState: InputState = InputState.NONE
+        var inputState: InputState = InputState.NONE,
     )
 
-    enum class InputState {
-        NONE, NAME, DESCRIPTION
+    enum class InputState { NONE, NAME, DESCRIPTION }
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player) },
+                actions = mapOf(
+                    ACTION_NAME to MenuActionHandler(::name),
+                    ACTION_DESCRIPTION to MenuActionHandler(::description),
+                    ACTION_ICON to MenuActionHandler(::icon),
+                    ACTION_ORIGIN to MenuActionHandler(::origin),
+                    ACTION_SAVE to MenuActionHandler(::save),
+                    ACTION_VALIDATE to MenuActionHandler(::validate),
+                    ACTION_CANCEL to MenuActionHandler(::cancel),
+                ),
+            ),
+        )
     }
 
     fun open(player: Player) {
-        val session = sessions.getOrPut(player.uniqueId) {
-            WizardSession(
-                sourceWorldName = player.world.name,
-                sourceWorldKey = player.world.key.toString()
-            )
+        sessions.getOrPut(player.uniqueId) {
+            WizardSession(player.world.name, player.world.key.toString())
         }
+        runtime.navigate(player, MenuRoute(OWNER, ROUTE_ID))
+    }
+
+    private fun render(player: Player): InventoryMenuView {
+        val session = sessions[player.uniqueId] ?: error("テンプレートウィザードのセッションがありません")
         val lang = plugin.languageManager
-        val title = lang.getMessage(player, "gui.template_wizard.title")
-        val settingsLayout = GuiHelper.settingsLayout()
-        val titleComponent = GuiHelper.inventoryTitle(title)
-        GuiHelper.playMenuOpen(player, menuId)
-        val inventory = Bukkit.createInventory(player, settingsLayout.size, titleComponent)
+        val layout = GuiHelper.settingsLayout()
+        val choices = GuiHelper.threeChoiceLayout()
+        val elements = mutableListOf<MenuElement>()
 
-        // Template editing is a settings-style screen; use the shared frame before placing wizard controls.
-        GuiItemFactory.applyStandardFrame(inventory)
+        elements += MenuElement(
+            13,
+            setting(
+                Material.FILLED_MAP,
+                lang.getMessage(player, "gui.template_wizard.status.display"),
+                GuiLoreBuilder(lang, player)
+                    .data(lang.getMessage(player, "gui.template_wizard.status.source_world"), session.sourceWorldKey)
+                    .data(
+                        lang.getMessage(player, "gui.template_wizard.status.template_id"),
+                        session.id.ifEmpty { lang.getMessage(player, "general.unknown") },
+                    )
+                    .data(
+                        lang.getMessage(player, "gui.template_wizard.status.spawn"),
+                        session.originLocation?.let { "(${it.blockX}, ${it.blockY}, ${it.blockZ})" }
+                            ?: lang.getMessage(player, "general.unknown"),
+                    )
+                    .buildSpec(),
+                ItemTag.TYPE_GUI_INFO,
+            ),
+            GuiElementRole.CONTENT,
+        )
+        elements += MenuElement(
+            choices.leftSlot,
+            setting(
+                plugin.menuConfigManager.getIconMaterial(MENU_ID, "name_input", Material.NAME_TAG),
+                lang.getMessage(player, "gui.template_wizard.name_input.display"),
+                GuiLoreBuilder(lang, player)
+                    .block(lang.getMessageList(
+                        player,
+                        "gui.template_wizard.name_input.description",
+                        mapOf(
+                            "name" to session.name.ifEmpty { "未設定" },
+                            "id" to session.id.ifEmpty { "未設定" },
+                        ),
+                    ).map(GuiLoreLine::Text))
+                    .actions(lang.getMessage(player, "gui.template_wizard.name_input.action"))
+                    .buildSpec(),
+                "name_input",
+            ),
+            GuiElementRole.ACTION,
+            ACTION_NAME,
+        )
+        elements += MenuElement(
+            choices.centerSlot,
+            setting(
+                plugin.menuConfigManager.getIconMaterial(MENU_ID, "desc_input", Material.WRITABLE_BOOK),
+                lang.getMessage(player, "gui.template_wizard.desc_input.display"),
+                GuiLoreBuilder(lang, player)
+                    .block(lang.getMessageList(
+                        player,
+                        "gui.template_wizard.desc_input.description",
+                        mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" }),
+                    ).map(GuiLoreLine::Text))
+                    .actions(lang.getMessage(player, "gui.template_wizard.desc_input.action"))
+                    .buildSpec(),
+                "desc_input",
+            ),
+            GuiElementRole.ACTION,
+            ACTION_DESCRIPTION,
+        )
+        elements += MenuElement(
+            choices.rightSlot,
+            setting(
+                session.icon,
+                lang.getMessage(player, "gui.template_wizard.icon_select.display"),
+                GuiLoreBuilder(lang, player)
+                    .block(lang.getMessageList(
+                        player,
+                        "gui.template_wizard.icon_select.description",
+                        mapOf("icon" to session.icon.name),
+                    ).map(GuiLoreLine::Text))
+                    .actions(lang.getMessage(player, "gui.template_wizard.icon_select.action"))
+                    .buildSpec(),
+                "icon_select",
+            ),
+            GuiElementRole.ACTION,
+            ACTION_ICON,
+        )
+        elements += MenuElement(
+            31,
+            setting(
+                plugin.menuConfigManager.getIconMaterial(MENU_ID, "origin_set", Material.COMPASS),
+                lang.getMessage(player, "gui.template_wizard.origin_set.display"),
+                GuiLoreBuilder(lang, player)
+                    .block(lang.getMessageList(
+                        player,
+                        "gui.template_wizard.origin_set.description",
+                        mapOf(
+                            "origin" to (session.originLocation?.let {
+                                "${it.blockX}, ${it.blockY}, ${it.blockZ}"
+                            } ?: "未設定"),
+                        ),
+                    ).map(GuiLoreLine::Text))
+                    .actions(lang.getMessage(player, "gui.template_wizard.origin_set.action"))
+                    .buildSpec(),
+                "origin_set",
+            ),
+            GuiElementRole.ACTION,
+            ACTION_ORIGIN,
+        )
 
-        val statusItem = createSettingItem(
-            Material.FILLED_MAP,
-            lang.getMessage(player, "gui.template_wizard.status.display"),
-            GuiLoreBuilder(lang, player)
-                .data(
-                    lang.getMessage(player, "gui.template_wizard.status.source_world"),
-                    session.sourceWorldKey
-                )
-                .data(
-                    lang.getMessage(player, "gui.template_wizard.status.template_id"),
-                    session.id.ifEmpty { lang.getMessage(player, "general.unknown") }
-                )
-                .data(
-                    lang.getMessage(player, "gui.template_wizard.status.spawn"),
-                    session.originLocation?.let {
-                        "(${it.blockX}, ${it.blockY}, ${it.blockZ})"
-                    } ?: lang.getMessage(player, "general.unknown")
-                )
-                .buildSpec(),
-            ItemTag.TYPE_GUI_INFO
-        )
-        inventory.setItem(13, statusItem)
-
-        // ID & Name (IDはNameの英字版などにする想定)
-        val nameItem = createSettingItem(
-            plugin.menuConfigManager.getIconMaterial(menuId, "name_input", Material.NAME_TAG),
-            lang.getMessage(player, "gui.template_wizard.name_input.display"),
-            GuiLoreBuilder(lang, player).block(lang.getMessageList(
-                player,
-                "gui.template_wizard.name_input.description",
-                mapOf(
-                    "name" to (if (session.name.isEmpty()) "未設定" else session.name),
-                    "id" to (if (session.id.isEmpty()) "未設定" else session.id)
-                )
-            ).map(GuiLoreLine::Text)).actions(lang.getMessage(player, "gui.template_wizard.name_input.action")).buildSpec(),
-            "name_input"
-        )
-        // Description
-        val descItem = createSettingItem(
-            plugin.menuConfigManager.getIconMaterial(menuId, "desc_input", Material.WRITABLE_BOOK),
-            lang.getMessage(player, "gui.template_wizard.desc_input.display"),
-            GuiLoreBuilder(lang, player).block(lang.getMessageList(
-                player,
-                "gui.template_wizard.desc_input.description",
-                mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" })
-            ).map(GuiLoreLine::Text)).actions(lang.getMessage(player, "gui.template_wizard.desc_input.action")).buildSpec(),
-            "desc_input"
-        )
-        // Icon
-        val iconItem = createSettingItem(
-            session.icon,
-            lang.getMessage(player, "gui.template_wizard.icon_select.display"),
-            GuiLoreBuilder(lang, player).block(lang.getMessageList(
-                player,
-                "gui.template_wizard.icon_select.description",
-                mapOf("icon" to session.icon.name)
-            ).map(GuiLoreLine::Text)).actions(lang.getMessage(player, "gui.template_wizard.icon_select.action")).buildSpec(),
-            "icon_select"
-        )
-        GuiHelper.setThreeChoiceItems(inventory, nameItem, descItem, iconItem)
-
-        // Origin
-        val originItem = createSettingItem(
-            plugin.menuConfigManager.getIconMaterial(menuId, "origin_set", Material.COMPASS),
-            lang.getMessage(player, "gui.template_wizard.origin_set.display"),
-            GuiLoreBuilder(lang, player).block(lang.getMessageList(
-                player,
-                "gui.template_wizard.origin_set.description",
-                mapOf("origin" to (if (session.originLocation == null) "未設定" else "${session.originLocation!!.blockX}, ${session.originLocation!!.blockY}, ${session.originLocation!!.blockZ}"))
-            ).map(GuiLoreLine::Text)).actions(lang.getMessage(player, "gui.template_wizard.origin_set.action")).buildSpec(),
-            "origin_set"
-        )
-        inventory.setItem(31, originItem)
-
-        // Save
         val missing = buildList {
             if (session.id.isEmpty() || session.name.isEmpty()) {
                 add(lang.getMessage(player, "gui.template_wizard.requirement.name"))
@@ -147,64 +187,195 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
                 add(lang.getMessage(player, "gui.template_wizard.requirement.source_world"))
             }
         }
-        if (missing.isEmpty()) {
-            val saveItem = createSettingItem(
-                plugin.menuConfigManager.getIconMaterial(menuId, "save_confirm", Material.NETHER_STAR),
-                lang.getMessage(player, "gui.template_wizard.save_confirm.display"),
-                GuiLoreBuilder(lang, player)
-                    .block(lang.getMessageList(player, "gui.template_wizard.save_confirm.description").map(GuiLoreLine::Text))
-                    .actions(lang.getMessage(player, "gui.template_wizard.save_confirm.action"))
-                    .buildSpec(),
-                "save_confirm"
+        elements += if (missing.isEmpty()) {
+            MenuElement(
+                40,
+                setting(
+                    plugin.menuConfigManager.getIconMaterial(MENU_ID, "save_confirm", Material.NETHER_STAR),
+                    lang.getMessage(player, "gui.template_wizard.save_confirm.display"),
+                    GuiLoreBuilder(lang, player)
+                        .block(lang.getMessageList(
+                            player,
+                            "gui.template_wizard.save_confirm.description",
+                        ).map(GuiLoreLine::Text))
+                        .actions(lang.getMessage(player, "gui.template_wizard.save_confirm.action"))
+                        .buildSpec(),
+                    "save_confirm",
+                ),
+                GuiElementRole.CONFIRM,
+                ACTION_SAVE,
             )
-            inventory.setItem(40, saveItem)
         } else {
-            val warningItem = createSettingItem(
-                Material.BARRIER,
-                lang.getMessage(player, "gui.template_wizard.requirement.display"),
-                GuiLoreBuilder(lang, player)
-                    .block(missing.map(GuiLoreLine::Warning))
-                    .buildSpec(),
-                ItemTag.TYPE_GUI_INFO
+            MenuElement(
+                40,
+                setting(
+                    Material.BARRIER,
+                    lang.getMessage(player, "gui.template_wizard.requirement.display"),
+                    GuiLoreBuilder(lang, player).block(missing.map(GuiLoreLine::Warning)).buildSpec(),
+                    ItemTag.TYPE_GUI_INFO,
+                ),
+                GuiElementRole.CONTENT,
             )
-            inventory.setItem(40, warningItem)
         }
-
-        inventory.setItem(
+        elements += MenuElement(
             39,
-            createSettingItem(
+            setting(
                 Material.SPYGLASS,
                 lang.getMessage(player, "gui.template_wizard.validate.display"),
                 GuiLoreBuilder(lang, player)
                     .actions(lang.getMessage(player, "gui.template_wizard.validate.action"))
                     .buildSpec(),
-                "wizard_validate"
-            )
+                "wizard_validate",
+            ),
+            GuiElementRole.ACTION,
+            ACTION_VALIDATE,
         )
-
-        inventory.setItem(
+        elements += MenuElement(
             49,
-            createSettingItem(
+            setting(
                 Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.template_wizard.cancel.display"),
                 GuiLoreBuilder(lang, player)
                     .actions(lang.getMessage(player, "gui.template_wizard.cancel.action"))
                     .buildSpec(),
-                "wizard_cancel"
-            )
+                "wizard_cancel",
+            ),
+            GuiElementRole.CANCEL,
+            ACTION_CANCEL,
         )
-
-        ManagedMenuPresenter.open(player, inventory)
-
-        // サウンド
-
+        return InventoryMenuView(
+            layout.size,
+            GuiHelper.inventoryTitle(lang.getMessage(player, "gui.template_wizard.title")),
+            elements,
+        )
     }
 
-    private fun createSettingItem(material: Material, display: String, lore: GuiLoreSpec, id: String): ItemStack {
-        return GuiItemFactory.item(material, display, lore, id)
+    private fun name(context: MenuActionContext): MenuActionResult {
+        val session = session(context) ?: return MenuActionResult.Rejected()
+        Bukkit.getScheduler().runTask(
+            plugin,
+            Runnable { plugin.templateWizardListener.openTemplateNameInput(plugin, context.player, session) },
+        )
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
+
+    private fun description(context: MenuActionContext): MenuActionResult {
+        val session = session(context) ?: return MenuActionResult.Rejected()
+        Bukkit.getScheduler().runTask(
+            plugin,
+            Runnable { plugin.templateWizardListener.openTemplateDescriptionInput(plugin, context.player, session) },
+        )
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun icon(context: MenuActionContext): MenuActionResult {
+        val session = session(context) ?: return MenuActionResult.Rejected()
+        if (context.cursor.type == Material.AIR) {
+            context.player.sendMessage(
+                plugin.languageManager.getMessage(context.player, "messages.template_wizard_icon_help"),
+            )
+            return MenuActionResult.Success(MenuUpdate.None)
+        }
+        session.icon = context.cursor.type
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun origin(context: MenuActionContext): MenuActionResult {
+        val session = session(context) ?: return MenuActionResult.Rejected()
+        if (context.player.world.name != session.sourceWorldName) {
+            context.player.sendMessage(
+                plugin.languageManager.getMessage(context.player, "messages.template_wizard_source_changed"),
+            )
+            return MenuActionResult.Rejected()
+        }
+        session.originLocation = context.player.location.clone()
+        context.player.sendMessage(
+            plugin.languageManager.getMessage(context.player, "messages.template_wizard_spawn_set"),
+        )
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun save(context: MenuActionContext): MenuActionResult {
+        val player = context.player
+        val session = session(context) ?: return MenuActionResult.Rejected()
+        val lang = plugin.languageManager
+        if (session.id.isEmpty()) {
+            player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_missing"))
+            return MenuActionResult.Rejected()
+        }
+        val origin = session.originLocation
+        if (origin == null || origin.world?.name != session.sourceWorldName) {
+            player.sendMessage(lang.getMessage(player, "messages.template_wizard_source_changed"))
+            return MenuActionResult.Rejected()
+        }
+        if (plugin.templateRepository.findById(session.id) != null) {
+            player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_exists"))
+            return MenuActionResult.Rejected()
+        }
+        plugin.templateRepository.saveTemplate(
+            TemplateData(
+                session.id,
+                session.sourceWorldName,
+                session.name,
+                session.description,
+                session.icon,
+                origin.clone(),
+            ),
+        )
+        player.sendMessage(
+            lang.getMessage(player, "messages.wizard_registered", mapOf("template" to session.id)),
+        )
+        sessions.remove(player.uniqueId)
+        plugin.templateRepository.loadTemplates()
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun validate(context: MenuActionContext): MenuActionResult {
+        val session = session(context) ?: return MenuActionResult.Rejected()
+        val valid = session.id.isNotEmpty() &&
+            session.name.isNotEmpty() &&
+            session.originLocation?.world?.name == session.sourceWorldName
+        context.player.sendMessage(
+            plugin.languageManager.getMessage(
+                context.player,
+                if (valid) {
+                    "messages.template_wizard_validation_success"
+                } else {
+                    "messages.template_wizard_validation_failed"
+                },
+            ),
+        )
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun cancel(context: MenuActionContext): MenuActionResult {
+        sessions.remove(context.player.uniqueId)
+        context.player.sendMessage(
+            plugin.languageManager.getMessage(context.player, "messages.operation_cancelled"),
+        )
+        Bukkit.getScheduler().runTask(plugin, Runnable { plugin.adminCommandGui.open(context.player) })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun session(context: MenuActionContext): WizardSession? = sessions[context.player.uniqueId]
+
+    private fun setting(material: Material, display: String, lore: GuiLoreSpec, id: String): ItemStack =
+        GuiItemFactory.item(material, display, lore, id)
 
     fun getSession(uuid: UUID) = sessions[uuid]
     fun removeSession(uuid: UUID) = sessions.remove(uuid)
     fun clearAll() = sessions.clear()
+
+    companion object {
+        private const val OWNER = "myworldmanager"
+        private const val ROUTE_ID = "template-wizard"
+        private const val MENU_ID = "template_wizard"
+        private const val ACTION_NAME = "name"
+        private const val ACTION_DESCRIPTION = "description"
+        private const val ACTION_ICON = "icon"
+        private const val ACTION_ORIGIN = "origin"
+        private const val ACTION_SAVE = "save"
+        private const val ACTION_VALIDATE = "validate"
+        private const val ACTION_CANCEL = "cancel"
+    }
 }
