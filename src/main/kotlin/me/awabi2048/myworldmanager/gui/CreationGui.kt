@@ -1,7 +1,5 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -55,6 +53,23 @@ class CreationGui(private val plugin: MyWorldManager) {
                 actions = mapOf(
                     ACTION_SELECT_TYPE to MenuActionHandler(::selectCreationType),
                     ACTION_BACK to MenuActionHandler(::cancelCreation),
+                ),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = CONFIRM_ROUTE,
+                renderer = { context -> renderConfirmation(context.player) },
+                actions = mapOf(
+                    ACTION_CONFIRM_INTERACTION to MenuActionHandler { context ->
+                        plugin.creationGuiListener.handleConfirmationClick(
+                            context.player,
+                            context.click,
+                            context.item,
+                        )
+                        MenuActionResult.Ignored
+                    },
                 ),
             ),
         )
@@ -485,25 +500,19 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     fun openConfirmation(player: Player, session: WorldCreationSession) {
-        val lang = plugin.languageManager
-        val titleKey = "gui.creation.title_confirm"
-        if (!lang.hasKey(player, titleKey)) {
-            player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return
-        }
         if (MyWorldManagerApi.openCreationConfirmationMenuOverride(player, session)) {
             return
         }
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
-
         clearSettingsGuiTransition(player)
-        val holder = CreationGuiHolder(CreationMenuType.CONFIRM)
-        val inventory = me.awabi2048.myworldmanager.util.GuiHelper.createConfirmationInventory(holder, title)
-        holder.inv = inventory
+        runtime.navigate(player, MenuRoute(OWNER, CONFIRM_ROUTE))
+    }
 
-        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
-
+    private fun renderConfirmation(player: Player): InventoryMenuView {
+        val lang = plugin.languageManager
+        val session = plugin.creationSessionManager.getSession(player.uniqueId)
+            ?: error("ワールド作成セッションがありません")
+        val layout = me.awabi2048.myworldmanager.util.GuiHelper.confirmationLayout()
+        val elements = mutableListOf<MenuElement>()
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
         val generationLine: GuiLoreLine = when (session.creationType) {
             WorldCreationType.TEMPLATE -> {
@@ -577,32 +586,45 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiLoreFrame.BOTH
         )
 
-        me.awabi2048.myworldmanager.util.GuiHelper.setConfirmationItems(
-            inventory,
+        elements += MenuElement(
+            layout.previewSlot,
             createItem(Material.PAPER, lang.getMessage(player, "gui.creation.confirm.name"), ItemTag.TYPE_GUI_INFO, infoLore),
+            GuiElementRole.CONTENT,
+        )
+        elements += MenuElement(
+            layout.confirmSlot,
             createItem(
                 Material.LIME_CONCRETE,
                 lang.getMessage(player, "gui.common.confirm"),
                 ItemTag.TYPE_GUI_CONFIRM,
                 GuiLoreSpec.None
             ),
+            GuiElementRole.ACTION,
+            ACTION_CONFIRM_INTERACTION,
+        )
+        elements += MenuElement(
+            layout.cancelSlot,
             createItem(
                 Material.RED_CONCRETE,
                 lang.getMessage(player, "gui.common.cancel"),
                 ItemTag.TYPE_GUI_CANCEL,
                 GuiLoreSpec.None
-            )
+            ),
+            GuiElementRole.NAVIGATION,
+            ACTION_CONFIRM_INTERACTION,
         )
 
         if (session.creationType == WorldCreationType.SEED) {
-            inventory.setItem(
+            elements += MenuElement(
                 SEED_DIMENSION_SLOT,
                 createItem(
                     seedEnvironmentMaterial(session.seedEnvironment),
                     lang.getMessage(player, "gui.creation.confirm.dimension.display"),
                     ItemTag.TYPE_GUI_CREATION_DIMENSION,
                     seedEnvironmentLore(player, session.seedEnvironment)
-                )
+                ),
+                GuiElementRole.ACTION,
+                ACTION_CONFIRM_INTERACTION,
             )
 
             val coordinates = session.spawnCoordinates?.let {
@@ -625,46 +647,59 @@ class CreationGui(private val plugin: MyWorldManager) {
                     )
                 )
             )
-            inventory.setItem(
+            elements += MenuElement(
                 SEED_SPAWN_LOCATION_SLOT,
                 createItem(
                     Material.COMPASS,
                     lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
                     ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION,
                     spawnLore
-                )
+                ),
+                GuiElementRole.ACTION,
+                ACTION_CONFIRM_INTERACTION,
             )
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
-            inventory.setItem(
+            elements += MenuElement(
                 39,
                 createItem(
                     Material.ENDER_EYE,
                     lang.getMessage(player, "gui.creation.template_detail.preview"),
                     ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW,
                     GuiLoreSpec.None
-                )
+                ),
+                GuiElementRole.ACTION,
+                ACTION_CONFIRM_INTERACTION,
             )
-            inventory.setItem(
+            elements += MenuElement(
                 40,
                 createItem(
                     Material.NAME_TAG,
                     lang.getMessage(player, "gui.creation.confirm.change_name"),
                     ItemTag.TYPE_GUI_BACK,
                     GuiLoreSpec.None
-                )
+                ),
+                GuiElementRole.NAVIGATION,
+                ACTION_CONFIRM_INTERACTION,
             )
-            inventory.setItem(
+            elements += MenuElement(
                 41,
                 createItem(
                     Material.MAP,
                     lang.getMessage(player, "gui.creation.confirm.change_template"),
                     ItemTag.TYPE_GUI_CREATION_TEMPLATE_CHANGE,
                     GuiLoreSpec.None
-                )
+                ),
+                GuiElementRole.NAVIGATION,
+                ACTION_CONFIRM_INTERACTION,
             )
         }
-
-        ManagedMenuPresenter.open(player, inventory)
+        return InventoryMenuView(
+            size = layout.size,
+            title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                lang.getMessage(player, "gui.creation.title_confirm"),
+            ),
+            elements = elements,
+        )
     }
 
     private fun setupHeaderFooter(inventory: org.bukkit.inventory.Inventory, rowCount: Int) {
@@ -775,6 +810,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val TYPE_ROUTE = "creation_type"
         private const val TEMPLATE_LIST_ROUTE = "creation_template_list"
         private const val TEMPLATE_DETAIL_ROUTE = "creation_template_detail"
+        private const val CONFIRM_ROUTE = "creation_confirmation"
         private const val ACTION_SELECT_TYPE = "select_type"
         private const val ACTION_BACK = "back"
         private const val ACTION_SELECT_TEMPLATE = "select_template"
@@ -782,6 +818,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val ACTION_USE_TEMPLATE = "use_template"
         private const val ACTION_PREVIEW_TEMPLATE = "preview_template"
         private const val ACTION_TEMPLATE_DETAIL_BACK = "template_detail_back"
+        private const val ACTION_CONFIRM_INTERACTION = "confirm_interaction"
     }
 
     class CreationGuiHolder(val menuType: CreationMenuType) : InventoryHolder {

@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+import com.awabi2048.ccsystem.CCSystem
 
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -212,7 +213,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
 
         if (tag == ItemTag.TYPE_GUI_BACK) {
             session.phase = WorldCreationPhase.NAME_INPUT
-            ManagedMenuPresenter.close(player)
+            CCSystem.getAPI().getMenuRuntimeService().close(player)
             openNameInputByPlatform(player, session)
             return true
         }
@@ -235,7 +236,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             session.creationType == WorldCreationType.SEED
         ) {
             session.phase = WorldCreationPhase.SPAWN_INPUT
-            ManagedMenuPresenter.close(player)
+            CCSystem.getAPI().getMenuRuntimeService().close(player)
             openSpawnInputByPlatform(player, session)
             return true
         }
@@ -243,7 +244,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             session.creationType == WorldCreationType.TEMPLATE
         ) {
             val templateId = session.templateId ?: return false
-            ManagedMenuPresenter.close(player)
+            CCSystem.getAPI().getMenuRuntimeService().close(player)
             plugin.previewSessionManager.startPreview(
                 player,
                 PreviewSessionManager.PreviewTarget.Template(templateId),
@@ -259,13 +260,13 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
             return true
         }
         if (tag == ItemTag.TYPE_GUI_CANCEL) {
-            ManagedMenuPresenter.close(player)
+            CCSystem.getAPI().getMenuRuntimeService().close(player)
             cancelAndReturnToMyWorld(player)
             return true
         }
         if (tag != ItemTag.TYPE_GUI_CONFIRM) return false
 
-        ManagedMenuPresenter.close(player)
+        CCSystem.getAPI().getMenuRuntimeService().close(player)
         val adminCommandSession =
             session.extras[CreationGui.ADMIN_COMMAND_SESSION_KEY] == true
         if (!WorldCreationChecks.checkSelfCreatePermission(
