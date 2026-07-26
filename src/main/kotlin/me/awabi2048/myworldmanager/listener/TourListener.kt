@@ -125,34 +125,16 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         val type = ItemTag.getType(item) ?: return
         if (type == ItemTag.TYPE_GUI_DECORATION) return
         val worldUuid = when (top) {
-            is TourGui.VisitorTourHolder -> top.worldUuid
             is TourGui.EditTourHolder -> top.worldUuid
             is TourGui.SingleTourHolder -> top.worldUuid
-            is TourGui.StartSelectionHolder -> top.worldUuid
             is TourGui.BindSignHolder -> top.worldUuid
             else -> return
         }
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
         when (top) {
-            is TourGui.VisitorTourHolder, is TourGui.StartSelectionHolder -> handleVisitorClick(player, worldData, type, item, top)
             is TourGui.EditTourHolder -> handleEditMenuClick(player, worldData, type, item)
             is TourGui.SingleTourHolder -> handleSingleEditClick(player, worldData, type, item, top, event.click)
             is TourGui.BindSignHolder -> handleBindSignClick(player, worldData, type, item, top)
-        }
-    }
-
-    private fun handleVisitorClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: Any) {
-        if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
-            plugin.soundManager.playClickSound(player, item, "tour")
-            val page = ItemTag.getTargetPage(item) ?: 0
-            if (holder is TourGui.StartSelectionHolder) plugin.tourGui.openStartSelectionMenu(player, worldData, holder.signUuid) else plugin.tourGui.openVisitorMenu(player, worldData, page)
-            return
-        }
-        if (type != ItemTag.TYPE_GUI_TOUR_ITEM) return
-        plugin.soundManager.playClickSound(player, item, "tour")
-        val tourUuid = ItemTag.getString(item, "tour_uuid")?.let(UUID::fromString) ?: return
-        plugin.tourManager.getTour(worldData, tourUuid)?.let {
-            plugin.tourGui.openStartConfirm(player, worldData, it)
         }
     }
 

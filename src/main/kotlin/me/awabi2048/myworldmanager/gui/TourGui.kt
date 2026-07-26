@@ -59,14 +59,54 @@ class TourGui(private val plugin: MyWorldManager) {
                 ),
             ),
         )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = VISITOR_ROUTE,
+                renderer = { context -> renderPagedTours(context.player, context.route, true) },
+                actions = mapOf(
+                    ACTION_PAGE to MenuActionHandler(::changeTourPage),
+                    ACTION_SELECT to MenuActionHandler(::selectTour),
+                ),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = START_SELECTION_ROUTE,
+                renderer = { context -> renderPagedTours(context.player, context.route, false) },
+                actions = mapOf(
+                    ACTION_PAGE to MenuActionHandler(::changeTourPage),
+                    ACTION_SELECT to MenuActionHandler(::selectTour),
+                ),
+            ),
+        )
     }
 
     fun openVisitorMenu(player: Player, worldData: WorldData, page: Int = 0) {
-        openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, "gui.tour.menu.visitor_title"))), VisitorTourHolder(worldData.uuid, page), page, true, null)
+        runtime.navigate(
+            player,
+            MenuRoute(
+                OWNER,
+                VISITOR_ROUTE,
+                mapOf("world" to worldData.uuid.toString(), "page" to page.coerceAtLeast(0).toString()),
+            ),
+        )
     }
 
     fun openStartSelectionMenu(player: Player, worldData: WorldData, signUuid: java.util.UUID) {
-        openPagedTourMenu(player, worldData, GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, "gui.tour.menu.start_selection_title"))), StartSelectionHolder(worldData.uuid, signUuid), 0, false, signUuid)
+        runtime.navigate(
+            player,
+            MenuRoute(
+                OWNER,
+                START_SELECTION_ROUTE,
+                mapOf(
+                    "world" to worldData.uuid.toString(),
+                    "page" to "0",
+                    "sign" to signUuid.toString(),
+                ),
+            ),
+        )
     }
 
     fun openStartConfirm(player: Player, worldData: WorldData, tour: TourData) {
@@ -105,22 +145,63 @@ class TourGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun openPagedTourMenu(player: Player, worldData: WorldData, title: Component, holder: BaseHolder, page: Int, showWorldIcon: Boolean, filterSignUuid: java.util.UUID?) {
-        GuiHelper.playMenuOpen(player, "tour")
-        val tours = (if (filterSignUuid == null) plugin.tourManager.validTours(worldData) else plugin.tourManager.findToursBySign(worldData, filterSignUuid))
-        val safePage = page.coerceAtLeast(0)
-        val rows = 5
-        val inventory = Bukkit.createInventory(holder, rows * 9, title)
-        holder.inv = inventory
-        fillBase(inventory)
-        tours.drop(safePage * pageSlots.size).take(pageSlots.size).forEachIndexed { index, tour ->
-            inventory.setItem(pageSlots[index], createTourItem(player, worldData, tour, false))
+    private fun renderPagedTours(
+        player: Player,
+        route: MenuRoute,
+        showWorldIcon: Boolean,
+    ): InventoryMenuView {
+        val worldData = world(route) ?: error("ツアー対象ワールドがありません")
+        val signUuid = route.payload["sign"]?.let(UUID::fromString)
+        val tours = if (signUuid == null) {
+            plugin.tourManager.validTours(worldData)
+        } else {
+            plugin.tourManager.findToursBySign(worldData, signUuid)
         }
-        val footerStart = inventory.size - 9
-        if (showWorldIcon) inventory.setItem(4, createCurrentWorldItem(player, worldData))
-        if (safePage > 0) inventory.setItem(footerStart, GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1))
-        if ((safePage + 1) * pageSlots.size < tours.size) inventory.setItem(footerStart + 8, GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1))
-        ManagedMenuPresenter.open(player, inventory)
+        val requestedPage = route.payload["page"]?.toIntOrNull() ?: 0
+        val maxPage = ((tours.size - 1).coerceAtLeast(0) / pageSlots.size)
+        val safePage = requestedPage.coerceIn(0, maxPage)
+        val elements = mutableListOf<MenuElement>()
+        tours.drop(safePage * pageSlots.size).take(pageSlots.size).forEachIndexed { index, tour ->
+            elements += MenuElement(
+                pageSlots[index],
+                createTourItem(player, worldData, tour, false),
+                GuiElementRole.ACTION,
+                ACTION_SELECT,
+                mapOf("tour" to tour.uuid.toString()),
+            )
+        }
+        val footerStart = 36
+        if (showWorldIcon) {
+            elements += MenuElement(4, createCurrentWorldItem(player, worldData), GuiElementRole.CONTENT)
+        }
+        if (safePage > 0) {
+            elements += MenuElement(
+                footerStart,
+                GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf("page" to (safePage - 1).toString()),
+            )
+        }
+        if ((safePage + 1) * pageSlots.size < tours.size) {
+            elements += MenuElement(
+                footerStart + 8,
+                GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf("page" to (safePage + 1).toString()),
+            )
+        }
+        val titleKey = if (showWorldIcon) {
+            "gui.tour.menu.visitor_title"
+        } else {
+            "gui.tour.menu.start_selection_title"
+        }
+        return InventoryMenuView(
+            size = 45,
+            title = GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, titleKey))),
+            elements = elements,
+        )
     }
 
     fun openEditMenu(player: Player, worldData: WorldData, page: Int = 0) {
@@ -239,6 +320,31 @@ class TourGui(private val plugin: MyWorldManager) {
                 MenuActionResult.Rejected()
             }
         }
+    }
+
+    private fun changeTourPage(context: MenuActionContext): MenuActionResult {
+        val page = context.payload["page"]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(
+                context.route.copy(
+                    payload = context.route.payload + ("page" to page.coerceAtLeast(0).toString()),
+                ),
+            ),
+        )
+    }
+
+    private fun selectTour(context: MenuActionContext): MenuActionResult {
+        val worldUuid = context.route.payload["world"] ?: return MenuActionResult.Rejected()
+        val tourUuid = context.payload["tour"] ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(
+                MenuRoute(
+                    OWNER,
+                    START_CONFIRM_ROUTE,
+                    mapOf("world" to worldUuid, "tour" to tourUuid),
+                ),
+            ),
+        )
     }
 
     private fun confirmDelete(context: MenuActionContext): MenuActionResult {
@@ -411,17 +517,19 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     abstract class BaseHolder : InventoryHolder { lateinit var inv: Inventory; override fun getInventory(): Inventory = inv }
-    class VisitorTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()
     class EditTourHolder(val worldUuid: java.util.UUID, val page: Int) : BaseHolder()
     class SingleTourHolder(val worldUuid: java.util.UUID, val tourUuid: java.util.UUID, val isNew: Boolean) : BaseHolder()
-    class StartSelectionHolder(val worldUuid: java.util.UUID, val signUuid: java.util.UUID) : BaseHolder()
     class BindSignHolder(val worldUuid: java.util.UUID) : BaseHolder()
 
     private companion object {
         private const val OWNER = "myworldmanager"
         private const val START_CONFIRM_ROUTE = "tour_start_confirmation"
         private const val DELETE_CONFIRM_ROUTE = "tour_delete_confirmation"
+        private const val VISITOR_ROUTE = "tour_visitor"
+        private const val START_SELECTION_ROUTE = "tour_start_selection"
         private const val ACTION_START = "start"
+        private const val ACTION_PAGE = "page"
+        private const val ACTION_SELECT = "select"
         private const val ACTION_DELETE_CONFIRM = "delete_confirm"
         private const val ACTION_DELETE_CANCEL = "delete_cancel"
     }
