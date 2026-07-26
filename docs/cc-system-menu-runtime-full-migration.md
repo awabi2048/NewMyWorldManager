@@ -239,7 +239,7 @@ standalone_export:
 
 ### level.dat
 
-稼働サーバーのメインワールドディレクトリにある`level.dat`を共有データの正本としてコピーし、出力時に必要な項目だけを書き換える。選択した代表ワールドの`level.dat`は使用しない。
+`server.properties`の`level-name`で指定された、サーバーディレクトリ直下のメインワールドディレクトリを共有データの正本とする。そこから`level.dat`、`level.dat_old`、`data/`をコピーし、`level.dat`は出力時に必要な項目だけを書き換える。最初に選択したワールドはオーバーワールドの地形と出力名を決めるためだけに使用し、そのワールド内の同名共有データは使用しない。
 
 - `LastPlayed`: 出力時刻
 - `Version` / `DataVersion`: 稼働中サーバーのMinecraftバージョン
