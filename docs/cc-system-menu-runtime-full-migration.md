@@ -173,7 +173,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `AnnualArchiveFlow`
 - [ ] `AutomationSettingsMenu`
 - [ ] `BackupListMenu`
-- [ ] `ChanponAdminMenu`
+- [x] `ChanponAdminMenu`
 - [ ] `ChanponAdminWorldListMenu`
 - [ ] `ChanponDiscoveryMenuProvider`
 - [ ] `ChanponEnvironmentGui`
@@ -239,7 +239,7 @@ standalone_export:
 
 ### level.dat
 
-別ワールドの`level.dat`をそのまま流用しない。出力時にNBTを再構成する。
+稼働サーバーのメインワールドディレクトリにある`level.dat`を共有データの正本としてコピーし、出力時に必要な項目だけを書き換える。選択した代表ワールドの`level.dat`は使用しない。
 
 - `LastPlayed`: 出力時刻
 - `Version` / `DataVersion`: 稼働中サーバーのMinecraftバージョン
@@ -248,7 +248,7 @@ standalone_export:
 - `allowCommands = 1b`: チートあり
 - `SpawnX/Y/Z`と`SpawnAngle`: 代表ワールドの保存済みスポーン
 - プレイヤー情報を含める場合はプレイヤーのゲームモードもクリエイティブ
-- シードと新規チャンク生成設定を代表ワールドに合わせる
+- シード、新規チャンク生成設定、ゲームルール、時刻、天候、ワールド境界など上記以外の共有値: 稼働サーバーのメインワールド
 
 ### 追加ワールド
 
@@ -262,7 +262,7 @@ standalone_export:
 - scheduled events
 - Paper固有データ
 
-各項目について「代表へ統合」「ディメンション側へ変換」「意図的に除外」を実装前に決め、manifestへ記録する。
+各項目について「サーバーのメインワールドを使用」「ディメンション側へ変換」「意図的に除外」を分類し、manifestへ記録する。
 
 ### ポータル
 
@@ -301,7 +301,7 @@ standalone_export:
 - [ ] `AdminCommandGui`
 - [x] `AdminPortalGui`
 - [x] `PortalGui`
-- [ ] `ChanponAdminMenu`
+- [x] `ChanponAdminMenu`
 - [ ] `ChanponAdminWorldListMenu`
 - [ ] `WorldDataManagementMenu`
 - [x] `WorldDataExportMenu`
@@ -444,7 +444,9 @@ standalone_export:
 - `AdminPortalGui`をRuntime Route、Action、Role、既定音へ移行し、`AdminGuiListener`内のタイトル判定、ポータル操作、個別クリック音を削除した。
 - `PendingInteractionGui`と共通`ConfirmationMenuGui`をRuntimeへ移行し、確認画面のコールバックと未決定終了をRouteセッションで管理するようにした。
 - 単一ワールド出力では、overworld地形を選択した代表ワールドから取得し、`level.dat`と共有`data/`を稼働サーバーのメインワールドディレクトリから取得するようにした。
+- 共有データのコピー前に稼働サーバーのメインワールドを保存し、メモリ上の最新状態を`level.dat`と`data/`へ反映してから出力するようにした。
 - 追加ワールドの`data/`をディメンション固有、サーバーメインワールド使用、除外へ分類し、方針をmanifestへ記録するようにした。
+- `ChanponAdminMenu`とスポーンワールド確認画面をRuntime Route、Action、Roleへ移行し、個別Inventory生成と個別クリックListenerを削除した。
 - CC-System 2.11.0へ、登録済み画面を親Routeと履歴を変更せず開く`MenuRuntimeService.openEphemeral`を追加した。
 - EPHEMERAL画面を閉じた場合に親ナビゲーションを消去しないセッション寿命テストを追加し、CC-Systemの全90テストに成功した。
 - `PortalGui`を`InventoryMenuDefinition`、Route payload、Runtime Actionへ完全移行した。直接Inventory生成、個別`InventoryClickEvent`、個別クリック音、ItemTagによるAction判定を撤去した。
