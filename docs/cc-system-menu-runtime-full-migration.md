@@ -182,7 +182,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `ChanponWorldSettingsMenuProvider`
 - [x] `SubmissionAdminMenu`
 - [ ] `SubmittedWorldMenuProvider`
-- [ ] `ToolPermissionMenu`
+- [x] `ToolPermissionMenu`
 - [x] `WorldDataExportMenu`
 - [x] `WorldDataManagementMenu`
 - [ ] `ProductionToggleExtension`
