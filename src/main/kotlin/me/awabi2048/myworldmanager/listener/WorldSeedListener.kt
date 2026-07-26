@@ -1,19 +1,14 @@
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.inventory.EquipmentSlot
 
 class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
@@ -69,34 +64,6 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
             return true
         }
     }
-
-    @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        val view = event.view
-        
-        // Match Title using LanguageManager key matching
-        // Note: WorldSeedConfirmGui uses "gui.world_seed_confirm.title"
-        if (!plugin.languageManager.isKeyMatch(PlainTextComponentSerializer.plainText().serialize(view.title()), "gui.world_seed_confirm.title")) return
-
-        event.cancelWithDebug("WorldSeedListener.onInventoryClick: world seed confirm GUI click")
-        if (event.clickedInventory != view.topInventory) return
-
-        val item = event.currentItem ?: return
-        val tag = ItemTag.getType(item) ?: return
-
-        when (tag) {
-            "world_seed_confirm_yes" -> {
-                expandWorldSlot(plugin, player)
-                ManagedMenuPresenter.close(player)
-            }
-            "world_seed_confirm_no" -> {
-                plugin.soundManager.playClickSound(player, item)
-                ManagedMenuPresenter.close(player)
-            }
-        }
-    }
-
 
     @EventHandler
     fun onDialogResponse(event: io.papermc.paper.event.player.PlayerCustomClickEvent) {
