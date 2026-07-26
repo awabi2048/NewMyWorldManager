@@ -58,6 +58,29 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ),
             ),
         )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = TEMPLATE_LIST_ROUTE,
+                renderer = { context -> renderTemplateSelection(context.player) },
+                actions = mapOf(
+                    ACTION_SELECT_TEMPLATE to MenuActionHandler(::selectTemplate),
+                    ACTION_TEMPLATE_LIST_BACK to MenuActionHandler(::templateListBack),
+                ),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = TEMPLATE_DETAIL_ROUTE,
+                renderer = { context -> renderTemplateDetail(context.player) },
+                actions = mapOf(
+                    ACTION_USE_TEMPLATE to MenuActionHandler(::useTemplate),
+                    ACTION_PREVIEW_TEMPLATE to MenuActionHandler(::previewTemplate),
+                    ACTION_TEMPLATE_DETAIL_BACK to MenuActionHandler(::templateDetailBack),
+                ),
+            ),
+        )
     }
 
     fun openTypeSelection(player: Player) {
@@ -168,6 +191,60 @@ class CreationGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.Close)
     }
 
+    private fun selectTemplate(context: MenuActionContext): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val templateId = context.payload["template"] ?: return MenuActionResult.Rejected()
+        val template = plugin.templateRepository.findById(templateId)
+            ?.takeIf(plugin.templateRepository::isUsable)
+            ?: return MenuActionResult.Rejected()
+        session.templateId = template.id
+        session.phase = WorldCreationPhase.TEMPLATE_DETAIL
+        return MenuActionResult.Success(MenuUpdate.Navigate(MenuRoute(OWNER, TEMPLATE_DETAIL_ROUTE)))
+    }
+
+    private fun templateListBack(context: MenuActionContext): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        session.phase = WorldCreationPhase.TYPE_SELECT
+        return MenuActionResult.Success(MenuUpdate.Replace(MenuRoute(OWNER, TYPE_ROUTE)))
+    }
+
+    private fun templateDetailBack(context: MenuActionContext): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        session.phase = WorldCreationPhase.TEMPLATE_SELECT
+        return MenuActionResult.Success(MenuUpdate.Replace(MenuRoute(OWNER, TEMPLATE_LIST_ROUTE)))
+    }
+
+    private fun useTemplate(context: MenuActionContext): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val template = session.templateId?.let(plugin.templateRepository::findById)
+            ?.takeIf(plugin.templateRepository::isUsable)
+            ?: return MenuActionResult.Rejected()
+        session.templateId = template.id
+        session.phase = WorldCreationPhase.NAME_INPUT
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            plugin.creationGuiListener.openNameInputByPlatform(context.player, session)
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun previewTemplate(context: MenuActionContext): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val templateId = session.templateId ?: return MenuActionResult.Rejected()
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            plugin.previewSessionManager.startPreview(
+                context.player,
+                PreviewSessionManager.PreviewTarget.Template(templateId),
+                PreviewSource.TEMPLATE_DETAIL,
+            )
+        })
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
     private fun createCreationTypeItem(
         player: Player,
         material: Material,
@@ -234,32 +311,24 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     fun openTemplateSelection(player: Player) {
         val lang = plugin.languageManager
-        val titleKey = "gui.creation.title_template"
-        if (!lang.hasKey(player, titleKey)) {
-            player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return
-        }
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "creation")
-
         val templates = plugin.templateRepository.findAll()
             .filter(plugin.templateRepository::isUsable)
         if (templates.isEmpty()) {
             player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
             return
         }
+        clearSettingsGuiTransition(player)
+        runtime.navigate(player, MenuRoute(OWNER, TEMPLATE_LIST_ROUTE))
+    }
+
+    private fun renderTemplateSelection(player: Player): InventoryMenuView {
+        val lang = plugin.languageManager
+        val templates = plugin.templateRepository.findAll()
+            .filter(plugin.templateRepository::isUsable)
         val worldsPerRow = 7
         val neededDataRows = (templates.size + worldsPerRow - 1) / worldsPerRow
         val rowCount = (neededDataRows + 2).coerceIn(3, 6)
-
-        clearSettingsGuiTransition(player)
-        val holder = CreationGuiHolder(CreationMenuType.TEMPLATE_SELECT)
-        val inventory = Bukkit.createInventory(holder, rowCount * 9, title)
-        holder.inv = inventory
-
-        setupHeaderFooter(inventory, rowCount)
-
-        // Fill data rows
+        val elements = mutableListOf<MenuElement>()
         templates.take((rowCount - 2) * worldsPerRow).forEachIndexed { index, template ->
             val row = index / worldsPerRow
             val col = index % worldsPerRow
@@ -290,13 +359,27 @@ class CreationGui(private val plugin: MyWorldManager) {
                 loreBuilder.buildSpec()
             )
             ItemTag.setTemplateId(item, template.id)
-            inventory.setItem(slot, item)
+            elements += MenuElement(
+                slot,
+                item,
+                GuiElementRole.ACTION,
+                ACTION_SELECT_TEMPLATE,
+                mapOf("template" to template.id),
+            )
         }
-
-        inventory.setItem((rowCount - 1) * 9 + 4, createBackButton(player))
-
-        fillBackground(inventory)
-        ManagedMenuPresenter.open(player, inventory)
+        elements += MenuElement(
+            (rowCount - 1) * 9 + 4,
+            createBackButton(player),
+            GuiElementRole.NAVIGATION,
+            ACTION_TEMPLATE_LIST_BACK,
+        )
+        return InventoryMenuView(
+            size = rowCount * 9,
+            title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                lang.getMessage(player, "gui.creation.title_template"),
+            ),
+            elements = elements,
+        )
     }
 
     fun openTemplateDetail(player: Player, session: WorldCreationSession) {
@@ -308,16 +391,17 @@ class CreationGui(private val plugin: MyWorldManager) {
             openTemplateSelection(player)
             return
         }
+        runtime.navigate(player, MenuRoute(OWNER, TEMPLATE_DETAIL_ROUTE))
+    }
 
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
-            lang.getMessage(player, "gui.creation.template_detail.title")
-        )
-        val holder = CreationGuiHolder(CreationMenuType.TEMPLATE_DETAIL)
+    private fun renderTemplateDetail(player: Player): InventoryMenuView {
+        val lang = plugin.languageManager
+        val session = plugin.creationSessionManager.getSession(player.uniqueId)
+            ?: error("ワールド作成セッションがありません")
+        val template = session.templateId?.let(plugin.templateRepository::findById)
+            ?.takeIf(plugin.templateRepository::isUsable)
+            ?: error("利用可能なテンプレートがありません")
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.threeChoiceLayout()
-        val inventory = Bukkit.createInventory(holder, layout.size, title)
-        holder.inv = inventory
-        GuiItemFactory.applyStandardFrame(inventory)
-
         val issue = plugin.templateRepository.validationIssue(template)
         val origin = template.originLocation
         val cost = WorldRuntimePolicies.creationCost(plugin.config, WorldCreationType.TEMPLATE)
@@ -355,10 +439,10 @@ class CreationGui(private val plugin: MyWorldManager) {
             ItemTag.TYPE_GUI_INFO,
             GuiLoreSpec.Rich(detailLines, GuiLoreFrame.BOTH)
         )
-        inventory.setItem(layout.leftSlot, detailItem)
-
+        val elements = mutableListOf<MenuElement>()
+        elements += MenuElement(layout.leftSlot, detailItem, GuiElementRole.CONTENT)
         if (issue == null) {
-            inventory.setItem(
+            elements += MenuElement(
                 layout.centerSlot,
                 createItem(
                     Material.LIME_CONCRETE,
@@ -367,9 +451,11 @@ class CreationGui(private val plugin: MyWorldManager) {
                     GuiLoreBuilder(lang, player)
                         .actions(lang.getMessage(player, "gui.creation.template_detail.use_action"))
                         .buildSpec()
-                )
+                ),
+                GuiElementRole.ACTION,
+                ACTION_USE_TEMPLATE,
             )
-            inventory.setItem(
+            elements += MenuElement(
                 layout.rightSlot,
                 createItem(
                     Material.ENDER_EYE,
@@ -378,12 +464,24 @@ class CreationGui(private val plugin: MyWorldManager) {
                     GuiLoreBuilder(lang, player)
                         .actions(lang.getMessage(player, "gui.creation.template_detail.preview_action"))
                         .buildSpec()
-                )
+                ),
+                GuiElementRole.ACTION,
+                ACTION_PREVIEW_TEMPLATE,
             )
         }
-        me.awabi2048.myworldmanager.util.GuiHelper.setThreeChoiceBack(inventory, createBackButton(player))
-        fillBackground(inventory)
-        ManagedMenuPresenter.open(player, inventory)
+        elements += MenuElement(
+            layout.backSlot,
+            createBackButton(player),
+            GuiElementRole.NAVIGATION,
+            ACTION_TEMPLATE_DETAIL_BACK,
+        )
+        return InventoryMenuView(
+            size = layout.size,
+            title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                lang.getMessage(player, "gui.creation.template_detail.title"),
+            ),
+            elements = elements,
+        )
     }
 
     fun openConfirmation(player: Player, session: WorldCreationSession) {
@@ -675,8 +773,15 @@ class CreationGui(private val plugin: MyWorldManager) {
         const val SEED_SPAWN_LOCATION_SLOT = 40
         private const val OWNER = "myworldmanager"
         private const val TYPE_ROUTE = "creation_type"
+        private const val TEMPLATE_LIST_ROUTE = "creation_template_list"
+        private const val TEMPLATE_DETAIL_ROUTE = "creation_template_detail"
         private const val ACTION_SELECT_TYPE = "select_type"
         private const val ACTION_BACK = "back"
+        private const val ACTION_SELECT_TEMPLATE = "select_template"
+        private const val ACTION_TEMPLATE_LIST_BACK = "template_list_back"
+        private const val ACTION_USE_TEMPLATE = "use_template"
+        private const val ACTION_PREVIEW_TEMPLATE = "preview_template"
+        private const val ACTION_TEMPLATE_DETAIL_BACK = "template_detail_back"
     }
 
     class CreationGuiHolder(val menuType: CreationMenuType) : InventoryHolder {

@@ -499,5 +499,6 @@ standalone_export:
 - `TourGui`の単体編集と新規破棄確認をRuntime Routeへ移した。保存、テキスト・アイコン編集、削除確認、ウェイポイント追加・削除、戻る、破棄をRuntime Action化し、ワールド内ウェイポイント選択の開始だけを物理操作Listenerへ明示委譲した。
 - `TourGui`の看板紐付け画面をRuntime Routeへ移し、紐付け処理をRuntime Action化した。これにより`TourGui`から直接Inventory生成、旧Holder、ManagedMenuPresenterをすべて削除した。`TourListener`には物理的な看板・ブロック操作と、明示的なアイコン選択入力だけを残した。
 - `CreationGui`の作成種別選択をRuntime Routeへ移し、テンプレート・シード・ランダムの選択とキャンセルをRuntime Action化した。権限、作成上限、ポイント残高、利用可能テンプレートの検査を既存フローと同じ順序で維持した。
+- `CreationGui`のテンプレート一覧と詳細をRuntime Routeへ移し、テンプレート選択、使用、プレビュー、各戻り操作をRuntime Action化した。テンプレートIDをAction payloadと作成セッションで一意に管理し、検証エラー表示を維持した。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。
