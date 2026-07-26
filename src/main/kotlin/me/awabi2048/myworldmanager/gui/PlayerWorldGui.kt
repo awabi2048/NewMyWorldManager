@@ -1,7 +1,13 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -14,6 +20,7 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -37,6 +44,25 @@ import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private val repository = plugin.worldConfigRepository
+        private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+        init {
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = OWNER,
+                                id = ROUTE_ID,
+                                renderer = { context -> render(context.player, context.route) },
+                                actions = mapOf(
+                                        ACTION_PAGE to MenuActionHandler(::page),
+                                        ACTION_BACK to MenuActionHandler(::back),
+                                        ACTION_CREATE to MenuActionHandler(::create),
+                                        ACTION_SETTINGS to MenuActionHandler(::userSettings),
+                                        ACTION_PENDING to MenuActionHandler(::pending),
+                                        ACTION_WORLD to MenuActionHandler(::world),
+                                ),
+                        ),
+                )
+        }
 
         fun getPlayerWorlds(player: Player): List<WorldData> {
                 return getPlayerWorlds(player.uniqueId)
@@ -126,119 +152,328 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 ) {
                         return
                 }
-
-                // 共通レイアウトにページ帯域とフッター位置を委譲し、画面ごとの行計算を残さない。
-                val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(playerWorlds.size, page)
-                val currentPage = pageLayout.page
-                session.currentPage = currentPage
-                val currentPageWorlds = playerWorlds.drop(pageLayout.startIndex).take(pageLayout.itemCount)
-                val layout = pageLayout.layout
-
-                val lang = plugin.languageManager
-                val titleKey = "gui.player_world.title"
-                if (!lang.hasKey(player, titleKey)) {
-                        player.sendMessage(
-                                "§c[MyWorldManager] Error: Missing translation key: $titleKey"
-                        )
-                        return
-                }
-
-                val titleStr = lang.getMessage(player, titleKey)
-                val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(titleStr)
-                me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "player_world")
-
-                val holder = PlayerWorldGuiHolder(targetPlayerUuid, targetPlayerName)
-                val inventory = Bukkit.createInventory(holder, layout.size, title)
-                holder.inv = inventory
-                val footerStart = inventory.size - 9
-
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         player.uniqueId,
                         me.awabi2048.myworldmanager.session.SettingsAction.PLAYER_WORLD_GUI,
                         isGui = true
                 )
+                runtime.navigate(player, route(page, targetPlayerUuid, targetPlayerName))
+        }
 
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
-
-                layout.itemSlots.forEachIndexed { index, slot ->
-                        currentPageWorlds.getOrNull(index)?.let {
-                                inventory.setItem(slot, createWorldItem(player, it, targetPlayerUuid))
+        private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+                val targetUuid = targetUuid(route)
+                val targetName = route.payload[TARGET_NAME]
+                val worlds = getPlayerWorlds(targetUuid)
+                val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
+                        worlds.size,
+                        route.payload[PAGE]?.toIntOrNull() ?: 0,
+                )
+                val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+                session.currentPage = pageLayout.page
+                val layout = pageLayout.layout
+                val stats = plugin.playerStatsRepository.findByUuid(targetUuid)
+                val isOwnMenu = targetUuid == player.uniqueId
+                val elements = mutableListOf<MenuElement>()
+                worlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, world ->
+                        elements += MenuElement(
+                                layout.itemSlots[index],
+                                createWorldItem(player, world, targetUuid),
+                                GuiElementRole.ACTION,
+                                ACTION_WORLD,
+                                mapOf(WORLD_UUID to world.uuid.toString()),
+                        )
+                }
+                val createCount = worlds.count { it.owner == targetUuid }
+                val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
+                if (isOwnMenu) {
+                        val reason = creationBlockReason(
+                                player,
+                                createCount,
+                                maxSlot,
+                                PermissionManager.canBypassWorldLimits(player),
+                        )
+                        elements += if (reason == null) {
+                                MenuElement(
+                                        layout.actionSlot - 2,
+                                        createCreationButton(player),
+                                        GuiElementRole.ACTION,
+                                        ACTION_CREATE,
+                                )
+                        } else {
+                                MenuElement(
+                                        layout.actionSlot - 2,
+                                        createCreationUnavailableButton(player, reason),
+                                        GuiElementRole.CONTENT,
+                                )
                         }
                 }
-
-                // 統計情報の取得
-                val currentCreateCount = playerWorlds.count { it.owner == targetPlayerUuid }
-                val maxSlot =
-                        WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
-                                stats.unlockedWorldSlot
-                val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-                // マイワールド新規作成ボタン (Slot 2)
-                val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
-                if (isOwnMenu && creationBlockReason == null) {
-                        inventory.setItem(layout.actionSlot - 2, createCreationButton(player))
-                } else if (isOwnMenu) {
-                        creationBlockReason?.let {
-                                inventory.setItem(layout.actionSlot - 2, createCreationUnavailableButton(player, it))
-                        }
-                }
-
-                // プレイヤー統計ボタン (Slot 4)
-                inventory.setItem(
+                elements += MenuElement(
                         layout.actionSlot,
-                        createStatsButton(player, targetPlayerUuid, targetPlayerName, currentCreateCount, maxSlot, stats)
+                        createStatsButton(player, targetUuid, targetName, createCount, maxSlot, stats),
+                        GuiElementRole.CONTENT,
+                )
+                if (isOwnMenu) {
+                        elements += MenuElement(
+                                layout.actionSlot + 2,
+                                createUserSettingsButton(player),
+                                GuiElementRole.ACTION,
+                                ACTION_SETTINGS,
+                        )
+                        elements += MenuElement(
+                                layout.size - 2,
+                                createPendingButton(player),
+                                GuiElementRole.ACTION,
+                                ACTION_PENDING,
+                        )
+                }
+                if (pageLayout.page > 0) {
+                        elements += MenuElement(
+                                layout.previousPageSlot,
+                                GuiHelper.createPrevPageItem(
+                                        plugin,
+                                        player,
+                                        "player_world",
+                                        pageLayout.page - 1,
+                                ),
+                                GuiElementRole.NAVIGATION,
+                                ACTION_PAGE,
+                                mapOf(PAGE to (pageLayout.page - 1).toString()),
+                        )
+                }
+                if (session.showBackButton) {
+                        elements += MenuElement(
+                                layout.backSlot,
+                                GuiHelper.createReturnItem(plugin, player, "player_world"),
+                                GuiElementRole.BACK,
+                                ACTION_BACK,
+                        )
+                }
+                if (pageLayout.page < pageLayout.totalPages - 1) {
+                        elements += MenuElement(
+                                layout.nextPageSlot,
+                                GuiHelper.createNextPageItem(
+                                        plugin,
+                                        player,
+                                        "player_world",
+                                        pageLayout.page + 1,
+                                ),
+                                GuiElementRole.NAVIGATION,
+                                ACTION_PAGE,
+                                mapOf(PAGE to (pageLayout.page + 1).toString()),
+                        )
+                }
+                return InventoryMenuView(
+                        layout.size,
+                        GuiHelper.inventoryTitle(
+                                plugin.languageManager.getMessage(player, "gui.player_world.title"),
+                        ),
+                        elements,
+                )
+        }
+
+        private fun page(context: MenuActionContext): MenuActionResult {
+                val targetPage = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+                return MenuActionResult.Success(
+                        MenuUpdate.Replace(
+                                route(targetPage, targetUuid(context.route), context.route.payload[TARGET_NAME]),
+                        ),
+                )
+        }
+
+        private fun back(context: MenuActionContext): MenuActionResult {
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                GuiHelper.handleReturnClick(
+                                        plugin,
+                                        context.player,
+                                        GuiHelper.createReturnItem(plugin, context.player, "player_world"),
+                                )
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun create(context: MenuActionContext): MenuActionResult {
+                if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
+                if (!WorldCreationChecks.checkSelfCreatePermission(context.player)) {
+                        return MenuActionResult.Rejected()
+                }
+                val session = plugin.creationSessionManager.startSession(context.player.uniqueId)
+                session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(context.player)
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable { plugin.creationGui.openTypeSelection(context.player) },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun userSettings(context: MenuActionContext): MenuActionResult {
+                if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
+                val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
+                plugin.menuRouteHistory.pushPlayerWorld(
+                        context.player,
+                        session.currentPage,
+                        session.showBackButton,
+                )
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable { plugin.userSettingsGui.open(context.player, showBackButton = true) },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun pending(context: MenuActionContext): MenuActionResult {
+                if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
+                val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                plugin.pendingInteractionGui.open(
+                                        player = context.player,
+                                        page = 0,
+                                        returnPage = session.currentPage,
+                                        showBackButton = session.showBackButton,
+                                        fromBedrockMenu = false,
+                                )
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun world(context: MenuActionContext): MenuActionResult {
+                val uuid = context.payload[WORLD_UUID]
+                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return MenuActionResult.Rejected()
+                val worldData = plugin.worldConfigRepository.findByUuid(uuid)
+                        ?: return MenuActionResult.Rejected()
+                val ownMenu = targetUuid(context.route) == context.player.uniqueId
+                return when {
+                        ownMenu && context.click.isShiftClick && context.click.isLeftClick ->
+                                moveToTop(context, worldData)
+                        context.click.isLeftClick && worldData.isArchived ->
+                                unarchive(context.player, worldData)
+                        context.click.isLeftClick && isCurrentWorld(context.player, worldData) &&
+                                canOpenWorldSettings(context.player, worldData) ->
+                                openSettings(context.player, worldData)
+                        context.click.isLeftClick && !isCurrentWorld(context.player, worldData) ->
+                                warp(context.player, worldData)
+                        context.click.isRightClick && canOpenWorldSettings(context.player, worldData) ->
+                                openSettings(context.player, worldData)
+                        else -> MenuActionResult.Ignored
+                }
+        }
+
+        private fun moveToTop(context: MenuActionContext, worldData: WorldData): MenuActionResult {
+                val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+                stats.worldDisplayOrder.remove(worldData.uuid)
+                stats.worldDisplayOrder.add(0, worldData.uuid)
+                plugin.playerStatsRepository.save(stats)
+                context.player.sendMessage("§a「${worldData.name}」を一番上に移動しました。")
+                return MenuActionResult.Success(MenuUpdate.Refresh)
+        }
+
+        private fun unarchive(player: Player, worldData: WorldData): MenuActionResult {
+                if (worldData.owner != player.uniqueId) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(player, "messages.archive_access_denied"),
+                        )
+                        return MenuActionResult.Rejected()
+                }
+                val lang = plugin.languageManager
+                val title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                        .legacySection()
+                        .deserialize(lang.getMessage(player, "gui.unarchive_confirm.title"))
+                val body = lang.getMessageList(player, "gui.unarchive_confirm.description").map {
+                        net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                                .legacySection()
+                                .deserialize(it)
+                }
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        me.awabi2048.myworldmanager.session.SettingsAction.UNARCHIVE_CONFIRM,
+                        isGui = true,
+                )
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player,
+                                        plugin,
+                                        title,
+                                        body,
+                                        "mwm:confirm/unarchive_world",
+                                        "mwm:confirm/cancel",
+                                        lang.getMessage(player, "gui.common.confirm"),
+                                        lang.getMessage(player, "gui.common.cancel"),
+                                ) {
+                                        plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
+                                }
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun warp(player: Player, worldData: WorldData): MenuActionResult {
+                if (Bukkit.getWorld(worldData.customWorldName ?: "my_world.${worldData.uuid}") == null) {
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
+                }
+                plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.warp_success",
+                                        mapOf("world" to worldData.name),
+                                ),
+                        )
+                }
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun openSettings(player: Player, worldData: WorldData): MenuActionResult {
+                val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+                plugin.menuRouteHistory.pushPlayerWorld(player, session.currentPage, session.showBackButton)
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                plugin.worldSettingsGui.open(
+                                        player,
+                                        worldData,
+                                        showBackButton = true,
+                                        isPlayerWorldFlow = true,
+                                        parentShowBackButton = session.showBackButton,
+                                )
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun canOpenWorldSettings(player: Player, worldData: WorldData): Boolean =
+                player.hasPermission("myworldmanager.admin") ||
+                        worldData.owner == player.uniqueId ||
+                        player.uniqueId in worldData.moderators ||
+                        player.uniqueId in worldData.members
+
+        private fun route(
+                page: Int,
+                targetUuid: UUID,
+                targetName: String?,
+        ): MenuRoute =
+                MenuRoute(
+                        OWNER,
+                        ROUTE_ID,
+                        buildMap {
+                                put(PAGE, page.toString())
+                                put(TARGET_UUID, targetUuid.toString())
+                                targetName?.let { put(TARGET_NAME, it) }
+                        },
                 )
 
-                // 個人設定ボタン (Slot 6)
-                if (isOwnMenu) {
-                        inventory.setItem(
-                                layout.actionSlot + 2,
-                                createUserSettingsButton(player)
-                        )
-                        inventory.setItem(
-                                footerStart + 7,
-                                createPendingButton(player)
-                        )
-                }
-
-                if (currentPage > 0) {
-                        inventory.setItem(
-                                layout.previousPageSlot,
-                                me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
-                                        plugin,
-                                        player,
-                                        "player_world",
-                                currentPage - 1
-                                )
-                        )
-                }
-
-                if (session.showBackButton) {
-                        inventory.setItem(
-                                layout.backSlot,
-                                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(
-                                        plugin,
-                                        player,
-                                        "player_world"
-                                )
-                        )
-                }
-                if (currentPage < pageLayout.totalPages - 1) {
-                        inventory.setItem(
-                                footerStart + 8,
-                                me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
-                                        plugin,
-                                        player,
-                                        "player_world",
-                                currentPage + 1
-                                )
-                        )
-                }
-
-                GuiItemFactory.fillEmpty(inventory)
-                ManagedMenuPresenter.open(player, inventory)
-                me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-        }
+        private fun targetUuid(route: MenuRoute): UUID =
+                route.payload[TARGET_UUID]?.let(UUID::fromString)
+                        ?: error("プレイヤーワールド一覧の対象UUIDがありません")
 
         private fun createWorldItem(
                 player: Player,
@@ -531,14 +766,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
         }
 
-        class PlayerWorldGuiHolder(
-                val targetPlayerUuid: UUID,
-                val targetPlayerName: String?
-        ) : org.bukkit.inventory.InventoryHolder {
-                lateinit var inv: org.bukkit.inventory.Inventory
-                override fun getInventory(): org.bukkit.inventory.Inventory = inv
-        }
-
         private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
                 POLICY_DENIED(
                         "gui.player_world.creation_unavailable.policy_denied.display",
@@ -552,5 +779,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         "gui.player_world.creation_unavailable.no_permission.display",
                         "gui.player_world.creation_unavailable.no_permission.lore"
                 )
+        }
+
+        companion object {
+                private const val OWNER = "myworldmanager"
+                private const val ROUTE_ID = "player-world"
+                private const val PAGE = "page"
+                private const val TARGET_UUID = "targetUuid"
+                private const val TARGET_NAME = "targetName"
+                private const val WORLD_UUID = "worldUuid"
+                private const val ACTION_PAGE = "page"
+                private const val ACTION_BACK = "back"
+                private const val ACTION_CREATE = "create"
+                private const val ACTION_SETTINGS = "settings"
+                private const val ACTION_PENDING = "pending"
+                private const val ACTION_WORLD = "world"
         }
 }

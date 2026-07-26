@@ -139,7 +139,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `InviteGui`
 - [x] `MeetGui`
 - [x] `PendingInteractionGui`
-- [ ] `PlayerWorldGui`
+- [x] `PlayerWorldGui`
 - [x] `PortalGui`
 - [x] `TemplateWizardGui`
 - [ ] `TourGui`
@@ -487,3 +487,5 @@ standalone_export:
 - `DiscoveryGui`のワールド一覧、ページ移動、タグ・未訪問フィルタ、並び替え、ワープ、プレビュー、メンバー申請、お気に入り、スポットライト登録・解除をRuntime RouteとActionへ移行した。
 - 旧画面で生成済みなのに配置されていなかったタグフィルターを共通フッターへ配置し、常に先頭10件を表示していたページ計算をRouteの現在ページへ接続した。
 - `DiscoveryListener`からInventoryクリック処理と個別クリック音15参照を削除し、スポットライト説明の共通Dialog入力だけを残した。
+- `PlayerWorldGui`の対象プレイヤー、ページ、戻り導線、作成、個人設定、保留操作、並び順変更、ワープ、設定遷移、アーカイブ解除確認をRuntime RouteとActionへ移行した。
+- `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
