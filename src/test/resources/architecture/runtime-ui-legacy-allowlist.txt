@@ -2,7 +2,6 @@
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/DiscoveryGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/EnvironmentGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/FavoriteGui.kt
-CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/FavoriteMenuGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/InviteGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/MeetGui.kt
 CREATE_INVENTORY|1|src/main/kotlin/me/awabi2048/myworldmanager/gui/PlayerWorldGui.kt
@@ -55,7 +54,7 @@ MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/Invite
 MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSeedListener.kt
 MANUAL_CLICK_SOUND|1|src/main/kotlin/me/awabi2048/myworldmanager/util/GuiHelper.kt
 MANUAL_CLICK_SOUND|11|src/main/kotlin/me/awabi2048/myworldmanager/listener/CreationGuiListener.kt
-MANUAL_CLICK_SOUND|10|src/main/kotlin/me/awabi2048/myworldmanager/listener/FavoriteListener.kt
+MANUAL_CLICK_SOUND|7|src/main/kotlin/me/awabi2048/myworldmanager/listener/FavoriteListener.kt
 MANUAL_CLICK_SOUND|8|src/main/kotlin/me/awabi2048/myworldmanager/listener/AdminGuiListener.kt
 MANUAL_CLICK_SOUND|15|src/main/kotlin/me/awabi2048/myworldmanager/listener/DiscoveryListener.kt
 MANUAL_CLICK_SOUND|15|src/main/kotlin/me/awabi2048/myworldmanager/listener/PlayerWorldListener.kt

@@ -5,8 +5,6 @@ import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
-import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.FavoriteGui
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -184,80 +182,6 @@ class FavoriteListener(private val plugin: MyWorldManager) : Listener {
                     ManagedMenuPresenter.close(player)
                     val target = PreviewSessionManager.PreviewTarget.World(worldData)
                     plugin.previewSessionManager.startPreview(player, target, me.awabi2048.myworldmanager.session.PreviewSource.FAVORITE_MENU)
-                }
-            }
-            return
-        }
-
-        // お気に入りメニュー
-        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.FavoriteMenuGui.FavoriteMenuGuiHolder) {
-            event.cancelWithDebug("FavoriteListener.onInventoryClick: favorite menu GUI click")
-            if (event.clickedInventory != view.topInventory) return
-            val currentItem = event.currentItem ?: return
-            val type = ItemTag.getType(currentItem)
-            if (currentItem.type == Material.AIR || type == ItemTag.TYPE_GUI_DECORATION) return
-
-            when (type) {
-                ItemTag.TYPE_GUI_FAVORITE_OTHER_WORLDS -> {
-                    val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-                    val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-                    val owner = Bukkit.getOfflinePlayer(worldData.owner)
-                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    plugin.menuEntryRouter.openVisitMenu(player, owner, 0, worldData)
-                }
-                ItemTag.TYPE_GUI_FAVORITE_TOGGLE -> {
-                    val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-                    val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-                    
-                    // オーナーはお気に入り登録できない
-                    if (worldData.owner == player.uniqueId) return
-                    
-                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                    var favoriteAdded = false
-
-                    if (stats.favoriteWorlds.containsKey(uuid)) {
-                        stats.favoriteWorlds.remove(uuid)
-                        worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
-                        player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
-                        plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
-                    } else {
-                        val maxFav = plugin.config.getInt("favorite.max_count", 1000)
-                        if (stats.favoriteWorlds.size >= maxFav) {
-                            player.sendMessage(lang.getMessage(player, "error.favorite_limit_reached", mapOf("limit" to maxFav)))
-                            return
-                        }
-                        stats.favoriteWorlds[uuid] = java.time.LocalDate.now().toString()
-                        worldData.favorite++
-                        favoriteAdded = true
-                        player.sendMessage(lang.getMessage(player, "messages.favorite_added"))
-                        plugin.soundManager.playActionSound(player, "favorite", "favorite_add")
-                    }
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.worldConfigRepository.save(worldData)
-                    if (favoriteAdded) {
-                        Bukkit.getPluginManager().callEvent(
-                            MwmWorldFavoritedEvent(
-                                worldUuid = worldData.uuid,
-                                worldName = worldData.name,
-                                playerUuid = player.uniqueId,
-                                playerName = player.name,
-                                source = MwmFavoriteAddSource.FAVORITE_MENU
-                            )
-                        )
-                    }
-                    plugin.menuEntryRouter.openFavoriteMenu(player, worldData)
-                }
-                ItemTag.TYPE_GUI_FAVORITE_LIST -> {
-                    val uuid = ItemTag.getWorldUuid(currentItem)
-                    val worldData = if (uuid != null) plugin.worldConfigRepository.findByUuid(uuid) else null
-                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    plugin.menuEntryRouter.openFavoriteList(player, 0, worldData, returnToFavoriteMenu = true)
-                }
-                ItemTag.TYPE_GUI_RETURN -> {
-                    val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-                    val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-                    plugin.soundManager.playClickSound(player, currentItem, "favorite")
-                    plugin.menuEntryRouter.openFavoriteMenu(player, worldData)
                 }
             }
             return
