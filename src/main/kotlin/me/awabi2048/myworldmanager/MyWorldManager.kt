@@ -478,6 +478,7 @@ class MyWorldManager : JavaPlugin() {
         runCatching { CCSystem.getAPI().getConfigSchemaService().unregister("myworld") }
         runCatching { CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld") }
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("mwm") }
+        runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("myworldmanager") }
         runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()

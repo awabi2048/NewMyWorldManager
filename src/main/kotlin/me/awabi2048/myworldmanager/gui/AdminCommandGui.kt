@@ -40,25 +40,25 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                 actions = mapOf(
                     ACTION_UPDATE_DATA to MenuActionHandler { context ->
                         openUpdateDataConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                     ACTION_REPAIR_TEMPLATES to MenuActionHandler { context ->
                         openRepairTemplatesConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                     ACTION_CREATE_TEMPLATE to MenuActionHandler(::createTemplate),
                     ACTION_ARCHIVE_ALL to MenuActionHandler { context ->
                         openArchiveAllConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                     ACTION_CONVERT to MenuActionHandler(::convert),
                     ACTION_UNLINK to MenuActionHandler { context ->
                         openUnlinkConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                     ACTION_EXPORT to MenuActionHandler { context ->
                         openExportConfirmation(context.player, context.player.world.name)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                     ACTION_INFO to MenuActionHandler(::openWorldList),
                     ACTION_MENU_SWITCH to MenuActionHandler(::switchMenu),
@@ -219,7 +219,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
     private fun createTemplate(context: MenuActionContext): MenuActionResult {
         plugin.templateWizardGui.open(context.player)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun convert(context: MenuActionContext): MenuActionResult {
@@ -229,22 +229,22 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             else -> return MenuActionResult.Ignored
         }
         openConvertConfirmation(context.player, mode)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun openWorldList(context: MenuActionContext): MenuActionResult {
         plugin.worldGui.open(context.player, fromAdminMenu = true)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun switchMenu(context: MenuActionContext): MenuActionResult {
         MyWorldManagerApi.openNextAdminMenu(context.player)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun openPortals(context: MenuActionContext): MenuActionResult {
         plugin.adminPortalGui.open(context.player, fromAdminMenu = true)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun confirm(context: MenuActionContext): MenuActionResult {
@@ -452,8 +452,8 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey)),
             elements = listOf(
                 MenuElement(layout.previewSlot, infoItem, GuiElementRole.CONTENT),
-                MenuElement(layout.confirmSlot, confirmItem, GuiElementRole.ACTION, ACTION_CONFIRM),
-                MenuElement(layout.cancelSlot, cancelItem, GuiElementRole.NAVIGATION, ACTION_CANCEL),
+                MenuElement(layout.confirmSlot, confirmItem, GuiElementRole.CONFIRM, ACTION_CONFIRM),
+                MenuElement(layout.cancelSlot, cancelItem, GuiElementRole.CANCEL, ACTION_CANCEL),
             ),
         )
     }

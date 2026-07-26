@@ -81,6 +81,32 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         )
                                                         MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
                                                 },
+                                ),
+                                onClose = { context ->
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(context.player)
+                                },
+                        ),
+                )
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = RUNTIME_OWNER,
+                                id = RUNTIME_SELECTION_ROUTE,
+                                renderer = { context ->
+                                        runtimeViews[context.route.payload.getValue("view")]?.view
+                                                ?: error("ワールド設定Runtime Viewが見つかりません")
+                                },
+                                actions = mapOf(
+                                        ACTION_RUNTIME_DISPATCH to
+                                                MenuActionHandler { context ->
+                                                        plugin.worldSettingsListener.handleRuntimeInventoryClick(
+                                                                context.player,
+                                                                context.click,
+                                                                context.item,
+                                                                context.payload["slot"]?.toIntOrNull()
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                        )
+                                                        MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
+                                                },
                                         MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
                                                 MenuActionHandler { context ->
                                                         plugin.worldSettingsListener.handleRuntimeIconSelection(
@@ -94,6 +120,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 },
                         ),
                 )
+        }
+
+        fun enableRuntimeIconSelection(player: Player) {
+                val route = CCSystem.getAPI().getMenuNavigationService().currentRoute(player) ?: return
+                if (route.owner != RUNTIME_OWNER || route.id != RUNTIME_ROUTE) return
+                runtime.replace(player, route.copy(id = RUNTIME_SELECTION_ROUTE))
+        }
+
+        fun disableRuntimeIconSelection(player: Player) {
+                val route = CCSystem.getAPI().getMenuNavigationService().currentRoute(player) ?: return
+                if (route.owner != RUNTIME_OWNER || route.id != RUNTIME_SELECTION_ROUTE) return
+                runtime.replace(player, route.copy(id = RUNTIME_ROUTE))
         }
 
         private data class RuntimeViewEntry(
@@ -3136,6 +3174,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         private companion object {
                 const val RUNTIME_OWNER = "myworldmanager"
                 const val RUNTIME_ROUTE = "world_settings_runtime"
+                const val RUNTIME_SELECTION_ROUTE = "world_settings_runtime_icon_selection"
                 const val ACTION_RUNTIME_DISPATCH = "dispatch"
         }
 }

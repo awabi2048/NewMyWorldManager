@@ -141,7 +141,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     mapOf("type" to WorldCreationType.SEED.name),
                 ),
                 MenuElement(layout.rightSlot, randomItem, GuiElementRole.ACTION, ACTION_SELECT_TYPE, mapOf("type" to WorldCreationType.RANDOM.name)),
-                MenuElement(layout.backSlot, createBackButton(player), GuiElementRole.NAVIGATION, ACTION_BACK),
+                MenuElement(layout.backSlot, createBackButton(player), GuiElementRole.BACK, ACTION_BACK),
             ),
         )
     }

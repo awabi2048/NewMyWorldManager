@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test
 
 class MenuNavigationContractTest {
     private val guiRoot = Path.of("src/main/kotlin/me/awabi2048/myworldmanager/gui")
+    private val pluginSource = Path.of("src/main/kotlin/me/awabi2048/myworldmanager/MyWorldManager.kt")
 
     @Test
     fun `履歴を持つ子画面の戻る操作はRuntimeのBackへ委譲する`() {
@@ -31,6 +32,29 @@ class MenuNavigationContractTest {
         val body = functionBody(source, "openEntry")
         assertTrue("MenuUpdate.None" in body)
         assertFalse("MenuUpdate.Close" in body)
+    }
+
+    @Test
+    fun `テンプレート作成の取消は管理画面の履歴へ戻る`() {
+        val source = guiRoot.resolve("TemplateWizardGui.kt").readText()
+        val body = functionBody(source, "cancel")
+        assertTrue("MenuUpdate.Back" in body)
+        assertFalse("MenuUpdate.Close" in body)
+    }
+
+    @Test
+    fun `Runtimeの全ownerを無効化時に解除する`() {
+        val source = pluginSource.readText()
+        assertTrue("""unregisterOwner("mwm")""" in source)
+        assertTrue("""unregisterOwner("myworldmanager")""" in source)
+    }
+
+    @Test
+    fun `アイコン選択時だけプレイヤーインベントリを選択モードにする`() {
+        val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
+        assertTrue("""id = RUNTIME_SELECTION_ROUTE""" in source)
+        assertTrue("enableRuntimeIconSelection" in source)
+        assertTrue("disableRuntimeIconSelection" in source)
     }
 
     @Test
@@ -74,6 +98,9 @@ class MenuNavigationContractTest {
             "InviteGui.kt",
             "MeetGui.kt",
             "PendingInteractionGui.kt",
+            "DiscoveryGui.kt",
+            "VisitGui.kt",
+            "WorldGui.kt",
             "VisitWorldGui.kt",
         )
     }

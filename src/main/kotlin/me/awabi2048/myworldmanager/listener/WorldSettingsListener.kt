@@ -1282,9 +1282,9 @@ class WorldSettingsListener : Listener {
 
                                 when (itemTag) {
                                         ItemTag.TYPE_GUI_RETURN -> {
-                                                if (session.isAdminFlow) {
+                                                if (CCSystem.getAPI().getMenuRuntimeService().back(player)) {
+                                                } else if (session.isAdminFlow) {
                                                         plugin.worldGui.open(player, fromAdminMenu = true)
-                                                } else if (CCSystem.getAPI().getMenuRuntimeService().back(player)) {
                                                 } else if (session.isPlayerWorldFlow) {
                                                         plugin.playerWorldGui.open(player, 0, showBackButton = session.parentShowBackButton)
                                                 } else {
@@ -2492,6 +2492,7 @@ plugin.languageManager
                         ?.let {
                                 it.beginExternalInput(MenuExternalInput.SELECT_ICON)
                         }
+                plugin.worldSettingsGui.enableRuntimeIconSelection(player)
                 player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
         }
 
@@ -2540,9 +2541,7 @@ plugin.languageManager
                         )
                 )
                 plugin.settingsSessionManager.endSession(player)
-                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                    plugin.worldSettingsGui.open(player, worldData)
-                }
+                plugin.worldSettingsGui.disableRuntimeIconSelection(player)
                 return MenuActionResult.Success(MenuUpdate.None)
         }
 

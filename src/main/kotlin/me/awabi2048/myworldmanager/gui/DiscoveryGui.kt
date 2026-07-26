@@ -223,16 +223,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         }
 
         private fun back(context: MenuActionContext): MenuActionResult {
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                GuiHelper.handleReturnClick(
-                                        plugin,
-                                        context.player,
-                                )
-                        },
-                )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.Back)
         }
 
         private fun tag(context: MenuActionContext): MenuActionResult {

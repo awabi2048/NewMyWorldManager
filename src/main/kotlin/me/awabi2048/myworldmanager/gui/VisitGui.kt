@@ -129,14 +129,7 @@ class VisitGui(private val plugin: MyWorldManager) {
         }
 
         private fun back(context: MenuActionContext): MenuActionResult {
-                val worldData = context.route.uuid(RETURN_WORLD_UUID)
-                        ?.let(plugin.worldConfigRepository::findByUuid)
-                        ?: return MenuActionResult.Rejected()
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable { plugin.menuEntryRouter.openFavoriteMenu(context.player, worldData) },
-                )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.Back)
         }
 
         private fun page(context: MenuActionContext): MenuActionResult {

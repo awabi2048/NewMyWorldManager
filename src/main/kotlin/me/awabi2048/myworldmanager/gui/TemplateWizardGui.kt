@@ -364,8 +364,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         context.player.sendMessage(
             plugin.languageManager.getMessage(context.player, "messages.operation_cancelled"),
         )
-        Bukkit.getScheduler().runTask(plugin, Runnable { plugin.adminCommandGui.open(context.player) })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun session(context: MenuActionContext): WizardSession? = sessions[context.player.uniqueId]

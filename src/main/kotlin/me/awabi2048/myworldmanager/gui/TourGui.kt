@@ -449,13 +449,13 @@ class TourGui(private val plugin: MyWorldManager) {
                 lang.getMessage(player, "gui.tour.menu.delete_confirm.confirm"),
                 emptyList(),
                 ItemTag.TYPE_GUI_CONFIRM
-                ), GuiElementRole.ACTION, ACTION_DELETE_CONFIRM),
+                ), GuiElementRole.CONFIRM, ACTION_DELETE_CONFIRM),
                 MenuElement(layout.cancelSlot, createLoreItem(
                 Material.RED_WOOL,
                 lang.getMessage(player, "gui.tour.menu.delete_confirm.cancel"),
                 emptyList(),
                 ItemTag.TYPE_GUI_CANCEL
-                ), GuiElementRole.NAVIGATION, ACTION_DELETE_CANCEL),
+                ), GuiElementRole.CANCEL, ACTION_DELETE_CANCEL),
             ),
         )
     }
