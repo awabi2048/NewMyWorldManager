@@ -20,7 +20,6 @@ import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-import io.papermc.paper.event.player.PlayerCustomClickEvent
 import io.papermc.paper.event.player.PlayerPickBlockEvent
 import org.bukkit.Bukkit
 import org.bukkit.Color
@@ -834,24 +833,6 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         if (event.player.isSneaking) return
 
         plugin.portalManager.handlePlayerMove(event.player)
-    }
-
-    @EventHandler
-    fun onCustomClick(event: PlayerCustomClickEvent) {
-        val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
-        val player = conn.player
-        val identifier = event.identifier.asString()
-
-        when (identifier) {
-            WORLD_GATE_CANCEL_ACTION -> {
-                DialogConfirmManager.safeCloseDialog(player)
-                cancelGatePlacement(player)
-            }
-            WORLD_GATE_CONFIRM_ACTION -> {
-                DialogConfirmManager.safeCloseDialog(player)
-                confirmGatePlacement(player)
-            }
-        }
     }
 
     @EventHandler

@@ -3,8 +3,6 @@
 package me.awabi2048.myworldmanager.gui
 
 
-import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -16,13 +14,6 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogInput
 import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
 import com.awabi2048.ccsystem.api.gui.MenuDialogResponse
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.session.PreviewSource
@@ -34,211 +25,18 @@ import me.awabi2048.myworldmanager.session.WorldSpawnCoordinates
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.plugin.java.JavaPlugin
 
 /**
  * ワールド作成時のダイアログ入力を管理するクラス
  * ベータ機能として、チャット入力の代わりにダイアログを使用する
  */
-class CreationDialogManager : Listener {
+class CreationDialogManager {
 
-    @EventHandler
-    fun handleCreationDialog(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
-
-        // ダイアログモードでない場合は無視
-        if (!session.isDialogMode) return
-
-        // Cancel Action
-        if (identifier == Key.key("mwm:creation/cancel")) {
-            plugin.creationSessionManager.endSession(player.uniqueId)
-            safeCloseDialog(player)
-            org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
-                plugin.menuEntryRouter.openPlayerWorld(player, 0, false)
-            })
-            return
-        }
-
-        // 名前入力 -> 次へ
-        if (identifier == Key.key("mwm:creation/name_input_next")) {
-            val view = event.getDialogResponseView()
-            val nameRaw = view?.getText("world_name")?.toString().orEmpty()
-
-            // 名前のバリデーション
-            val result = plugin.worldValidator.validateName(nameRaw)
-            if (result is WorldNameValidation.Failure) {
-                val errorComponent = plugin.languageManager.getComponent(player, result.messageKey, result.placeholders)
-                showNameInputDialog(player, session, errorComponent)
-                return
-            }
-
-            val cleanName = cleanWorldName(nameRaw)
-            if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, cleanName) != null) {
-                showNameInputDialog(
-                    player,
-                    session,
-                    plugin.languageManager.getComponent(player, "messages.world_name_duplicate")
-                )
-                return
-            }
-
-            session.worldName = cleanName
-            if (session.creationType == null) {
-                session.phase = WorldCreationPhase.TYPE_SELECT
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
-                    plugin.creationGui.openTypeSelection(player)
-                })
-            } else {
-                session.phase = WorldCreationPhase.CONFIRM
-                safeCloseDialog(player)
-                plugin.creationGui.openConfirmation(player, session)
-            }
-            return
-        }
-
-        if (identifier == Key.key("mwm:creation/name_input_back")) {
-            when (session.creationType) {
-                WorldCreationType.TEMPLATE -> {
-                    session.phase = WorldCreationPhase.TEMPLATE_DETAIL
-                    plugin.creationGui.openTemplateDetail(player, session)
-                }
-                WorldCreationType.SEED -> {
-                    session.phase = WorldCreationPhase.SEED_INPUT
-                    showSeedInputDialog(player, session)
-                }
-                WorldCreationType.RANDOM, null -> {
-                    session.phase = WorldCreationPhase.TYPE_SELECT
-                    plugin.creationGui.openTypeSelection(player)
-                }
-            }
-            return
-        }
-
-        // シード値入力 -> 次へ
-        if (identifier == Key.key("mwm:creation/seed_input_next")) {
-            val view = event.getDialogResponseView() ?: return
-            val seedInputAny = view.getText("seed_value") ?: ""
-            val seedInput = seedInputAny.toString()
-
-            if (seedInput.isBlank()) {
-                showSeedInputDialog(
-                    player,
-                    session,
-                    plugin.languageManager.getMessage(player, "gui.creation.dialog.seed_required")
-                )
-                return
-            }
-
-            session.inputSeedString = seedInput
-            session.phase = WorldCreationPhase.NAME_INPUT
-            showNameInputDialog(player, session)
-            return
-        }
-
-        // シード値入力 -> 戻る
-        if (identifier == Key.key("mwm:creation/seed_input_back")) {
-            session.phase = WorldCreationPhase.TYPE_SELECT
-            plugin.creationGui.openTypeSelection(player)
-            return
-        }
-
-        if (identifier == Key.key("mwm:creation/spawn_input_next")) {
-            val view = event.getDialogResponseView() ?: return
-            when (
-                val result = WorldSpawnCoordinates.parse(
-                    view.getText("spawn_x")?.toString().orEmpty(),
-                    view.getText("spawn_y")?.toString().orEmpty(),
-                    view.getText("spawn_z")?.toString().orEmpty()
-                )
-            ) {
-                is WorldSpawnCoordinates.ParseResult.Valid -> session.spawnCoordinates = result.coordinates
-                WorldSpawnCoordinates.ParseResult.Unset -> session.spawnCoordinates = null
-                WorldSpawnCoordinates.ParseResult.InvalidNumber -> {
-                    showSpawnLocationInputDialog(
-                        player,
-                        session,
-                        plugin.languageManager.getMessage(player, "gui.creation.confirm.spawn_location.error.number")
-                    )
-                    return
-                }
-                WorldSpawnCoordinates.ParseResult.OutOfRange -> {
-                    showSpawnLocationInputDialog(
-                        player,
-                        session,
-                        plugin.languageManager.getMessage(player, "gui.creation.confirm.spawn_location.error.range")
-                    )
-                    return
-                }
-            }
-            session.phase = WorldCreationPhase.CONFIRM
-            safeCloseDialog(player)
-            plugin.creationGui.openConfirmation(player, session)
-            return
-        }
-
-        if (identifier == Key.key("mwm:creation/spawn_input_back")) {
-            session.phase = WorldCreationPhase.CONFIRM
-            safeCloseDialog(player)
-            plugin.creationGui.openConfirmation(player, session)
-            return
-        }
-
-        // 最終確認 -> 進む
-        if (identifier == Key.key("mwm:creation/confirm_next")) {
-            performWorldCreation(player, session, plugin)
-            safeCloseDialog(player)
-            return
-        }
-
-        // 最終確認 -> テンプレートプレビュー
-        if (identifier == Key.key("mwm:creation/confirm_preview")) {
-            if (session.creationType == WorldCreationType.TEMPLATE && session.templateId != null) {
-                session.phase = WorldCreationPhase.CONFIRM
-                val target = PreviewSessionManager.PreviewTarget.Template(session.templateId!!)
-                val started =
-                    plugin.previewSessionManager.startPreview(
-                        player,
-                        target,
-                        PreviewSource.CREATION_CONFIRM
-                    )
-                if (started) {
-                    safeCloseDialog(player)
-                } else {
-                    session.phase = WorldCreationPhase.CONFIRM
-                    showConfirmationDialog(player, session)
-                }
-            } else {
-                showConfirmationDialog(player, session)
-            }
-            return
-        }
-
-        // 最終確認 -> 戻る (Esc or Cancel button)
-        if (identifier == Key.key("mwm:creation/confirm_back")) {
-            session.phase = WorldCreationPhase.NAME_INPUT
-            showNameInputDialog(player, session)
-            return
-        }
-
-        if (identifier == Key.key("mwm:creation/confirm_change_template")) {
-            session.phase = WorldCreationPhase.TEMPLATE_SELECT
-            safeCloseDialog(player)
-            plugin.creationGui.openTemplateSelection(player)
-            return
-        }
-    }
 
     companion object {
         /**

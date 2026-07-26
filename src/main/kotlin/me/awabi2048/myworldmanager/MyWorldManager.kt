@@ -347,10 +347,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(BorderExpansionChangeListener(this), this)
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
         // 旧 GuiListener を分割して登録
-        server.pluginManager.registerEvents(PlayerWorldListener(this), this)
 
         adminGuiListener = AdminGuiListener()
-        server.pluginManager.registerEvents(adminGuiListener, this)
         adminCommandListener = AdminCommandListener()
         creationGuiListener = CreationGuiListener(this)
         server.pluginManager.registerEvents(PlayerDataListener(), this)
@@ -364,18 +362,13 @@ class MyWorldManager : JavaPlugin() {
             server.pluginManager.registerEvents(WorldEditPortalSyncListener(this), this)
         }
         discoveryListener = DiscoveryListener(this)
-        server.pluginManager.registerEvents(discoveryListener, this)
-        server.pluginManager.registerEvents(SpotlightListener(this), this)
         server.pluginManager.registerEvents(TemplatePreviewListener(), this)
         server.pluginManager.registerEvents(EnvironmentLogicListener(this), this)
         server.pluginManager.registerEvents(CustomItemListener(this), this)
-        server.pluginManager.registerEvents(WorldSeedListener(this), this)
         templateWizardListener = TemplateWizardListener()
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
-        server.pluginManager.registerEvents(CreationDialogManager(), this)
         tourListener = TourListener(this)
         server.pluginManager.registerEvents(tourListener, this)
-        server.pluginManager.registerEvents(TourDialogManager(), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)

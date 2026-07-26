@@ -12,9 +12,8 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.event.Listener
 
-class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
+class DiscoveryListener(private val plugin: MyWorldManager) {
     private fun saveSpotlightDescription(player: Player, rawInput: String): MenuActionResult {
         val lang = plugin.languageManager
         if (!canManageSpotlight(player)) {

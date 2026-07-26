@@ -16,7 +16,6 @@ import me.awabi2048.myworldmanager.service.PendingDecisionManager
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -156,10 +155,6 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             openJavaDecisionDialog(context.player, decisionId, page(context.route))
         }
         return MenuActionResult.Success(MenuUpdate.Close)
-    }
-
-    fun handleDialogResponse(player: Player, identifier: Key): Boolean {
-        return false
     }
 
     fun openDecision(player: Player, decisionId: UUID, page: Int = 0, intendedAction: Boolean? = null) {

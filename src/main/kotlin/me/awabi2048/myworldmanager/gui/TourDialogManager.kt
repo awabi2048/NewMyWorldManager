@@ -2,7 +2,6 @@
 
 package me.awabi2048.myworldmanager.gui
 
-import io.papermc.paper.connection.PlayerGameConnection
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -10,23 +9,18 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
 import com.awabi2048.ccsystem.api.gui.MenuDialogInput
 import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
-import io.papermc.paper.event.player.PlayerCustomClickEvent
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.TourManager
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.inventory.EquipmentSlot
-import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-class TourDialogManager : Listener {
+class TourDialogManager {
     data class PlacementSession(val worldUuid: UUID, val x: Int, val y: Int, val z: Int, val blockFace: String, val hand: EquipmentSlot)
     data class EditTourSession(val worldUuid: UUID, val tourUuid: UUID)
     data class EditSignSession(val worldUuid: UUID, val signUuid: UUID)
@@ -239,44 +233,4 @@ class TourDialogManager : Listener {
 
     }
 
-    @EventHandler
-    fun onCustomClick(event: PlayerCustomClickEvent) {
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        when (event.identifier) {
-            Key.key("mwm:tour_sign/cancel") -> placement.remove(player.uniqueId)
-            Key.key("mwm:tour_sign/place") -> placement.remove(player.uniqueId)
-            Key.key("mwm:tour/discard_new") -> {
-                val edit = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(edit.worldUuid) ?: return
-                plugin.tourSessionManager.clearEdit(player.uniqueId)
-                plugin.tourGui.openEditMenu(player, worldData)
-                DialogConfirmManager.safeCloseDialog(player)
-            }
-            Key.key("mwm:tour/discard_new_cancel") -> {
-                val edit = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(edit.worldUuid) ?: return
-                plugin.tourGui.openSingleEditMenu(player, worldData, edit.draft, true)
-                DialogConfirmManager.safeCloseDialog(player)
-            }
-            Key.key("mwm:tour/delete_confirm") -> {
-                val edit = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(edit.worldUuid) ?: return
-                if (!edit.isNew) {
-                    plugin.tourManager.deleteTour(worldData, edit.originalTourUuid ?: return)
-                }
-                plugin.tourSessionManager.clearEdit(player.uniqueId)
-                plugin.tourGui.openEditMenu(player, worldData)
-                DialogConfirmManager.safeCloseDialog(player)
-            }
-            Key.key("mwm:tour/delete_cancel") -> {
-                val edit = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(edit.worldUuid) ?: return
-                plugin.tourGui.openSingleEditMenu(player, worldData, edit.draft, edit.isNew)
-                DialogConfirmManager.safeCloseDialog(player)
-            }
-            else -> return
-        }
-    }
 }

@@ -7,11 +7,9 @@ import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Sound
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.inventory.EquipmentSlot
 
-class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
+class WorldSeedListener {
 
     companion object {
         fun expandWorldSlot(plugin: MyWorldManager, player: Player): Boolean {
@@ -62,27 +60,6 @@ class WorldSeedListener(private val plugin: MyWorldManager) : Listener {
             )
             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
             return true
-        }
-    }
-
-    @EventHandler
-    fun onDialogResponse(event: io.papermc.paper.event.player.PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        if (identifier == net.kyori.adventure.key.Key.key("mwm:confirm/world_seed")) {
-            val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
-            val player = conn.player
-            
-            me.awabi2048.myworldmanager.gui.DialogConfirmManager.safeCloseDialog(player)
-
-            expandWorldSlot(plugin, player)
-            
-        } else if (identifier == net.kyori.adventure.key.Key.key("mwm:confirm/cancel")) {
-             // For generic cancel, we might want to ensure it's closing ONLY if it was related to this flow? 
-             // But CustomClickEvent is global. We should check if we opened it?
-             // Actually, safeCloseDialog is usually enough. Or do nothing.
-             // But if we want sound:
-             // We don't know if this cancel was for WorldSeed or Environment unless we encode it in ID, which we didn't (just "mwm:confirm/cancel").
-             // So let's leave generic cancel handling to caller or generic listener, OR just ignore here.
         }
     }
 }

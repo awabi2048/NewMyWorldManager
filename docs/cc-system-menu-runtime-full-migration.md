@@ -341,11 +341,11 @@ standalone_export:
 
 対象: MyWorldManager、MWM-Chanpon
 
-- [ ] ワールド一覧、設定、訪問、発見、お気に入り
-- [ ] 招待、メンバー、Meet、Tour
-- [ ] 作成、テンプレート、環境設定
-- [ ] 確認画面
-- [ ] Provider・Extension画面
+- [x] ワールド一覧、設定、訪問、発見、お気に入り
+- [x] 招待、メンバー、Meet、Tour
+- [x] 作成、テンプレート、環境設定
+- [x] 確認画面
+- [x] Provider・Extension画面
 
 完了条件:
 
@@ -357,9 +357,9 @@ standalone_export:
 
 対象: MyWorldManager、MWM-Chanpon
 
-- [ ] 対象台帳の27個の直接Dialog生成を移行する。
-- [ ] 入力、確認、取消、閉じる処理を`MenuDialogService`へ統一する。
-- [ ] Dialog固有の手動音と手動履歴を削除する。
+- [x] 対象台帳の27個の直接Dialog生成を移行する。
+- [x] 入力、確認、取消、閉じる処理を`MenuDialogService`へ統一する。
+- [x] Dialog固有の手動音と手動履歴を削除する。
 
 完了条件:
 
@@ -368,12 +368,12 @@ standalone_export:
 
 ### Phase 5: 旧経路削除
 
-- [ ] `ManagedMenuPresenter`互換ラッパーを削除する。
-- [ ] 旧`GuiHelper`生成経路を削除する。
+- [x] `ManagedMenuPresenter`互換ラッパーを削除する。
+- [x] 旧`GuiHelper`生成経路を削除する。
 - [ ] GUI用の個別Listenerを削除する。
-- [ ] `SoundManager`のメニュークリック用途を削除する。
+- [x] `SoundManager`のメニュークリック用途を削除する。
 - [ ] 手動Route履歴を削除する。
-- [ ] 一時許可リストを空にする。
+- [x] 一時許可リストを空にする。
 
 完了条件:
 
