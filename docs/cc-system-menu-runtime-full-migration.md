@@ -302,10 +302,10 @@ standalone_export:
 - [x] `AdminPortalGui`
 - [x] `PortalGui`
 - [x] `ChanponAdminMenu`
-- [ ] `ChanponAdminWorldListMenu`
-- [ ] `WorldDataManagementMenu`
+- [x] `ChanponAdminWorldListMenu`
+- [x] `WorldDataManagementMenu`
 - [x] `WorldDataExportMenu`
-- [ ] `AutomationSettingsMenu`
+- [x] `AutomationSettingsMenu`
 
 完了条件:
 
