@@ -471,3 +471,5 @@ standalone_export:
 - 拡張描画はスロットとアイテムの不変Mapを受け取り、新しいMapを返す。拡張クリックは`ClickType`と対象アイテムだけを受け取る。
 - MWM-Chanpon 1.24.0の`LinkedPortalMenuExtension`、`ToolPermissionMenuExtension`、`WorldBackupMenuExtension`、`ProductionToggleExtension`を新APIへ移行した。
 - MyWorldManagerとMWM-Chanponはいずれも全36テストに成功した。旧APIシグネチャは残していない。
+- 作成確認操作をMWM本体のイベント非依存ハンドラへ集約し、従来InventoryとRuntimeのどちらからも同一の権限・課金・生成処理を呼べるようにした。
+- `ChanponCreationConfirmationMenuProvider`を`InventoryMenuDefinition`へ移行し、直接Inventory生成、専用クリックListener、専用開閉音を削除した。
