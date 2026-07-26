@@ -1,13 +1,12 @@
 package me.awabi2048.myworldmanager.gui
 
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -54,14 +53,10 @@ object DialogConfirmManager {
         plugin: MyWorldManager,
         title: Component,
         bodyLines: List<Component>,
-        confirmActionId: String,
-        cancelActionId: String,
         confirmText: String? = null,
         cancelText: String? = null,
-        confirmValue: String? = null,
-        cancelValue: String? = null,
-        onBedrockConfirm: (() -> Unit)? = null,
-        onBedrockCancel: (() -> Unit)? = null,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit,
         onBedrockFallback: (() -> Unit)? = null
     ) {
 
@@ -70,7 +65,7 @@ object DialogConfirmManager {
         val confirmLabel = confirmText ?: lang.getMessage(player, "gui.common.confirm")
         val cancelLabel = cancelText ?: lang.getMessage(player, "gui.common.cancel")
 
-        if (plugin.playerPlatformResolver.isBedrock(player) && onBedrockConfirm != null &&
+        if (plugin.playerPlatformResolver.isBedrock(player) &&
             plugin.bedrockUiRoutingService.shouldUseForm(player)
         ) {
             val opened =
@@ -84,13 +79,13 @@ object DialogConfirmManager {
                     buttons = listOf(confirmLabel, cancelLabel),
                     onSelect = { index ->
                         if (index == 0) {
-                            onBedrockConfirm()
+                            onConfirm()
                         } else {
-                            onBedrockCancel?.invoke()
+                            onCancel()
                         }
                     },
                     onClosed = {
-                        onBedrockCancel?.invoke()
+                        onCancel()
                     }
                 )
 
@@ -99,39 +94,36 @@ object DialogConfirmManager {
                 return
             }
 
-            plugin.bedrockUiRoutingService.markFormFailure(player, "dialog_simple_confirm:$confirmActionId")
+            plugin.bedrockUiRoutingService.markFormFailure(player, "dialog_simple_confirm")
             if (onBedrockFallback != null) {
                 onBedrockFallback()
                 return
             }
         }
 
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(title)
-                        .body(bodyLines.map { DialogBody.plainMessage(it) })
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(confirmLabel, NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key(confirmActionId), null)
-                        ),
-                        ActionButton.create(
-                            Component.text(cancelLabel, NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key(cancelActionId), null)
-                        )
-                    )
-                )
-        }
-
-        player.showDialog(dialog)
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = "simple-confirmation",
+                title = title,
+                body = bodyLines,
+                confirm = MenuDialogButton(
+                    Component.text(confirmLabel, NamedTextColor.GREEN),
+                    MenuDialogHandler { _, _ ->
+                        onConfirm()
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    Component.text(cancelLabel, NamedTextColor.RED),
+                    MenuDialogHandler { _, _ ->
+                        onCancel()
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
     }
 
     /**

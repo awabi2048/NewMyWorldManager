@@ -5820,14 +5820,13 @@ player.sendMessage(
                                 plugin,
                                 title,
                                 bodyLines,
-                                "mwm:confirm/reset_expansion_spawn_unsafe",
-                                "mwm:confirm/cancel",
                                 plugin.languageManager.getMessage(player, "gui.common.confirm"),
                                 plugin.languageManager.getMessage(player, "gui.common.cancel"),
-                                onBedrockConfirm = {
+                                onConfirm = {
                                         executeExpansionReset(player, worldData, closeInventory = false)
+                                        plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                                 },
-                                onBedrockCancel = {
+                                onCancel = {
                                         handleBedrockDialogCancel(player, worldData)
                                 },
                                 onBedrockFallback = {
@@ -6480,13 +6479,6 @@ player.sendMessage(
                 if (identifier == Key.key("mwm:confirm/step_back_expansion")) {
                         DialogConfirmManager.safeCloseDialog(player)
                         executeExpansionStepBack(player, worldData, closeInventory = false)
-                        return
-                }
-
-                if (identifier == Key.key("mwm:confirm/reset_expansion_spawn_unsafe")) {
-                        DialogConfirmManager.safeCloseDialog(player)
-                        executeExpansionReset(player, worldData, closeInventory = false)
-                        plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                         return
                 }
 
