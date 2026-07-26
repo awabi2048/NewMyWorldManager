@@ -8,7 +8,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PlayerWorldGui
-import com.awabi2048.ccsystem.api.gui.GuiCycle
 import io.papermc.paper.connection.PlayerGameConnection
 import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.event.player.PlayerCustomClickEvent
@@ -18,7 +17,6 @@ import io.papermc.paper.registry.data.dialog.action.DialogAction
 import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
-import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
@@ -258,53 +256,6 @@ class PlayerWorldListener(private val plugin: MyWorldManager) : Listener {
             return
         }
 
-        // 個人設定
-        if (view.topInventory.holder is me.awabi2048.myworldmanager.gui.UserSettingsGui.UserSettingsGuiHolder) {
-            event.cancelWithDebug("PlayerWorldListener.onInventoryClick: user settings GUI click")
-            if (event.clickedInventory != event.view.topInventory) return
-            val currentItem = event.currentItem ?: return
-            val type = ItemTag.getType(currentItem) ?: return
-            val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-            
-            when (type) {
-                ItemTag.TYPE_GUI_USER_SETTING_NOTIFICATION -> {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    stats.visitorNotificationEnabled = !stats.visitorNotificationEnabled
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.userSettingsGui.open(player)
-                }
-                ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE -> {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    plugin.userSettingsGui.open(player)
-                }
-                ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY -> {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.userSettingsGui.open(player)
-                }
-                ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION -> {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    stats.tourNavigationMode = GuiCycle.select(
-                        stats.tourNavigationMode,
-                        TourNavigationMode.entries,
-                        GuiCycle.direction(event.click) ?: return
-                    )
-                    plugin.playerStatsRepository.save(stats)
-                    plugin.tourManager.refreshNavigation(player)
-                    plugin.userSettingsGui.open(player)
-                }
-
-                ItemTag.TYPE_GUI_RETURN -> {
-                    plugin.soundManager.playClickSound(player, currentItem, "player_world")
-                    if (!plugin.menuRouteHistory.openPrevious(player)) {
-                        val currentPage = plugin.playerWorldSessionManager.getSession(player.uniqueId).currentPage
-                        plugin.playerWorldGui.open(player, currentPage)
-                    }
-                }
-            }
-            return
-        }
     }
 
     @EventHandler

@@ -1,25 +1,51 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
-import me.awabi2048.myworldmanager.repository.*
+import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import java.util.UUID
 
 class UserSettingsGui(private val plugin: MyWorldManager) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player) },
+                actions = mapOf(
+                    ACTION_NOTIFICATION to MenuActionHandler(::toggleNotification),
+                    ACTION_LANGUAGE to MenuActionHandler { MenuActionResult.Success(MenuUpdate.Refresh) },
+                    ACTION_CRITICAL_VISIBILITY to MenuActionHandler(::toggleCriticalVisibility),
+                    ACTION_TOUR_NAVIGATION to MenuActionHandler(::cycleTourNavigation),
+                    ACTION_BACK to MenuActionHandler(::back),
+                ),
+            ),
+        )
+    }
 
     fun open(player: Player, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
@@ -33,19 +59,14 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
+        plugin.settingsSessionManager.updateSessionAction(player, UUID(0, 0), SettingsAction.VIEW_SETTINGS, isGui = true)
+        runtime.open(player, MenuRoute(OWNER, ROUTE_ID))
+    }
+
+    private fun render(player: Player): InventoryMenuView {
+        val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "user_settings")
-
-        plugin.settingsSessionManager.updateSessionAction(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.VIEW_SETTINGS, isGui = true)
-        me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset(plugin, player)
-
-        // Prepare Items
         val items = mutableListOf<ItemStack>()
-
-        // 1. Notification
         val notifyStatus = if (stats.visitorNotificationEnabled) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
         items.add(settingItem(
             player,
@@ -59,7 +80,6 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             glint = stats.visitorNotificationEnabled
         ))
 
-        // 2. Language
         val currentLocale = lang.resolveLocale(player)
         val languageName = lang.getMessage(player, "general.language.$currentLocale")
         items.add(settingItem(
@@ -73,7 +93,6 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             "gui.user_settings.cycle_action.next"
         ))
 
-        // 3. Critical Settings Visibility
         val criticalStatus = if (stats.criticalSettingsEnabled) {
             lang.getMessage(player, "messages.status_visible")
         } else {
@@ -91,28 +110,70 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         ))
 
         items.add(tourNavigationItem(player, stats.tourNavigationMode))
-
         val totalRows = 5
-
-        val holder = UserSettingsGuiHolder()
-        val inventory = Bukkit.createInventory(holder, totalRows * 9, title)
-        holder.inv = inventory
-
-        GuiItemFactory.applyStandardFrame(inventory)
-
-        // 個人設定は5行レイアウトの中央行に集約し、他の設定系メニューと視線の位置を揃える。
         val centerRowStart = 2 * 9
         val firstSlot = centerRowStart + ((9 - items.size) / 2)
-        items.forEachIndexed { index, item ->
-            inventory.setItem(firstSlot + index, item)
+        val actionIds = listOf(
+            ACTION_NOTIFICATION,
+            ACTION_LANGUAGE,
+            ACTION_CRITICAL_VISIBILITY,
+            ACTION_TOUR_NAVIGATION,
+        )
+        val elements = items.mapIndexed { index, item ->
+            MenuElement(firstSlot + index, item, GuiElementRole.ACTION, actionIds[index])
+        }.toMutableList()
+
+        if (plugin.playerWorldSessionManager.getSession(player.uniqueId).showBackButton) {
+            elements += MenuElement(
+                (totalRows - 1) * 9 + 4,
+                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "user_settings"),
+                GuiElementRole.BACK,
+                ACTION_BACK,
+            )
         }
 
-        if (session.showBackButton) {
-            val backSlot = (totalRows - 1) * 9 + 4
-            inventory.setItem(backSlot, me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "user_settings"))
-        }
+        return InventoryMenuView(
+            size = totalRows * 9,
+            title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                lang.getMessage(player, "gui.user_settings.title"),
+            ),
+            elements = elements,
+        )
+    }
 
-        ManagedMenuPresenter.open(player, inventory)
+    private fun toggleNotification(context: MenuActionContext): MenuActionResult {
+        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+        stats.visitorNotificationEnabled = !stats.visitorNotificationEnabled
+        plugin.playerStatsRepository.save(stats)
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun toggleCriticalVisibility(context: MenuActionContext): MenuActionResult {
+        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+        stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
+        plugin.playerStatsRepository.save(stats)
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun cycleTourNavigation(context: MenuActionContext): MenuActionResult {
+        val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+        stats.tourNavigationMode = GuiCycle.select(
+            stats.tourNavigationMode,
+            TourNavigationMode.entries,
+            direction,
+        )
+        plugin.playerStatsRepository.save(stats)
+        plugin.tourManager.refreshNavigation(context.player)
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun back(context: MenuActionContext): MenuActionResult {
+        if (!plugin.menuRouteHistory.openPrevious(context.player)) {
+            val currentPage = plugin.playerWorldSessionManager.getSession(context.player.uniqueId).currentPage
+            plugin.playerWorldGui.open(context.player, currentPage)
+        }
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     private fun settingItem(
@@ -197,8 +258,13 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         )
     }
 
-    class UserSettingsGuiHolder : org.bukkit.inventory.InventoryHolder {
-        lateinit var inv: org.bukkit.inventory.Inventory
-        override fun getInventory(): org.bukkit.inventory.Inventory = inv
+    companion object {
+        private const val OWNER = "myworldmanager"
+        private const val ROUTE_ID = "user_settings"
+        private const val ACTION_NOTIFICATION = "notification"
+        private const val ACTION_LANGUAGE = "language"
+        private const val ACTION_CRITICAL_VISIBILITY = "critical_visibility"
+        private const val ACTION_TOUR_NAVIGATION = "tour_navigation"
+        private const val ACTION_BACK = "back"
     }
 }
