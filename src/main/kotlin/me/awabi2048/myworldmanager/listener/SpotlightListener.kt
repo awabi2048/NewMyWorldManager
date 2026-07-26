@@ -25,7 +25,6 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
                 val success = plugin.spotlightRepository.add(uuid)
                 if (success) {
                     player.sendMessage(lang.getMessage(player, "messages.spotlight_added", mapOf("world" to worldData.name)))
-                    plugin.soundManager.playClickSound(player, null)
                 } else {
                     player.sendMessage(lang.getMessage(player, "error.spotlight_limit_reached"))
                 }
@@ -44,7 +43,6 @@ class SpotlightListener(private val plugin: MyWorldManager) : Listener {
 
             plugin.spotlightRepository.remove(uuid)
             player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
-            plugin.soundManager.playClickSound(player, null)
             plugin.menuEntryRouter.openDiscovery(player)
         }
     }

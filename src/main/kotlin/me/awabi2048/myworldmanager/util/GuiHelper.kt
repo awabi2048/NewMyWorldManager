@@ -13,12 +13,8 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.event.inventory.InventoryClickEvent
-import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 
 object GuiHelper {
@@ -52,7 +48,7 @@ object GuiHelper {
      * 間接的なタイトル/ホルダー比較には依存しない。
      */
     fun playMenuOpen(player: Player, menuId: String) {
-        // 開く音はManagedMenuPresenterからCC-System Runtimeが一度だけ再生する。
+        // 開く音はCC-System Runtimeが一度だけ再生する。
     }
 
     /**
@@ -74,44 +70,6 @@ object GuiHelper {
     fun settingsLayout(): GuiSettingsLayout = layoutService.settings54()
 
     fun threeChoiceLayout(): GuiThreeChoiceLayout = layoutService.threeChoice45()
-
-    fun createConfirmationInventory(holder: InventoryHolder?, title: Component): Inventory {
-        val layout = confirmationLayout()
-        return Bukkit.createInventory(holder, layout.size, inventoryTitle(title))
-    }
-
-    fun applyConfirmationFrame(inventory: Inventory) {
-        layoutService.applyStandardFrame(inventory)
-    }
-
-    fun setConfirmationItems(
-        inventory: Inventory,
-        centerItem: ItemStack,
-        confirmItem: ItemStack,
-        cancelItem: ItemStack
-    ) {
-        val layout = confirmationLayout()
-        inventory.setItem(layout.previewSlot, centerItem)
-        inventory.setItem(layout.confirmSlot, confirmItem)
-        inventory.setItem(layout.cancelSlot, cancelItem)
-    }
-
-    fun setThreeChoiceItems(inventory: Inventory, leftItem: ItemStack, centerItem: ItemStack, rightItem: ItemStack) {
-        val layout = threeChoiceLayout()
-        inventory.setItem(layout.leftSlot, leftItem)
-        inventory.setItem(layout.centerSlot, centerItem)
-        inventory.setItem(layout.rightSlot, rightItem)
-    }
-
-    fun setThreeChoiceBack(inventory: Inventory, backItem: ItemStack) {
-        inventory.setItem(threeChoiceLayout().backSlot, backItem)
-    }
-
-    fun setSettingsFooter(inventory: Inventory, backItem: ItemStack?, infoItem: ItemStack?) {
-        val layout = settingsLayout()
-        backItem?.let { inventory.setItem(layout.backSlot, it) }
-        infoItem?.let { inventory.setItem(layout.infoSlot, it) }
-    }
 
     /*
      * MenuConfigManagerを使用してア イコンMaterialを取得し、アイテムを作成するヘルパーメソッド
@@ -211,19 +169,4 @@ object GuiHelper {
         ItemTag.tagItem(item, type)
         return item
     }
-}
-
-fun InventoryClickEvent.cancelWithDebug(source: String, force: Boolean = false) {
-    if (!force && !shouldCancelProtectedMenuClick()) return
-    this.isCancelled = true
-}
-
-private fun InventoryClickEvent.shouldCancelProtectedMenuClick(): Boolean {
-    if (clickedInventory == view.topInventory) return true
-    if (clickedInventory != view.bottomInventory) return false
-    return action == InventoryAction.MOVE_TO_OTHER_INVENTORY ||
-        action == InventoryAction.COLLECT_TO_CURSOR ||
-        action == InventoryAction.HOTBAR_SWAP ||
-        action == InventoryAction.HOTBAR_MOVE_AND_READD ||
-        action == InventoryAction.UNKNOWN
 }

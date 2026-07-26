@@ -213,9 +213,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                           onBedrockConfirm = {
                               WorldSeedListener.expandWorldSlot(plugin, player)
                           },
-                          onBedrockCancel = {
-                              plugin.soundManager.playClickSound(player, null)
-                          }
+                          onBedrockCancel = {}
                       )
                   }
                }

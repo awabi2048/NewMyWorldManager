@@ -1,6 +1,6 @@
 package me.awabi2048.myworldmanager.service
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+import com.awabi2048.ccsystem.CCSystem
 
 import java.io.File
 import java.nio.file.Files
@@ -949,7 +949,7 @@ class WorldService(
 
         if (needsLoad) {
             if (closeInventoryOnLoad) {
-                ManagedMenuPresenter.close(player)
+                CCSystem.getAPI().getMenuRuntimeService().close(player)
             }
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
             if (!loadWorld(worldUuid)) {

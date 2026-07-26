@@ -17,6 +17,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -57,7 +58,7 @@ import java.util.concurrent.ConcurrentHashMap
 class WorldSettingsGui(private val plugin: MyWorldManager) {
         private val borderResetSpawnService = BorderResetSpawnService()
         private val runtime = CCSystem.getAPI().getMenuRuntimeService()
-        private val runtimeViews = ConcurrentHashMap<String, InventoryMenuView>()
+        private val runtimeViews = ConcurrentHashMap<String, RuntimeViewEntry>()
 
         init {
                 runtime.register(
@@ -65,7 +66,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 owner = RUNTIME_OWNER,
                                 id = RUNTIME_ROUTE,
                                 renderer = { context ->
-                                        runtimeViews[context.route.payload.getValue("view")]
+                                        runtimeViews[context.route.payload.getValue("view")]?.view
                                                 ?: error("ワールド設定Runtime Viewが見つかりません")
                                 },
                                 actions = mapOf(
@@ -80,10 +81,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         )
                                                         MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
                                                 },
+                                        MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
+                                                MenuActionHandler { context ->
+                                                        plugin.worldSettingsListener.handleRuntimeIconSelection(
+                                                                context.player,
+                                                                context.item,
+                                                        )
+                                                },
                                 ),
+                                onClose = { context ->
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(context.player)
+                                },
                         ),
                 )
         }
+
+        private data class RuntimeViewEntry(
+                val playerUuid: UUID,
+                val view: InventoryMenuView,
+        )
 
         private class RuntimeItemBuffer(val size: Int) {
                 private val items = arrayOfNulls<ItemStack>(size)
@@ -3017,11 +3033,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 inventory: RuntimeItemBuffer
         ) {
                 val viewId = UUID.randomUUID().toString()
-                runtimeViews[viewId] = InventoryMenuView(
-                        size = inventory.size,
-                        title = title,
-                        elements = inventory.elements(),
-                        standardFrame = false,
+                runtimeViews[viewId] = RuntimeViewEntry(
+                        player.uniqueId,
+                        InventoryMenuView(
+                                size = inventory.size,
+                                title = title,
+                                elements = inventory.elements(),
+                                standardFrame = false,
+                                allowPlayerInventoryInteraction = true,
+                        ),
                 )
                 runtime.navigate(
                         player,
@@ -3031,6 +3051,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 mapOf("view" to viewId),
                         ),
                 )
+        }
+
+        fun clearRuntimeViews(player: Player) {
+                runtimeViews.entries.removeIf { it.value.playerUuid == player.uniqueId }
         }
 
         private fun presentRuntime(

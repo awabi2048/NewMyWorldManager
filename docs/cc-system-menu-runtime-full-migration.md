@@ -147,10 +147,10 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `VisitGui`
 - [x] `VisitWorldGui`
 - [x] `WorldGui`
-- [ ] `WorldSettingsGui`
+- [x] `WorldSettingsGui`
 - [x] `BedrockMenuService`のInventory代替画面
-- [ ] `GuiHelper`内の旧Inventory生成経路
-- [ ] 各種Confirmation Inventory
+- [x] `GuiHelper`内の旧Inventory生成経路
+- [x] 各種Confirmation Inventory
 - [x] `WorldMigrationService`の確認画面
 
 ### MyWorldManager Dialog
@@ -286,7 +286,7 @@ standalone_export:
 - [x] 直接`Dialog.create`を禁止する。
 - [x] 直接Cumulus Form生成を禁止する。
 - [x] 個別クリック音を禁止する。
-- [x] 旧`ManagedMenuPresenter`を非推奨化し、最終フェーズで削除する。
+- [x] 旧`ManagedMenuPresenter`を削除する。
 - [x] 例外が必要なInteractiveStationは、入力スロット契約としてRuntimeへ実装する。
 
 完了条件:

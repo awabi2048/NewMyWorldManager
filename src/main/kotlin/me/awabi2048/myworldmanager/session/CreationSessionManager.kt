@@ -1,6 +1,6 @@
 package me.awabi2048.myworldmanager.session
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Bukkit
@@ -67,7 +67,7 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
                 sessions.remove(playerId)
                 val player = Bukkit.getPlayer(playerId)
                 if (player != null && player.isOnline) {
-                    ManagedMenuPresenter.close(player)
+                    CCSystem.getAPI().getMenuRuntimeService().close(player)
                     player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_timeout"))
                 }
             }
