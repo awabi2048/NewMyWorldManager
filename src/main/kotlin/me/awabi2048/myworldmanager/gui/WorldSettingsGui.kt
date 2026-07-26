@@ -46,6 +46,7 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.meta.SkullMeta
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
@@ -1024,22 +1025,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                 }
 
-                MyWorldManagerApi.getMenuExtensions().forEach { extension ->
-                        extension.onRender(
-                                inventory,
-                                player,
-                                MenuExtensionContext(
-                                        "world_settings",
-                                        mutableMapOf(
-                                                "worldData" to worldData,
-                                                "showBackButton" to currentShowBack,
-                                                "isOwner" to isOwner,
-                                                "isMember" to isMember,
-                                                "isModerator" to isModerator
-                                        )
+                applyMenuExtensions(
+                        inventory,
+                        player,
+                        MenuExtensionContext(
+                                "world_settings",
+                                mutableMapOf(
+                                        "worldData" to worldData,
+                                        "showBackButton" to currentShowBack,
+                                        "isOwner" to isOwner,
+                                        "isMember" to isMember,
+                                        "isModerator" to isModerator
                                 )
                         )
-                }
+                )
 
                 if (player.openInventory.topInventory != inventory) {
                         ManagedMenuPresenter.open(player, inventory)
@@ -1689,22 +1688,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                MyWorldManagerApi.getMenuExtensions().forEach { extension ->
-                        extension.onRender(
-                                inventory,
-                                player,
-                                MenuExtensionContext(
-                                        "member_management",
-                                        mutableMapOf(
-                                                "worldData" to worldData,
-                                                "page" to currentPage,
-                                                "footerStart" to footerStart,
-                                                "canManageRoles" to canManageRoles,
-                                                "isAdminFlow" to isAdminFlow
-                                        )
+                applyMenuExtensions(
+                        inventory,
+                        player,
+                        MenuExtensionContext(
+                                "member_management",
+                                mutableMapOf(
+                                        "worldData" to worldData,
+                                        "page" to currentPage,
+                                        "footerStart" to footerStart,
+                                        "canManageRoles" to canManageRoles,
+                                        "isAdminFlow" to isAdminFlow
                                 )
                         )
-                }
+                )
 
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
@@ -3133,6 +3130,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 ItemTag.setPortalUuid(item, portal.id)
 
                 return item
+        }
+
+        private fun applyMenuExtensions(
+                inventory: Inventory,
+                player: Player,
+                context: MenuExtensionContext,
+        ) {
+                var items = inventory.contents
+                        .mapIndexedNotNull { slot, item -> item?.let { slot to it.clone() } }
+                        .toMap()
+                MyWorldManagerApi.getMenuExtensions().forEach { extension ->
+                        items = extension.onRender(items, player, context)
+                }
+                inventory.clear()
+                items.forEach { (slot, item) ->
+                        if (slot in 0 until inventory.size) inventory.setItem(slot, item)
+                }
         }
 
         private fun createDecorationItem(material: Material): ItemStack {
