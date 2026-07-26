@@ -311,7 +311,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         private fun userSettings(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
                 val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
-                plugin.menuRouteHistory.pushPlayerWorld(
+                plugin.mwmMenuRoutes.pushPlayerWorld(
                         context.player,
                         session.currentPage,
                         session.showBackButton,
@@ -433,7 +433,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun openSettings(player: Player, worldData: WorldData): MenuActionResult {
                 val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
-                plugin.menuRouteHistory.pushPlayerWorld(player, session.currentPage, session.showBackButton)
+                plugin.mwmMenuRoutes.pushPlayerWorld(player, session.currentPage, session.showBackButton)
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {

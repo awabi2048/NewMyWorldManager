@@ -267,14 +267,14 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.player_world.button.settings"), Material.WRITABLE_BOOK) {
-            plugin.menuRouteHistory.pushPlayerWorld(player, page, showBackButton)
+            plugin.mwmMenuRoutes.pushPlayerWorld(player, page, showBackButton)
             openSettings(player, showBackButton, page)
         }
 
         val currentManagedWorld = getCurrentManagedWorld(player)
         if (currentManagedWorld != null && canAccessWorldSettings(player, currentManagedWorld)) {
             actions += FormAction(tr(player, "gui.bedrock.player_world.button.current_world"), Material.COMPASS) {
-                plugin.menuRouteHistory.pushPlayerWorld(player, page, showBackButton)
+                plugin.mwmMenuRoutes.pushPlayerWorld(player, page, showBackButton)
                 openCurrentWorldMenu(player, currentManagedWorld, showBackButton)
             }
         }
@@ -1120,7 +1120,7 @@ class BedrockMenuService(
         returnPage: Int,
         showBackButton: Boolean
     ) {
-        plugin.menuRouteHistory.pushCustom(
+        plugin.mwmMenuRoutes.pushCustom(
             player,
             "bedrock.world_action:${worldData.uuid}:$returnPage:$showBackButton"
         ) { target ->

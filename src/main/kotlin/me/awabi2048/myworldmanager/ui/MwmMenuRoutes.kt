@@ -7,7 +7,7 @@ import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.entity.Player
 
-class MenuRouteHistory(private val plugin: MyWorldManager) {
+class MwmMenuRoutes(private val plugin: MyWorldManager) {
     private val navigation = CCSystem.getAPI().getMenuNavigationService()
     private val customOpeners = ConcurrentHashMap<String, CustomMenuRouteOpener>()
 
@@ -70,14 +70,6 @@ class MenuRouteHistory(private val plugin: MyWorldManager) {
     fun pushCustom(player: Player, key: String, opener: CustomMenuRouteOpener) {
         customOpeners[key] = opener
         navigation.push(player, MenuRoute(OWNER, ROUTE_CUSTOM, mapOf("key" to key)))
-    }
-
-    fun openPrevious(player: Player): Boolean {
-        return navigation.openPrevious(player)
-    }
-
-    fun breadcrumbs(player: Player): List<MenuRoute> {
-        return navigation.breadcrumbs(player)
     }
 
     fun interface CustomMenuRouteOpener {

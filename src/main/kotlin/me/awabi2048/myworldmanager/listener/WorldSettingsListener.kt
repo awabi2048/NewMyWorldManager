@@ -1405,7 +1405,7 @@ class WorldSettingsListener : Listener {
 
                                                 plugin.worldSettingsGui
                                                         .also {
-                                                                plugin.menuRouteHistory.pushWorldSettings(
+                                                                plugin.mwmMenuRoutes.pushWorldSettings(
                                                                         player,
                                                                         worldData.uuid,
                                                                         session.showBackButton,
@@ -1446,7 +1446,7 @@ class WorldSettingsListener : Listener {
                                                 plugin.worldSettingsGui.open(player, worldData)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_MEMBER -> {
-                                                plugin.menuRouteHistory.pushWorldSettings(
+                                                plugin.mwmMenuRoutes.pushWorldSettings(
                                                         player,
                                                         worldData.uuid,
                                                         session.showBackButton,
@@ -1538,7 +1538,7 @@ class WorldSettingsListener : Listener {
                                                         )
                                                         return
                                                 }
-                                                plugin.menuRouteHistory.pushWorldSettings(
+                                                plugin.mwmMenuRoutes.pushWorldSettings(
                                                         player,
                                                         worldData.uuid,
                                                         session.showBackButton,
@@ -1560,7 +1560,7 @@ class WorldSettingsListener : Listener {
                                                 plugin.tourGui.openEditMenu(player, worldData)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_CRITICAL -> {
-                                                plugin.menuRouteHistory.pushWorldSettings(
+                                                plugin.mwmMenuRoutes.pushWorldSettings(
                                                         player,
                                                         worldData.uuid,
                                                         session.showBackButton,
@@ -1626,7 +1626,7 @@ class WorldSettingsListener : Listener {
                                                         }
 
                                                 if (hasPortals) {
-                                                        plugin.menuRouteHistory.pushWorldSettings(
+                                                        plugin.mwmMenuRoutes.pushWorldSettings(
                                                                 player,
                                                                 worldData.uuid,
                                                                 session.showBackButton,
@@ -1659,7 +1659,7 @@ class WorldSettingsListener : Listener {
                                                         return
                                                 }
                                                 if (player.hasPermission("myworldmanager.admin")) {
-                                                        plugin.menuRouteHistory.pushWorldSettings(
+                                                        plugin.mwmMenuRoutes.pushWorldSettings(
                                                                 player,
                                                                 worldData.uuid,
                                                                 session.showBackButton,
@@ -3358,7 +3358,7 @@ plugin.languageManager
                 stopBorderDirectionPreview(event.player)
                 clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
-                plugin.menuRouteHistory.clear(event.player)
+                plugin.mwmMenuRoutes.clear(event.player)
                 plugin.worldSettingsGui.clearRuntimeViews(event.player)
         }
 

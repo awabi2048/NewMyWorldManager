@@ -221,7 +221,7 @@ class MenuEntryRouter(
     }
 
     private fun resetTopLevelMenuState(player: Player) {
-        plugin.menuRouteHistory.clear(player)
+        plugin.mwmMenuRoutes.clear(player)
         plugin.settingsSessionManager.endSession(player)
     }
 }

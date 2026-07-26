@@ -370,9 +370,9 @@ standalone_export:
 
 - [x] `ManagedMenuPresenter`互換ラッパーを削除する。
 - [x] 旧`GuiHelper`生成経路を削除する。
-- [ ] GUI用の個別Listenerを削除する。
+- [x] GUI用の個別Listenerを削除する。
 - [x] `SoundManager`のメニュークリック用途を削除する。
-- [ ] 手動Route履歴を削除する。
+- [x] 手動Route履歴を削除する。
 - [x] 一時許可リストを空にする。
 
 完了条件:
