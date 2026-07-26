@@ -1,12 +1,22 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuCloseContext
+import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
@@ -29,19 +39,58 @@ import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import org.bukkit.scheduler.BukkitTask
 
 /** 管理者用ワールド一覧GUI（ページネーション対応） フィルター、ソート、プレイヤーフィルター機能付き */
 class WorldGui(private val plugin: MyWorldManager) {
 
         private val repository = plugin.worldConfigRepository
+        private val runtime = CCSystem.getAPI().getMenuRuntimeService()
         private val worldSizeCache = ConcurrentHashMap<String, WorldSizeCacheEntry>()
         private val worldSizeInFlight = ConcurrentHashMap.newKeySet<String>()
+        private val refreshTasks = ConcurrentHashMap<java.util.UUID, BukkitTask>()
+
+        init {
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = OWNER,
+                                id = ROUTE_ID,
+                                renderer = { context -> render(context.player, context.route) },
+                                actions = mapOf(
+                                        ACTION_PAGE to MenuActionHandler(::page),
+                                        ACTION_ARCHIVE_FILTER to MenuActionHandler(::archiveFilter),
+                                        ACTION_PUBLISH_FILTER to MenuActionHandler(::publishFilter),
+                                        ACTION_PLAYER_FILTER to MenuActionHandler(::playerFilter),
+                                        ACTION_SORT to MenuActionHandler(::sort),
+                                        ACTION_CURRENT_WORLD to MenuActionHandler(::currentWorld),
+                                        ACTION_WORLD to MenuActionHandler(::world),
+                                        ACTION_BACK to MenuActionHandler(::back),
+                                ),
+                                onClose = MenuCloseHandler(::closed),
+                        ),
+                )
+        }
 
         private data class WorldSizeCacheEntry(
                 val sizeBytes: Long?,
                 val updatedAtMillis: Long,
                 val failed: Boolean
         )
+
+        companion object {
+                private const val OWNER = "myworldmanager"
+                private const val ROUTE_ID = "admin-world-list"
+                private const val PAGE = "page"
+                private const val WORLD_UUID = "worldUuid"
+                private const val ACTION_PAGE = "page"
+                private const val ACTION_ARCHIVE_FILTER = "archiveFilter"
+                private const val ACTION_PUBLISH_FILTER = "publishFilter"
+                private const val ACTION_PLAYER_FILTER = "playerFilter"
+                private const val ACTION_SORT = "sort"
+                private const val ACTION_CURRENT_WORLD = "currentWorld"
+                private const val ACTION_WORLD = "world"
+                private const val ACTION_BACK = "back"
+        }
 
         /**
          * 指定されたページのGUIを開く
@@ -83,7 +132,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 repository.loadAll()
+                runtime.navigate(player, route(currentPage))
+                startAutoRefresh(player)
+        }
 
+        private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+                val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
+                val currentPage = route.payload[PAGE]?.toIntOrNull() ?: session.currentPage
+                repository.loadAll()
                 val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
 
                 // フィルターとソートを適用してワールドリストを取得（現在地ワールドは一覧から除外）
@@ -99,18 +155,9 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 val lang = plugin.languageManager
                 val titleKey = "gui.admin.title"
-                if (!lang.hasKey(player, titleKey)) {
-                        player.sendMessage(
-                                "§c[MyWorldManager] Error: Missing translation key: $titleKey"
-                        )
-                        return
-                }
                 val title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
 
-                if (!suppressSound) {
-                        GuiHelper.playMenuOpen(player, "admin_world")
-                }
-                val inventory = Bukkit.createInventory(null, layout.size, title)
+                val inventory = MenuViewBuilder(layout.size, title)
 
                 // 1行目を黒の板ガラスで敷き詰める
                 val blackPane = createBlackPaneItem()
@@ -215,76 +262,284 @@ class WorldGui(private val plugin: MyWorldManager) {
                         }
                 }
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
+                return inventory.build()
+        }
+
+        private fun page(context: MenuActionContext): MenuActionResult {
+                val selected = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+                val current = context.route.payload[PAGE]?.toIntOrNull() ?: 0
+                val direction = if (selected >= current) 1 else -1
+                val target = if (context.click.isShiftClick) {
+                        (current + direction * 5).coerceAtLeast(0)
+                } else {
+                        selected
                 }
-                GuiHelper.scheduleGuiTransitionReset(plugin, player)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(target)))
+        }
 
-                // 自動更新タスク
-                object : org.bukkit.scheduler.BukkitRunnable() {
-                                override fun run() {
-                                        if (player.openInventory.topInventory != inventory) {
-                                                this.cancel()
-                                                return
-                                        }
+        private fun archiveFilter(context: MenuActionContext): MenuActionResult {
+                val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                plugin.adminGuiSessionManager.cycleArchiveFilter(context.player.uniqueId, direction)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
 
-                                        // MSPTソート時は更新しない（順序がちらつくため）
-                                        if (session.sortBy == AdminSortType.MSPT_DESC) {
-                                                return
-                                        }
+        private fun publishFilter(context: MenuActionContext): MenuActionResult {
+                val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                plugin.adminGuiSessionManager.cyclePublishFilter(context.player.uniqueId, direction)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
 
-                                        // セッションから最新情報を再取得して更新
-                                        val currentFilteredWorlds =
-                                                getFilteredAndSortedWorlds(
-                                                        session,
-                                                        plugin.worldConfigRepository
-                                                                .findByWorldName(player.world.name)
-                                                                ?.uuid
-                                                )
-
-                                        val currentTotalPages =
-                                                if (currentFilteredWorlds.isEmpty()) 1
-                                                else
-                                                        (currentFilteredWorlds.size + itemsPerPage -
-                                                                1) / itemsPerPage
-
-                                        // 現在のページが範囲外にならないように調整（念のため）
-                                        val currentSafePage =
-                                                safePage.coerceIn(
-                                                        0,
-                                                        maxOf(0, currentTotalPages - 1)
-                                                )
-
-                                        val currentStartIndex = safePage * itemsPerPage
-                                        val currentPageWorlds =
-                                                currentFilteredWorlds
-                                                        .drop(currentStartIndex)
-                                                        .take(itemsPerPage)
-
-                                        currentPageWorlds.forEachIndexed { index, worldData ->
-                                                inventory.setItem(
-                                                        layout.itemSlots[index],
-                                                        createWorldItem(player, worldData)
-                                                )
-                                        }
-
-                                        // アイテム数が減った場合、残りのスロットを背景にする
-                                        for (i in currentPageWorlds.size until itemsPerPage) {
-                                                inventory.setItem(layout.itemSlots[i], createBackgroundItem())
-                                        }
-
-                                        // 統計情報ボタンも更新
-                                        inventory.setItem(
-                                                layout.infoSlot,
-                                                createInfoButton(
-                                                        currentFilteredWorlds.size,
-                                                        safePage + 1,
-                                                        currentTotalPages
-                                                )
+        private fun playerFilter(context: MenuActionContext): MenuActionResult {
+                val session = plugin.adminGuiSessionManager.getSession(context.player.uniqueId)
+                if (context.click.isLeftClick) {
+                        val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                        plugin.adminGuiSessionManager.cyclePlayerFilterType(
+                                context.player.uniqueId,
+                                direction,
+                        )
+                        return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+                }
+                if (context.click.isRightClick && session.playerFilterType != PlayerFilterType.NONE) {
+                        plugin.settingsSessionManager.startSession(
+                                context.player,
+                                java.util.UUID(0, 0),
+                                SettingsAction.ADMIN_PLAYER_FILTER,
+                        )
+                        plugin.settingsSessionManager.getSession(context.player)
+                                ?.beginExternalInput(MenuExternalInput.ADMIN_PLAYER_FILTER)
+                        Bukkit.getScheduler().runTask(
+                                plugin,
+                                Runnable {
+                                        plugin.adminGuiListener.openAdminPlayerFilterInput(
+                                                plugin,
+                                                context.player,
                                         )
+                                },
+                        )
+                        return MenuActionResult.Success(MenuUpdate.Close)
+                }
+                return MenuActionResult.Ignored
+        }
+
+        private fun sort(context: MenuActionContext): MenuActionResult {
+                val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                plugin.adminGuiSessionManager.cycleSortType(context.player.uniqueId, direction)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
+
+        private fun currentWorld(context: MenuActionContext): MenuActionResult =
+                worldAction(context, current = true)
+
+        private fun world(context: MenuActionContext): MenuActionResult =
+                worldAction(context, current = false)
+
+        private fun worldAction(context: MenuActionContext, current: Boolean): MenuActionResult {
+                val uuid = context.payload[WORLD_UUID]
+                        ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+                        ?: return MenuActionResult.Rejected()
+                val worldData = plugin.worldConfigRepository.findByUuid(uuid)
+                        ?: return MenuActionResult.Rejected()
+                return when {
+                        context.click == org.bukkit.event.inventory.ClickType.MIDDLE -> {
+                                plugin.adminGuiListener.sendWorldDirectoryCopyMessage(
+                                        context.player,
+                                        worldData,
+                                )
+                                MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        current && !context.click.isRightClick -> MenuActionResult.Ignored
+                        context.click.isShiftClick && context.click.isRightClick -> {
+                                Bukkit.getScheduler().runTask(
+                                        plugin,
+                                        Runnable {
+                                                if (worldData.isArchived) {
+                                                        plugin.adminCommandGui.openUnarchiveWorldConfirmation(
+                                                                context.player,
+                                                                worldData.name,
+                                                                uuid,
+                                                        )
+                                                } else {
+                                                        plugin.adminCommandGui.openArchiveWorldConfirmation(
+                                                                context.player,
+                                                                worldData.name,
+                                                                uuid,
+                                                        )
+                                                }
+                                        },
+                                )
+                                MenuActionResult.Success(MenuUpdate.Close)
+                        }
+                        context.click.isRightClick -> openWorldSettings(context.player, worldData)
+                        context.click.isLeftClick && worldData.isArchived -> {
+                                context.player.sendMessage(
+                                        plugin.languageManager.getMessage(
+                                                context.player,
+                                                "messages.admin_warp_archived_error",
+                                        ),
+                                )
+                                MenuActionResult.Rejected()
+                        }
+                        context.click.isLeftClick -> warp(context.player, worldData)
+                        else -> MenuActionResult.Ignored
+                }
+        }
+
+        private fun openWorldSettings(player: Player, worldData: WorldData): MenuActionResult {
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.VIEW_SETTINGS,
+                        isGui = true,
+                        isAdminFlow = true,
+                )
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                                if (!worldData.isArchived && Bukkit.getWorld(folderName) == null) {
+                                        player.sendMessage(
+                                                plugin.languageManager.getMessage(player, "messages.world_loading"),
+                                        )
+                                        if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                                                player.sendMessage(
+                                                        plugin.languageManager.getMessage(player, "error.load_failed"),
+                                                )
+                                                return@Runnable
+                                        }
+                                }
+                                plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun warp(player: Player, worldData: WorldData): MenuActionResult {
+                val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                if (Bukkit.getWorld(folderName) == null) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(player, "messages.world_loading"),
+                        )
+                }
+                plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.admin_warp_success",
+                                        mapOf("world" to worldData.name),
+                                ),
+                        )
+                }
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun back(context: MenuActionContext): MenuActionResult {
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable { plugin.adminCommandGui.open(context.player) },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun startAutoRefresh(player: Player) {
+                refreshTasks.remove(player.uniqueId)?.cancel()
+                refreshTasks[player.uniqueId] = Bukkit.getScheduler().runTaskTimer(
+                        plugin,
+                        Runnable {
+                                if (
+                                        plugin.adminGuiSessionManager
+                                                .getSession(player.uniqueId)
+                                                .sortBy != AdminSortType.MSPT_DESC
+                                ) {
+                                        runtime.refresh(player)
+                                }
+                        },
+                        20L,
+                        20L,
+                )
+        }
+
+        private fun closed(context: MenuCloseContext) {
+                refreshTasks.remove(context.player.uniqueId)?.cancel()
+        }
+
+        private fun route(page: Int): MenuRoute =
+                MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to page.toString()))
+
+        private inner class MenuViewBuilder(
+                val size: Int,
+                private val title: Component,
+        ) {
+                private val items = mutableMapOf<Int, ItemStack>()
+
+                fun setItem(slot: Int, item: ItemStack?) {
+                        if (item == null) items.remove(slot) else items[slot] = item
+                }
+
+                fun getItem(slot: Int): ItemStack? = items[slot]
+
+                fun build(): InventoryMenuView =
+                        InventoryMenuView(
+                                size,
+                                title,
+                                items.entries.sortedBy { it.key }.map { (slot, item) ->
+                                        element(slot, item)
+                                },
+                                standardFrame = false,
+                        )
+
+                private fun element(slot: Int, item: ItemStack): MenuElement {
+                        val type = ItemTag.getType(item)
+                        val role: GuiElementRole
+                        val action: String?
+                        val payload = mutableMapOf<String, String>()
+                        when (type) {
+                                ItemTag.TYPE_GUI_NAV_NEXT,
+                                ItemTag.TYPE_GUI_NAV_PREV -> {
+                                        role = GuiElementRole.NAVIGATION
+                                        action = ACTION_PAGE
+                                        ItemTag.getTargetPage(item)?.let { payload[PAGE] = it.toString() }
+                                }
+                                ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE -> {
+                                        role = GuiElementRole.ACTION
+                                        action = ACTION_ARCHIVE_FILTER
+                                }
+                                ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH -> {
+                                        role = GuiElementRole.ACTION
+                                        action = ACTION_PUBLISH_FILTER
+                                }
+                                ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER -> {
+                                        role = GuiElementRole.ACTION
+                                        action = ACTION_PLAYER_FILTER
+                                }
+                                ItemTag.TYPE_GUI_ADMIN_SORT -> {
+                                        role = GuiElementRole.ACTION
+                                        action = ACTION_SORT
+                                }
+                                ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO -> {
+                                        role = GuiElementRole.ACTION
+                                        action = ACTION_CURRENT_WORLD
+                                        ItemTag.getWorldUuid(item)?.let { payload[WORLD_UUID] = it.toString() }
+                                }
+                                ItemTag.TYPE_GUI_WORLD_ITEM -> {
+                                        role = GuiElementRole.ACTION
+                                        action = ACTION_WORLD
+                                        ItemTag.getWorldUuid(item)?.let { payload[WORLD_UUID] = it.toString() }
+                                }
+                                ItemTag.TYPE_GUI_RETURN -> {
+                                        role = GuiElementRole.BACK
+                                        action = ACTION_BACK
+                                }
+                                else -> {
+                                        role = if (type == ItemTag.TYPE_GUI_DECORATION) {
+                                                GuiElementRole.DECORATION
+                                        } else {
+                                                GuiElementRole.CONTENT
+                                        }
+                                        action = null
                                 }
                         }
-                        .runTaskTimer(plugin, 20L, 20L)
+                        return MenuElement(slot, item, role, action, payload)
+                }
         }
 
         /** セッションのフィルター・ソート条件を適用してワールドリストを取得 */

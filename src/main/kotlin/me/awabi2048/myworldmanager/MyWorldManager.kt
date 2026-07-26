@@ -125,6 +125,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var worldSettingsListener: WorldSettingsListener
     lateinit var templateWizardListener: TemplateWizardListener
     lateinit var discoveryListener: DiscoveryListener
+    lateinit var adminGuiListener: AdminGuiListener
     lateinit var creationGuiListener: CreationGuiListener
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
@@ -348,7 +349,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(PlayerWorldListener(this), this)
         server.pluginManager.registerEvents(FavoriteListener(this), this)
 
-        server.pluginManager.registerEvents(AdminGuiListener(), this)
+        adminGuiListener = AdminGuiListener()
+        server.pluginManager.registerEvents(adminGuiListener, this)
         server.pluginManager.registerEvents(AdminCommandListener(), this)
         creationGuiListener = CreationGuiListener(this)
         server.pluginManager.registerEvents(creationGuiListener, this)
