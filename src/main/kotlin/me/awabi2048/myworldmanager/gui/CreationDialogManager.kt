@@ -468,59 +468,75 @@ class CreationDialogManager : Listener {
             val bodyLines = CCSystem.getAPI().getLoreService()
                 .render(GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH))
 
-            val actionButtons =
-                mutableListOf(
-                    ActionButton.create(
-                        lang.getComponent(player, "gui.creation.confirm.action_create"),
-                        null,
-                        100,
-                        DialogAction.customClick(Key.key("mwm:creation/confirm_next"), null)
-                    )
-                )
-
-            if (session.creationType == WorldCreationType.TEMPLATE) {
-                actionButtons.add(
-                    ActionButton.create(
+            val additionalActions = if (session.creationType == WorldCreationType.TEMPLATE) {
+                listOf(
+                    MenuDialogButton(
                         lang.getComponent(player, "gui.creation.confirm.action_preview"),
-                        null,
-                        200,
-                        DialogAction.customClick(Key.key("mwm:creation/confirm_preview"), null)
-                    )
-                )
-                actionButtons.add(
-                    ActionButton.create(
+                        MenuDialogHandler { target, _ ->
+                            previewTemplate(target, session, plugin)
+                        },
+                    ),
+                    MenuDialogButton(
                         lang.getComponent(player, "gui.creation.confirm.change_template"),
-                        null,
-                        250,
-                        DialogAction.customClick(Key.key("mwm:creation/confirm_change_template"), null)
-                    )
+                        MenuDialogHandler { target, _ ->
+                            session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                            plugin.creationGui.openTemplateSelection(target)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
                 )
+            } else {
+                emptyList()
             }
 
-            val backButton =
-                ActionButton.create(
-                    lang.getComponent(player, "gui.creation.confirm.change_name"),
-                    null,
-                    300,
-                    DialogAction.customClick(Key.key("mwm:creation/confirm_back"), null)
-                )
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "creation-confirmation",
+                    title = LegacyComponentSerializer.legacySection()
+                        .deserialize(lang.getMessage(player, "gui.creation.title_confirm")),
+                    body = bodyLines,
+                    confirm = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.action_create"),
+                        MenuDialogHandler { target, _ ->
+                            performWorldCreation(target, session, plugin)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        lang.getComponent(player, "gui.creation.confirm.change_name"),
+                        MenuDialogHandler { target, _ ->
+                            session.phase = WorldCreationPhase.NAME_INPUT
+                            showNameInputDialog(target, session)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                    additionalActions = additionalActions,
+                    columns = 1,
+                ),
+            )
+        }
 
-            val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(
-                            LegacyComponentSerializer.legacySection()
-                                .deserialize(lang.getMessage(player, "gui.creation.title_confirm"))
-                        )
-                            .body(bodyLines.map { DialogBody.plainMessage(it) })
-                            .build()
-                    )
-                    .type(
-                        DialogType.multiAction(actionButtons, backButton, 1)
-                    )
+        private fun previewTemplate(
+            player: Player,
+            session: WorldCreationSession,
+            plugin: MyWorldManager,
+        ): MenuActionResult {
+            val templateId = session.templateId ?: return MenuActionResult.Rejected()
+            session.phase = WorldCreationPhase.CONFIRM
+            val started = plugin.previewSessionManager.startPreview(
+                player,
+                PreviewSessionManager.PreviewTarget.Template(templateId),
+                PreviewSource.CREATION_CONFIRM,
+            )
+            if (!started) {
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                    showConfirmationDialog(player, session)
+                })
+                return MenuActionResult.Rejected()
             }
-
-            player.showDialog(dialog)
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
 
         private fun applyWorldName(
