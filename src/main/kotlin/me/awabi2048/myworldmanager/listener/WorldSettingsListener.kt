@@ -65,13 +65,17 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryCloseEvent
+import org.bukkit.event.inventory.InventoryType
+import org.bukkit.event.inventory.ClickType
 import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerCommandPreprocessEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import io.papermc.paper.event.player.PlayerCustomClickEvent
@@ -88,6 +92,24 @@ class WorldSettingsListener : Listener {
         private val pendingExpansions = mutableMapOf<UUID, PendingExpansion>()
         private val spawnPreviewTasks = mutableMapOf<UUID, BukkitTask>()
         private val borderDirectionPreviewTasks = mutableMapOf<UUID, BukkitTask>()
+
+        fun handleRuntimeInventoryClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                slot: Int,
+        ) {
+                if (player.openInventory.topInventory.getItem(slot)?.isSimilar(item) != true) return
+                onInventoryClick(
+                        InventoryClickEvent(
+                                player.openInventory,
+                                InventoryType.SlotType.CONTAINER,
+                                slot,
+                                click,
+                                InventoryAction.NOTHING,
+                        ),
+                )
+        }
         private val borderResetSpawnService = BorderResetSpawnService()
         private val expansionExecutionModeMetadataKey = "expansion_execution_mode"
         private val expansionSkipPhasesMetadataKey = "expansion_skip_phases"
@@ -240,7 +262,11 @@ class WorldSettingsListener : Listener {
                         session.isGuiTransition = false
                         return
                 }
-                if (topHolder !is WorldSettingsGuiHolder) {
+                val runtimeRoute = CCSystem.getAPI().getMenuNavigationService().currentRoute(player)
+                val isWorldSettingsRuntime =
+                        runtimeRoute?.owner == "myworldmanager" &&
+                                runtimeRoute.id == "world_settings_runtime"
+                if (topHolder !is WorldSettingsGuiHolder && !isWorldSettingsRuntime) {
                         plugin.logWorldSettingsDebug(
                                 "click=delegated_to_extension player=${player.name}/${player.uniqueId} " +
                                         "holder=${topHolder?.javaClass?.name ?: "none"} session=${session.action}/${session.worldUuid}"

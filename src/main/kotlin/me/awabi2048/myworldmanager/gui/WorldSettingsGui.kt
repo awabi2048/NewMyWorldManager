@@ -1,6 +1,5 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -12,6 +11,12 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -46,11 +51,102 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.meta.SkullMeta
+import java.util.concurrent.ConcurrentHashMap
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
         private val borderResetSpawnService = BorderResetSpawnService()
+        private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+        private val runtimeViews = ConcurrentHashMap<String, InventoryMenuView>()
+
+        init {
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = RUNTIME_OWNER,
+                                id = RUNTIME_ROUTE,
+                                renderer = { context ->
+                                        runtimeViews[context.route.payload.getValue("view")]
+                                                ?: error("ワールド設定Runtime Viewが見つかりません")
+                                },
+                                actions = mapOf(
+                                        ACTION_RUNTIME_DISPATCH to
+                                                MenuActionHandler { context ->
+                                                        plugin.worldSettingsListener.handleRuntimeInventoryClick(
+                                                                context.player,
+                                                                context.click,
+                                                                context.item,
+                                                                context.payload["slot"]?.toIntOrNull()
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                        )
+                                                        MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
+                                                },
+                                ),
+                        ),
+                )
+        }
+
+        private class RuntimeItemBuffer(val size: Int) {
+                private val items = arrayOfNulls<ItemStack>(size)
+
+                val contents: Array<ItemStack?>
+                        get() = items.copyOf()
+
+                fun setItem(slot: Int, item: ItemStack?) {
+                        require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
+                        items[slot] = item
+                }
+
+                fun getItem(slot: Int): ItemStack? = items.getOrNull(slot)
+
+                fun clear() {
+                        items.fill(null)
+                }
+
+                fun applyStandardFrame() {
+                        val black = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+                        val gray = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
+                        for (slot in items.indices) {
+                                items[slot] = when {
+                                        slot < 9 || slot >= size - 9 -> black.clone()
+                                        else -> gray.clone()
+                                }
+                        }
+                }
+
+                fun elements(): List<MenuElement> =
+                        items.mapIndexedNotNull { slot, item ->
+                                item ?: return@mapIndexedNotNull null
+                                val type = ItemTag.getType(item)
+                                val action = when (type) {
+                                        null,
+                                        ItemTag.TYPE_GUI_DECORATION,
+                                        ItemTag.TYPE_GUI_INFO -> null
+                                        else -> ACTION_RUNTIME_DISPATCH
+                                }
+                                val role = when (type) {
+                                        ItemTag.TYPE_GUI_CONFIRM -> GuiElementRole.CONFIRM
+                                        ItemTag.TYPE_GUI_CANCEL -> GuiElementRole.CANCEL
+                                        ItemTag.TYPE_GUI_BACK,
+                                        ItemTag.TYPE_GUI_RETURN -> GuiElementRole.BACK
+                                        ItemTag.TYPE_GUI_NAV_NEXT,
+                                        ItemTag.TYPE_GUI_NAV_PREV -> GuiElementRole.NAVIGATION
+                                        ItemTag.TYPE_GUI_DECORATION -> GuiElementRole.DECORATION
+                                        else -> if (action == null) GuiElementRole.CONTENT else GuiElementRole.ACTION
+                                }
+                                MenuElement(
+                                        slot = slot,
+                                        item = item,
+                                        role = role,
+                                        actionId = action,
+                                        actionPayload = if (action == null) emptyMap()
+                                        else mapOf("slot" to slot.toString()),
+                                )
+                        }
+
+                companion object {
+                        private const val ACTION_RUNTIME_DISPATCH = "dispatch"
+                }
+        }
 
         private data class MemberManagementEntry(
                 val playerUuid: UUID,
@@ -133,8 +229,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         mapOf("world" to worldData.name)
                                 )
                         )
-                GuiHelper.playMenuOpen(player, "world_settings")
-
                 // 権限判定
                 val currentSession = plugin.settingsSessionManager.getSession(player)
                 val isOwner = worldData.owner == player.uniqueId || currentSession?.isAdminFlow == true
@@ -160,13 +254,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val announcementSettingSlot = if (useModeratorCenteredLayout) 31 else 29
                 val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else 30
 
-                val holder = WorldSettingsGuiHolder(worldData.uuid)
-                val inventory = Bukkit.createInventory(holder, inventorySize, title)
-                holder.inv = inventory
+                val inventory = RuntimeItemBuffer(inventorySize)
 
                 // 背景 (黒の板ガラス)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                inventory.applyStandardFrame()
 
                 // 戻るボタン
                 if (currentShowBack) {
@@ -1040,9 +1132,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         fun openArchiveConfirmation(player: Player, worldData: WorldData) {
@@ -1058,19 +1148,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.ARCHIVE_WORLD,
                         isGui = true
                 )
-                GuiHelper.playMenuOpen(player, "world_settings")
 
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inv = Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inv
-                                inv
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val infoItem =
                         createItem(
@@ -1102,7 +1182,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
+                        presentRuntime(player, title, inventory)
                         scheduleGuiTransitionReset(plugin, player)
                 }
         }
@@ -1120,19 +1200,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.UNARCHIVE_CONFIRM,
                         isGui = true
                 )
-                GuiHelper.playMenuOpen(player, "world_settings")
 
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inv = Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inv
-                                inv
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val infoItem =
                         createItem(
@@ -1167,9 +1237,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         fun openExpansionMethodSelection(
@@ -1183,7 +1251,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
 
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1192,20 +1259,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 scheduleGuiTransitionReset(plugin, player)
 
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                inventory.applyStandardFrame()
 
                 inventory.setItem(
                         20,
@@ -1255,13 +1312,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         fun openExpansionStepBackConfirmation(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.step_back_expansion.title")
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1273,18 +1329,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
                         GuiLoreLine.Warning(lang.getMessage(player, "gui.confirm.step_back_expansion.question"))
@@ -1323,9 +1369,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         fun openExpansionConfirmation(
@@ -1340,7 +1384,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldUuid,
@@ -1348,20 +1391,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
                 scheduleGuiTransitionReset(plugin, player)
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                inventory.applyStandardFrame()
 
                 val directionKey =
                         when (direction) {
@@ -1424,7 +1457,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         fun openMemberManagement(
@@ -1441,7 +1474,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .serialize(player.openInventory.title())
 
                 if (playSound) {
-                        GuiHelper.playMenuOpen(player, "world_settings")
                 }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -1513,26 +1545,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val layout = pageLayout.layout
                 val footerStart = layout.size - 9
 
-                val inventory =
-                        if (player.openInventory.topInventory.size == layout.size &&
-                                        currentTitle == title
-                        ) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(
-                                                holder,
-                                                layout.size,
-                                                GuiHelper.inventoryTitle(title)
-                                        )
-                                holder.inv = inventory
-                                inventory
-                        }
+                val inventory = RuntimeItemBuffer(layout.size)
                 inventory.clear()
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                inventory.applyStandardFrame()
 
                 // メンバーリストの描画
                 val isAdminFlow = plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
@@ -1709,7 +1726,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         fun openMemberPendingInviteCancelConfirmation(
@@ -1725,7 +1742,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1734,17 +1750,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 scheduleGuiTransitionReset(plugin, player)
 
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inv = Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inv
-                                inv
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val item = ItemStack(Material.PLAYER_HEAD)
                 val meta = item.itemMeta as? SkullMeta ?: return
@@ -1792,7 +1799,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         fun openMemberRemoveConfirmation(
@@ -1813,7 +1820,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1821,18 +1827,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
                 scheduleGuiTransitionReset(plugin, player)
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val lore = GuiLoreSpec.Rich(listOf(
                         GuiLoreLine.Warning(lang.getMessage(player, "gui.member_management.remove_confirm.question")),
@@ -1894,7 +1890,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         fun openMemberTransferConfirmation(
@@ -1915,7 +1911,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1923,18 +1918,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
                 scheduleGuiTransitionReset(plugin, player)
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val lore = GuiLoreSpec.Rich(listOf(
                         GuiLoreLine.Warning(lang.getMessage(player, "gui.member_management.transfer_confirm.question")),
@@ -1992,7 +1977,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         private fun createMemberItem(
@@ -2141,7 +2126,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openVisitorManagement(player: Player, worldData: WorldData, page: Int = 0) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.visitor_management.title")
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2171,25 +2155,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                val inventory =
-                        if (player.openInventory.topInventory.size == rowCount * 9 &&
-                                        currentTitle == title
-                        ) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(
-                                                holder,
-                                                rowCount * 9,
-                                                GuiHelper.inventoryTitle(title)
-                                        )
-                                holder.inv = inventory
-                                inventory
-                        }
-
+                val inventory = RuntimeItemBuffer(rowCount * 9)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                inventory.applyStandardFrame()
 
                 val footerStart = (rowCount - 1) * 9
 
@@ -2251,7 +2219,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         fun openVisitorKickConfirmation(
@@ -2272,7 +2240,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2280,18 +2247,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
                 scheduleGuiTransitionReset(plugin, player)
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 inventory.setItem(
                         22,
@@ -2349,7 +2306,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                ManagedMenuPresenter.open(player, inventory)
+                presentRuntime(player, title, inventory)
         }
 
         private fun createVisitorItem(
@@ -2486,7 +2443,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
 
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2495,19 +2451,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 scheduleGuiTransitionReset(plugin, player)
 
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                inventory.applyStandardFrame()
 
                 val middleGrayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 9..35) inventory.setItem(i, middleGrayPane)
@@ -2667,9 +2613,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         private fun calculateTotalExpansionCost(level: Int): Int {
@@ -2679,7 +2623,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openResetExpansionConfirmation(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.reset_expansion.title")
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2691,18 +2634,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
                         GuiLoreLine.Warning(lang.getMessage(player, "gui.confirm.reset_expansion.question"))
@@ -2741,15 +2674,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         fun openResetExpansionSpawnUnsafeConfirmation(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.title")
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2761,18 +2691,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
                         GuiLoreLine.Danger(lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.warning"))
@@ -2811,12 +2731,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
                 plugin.logWorldSettingsDebug(
-                        "open=core_inventory player=${player.name}/${player.uniqueId} world=${worldData.uuid} " +
-                                "holder=${inventory.holder?.javaClass?.name ?: "none"} size=${inventory.size}"
+                        "open=runtime player=${player.name}/${player.uniqueId} world=${worldData.uuid} " +
+                                "route=$RUNTIME_ROUTE size=${inventory.size}"
                 )
         }
 
@@ -2858,7 +2776,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun openDeleteWorldConfirmation1(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.delete_1.title")
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2870,18 +2787,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val lore = GuiLoreSpec.Rich(
                         listOf(
@@ -2920,15 +2827,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         fun openDeleteWorldConfirmation2(player: Player, worldData: WorldData) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.delete_2.title")
-                GuiHelper.playMenuOpen(player, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -2940,18 +2844,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
                                 .serialize(player.openInventory.title())
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
-                GuiHelper.applyConfirmationFrame(inventory)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                inventory.applyStandardFrame()
 
                 val lore = com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
                                 listOf(
@@ -2993,9 +2887,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         fun openPortalManagement(player: Player, worldData: WorldData, page: Int = 0) {
@@ -3006,7 +2898,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 .plainText()
                                 .serialize(player.openInventory.title())
 
-                GuiHelper.playMenuOpen(player, "portal_manage")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -3022,20 +2913,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val startIndex = page * itemsPerPage
                 val currentPagePortals = allPortals.drop(startIndex).take(itemsPerPage)
 
-                val inventory =
-                        if (player.openInventory.topInventory.size == GuiHelper.confirmationLayout().size && currentTitle == title) {
-                                player.openInventory.topInventory
-                        } else {
-                                val holder = WorldSettingsGuiHolder()
-                                val inventory =
-                                        Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, GuiHelper.inventoryTitle(title))
-                                holder.inv = inventory
-                                inventory
-                        }
-
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 // 背景
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
+                inventory.applyStandardFrame()
 
                 currentPagePortals.forEachIndexed { index, portal ->
                         val slot = 9 + index
@@ -3077,9 +2958,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
-                }
+                presentRuntime(player, title, inventory)
         }
 
         private fun createPortalManagementItem(player: Player, portal: PortalData): ItemStack {
@@ -3132,8 +3011,36 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return item
         }
 
+        private fun presentRuntime(
+                player: Player,
+                title: Component,
+                inventory: RuntimeItemBuffer
+        ) {
+                val viewId = UUID.randomUUID().toString()
+                runtimeViews[viewId] = InventoryMenuView(
+                        size = inventory.size,
+                        title = title,
+                        elements = inventory.elements(),
+                        standardFrame = false,
+                )
+                runtime.navigate(
+                        player,
+                        MenuRoute(
+                                RUNTIME_OWNER,
+                                RUNTIME_ROUTE,
+                                mapOf("view" to viewId),
+                        ),
+                )
+        }
+
+        private fun presentRuntime(
+                player: Player,
+                title: String,
+                inventory: RuntimeItemBuffer
+        ) = presentRuntime(player, GuiHelper.inventoryTitle(title), inventory)
+
         private fun applyMenuExtensions(
-                inventory: Inventory,
+                inventory: RuntimeItemBuffer,
                 player: Player,
                 context: MenuExtensionContext,
         ) {
@@ -3158,15 +3065,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun enterIconSelection(player: Player, worldData: WorldData) {
-                plugin.soundManager.playClickSound(player, null, "world_settings")
                 plugin.worldSettingsListener.startIconSelection(player, worldData)
         }
 
         fun enterSpawnSetting(player: Player, worldData: WorldData, isGuest: Boolean) {
-                plugin.soundManager.playClickSound(player, null, "world_settings")
                 val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action, isGui = true)
-                ManagedMenuPresenter.close(player)
+                runtime.close(player)
 
                 plugin.worldSettingsListener.startSpawnPreview(player)
 
@@ -3180,30 +3085,33 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun toggleNotification(player: Player, worldData: WorldData) {
-                plugin.soundManager.playClickSound(player, null, "world_settings")
                 worldData.notificationEnabled = !worldData.notificationEnabled
                 plugin.worldConfigRepository.save(worldData)
         }
 
         fun editAnnouncement(player: Player, worldData: WorldData) {
-                plugin.soundManager.playClickSound(player, null, "world_settings")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.SET_ANNOUNCEMENT
                 )
-                ManagedMenuPresenter.close(player)
+                runtime.close(player)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                         AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
                 })
         }
 
         fun clearAnnouncements(player: Player, worldData: WorldData) {
-                plugin.soundManager.playClickSound(player, null, "world_settings")
                 worldData.announcementMessages.clear()
                 plugin.worldConfigRepository.save(worldData)
                 player.sendMessage(
                         plugin.languageManager.getMessage(player, "messages.announcement_cleared")
                 )
+        }
+
+        private companion object {
+                const val RUNTIME_OWNER = "myworldmanager"
+                const val RUNTIME_ROUTE = "world_settings_runtime"
+                const val ACTION_RUNTIME_DISPATCH = "dispatch"
         }
 }
