@@ -180,7 +180,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [ ] `ChanponFavoriteVisitMenuProvider`
 - [ ] `ChanponPlayerWorldMenuProvider`
 - [ ] `ChanponWorldSettingsMenuProvider`
-- [ ] `SubmissionAdminMenu`
+- [x] `SubmissionAdminMenu`
 - [ ] `SubmittedWorldMenuProvider`
 - [ ] `ToolPermissionMenu`
 - [x] `WorldDataExportMenu`
@@ -451,6 +451,7 @@ standalone_export:
 - `WorldDataManagementMenu`の一覧、単体・一括バックアップ確認、一括ロールバック確認をRuntimeへ移行した。バックアップ一覧から戻るページは旧手動Route履歴ではなく明示状態で維持するようにした。
 - `BackupListMenu`の一覧、復元確認、二段階削除確認をRuntimeへ移行し、バックアップID・一覧モード・対象ワールド・ページをRoute payloadへ統一した。
 - `AnnualArchiveFlow`を単一インスタンス化し、名前確認と最終実行確認をRuntimeへ移行した。チャット入力Listenerだけを入力受付として残し、InventoryクリックListenerを削除した。
+- `SubmissionAdminMenu`の一覧、ページ、進捗フィルタ、並び替え、提出停止、本番用切替、未提出完了確認をRuntimeへ移行し、画面状態と対象UUIDをRoute payloadへ統一した。
 - CC-System 2.11.0へ、登録済み画面を親Routeと履歴を変更せず開く`MenuRuntimeService.openEphemeral`を追加した。
 - EPHEMERAL画面を閉じた場合に親ナビゲーションを消去しないセッション寿命テストを追加し、CC-Systemの全90テストに成功した。
 - `PortalGui`を`InventoryMenuDefinition`、Route payload、Runtime Actionへ完全移行した。直接Inventory生成、個別`InventoryClickEvent`、個別クリック音、ItemTagによるAction判定を撤去した。
