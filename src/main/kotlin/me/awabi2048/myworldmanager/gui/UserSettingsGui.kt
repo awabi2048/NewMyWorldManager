@@ -60,7 +60,12 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             return
         }
         plugin.settingsSessionManager.updateSessionAction(player, UUID(0, 0), SettingsAction.VIEW_SETTINGS, isGui = true)
-        runtime.open(player, MenuRoute(OWNER, ROUTE_ID))
+        val route = MenuRoute(OWNER, ROUTE_ID)
+        if (session.showBackButton) {
+            runtime.navigate(player, route)
+        } else {
+            runtime.open(player, route)
+        }
     }
 
     private fun render(player: Player): InventoryMenuView {
@@ -169,11 +174,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
-        if (!CCSystem.getAPI().getMenuRuntimeService().back(context.player)) {
-            val currentPage = plugin.playerWorldSessionManager.getSession(context.player.uniqueId).currentPage
-            plugin.playerWorldGui.open(context.player, currentPage)
-        }
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun settingItem(

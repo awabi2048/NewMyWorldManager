@@ -478,6 +478,18 @@ standalone_export:
 
 ### 2026-07-26
 
+- 手動確認で、`/myworld`の開始音、個人設定・ワールド設定の戻る、アイコン選択、プレイヤーインベントリ操作、ポータル管理導線、`/worldmenu`のポータル取得位置に回帰を確認した。
+- CC-System Runtimeのプレイヤーインベントリ方針を`BLOCKED`、`INTERACTIVE`、`SELECTION`へ分離した。通常操作は許可しつつ、上側GUIへのシフト移動を拒否し、選択画面だけが下側クリックをActionとして消費する。
+- 履歴がない`navigate`は無音の`replace`ではなく、開始音を伴うROOTとして開くようにした。
+- `PlayerWorldGui`、`UserSettingsGui`、Chanponのプレイヤーワールド・設定画面で、手動履歴、次tickの直接open、現在画面Closeの混在を除去し、Runtimeの`Navigate`、`Back`、履歴保持へ統一した。
+- MWM-Chanponに残っていた削除済み`menuRouteHistory`参照を、CC-System Runtimeを使用する現行`mwmMenuRoutes`または`MenuUpdate.Back`へ置換した。
+- Chanpon設定画面へポータル管理導線を復元した。ポータル取得Extensionは、既存アイテムの最大スロットではなく実際の画面サイズからフッターを算出する。
+- ポータル管理スロットと、54/45スロット画面におけるポータル取得位置を固定テストへ追加した。
+- FreeCam開始案内を2行へ分割し、`/fcam`のコマンド定義、登録、既定設定、既存設定移行から削除した。
+- 実機操作はユーザーが手動で行う方針を維持する。自動検証はビルド、単体・構造テスト、JAR・設定・ログ確認までとする。
+
+### 2026-07-26
+
 - `ChanponPlayerWorldMenuProvider`を`InventoryMenuDefinition`へ移行し、旧Holder、直接クリックListener、個別クリック音、手動履歴操作を削除した。
 - CC-System 2.15.0で`MenuActionContext`へクリック対象の`ItemStack`を追加し、Runtime Actionから拡張アイテムの識別情報を安全に参照できるようにした。全90テストに成功した。
 - MyWorldManagerの`MenuExtension`公開APIを2.0.0として更新し、`InventoryClickEvent`と可変`Inventory`を公開境界から除去した。

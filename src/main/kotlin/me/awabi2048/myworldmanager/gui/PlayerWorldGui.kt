@@ -282,16 +282,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun back(context: MenuActionContext): MenuActionResult {
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                GuiHelper.handleReturnClick(
-                                        plugin,
-                                        context.player,
-                                )
-                        },
-                )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.Back)
         }
 
         private fun create(context: MenuActionContext): MenuActionResult {
@@ -311,16 +302,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         private fun userSettings(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
                 val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
-                plugin.mwmMenuRoutes.pushPlayerWorld(
-                        context.player,
-                        session.currentPage,
-                        session.showBackButton,
-                )
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable { plugin.userSettingsGui.open(context.player, showBackButton = true) },
                 )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun pending(context: MenuActionContext): MenuActionResult {
@@ -338,7 +324,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 )
                         },
                 )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun world(context: MenuActionContext): MenuActionResult {
@@ -412,7 +398,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 }
                         },
                 )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun warp(player: Player, worldData: WorldData): MenuActionResult {
@@ -433,7 +419,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun openSettings(player: Player, worldData: WorldData): MenuActionResult {
                 val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
-                plugin.mwmMenuRoutes.pushPlayerWorld(player, session.currentPage, session.showBackButton)
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {
@@ -446,7 +431,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 )
                         },
                 )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun canOpenWorldSettings(player: Player, worldData: WorldData): Boolean =
