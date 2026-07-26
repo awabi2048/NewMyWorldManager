@@ -161,7 +161,7 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 - [x] `LikeSignDialogManager`
 - [x] `TourDialogManager`
 - [x] `AdminGuiListener`
-- [ ] `DiscoveryListener`
+- [x] `DiscoveryListener`
 - [ ] `PlayerWorldListener`
 - [ ] `TemplateWizardListener`
 - [ ] `WorldSettingsListener`

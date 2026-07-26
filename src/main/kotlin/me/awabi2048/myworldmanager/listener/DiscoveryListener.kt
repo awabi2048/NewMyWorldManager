@@ -4,26 +4,23 @@ package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 
+import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
-import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -364,34 +361,14 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    @Suppress("UnstableApiUsage")
-    @EventHandler
-    fun onSpotlightDescriptionDialog(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        if (identifier != Key.key("mwm:discovery/spotlight_description_submit") &&
-            identifier != Key.key("mwm:discovery/spotlight_description_cancel")
-        ) {
-            return
-        }
-
-        val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
-        val player = conn.player
+    private fun saveSpotlightDescription(player: Player, rawInput: String): MenuActionResult {
         val lang = plugin.languageManager
-
         if (!canManageSpotlight(player)) {
-            player.sendMessage(lang.getMessage(player, "general.no_permission"))
-            return
+            return MenuActionResult.Rejected(
+                Component.text(lang.getMessage(player, "general.no_permission")),
+            )
         }
-
-        if (identifier == Key.key("mwm:discovery/spotlight_description_cancel")) {
-            DialogConfirmManager.safeCloseDialog(player)
-            plugin.soundManager.playClickSound(player, null, "discovery")
-            plugin.menuEntryRouter.openDiscovery(player)
-            return
-        }
-
-        val view = event.getDialogResponseView() ?: return
-        val input = view.getText("spotlight_description")?.toString().orEmpty().trim()
+        val input = rawInput.trim()
         if (input.length > SPOTLIGHT_DESCRIPTION_MAX_LENGTH) {
             player.sendMessage(
                 lang.getMessage(
@@ -400,8 +377,10 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
                     mapOf("max" to SPOTLIGHT_DESCRIPTION_MAX_LENGTH)
                 )
             )
-            openSpotlightDescriptionDialog(player, input)
-            return
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                openSpotlightDescriptionDialog(player, input)
+            })
+            return MenuActionResult.Rejected()
         }
 
         plugin.spotlightRepository.setDescription(input)
@@ -413,6 +392,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         player.sendMessage(lang.getMessage(player, messageKey))
         plugin.soundManager.playClickSound(player, null, "discovery")
         plugin.menuEntryRouter.openDiscovery(player)
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     private fun canManageSpotlight(player: Player): Boolean {
@@ -424,63 +404,52 @@ class DiscoveryListener(private val plugin: MyWorldManager) : Listener {
         val lang = plugin.languageManager
         val currentText = initialValue ?: plugin.spotlightRepository.getDescription().orEmpty()
 
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(
-                        Component.text(
-                            lang.getMessage(player, "gui.discovery.spotlight_description_dialog.title"),
-                            NamedTextColor.YELLOW
-                        )
-                    )
-                        .body(
-                            listOf(
-                                DialogBody.plainMessage(
-                                    Component.text(
-                                        lang.getMessage(
-                                            player,
-                                            "gui.discovery.spotlight_description_dialog.body",
-                                            mapOf("max" to SPOTLIGHT_DESCRIPTION_MAX_LENGTH)
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                        .inputs(
-                            listOf(
-                                DialogInput.text(
-                                    "spotlight_description",
-                                    Component.text(
-                                        lang.getMessage(
-                                            player,
-                                            "gui.discovery.spotlight_description_dialog.input_label"
-                                        )
-                                    )
-                                )
-                                    .maxLength(SPOTLIGHT_DESCRIPTION_MAX_LENGTH)
-                                    .initial(currentText)
-                                    .build()
-                            )
-                        )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key("mwm:discovery/spotlight_description_submit"), null)
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = "discovery-spotlight-description",
+                title = Component.text(
+                    lang.getMessage(player, "gui.discovery.spotlight_description_dialog.title"),
+                    NamedTextColor.YELLOW,
+                ),
+                body = listOf(
+                    Component.text(
+                        lang.getMessage(
+                            player,
+                            "gui.discovery.spotlight_description_dialog.body",
+                            mapOf("max" to SPOTLIGHT_DESCRIPTION_MAX_LENGTH),
                         ),
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key("mwm:discovery/spotlight_description_cancel"), null)
-                        )
-                    )
-                )
-        }
-        player.showDialog(dialog)
+                    ),
+                ),
+                inputs = listOf(
+                    MenuDialogInput.Text(
+                        "spotlight_description",
+                        Component.text(
+                            lang.getMessage(
+                                player,
+                                "gui.discovery.spotlight_description_dialog.input_label",
+                            ),
+                        ),
+                        currentText,
+                        maxLength = SPOTLIGHT_DESCRIPTION_MAX_LENGTH,
+                    ),
+                ),
+                confirm = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    MenuDialogHandler { target, response ->
+                        saveSpotlightDescription(target, response.textValue("spotlight_description"))
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    MenuDialogHandler { target, _ ->
+                        plugin.soundManager.playClickSound(target, null, "discovery")
+                        plugin.menuEntryRouter.openDiscovery(target)
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
     }
 }
