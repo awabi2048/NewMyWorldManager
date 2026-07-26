@@ -462,3 +462,12 @@ standalone_export:
 - 資源収集側commit `6090a30`の実質差分から、ProgressPath線長、Loreテスト、日英`tutorial_rank.unit`キーだけをCC-System 2.11.0へ統合した。`pom.xml`は取り込まず、commit `f7ffa32`として保存した。
 - JAR内の日英`content/tutorial_rank.yml`に`unit`、`minute`、`experience`が存在することを確認した。
 - Minecraft画面取得は`インターフェイスがサポートされていません (0x80004002)`で失敗した。推測座標による入力は行わず、ポータル設定を閉じた後の親Route保持と実際の可聴音は未検証として残す。
+
+### 2026-07-26
+
+- `ChanponPlayerWorldMenuProvider`を`InventoryMenuDefinition`へ移行し、旧Holder、直接クリックListener、個別クリック音、手動履歴操作を削除した。
+- CC-System 2.15.0で`MenuActionContext`へクリック対象の`ItemStack`を追加し、Runtime Actionから拡張アイテムの識別情報を安全に参照できるようにした。全90テストに成功した。
+- MyWorldManagerの`MenuExtension`公開APIを2.0.0として更新し、`InventoryClickEvent`と可変`Inventory`を公開境界から除去した。
+- 拡張描画はスロットとアイテムの不変Mapを受け取り、新しいMapを返す。拡張クリックは`ClickType`と対象アイテムだけを受け取る。
+- MWM-Chanpon 1.24.0の`LinkedPortalMenuExtension`、`ToolPermissionMenuExtension`、`WorldBackupMenuExtension`、`ProductionToggleExtension`を新APIへ移行した。
+- MyWorldManagerとMWM-Chanponはいずれも全36テストに成功した。旧APIシグネチャは残していない。
