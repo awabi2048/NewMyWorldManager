@@ -30,4 +30,8 @@ internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiW
     override fun save(worldData: WorldData) {
         plugin.worldConfigRepository.save(worldData)
     }
+
+    override fun delete(uuid: UUID) {
+        plugin.worldConfigRepository.delete(uuid)
+    }
 }

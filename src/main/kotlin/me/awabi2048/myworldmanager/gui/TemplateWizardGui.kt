@@ -60,6 +60,14 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
                     MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
                         MenuActionHandler(::selectPlayerInventoryItem),
                 ),
+                onClose = { context ->
+                    Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                        val current = CCSystem.getAPI().getMenuNavigationService().currentRoute(context.player)
+                        if (current?.owner != OWNER || current.id != ROUTE_ID) {
+                            sessions.remove(context.player.uniqueId)
+                        }
+                    }, 2L)
+                },
             ),
         )
     }

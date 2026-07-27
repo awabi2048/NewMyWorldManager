@@ -53,7 +53,12 @@ class VisitGui(private val plugin: MyWorldManager) {
                 page: Int = 0,
                 returnToWorld: WorldData? = null
         ) {
-                runtime.open(player, route(targetPlayer.uniqueId, page, returnToWorld?.uuid))
+                val targetRoute = route(targetPlayer.uniqueId, page, returnToWorld?.uuid)
+                if (returnToWorld != null) {
+                        runtime.navigate(player, targetRoute)
+                } else {
+                        runtime.open(player, targetRoute)
+                }
         }
 
         private fun render(player: Player, route: MenuRoute): InventoryMenuView {

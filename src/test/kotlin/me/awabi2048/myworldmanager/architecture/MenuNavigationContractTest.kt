@@ -89,6 +89,18 @@ class MenuNavigationContractTest {
         assertFalse("runTask" in sortBody)
     }
 
+    @Test
+    fun `一時画面とウィザード終了はRuntimeの経路状態を尊重する`() {
+        val visit = guiRoot.resolve("VisitGui.kt").readText()
+        assertTrue("returnToWorld != null" in visit)
+        assertTrue("runtime.navigate(player, targetRoute)" in visit)
+        assertTrue("runtime.open(player, targetRoute)" in visit)
+
+        val wizard = guiRoot.resolve("TemplateWizardGui.kt").readText()
+        assertTrue("onClose =" in wizard)
+        assertTrue("currentRoute(context.player)" in wizard)
+    }
+
     private fun functionBody(source: String, name: String): String {
         val start = source.indexOf("private fun $name")
         require(start >= 0) { "$name が見つかりません" }

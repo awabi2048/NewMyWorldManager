@@ -11,4 +11,5 @@ interface ApiWorldRepository {
     fun findByWorldKey(worldKey: String): WorldData?
     fun findAll(): List<WorldData>
     fun save(worldData: WorldData)
+    fun delete(uuid: UUID)
 }
