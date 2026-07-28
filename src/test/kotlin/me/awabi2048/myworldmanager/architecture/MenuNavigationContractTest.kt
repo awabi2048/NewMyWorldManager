@@ -114,6 +114,32 @@ class MenuNavigationContractTest {
     }
 
     @Test
+    fun `world settings child menus do not manually push before runtime navigation`() {
+        val listener = Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
+        ).readText()
+
+        listOf(
+            "openExpansionMethodSelection(",
+            "openMemberManagement(",
+            "openVisitorManagement(",
+            "openCriticalSettings(",
+            "openPortalManagement(",
+            "environmentGui.open(",
+        ).forEach { childOpen ->
+            listener.indices
+                .filter { listener.startsWith(childOpen, it) }
+                .forEach { callIndex ->
+                    val preceding = listener.substring(maxOf(0, callIndex - 300), callIndex)
+                    assertFalse(
+                        "mwmMenuRoutes.pushWorldSettings(" in preceding,
+                        "Runtime子画面の直前で履歴を二重追加しています: $childOpen",
+                    )
+                }
+        }
+    }
+
+    @Test
     fun `inventory to dialog transitions preserve runtime history and avoid synthetic open sounds`() {
         val listener = Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",

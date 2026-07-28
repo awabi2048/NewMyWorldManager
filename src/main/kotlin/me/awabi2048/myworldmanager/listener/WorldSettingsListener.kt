@@ -1433,15 +1433,6 @@ class WorldSettingsListener : Listener {
                                                 }
 
                                                 plugin.worldSettingsGui
-                                                        .also {
-                                                                plugin.mwmMenuRoutes.pushWorldSettings(
-                                                                        player,
-                                                                        worldData.uuid,
-                                                                        session.showBackButton,
-                                                                        session.isPlayerWorldFlow,
-                                                                        session.parentShowBackButton
-                                                                )
-                                                        }
                                                         .openExpansionMethodSelection(
                                                                 player,
                                                                 worldData
@@ -1475,13 +1466,6 @@ class WorldSettingsListener : Listener {
                                                 plugin.worldSettingsGui.open(player, worldData)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_MEMBER -> {
-                                                plugin.mwmMenuRoutes.pushWorldSettings(
-                                                        player,
-                                                        worldData.uuid,
-                                                        session.showBackButton,
-                                                        session.isPlayerWorldFlow,
-                                                        session.parentShowBackButton
-                                                )
                                                 plugin.worldSettingsGui.openMemberManagement(
                                                         player,
                                                         worldData
@@ -1564,13 +1548,6 @@ class WorldSettingsListener : Listener {
                                                         )
                                                         return
                                                 }
-                                                plugin.mwmMenuRoutes.pushWorldSettings(
-                                                        player,
-                                                        worldData.uuid,
-                                                        session.showBackButton,
-                                                        session.isPlayerWorldFlow,
-                                                        session.parentShowBackButton
-                                                )
                                                 plugin.worldSettingsGui.openVisitorManagement(
                                                         player,
                                                         worldData
@@ -1586,13 +1563,6 @@ class WorldSettingsListener : Listener {
                                                 plugin.tourGui.openEditMenu(player, worldData)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_CRITICAL -> {
-                                                plugin.mwmMenuRoutes.pushWorldSettings(
-                                                        player,
-                                                        worldData.uuid,
-                                                        session.showBackButton,
-                                                        session.isPlayerWorldFlow,
-                                                        session.parentShowBackButton
-                                                )
                                                 plugin.worldSettingsGui.openCriticalSettings(
                                                         player,
                                                         worldData
@@ -1649,13 +1619,6 @@ class WorldSettingsListener : Listener {
                                                         }
 
                                                 if (hasPortals) {
-                                                        plugin.mwmMenuRoutes.pushWorldSettings(
-                                                                player,
-                                                                worldData.uuid,
-                                                                session.showBackButton,
-                                                                session.isPlayerWorldFlow,
-                                                                session.parentShowBackButton
-                                                        )
                                                         plugin.worldSettingsGui
                                                                 .openPortalManagement(
                                                                         player,
@@ -1682,13 +1645,6 @@ class WorldSettingsListener : Listener {
                                                         return
                                                 }
                                                 if (player.hasPermission("myworldmanager.admin")) {
-                                                        plugin.mwmMenuRoutes.pushWorldSettings(
-                                                                player,
-                                                                worldData.uuid,
-                                                                session.showBackButton,
-                                                                session.isPlayerWorldFlow,
-                                                                session.parentShowBackButton
-                                                        )
                                                         plugin.environmentGui.open(player, worldData)
                                                 }
                                         }
