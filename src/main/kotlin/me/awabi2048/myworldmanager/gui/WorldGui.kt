@@ -235,7 +235,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 inventory.setItem(51, createSortButton(player, session))
 
                 // 装飾
-                if (session.fromAdminMenu) {
+                if (GuiHelper.canGoBack(player)) {
                         inventory.setItem(
                                 layout.backSlot,
                                 createNavButton(

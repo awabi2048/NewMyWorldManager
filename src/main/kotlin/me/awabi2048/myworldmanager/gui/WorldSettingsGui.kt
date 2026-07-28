@@ -327,7 +327,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 inventory.applyStandardFrame()
 
                 // 戻るボタン
-                if (currentShowBack) {
+                if (GuiHelper.canGoBack(player)) {
                         inventory.setItem(
                                 backButtonSlot,
                                 createItem(Material.REDSTONE, "§7戻る", GuiLoreSpec.None, ItemTag.TYPE_GUI_RETURN)
@@ -3140,10 +3140,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun editWorldInfo(player: Player, worldData: WorldData) {
+                runtime.preserveHistoryOnClose(player)
                 plugin.worldSettingsListener.editWorldInfo(player, worldData)
         }
 
         fun enterIconSelection(player: Player, worldData: WorldData) {
+                runtime.preserveHistoryOnClose(player)
                 plugin.worldSettingsListener.startIconSelection(player, worldData)
         }
 
@@ -3158,6 +3160,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun enterSpawnSetting(player: Player, worldData: WorldData, isGuest: Boolean) {
                 val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action, isGui = true)
+                runtime.preserveHistoryOnClose(player)
                 runtime.close(player)
 
                 plugin.worldSettingsListener.startSpawnPreview(player)
@@ -3182,6 +3185,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         worldData.uuid,
                         SettingsAction.SET_ANNOUNCEMENT
                 )
+                runtime.preserveHistoryOnClose(player)
                 runtime.close(player)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                         AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)

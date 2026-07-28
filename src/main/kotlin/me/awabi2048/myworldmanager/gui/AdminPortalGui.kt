@@ -92,7 +92,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         }
         elements += MenuElement(49, createInfoButton(player, portals.size, safePage + 1, totalPages), GuiElementRole.CONTENT)
         elements += MenuElement(51, createSortButton(player, session), GuiElementRole.ACTION, ACTION_SORT)
-        if (session.fromAdminMenu) {
+        if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(52, createBackButton(player), GuiElementRole.BACK, ACTION_BACK)
         }
         if (safePage < totalPages - 1) {

@@ -68,7 +68,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             return
         }
         val route = MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to session.currentPage.toString()))
-        if (session.showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             runtime.navigate(player, route)
         } else {
             runtime.open(player, route)
@@ -139,7 +139,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 mapOf(PAGE to (currentPage + 1).toString()),
             )
         }
-        if (session.showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(
                 36,
                 GuiHelper.createReturnItem(plugin, player, "meet"),

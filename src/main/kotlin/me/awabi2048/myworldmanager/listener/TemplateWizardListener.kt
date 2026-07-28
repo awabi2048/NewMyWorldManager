@@ -29,10 +29,11 @@ class TemplateWizardListener {
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                plugin.templateWizardGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 return
             }
 
+            CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
@@ -49,14 +50,14 @@ class TemplateWizardListener {
                     onClosed = {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (player.isOnline) {
-                                plugin.templateWizardGui.open(player)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                             }
                         })
                     }
                 )
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                plugin.templateWizardGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
             }
             return
         }
@@ -84,10 +85,11 @@ class TemplateWizardListener {
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                plugin.templateWizardGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 return
             }
 
+            CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
@@ -104,14 +106,14 @@ class TemplateWizardListener {
                     onClosed = {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (player.isOnline) {
-                                plugin.templateWizardGui.open(player)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                             }
                         })
                     }
                 )
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                plugin.templateWizardGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
             }
             return
         }
@@ -161,8 +163,8 @@ class TemplateWizardListener {
                 cancel = MenuDialogButton(
                     Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
                     MenuDialogHandler { target, _ ->
-                        plugin.templateWizardGui.open(target)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                 ),
             ),
@@ -193,7 +195,7 @@ class TemplateWizardListener {
                 mapOf("name" to session.name, "id" to session.id)
             )
         )
-        plugin.templateWizardGui.open(player)
+        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
     }
 
     private fun applyTemplateDescription(
@@ -204,6 +206,6 @@ class TemplateWizardListener {
     ) {
         session.description = if (input.isEmpty()) emptyList() else listOf(input)
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.template_wizard_description_set"))
-        plugin.templateWizardGui.open(player)
+        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
     }
 }

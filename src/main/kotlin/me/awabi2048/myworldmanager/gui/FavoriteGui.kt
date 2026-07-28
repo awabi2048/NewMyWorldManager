@@ -139,12 +139,14 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiElementRole.ACTION,
             ACTION_TAG,
         )
-        elements += MenuElement(
-            36,
-            GuiHelper.createReturnItem(plugin, player, "favorite"),
-            GuiElementRole.BACK,
-            ACTION_BACK,
-        )
+        if (GuiHelper.canGoBack(player)) {
+            elements += MenuElement(
+                36,
+                GuiHelper.createReturnItem(plugin, player, "favorite"),
+                GuiElementRole.BACK,
+                ACTION_BACK,
+            )
+        }
         return InventoryMenuView(
             size = 45,
             title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.favorite.title")),

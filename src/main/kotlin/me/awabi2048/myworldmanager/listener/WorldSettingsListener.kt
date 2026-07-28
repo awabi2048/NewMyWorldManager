@@ -393,9 +393,7 @@ class WorldSettingsListener : Listener {
                 // 蜈ｱ騾壹Γ繧ｽ繝・ラ: 繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺ｨ繧ｯ繝ｪ繝・け髻ｳ
                 fun handleCommandCancel() {
                         stopBorderDirectionPreview(player)
-                        if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                                plugin.worldSettingsGui.open(player, worldData)
-                        }
+                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 }
 
                 when (session.action) {
@@ -1255,6 +1253,7 @@ class WorldSettingsListener : Listener {
                                                 isPlayerWorldFlow = session.isPlayerWorldFlow,
                                                 parentShowBackButton = session.parentShowBackButton
                                         )
+                                        CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
                                         plugin.worldService.teleportToWorld(
                                                 player,
                                                 worldData.uuid,
@@ -1272,13 +1271,7 @@ class WorldSettingsListener : Listener {
                                                                                 mapOf("world" to worldData.name)
                                                                         )
                                                                 )
-                                                                plugin.worldSettingsGui.open(
-                                                                        player,
-                                                                        worldData,
-                                                                        session.showBackButton,
-                                                                        session.isPlayerWorldFlow,
-                                                                        session.parentShowBackButton
-                                                                )
+                                                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                                                                 plugin.settingsSessionManager.getSession(player)?.isGuiTransition = false
                                                         },
                                                         3L
@@ -1314,18 +1307,7 @@ class WorldSettingsListener : Listener {
 
                                 when (itemTag) {
                                         ItemTag.TYPE_GUI_RETURN -> {
-                                                if (CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                                                } else if (session.isAdminFlow) {
-                                                        plugin.worldGui.open(player, fromAdminMenu = true)
-                                                } else if (session.isPlayerWorldFlow) {
-                                                        plugin.playerWorldGui.open(player, 0, showBackButton = session.parentShowBackButton)
-                                                } else {
-                                                        me.awabi2048.myworldmanager.util.GuiHelper
-                                                                .handleReturnClick(
-                                                                        plugin,
-                                                                        player
-                                                                )
-                                                }
+                                                CCSystem.getAPI().getMenuRuntimeService().back(player)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_INFO -> {
 
@@ -2412,6 +2394,7 @@ plugin.languageManager
                 val initialValue = if (isDescriptionInput) worldData.description else worldData.name
                 val worldUuid = worldData.uuid
 
+                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
 
                 val opened =
@@ -2439,10 +2422,10 @@ plugin.languageManager
                                         if (!player.isOnline) {
                                                 return@sendCustomInputForm
                                         }
-                                        val latestWorld =
-                                                plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                        ?: return@sendCustomInputForm
-                                        plugin.worldSettingsGui.open(player, latestWorld)
+                                        if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
+                                                return@sendCustomInputForm
+                                        }
+                                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                                 }
                         )
                 return opened
@@ -2532,6 +2515,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
+                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
 
                 return plugin.floodgateFormBridge.sendCustomForm(
@@ -2585,10 +2569,10 @@ plugin.languageManager
                                 if (!player.isOnline) {
                                         return@sendCustomForm
                                 }
-                                val latestWorld =
-                                        plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                ?: return@sendCustomForm
-                                plugin.worldSettingsGui.open(player, latestWorld)
+                                if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
+                                        return@sendCustomForm
+                                }
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                         }
                 )
         }
@@ -2607,6 +2591,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
+                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
 
                 return plugin.floodgateFormBridge.sendCustomInputForm(
@@ -2641,6 +2626,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
+                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
 
                 return plugin.floodgateFormBridge.sendSimpleForm(
@@ -2676,7 +2662,7 @@ plugin.languageManager
                                         player.sendMessage(
                                                 lang.getMessage(player, "messages.announcement_reset")
                                         )
-                                        plugin.worldSettingsGui.open(player, latestWorld)
+                                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                                         return@sendSimpleForm
                                 }
                                 if (!openBedrockAnnouncementEditForm(player, latestWorld)) {
@@ -2686,17 +2672,17 @@ plugin.languageManager
                                                         "messages.operation_cancelled"
                                                 )
                                         )
-                                        plugin.worldSettingsGui.open(player, latestWorld)
+                                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                                 }
                         },
                         onClosed = {
                                 if (!player.isOnline) {
                                         return@sendSimpleForm
                                 }
-                                val latestWorld =
-                                        plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                ?: return@sendSimpleForm
-                                plugin.worldSettingsGui.open(player, latestWorld)
+                                if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
+                                        return@sendSimpleForm
+                                }
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                         }
                 )
         }
@@ -2737,6 +2723,7 @@ plugin.languageManager
                                         )
                         }
 
+                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
 
                 return plugin.floodgateFormBridge.sendCustomForm(
@@ -2762,10 +2749,10 @@ plugin.languageManager
                                 if (!player.isOnline) {
                                         return@sendCustomForm
                                 }
-                                val latestWorld =
-                                        plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                ?: return@sendCustomForm
-                                plugin.worldSettingsGui.open(player, latestWorld)
+                                if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
+                                        return@sendCustomForm
+                                }
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                         }
                 )
         }
@@ -3176,7 +3163,7 @@ plugin.languageManager
                 if (updated) {
                         plugin.worldConfigRepository.save(worldData)
                 }
-                plugin.worldSettingsGui.open(player, worldData, replaceCurrent = true)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
         }
 
         private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
@@ -3193,9 +3180,7 @@ plugin.languageManager
                 }
 
                 plugin.settingsSessionManager.endSession(player)
-                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                    plugin.worldSettingsGui.open(player, worldData)
-                }
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
         }
 
         private fun applyWorldDescriptionUpdate(
@@ -3209,9 +3194,7 @@ plugin.languageManager
                 player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
 
                 plugin.settingsSessionManager.endSession(player)
-                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                    plugin.worldSettingsGui.open(player, worldData)
-                }
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
         }
 
         fun onRuntimeInventoryClose(player: Player, reason: MenuCloseReason) {
@@ -3776,9 +3759,7 @@ player.sendMessage(
                 }
                 clearBorderPreview(player)
                 plugin.settingsSessionManager.endSession(player)
-                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                    plugin.worldSettingsGui.open(player, worldData)
-                }
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
         }
 
         private fun expansionExecutionMode(
@@ -4563,14 +4544,14 @@ player.sendMessage(
                                 response.textValue("world_name").trim(),
                                 response.textValue("world_desc").trim(),
                             )
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.None)
                         },
                     ),
                     cancel = MenuDialogButton(
                         Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY),
                         MenuDialogHandler { target, _ ->
-                            plugin.worldSettingsGui.open(target, worldData, replaceCurrent = true)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
+                            MenuActionResult.Success(MenuUpdate.None)
                         },
                     ),
                 ),
@@ -4663,15 +4644,15 @@ player.sendMessage(
                                     allTags.filter { tagId -> response.booleanValue("tag_$tagId") },
                                 )
                                 plugin.worldConfigRepository.save(worldData)
-                                plugin.worldSettingsGui.open(target, worldData, replaceCurrent = true)
-                                MenuActionResult.Success(MenuUpdate.Close)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
+                                MenuActionResult.Success(MenuUpdate.None)
                             },
                         ),
                         cancel = MenuDialogButton(
                             Component.text("Close", NamedTextColor.GRAY),
                             MenuDialogHandler { target, _ ->
-                                plugin.worldSettingsGui.open(target, worldData, replaceCurrent = true)
-                                MenuActionResult.Success(MenuUpdate.Close)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
+                                MenuActionResult.Success(MenuUpdate.None)
                             },
                         ),
                     ),

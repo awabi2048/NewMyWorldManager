@@ -32,10 +32,11 @@ class AdminGuiListener {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 return
             }
 
+            CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
@@ -53,7 +54,7 @@ class AdminGuiListener {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             plugin.settingsSessionManager.endSession(player)
                             if (player.isOnline) {
-                                plugin.worldGui.open(player)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                             }
                         })
                     }
@@ -61,7 +62,7 @@ class AdminGuiListener {
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
             }
             return
         }
@@ -94,8 +95,8 @@ class AdminGuiListener {
                         target.sendMessage(
                             plugin.languageManager.getMessage(target, "messages.operation_cancelled"),
                         )
-                        plugin.worldGui.open(target)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                 ),
             ),
@@ -108,7 +109,7 @@ class AdminGuiListener {
         if (offlinePlayer == null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "general.player_not_found"))
             plugin.settingsSessionManager.endSession(player)
-            plugin.worldGui.open(player)
+            CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
             return
         }
 
@@ -126,7 +127,7 @@ class AdminGuiListener {
             )
         )
         plugin.settingsSessionManager.endSession(player)
-        plugin.worldGui.open(player)
+        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
     }
 
     fun sendWorldDirectoryCopyMessage(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {

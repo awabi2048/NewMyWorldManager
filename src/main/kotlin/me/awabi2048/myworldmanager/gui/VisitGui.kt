@@ -64,7 +64,6 @@ class VisitGui(private val plugin: MyWorldManager) {
         private fun render(player: Player, route: MenuRoute): InventoryMenuView {
                 val targetPlayerUuid = route.uuid(TARGET_PLAYER_UUID) ?: player.uniqueId
                 val targetPlayer = Bukkit.getOfflinePlayer(targetPlayerUuid)
-                val returnWorldUuid = route.uuid(RETURN_WORLD_UUID)
                 val requestedPage = route.payload[PAGE]?.toIntOrNull() ?: 0
                 val allWorlds = plugin.worldConfigRepository.findAll()
                 val targetWorlds =
@@ -101,15 +100,13 @@ class VisitGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                if (returnWorldUuid != null) {
-                        plugin.worldConfigRepository.findByUuid(returnWorldUuid)?.let { returnWorld ->
-                                elements += MenuElement(
-                                        layout.backSlot,
-                                        createBackButton(player, returnWorld),
-                                        GuiElementRole.BACK,
-                                        ACTION_BACK,
-                                )
-                        }
+                if (GuiHelper.canGoBack(player)) {
+                        elements += MenuElement(
+                                layout.backSlot,
+                                createBackButton(player),
+                                GuiElementRole.BACK,
+                                ACTION_BACK,
+                        )
                 }
                 if (currentPage > 0) {
                         elements += MenuElement(
@@ -270,16 +267,14 @@ class VisitGui(private val plugin: MyWorldManager) {
                 return item
         }
 
-        private fun createBackButton(player: Player, returnToWorld: WorldData): ItemStack {
+        private fun createBackButton(player: Player): ItemStack {
                 val lang = plugin.languageManager
-                val item = GuiItemFactory.item(
+                return GuiItemFactory.item(
                         Material.REDSTONE,
                         lang.getComponent(player, "gui.common.return"),
                         GuiLoreSpec.None,
                         ItemTag.TYPE_GUI_RETURN
                 )
-                ItemTag.setWorldUuid(item, returnToWorld.uuid)
-                return item
         }
 
         private fun route(targetPlayerUuid: UUID, page: Int, returnWorldUuid: UUID?) =

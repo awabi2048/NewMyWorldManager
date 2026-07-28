@@ -151,7 +151,7 @@ object AnnouncementDialogManager {
         player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
         plugin.soundManager.playActionSound(player, "world_settings", "success")
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            plugin.worldSettingsGui.open(player, worldData, replaceCurrent = true)
+            CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
         })
         return MenuActionResult.Success(MenuUpdate.Close)
     }
@@ -165,8 +165,8 @@ object AnnouncementDialogManager {
     private fun returnToSettings(player: Player, worldUuid: java.util.UUID) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            plugin.worldConfigRepository.findByUuid(worldUuid)?.let {
-                plugin.worldSettingsGui.open(player, it, replaceCurrent = true)
+            if (plugin.worldConfigRepository.findByUuid(worldUuid) != null) {
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
             }
         })
     }

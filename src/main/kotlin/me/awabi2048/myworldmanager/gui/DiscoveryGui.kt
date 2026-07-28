@@ -180,7 +180,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 }
                         }
                 }
-                if (session.showBackButton) {
+                if (GuiHelper.canGoBack(player)) {
                         elements += MenuElement(
                                 45,
                                 GuiHelper.createReturnItem(plugin, player, "discovery"),

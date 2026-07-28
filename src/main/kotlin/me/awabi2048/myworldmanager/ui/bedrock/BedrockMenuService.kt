@@ -267,19 +267,17 @@ class BedrockMenuService(
         }
 
         actions += FormAction(tr(player, "gui.bedrock.player_world.button.settings"), Material.WRITABLE_BOOK) {
-            plugin.mwmMenuRoutes.pushPlayerWorld(player, page, showBackButton)
             openSettings(player, showBackButton, page)
         }
 
         val currentManagedWorld = getCurrentManagedWorld(player)
         if (currentManagedWorld != null && canAccessWorldSettings(player, currentManagedWorld)) {
             actions += FormAction(tr(player, "gui.bedrock.player_world.button.current_world"), Material.COMPASS) {
-                plugin.mwmMenuRoutes.pushPlayerWorld(player, page, showBackButton)
                 openCurrentWorldMenu(player, currentManagedWorld, showBackButton)
             }
         }
 
-        if (showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             actions += FormAction(tr(player, "gui.bedrock.player_world.button.return"), Material.BARRIER) {
                 performConfiguredReturn(player)
             }
@@ -351,7 +349,6 @@ class BedrockMenuService(
         if (canAccessWorldSettings(player, worldData)) {
             actions += FormAction(tr(player, "gui.bedrock.world_action.button.advanced_settings"), Material.COMPARATOR) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
-                pushWorldActionRoute(player, latest, returnPage, showBackButton)
                 plugin.worldSettingsGui.open(player, latest, showBackButton)
             }
         }
@@ -364,7 +361,7 @@ class BedrockMenuService(
             openSettings(player, showBackButton, returnPage)
         }
 
-        if (showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             actions += FormAction(tr(player, "gui.bedrock.world_action.button.return"), Material.BARRIER) {
                 performConfiguredReturn(player)
             }
@@ -435,7 +432,7 @@ class BedrockMenuService(
             openPlayerWorld(player, returnPage, showBackButton)
         }
 
-        if (showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             actions += FormAction(tr(player, "gui.bedrock.settings.button.return"), Material.BARRIER) {
                 performConfiguredReturn(player)
             }
@@ -564,7 +561,7 @@ class BedrockMenuService(
             )
         )
 
-        if (showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             inventory.setItem(
                 footerStart,
                 createActionItem(Material.BARRIER, tr(player, "gui.bedrock.player_world.button.return"), "return_command")
@@ -651,7 +648,7 @@ class BedrockMenuService(
             createActionItem(Material.ARROW, tr(player, "gui.bedrock.world_action.button.back_to_worlds"), "back_to_worlds")
         )
 
-        if (showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             inventory.setItem(
                 22,
                 createActionItem(Material.BARRIER, tr(player, "gui.bedrock.world_action.button.return"), "return_command")
@@ -745,7 +742,7 @@ class BedrockMenuService(
                 }
             )
         )
-        if (showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             inventory.setItem(
                 22,
                 createActionItem(Material.REDSTONE, tr(player, "gui.common.return"), "return_command")
@@ -858,12 +855,8 @@ class BedrockMenuService(
                         MenuActionResult.Success(MenuUpdate.Close)
                     }
                     "open_advanced_settings" -> {
-                        pushWorldActionRoute(player, worldData, page, showBackButton)
-                        Bukkit.getScheduler().runTask(
-                            plugin,
-                            Runnable { plugin.worldSettingsGui.open(player, worldData, showBackButton) },
-                        )
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        plugin.worldSettingsGui.open(player, worldData, showBackButton)
+                        MenuActionResult.Success(MenuUpdate.None)
                     }
                     "open_settings" ->
                         MenuActionResult.Success(MenuUpdate.Navigate(settingsRoute(showBackButton, page)))
@@ -1109,25 +1102,7 @@ class BedrockMenuService(
     }
 
     private fun performConfiguredReturn(player: Player) {
-        if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-            runtime.close(player)
-        }
-    }
-
-    private fun pushWorldActionRoute(
-        player: Player,
-        worldData: WorldData,
-        returnPage: Int,
-        showBackButton: Boolean
-    ) {
-        plugin.mwmMenuRoutes.pushCustom(
-            player,
-            "bedrock.world_action:${worldData.uuid}:$returnPage:$showBackButton"
-        ) { target ->
-            val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@pushCustom false
-            openWorldActionMenu(target, latest, returnPage, showBackButton)
-            true
-        }
+        CCSystem.getAPI().getMenuRuntimeService().back(player)
     }
 
     private fun createWorldListItem(player: Player, worldData: WorldData): ItemStack {

@@ -87,7 +87,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             )
         }
 
-        if (showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(
                 layout.backSlot,
                 GuiHelper.createReturnItem(plugin, player, "visit"),

@@ -241,7 +241,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 mapOf(PAGE to (pageLayout.page - 1).toString()),
                         )
                 }
-                if (session.showBackButton) {
+                if (GuiHelper.canGoBack(player)) {
                         elements += MenuElement(
                                 layout.backSlot,
                                 GuiHelper.createReturnItem(plugin, player, "player_world"),

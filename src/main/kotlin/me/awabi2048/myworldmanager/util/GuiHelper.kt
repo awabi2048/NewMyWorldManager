@@ -18,6 +18,9 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
 object GuiHelper {
+        fun canGoBack(player: Player): Boolean =
+                CCSystem.getAPI().getMenuNavigationService().canGoBack(player)
+
     private val layoutService
         get() = CCSystem.getAPI().getGuiLayoutService()
 

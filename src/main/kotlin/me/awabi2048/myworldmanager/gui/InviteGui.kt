@@ -16,6 +16,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
@@ -133,7 +134,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             GuiElementRole.CONTENT,
         )
 
-        if (route.payload[SHOW_BACK]?.toBooleanStrictOrNull() == true) {
+        if (GuiHelper.canGoBack(player)) {
             val backButtonSlot = (rowCount - 1) * 9
             elements += MenuElement(
                 backButtonSlot,

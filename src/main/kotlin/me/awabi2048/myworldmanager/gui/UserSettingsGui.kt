@@ -19,6 +19,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -128,7 +129,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             MenuElement(firstSlot + index, item, GuiElementRole.ACTION, actionIds[index])
         }.toMutableList()
 
-        if (plugin.playerWorldSessionManager.getSession(player.uniqueId).showBackButton) {
+        if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(
                 (totalRows - 1) * 9 + 4,
                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "user_settings"),

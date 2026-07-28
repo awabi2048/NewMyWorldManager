@@ -111,12 +111,14 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 mapOf(PAGE to (currentPage + 1).toString()),
             )
         }
-        elements += MenuElement(
-            footerStart,
-            me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list"),
-            GuiElementRole.BACK,
-            ACTION_BACK,
-        )
+        if (me.awabi2048.myworldmanager.util.GuiHelper.canGoBack(player)) {
+            elements += MenuElement(
+                footerStart,
+                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list"),
+                GuiElementRole.BACK,
+                ACTION_BACK,
+            )
+        }
         return InventoryMenuView(
             rowCount * 9,
             me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
