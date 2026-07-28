@@ -98,6 +98,22 @@ class MenuNavigationContractTest {
     }
 
     @Test
+    fun `runtime settings adapter preserves ignored extension clicks`() {
+        val listener = Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
+        ).readText()
+        val gui = guiRoot.resolve("WorldSettingsGui.kt").readText()
+        val dispatch = functionBody(listener, "handleRuntimeInventoryClick")
+
+        assertTrue("return MenuActionResult.Ignored" in dispatch)
+        assertTrue("return MenuActionResult.Success(MenuUpdate.None)" in dispatch)
+        assertFalse(
+            "handleRuntimeInventoryClick(" in gui &&
+                "MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)" in gui,
+        )
+    }
+
+    @Test
     fun `一時画面とウィザード終了はRuntimeの経路状態を尊重する`() {
         val visit = guiRoot.resolve("VisitGui.kt").readText()
         assertTrue("returnToWorld != null" in visit)
@@ -110,7 +126,8 @@ class MenuNavigationContractTest {
     }
 
     private fun functionBody(source: String, name: String): String {
-        val start = source.indexOf("private fun $name")
+        val start = source.indexOf("private fun $name").takeIf { it >= 0 }
+            ?: source.indexOf("fun $name")
         require(start >= 0) { "$name が見つかりません" }
         val bodyStart = source.indexOf('{', start)
         require(bodyStart >= 0) { "$name の本体が見つかりません" }

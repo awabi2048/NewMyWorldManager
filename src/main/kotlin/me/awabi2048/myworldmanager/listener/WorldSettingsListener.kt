@@ -92,8 +92,46 @@ class WorldSettingsListener : Listener {
                 click: ClickType,
                 item: ItemStack,
                 slot: Int,
-        ) {
-                if (player.openInventory.topInventory.getItem(slot)?.isSimilar(item) != true) return
+        ): MenuActionResult {
+                if (player.openInventory.topInventory.getItem(slot)?.isSimilar(item) != true) {
+                        return MenuActionResult.Ignored
+                }
+                val session = plugin.settingsSessionManager.getSession(player)
+                val worldData = session?.worldUuid?.let(plugin.worldConfigRepository::findByUuid)
+                if (session != null && worldData != null) {
+                        val page =
+                                when (val raw = session.getMetadata("member_management_page")) {
+                                        is Int -> raw
+                                        is Number -> raw.toInt()
+                                        is String -> raw.toIntOrNull() ?: 0
+                                        else -> 0
+                                }
+                        val extensionContext =
+                                MenuExtensionContext(
+                                        if (session.action == SettingsAction.MANAGE_MEMBERS) {
+                                                "member_management"
+                                        } else {
+                                                "world_settings"
+                                        },
+                                        mutableMapOf(
+                                                "worldData" to worldData,
+                                                "page" to page,
+                                                "action" to session.action,
+                                                "itemType" to ItemTag.getType(item),
+                                        ),
+                                )
+                        val handled =
+                                MyWorldManagerApi.getMenuExtensions()
+                                        .any { extension ->
+                                                extension.onClick(click, item, player, extensionContext)
+                                        }
+                        if (handled) {
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        if (ItemTag.getType(item) == ItemTag.TYPE_GUI_EXTENSION) {
+                                return MenuActionResult.Ignored
+                        }
+                }
                 onInventoryClick(
                         RuntimeSettingsClick(
                                 player = player,
@@ -104,6 +142,7 @@ class WorldSettingsListener : Listener {
                                 currentItem = item,
                         )
                 )
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private data class RuntimeSettingsClick(

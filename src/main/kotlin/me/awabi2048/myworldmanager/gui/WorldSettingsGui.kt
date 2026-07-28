@@ -79,7 +79,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
                                                         )
-                                                        MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
                                                 },
                                 ),
                                 onClose = { context ->
@@ -108,7 +107,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
                                                         )
-                                                        MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
                                                 },
                                         MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
                                                 MenuActionHandler { context ->
