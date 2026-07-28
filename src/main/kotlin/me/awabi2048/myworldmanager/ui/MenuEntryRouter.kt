@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.ui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuRequest
@@ -221,7 +222,7 @@ class MenuEntryRouter(
     }
 
     private fun resetTopLevelMenuState(player: Player) {
-        plugin.mwmMenuRoutes.clear(player)
+        CCSystem.getAPI().getMenuRuntimeService().clear(player)
         plugin.settingsSessionManager.endSession(player)
     }
 }

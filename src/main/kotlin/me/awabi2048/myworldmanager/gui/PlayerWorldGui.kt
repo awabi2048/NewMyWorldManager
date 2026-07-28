@@ -292,37 +292,26 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
                 val session = plugin.creationSessionManager.startSession(context.player.uniqueId)
                 session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(context.player)
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable { plugin.creationGui.openTypeSelection(context.player) },
-                )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                plugin.creationGui.openTypeSelection(context.player)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun userSettings(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
                 val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable { plugin.userSettingsGui.open(context.player, showBackButton = true) },
-                )
+                plugin.userSettingsGui.open(context.player, showBackButton = true)
                 return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun pending(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
                 val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                plugin.pendingInteractionGui.open(
-                                        player = context.player,
-                                        page = 0,
-                                        returnPage = session.currentPage,
-                                        showBackButton = session.showBackButton,
-                                        fromBedrockMenu = false,
-                                )
-                        },
+                plugin.pendingInteractionGui.open(
+                        player = context.player,
+                        page = 0,
+                        returnPage = session.currentPage,
+                        showBackButton = session.showBackButton,
+                        fromBedrockMenu = false,
                 )
                 return MenuActionResult.Success(MenuUpdate.None)
         }
@@ -381,23 +370,18 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         me.awabi2048.myworldmanager.session.SettingsAction.UNARCHIVE_CONFIRM,
                         isGui = true,
                 )
-                Bukkit.getScheduler().runTask(
+                DialogConfirmManager.showConfirmationByPreference(
+                        player,
                         plugin,
-                        Runnable {
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player,
-                                        plugin,
-                                        title,
-                                        body,
-                                        "mwm:confirm/unarchive_world",
-                                        "mwm:confirm/cancel",
-                                        lang.getMessage(player, "gui.common.confirm"),
-                                        lang.getMessage(player, "gui.common.cancel"),
-                                ) {
-                                        plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
-                                }
-                        },
-                )
+                        title,
+                        body,
+                        "mwm:confirm/unarchive_world",
+                        "mwm:confirm/cancel",
+                        lang.getMessage(player, "gui.common.confirm"),
+                        lang.getMessage(player, "gui.common.cancel"),
+                ) {
+                        plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
+                }
                 return MenuActionResult.Success(MenuUpdate.None)
         }
 
@@ -419,17 +403,12 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun openSettings(player: Player, worldData: WorldData): MenuActionResult {
                 val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                plugin.worldSettingsGui.open(
-                                        player,
-                                        worldData,
-                                        showBackButton = true,
-                                        isPlayerWorldFlow = true,
-                                        parentShowBackButton = session.showBackButton,
-                                )
-                        },
+                plugin.worldSettingsGui.open(
+                        player,
+                        worldData,
+                        showBackButton = true,
+                        isPlayerWorldFlow = true,
+                        parentShowBackButton = session.showBackButton,
                 )
                 return MenuActionResult.Success(MenuUpdate.None)
         }

@@ -24,7 +24,6 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.service.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.ui.MenuEntryRouter
-import me.awabi2048.myworldmanager.ui.MwmMenuRoutes
 import me.awabi2048.myworldmanager.ui.PlayerPlatformResolver
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockUiRoutingService
@@ -121,7 +120,6 @@ class MyWorldManager : JavaPlugin() {
     lateinit var bedrockUiRoutingService: BedrockUiRoutingService
     lateinit var bedrockMenuService: BedrockMenuService
     lateinit var menuEntryRouter: MenuEntryRouter
-    lateinit var mwmMenuRoutes: MwmMenuRoutes
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
@@ -281,7 +279,6 @@ class MyWorldManager : JavaPlugin() {
                 BedrockUiRoutingService(this, playerPlatformResolver, floodgateFormBridge)
         bedrockMenuService =
                 BedrockMenuService(this, bedrockUiRoutingService, floodgateFormBridge)
-        mwmMenuRoutes = MwmMenuRoutes(this)
         menuEntryRouter = MenuEntryRouter(this, playerPlatformResolver, bedrockMenuService)
         val worldMenuCommand = WorldMenuCommand(this)
         CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld")
@@ -469,7 +466,6 @@ class MyWorldManager : JavaPlugin() {
             server.onlinePlayers.forEach(playerLocationRestoreListener::saveCurrentLocation)
         }
         MyWorldManagerApi.clearWorldOperationLocks()
-        if (::mwmMenuRoutes.isInitialized) mwmMenuRoutes.closeOwnedMenus()
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
         worldPointApiService = null
@@ -508,7 +504,7 @@ class MyWorldManager : JavaPlugin() {
 
     fun clearTransientPlayerMenuState(playerUuid: UUID) {
         Bukkit.getPlayer(playerUuid)?.let { player ->
-            if (::mwmMenuRoutes.isInitialized) mwmMenuRoutes.clear(player)
+            CCSystem.getAPI().getMenuRuntimeService().clear(player)
         }
         if (::settingsSessionManager.isInitialized) settingsSessionManager.endSession(playerUuid)
         if (::creationSessionManager.isInitialized) creationSessionManager.endSession(playerUuid)
@@ -523,7 +519,6 @@ class MyWorldManager : JavaPlugin() {
     }
 
     private fun clearAllTransientMenuState() {
-        if (::mwmMenuRoutes.isInitialized) mwmMenuRoutes.unregister()
         if (::settingsSessionManager.isInitialized) settingsSessionManager.clearAll()
         if (::creationSessionManager.isInitialized) {
             creationSessionManager.clearAll()

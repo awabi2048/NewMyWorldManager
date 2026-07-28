@@ -1252,21 +1252,15 @@ class WorldSettingsListener : Listener {
                                                 worldData.uuid,
                                                 closeInventoryOnLoad = false
                                         ) {
-                                                Bukkit.getScheduler().runTaskLater(
-                                                        plugin,
-                                                        Runnable {
-                                                                if (!player.isOnline) return@Runnable
-                                                                player.sendMessage(
-                                                                        plugin.languageManager.getMessage(
-                                                                                player,
-                                                                                "messages.warp_success",
-                                                                                mapOf("world" to worldData.name)
-                                                                        )
-                                                                )
-                                                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-                                                        },
-                                                        3L
+                                                if (!player.isOnline) return@teleportToWorld
+                                                player.sendMessage(
+                                                        plugin.languageManager.getMessage(
+                                                                player,
+                                                                "messages.warp_success",
+                                                                mapOf("world" to worldData.name)
+                                                        )
                                                 )
+                                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                                         }
                                         return
                                 }
@@ -3268,7 +3262,7 @@ plugin.languageManager
                 stopBorderDirectionPreview(event.player)
                 clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
-                plugin.mwmMenuRoutes.clear(event.player)
+                CCSystem.getAPI().getMenuRuntimeService().clear(event.player)
                 plugin.worldSettingsGui.clearRuntimeViews(event.player)
         }
 

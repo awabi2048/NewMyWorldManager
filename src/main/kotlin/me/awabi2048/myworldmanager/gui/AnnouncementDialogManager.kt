@@ -12,7 +12,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -92,8 +91,11 @@ object AnnouncementDialogManager {
                         NamedTextColor.RED,
                     ),
                     handler = MenuDialogHandler { cancelPlayer, _ ->
-                        returnToSettings(cancelPlayer, worldData.uuid)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        if (plugin.worldConfigRepository.findByUuid(worldData.uuid) == null) {
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        } else {
+                            MenuActionResult.Success(MenuUpdate.Resume)
+                        }
                     },
                 ),
             ),
@@ -127,8 +129,7 @@ object AnnouncementDialogManager {
                         mapOf("string" to blocked),
                     ),
                 )
-                reopenNextTick(plugin, player, worldData)
-                return MenuActionResult.Rejected()
+                return MenuActionResult.Success(MenuUpdate.Refresh)
             }
 
             if (line.length > maxLength) {
@@ -139,8 +140,7 @@ object AnnouncementDialogManager {
                         mapOf("max_lines" to maxLines, "max_length" to maxLength),
                     ),
                 )
-                reopenNextTick(plugin, player, worldData)
-                return MenuActionResult.Rejected()
+                return MenuActionResult.Success(MenuUpdate.Refresh)
             }
             newMessages += "§f${line.replace("&", "§")}"
         }
@@ -150,24 +150,6 @@ object AnnouncementDialogManager {
         plugin.worldConfigRepository.save(worldData)
         player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
         plugin.soundManager.playActionSound(player, "world_settings", "success")
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
-    }
-
-    private fun reopenNextTick(plugin: MyWorldManager, player: Player, worldData: WorldData) {
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            showAnnouncementEditDialog(player, worldData)
-        })
-    }
-
-    private fun returnToSettings(player: Player, worldUuid: java.util.UUID) {
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (plugin.worldConfigRepository.findByUuid(worldUuid) != null) {
-                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
-            }
-        })
+        return MenuActionResult.Success(MenuUpdate.Resume)
     }
 }

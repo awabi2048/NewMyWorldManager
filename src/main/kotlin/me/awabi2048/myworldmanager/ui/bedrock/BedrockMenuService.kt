@@ -807,19 +807,14 @@ class BedrockMenuService(
                 "open_settings" ->
                     MenuActionResult.Success(MenuUpdate.Navigate(settingsRoute(showBackButton, page)))
                 "open_pending_interactions" -> {
-                    Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                            plugin.pendingInteractionGui.open(
-                                player = player,
-                                page = 0,
-                                returnPage = page,
-                                showBackButton = showBackButton,
-                                fromBedrockMenu = true,
-                            )
-                        },
+                    plugin.pendingInteractionGui.open(
+                        player = player,
+                        page = 0,
+                        returnPage = page,
+                        showBackButton = showBackButton,
+                        fromBedrockMenu = true,
                     )
-                    MenuActionResult.Success(MenuUpdate.Close)
+                    MenuActionResult.Success(MenuUpdate.None)
                 }
                 "return_command" -> {
                     performConfiguredReturn(player)
