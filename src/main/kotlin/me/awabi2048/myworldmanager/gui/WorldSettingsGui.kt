@@ -83,7 +83,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 },
                                 ),
                                 onClose = { context ->
-                                        plugin.worldSettingsListener.onRuntimeInventoryClose(context.player)
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(
+                                                context.player,
+                                                context.reason,
+                                        )
                                 },
                         ),
                 )
@@ -116,7 +119,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 },
                                 ),
                                 onClose = { context ->
-                                        plugin.worldSettingsListener.onRuntimeInventoryClose(context.player)
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(
+                                                context.player,
+                                                context.reason,
+                                        )
                                 },
                         ),
                 )

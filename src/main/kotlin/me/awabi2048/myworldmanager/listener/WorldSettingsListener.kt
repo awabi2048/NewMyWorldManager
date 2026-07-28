@@ -9,6 +9,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
 import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
 import com.awabi2048.ccsystem.api.gui.MenuDialogInput
@@ -35,6 +36,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.session.SettingsClosePolicy
 import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -3240,15 +3242,22 @@ plugin.languageManager
                 }
         }
 
-        fun onRuntimeInventoryClose(player: Player) {
+        fun onRuntimeInventoryClose(player: Player, reason: MenuCloseReason) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val lang = plugin.languageManager
                 plugin.logWorldSettingsDebug(
                         "close=received player=${player.name}/${player.uniqueId} " +
                                 "route=${CCSystem.getAPI().getMenuNavigationService().currentRoute(player)} " +
                                 "session=${session.action}/${session.worldUuid} transition=${session.isGuiTransition} " +
-                                "external=${session.externalInput}"
+                                "external=${session.externalInput} reason=$reason"
                 )
+
+                if (SettingsClosePolicy.shouldPreserveSession(reason)) {
+                        plugin.logWorldSettingsDebug(
+                                "close=preserve_route_replacement player=${player.name}/${player.uniqueId}"
+                        )
+                        return
+                }
 
                 if (session.isExternalInputExpired()) {
                         plugin.logWorldSettingsDebug("close=end_expired_external player=${player.name}/${player.uniqueId}")
