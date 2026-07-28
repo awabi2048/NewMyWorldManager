@@ -243,8 +243,11 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     }
 
     private fun openPortals(context: MenuActionContext): MenuActionResult {
-        plugin.adminPortalGui.open(context.player, fromAdminMenu = true)
-        return MenuActionResult.Success(MenuUpdate.None)
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(
+                plugin.adminPortalGui.prepareOpen(context.player, fromAdminMenu = true),
+            ),
+        )
     }
 
     private fun confirm(context: MenuActionContext): MenuActionResult {

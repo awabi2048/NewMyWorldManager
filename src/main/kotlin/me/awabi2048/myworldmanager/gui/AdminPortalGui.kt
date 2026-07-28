@@ -52,6 +52,10 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player, page: Int? = null, fromAdminMenu: Boolean? = null) {
+        runtime.navigate(player, prepareOpen(player, page, fromAdminMenu))
+    }
+
+    fun prepareOpen(player: Player, page: Int? = null, fromAdminMenu: Boolean? = null): MenuRoute {
         val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
         if (fromAdminMenu != null) session.fromAdminMenu = fromAdminMenu
         val currentPage = page ?: session.portalPage
@@ -61,7 +65,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             SettingsAction.ADMIN_PORTAL_GUI,
             isGui = true,
         )
-        runtime.navigate(player, route(currentPage))
+        return route(currentPage)
     }
 
     private fun render(player: Player, route: MenuRoute): InventoryMenuView {
