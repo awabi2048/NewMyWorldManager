@@ -142,7 +142,7 @@ class WorldSettingsListener : Listener {
                                 currentItem = item,
                         )
                 )
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Success(MenuUpdate.Refresh)
         }
 
         private data class RuntimeSettingsClick(
