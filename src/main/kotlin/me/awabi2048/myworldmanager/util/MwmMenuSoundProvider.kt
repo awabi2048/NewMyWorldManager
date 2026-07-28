@@ -17,6 +17,7 @@ class MwmMenuSoundProvider(
     private val plugin: MyWorldManager,
 ) : MenuSoundProvider {
     override val sourceId: String = PROVIDER_SOURCE_ID
+    private val fixedClickSound = MenuSound("UI_BUTTON_CLICK", pitch = 2.0f)
     private val menuConfigManager: MenuConfigManager
         get() = plugin.menuConfigManager
 
@@ -27,20 +28,15 @@ class MwmMenuSoundProvider(
     }
 
     override fun clickSound(menuId: String, clickType: MenuClickType): MenuSound? {
-        val iconId = clickType.toIconId()
-        return iconId?.let { iconSound(menuId, it) } ?: configuredClickSound(clickType)
+        return fixedClickSound
     }
 
     override fun iconSound(menuId: String, iconId: String): MenuSound? {
-        val sound = menuConfigManager.getIconSound(menuId, iconId) ?: return null
-        val pitch = menuConfigManager.getIconSoundPitch(menuId, iconId)
-        return MenuSound(sound.name(), pitch = pitch)
+        return fixedClickSound
     }
 
     override fun genericClickSound(): MenuSound? {
-        val sound = plugin.config.getString("sounds.global_click.sound", "UI_BUTTON_CLICK") ?: "UI_BUTTON_CLICK"
-        val pitch = plugin.config.getDouble("sounds.global_click.pitch", 2.0).toFloat()
-        return MenuSound(sound, pitch = pitch)
+        return fixedClickSound
     }
 
     private fun configuredClickSound(clickType: MenuClickType): MenuSound? {
