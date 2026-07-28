@@ -2500,21 +2500,22 @@ plugin.languageManager
 
                 worldData.icon = clickedItem.type
                 plugin.worldConfigRepository.save(worldData)
-                val itemName =
-                        clickedItem
-                                .displayName()
-                                .decoration(TextDecoration.ITALIC, false)
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                "messages.icon_changed",
-                                mapOf(
-                                        "icon" to
-                                                LegacyComponentSerializer
-                                                        .legacySection()
-                                                        .serialize(itemName)
+                val iconPlaceholder = "\uE000mwm_icon\uE001"
+                val itemName = clickedItem.effectiveName().decoration(TextDecoration.ITALIC, false)
+                val changedMessage =
+                        plugin.languageManager
+                                .getComponent(
+                                        player,
+                                        "messages.icon_changed",
+                                        mapOf("icon" to iconPlaceholder)
                                 )
-                        )
+                                .replaceText { replacement ->
+                                        replacement
+                                                .matchLiteral(iconPlaceholder)
+                                                .replacement(itemName)
+                                }
+                player.sendMessage(
+                        changedMessage
                 )
                 plugin.settingsSessionManager.endSession(player)
                 plugin.worldSettingsGui.disableRuntimeIconSelection(player)
