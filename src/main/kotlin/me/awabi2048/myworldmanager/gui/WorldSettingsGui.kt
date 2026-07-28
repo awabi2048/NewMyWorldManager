@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -3144,6 +3145,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         fun enterIconSelection(player: Player, worldData: WorldData) {
                 plugin.worldSettingsListener.startIconSelection(player, worldData)
+        }
+
+        fun handleIconSelection(player: Player, clickedItem: ItemStack): MenuActionResult {
+                return plugin.worldSettingsListener.handleRuntimeIconSelection(player, clickedItem)
+        }
+
+        fun handleManagedMenuClose(player: Player, reason: MenuCloseReason) {
+                plugin.worldSettingsListener.onRuntimeInventoryClose(player, reason)
         }
 
         fun enterSpawnSetting(player: Player, worldData: WorldData, isGuest: Boolean) {
