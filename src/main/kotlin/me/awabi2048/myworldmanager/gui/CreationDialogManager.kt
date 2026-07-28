@@ -197,6 +197,10 @@ class CreationDialogManager {
          */
         fun showConfirmationDialog(player: Player, session: WorldCreationSession) {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+            if (plugin.isEnabled) {
+                plugin.creationGui.openConfirmation(player, session)
+                return
+            }
             val lang = plugin.languageManager
             val config = plugin.config
 

@@ -49,17 +49,18 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
             centerItem = infoItem,
             confirmItem = approveItem,
             cancelItem = rejectItem,
-            onConfirm = { resolve(player, decisionId, true) },
-            onCancel = { resolve(player, decisionId, false) },
+            onConfirm = { resolve(player, decisionId, true, reopen = false) },
+            onCancel = { resolve(player, decisionId, false, reopen = false) },
+            returnOnConfirm = true,
             cancelSound = MenuSoundPolicy.Silent,
         )
     }
 
-    private fun resolve(player: Player, decisionId: java.util.UUID, accepted: Boolean) {
+    private fun resolve(player: Player, decisionId: java.util.UUID, accepted: Boolean, reopen: Boolean = true) {
         val worldUuid = plugin.pendingDecisionManager.getPendingEntry(player.uniqueId, decisionId)?.worldUuid
         plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, accepted)
         if (!accepted) plugin.soundManager.playActionSound(player, "member_request", "rejected")
-        reopenMemberManagement(player, worldUuid)
+        if (reopen) reopenMemberManagement(player, worldUuid)
     }
 
     private fun reopenMemberManagement(player: Player, worldUuid: java.util.UUID?) {

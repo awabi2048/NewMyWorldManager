@@ -41,9 +41,8 @@ class SpotlightConfirmGui(private val plugin: MyWorldManager) {
                 } else {
                     player.sendMessage(lang.getMessage(player, "error.spotlight_limit_reached"))
                 }
-                plugin.menuEntryRouter.openDiscovery(player)
             },
-            onCancel = { plugin.menuEntryRouter.openDiscovery(player) },
+            returnOnConfirm = true,
         )
     }
 

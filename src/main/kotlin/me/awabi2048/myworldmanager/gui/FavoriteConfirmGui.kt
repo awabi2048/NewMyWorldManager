@@ -50,9 +50,8 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
                     player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
                     plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
                 }
-                openList(player)
             },
-            onCancel = { openList(player) },
+            returnOnConfirm = true,
             confirmSound = MenuSoundPolicy.Silent,
         )
     }

@@ -36,9 +36,8 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
             onConfirm = {
                 plugin.spotlightRepository.remove(worldData.uuid)
                 player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
-                plugin.menuEntryRouter.openDiscovery(player)
             },
-            onCancel = { plugin.menuEntryRouter.openDiscovery(player) },
+            returnOnConfirm = true,
         )
     }
 

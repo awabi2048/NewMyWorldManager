@@ -18,6 +18,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import me.awabi2048.myworldmanager.MyWorldManager
 import net.kyori.adventure.text.Component
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 
@@ -50,6 +51,7 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         onConfirm: () -> Unit,
         onCancel: () -> Unit = {},
         onAbandon: () -> Unit = {},
+        returnOnConfirm: Boolean = false,
         confirmSound: MenuSoundPolicy = MenuSoundPolicy.Default,
         cancelSound: MenuSoundPolicy = MenuSoundPolicy.Default,
     ) {
@@ -63,12 +65,51 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
             onConfirm,
             onCancel,
             onAbandon,
+            returnOnConfirm,
             confirmSound,
             cancelSound,
         )
         if (!runtime.navigate(player, MenuRoute(OWNER, ROUTE_ID, mapOf(TOKEN to token.toString(), MENU_ID to menuId)))) {
             sessions.remove(token)
         }
+    }
+
+    fun openSimple(
+        player: Player,
+        menuId: String,
+        title: Component,
+        bodyLines: List<Component>,
+        confirmLabel: Component,
+        cancelLabel: Component,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit = {},
+        onAbandon: () -> Unit = {},
+        returnOnConfirm: Boolean = false,
+    ) {
+        val centerItem = ItemStack(Material.PAPER).apply {
+            editMeta {
+                it.displayName(title)
+                it.lore(bodyLines)
+            }
+        }
+        val confirmItem = ItemStack(Material.LIME_CONCRETE).apply {
+            editMeta { it.displayName(confirmLabel) }
+        }
+        val cancelItem = ItemStack(Material.RED_CONCRETE).apply {
+            editMeta { it.displayName(cancelLabel) }
+        }
+        open(
+            player = player,
+            menuId = menuId,
+            title = title,
+            centerItem = centerItem,
+            confirmItem = confirmItem,
+            cancelItem = cancelItem,
+            onConfirm = onConfirm,
+            onCancel = onCancel,
+            onAbandon = onAbandon,
+            returnOnConfirm = returnOnConfirm,
+        )
     }
 
     private fun render(route: MenuRoute): InventoryMenuView {
@@ -99,13 +140,13 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
     private fun confirm(context: MenuActionContext): MenuActionResult {
         val session = removeOwned(context.player, context.route) ?: return MenuActionResult.Rejected()
         session.onConfirm()
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(if (session.returnOnConfirm) MenuUpdate.Back else MenuUpdate.Close)
     }
 
     private fun cancel(context: MenuActionContext): MenuActionResult {
         val session = removeOwned(context.player, context.route) ?: return MenuActionResult.Rejected()
         session.onCancel()
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun closed(context: MenuCloseContext) {
@@ -135,6 +176,7 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         val onConfirm: () -> Unit,
         val onCancel: () -> Unit,
         val onAbandon: () -> Unit,
+        val returnOnConfirm: Boolean,
         val confirmSound: MenuSoundPolicy,
         val cancelSound: MenuSoundPolicy,
     )

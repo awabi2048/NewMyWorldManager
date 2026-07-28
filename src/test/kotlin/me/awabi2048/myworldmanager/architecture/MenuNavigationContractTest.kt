@@ -90,6 +90,14 @@ class MenuNavigationContractTest {
     }
 
     @Test
+    fun `confirmation cancellation pops one runtime history entry`() {
+        val source = guiRoot.resolve("ConfirmationMenuGui.kt").readText()
+        val body = functionBody(source, "cancel")
+        assertTrue("MenuUpdate.Back" in body)
+        assertFalse("MenuUpdate.Close" in body)
+    }
+
+    @Test
     fun `一時画面とウィザード終了はRuntimeの経路状態を尊重する`() {
         val visit = guiRoot.resolve("VisitGui.kt").readText()
         assertTrue("returnToWorld != null" in visit)

@@ -1,11 +1,5 @@
 package me.awabi2048.myworldmanager.gui
 
-import com.awabi2048.ccsystem.CCSystem
-import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuDialogButton
-import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
-import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
-import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -101,28 +95,14 @@ object DialogConfirmManager {
             }
         }
 
-        CCSystem.getAPI().getMenuDialogService().show(
-            player,
-            MenuDialogRequest(
-                owner = "myworldmanager",
-                id = "simple-confirmation",
-                title = title,
-                body = bodyLines,
-                confirm = MenuDialogButton(
-                    Component.text(confirmLabel, NamedTextColor.GREEN),
-                    MenuDialogHandler { _, _ ->
-                        onConfirm()
-                        MenuActionResult.Success(MenuUpdate.Close)
-                    },
-                ),
-                cancel = MenuDialogButton(
-                    Component.text(cancelLabel, NamedTextColor.RED),
-                    MenuDialogHandler { _, _ ->
-                        onCancel()
-                        MenuActionResult.Success(MenuUpdate.Close)
-                    },
-                ),
-            ),
+        plugin.confirmationMenuGui.openSimple(
+            player = player,
+            menuId = "simple-confirmation",
+            title = title,
+            bodyLines = bodyLines,
+            confirmLabel = Component.text(confirmLabel, NamedTextColor.GREEN),
+            cancelLabel = Component.text(cancelLabel, NamedTextColor.RED),
+            onConfirm = onConfirm,
         )
     }
 
