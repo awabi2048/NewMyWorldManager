@@ -52,8 +52,25 @@ import org.bukkit.Location
 import org.bukkit.OfflinePlayer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 
 object MyWorldManagerApi {
+    private val logoutRelocations = java.util.concurrent.ConcurrentHashMap<UUID, String>()
+
+    fun isLogoutRelocation(player: Player): Boolean =
+        logoutRelocations.containsKey(player.uniqueId)
+
+    fun getLogoutRelocationOrigin(player: Player): String? =
+        logoutRelocations[player.uniqueId]
+
+    internal fun beginLogoutRelocation(player: Player, plugin: Plugin, originWorldName: String) {
+        val playerUuid = player.uniqueId
+        logoutRelocations[playerUuid] = originWorldName
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            logoutRelocations.remove(playerUuid)
+        })
+    }
+
 
     @JvmStatic
     fun tryAcquireWorldOperation(worldUuid: UUID, operation: WorldOperation): WorldOperationLease? =

@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.TourDialogManager
 import me.awabi2048.myworldmanager.gui.TourGui
@@ -181,6 +182,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onWorldChange(event: PlayerChangedWorldEvent) {
+        if (MyWorldManagerApi.isLogoutRelocation(event.player)) return
         val editSession = plugin.tourSessionManager.getEdit(event.player.uniqueId)
         if (editSession != null) {
             editSession.awaitingIconPick = false

@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import org.bukkit.Bukkit
@@ -20,6 +21,7 @@ class WorldExpirationListener(private val repository: WorldConfigRepository) : L
 
     @EventHandler
     fun onPlayerChangedWorld(event: PlayerChangedWorldEvent) {
+        if (MyWorldManagerApi.isLogoutRelocation(event.player)) return
         updateWorldExpiration(event.player.world.name)
     }
 

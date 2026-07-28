@@ -20,6 +20,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onWorldTeleport(event: PlayerTeleportEvent) {
         val player = event.player
+        if (MyWorldManagerApi.isLogoutRelocation(player)) return
         val toWorld = event.to.world ?: return
         val worldData = repository.findByWorldName(toWorld.name) ?: return
         val lang = plugin.languageManager
@@ -42,6 +43,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onWorldChange(event: PlayerChangedWorldEvent) {
         val player = event.player
+        if (MyWorldManagerApi.isLogoutRelocation(player)) return
         if (plugin.previewSessionManager.isInPreview(player)) return
         val worldData = repository.findByWorldName(player.world.name) ?: return
         handleWorldEntry(player, worldData, MwmVisitSource.WORLD_CHANGE)

@@ -3243,6 +3243,7 @@ plugin.languageManager
 
         @EventHandler
         fun onWorldChange(event: PlayerChangedWorldEvent) {
+                if (MyWorldManagerApi.isLogoutRelocation(event.player)) return
                 val session = plugin.settingsSessionManager.getSession(event.player)
                 plugin.logWorldSettingsDebug(
                         "world_change player=${event.player.name}/${event.player.uniqueId} " +

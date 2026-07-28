@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.BiomeResolver
 import org.bukkit.GameMode
@@ -22,6 +23,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
     @EventHandler
     fun onPlayerChangedWorld(event: PlayerChangedWorldEvent) {
         val player = event.player
+        if (MyWorldManagerApi.isLogoutRelocation(player)) return
         val previousAllow = plugin.worldEnvironmentService.computeFlightAllowed(player, event.from.name)
         plugin.worldEnvironmentService.resetAttributes(player)
         if (!plugin.worldEnvironmentService.applyAll(player.world)) {

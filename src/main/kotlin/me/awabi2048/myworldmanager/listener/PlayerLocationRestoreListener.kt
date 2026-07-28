@@ -21,7 +21,22 @@ class PlayerLocationRestoreListener(
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onQuit(event: PlayerQuitEvent) {
-        saveCurrentLocation(event.player)
+        val player = event.player
+        val originWorld = player.world
+        val worldData = plugin.worldConfigRepository.findByWorldName(originWorld.name)
+        saveCurrentLocation(player)
+        if (worldData == null || worldData.isArchived) return
+
+        val evacuationLocation = plugin.worldService.getEvacuationLocation()
+        if (evacuationLocation.world == originWorld) return
+
+        MyWorldManagerApi.beginLogoutRelocation(player, plugin, originWorld.name)
+        if (!player.teleport(evacuationLocation)) {
+            plugin.logger.warning(
+                "Could not relocate ${player.uniqueId} before logout; " +
+                    "Paper may restore the saved coordinates in the overworld if ${worldData.uuid} is unloaded"
+            )
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
