@@ -2394,8 +2394,7 @@ plugin.languageManager
                 val initialValue = if (isDescriptionInput) worldData.description else worldData.name
                 val worldUuid = worldData.uuid
 
-                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
 
                 val opened =
                         plugin.floodgateFormBridge.sendCustomInputForm(
@@ -2425,7 +2424,7 @@ plugin.languageManager
                                         if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
                                                 return@sendCustomInputForm
                                         }
-                                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                                 }
                         )
                 return opened
@@ -2515,8 +2514,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
-                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
 
                 return plugin.floodgateFormBridge.sendCustomForm(
                         player = player,
@@ -2572,7 +2570,7 @@ plugin.languageManager
                                 if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
                                         return@sendCustomForm
                                 }
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                         }
                 )
         }
@@ -2591,8 +2589,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
-                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
 
                 return plugin.floodgateFormBridge.sendCustomInputForm(
                         player = player,
@@ -2626,8 +2623,7 @@ plugin.languageManager
 
                 val lang = plugin.languageManager
                 val worldUuid = worldData.uuid
-                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
 
                 return plugin.floodgateFormBridge.sendSimpleForm(
                         player = player,
@@ -2662,7 +2658,7 @@ plugin.languageManager
                                         player.sendMessage(
                                                 lang.getMessage(player, "messages.announcement_reset")
                                         )
-                                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                                         return@sendSimpleForm
                                 }
                                 if (!openBedrockAnnouncementEditForm(player, latestWorld)) {
@@ -2672,7 +2668,7 @@ plugin.languageManager
                                                         "messages.operation_cancelled"
                                                 )
                                         )
-                                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                                 }
                         },
                         onClosed = {
@@ -2682,7 +2678,7 @@ plugin.languageManager
                                 if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
                                         return@sendSimpleForm
                                 }
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                         }
                 )
         }
@@ -2723,8 +2719,7 @@ plugin.languageManager
                                         )
                         }
 
-                CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
 
                 return plugin.floodgateFormBridge.sendCustomForm(
                         player = player,
@@ -2752,7 +2747,7 @@ plugin.languageManager
                                 if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
                                         return@sendCustomForm
                                 }
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                         }
                 )
         }
@@ -3163,7 +3158,7 @@ plugin.languageManager
                 if (updated) {
                         plugin.worldConfigRepository.save(worldData)
                 }
-                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
         }
 
         private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
@@ -3180,7 +3175,7 @@ plugin.languageManager
                 }
 
                 plugin.settingsSessionManager.endSession(player)
-                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
         }
 
         private fun applyWorldDescriptionUpdate(
@@ -3194,7 +3189,7 @@ plugin.languageManager
                 player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
 
                 plugin.settingsSessionManager.endSession(player)
-                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
         }
 
         fun onRuntimeInventoryClose(player: Player, reason: MenuCloseReason) {
@@ -4550,8 +4545,7 @@ player.sendMessage(
                     cancel = MenuDialogButton(
                         Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY),
                         MenuDialogHandler { target, _ ->
-                            CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
-                            MenuActionResult.Success(MenuUpdate.None)
+                            MenuActionResult.Success(MenuUpdate.Resume)
                         },
                     ),
                 ),
@@ -4644,15 +4638,13 @@ player.sendMessage(
                                     allTags.filter { tagId -> response.booleanValue("tag_$tagId") },
                                 )
                                 plugin.worldConfigRepository.save(worldData)
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
-                                MenuActionResult.Success(MenuUpdate.None)
+                                MenuActionResult.Success(MenuUpdate.Resume)
                             },
                         ),
                         cancel = MenuDialogButton(
                             Component.text("Close", NamedTextColor.GRAY),
                             MenuDialogHandler { target, _ ->
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
-                                MenuActionResult.Success(MenuUpdate.None)
+                                MenuActionResult.Success(MenuUpdate.Resume)
                             },
                         ),
                     ),

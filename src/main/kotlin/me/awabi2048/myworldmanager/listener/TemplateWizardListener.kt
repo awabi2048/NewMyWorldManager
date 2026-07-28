@@ -33,7 +33,7 @@ class TemplateWizardListener {
                 return
             }
 
-            CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
+            CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
@@ -50,14 +50,14 @@ class TemplateWizardListener {
                     onClosed = {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (player.isOnline) {
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                             }
                         })
                     }
                 )
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
             }
             return
         }
@@ -89,7 +89,7 @@ class TemplateWizardListener {
                 return
             }
 
-            CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
+            CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
@@ -106,14 +106,14 @@ class TemplateWizardListener {
                     onClosed = {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (player.isOnline) {
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                             }
                         })
                     }
                 )
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
             }
             return
         }
@@ -163,8 +163,7 @@ class TemplateWizardListener {
                 cancel = MenuDialogButton(
                     Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
                     MenuDialogHandler { target, _ ->
-                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(target)
-                        MenuActionResult.Success(MenuUpdate.None)
+                        MenuActionResult.Success(MenuUpdate.Resume)
                     },
                 ),
             ),
@@ -195,7 +194,7 @@ class TemplateWizardListener {
                 mapOf("name" to session.name, "id" to session.id)
             )
         )
-        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
     }
 
     private fun applyTemplateDescription(
@@ -206,6 +205,6 @@ class TemplateWizardListener {
     ) {
         session.description = if (input.isEmpty()) emptyList() else listOf(input)
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.template_wizard_description_set"))
-        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
     }
 }

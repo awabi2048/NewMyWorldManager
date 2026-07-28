@@ -3140,12 +3140,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun editWorldInfo(player: Player, worldData: WorldData) {
-                runtime.preserveHistoryOnClose(player)
                 plugin.worldSettingsListener.editWorldInfo(player, worldData)
         }
 
         fun enterIconSelection(player: Player, worldData: WorldData) {
-                runtime.preserveHistoryOnClose(player)
                 plugin.worldSettingsListener.startIconSelection(player, worldData)
         }
 
@@ -3160,8 +3158,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         fun enterSpawnSetting(player: Player, worldData: WorldData, isGuest: Boolean) {
                 val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action, isGui = true)
-                runtime.preserveHistoryOnClose(player)
-                runtime.close(player)
+                runtime.suspendForExternal(player)
 
                 plugin.worldSettingsListener.startSpawnPreview(player)
 
@@ -3185,11 +3182,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         worldData.uuid,
                         SettingsAction.SET_ANNOUNCEMENT
                 )
-                runtime.preserveHistoryOnClose(player)
-                runtime.close(player)
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                        AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
-                })
+                AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
         }
 
         fun clearAnnouncements(player: Player, worldData: WorldData) {
