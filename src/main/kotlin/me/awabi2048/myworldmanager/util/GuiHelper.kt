@@ -57,15 +57,6 @@ object GuiHelper {
     /**
      * GUI遷移中フラグを一定時間後に解除します。
      */
-    fun scheduleGuiTransitionReset(plugin: MyWorldManager, player: Player) {
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            val session = plugin.settingsSessionManager.getSession(player)
-            if (session != null && session.isGuiTransition) {
-                session.isGuiTransition = false
-            }
-        }, 5L)
-    }
-
     fun confirmationLayout(): GuiConfirmationLayout = layoutService.confirmation45()
 
     fun pagedListLayout(): GuiPagedListLayout = layoutService.pagedList54()

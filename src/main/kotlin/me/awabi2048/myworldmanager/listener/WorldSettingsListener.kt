@@ -272,15 +272,13 @@ class WorldSettingsListener : Listener {
                                 "click=received player=${player.name}/${player.uniqueId} " +
                                         "route=${CCSystem.getAPI().getMenuNavigationService().currentRoute(player)} rawSlot=${event.rawSlot} " +
                                         "click=${event.click} action=${event.action} cancelled=${event.isCancelled} " +
-                                        "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"} " +
-                                        "transition=${session?.isGuiTransition ?: false}"
+                                        "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"}"
                         )
                 }
                 if (session == null) {
                         return
                 }
                 if (!GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
-                        session.isGuiTransition = false
                         return
                 }
                 val runtimeRoute = CCSystem.getAPI().getMenuNavigationService().currentRoute(player)
@@ -292,16 +290,11 @@ class WorldSettingsListener : Listener {
                                 "click=delegated_to_extension player=${player.name}/${player.uniqueId} " +
                                         "route=$runtimeRoute session=${session.action}/${session.worldUuid}"
                         )
-                        session.isGuiTransition = false
                         return
                 }
 
 
                 // GUI遷移中のクリックを無視
-                if (session.isGuiTransition) {
-
-                        session.isGuiTransition = false
-                }
 
                 // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)
                 // ただし、clickedInventoryチェックが必要か？
@@ -1253,13 +1246,12 @@ class WorldSettingsListener : Listener {
                                                 isPlayerWorldFlow = session.isPlayerWorldFlow,
                                                 parentShowBackButton = session.parentShowBackButton
                                         )
-                                        CCSystem.getAPI().getMenuRuntimeService().preserveHistoryOnClose(player)
+                                        CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
                                         plugin.worldService.teleportToWorld(
                                                 player,
                                                 worldData.uuid,
                                                 closeInventoryOnLoad = false
                                         ) {
-                                                plugin.settingsSessionManager.getSession(player)?.isGuiTransition = true
                                                 Bukkit.getScheduler().runTaskLater(
                                                         plugin,
                                                         Runnable {
@@ -1271,8 +1263,7 @@ class WorldSettingsListener : Listener {
                                                                                 mapOf("world" to worldData.name)
                                                                         )
                                                                 )
-                                                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
-                                                                plugin.settingsSessionManager.getSession(player)?.isGuiTransition = false
+                                                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                                                         },
                                                         3L
                                                 )
@@ -3198,7 +3189,7 @@ plugin.languageManager
                 plugin.logWorldSettingsDebug(
                         "close=received player=${player.name}/${player.uniqueId} " +
                                 "route=${CCSystem.getAPI().getMenuNavigationService().currentRoute(player)} " +
-                                "session=${session.action}/${session.worldUuid} transition=${session.isGuiTransition} " +
+                                "session=${session.action}/${session.worldUuid} " +
                                 "external=${session.externalInput} reason=$reason"
                 )
 
@@ -3248,50 +3239,12 @@ plugin.languageManager
                 }
 
                 // GUI驕ｷ遘ｻ・医し繝悶Γ繝九Η繝ｼ縺ｸ縺ｮ遘ｻ蜍輔ｄ逕ｻ髱｢譖ｴ譁ｰ・峨ｒ閠・・縺励・tick蠕後↓縺ｾ縺險ｭ螳夐未騾｣GUI繧帝幕縺・※縺・ｋ縺九メ繧ｧ繝・け縺吶ｋ
-                Bukkit.getScheduler()
-                        .runTaskLater(
-                                plugin,
-                                Runnable {
-                                        val currentSession = plugin.settingsSessionManager.getSession(player)
-                                        plugin.logWorldSettingsDebug(
-                                                "close=delayed_check player=${player.name}/${player.uniqueId} " +
-                                                        "captured=${session.action}/${session.worldUuid} " +
-                                                        "current=${currentSession?.action ?: "none"}/${currentSession?.worldUuid ?: "none"} " +
-                                                        "transition=${session.isGuiTransition} " +
-                                                        "openHolder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-                                        )
-                                        if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
-                                                // 諡｡蠑ｵ譁ｹ蜷醍｢ｺ隱堺ｸｭ縺ｮ蝣ｴ蜷医・繝懊・繝繝ｼ繝励Ξ繝薙Η繝ｼ繧呈ｶ医＆縺ｪ縺・
-                                                return@Runnable
-                                        }
-
-                                        if (!player.isOnline) {
-                                                clearBorderPreview(player)
-                                                return@Runnable
-                                        }
-
-                                        if (session.isGuiTransition) {
-                                                plugin.logWorldSettingsDebug("close=preserve_transition player=${player.name}/${player.uniqueId}")
-                                                session.isGuiTransition = false
-                                                return@Runnable
-                                        }
-
-                                        // 迴ｾ蝨ｨ髢九＞縺ｦ縺・ｋ繧､繝ｳ繝吶Φ繝医Μ縺瑚ｨｭ螳哦UI縺ｮ繝帙Ν繝繝ｼ繧呈戟縺｣縺ｦ縺・ｋ蝣ｴ蜷医・邨ゆｺ・＠縺ｪ縺・
-                                        val currentRoute = CCSystem.getAPI().getMenuNavigationService().currentRoute(player)
-                                        if (currentRoute?.owner == "myworldmanager" &&
-                                                        currentRoute.id == "world_settings_runtime"
-                                        ) {
-                                                plugin.logWorldSettingsDebug("close=preserve_open_settings player=${player.name}/${player.uniqueId}")
-                                                return@Runnable
-                                        }
-
-                                        // 險ｭ螳哦UI莉･螟悶・逕ｻ髱｢・医∪縺溘・繧､繝ｳ繝吶Φ繝医Μ縺ｪ縺暦ｼ峨↓縺ｪ縺｣縺溷ｴ蜷医√そ繝・す繝ｧ繝ｳ繧堤ｵゆｺ・☆繧・
-                                        clearBorderPreview(player)
-                                        plugin.logWorldSettingsDebug("close=end_no_settings_open player=${player.name}/${player.uniqueId}")
-                                        plugin.settingsSessionManager.endSession(player)
-                                },
-                                2L
-                        )
+                if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
+                        return
+                }
+                clearBorderPreview(player)
+                plugin.logWorldSettingsDebug("close=end_direct_close player=${player.name}/${player.uniqueId}")
+                plugin.settingsSessionManager.endSession(player)
         }
 
         @EventHandler
@@ -3301,7 +3254,6 @@ plugin.languageManager
                         "world_change player=${event.player.name}/${event.player.uniqueId} " +
                                 "from=${event.from.name} to=${event.player.world.name} " +
                                 "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"} " +
-                                "transition=${session?.isGuiTransition ?: false} " +
                                 "openHolder=${event.player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
                 )
                 stopSpawnPreview(event.player)

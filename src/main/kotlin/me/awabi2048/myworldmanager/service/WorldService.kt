@@ -1002,7 +1002,6 @@ class WorldService(
                     "warp=teleported player=${player.name}/${player.uniqueId} world=$worldUuid " +
                             "actualWorld=${player.world.name} success=${player.world.uid == world.uid} " +
                             "session=${sessionAfterTeleport?.action ?: "none"}/${sessionAfterTeleport?.worldUuid ?: "none"} " +
-                            "transition=${sessionAfterTeleport?.isGuiTransition ?: false} " +
                             "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
             )
 

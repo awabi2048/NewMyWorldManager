@@ -35,7 +35,6 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiHelper.scheduleGuiTransitionReset
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiLoreAction
@@ -282,10 +281,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         return
                 }
 
-                GuiHelper.scheduleGuiTransitionReset(
-                        plugin,
-                        player
-                )
 
                 val title =
                         GuiHelper.inventoryTitle(
@@ -1249,7 +1244,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 if (player.openInventory.topInventory != inventory) {
                         presentRuntime(player, title, inventory)
-                        scheduleGuiTransitionReset(plugin, player)
                 }
         }
 
@@ -1323,7 +1317,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.EXPAND_SELECT_METHOD,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
 
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 // ヘッダー・フッター
@@ -1390,7 +1383,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.STEP_BACK_EXPANSION_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val currentTitle =
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
@@ -1456,7 +1448,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.EXPAND_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1548,7 +1539,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.MANAGE_MEMBERS,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
 
                 val allEntries = mutableListOf<MemberManagementEntry>()
                 allEntries.add(
@@ -1815,7 +1805,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
 
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
@@ -1893,7 +1882,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.MEMBER_REMOVE_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -1984,7 +1972,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.MEMBER_TRANSFER_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -2199,7 +2186,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.MANAGE_VISITORS,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
                 val visitorPlayers =
                         world.players.filter {
@@ -2313,7 +2299,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.VISITOR_KICK_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -2516,7 +2501,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.CRITICAL_SETTINGS,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
 
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -2696,7 +2680,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.RESET_EXPANSION_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val currentTitle =
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
@@ -2753,7 +2736,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val currentTitle =
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
@@ -2849,7 +2831,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.DELETE_WORLD_CONFIRM,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val currentTitle =
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
@@ -2906,7 +2887,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
                 val currentTitle =
                         net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
                                 .plainText()
@@ -2971,7 +2951,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.MANAGE_PORTALS,
                         isGui = true
                 )
-                scheduleGuiTransitionReset(plugin, player)
 
                 val allPortals =
                         plugin.portalRepository.findAll().filter { it.worldKey == worldData.worldKey }

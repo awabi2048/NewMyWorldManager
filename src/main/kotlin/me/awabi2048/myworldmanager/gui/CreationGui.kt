@@ -800,7 +800,6 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun clearSettingsGuiTransition(player: Player) {
-        plugin.settingsSessionManager.getSession(player)?.isGuiTransition = false
     }
 
     companion object {

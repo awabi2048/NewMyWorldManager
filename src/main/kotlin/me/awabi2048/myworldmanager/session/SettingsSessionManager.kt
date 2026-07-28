@@ -110,7 +110,6 @@ class SettingsSessionManager(
         val before = currentSession.debugState()
         if (currentSession != null && currentSession.worldUuid == worldUuid) {
             currentSession.action = action
-            if (isGui) currentSession.isGuiTransition = true
             if (isGui) currentSession.clearExternalInput()
             if (!preserveFlowContext) {
                 currentSession.isAdminFlow = isAdminFlow ?: false
@@ -126,7 +125,6 @@ class SettingsSessionManager(
             if (isAdminFlow != null) session.isAdminFlow = isAdminFlow
             if (isPlayerWorldFlow != null) session.isPlayerWorldFlow = isPlayerWorldFlow
             if (parentShowBackButton != null) session.parentShowBackButton = parentShowBackButton
-            if (isGui) session.isGuiTransition = true
             sessions[player.uniqueId] = session
         }
         debugLog(
@@ -157,6 +155,6 @@ class SettingsSessionManager(
     }
 
     private fun SettingsSession?.debugState(): String = this?.let {
-        "world=${it.worldUuid},action=${it.action},transition=${it.isGuiTransition},external=${it.externalInput}"
+        "world=${it.worldUuid},action=${it.action},external=${it.externalInput}"
     } ?: "none"
 }
