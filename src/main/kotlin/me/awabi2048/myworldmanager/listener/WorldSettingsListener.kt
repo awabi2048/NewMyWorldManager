@@ -453,16 +453,7 @@ class WorldSettingsListener : Listener {
                                                         "member_invite_force_add_mode",
                                                         forceAddMode
                                                 )
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                        Bukkit.getScheduler().runTask(
-                                                plugin,
-                                                Runnable {
-                                                        showMemberInviteDialog(
-                                                                player,
-                                                                forceAddMode
-                                                        )
-                                                }
-                                        )
+                                        showMemberInviteDialog(player, forceAddMode)
                                         return
                                 }
 
@@ -1353,10 +1344,7 @@ class WorldSettingsListener : Listener {
                                                         SettingsAction.RENAME_WORLD
                                                 )
 
-                                                CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                                Bukkit.getScheduler().runTask(plugin, Runnable {
-                                                        showWorldInfoDialog(player, worldData)
-                                                })
+                                                showWorldInfoDialog(player, worldData)
 
                                         }
                                         ItemTag.TYPE_GUI_SETTING_SPAWN -> {
@@ -1547,10 +1535,7 @@ class WorldSettingsListener : Listener {
                                                         SettingsAction.MANAGE_TAGS,
                                                         isGui = true
                                                 )
-                                                CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                                Bukkit.getScheduler().runTask(plugin, Runnable {
-                                                        showTagEditorDialog(player, worldData)
-                                                })
+                                                showTagEditorDialog(player, worldData)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_VISITOR -> {
                                                 val worldFolderName =
@@ -1641,10 +1626,7 @@ class WorldSettingsListener : Listener {
                                                                 worldData.uuid,
                                                                 SettingsAction.SET_ANNOUNCEMENT
                                                         )
-                                                CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                                Bukkit.getScheduler().runTask(plugin, Runnable {
-                                                        me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
-                                                })
+                                                me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
                                         }
                                         }
                                         ItemTag.TYPE_GUI_SETTING_PORTALS -> {
@@ -2516,10 +2498,7 @@ plugin.languageManager
                 plugin.settingsSessionManager.updateSessionAction(
                         player, worldData.uuid, SettingsAction.RENAME_WORLD
                 )
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                        showWorldInfoDialog(player, worldData)
-                })
+                showWorldInfoDialog(player, worldData)
         }
 
         fun startIconSelection(player: Player, worldData: WorldData) {
@@ -2919,7 +2898,6 @@ plugin.languageManager
                                 ?.getMetadata("member_management_page") as? Int)
                                 ?.coerceAtLeast(0)
                                 ?: 0
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {
@@ -2930,7 +2908,8 @@ plugin.languageManager
                                         player,
                                         latestWorld,
                                         page,
-                                        playSound
+                                        playSound,
+                                        replaceCurrent = true
                                 )
                         }
                 )
@@ -3240,10 +3219,7 @@ plugin.languageManager
                 if (updated) {
                         plugin.worldConfigRepository.save(worldData)
                 }
-                plugin.settingsSessionManager.endSession(player)
-                if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                    plugin.worldSettingsGui.open(player, worldData)
-                }
+                plugin.worldSettingsGui.open(player, worldData, replaceCurrent = true)
         }
 
         private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
@@ -4636,10 +4612,7 @@ player.sendMessage(
                     cancel = MenuDialogButton(
                         Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY),
                         MenuDialogHandler { target, _ ->
-                            plugin.settingsSessionManager.endSession(target)
-                            if (!CCSystem.getAPI().getMenuRuntimeService().back(target)) {
-                                plugin.worldSettingsGui.open(target, worldData)
-                            }
+                            plugin.worldSettingsGui.open(target, worldData, replaceCurrent = true)
                             MenuActionResult.Success(MenuUpdate.Close)
                         },
                     ),
@@ -4733,14 +4706,14 @@ player.sendMessage(
                                     allTags.filter { tagId -> response.booleanValue("tag_$tagId") },
                                 )
                                 plugin.worldConfigRepository.save(worldData)
-                                plugin.worldSettingsGui.open(target, worldData)
+                                plugin.worldSettingsGui.open(target, worldData, replaceCurrent = true)
                                 MenuActionResult.Success(MenuUpdate.Close)
                             },
                         ),
                         cancel = MenuDialogButton(
                             Component.text("Close", NamedTextColor.GRAY),
                             MenuDialogHandler { target, _ ->
-                                plugin.worldSettingsGui.open(target, worldData)
+                                plugin.worldSettingsGui.open(target, worldData, replaceCurrent = true)
                                 MenuActionResult.Success(MenuUpdate.Close)
                             },
                         ),

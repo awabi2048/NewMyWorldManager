@@ -53,6 +53,8 @@ class MyWorldManager : JavaPlugin() {
     lateinit var creationSessionManager: CreationSessionManager
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
+    lateinit var playerLocationSnapshotRepository: PlayerLocationSnapshotRepository
+    lateinit var playerLocationRestoreListener: PlayerLocationRestoreListener
     private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
     lateinit var spotlightRepository: SpotlightRepository
@@ -179,6 +181,7 @@ class MyWorldManager : JavaPlugin() {
         directoryManager.checkDirectories()
 
         playerStatsRepository = PlayerStatsRepository(this)
+        playerLocationSnapshotRepository = PlayerLocationSnapshotRepository(dataFolder)
         worldPointApiService = MyWorldManagerApi.WorldPointService { playerUuid, amount ->
             require(amount >= 0) { "amount must be non-negative" }
             val stats = playerStatsRepository.findByUuid(playerUuid)
@@ -352,6 +355,8 @@ class MyWorldManager : JavaPlugin() {
         adminCommandListener = AdminCommandListener()
         creationGuiListener = CreationGuiListener(this)
         server.pluginManager.registerEvents(PlayerDataListener(), this)
+        playerLocationRestoreListener = PlayerLocationRestoreListener(this, playerLocationSnapshotRepository)
+        server.pluginManager.registerEvents(playerLocationRestoreListener, this)
         worldSettingsListener = WorldSettingsListener()
         server.pluginManager.registerEvents(worldSettingsListener, this)
         server.pluginManager.registerEvents(WorldExpirationListener(worldConfigRepository), this)
@@ -460,6 +465,9 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        if (::playerLocationRestoreListener.isInitialized) {
+            server.onlinePlayers.forEach(playerLocationRestoreListener::saveCurrentLocation)
+        }
         MyWorldManagerApi.clearWorldOperationLocks()
         if (::mwmMenuRoutes.isInitialized) mwmMenuRoutes.closeOwnedMenus()
         clearAllTransientMenuState()
@@ -539,16 +547,34 @@ class MyWorldManager : JavaPlugin() {
         if (!file.exists()) return
 
         val yaml = YamlConfiguration.loadConfiguration(file)
-        val uuids = yaml.getStringList("uuids").mapNotNull {
-            runCatching { UUID.fromString(it) }.getOrNull()
+        val invalidValues = mutableListOf<String>()
+        val uuids = yaml.getStringList("uuids").mapNotNull { rawUuid ->
+            runCatching { UUID.fromString(rawUuid) }.getOrElse {
+                invalidValues.add(rawUuid)
+                null
+            }
         }
 
-        uuids.forEach { uuid ->
+        val failed = uuids.filterNot { uuid ->
             runCatching { worldService.loadWorld(uuid) }
+                .onFailure {
+                    logger.log(java.util.logging.Level.SEVERE, "Failed to restore MyWorld $uuid", it)
+                }
+                .getOrDefault(false)
         }
 
-        file.delete()
-        logger.info("Loaded ${uuids.size} MyWorld(s) from previous shutdown")
+        if (failed.isEmpty() && invalidValues.isEmpty()) {
+            file.delete()
+        } else {
+            val remaining = YamlConfiguration()
+            remaining.set("uuids", failed.map(UUID::toString) + invalidValues)
+            remaining.set("timestamp", yaml.getLong("timestamp"))
+            remaining.save(file)
+        }
+        logger.info(
+            "Restored ${uuids.size - failed.size} MyWorld(s) from previous shutdown; " +
+                "${failed.size + invalidValues.size} entr${if (failed.size + invalidValues.size == 1) "y" else "ies"} remain"
+        )
     }
 
     private fun saveLoadedWorldsForShutdown() {

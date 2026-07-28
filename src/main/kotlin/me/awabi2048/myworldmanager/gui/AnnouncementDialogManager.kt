@@ -10,7 +10,6 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogResponse
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
-import me.awabi2048.myworldmanager.util.GuiHelper
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
@@ -99,7 +98,6 @@ object AnnouncementDialogManager {
                 ),
             ),
         )
-        GuiHelper.playMenuOpen(player, "world_settings")
     }
 
     private fun save(
@@ -153,8 +151,7 @@ object AnnouncementDialogManager {
         player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
         plugin.soundManager.playActionSound(player, "world_settings", "success")
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            plugin.settingsSessionManager.endSession(player)
-            plugin.worldSettingsGui.open(player, worldData)
+            plugin.worldSettingsGui.open(player, worldData, replaceCurrent = true)
         })
         return MenuActionResult.Success(MenuUpdate.Close)
     }
@@ -168,11 +165,8 @@ object AnnouncementDialogManager {
     private fun returnToSettings(player: Player, worldUuid: java.util.UUID) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            plugin.settingsSessionManager.endSession(player)
-            if (!CCSystem.getAPI().getMenuRuntimeService().back(player)) {
-                plugin.worldConfigRepository.findByUuid(worldUuid)?.let {
-                    plugin.worldSettingsGui.open(player, it)
-                }
+            plugin.worldConfigRepository.findByUuid(worldUuid)?.let {
+                plugin.worldSettingsGui.open(player, it, replaceCurrent = true)
             }
         })
     }

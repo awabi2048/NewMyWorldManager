@@ -214,7 +214,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val pendingType: PendingInteractionType? = null
         )
 
-        fun open(player: Player, worldData: WorldData, showBackButton: Boolean? = null, isPlayerWorldFlow: Boolean? = null, parentShowBackButton: Boolean? = null) {
+        fun open(
+                player: Player,
+                worldData: WorldData,
+                showBackButton: Boolean? = null,
+                isPlayerWorldFlow: Boolean? = null,
+                parentShowBackButton: Boolean? = null,
+                replaceCurrent: Boolean = false
+        ) {
                 val lang = plugin.languageManager
                 plugin.logWorldSettingsDebug(
                         "open=request player=${player.name}/${player.uniqueId} world=${worldData.uuid} " +
@@ -1190,7 +1197,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, replaceCurrent)
         }
 
         fun openArchiveConfirmation(player: Player, worldData: WorldData) {
@@ -1522,7 +1529,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 player: Player,
                 worldData: WorldData,
                 page: Int = 0,
-                playSound: Boolean = true
+                playSound: Boolean = true,
+                replaceCurrent: Boolean = false
         ) {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.member_management.title")
@@ -1784,7 +1792,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, replaceCurrent)
         }
 
         fun openMemberPendingInviteCancelConfirmation(
@@ -3072,7 +3080,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         private fun presentRuntime(
                 player: Player,
                 title: Component,
-                inventory: RuntimeItemBuffer
+                inventory: RuntimeItemBuffer,
+                replaceCurrent: Boolean = false
         ) {
                 val viewId = UUID.randomUUID().toString()
                 runtimeViews[viewId] = RuntimeViewEntry(
@@ -3085,14 +3094,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 allowPlayerInventoryInteraction = true,
                         ),
                 )
-                runtime.navigate(
-                        player,
-                        MenuRoute(
-                                RUNTIME_OWNER,
-                                RUNTIME_ROUTE,
-                                mapOf("view" to viewId),
-                        ),
+                val route = MenuRoute(
+                        RUNTIME_OWNER,
+                        RUNTIME_ROUTE,
+                        mapOf("view" to viewId),
                 )
+                if (replaceCurrent) {
+                        runtime.replace(player, route)
+                } else {
+                        runtime.navigate(player, route)
+                }
         }
 
         fun clearRuntimeViews(player: Player) {
@@ -3102,8 +3113,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         private fun presentRuntime(
                 player: Player,
                 title: String,
-                inventory: RuntimeItemBuffer
-        ) = presentRuntime(player, GuiHelper.inventoryTitle(title), inventory)
+                inventory: RuntimeItemBuffer,
+                replaceCurrent: Boolean = false
+        ) = presentRuntime(player, GuiHelper.inventoryTitle(title), inventory, replaceCurrent)
 
         private fun applyMenuExtensions(
                 inventory: RuntimeItemBuffer,

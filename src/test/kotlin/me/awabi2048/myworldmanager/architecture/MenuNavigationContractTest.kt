@@ -114,6 +114,31 @@ class MenuNavigationContractTest {
     }
 
     @Test
+    fun `inventory to dialog transitions preserve runtime history and avoid synthetic open sounds`() {
+        val listener = Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
+        ).readText()
+        listOf(
+            "showWorldInfoDialog(player, worldData)",
+            "showMemberInviteDialog(player, forceAddMode)",
+            "showTagEditorDialog(player, worldData)",
+            "AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)",
+        ).forEach { dialogCall ->
+            val callIndex = listener.indexOf(dialogCall)
+            assertTrue(callIndex >= 0, "Dialog call was not found: $dialogCall")
+            val precedingTransition = listener.substring(maxOf(0, callIndex - 300), callIndex)
+            assertFalse(
+                "getMenuRuntimeService().close(player)" in precedingTransition,
+                "Runtime history is cleared immediately before $dialogCall",
+            )
+        }
+        assertTrue("replaceCurrent = true" in listener)
+
+        val announcement = guiRoot.resolve("AnnouncementDialogManager.kt").readText()
+        assertFalse("playMenuOpen" in announcement)
+    }
+
+    @Test
     fun `一時画面とウィザード終了はRuntimeの経路状態を尊重する`() {
         val visit = guiRoot.resolve("VisitGui.kt").readText()
         assertTrue("returnToWorld != null" in visit)
