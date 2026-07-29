@@ -182,6 +182,16 @@ class WorldSettingsListener : Listener {
                                 handleExpansionResetConfirmationRuntime(player, item, worldData)
                         WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM ->
                                 handleExpansionResetSpawnUnsafeConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM ->
+                                handleDeleteWorldConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM ->
+                                handleDeleteWorldFinalConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM ->
+                                handleArchiveConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM ->
+                                handleArchiveFromCriticalConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM ->
+                                handleUnarchiveConfirmationRuntime(player, item, worldData)
                         else -> null
                 }
         }
@@ -329,6 +339,119 @@ class WorldSettingsListener : Listener {
                 when (ItemTag.getType(item)) {
                         ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
                         ItemTag.TYPE_GUI_CONFIRM -> executeExpansionReset(player, worldData, closeInventory = true)
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleDeleteWorldConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleDeleteWorldFinalConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                if (!canOwnerExecuteDelete(worldData)) {
+                                        sendDeleteUnavailableMessage(player)
+                                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                                val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
+                                val refund = (worldData.cumulativePoints * refundRate).toInt()
+                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_start", mapOf("world" to worldData.name)))
+                                plugin.worldService.deleteWorld(worldData.uuid, player).thenAccept { success: Boolean ->
+                                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                if (success) {
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_success", mapOf("points" to refund)))
+                                                } else {
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_fail"))
+                                                }
+                                        })
+                                }
+                                plugin.settingsSessionManager.endSession(player)
+                        }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleArchiveConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> {
+                                stopBorderDirectionPreview(player)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                        }
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
+                                worldData.isArchived = true
+                                plugin.worldConfigRepository.save(worldData)
+                                plugin.settingsSessionManager.endSession(player)
+                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                        }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleArchiveFromCriticalConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+                                plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success: Boolean ->
+                                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                if (success) {
+                                                        val now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                        stats.lastArchiveActionAt = now
+                                                        plugin.playerStatsRepository.save(stats)
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
+                                                } else {
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_failed"))
+                                                }
+                                        })
+                                }
+                                plugin.settingsSessionManager.endSession(player)
+                        }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleUnarchiveConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> {
+                                plugin.settingsSessionManager.endSession(player)
+                                plugin.playerWorldGui.open(player)
+                        }
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
+                                plugin.worldService.unarchiveWorld(worldData.uuid).thenAccept { success: Boolean ->
+                                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                                                if (success) {
+                                                        val now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                                        stats.lastArchiveActionAt = now
+                                                        plugin.playerStatsRepository.save(stats)
+                                                        plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                                                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_success"))
+                                                        }
+                                                } else {
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, "error.unarchive_failed"))
+                                                }
+                                        })
+                                }
+                                plugin.settingsSessionManager.endSession(player)
+                        }
                         else -> Unit
                 }
                 return MenuActionResult.Success(MenuUpdate.None)
@@ -2034,200 +2157,6 @@ class WorldSettingsListener : Listener {
                                                         )
                                                 }
                                         }
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: delete world confirm")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        plugin.worldSettingsGui.openCriticalSettings(
-                                                player,
-                                                worldData
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_SETTING_DELETE_WORLD) {
-                                        plugin.worldSettingsGui.openDeleteWorldConfirmation2(
-                                                player,
-                                                worldData
-                                        )
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: delete world confirm final")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        plugin.worldSettingsGui.openCriticalSettings(
-                                                player,
-                                                worldData
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        if (!canOwnerExecuteDelete(worldData)) {
-                                                sendDeleteUnavailableMessage(player)
-                                                plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                                                return
-                                        }
-                                        val refundRate =
-                                                plugin.config.getDouble(
-                                                        "critical_settings.refund_percentage",
-                                                        0.5
-                                                )
-                                        val refund =
-                                                (worldData.cumulativePoints * refundRate).toInt()
-
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                        player.sendMessage(
-                                                plugin.languageManager.getMessage(
-                                                        player,
-                                                        "messages.world_delete_start",
-                                                        mapOf("world" to worldData.name)
-                                                )
-                                        )
-
-                                        plugin.worldService.deleteWorld(worldData.uuid, player)
-                                                .thenAccept { success: Boolean ->
-                                                        Bukkit.getScheduler()
-                                                                .runTask(
-                                                                        plugin,
-                                                                        Runnable {
-                                                                                if (success) {
-                                                                                         player.sendMessage(
-                                                                                                 plugin.languageManager
-                                                                                                         .getMessage(
-                                                                                                                 player,
-                                                                                                                 "messages.world_delete_success",
-                                                                                                                 mapOf(
-                                                                                                                         "points" to
-                                                                                                                                 refund
-                                                                                                                 )
-                                                                                                         )
-                                                                                         )
-                                                                                } else {
-                                                                                        player.sendMessage(
-                                                                                                plugin.languageManager
-                                                                                                        .getMessage(
-                                                                                                                player,
-                                                                                                                "messages.world_delete_fail"
-                                                                                                        )
-                                                                                        )
-                                                                                }
-                                                                        }
-                                                                )
-                                                }
-                                        plugin.settingsSessionManager.endSession(player)
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: archive world")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        handleCommandCancel()
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        player.sendMessage(
-                                                plugin.languageManager.getMessage(
-                                                        player,
-                                                        "messages.archive_success",
-                                                        mapOf("world" to worldData.name)
-                                                )
-                                        )
-                                        worldData.isArchived = true
-                                        plugin.worldConfigRepository.save(worldData)
-                                        plugin.settingsSessionManager.endSession(player)
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: archive world from critical")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
-                                        plugin.worldService.archiveWorld(worldData.uuid)
-                                            .thenAccept { success: Boolean ->
-                                                Bukkit.getScheduler().runTask(plugin, Runnable {
-                                                    if (success) {
-                                                        // クールダウン記録（プレイヤーごと）
-                                                        val now = java.time.LocalDateTime.now()
-                                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                                                        stats.lastArchiveActionAt = now
-                                                        plugin.playerStatsRepository.save(stats)
-                                                        player.sendMessage(plugin.languageManager.getMessage(
-                                                            player,
-                                                            "messages.archive_success",
-                                                            mapOf("world" to worldData.name)
-                                                        ))
-                                                    } else {
-                                                        player.sendMessage(plugin.languageManager.getMessage(
-                                                            player,
-                                                            "messages.archive_failed"
-                                                        ))
-                                                    }
-                                                })
-                                            }
-                                        plugin.settingsSessionManager.endSession(player)
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: unarchive confirm")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        plugin.settingsSessionManager.endSession(player)
-                                        plugin.playerWorldGui.open(player)
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                        player.sendMessage(
-                                                plugin.languageManager.getMessage(
-                                                        player,
-                                                        "messages.unarchive_start"
-                                                )
-                                        )
-
-                                        plugin.worldService.unarchiveWorld(worldData.uuid)
-                                                .thenAccept { success: Boolean ->
-                                                        Bukkit.getScheduler()
-                                                                .runTask(
-                                                                        plugin,
-                                                                        Runnable {
-                                                                                if (success) {
-                                                                                        // クールダウン記録（プレイヤーごと）
-                                                                                        val now = java.time.LocalDateTime.now()
-                                                                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                                                                                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                                                                                        stats.lastArchiveActionAt = now
-                                                                                        plugin.playerStatsRepository.save(stats)
-                                                                                        plugin.worldService
-                                                                                                .teleportToWorld(
-                                                                                                        player,
-                                                                                                        worldData
-                                                                                                                .uuid
-                                                                                                ) {
-                                                                                                        player.sendMessage(
-                                                                                                                plugin.languageManager
-                                                                                                                        .getMessage(
-                                                                                                                                player,
-                                                                                                                                "messages.unarchive_success"
-                                                                                                                        )
-                                                                                                        )
-                                                                                                }
-                                                                                } else {
-                                                                                        player.sendMessage(
-plugin.languageManager
-                                                                                                        .getMessage(
-                                                                                                                player,
-                                                                                                                "error.unarchive_failed"
-                                                                                                        )
-                                                                                        )
-                                                                                }
-                                                                        }
-                                                                )
-                                                }
-                                        plugin.settingsSessionManager.endSession(player)
                                 }
                         }
                         else -> {}
