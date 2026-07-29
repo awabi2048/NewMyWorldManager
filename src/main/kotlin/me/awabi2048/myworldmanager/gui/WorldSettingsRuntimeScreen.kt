@@ -28,8 +28,6 @@ enum class WorldSettingsRuntimeScreen {
     ARCHIVE_CONFIRM,
     UNARCHIVE_CONFIRM,
     PORTAL_MANAGEMENT,
-    ENVIRONMENT_SETTINGS,
-    ENVIRONMENT_CONFIRM,
     ARCHIVE_FROM_CRITICAL_CONFIRM,
 }
 
@@ -37,4 +35,6 @@ data class WorldSettingsRuntimeContext(
     val screen: WorldSettingsRuntimeScreen,
     val worldUuid: UUID? = null,
     val page: Int? = null,
+    val targetUuid: UUID? = null,
+    val decisionId: UUID? = null,
 )
