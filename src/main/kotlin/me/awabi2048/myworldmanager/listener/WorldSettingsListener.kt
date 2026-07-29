@@ -40,6 +40,7 @@ import me.awabi2048.myworldmanager.session.SettingsClosePolicy
 import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.LanguageManager
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
@@ -142,6 +143,7 @@ class WorldSettingsListener : Listener {
                 handleVisitorManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
                 handleEnvironmentSettingsRuntimeClick(runtimeContext)?.let { return it }
                 handleEnvironmentConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
+                handlePortalManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
                 val runtimeClick =
                         RuntimeSettingsClick(
                                 player = player,
@@ -236,6 +238,105 @@ class WorldSettingsListener : Listener {
                         ItemTag.TYPE_GUI_CANCEL -> plugin.environmentGui.open(player, worldData)
                 }
                 return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handlePortalManagementRuntimeClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT) return null
+                val worldUuid = runtimeContext.worldUuid
+                        ?: plugin.settingsSessionManager.getSession(player)?.worldUuid
+                        ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Ignored
+                val lang = plugin.languageManager
+                val type = ItemTag.getType(item)
+                if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
+                        val targetPage = ItemTag.getTargetPage(item) ?: return MenuActionResult.Ignored
+                        plugin.worldSettingsGui.openPortalManagement(player, worldData, targetPage)
+                        return MenuActionResult.Success(MenuUpdate.None)
+                }
+                if (type == ItemTag.TYPE_PORTAL) {
+                        val portalId = ItemTag.getPortalUuid(item) ?: return MenuActionResult.Ignored
+                        val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
+                        if (!isBedrock && click.isRightClick) {
+                                removePortalFromManagement(player, worldData, portalId, lang)
+                        } else if (click.isLeftClick) {
+                                teleportToManagedPortal(player, portalId, lang)
+                        }
+                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
+                        stopBorderDirectionPreview(player)
+                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun removePortalFromManagement(
+                player: Player,
+                worldData: WorldData,
+                portalId: UUID,
+                lang: LanguageManager,
+        ) {
+                val portal = plugin.portalRepository.findAll().find { it.id == portalId } ?: return
+                val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
+                if (!portal.isGate()) {
+                        val block = portal.loadedWorld()?.getBlockAt(portal.x, portal.y, portal.z)
+                        if (block != null && block.type == Material.END_PORTAL_FRAME) block.type = Material.AIR
+                }
+                plugin.portalManager.removePortalVisuals(portal.id)
+                plugin.portalRepository.removePortal(portal.id)
+                val returnItem = if (portal.isGate()) {
+                        me.awabi2048.myworldmanager.util.WorldGateItemUtil.createBaseWorldGateItem(lang, player)
+                } else {
+                        me.awabi2048.myworldmanager.util.PortalItemUtil.createBasePortalItem(lang, player)
+                }
+                if (portal.worldUuid != null) {
+                        val worldUuid = portal.worldUuid!!
+                        val destinationName = plugin.worldConfigRepository.findByUuid(worldUuid)?.name
+                                ?: lang.getMessage(player, "general.unknown")
+                        if (portal.isGate()) {
+                                me.awabi2048.myworldmanager.util.WorldGateItemUtil.bindWorld(returnItem, worldUuid, worldName = destinationName, lang, player)
+                        } else {
+                                me.awabi2048.myworldmanager.util.PortalItemUtil.bindWorld(returnItem, worldUuid, worldName = destinationName, lang, player)
+                        }
+                } else if (portal.targetWorldKey != null) {
+                        val targetRuntimeName = portal.targetRuntimeName!!
+                        val displayName = plugin.config.getString("portal_targets.$targetRuntimeName") ?: targetRuntimeName
+                        if (portal.isGate()) {
+                                me.awabi2048.myworldmanager.util.WorldGateItemUtil.bindExternalWorld(returnItem, targetRuntimeName, displayName, lang, player)
+                        } else {
+                                me.awabi2048.myworldmanager.util.PortalItemUtil.bindExternalWorld(returnItem, targetRuntimeName, displayName, lang, player)
+                        }
+                }
+                player.inventory.addItem(returnItem)
+                if (portal.isGate()) {
+                        val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: portal.ownerUuid.toString()
+                        player.sendMessage(lang.getMessage(player, "messages.world_gate_removed_refund", mapOf(
+                                "points" to (refundResult?.points ?: 0), "percent" to (refundResult?.percent ?: 0), "owner" to ownerName,
+                        )))
+                } else {
+                        player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
+                }
+                plugin.worldSettingsGui.openPortalManagement(player, worldData)
+        }
+
+        private fun teleportToManagedPortal(
+                player: Player,
+                portalId: UUID,
+                lang: LanguageManager,
+        ) {
+                val portal = plugin.portalRepository.findAll().find { it.id == portalId } ?: return
+                plugin.portalManager.addIgnorePlayer(player)
+                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                if (!plugin.portalManager.teleportPlayerToPortalLocation(player, portal) {
+                                plugin.soundManager.playTeleportSound(player)
+                                player.sendMessage(lang.getMessage(player, "messages.warp_generic"))
+                        }) {
+                        player.sendMessage(lang.getMessage(player, "general.world_not_found"))
+                }
         }
 
         private fun handleIconSelectionTopInventoryClick(
@@ -1769,209 +1870,8 @@ class WorldSettingsListener : Listener {
                                         }
                                 }
                         }
-                        WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage portals")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
-                                                type == ItemTag.TYPE_GUI_NAV_PREV
-                                ) {
-                                        val targetPage = ItemTag.getTargetPage(item) ?: return
-                                        plugin.worldSettingsGui.openPortalManagement(player, worldData, targetPage)
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_PORTAL) {
-                                        val portalId = ItemTag.getPortalUuid(item) ?: return
-                                        val isBedrock =
-                                                plugin.playerPlatformResolver.isBedrock(player)
-                                        if (!isBedrock && event.isRightClick) {
-                                                val portal =
-                                                        plugin.portalRepository.findAll().find {
-                                                                it.id == portalId
-                                                        }
-                                                if (portal != null) {
-                                                        val refundResult =
-                                                                if (portal.isGate()) {
-                                                                        plugin.portalManager
-                                                                                .refundPointsForRemovedGate(portal)
-                                                                } else {
-                                                                        null
-                                                                }
-                                                        if (!portal.isGate()) {
-                                                                val world =
-                                                                        portal.loadedWorld()
-                                                                val block =
-                                                                        world?.getBlockAt(
-                                                                                portal.x,
-                                                                                portal.y,
-                                                                                portal.z
-                                                                        )
-                                                                if (block != null &&
-                                                                                block.type ==
-                                                                                        Material.END_PORTAL_FRAME
-                                                                ) {
-                                                                        block.type = Material.AIR
-                                                                }
-                                                        }
-                                                        plugin.portalManager.removePortalVisuals(
-                                                                portal.id
-                                                        )
-                                                        plugin.portalRepository.removePortal(
-                                                                portal.id
-                                                        )
-
-                                                        val returnItem = if (portal.isGate()) {
-                                                                me.awabi2048.myworldmanager.util.WorldGateItemUtil
-                                                                        .createBaseWorldGateItem(
-                                                                                lang,
-                                                                                player
-                                                                        )
-                                                        } else {
-                                                                me.awabi2048.myworldmanager.util
-                                                                        .PortalItemUtil
-                                                                        .createBasePortalItem(
-                                                                                lang,
-                                                                                player
-                                                                        )
-                                                        }
-                                                        if (portal.worldUuid != null) {
-                                                                val destData =
-                                                                        plugin.worldConfigRepository
-                                                                                .findByUuid(
-                                                                                        portal.worldUuid!!
-                                                                                )
-                                                                if (portal.isGate()) {
-                                                                        me.awabi2048.myworldmanager.util.WorldGateItemUtil
-                                                                                .bindWorld(
-                                                                                        returnItem,
-                                                                                        portal.worldUuid!!,
-                                                                                        worldName = destData?.name
-                                                                                                ?: lang.getMessage(
-                                                                                                        player,
-                                                                                                        "general.unknown"
-                                                                                                ),
-                                                                                        lang,
-                                                                                        player
-                                                                                )
-                                                                } else {
-                                                                        me.awabi2048.myworldmanager.util
-                                                                                .PortalItemUtil.bindWorld(
-                                                                                returnItem,
-                                                                                portal.worldUuid!!,
-                                                                                worldName = destData?.name
-                                                                                                ?: lang.getMessage(
-                                                                                                        player,
-                                                                                                        "general.unknown"
-                                                                                                ),
-                                                                                lang,
-                                                                                player
-                                                                        )
-                                                                }
-                                                        } else if (portal.targetWorldKey != null) {
-                                                                val displayName =
-                                                                        plugin.config.getString(
-                                                                                "portal_targets.${portal.targetRuntimeName}"
-                                                                        )
-                                                                                ?: portal.targetRuntimeName!!
-                                                                if (portal.isGate()) {
-                                                                        me.awabi2048.myworldmanager.util.WorldGateItemUtil
-                                                                                .bindExternalWorld(
-                                                                                        returnItem,
-                                                                                        portal.targetRuntimeName!!,
-                                                                                        displayName,
-                                                                                        lang,
-                                                                                        player
-                                                                                )
-                                                                } else {
-                                                                        me.awabi2048.myworldmanager.util
-                                                                                .PortalItemUtil
-                                                                                .bindExternalWorld(
-                                                                                        returnItem,
-                                                                                        portal.targetRuntimeName!!,
-                                                                                        displayName,
-                                                                                        lang,
-                                                                                        player
-                                                                                )
-                                                                }
-                                                        }
-                                                        player.inventory.addItem(returnItem)
-
-                                                        if (portal.isGate()) {
-                                                                val ownerName =
-                                                                        Bukkit.getOfflinePlayer(
-                                                                                        portal.ownerUuid
-                                                                                ).name
-                                                                                ?: portal.ownerUuid
-                                                                                        .toString()
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.world_gate_removed_refund",
-                                                                                mapOf(
-                                                                                        "points" to
-                                                                                                (refundResult
-                                                                                                                ?.points
-                                                                                                        ?: 0),
-                                                                                        "percent" to
-                                                                                                (refundResult
-                                                                                                                ?.percent
-                                                                                                        ?: 0),
-                                                                                        "owner" to ownerName
-                                                                                )
-                                                                        )
-                                                                )
-                                                        } else {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.portal_removed"
-                                                                        )
-                                                                )
-                                                        }
-                                                        plugin.worldSettingsGui
-                                                                .openPortalManagement(
-                                                                        player,
-                                                                        worldData
-                                                                )
-                                                }
-                                        } else if (event.isLeftClick) {
-                                                val portal =
-                                                        plugin.portalRepository.findAll().find {
-                                                                it.id == portalId
-                                                        }
-                                                if (portal != null) {
-                                                        plugin.portalManager.addIgnorePlayer(player)
-                                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                                        val teleported = plugin.portalManager
-                                                                .teleportPlayerToPortalLocation(player, portal) {
-                                                                        plugin.soundManager.playTeleportSound(
-                                                                                player
-                                                                        )
-                                                                        player.sendMessage(
-                                                                                lang.getMessage(
-                                                                                        player,
-                                                                                        "messages.warp_generic"
-                                                                                )
-                                                                        )
-                                                                }
-                                                        if (!teleported) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "general.world_not_found"
-                                                                        )
-                                                                )
-                                                                return
-                                                        }
-                                                }
-                                        }
-                                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        handleCommandCancel()
-                                }
-                        }
                         WorldSettingsRuntimeScreen.CRITICAL_SETTINGS -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: critical settings")
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage portals")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 when (type) {
