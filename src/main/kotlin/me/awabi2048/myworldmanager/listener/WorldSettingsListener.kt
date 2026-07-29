@@ -152,14 +152,12 @@ class WorldSettingsListener : Listener {
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
         }
-
         private fun handleIconSelectionTopInventoryClick(
                 runtimeContext: WorldSettingsRuntimeContext,
         ): MenuActionResult? {
                 if (runtimeContext.screen != WorldSettingsRuntimeScreen.ICON_SELECTION) return null
                 return MenuActionResult.Success(MenuUpdate.None)
         }
-
         private fun handleConfirmationRuntimeClick(
                 player: Player,
                 item: ItemStack,
@@ -179,7 +177,6 @@ class WorldSettingsListener : Listener {
                         else -> null
                 }
         }
-
         private fun handleMemberRemoveConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
                 when (ItemTag.getType(item)) {
                         ItemTag.TYPE_GUI_CANCEL -> reopenMemberManagementLatest(player, worldData.uuid)
@@ -976,7 +973,10 @@ class WorldSettingsListener : Listener {
 
                 when (event.runtimeContext.screen) {
                         // 専用Runtime handlerで完結するため、旧adapterでは処理しません。
+                        WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM,
+                        WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM,
                         WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> Unit
+                        WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM -> Unit
                         WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member remove confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
