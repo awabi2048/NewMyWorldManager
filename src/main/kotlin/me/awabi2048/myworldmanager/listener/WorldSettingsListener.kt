@@ -132,7 +132,7 @@ class WorldSettingsListener : Listener {
                                 return MenuActionResult.Ignored
                         }
                 }
-                onInventoryClick(
+                val runtimeClick =
                         RuntimeSettingsClick(
                                 player = player,
                                 view = player.openInventory,
@@ -141,8 +141,8 @@ class WorldSettingsListener : Listener {
                                 click = click,
                                 currentItem = item,
                         )
-                )
-                return MenuActionResult.Success(MenuUpdate.Refresh)
+                onInventoryClick(runtimeClick)
+                return runtimeClick.result
         }
 
         private data class RuntimeSettingsClick(
@@ -154,6 +154,7 @@ class WorldSettingsListener : Listener {
                 val currentItem: ItemStack?,
                 val action: InventoryAction = InventoryAction.NOTHING,
                 var isCancelled: Boolean = true,
+                var result: MenuActionResult = MenuActionResult.Success(MenuUpdate.Refresh),
         ) {
                 val whoClicked: Player
                         get() = player
@@ -168,6 +169,10 @@ class WorldSettingsListener : Listener {
 
                 fun cancelWithDebug(reason: String, force: Boolean = false) {
                         isCancelled = true
+                }
+
+                fun externalSurfaceOpened() {
+                        result = MenuActionResult.Success(MenuUpdate.None)
                 }
         }
         private val borderResetSpawnService = BorderResetSpawnService()
@@ -423,6 +428,7 @@ class WorldSettingsListener : Listener {
                                                         forceAddMode
                                                 )
                                         ) {
+                                                event.externalSurfaceOpened()
                                                 return
                                         }
 
@@ -445,6 +451,7 @@ class WorldSettingsListener : Listener {
                                                         forceAddMode
                                                 )
                                         showMemberInviteDialog(player, forceAddMode)
+                                        event.externalSurfaceOpened()
                                         return
                                 }
 
@@ -2913,7 +2920,8 @@ plugin.languageManager
                 player: Player,
                 worldData: WorldData,
                 targetNameRaw: String,
-                forceAddMode: Boolean = false
+                forceAddMode: Boolean = false,
+                reopenAfter: Boolean = true,
         ) {
                 val lang = plugin.languageManager
                 val targetName = targetNameRaw.trim()
@@ -2934,7 +2942,9 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        if (reopenAfter) {
+                                reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        }
                         return
                 }
 
@@ -2948,7 +2958,9 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        if (reopenAfter) {
+                                reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        }
                         return
                 }
 
@@ -2960,7 +2972,9 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        if (reopenAfter) {
+                                reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        }
                         return
                 }
 
@@ -2976,7 +2990,9 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        if (reopenAfter) {
+                                reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        }
                         return
                 }
 
@@ -2988,7 +3004,9 @@ plugin.languageManager
                                 1.0f,
                                 1.0f
                         )
-                        reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        if (reopenAfter) {
+                                reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
+                        }
                         return
                 }
 
@@ -3078,7 +3096,9 @@ plugin.languageManager
                                 )
                         )
 
-                        reopenMemberManagementLatest(player, worldData.uuid)
+                        if (reopenAfter) {
+                                reopenMemberManagementLatest(player, worldData.uuid)
+                        }
                         return
                 }
 
@@ -3116,7 +3136,9 @@ plugin.languageManager
                         )
                 }
 
-                reopenMemberManagementLatest(player, worldData.uuid)
+                if (reopenAfter) {
+                        reopenMemberManagementLatest(player, worldData.uuid)
+                }
         }
 
         private fun resolveInviteTarget(inputName: String): OfflinePlayer? {
@@ -4548,17 +4570,15 @@ player.sendMessage(
                                 currentWorld,
                                 response.textValue("member_invite_target").trim(),
                                 forceAddMode,
+                                reopenAfter = false,
                             )
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.Resume)
                         },
                     ),
                     cancel = MenuDialogButton(
                         Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                        MenuDialogHandler { target, _ ->
-                            plugin.settingsSessionManager.getSession(target)?.let { session ->
-                                reopenMemberManagementLatest(target, session.worldUuid)
-                            }
-                            MenuActionResult.Success(MenuUpdate.Close)
+                        MenuDialogHandler { _, _ ->
+                            MenuActionResult.Success(MenuUpdate.Resume)
                         },
                     ),
                 ),
