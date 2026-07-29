@@ -323,9 +323,20 @@ class MyWorldManager : JavaPlugin() {
             worldConfigRepository.findByUuid(worldUuid)?.let(worldPermissionPolicyService::syncParticipants)
         }.also(MyWorldManagerApi::registerWorldWorkPermissionSyncService)
 
-        MyWorldManagerApi.setMemberManagementOpener { player, worldUuid ->
+        MyWorldManagerApi.setMemberManagementOpener { player, worldUuid, replaceCurrent ->
             val worldData = worldConfigRepository.findByUuid(worldUuid) ?: return@setMemberManagementOpener
-            worldSettingsGui.openMemberManagement(player, worldData)
+            val page =
+                (settingsSessionManager.getSession(player)
+                    ?.getMetadata("member_management_page") as? Int)
+                    ?.coerceAtLeast(0)
+                    ?: 0
+            worldSettingsGui.openMemberManagement(
+                player,
+                worldData,
+                page,
+                playSound = false,
+                replaceCurrent = replaceCurrent,
+            )
         }
 
         inviteCommand = InviteCommand(this)

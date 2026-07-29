@@ -2181,7 +2181,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                         )
                 }.getOrNull() ?: return stored
-                return parsed.format(pendingInviteDateTimeFormatterFor(player))
+                val language = plugin.languageManager.resolveLocale(player).lowercase(Locale.ROOT)
+                val formatter =
+                        if (language == "ja_jp") {
+                                DateTimeFormatter.ofPattern("yyyy/M/d HH:mm")
+                        } else {
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                        }
+                return parsed.format(formatter)
         }
 
         fun openVisitorManagement(player: Player, worldData: WorldData, page: Int = 0) {
