@@ -75,6 +75,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 actions = mapOf(
                                         ACTION_RUNTIME_DISPATCH to
                                                 MenuActionHandler { context ->
+                                                        val runtimeView =
+                                                                runtimeViews[context.route.payload["view"]]
+                                                                        ?.takeIf { it.playerUuid == context.player.uniqueId }
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored
                                                         plugin.worldSettingsListener.handleRuntimeInventoryClick(
                                                                 context.player,
                                                                 context.click,
@@ -82,7 +86,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
                                                                 WorldSettingsRuntimeContext(
-                                                                        screen = WorldSettingsRuntimeScreen.WORLD_SETTINGS,
+                                                                        screen = runtimeView.screen,
                                                                 ),
                                                         )
                                                 },
@@ -1274,7 +1278,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory, replaceCurrent)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.WORLD_SETTINGS, replaceCurrent)
         }
 
         fun openArchiveConfirmation(player: Player, worldData: WorldData) {
@@ -1324,7 +1328,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 if (player.openInventory.topInventory != inventory) {
-                        presentRuntime(player, title, inventory)
+                        presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM)
                 }
         }
 
@@ -1378,7 +1382,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM)
         }
 
         fun openExpansionMethodSelection(
@@ -1452,7 +1456,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION)
         }
 
         fun openExpansionStepBackConfirmation(player: Player, worldData: WorldData) {
@@ -1508,7 +1512,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM)
         }
 
         fun openExpansionConfirmation(
@@ -1595,7 +1599,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.EXPANSION_CONFIRM)
         }
 
         fun openMemberManagement(
@@ -1956,7 +1960,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM)
         }
 
         fun openMemberRemoveConfirmation(
@@ -2046,7 +2050,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM)
         }
 
         fun openMemberTransferConfirmation(
@@ -2132,7 +2136,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM)
         }
 
         private fun createMemberItem(
@@ -2366,7 +2370,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT)
         }
 
         fun openVisitorKickConfirmation(
@@ -2452,7 +2456,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM)
         }
 
         private fun createVisitorItem(
@@ -2758,7 +2762,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.CRITICAL_SETTINGS)
         }
 
         private fun calculateTotalExpansionCost(level: Int): Int {
@@ -2818,7 +2822,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM)
         }
 
         fun openResetExpansionSpawnUnsafeConfirmation(player: Player, worldData: WorldData) {
@@ -2874,7 +2878,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM)
                 plugin.logWorldSettingsDebug(
                         "open=runtime player=${player.name}/${player.uniqueId} world=${worldData.uuid} " +
                                 "route=$RUNTIME_ROUTE size=${inventory.size}"
@@ -2969,7 +2973,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM)
         }
 
         fun openDeleteWorldConfirmation2(player: Player, worldData: WorldData) {
@@ -3028,7 +3032,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM)
         }
 
         fun openPortalManagement(player: Player, worldData: WorldData, page: Int = 0) {
@@ -3101,7 +3105,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                presentRuntime(player, title, inventory)
+                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT)
         }
 
         private fun createPortalManagementItem(player: Player, portal: PortalData): ItemStack {
@@ -3158,6 +3162,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 player: Player,
                 title: Component,
                 inventory: RuntimeItemBuffer,
+                screen: WorldSettingsRuntimeScreen,
                 replaceCurrent: Boolean = false
         ) {
                 val viewId = UUID.randomUUID().toString()
@@ -3170,7 +3175,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 standardFrame = false,
                                 playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
                         ),
-                        WorldSettingsRuntimeScreen.WORLD_SETTINGS,
+                        screen,
                 )
                 val route = MenuRoute(
                         RUNTIME_OWNER,
@@ -3192,8 +3197,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 player: Player,
                 title: String,
                 inventory: RuntimeItemBuffer,
+                screen: WorldSettingsRuntimeScreen,
                 replaceCurrent: Boolean = false
-        ) = presentRuntime(player, GuiHelper.inventoryTitle(title), inventory, replaceCurrent)
+        ) = presentRuntime(player, GuiHelper.inventoryTitle(title), inventory, screen, replaceCurrent)
 
         private fun applyMenuExtensions(
                 inventory: RuntimeItemBuffer,

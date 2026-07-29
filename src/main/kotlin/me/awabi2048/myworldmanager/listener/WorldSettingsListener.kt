@@ -801,8 +801,8 @@ class WorldSettingsListener : Listener {
                 event.useLegacyRefreshFallback()
 
                 val extensionMenuType =
-                        when (session.action) {
-                                SettingsAction.MANAGE_MEMBERS -> "member_management"
+                        when (event.runtimeContext.screen) {
+                                WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT -> "member_management"
                                 else -> "world_settings"
                         }
 
@@ -872,8 +872,8 @@ class WorldSettingsListener : Listener {
                         CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 }
 
-                when (session.action) {
-                        SettingsAction.MEMBER_REMOVE_CONFIRM -> {
+                when (event.runtimeContext.screen) {
+                        WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member remove confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -918,7 +918,7 @@ class WorldSettingsListener : Listener {
                                         reopenMemberManagementLatest(player, worldData.uuid)
                                 }
                         }
-                        SettingsAction.MEMBER_TRANSFER_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member transfer confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -980,7 +980,7 @@ class WorldSettingsListener : Listener {
                                         reopenMemberManagementLatest(player, worldData.uuid)
                                 }
                         }
-                        SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member pending invite cancel confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -1000,7 +1000,7 @@ class WorldSettingsListener : Listener {
                                         cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
                                 }
                         }
-                        SettingsAction.MANAGE_VISITORS -> {
+                        WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage visitors")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -1068,7 +1068,7 @@ class WorldSettingsListener : Listener {
                                         handleCommandCancel()
                                 }
                         }
-                        SettingsAction.VISITOR_KICK_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: visitor kick confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -1108,7 +1108,7 @@ class WorldSettingsListener : Listener {
                                         )
                                 }
                         }
-                        SettingsAction.EXPAND_SELECT_METHOD -> {
+                        WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: expand select method")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -1170,7 +1170,7 @@ class WorldSettingsListener : Listener {
                                         handleCommandCancel()
                                 }
                         }
-                        SettingsAction.EXPAND_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.EXPANSION_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: expand confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -1257,7 +1257,7 @@ class WorldSettingsListener : Listener {
                                         plugin.settingsSessionManager.endSession(player)
                                 }
                         }
-                        SettingsAction.VIEW_SETTINGS -> {
+                        WorldSettingsRuntimeScreen.WORLD_SETTINGS -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: view settings")
                                 val clickedItem = event.currentItem
 
@@ -1707,8 +1707,8 @@ class WorldSettingsListener : Listener {
                                         }
                                 }
                         }
-                        SettingsAction.VIEW_ENVIRONMENT_SETTINGS -> Unit
-                        SettingsAction.ENV_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.ENVIRONMENT_SETTINGS -> Unit
+                        WorldSettingsRuntimeScreen.ENVIRONMENT_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: env confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -1742,7 +1742,7 @@ class WorldSettingsListener : Listener {
                                         }
                                 }
                         }
-                        SettingsAction.MANAGE_PORTALS -> {
+                        WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage portals")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -1943,7 +1943,7 @@ class WorldSettingsListener : Listener {
                                         handleCommandCancel()
                                 }
                         }
-                        SettingsAction.CRITICAL_SETTINGS -> {
+                        WorldSettingsRuntimeScreen.CRITICAL_SETTINGS -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: critical settings")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2115,7 +2115,7 @@ class WorldSettingsListener : Listener {
                                         }
                                 }
                         }
-                        SettingsAction.STEP_BACK_EXPANSION_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: step back expansion confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2128,7 +2128,7 @@ class WorldSettingsListener : Listener {
                                         executeExpansionStepBack(player, worldData, closeInventory = false)
                                 }
                         }
-                        SettingsAction.RESET_EXPANSION_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: reset expansion confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2149,7 +2149,7 @@ class WorldSettingsListener : Listener {
                                         executeExpansionReset(player, worldData, closeInventory = true)
                                 }
                         }
-                        SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE -> {
+                        WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: reset expansion confirm spawn unsafe")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2162,7 +2162,7 @@ class WorldSettingsListener : Listener {
                                         executeExpansionReset(player, worldData, closeInventory = true)
                                 }
                         }
-                        SettingsAction.DELETE_WORLD_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: delete world confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2178,7 +2178,7 @@ class WorldSettingsListener : Listener {
                                         )
                                 }
                         }
-                        SettingsAction.DELETE_WORLD_CONFIRM_FINAL -> {
+                        WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: delete world confirm final")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2243,7 +2243,7 @@ class WorldSettingsListener : Listener {
                                         plugin.settingsSessionManager.endSession(player)
                                 }
                         }
-                        SettingsAction.ARCHIVE_WORLD -> {
+                        WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: archive world")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2263,7 +2263,7 @@ class WorldSettingsListener : Listener {
                                         CCSystem.getAPI().getMenuRuntimeService().close(player)
                                 }
                         }
-                        SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL -> {
+                        WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: archive world from critical")
                                 if (event.clickedInventory != event.view.topInventory) return
 
@@ -2298,7 +2298,7 @@ class WorldSettingsListener : Listener {
                                         plugin.settingsSessionManager.endSession(player)
                                 }
                         }
-                        SettingsAction.UNARCHIVE_CONFIRM -> {
+                        WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: unarchive confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
 
