@@ -248,9 +248,111 @@ class WorldSettingsListener : Listener {
                                         return MenuActionResult.Success(MenuUpdate.None)
                                 }
                         }
+                        ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE -> {
+                                handleMemberPendingInviteClick(player, item, worldData, click.isLeftClick)
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
                         else -> Unit
                 }
                 return null
+        }
+
+        private fun handleMemberPendingInviteClick(
+                player: Player,
+                item: ItemStack,
+                worldData: WorldData,
+                isLeftClick: Boolean,
+        ) {
+                if (!isLeftClick) {
+                        return
+                }
+                val lang = plugin.languageManager
+                if (!canCancelMemberInvite(player, worldData)) {
+                        player.sendMessage(lang.getMessage(player, "general.no_permission"))
+                        plugin.soundManager.playActionSound(player, "world_settings", "error")
+                        return
+                }
+
+                val decisionId =
+                        ItemTag.getString(item, "member_pending_invite_id")
+                                ?.let { raw -> runCatching { UUID.fromString(raw) }.getOrNull() }
+                                ?: return
+                val interaction = plugin.pendingInteractionRepository.findById(decisionId)
+                if (
+                        interaction == null ||
+                                interaction.type != PendingInteractionType.MEMBER_INVITE ||
+                                interaction.worldUuid != worldData.uuid
+                ) {
+                        player.sendMessage(
+                                lang.getMessage(player, "messages.member_invite_cancel_not_found")
+                        )
+                        reopenMemberManagementLatest(player, worldData.uuid)
+                        return
+                }
+
+                val targetName =
+                        PlayerNameUtil.getNameOrDefault(
+                                interaction.targetUuid,
+                                lang.getMessage(player, "general.unknown")
+                        )
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
+                        isGui = true
+                )
+                plugin.settingsSessionManager
+                        .getSession(player)
+                        ?.setMetadata("member_pending_invite_cancel_id", decisionId.toString())
+                CCSystem.getAPI().getMenuRuntimeService().close(player)
+
+                val title =
+                        LegacyComponentSerializer.legacySection().deserialize(
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.pending_cancel_confirm.title"
+                                )
+                        )
+                val bodyLines =
+                        listOf(
+                                LegacyComponentSerializer.legacySection().deserialize(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.pending_cancel_confirm.body",
+                                                mapOf("player" to targetName)
+                                        )
+                                )
+                        )
+                val confirmAction = "mwm:confirm/member_pending_invite_cancel/$decisionId"
+                DialogConfirmManager.showConfirmationByPreference(
+                        player,
+                        plugin,
+                        title,
+                        bodyLines,
+                        confirmAction,
+                        "mwm:confirm/cancel",
+                        lang.getMessage(
+                                player,
+                                "gui.member_management.pending_cancel_confirm.confirm"
+                        ),
+                        lang.getMessage(
+                                player,
+                                "gui.member_management.pending_cancel_confirm.cancel"
+                        ),
+                        onBedrockConfirm = {
+                                handleBedrockDialogAction(player, worldData, confirmAction)
+                        },
+                        onBedrockCancel = {
+                                handleBedrockDialogCancel(player, worldData)
+                        }
+                ) {
+                        plugin.worldSettingsGui.openMemberPendingInviteCancelConfirmation(
+                                player,
+                                worldData,
+                                interaction.targetUuid,
+                                decisionId
+                        )
+                }
         }
 
         private data class RuntimeSettingsClick(
@@ -571,113 +673,12 @@ class WorldSettingsListener : Listener {
                                 }
 
                                 if (type == ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE) {
-                                        if (!event.isLeftClick) {
-                                                return
-                                        }
-                                        if (!canCancelMemberInvite(player, worldData)) {
-                                                player.sendMessage(lang.getMessage(player, "general.no_permission"))
-                                                plugin.soundManager.playActionSound(
-                                                        player,
-                                                        "world_settings",
-                                                        "error"
-                                                )
-                                                return
-                                        }
-
-                                        val decisionId =
-                                                ItemTag.getString(item, "member_pending_invite_id")
-                                                        ?.let { raw ->
-                                                                runCatching { UUID.fromString(raw) }
-                                                                        .getOrNull()
-                                                        } ?: return
-                                        val interaction = plugin.pendingInteractionRepository.findById(decisionId)
-                                        if (
-                                                interaction == null ||
-                                                        interaction.type != PendingInteractionType.MEMBER_INVITE ||
-                                                        interaction.worldUuid != worldData.uuid
-                                        ) {
-                                                player.sendMessage(
-                                                        lang.getMessage(
-                                                                player,
-                                                                "messages.member_invite_cancel_not_found"
-                                                        )
-                                                )
-                                                reopenMemberManagementLatest(player, worldData.uuid)
-                                                return
-                                        }
-
-                                        val targetName =
-                                                PlayerNameUtil.getNameOrDefault(
-                                                        interaction.targetUuid,
-                                                        lang.getMessage(player, "general.unknown")
-                                                )
-                                        plugin.settingsSessionManager.updateSessionAction(
+                                        handleMemberPendingInviteClick(
                                                 player,
-                                                worldData.uuid,
-                                                SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
-                                                isGui = true
+                                                item,
+                                                worldData,
+                                                event.isLeftClick
                                         )
-                                        plugin.settingsSessionManager
-                                                .getSession(player)
-                                                ?.setMetadata(
-                                                        "member_pending_invite_cancel_id",
-                                                        decisionId.toString()
-                                                )
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-
-                                        val title =
-                                                LegacyComponentSerializer.legacySection().deserialize(
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.member_management.pending_cancel_confirm.title"
-                                                        )
-                                                )
-                                        val bodyLines =
-                                                listOf(
-                                                        LegacyComponentSerializer.legacySection().deserialize(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.member_management.pending_cancel_confirm.body",
-                                                                        mapOf("player" to targetName)
-                                                                )
-                                                        )
-                                                )
-                                        val confirmAction =
-                                                "mwm:confirm/member_pending_invite_cancel/$decisionId"
-                                        DialogConfirmManager.showConfirmationByPreference(
-                                                player,
-                                                plugin,
-                                                title,
-                                                bodyLines,
-                                                confirmAction,
-                                                "mwm:confirm/cancel",
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.member_management.pending_cancel_confirm.confirm"
-                                                ),
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.member_management.pending_cancel_confirm.cancel"
-                                                ),
-                                                onBedrockConfirm = {
-                                                        handleBedrockDialogAction(
-                                                                player,
-                                                                worldData,
-                                                                confirmAction
-                                                        )
-                                                },
-                                                onBedrockCancel = {
-                                                        handleBedrockDialogCancel(player, worldData)
-                                                }
-                                        ) {
-                                                plugin.worldSettingsGui
-                                                        .openMemberPendingInviteCancelConfirmation(
-                                                                player,
-                                                                worldData,
-                                                                interaction.targetUuid,
-                                                                decisionId
-                                                        )
-                                        }
                                         return
                                 }
 
