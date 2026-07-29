@@ -252,6 +252,10 @@ class WorldSettingsListener : Listener {
                                 handleMemberPendingInviteClick(player, item, worldData, click.isLeftClick)
                                 return MenuActionResult.Success(MenuUpdate.None)
                         }
+                        ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST -> {
+                                handleMemberPendingRequestClick(player, item, worldData, click.isLeftClick)
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
                         else -> Unit
                 }
                 return null
@@ -351,6 +355,85 @@ class WorldSettingsListener : Listener {
                                 worldData,
                                 interaction.targetUuid,
                                 decisionId
+                        )
+                }
+        }
+
+        private fun handleMemberPendingRequestClick(
+                player: Player,
+                item: ItemStack,
+                worldData: WorldData,
+                isLeftClick: Boolean,
+        ) {
+                if (!isLeftClick) {
+                        return
+                }
+
+                val lang = plugin.languageManager
+                val decisionId =
+                        ItemTag.getString(item, "member_pending_invite_id")
+                                ?.let { raw -> runCatching { UUID.fromString(raw) }.getOrNull() }
+                                ?: return
+                val interaction = plugin.pendingInteractionRepository.findById(decisionId)
+                if (
+                        interaction == null ||
+                                interaction.type != PendingInteractionType.MEMBER_REQUEST ||
+                                interaction.worldUuid != worldData.uuid
+                ) {
+                        player.sendMessage(lang.getMessage(player, "messages.myworld_pending_none"))
+                        reopenMemberManagementLatest(player, worldData.uuid)
+                        return
+                }
+
+                val requestorName =
+                        PlayerNameUtil.getNameOrDefault(
+                                interaction.actorUuid,
+                                lang.getMessage(player, "general.unknown")
+                        )
+                val title =
+                        LegacyComponentSerializer.legacySection().deserialize(
+                                lang.getMessage(player, "gui.member_request_owner_confirm.title")
+                        )
+                val bodyLines =
+                        lang.getMessageList(
+                                player,
+                                "gui.member_request_owner_confirm.lore",
+                                mapOf("player" to requestorName)
+                        ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.MEMBER_REQUEST_OWNER_CONFIRM,
+                        isGui = true
+                )
+                val approveAction = "mwm:confirm/member_request_owner_approve/$decisionId"
+                val rejectAction = "mwm:confirm/member_request_owner_reject/$decisionId"
+                DialogConfirmManager.showConfirmationByPreference(
+                        player,
+                        plugin,
+                        title,
+                        bodyLines,
+                        approveAction,
+                        rejectAction,
+                        lang.getMessage(player, "gui.member_request_owner_confirm.confirm"),
+                        lang.getMessage(player, "gui.member_request_owner_confirm.reject"),
+                        onBedrockConfirm = {
+                                handleBedrockDialogAction(player, worldData, approveAction)
+                        },
+                        onBedrockCancel = {
+                                handleBedrockDialogAction(player, worldData, rejectAction)
+                        }
+                ) {
+                        plugin.memberRequestOwnerConfirmGui.open(
+                                player,
+                                me.awabi2048.myworldmanager.service.MemberRequestInfo(
+                                        requestorUuid = interaction.actorUuid,
+                                        worldUuid = interaction.worldUuid,
+                                        ownerUuid = interaction.targetUuid,
+                                        decisionId = interaction.id,
+                                        createdAt = interaction.createdAt
+                                ),
+                                interaction.id.toString()
                         )
                 }
         }
@@ -683,76 +766,12 @@ class WorldSettingsListener : Listener {
                                 }
 
                                 if (type == ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST) {
-                                        if (!event.isLeftClick) {
-                                                return
-                                        }
-
-                                        val decisionId =
-                                                ItemTag.getString(item, "member_pending_invite_id")
-                                                        ?.let { raw -> runCatching { UUID.fromString(raw) }.getOrNull() }
-                                                        ?: return
-                                        val interaction = plugin.pendingInteractionRepository.findById(decisionId)
-                                        if (
-                                                interaction == null ||
-                                                        interaction.type != PendingInteractionType.MEMBER_REQUEST ||
-                                                        interaction.worldUuid != worldData.uuid
-                                        ) {
-                                                player.sendMessage(lang.getMessage(player, "messages.myworld_pending_none"))
-                                                reopenMemberManagementLatest(player, worldData.uuid)
-                                                return
-                                        }
-
-                                        val requestorName =
-                                                PlayerNameUtil.getNameOrDefault(
-                                                        interaction.actorUuid,
-                                                        lang.getMessage(player, "general.unknown")
-                                                )
-                                        val title =
-                                                LegacyComponentSerializer.legacySection().deserialize(
-                                                        lang.getMessage(player, "gui.member_request_owner_confirm.title")
-                                                )
-                                        val bodyLines =
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.member_request_owner_confirm.lore",
-                                                        mapOf("player" to requestorName)
-                                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
-                                        plugin.settingsSessionManager.updateSessionAction(
+                                        handleMemberPendingRequestClick(
                                                 player,
-                                                worldData.uuid,
-                                                SettingsAction.MEMBER_REQUEST_OWNER_CONFIRM,
-                                                isGui = true
+                                                item,
+                                                worldData,
+                                                event.isLeftClick
                                         )
-                                        val approveAction = "mwm:confirm/member_request_owner_approve/$decisionId"
-                                        val rejectAction = "mwm:confirm/member_request_owner_reject/$decisionId"
-                                        DialogConfirmManager.showConfirmationByPreference(
-                                                player,
-                                                plugin,
-                                                title,
-                                                bodyLines,
-                                                approveAction,
-                                                rejectAction,
-                                                lang.getMessage(player, "gui.member_request_owner_confirm.confirm"),
-                                                lang.getMessage(player, "gui.member_request_owner_confirm.reject"),
-                                                onBedrockConfirm = {
-                                                        handleBedrockDialogAction(player, worldData, approveAction)
-                                                },
-                                                onBedrockCancel = {
-                                                        handleBedrockDialogAction(player, worldData, rejectAction)
-                                                }
-                                        ) {
-                                                plugin.memberRequestOwnerConfirmGui.open(
-                                                        player,
-                                                        me.awabi2048.myworldmanager.service.MemberRequestInfo(
-                                                                requestorUuid = interaction.actorUuid,
-                                                                worldUuid = interaction.worldUuid,
-                                                                ownerUuid = interaction.targetUuid,
-                                                                decisionId = interaction.id,
-                                                                createdAt = interaction.createdAt
-                                                        ),
-                                                        interaction.id.toString()
-                                                )
-                                        }
                                         return
                                 }
 
