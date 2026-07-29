@@ -12,6 +12,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -73,7 +74,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                 MenuElement(layout.rightSlot, createBiomeItem(player, worldData), GuiElementRole.ACTION, ACTION_BIOME),
                 MenuElement(layout.backSlot, createBackItem(player), GuiElementRole.BACK, ACTION_BACK),
             ),
-            allowPlayerInventoryInteraction = true,
+            playerInventoryInteraction = PlayerInventoryInteraction.SELECTION,
         )
     }
 

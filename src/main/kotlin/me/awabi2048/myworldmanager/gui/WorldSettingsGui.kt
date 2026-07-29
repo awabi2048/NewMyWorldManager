@@ -19,6 +19,7 @@ import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
+import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -94,7 +95,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 owner = RUNTIME_OWNER,
                                 id = RUNTIME_SELECTION_ROUTE,
                                 renderer = { context ->
-                                        runtimeViews[context.route.payload.getValue("view")]?.view
+                                        runtimeViews[context.route.payload.getValue("view")]
+                                                ?.view
+                                                ?.copy(
+                                                        playerInventoryInteraction =
+                                                                PlayerInventoryInteraction.SELECTION
+                                                )
                                                 ?: error("ワールド設定Runtime Viewが見つかりません")
                                 },
                                 actions = mapOf(
@@ -3075,7 +3081,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 title = title,
                                 elements = inventory.elements(),
                                 standardFrame = false,
-                                allowPlayerInventoryInteraction = true,
+                                playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
                         ),
                 )
                 val route = MenuRoute(

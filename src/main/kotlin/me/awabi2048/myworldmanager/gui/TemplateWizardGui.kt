@@ -13,6 +13,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -258,7 +259,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             layout.size,
             GuiHelper.inventoryTitle(lang.getMessage(player, "gui.template_wizard.title")),
             elements,
-            allowPlayerInventoryInteraction = true,
+            playerInventoryInteraction = PlayerInventoryInteraction.SELECTION,
         )
     }
 

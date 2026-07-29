@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourWaypointData
@@ -529,7 +530,12 @@ class TourGui(private val plugin: MyWorldManager) {
                 Component.text(lang.getMessage(player, "gui.tour.menu.single_edit_title", mapOf("tour" to tour.name))),
             ),
             elements = elements,
-            allowPlayerInventoryInteraction = session.awaitingIconPick,
+            playerInventoryInteraction =
+                if (session.awaitingIconPick) {
+                    PlayerInventoryInteraction.SELECTION
+                } else {
+                    PlayerInventoryInteraction.INTERACTIVE
+                },
         )
     }
 
