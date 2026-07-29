@@ -136,6 +136,7 @@ class WorldSettingsListener : Listener {
                         }
                 }
                 handleIconSelectionTopInventoryClick(runtimeContext)?.let { return it }
+                handleConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handleMemberManagementInviteClick(player, click, item, runtimeContext)?.let { return it }
                 handleMemberManagementRouteClick(player, click, item, runtimeContext)?.let { return it }
                 val runtimeClick =
@@ -156,6 +157,107 @@ class WorldSettingsListener : Listener {
                 runtimeContext: WorldSettingsRuntimeContext,
         ): MenuActionResult? {
                 if (runtimeContext.screen != WorldSettingsRuntimeScreen.ICON_SELECTION) return null
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleConfirmationRuntimeClick(
+                player: Player,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                val worldData = plugin.settingsSessionManager.getSession(player)?.worldUuid
+                        ?.let(plugin.worldConfigRepository::findByUuid) ?: return null
+                return when (runtimeContext.screen) {
+                        WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM ->
+                                handleMemberRemoveConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM ->
+                                handleMemberTransferConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
+                                handleMemberPendingInviteCancelConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM ->
+                                handleVisitorKickConfirmationRuntime(player, item, worldData)
+                        else -> null
+                }
+        }
+
+        private fun handleMemberRemoveConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> reopenMemberManagementLatest(player, worldData.uuid)
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                val memberId = player.openInventory.topInventory.getItem(22)?.let(ItemTag::getWorldUuid)
+                                if (memberId != null) {
+                                        val memberName = PlayerNameUtil.getNameOrDefault(memberId, "Unknown")
+                                        worldData.members.remove(memberId)
+                                        worldData.moderators.remove(memberId)
+                                        plugin.worldConfigRepository.save(worldData)
+                                        Bukkit.getPluginManager().callEvent(MwmMemberRemovedEvent(worldData.uuid, memberId, memberName, player.uniqueId, MwmMemberRemoveSource.MANUAL))
+                                        player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
+                                        plugin.macroManager.execute("on_member_remove", mapOf("world_uuid" to worldData.uuid.toString(), "member" to memberName))
+                                }
+                                reopenMemberManagementLatest(player, worldData.uuid)
+                        }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleMemberTransferConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> reopenMemberManagementLatest(player, worldData.uuid)
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                val newOwnerId = player.openInventory.topInventory.getItem(22)?.let(ItemTag::getWorldUuid)
+                                        ?: return MenuActionResult.Success(MenuUpdate.None)
+                                if (!WorldCreationChecks.checkLimits(plugin, player, newOwnerId)) return MenuActionResult.Success(MenuUpdate.None)
+                                val oldOwnerId = worldData.owner
+                                val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
+                                val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
+                                worldData.owner = newOwnerId
+                                if (!worldData.moderators.contains(oldOwnerId)) worldData.moderators.add(oldOwnerId)
+                                worldData.moderators.remove(newOwnerId)
+                                worldData.members.remove(newOwnerId)
+                                plugin.worldConfigRepository.save(worldData)
+                                Bukkit.getPluginManager().callEvent(MwmOwnerTransferredEvent(worldData.uuid, oldOwnerId, oldOwnerName, newOwnerId, newOwnerName, player.uniqueId, MwmOwnerTransferSource.MANUAL))
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transferred", mapOf("old_owner" to newOwnerName)))
+                                plugin.macroManager.execute("on_owner_transfer", mapOf("old_owner" to oldOwnerName, "new_owner" to newOwnerName, "world_uuid" to worldData.uuid.toString()))
+                                reopenMemberManagementLatest(player, worldData.uuid)
+                        }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleMemberPendingInviteCancelConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> reopenMemberManagementLatest(player, worldData.uuid)
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                val decisionId = player.openInventory.topInventory.getItem(22)
+                                        ?.let { ItemTag.getString(it, "member_pending_invite_id") }
+                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                        ?: return MenuActionResult.Success(MenuUpdate.None)
+                                cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
+                        }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleVisitorKickConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                val visitorUuid = player.openInventory.topInventory.getItem(22)?.let(ItemTag::getWorldUuid)
+                                        ?: return MenuActionResult.Success(MenuUpdate.None)
+                                val visitor = Bukkit.getPlayer(visitorUuid)
+                                val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                                if (visitor != null && visitor.world.name == worldFolderName) {
+                                        visitor.teleport(plugin.worldService.getEvacuationLocation())
+                                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to visitor.name)))
+                                }
+                                plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                        }
+                        else -> Unit
+                }
                 return MenuActionResult.Success(MenuUpdate.None)
         }
 
@@ -873,6 +975,8 @@ class WorldSettingsListener : Listener {
                 }
 
                 when (event.runtimeContext.screen) {
+                        // 専用Runtime handlerで完結するため、旧adapterでは処理しません。
+                        WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> Unit
                         WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member remove confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
@@ -978,26 +1082,6 @@ class WorldSettingsListener : Listener {
                                         )
 
                                         reopenMemberManagementLatest(player, worldData.uuid)
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member pending invite cancel confirm")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        reopenMemberManagementLatest(player, worldData.uuid)
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        val infoItem = event.inventory.getItem(22) ?: return
-                                        val decisionId =
-                                                ItemTag.getString(infoItem, "member_pending_invite_id")
-                                                        ?.let { raw ->
-                                                                runCatching { UUID.fromString(raw) }
-                                                                        .getOrNull()
-                                                        } ?: return
-                                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
                                 }
                         }
                         WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT -> {
