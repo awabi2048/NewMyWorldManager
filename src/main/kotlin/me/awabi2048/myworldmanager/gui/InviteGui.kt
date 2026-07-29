@@ -34,8 +34,7 @@ class InviteGui(private val plugin: MyWorldManager) {
     private val playerSlots = listOf(
         10, 11, 12, 13, 14, 15, 16,
         19, 20, 21, 22, 23, 24, 25,
-        28, 29, 30, 31, 32, 33, 34,
-        37, 38, 39, 40, 41, 42, 43
+        28, 29, 30, 31, 32, 33, 34
     )
 
     init {
@@ -46,6 +45,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                 renderer = { context -> render(context.player, context.route) },
                 actions = mapOf(
                     ACTION_BACK to MenuActionHandler(::back),
+                    ACTION_PAGE to MenuActionHandler(::changePage),
                     ACTION_INVITE to MenuActionHandler(::invite),
                 ),
             ),
@@ -80,6 +80,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             mapOf(
                 WORLD_UUID to currentWorldData.uuid.toString(),
                 SHOW_BACK to showBackButton.toString(),
+                PAGE to "0",
             ),
         )
         return if (showBackButton) runtime.navigate(player, route) else runtime.open(player, route)
@@ -91,15 +92,13 @@ class InviteGui(private val plugin: MyWorldManager) {
             ?: error("招待元ワールドが見つかりません。")
         val targets = InviteTargetResolver.collectAvailableTargets(plugin, player, currentWorldData)
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
-        val userCount = targets.size
-        val rowCount = if (userCount <= 7) 3 else if (userCount <= 14) 4 else if (userCount <= 21) 5 else 6
-        val statusSlot = (rowCount - 1) * 9 + 4
-        val inventorySize = rowCount * 9
-        val headSlots = playerSlots.filter { it < inventorySize && it != statusSlot }
+        val maxPage = (targets.size - 1).coerceAtLeast(0) / playerSlots.size
+        val page = (route.payload[PAGE]?.toIntOrNull() ?: 0).coerceIn(0, maxPage)
+        val pageTargets = targets.drop(page * playerSlots.size).take(playerSlots.size)
         val elements = mutableListOf<MenuElement>()
-        targets.take(headSlots.size).forEachIndexed { index, target ->
+        pageTargets.forEachIndexed { index, target ->
             elements += MenuElement(
-                headSlots[index],
+                playerSlots[index],
                 createTargetHead(target, player),
                 GuiElementRole.ACTION,
                 ACTION_INVITE,
@@ -124,7 +123,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             )
         )
         elements += MenuElement(
-            statusSlot,
+            4,
             me.awabi2048.myworldmanager.util.GuiHelper.createContextWorldIconItem(
                 plugin,
                 player,
@@ -135,20 +134,44 @@ class InviteGui(private val plugin: MyWorldManager) {
         )
 
         if (GuiHelper.canGoBack(player)) {
-            val backButtonSlot = (rowCount - 1) * 9
             elements += MenuElement(
-                backButtonSlot,
+                40,
                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"),
                 GuiElementRole.BACK,
                 ACTION_BACK,
             )
         }
+        if (page > 0) {
+            elements += MenuElement(
+                37,
+                GuiHelper.createPrevPageItem(plugin, player, "meet", page - 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf(PAGE to (page - 1).toString()),
+            )
+        }
+        if (page < maxPage) {
+            elements += MenuElement(
+                43,
+                GuiHelper.createNextPageItem(plugin, player, "meet", page + 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf(PAGE to (page + 1).toString()),
+            )
+        }
 
-        return InventoryMenuView(inventorySize, title, elements)
+        return InventoryMenuView(45, title, elements)
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {
         return MenuActionResult.Success(MenuUpdate.Back)
+    }
+
+    private fun changePage(context: MenuActionContext): MenuActionResult {
+        val page = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(context.route.copy(payload = context.route.payload + (PAGE to page.toString()))),
+        )
     }
 
     private fun invite(context: MenuActionContext): MenuActionResult {
@@ -216,7 +239,9 @@ class InviteGui(private val plugin: MyWorldManager) {
         private const val SHOW_BACK = "show_back"
         private const val TARGET_UUID = "target_uuid"
         private const val TARGET_NAME = "target_name"
+        private const val PAGE = "page"
         private const val ACTION_BACK = "back"
+        private const val ACTION_PAGE = "page"
         private const val ACTION_INVITE = "invite"
     }
 }
