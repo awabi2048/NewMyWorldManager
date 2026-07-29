@@ -145,6 +145,7 @@ class WorldSettingsListener : Listener {
                 handleEnvironmentSettingsRuntimeClick(runtimeContext)?.let { return it }
                 handleEnvironmentConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handlePortalManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
+                handleCriticalSettingsRuntimeClick(player, item, runtimeContext)?.let { return it }
                 val runtimeClick =
                         RuntimeSettingsClick(
                                 player = player,
@@ -291,6 +292,136 @@ class WorldSettingsListener : Listener {
                                 }
                         }
                         ItemTag.TYPE_GUI_CANCEL -> plugin.environmentGui.open(player, worldData)
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleCriticalSettingsRuntimeClick(
+                player: Player,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.CRITICAL_SETTINGS) return null
+                val worldUuid = runtimeContext.worldUuid
+                        ?: plugin.settingsSessionManager.getSession(player)?.worldUuid
+                        ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Ignored
+
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> {
+                                stopBorderDirectionPreview(player)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION -> {
+                                if (worldData.borderExpansionLevel <= 0) return MenuActionResult.Success(MenuUpdate.None)
+                                val title = LegacyComponentSerializer.legacySection().deserialize(
+                                        plugin.languageManager.getMessage(player, "gui.confirm.reset_expansion.title")
+                                )
+                                val bodyTextLines = plugin.languageManager
+                                        .getMessageList(player, "gui.confirm.reset_expansion.lore")
+                                        .toMutableList()
+                                if (worldData.hasModifiedBorderExpansion()) {
+                                        bodyTextLines.addAll(
+                                                plugin.languageManager.getMessageList(
+                                                        player,
+                                                        "gui.confirm.reset_expansion.modified_warning"
+                                                )
+                                        )
+                                }
+                                appendSpawnAdjustmentWarning(player, worldData, worldDataResetTarget(worldData))
+                                        ?.let(bodyTextLines::addAll)
+                                val bodyLines = bodyTextLines.map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                                plugin.settingsSessionManager.updateSessionAction(
+                                        player, worldData.uuid, SettingsAction.RESET_EXPANSION_CONFIRM, isGui = true
+                                )
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player, plugin, title, bodyLines,
+                                        "mwm:confirm/reset_expansion", "mwm:confirm/cancel",
+                                        plugin.languageManager.getMessage(player, "gui.common.confirm"),
+                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                        onBedrockConfirm = {
+                                                handleBedrockDialogAction(player, worldData, "mwm:confirm/reset_expansion")
+                                        },
+                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
+                                ) {
+                                        plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
+                                }
+                        }
+                        ItemTag.TYPE_GUI_SETTING_ARCHIVE -> {
+                                val cooldownHours = plugin.config.getLong("critical_settings.archive_cooldown_hours", 24L)
+                                val dtFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                                val isOnCooldown = stats.lastArchiveActionAt?.let { lastAt ->
+                                        try {
+                                                val lastAction = java.time.LocalDateTime.parse(lastAt, dtFormatter)
+                                                java.time.Duration.between(lastAction, java.time.LocalDateTime.now()).toHours() < cooldownHours
+                                        } catch (e: Exception) { false }
+                                } ?: false
+                                if (isOnCooldown) {
+                                        val hoursRemaining = stats.lastArchiveActionAt?.let { lastAt ->
+                                                try {
+                                                        val lastAction = java.time.LocalDateTime.parse(lastAt, dtFormatter)
+                                                        val elapsed = java.time.Duration.between(lastAction, java.time.LocalDateTime.now()).toHours()
+                                                        (cooldownHours - elapsed).coerceAtLeast(0L)
+                                                } catch (e: Exception) { 0L }
+                                        } ?: 0L
+                                        player.sendMessage(plugin.languageManager.getMessage(
+                                                player, "messages.archive_cooldown",
+                                                mapOf("cooldown_hours" to cooldownHours, "hours_remaining" to hoursRemaining)
+                                        ))
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                                val title = LegacyComponentSerializer.legacySection().deserialize(
+                                        plugin.languageManager.getMessage(player, "gui.archive.confirm_title")
+                                )
+                                val bodyLines = listOf(LegacyComponentSerializer.legacySection().deserialize(
+                                        plugin.languageManager.getMessage(player, "gui.common.confirm_warning")
+                                ))
+                                plugin.settingsSessionManager.updateSessionAction(
+                                        player, worldData.uuid, SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL, isGui = true
+                                )
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player, plugin, title, bodyLines,
+                                        "mwm:confirm/archive_world_critical", "mwm:confirm/cancel",
+                                        plugin.languageManager.getMessage(player, "gui.archive.confirm"),
+                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                        onBedrockConfirm = {
+                                                handleBedrockDialogAction(player, worldData, "mwm:confirm/archive_world_critical")
+                                        },
+                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
+                                ) {
+                                        plugin.worldSettingsGui.openArchiveConfirmation(player, worldData)
+                                }
+                        }
+                        ItemTag.TYPE_GUI_SETTING_DELETE_WORLD -> {
+                                if (!canOwnerExecuteDelete(worldData)) {
+                                        sendDeleteUnavailableMessage(player)
+                                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                                val title = LegacyComponentSerializer.legacySection().deserialize(
+                                        plugin.languageManager.getMessage(player, "gui.confirm.delete_1.title")
+                                )
+                                val bodyLines = plugin.languageManager
+                                        .getMessageList(player, "gui.confirm.delete_1.lore")
+                                        .map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                                plugin.settingsSessionManager.updateSessionAction(
+                                        player, worldData.uuid, SettingsAction.DELETE_WORLD_CONFIRM, isGui = true
+                                )
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player, plugin, title, bodyLines,
+                                        "mwm:confirm/delete_world_step1", "mwm:confirm/cancel",
+                                        plugin.languageManager.getMessage(player, "gui.confirm.delete_1.next"),
+                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                        onBedrockConfirm = {
+                                                handleBedrockDialogAction(player, worldData, "mwm:confirm/delete_world_step1")
+                                        },
+                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
+                                ) {
+                                        plugin.worldSettingsGui.openDeleteWorldConfirmation1(player, worldData)
+                                }
+                        }
                 }
                 return MenuActionResult.Success(MenuUpdate.None)
         }
@@ -1863,14 +1994,12 @@ class WorldSettingsListener : Listener {
                                         }
                                 }
                         }
-                        WorldSettingsRuntimeScreen.CRITICAL_SETTINGS -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage portals")
+                        else -> {
+                                /*
+                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: obsolete critical-settings handler")
                                 if (event.clickedInventory != event.view.topInventory) return
 
                                 when (type) {
-                                        ItemTag.TYPE_GUI_CANCEL -> {
-                                                handleCommandCancel()
-                                        }
                                         ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION -> {
                                                 if (worldData.borderExpansionLevel <= 0) return
                                                 val title = LegacyComponentSerializer.legacySection().deserialize(
@@ -2035,7 +2164,8 @@ class WorldSettingsListener : Listener {
                                         }
                                 }
                         }
-                        else -> {}
+                                */
+                        }
                 }
         }
 
