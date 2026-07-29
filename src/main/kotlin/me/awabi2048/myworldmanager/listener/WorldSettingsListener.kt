@@ -972,11 +972,6 @@ class WorldSettingsListener : Listener {
                 }
 
                 when (event.runtimeContext.screen) {
-                        // 専用Runtime handlerで完結するため、旧adapterでは処理しません。
-                        WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM,
-                        WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM,
-                        WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM -> Unit
-                        WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM -> Unit
                         WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member remove confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
