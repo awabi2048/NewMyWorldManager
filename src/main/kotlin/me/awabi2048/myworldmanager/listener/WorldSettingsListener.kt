@@ -135,6 +135,7 @@ class WorldSettingsListener : Listener {
                                 return MenuActionResult.Ignored
                         }
                 }
+                handleMemberManagementInviteClick(player, click, item, runtimeContext)?.let { return it }
                 val runtimeClick =
                         RuntimeSettingsClick(
                                 player = player,
@@ -147,6 +148,60 @@ class WorldSettingsListener : Listener {
                         )
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
+        }
+
+        /**
+         * member_management route 固有の招待操作です。画面の識別は Runtime route が担い、
+         * SettingsSession.action は Dialog 応答中の入力ワークフロー状態だけに使用します。
+         */
+        private fun handleMemberManagementInviteClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT ||
+                                ItemTag.getType(item) != ItemTag.TYPE_GUI_MEMBER_INVITE
+                ) {
+                        return null
+                }
+                val worldUuid =
+                        runtimeContext.worldUuid
+                                ?: plugin.settingsSessionManager.getSession(player)?.worldUuid
+                                ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Ignored
+                val forceAddMode = PermissionManager.canForceAddMember(player) && click.isShiftClick
+
+                if (openBedrockMemberInviteInputForm(player, worldData, forceAddMode)) {
+                        return MenuActionResult.Success(MenuUpdate.None)
+                }
+                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
+                        reopenMemberManagementLatest(player, worldData.uuid)
+                        return MenuActionResult.Success(MenuUpdate.None)
+                }
+
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.MEMBER_INVITE,
+                        isGui = true,
+                )
+                plugin.settingsSessionManager
+                        .getSession(player)
+                        ?.setMetadata("member_invite_force_add_mode", forceAddMode)
+                plugin.logger.info(
+                        "[MemberInviteDebug] stage=before_dialog player=${player.name}/${player.uniqueId} " +
+                                "world=${worldData.uuid} forceAdd=$forceAddMode " +
+                                "screen=${runtimeContext.screen}"
+                )
+                showMemberInviteDialog(player, forceAddMode)
+                plugin.logger.info(
+                        "[MemberInviteDebug] stage=after_dialog_request player=${player.name}/${player.uniqueId} " +
+                                "world=${worldData.uuid} result=${MenuUpdate.None}"
+                )
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private data class RuntimeSettingsClick(
