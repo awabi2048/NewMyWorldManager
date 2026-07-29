@@ -141,6 +141,7 @@ class WorldSettingsListener : Listener {
                 handleMemberManagementInviteClick(player, click, item, runtimeContext)?.let { return it }
                 handleMemberManagementRouteClick(player, click, item, runtimeContext)?.let { return it }
                 handleVisitorManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
+                handleExpansionMethodSelectionRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handleEnvironmentSettingsRuntimeClick(runtimeContext)?.let { return it }
                 handleEnvironmentConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handlePortalManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
@@ -157,6 +158,60 @@ class WorldSettingsListener : Listener {
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
         }
+        private fun handleExpansionMethodSelectionRuntimeClick(
+                player: Player,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION) return null
+                val session = plugin.settingsSessionManager.getSession(player) ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return MenuActionResult.Ignored
+
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_SETTING_EXPAND -> {
+                                session.expansionDirection = null
+                                val cost = calculateExpansionCost(worldData.borderExpansionLevel)
+                                openExpandConfirmationByPreference(player, worldData.uuid, null, cost)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION -> {
+                                startExpansionDirectionSelection(player, session)
+                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                val promptKey =
+                                        if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                                "messages.expand_direction_prompt"
+                                        } else {
+                                                "messages.expand_direction_prompt"
+                                        }
+                                player.sendMessage(
+                                        Component.text()
+                                                .append(Component.text(plugin.languageManager.getMessage(player, promptKey)))
+                                                .append(Component.newline())
+                                                .append(
+                                                        Component.text("§7ワールド設定メニューを開いてキャンセルします。")
+                                                                .clickEvent(ClickEvent.runCommand("/worldmenu"))
+                                                                .hoverEvent(HoverEvent.showText(Component.text("§aクリックで開く")))
+                                                )
+                                                .build()
+                                )
+                        }
+                        ItemTag.TYPE_GUI_SETTING_STEP_BACK_EXPANSION -> {
+                                if (worldData.latestBorderExpansionRecord() == null) {
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.expansion_step_back_unavailable"))
+                                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                                } else {
+                                        openExpansionStepBackConfirmationByPreference(player, worldData)
+                                }
+                        }
+                        ItemTag.TYPE_GUI_CANCEL,
+                        ItemTag.TYPE_GUI_BACK,
+                        ItemTag.TYPE_GUI_RETURN -> {
+                                stopBorderDirectionPreview(player)
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                        }
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
         private fun handleVisitorManagementRuntimeClick(
                 player: Player,
                 click: ClickType,
@@ -1358,68 +1413,6 @@ class WorldSettingsListener : Listener {
                 }
 
                 when (event.runtimeContext.screen) {
-                        WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: expand select method")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_SETTING_EXPAND) {
-                                        session.expansionDirection = null // Reset
-                                        val cost =
-                                                calculateExpansionCost(
-                                                        worldData.borderExpansionLevel
-                                                )
-                                        openExpandConfirmationByPreference(
-                                                player,
-                                                worldData.uuid,
-                                                null,
-                                                cost
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION) {
-                                        startExpansionDirectionSelection(player, session)
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                        val promptKey =
-                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                        "messages.expand_direction_prompt"
-                                                } else {
-                                                        "messages.expand_direction_prompt"
-                                                }
-                                        player.sendMessage(
-                                                Component.text()
-                                                        .append(
-                                                                Component.text(
-                                                                        plugin.languageManager.getMessage(
-                                                                                player,
-                                                                                promptKey
-                                                                        )
-                                                                )
-                                                        )
-                                                        .append(Component.newline())
-                                                        .append(
-                                                                Component.text("§7ワールド設定メニューを開いてキャンセルします。")
-                                                                        .clickEvent(ClickEvent.runCommand("/worldmenu"))
-                                                                        .hoverEvent(HoverEvent.showText(Component.text("§aクリックで開く")))
-                                                        )
-                                                        .build()
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_SETTING_STEP_BACK_EXPANSION) {
-                                        if (worldData.latestBorderExpansionRecord() == null) {
-                                                player.sendMessage(
-                                                        plugin.languageManager.getMessage(
-                                                                player,
-                                                                "messages.expansion_step_back_unavailable"
-                                                        )
-                                                )
-                                                plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
-                                                return
-                                        }
-                                        openExpansionStepBackConfirmationByPreference(player, worldData)
-                                } else if (type == ItemTag.TYPE_GUI_CANCEL ||
-                                                type == ItemTag.TYPE_GUI_BACK ||
-                                                type == ItemTag.TYPE_GUI_RETURN
-                                ) {
-                                        handleCommandCancel()
-                                }
-                        }
                         WorldSettingsRuntimeScreen.WORLD_SETTINGS -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: view settings")
                                 val clickedItem = event.currentItem
