@@ -939,13 +939,6 @@ class WorldService(
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
         val needsLoad = Bukkit.getWorld(folderName) == null
-        val sessionAtStart = plugin.settingsSessionManager.getSession(player)
-        plugin.logWorldSettingsDebug(
-                "warp=start player=${player.name}/${player.uniqueId} world=$worldUuid folder=$folderName " +
-                        "needsLoad=$needsLoad closeOnLoad=$closeInventoryOnLoad reason=$reason " +
-                        "session=${sessionAtStart?.action ?: "none"}/${sessionAtStart?.worldUuid ?: "none"} " +
-                        "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-        )
 
         if (needsLoad) {
             if (closeInventoryOnLoad) {
@@ -997,13 +990,6 @@ class WorldService(
             }
 
             player.teleport(targetLoc)
-            val sessionAfterTeleport = plugin.settingsSessionManager.getSession(player)
-            plugin.logWorldSettingsDebug(
-                    "warp=teleported player=${player.name}/${player.uniqueId} world=$worldUuid " +
-                            "actualWorld=${player.world.name} success=${player.world.uid == world.uid} " +
-                            "session=${sessionAfterTeleport?.action ?: "none"}/${sessionAfterTeleport?.worldUuid ?: "none"} " +
-                            "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-            )
 
             plugin.soundManager.playTeleportSound(player)
 
@@ -1026,12 +1012,6 @@ class WorldService(
             }
 
             afterTeleported?.invoke()
-            val sessionAfterCallback = plugin.settingsSessionManager.getSession(player)
-            plugin.logWorldSettingsDebug(
-                    "warp=callback_complete player=${player.name}/${player.uniqueId} world=$worldUuid " +
-                            "session=${sessionAfterCallback?.action ?: "none"}/${sessionAfterCallback?.worldUuid ?: "none"} " +
-                            "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-            )
         }
 
         if (needsLoad) {

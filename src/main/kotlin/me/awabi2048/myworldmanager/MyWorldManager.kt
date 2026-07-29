@@ -254,7 +254,7 @@ class MyWorldManager : JavaPlugin() {
         pendingNotificationService = PendingNotificationService(this)
 
         // 設定機能の初期化
-        settingsSessionManager = SettingsSessionManager(::logWorldSettingsDebug)
+        settingsSessionManager = SettingsSessionManager()
         discoverySessionManager = DiscoverySessionManager()
         meetSessionManager = MeetSessionManager()
         favoriteSessionManager = FavoriteSessionManager()
@@ -540,10 +540,6 @@ class MyWorldManager : JavaPlugin() {
     }
 
     @Suppress("UNUSED_PARAMETER")
-    fun logWorldSettingsDebug(message: String) {
-        logger.info("[WorldSettingsDebug] $message")
-    }
-
     private fun loadWorldsFromPreviousShutdown() {
         val file = File(dataFolder, "data/loaded_worlds_at_shutdown.yml")
         if (!file.exists()) return

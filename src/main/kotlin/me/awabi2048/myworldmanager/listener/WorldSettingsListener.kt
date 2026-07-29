@@ -1081,16 +1081,7 @@ class WorldSettingsListener : Listener {
                 plugin.settingsSessionManager
                         .getSession(player)
                         ?.setMetadata("member_invite_force_add_mode", forceAddMode)
-                plugin.logger.info(
-                        "[MemberInviteDebug] stage=before_dialog player=${player.name}/${player.uniqueId} " +
-                                "world=${worldData.uuid} forceAdd=$forceAddMode " +
-                                "screen=${runtimeContext.screen}"
-                )
                 showMemberInviteDialog(player, forceAddMode)
-                plugin.logger.info(
-                        "[MemberInviteDebug] stage=after_dialog_request player=${player.name}/${player.uniqueId} " +
-                                "world=${worldData.uuid} result=${MenuUpdate.None}"
-                )
                 return MenuActionResult.Success(MenuUpdate.None)
         }
 
@@ -2533,29 +2524,18 @@ class WorldSettingsListener : Listener {
         fun onRuntimeInventoryClose(player: Player, reason: MenuCloseReason) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 val lang = plugin.languageManager
-                plugin.logWorldSettingsDebug(
-                        "close=received player=${player.name}/${player.uniqueId} " +
-                                "route=${CCSystem.getAPI().getMenuNavigationService().currentRoute(player)} " +
-                                "session=${session.action}/${session.worldUuid} " +
-                                "external=${session.externalInput} reason=$reason"
-                )
 
                 if (SettingsClosePolicy.shouldPreserveSession(reason)) {
-                        plugin.logWorldSettingsDebug(
-                                "close=preserve_route_replacement player=${player.name}/${player.uniqueId}"
-                        )
                         return
                 }
 
                 if (session.isExternalInputExpired()) {
-                        plugin.logWorldSettingsDebug("close=end_expired_external player=${player.name}/${player.uniqueId}")
                         plugin.settingsSessionManager.endSession(player)
                         return
                 }
 
                 // アイコン選択はプレイヤー自身のインベントリを使うため、閉じた時点で明確にキャンセルする。
                 if (session.action == SettingsAction.SELECT_ICON) {
-                        plugin.logWorldSettingsDebug("close=end_icon_selection player=${player.name}/${player.uniqueId}")
                         plugin.settingsSessionManager.endSession(player)
                         player.sendMessage(lang.getMessage(player, "messages.icon_cancelled"))
                         return
@@ -2578,10 +2558,6 @@ class WorldSettingsListener : Listener {
                         if (session.externalInput == MenuExternalInput.NONE) {
                                 session.beginExternalInput(externalInputFor(session.action), 300_000L)
                         }
-                        plugin.logWorldSettingsDebug(
-                                "close=preserve_external_input player=${player.name}/${player.uniqueId} " +
-                                        "action=${session.action} external=${session.externalInput}"
-                        )
                         return
                 }
 
@@ -2590,20 +2566,12 @@ class WorldSettingsListener : Listener {
                         return
                 }
                 clearBorderPreview(player)
-                plugin.logWorldSettingsDebug("close=end_direct_close player=${player.name}/${player.uniqueId}")
                 plugin.settingsSessionManager.endSession(player)
         }
 
         @EventHandler
         fun onWorldChange(event: PlayerChangedWorldEvent) {
                 if (MyWorldManagerApi.isLogoutRelocation(event.player)) return
-                val session = plugin.settingsSessionManager.getSession(event.player)
-                plugin.logWorldSettingsDebug(
-                        "world_change player=${event.player.name}/${event.player.uniqueId} " +
-                                "from=${event.from.name} to=${event.player.world.name} " +
-                                "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"} " +
-                                "openHolder=${event.player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-                )
                 stopSpawnPreview(event.player)
                 stopBorderDirectionPreview(event.player)
                 clearBorderPreview(event.player)

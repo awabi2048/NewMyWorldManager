@@ -318,11 +318,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 replaceCurrent: Boolean = false
         ) {
                 val lang = plugin.languageManager
-                plugin.logWorldSettingsDebug(
-                        "open=request player=${player.name}/${player.uniqueId} world=${worldData.uuid} " +
-                                "showBack=$showBackButton playerFlow=$isPlayerWorldFlow parentBack=$parentShowBackButton " +
-                                "currentHolder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-                )
                 val titleKey = "gui.settings.title"
                 if (!lang.hasKey(player, titleKey)) {
                         player.sendMessage(
@@ -369,9 +364,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         parentShowBackButton = currentParentShowBackButton
                                 )
                         )
-                plugin.logWorldSettingsDebug(
-                        "open=provider_result player=${player.name}/${player.uniqueId} world=${worldData.uuid} overridden=$overridden"
-                )
                 if (overridden) {
                         return
                 }
@@ -2949,10 +2941,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM, worldData.uuid)
-                plugin.logWorldSettingsDebug(
-                        "open=runtime player=${player.name}/${player.uniqueId} world=${worldData.uuid} " +
-                                "route=$RUNTIME_ROUTE size=${inventory.size}"
-                )
         }
 
         private fun borderResetTargetForReset(worldData: WorldData): Pair<Location, Double>? {

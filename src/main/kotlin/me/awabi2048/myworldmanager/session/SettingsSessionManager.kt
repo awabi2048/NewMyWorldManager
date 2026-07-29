@@ -63,14 +63,11 @@ enum class SettingsAction {
 }
 
 
-class SettingsSessionManager(
-    private val debugLog: (String) -> Unit = {}
-) {
+class SettingsSessionManager {
     private val sessions = mutableMapOf<UUID, SettingsSession>()
 
     fun startSession(player: Player, worldUuid: UUID, action: SettingsAction) {
         sessions[player.uniqueId] = SettingsSession(player.uniqueId, worldUuid, action)
-        debugLog("session=start player=${player.name}/${player.uniqueId} world=$worldUuid action=$action")
     }
 
     fun getSession(player: Player): SettingsSession? {
@@ -78,17 +75,14 @@ class SettingsSessionManager(
     }
 
     fun endSession(player: Player) {
-        val removed = sessions.remove(player.uniqueId)
-        debugLog("session=end player=${player.name}/${player.uniqueId} previous=${removed.debugState()}")
+        sessions.remove(player.uniqueId)
     }
 
     fun endSession(playerId: UUID) {
-        val removed = sessions.remove(playerId)
-        debugLog("session=end player=$playerId previous=${removed.debugState()}")
+        sessions.remove(playerId)
     }
 
     fun clearAll() {
-        debugLog("session=clear_all count=${sessions.size}")
         sessions.clear()
     }
     
@@ -107,7 +101,6 @@ class SettingsSessionManager(
         preserveFlowContext: Boolean = true
     ) {
         val currentSession = sessions[player.uniqueId]
-        val before = currentSession.debugState()
         if (currentSession != null && currentSession.worldUuid == worldUuid) {
             currentSession.action = action
             if (isGui) currentSession.clearExternalInput()
@@ -127,10 +120,6 @@ class SettingsSessionManager(
             if (parentShowBackButton != null) session.parentShowBackButton = parentShowBackButton
             sessions[player.uniqueId] = session
         }
-        debugLog(
-            "session=update player=${player.name}/${player.uniqueId} requestedWorld=$worldUuid " +
-                "requestedAction=$action isGui=$isGui before=$before after=${sessions[player.uniqueId].debugState()}"
-        )
     }
 
     fun updateSessionAction(
@@ -153,8 +142,4 @@ class SettingsSessionManager(
             preserveFlowContext = true
         )
     }
-
-    private fun SettingsSession?.debugState(): String = this?.let {
-        "world=${it.worldUuid},action=${it.action},external=${it.externalInput}"
-    } ?: "none"
 }
