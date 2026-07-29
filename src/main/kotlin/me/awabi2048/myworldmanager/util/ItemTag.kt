@@ -36,6 +36,14 @@ object ItemTag {
     const val TYPE_GUI_INVITE_TARGET_HEAD = "gui_invite_target_head"
     const val TYPE_GUI_DECORATION = "gui_decoration"
     const val TYPE_GUI_INFO = "gui_info"
+    /**
+     * ワールド設定ヘッダーの情報アイコン専用です。
+     *
+     * 通常の情報アイコンは表示専用ですが、このアイコンだけは対象ワールド外にいる時に
+     * ワープ操作を受け付けます。Lore上の操作案内とRuntimeのクリック契約を一致させるため、
+     * 表示専用の [TYPE_GUI_INFO] と別の意味タグにしています。
+     */
+    const val TYPE_GUI_WORLD_SETTINGS_INFO_WARP = "gui_world_settings_info_warp"
     const val TYPE_GUI_PORTAL_TOGGLE_TEXT = "gui_portal_toggle_text"
     const val TYPE_GUI_PORTAL_CYCLE_COLOR = "gui_portal_cycle_color"
     const val TYPE_GUI_PORTAL_REMOVE = "gui_portal_remove"

@@ -1178,7 +1178,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         mapOf("world" to worldData.name)
                                 ),
                                 GuiLoreSpec.Rich(infoLines, GuiLoreFrame.BOTH),
-                                ItemTag.TYPE_GUI_INFO
+                                ItemTag.TYPE_GUI_WORLD_SETTINGS_INFO_WARP
                         )
                 ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(worldInfoSlot, infoItem)

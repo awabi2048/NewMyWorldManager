@@ -167,7 +167,7 @@ class WorldSettingsListener : Listener {
                         ?: return MenuActionResult.Ignored
                 val itemTag = ItemTag.getType(item) ?: return MenuActionResult.Ignored
 
-                if (itemTag == ItemTag.TYPE_GUI_INFO && ItemTag.getWorldUuid(item) == worldData.uuid) {
+                if (itemTag == ItemTag.TYPE_GUI_WORLD_SETTINGS_INFO_WARP && ItemTag.getWorldUuid(item) == worldData.uuid) {
                         if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
                                 return MenuActionResult.Ignored
                         }
