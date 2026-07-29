@@ -4436,8 +4436,6 @@ player.sendMessage(
                             val tour = plugin.tourManager.getTour(worldData, tourUuid) ?: return
                             when (plugin.tourManager.startTour(player, worldData, tour)) {
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WORLD_MEMBER ->
-                                    player.sendMessage(lang.getMessage(player, "messages.invite_already_member"))
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR ->
                                     player.sendMessage(lang.getMessage(player, "messages.tour.none_available"))
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WRONG_WORLD ->

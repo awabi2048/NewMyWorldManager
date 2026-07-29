@@ -32,12 +32,6 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.atan2
 import kotlin.math.ceil
 
-object TourParticipationPolicy {
-    fun cannotStartTour(worldData: WorldData, playerUuid: UUID): Boolean {
-        return worldData.owner == playerUuid || worldData.moderators.contains(playerUuid)
-    }
-}
-
 class TourManager(private val plugin: MyWorldManager) {
     companion object {
         const val DEFAULT_TOUR_LIMIT = 7
@@ -58,7 +52,6 @@ class TourManager(private val plugin: MyWorldManager) {
 
     enum class StartTourResult {
         STARTED,
-        WORLD_MEMBER,
         INVALID_TOUR,
         WRONG_WORLD
     }
@@ -105,10 +98,6 @@ class TourManager(private val plugin: MyWorldManager) {
             worldData.members.contains(playerUuid)
     }
 
-    fun cannotStartTour(worldData: WorldData, playerUuid: UUID): Boolean {
-        return TourParticipationPolicy.cannotStartTour(worldData, playerUuid)
-    }
-
     fun canManage(worldData: WorldData, playerUuid: UUID): Boolean {
         return worldData.owner == playerUuid || worldData.moderators.contains(playerUuid)
     }
@@ -121,7 +110,7 @@ class TourManager(private val plugin: MyWorldManager) {
     fun canPlaceSign(worldData: WorldData): Boolean = worldData.tourSigns.size < MAX_START_SIGNS_PER_WORLD
 
     fun validTours(worldData: WorldData): List<TourData> =
-        worldData.tours.filter { it.startSignUuid != null && it.waypoints.size >= 2 }
+        worldData.tours.filter { it.waypoints.size >= 2 }
 
     fun hasValidTour(worldData: WorldData): Boolean = validTours(worldData).isNotEmpty()
 
@@ -223,6 +212,13 @@ class TourManager(private val plugin: MyWorldManager) {
         val sign = signBlock.state as? Sign ?: return null
         val side = sign.getSide(org.bukkit.block.sign.Side.FRONT)
         val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        if (plain.serialize(side.line(0)) != "[Tour]" ||
+            sign.persistentDataContainer.has(TOUR_SIGN_KEY) ||
+            !canManage(worldData, player.uniqueId) ||
+            !canPlaceSign(worldData)
+        ) {
+            return null
+        }
         val signData = TourSignData(
             uuid = UUID.randomUUID(),
             worldUuid = worldData.uuid,
@@ -237,6 +233,7 @@ class TourManager(private val plugin: MyWorldManager) {
             blockZ = signBlock.z,
             blockFace = BlockFace.NORTH.name,
         )
+        side.line(0, Component.text("[Tour]", net.kyori.adventure.text.format.NamedTextColor.DARK_AQUA))
         sign.persistentDataContainer.set(TOUR_SIGN_KEY, PersistentDataType.STRING, signData.uuid.toString())
         sign.update()
         worldData.tourSigns.add(signData)
@@ -254,6 +251,24 @@ class TourManager(private val plugin: MyWorldManager) {
             .joinToString("\n")
             .take(MAX_DESCRIPTION_LENGTH)
         plugin.worldConfigRepository.save(worldData)
+    }
+
+    fun unregisterTourSign(worldData: WorldData, signData: TourSignData, signBlock: Block) {
+        val affectedTourUuids = worldData.tours
+            .filter { it.startSignUuid == signData.uuid }
+            .map { it.uuid }
+        (signBlock.state as? Sign)?.let { sign ->
+            sign.persistentDataContainer.remove(TOUR_SIGN_KEY)
+            sign.update()
+        }
+        worldData.tours.forEach { tour ->
+            if (tour.startSignUuid == signData.uuid) tour.startSignUuid = null
+        }
+        worldData.tourSigns.removeIf { it.uuid == signData.uuid }
+        plugin.worldConfigRepository.save(worldData)
+        affectedTourUuids.forEach {
+            cancelActiveTourSessions(worldData.uuid, it, "messages.tour.cancelled_edited")
+        }
     }
 
     fun updateTourSign(signData: TourSignData, worldData: WorldData) {
@@ -302,6 +317,12 @@ class TourManager(private val plugin: MyWorldManager) {
     }
 
     fun updateSignText(sign: Sign, signData: TourSignData, worldData: WorldData) {
+        val side = sign.getSide(org.bukkit.block.sign.Side.FRONT)
+        val descriptionLines = signData.description.lines()
+        side.line(0, Component.text("[Tour]", net.kyori.adventure.text.format.NamedTextColor.DARK_AQUA))
+        side.line(1, Component.text(signData.title))
+        side.line(2, Component.text(descriptionLines.getOrElse(0) { "" }))
+        side.line(3, Component.text(descriptionLines.drop(1).joinToString(" ")))
         sign.persistentDataContainer.set(TOUR_SIGN_KEY, PersistentDataType.STRING, signData.uuid.toString())
         sign.update()
     }
@@ -325,7 +346,9 @@ class TourManager(private val plugin: MyWorldManager) {
     }
 
     fun breakTourSign(worldData: WorldData, signUuid: UUID, location: Location) {
-        removeTourSign(worldData, signUuid, null)
+        val signData = getSign(worldData, signUuid) ?: return
+        val block = location.block
+        unregisterTourSign(worldData, signData, block)
     }
 
     fun findSignFromBlock(worldData: WorldData, signBlock: Block): TourSignData? {
@@ -335,8 +358,7 @@ class TourManager(private val plugin: MyWorldManager) {
     }
 
     fun startTour(player: Player, worldData: WorldData, tour: TourData): StartTourResult {
-        if (cannotStartTour(worldData, player.uniqueId)) return StartTourResult.WORLD_MEMBER
-        if (tour.startSignUuid == null || tour.waypoints.size < 2) return StartTourResult.INVALID_TOUR
+        if (tour.waypoints.size < 2) return StartTourResult.INVALID_TOUR
         val world = Bukkit.getWorld(plugin.worldService.getWorldFolderName(worldData)) ?: return StartTourResult.WRONG_WORLD
         if (player.world.uid != world.uid) return StartTourResult.WRONG_WORLD
         stopTour(player, silent = true)
@@ -616,7 +638,6 @@ class TourManager(private val plugin: MyWorldManager) {
         startSignNoticeTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             Bukkit.getOnlinePlayers().forEach { player ->
                 val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return@forEach
-                if (cannotStartTour(worldData, player.uniqueId)) return@forEach
                 val startSigns = worldData.tours
                     .filter { it.startSignUuid != null && it.waypoints.size >= 2 }
                     .mapNotNull { tour ->

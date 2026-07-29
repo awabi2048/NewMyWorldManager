@@ -61,6 +61,20 @@ class TourDialogManager {
 
         fun consumePlacement(playerUuid: UUID): PlacementSession? = placement.remove(playerUuid)
 
+        fun clear(playerUuid: UUID) {
+            placement.remove(playerUuid)
+            textEdit.remove(playerUuid)
+            signEdit.remove(playerUuid)
+            createTour.remove(playerUuid)
+        }
+
+        fun clearAll() {
+            placement.clear()
+            textEdit.clear()
+            signEdit.clear()
+            createTour.clear()
+        }
+
         private fun showCreateTourDialog(player: Player, plugin: MyWorldManager) {
             val lang = plugin.languageManager
             CCSystem.getAPI().getMenuDialogService().show(
@@ -104,15 +118,14 @@ class TourDialogManager {
                                 target.uniqueId,
                                 worldData,
                             )
-                            plugin.tourGui.openEditMenu(target, worldData)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.Resume)
                         },
                     ),
                     cancel = MenuDialogButton(
                         Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
                         MenuDialogHandler { target, _ ->
                             createTour.remove(target.uniqueId)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.Resume)
                         },
                     ),
                 ),
@@ -178,11 +191,11 @@ class TourDialogManager {
                         Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
                         MenuDialogHandler { target, _ ->
                             if (tour) {
-                                reopenTourEditor(target, plugin)
+                                textEdit.remove(target.uniqueId)
                             } else {
                                 signEdit.remove(target.uniqueId)
                             }
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(if (tour) MenuUpdate.Resume else MenuUpdate.Close)
                         },
                     ),
                 ),
@@ -200,10 +213,7 @@ class TourDialogManager {
             if (edit.draft.uuid != session.tourUuid) return MenuActionResult.Rejected()
             edit.draft.name = name.ifBlank { edit.draft.name }.take(15)
             edit.draft.description = description.ifBlank { edit.draft.description }.take(30)
-            val worldData = plugin.worldConfigRepository.findByUuid(edit.worldUuid)
-                ?: return MenuActionResult.Rejected()
-            plugin.tourGui.openSingleEditMenu(player, worldData, edit.draft, edit.isNew)
-            return MenuActionResult.Success(MenuUpdate.Close)
+            return MenuActionResult.Success(MenuUpdate.Resume)
         }
 
         private fun saveSignText(
@@ -223,14 +233,6 @@ class TourDialogManager {
             plugin.tourManager.updateTourSign(sign, worldData)
             return MenuActionResult.Success(MenuUpdate.Close)
         }
-
-        private fun reopenTourEditor(player: Player, plugin: MyWorldManager) {
-            plugin.tourSessionManager.getEdit(player.uniqueId)?.let {
-                val worldData = plugin.worldConfigRepository.findByUuid(it.worldUuid) ?: return
-                plugin.tourGui.openSingleEditMenu(player, worldData, it.draft, it.isNew)
-            }
-        }
-
     }
 
 }

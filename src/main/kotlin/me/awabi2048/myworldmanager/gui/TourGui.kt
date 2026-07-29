@@ -45,7 +45,12 @@ class TourGui(private val plugin: MyWorldManager) {
                 owner = OWNER,
                 id = START_CONFIRM_ROUTE,
                 renderer = { context -> renderStartConfirm(context.player, context.route) },
-                actions = mapOf(ACTION_START to MenuActionHandler(::startTour)),
+                actions = mapOf(
+                    ACTION_START to MenuActionHandler(::startTour),
+                    ACTION_START_CANCEL to MenuActionHandler {
+                        MenuActionResult.Success(MenuUpdate.Back)
+                    },
+                ),
             ),
         )
         runtime.register(
@@ -53,7 +58,10 @@ class TourGui(private val plugin: MyWorldManager) {
                 owner = OWNER,
                 id = BIND_SIGN_ROUTE,
                 renderer = { context -> renderBindSignMenu(context.player, context.route) },
-                actions = mapOf(ACTION_BIND_SIGN to MenuActionHandler(::bindSign)),
+                actions = mapOf(
+                    ACTION_BIND_SIGN to MenuActionHandler(::bindSign),
+                    ACTION_BIND_CANCEL to MenuActionHandler(::cancelBindSign),
+                ),
             ),
         )
         runtime.register(
@@ -80,9 +88,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 renderer = { context -> renderDiscardConfirm(context.player, context.route) },
                 actions = mapOf(
                     ACTION_DISCARD_CONFIRM to MenuActionHandler(::confirmDiscard),
-                    ACTION_DISCARD_CANCEL to MenuActionHandler {
-                        MenuActionResult.Success(MenuUpdate.Back)
-                    },
+                    ACTION_DISCARD_CANCEL to MenuActionHandler(::cancelDiscard),
                 ),
             ),
         )
@@ -138,7 +144,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openVisitorMenu(player: Player, worldData: WorldData, page: Int = 0) {
-        runtime.navigate(
+        runtime.open(
             player,
             MenuRoute(
                 OWNER,
@@ -149,7 +155,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openStartSelectionMenu(player: Player, worldData: WorldData, signUuid: java.util.UUID) {
-        runtime.navigate(
+        runtime.open(
             player,
             MenuRoute(
                 OWNER,
@@ -164,7 +170,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openStartConfirm(player: Player, worldData: WorldData, tour: TourData) {
-        runtime.navigate(player, tourRoute(START_CONFIRM_ROUTE, worldData.uuid, tour.uuid))
+        runtime.open(player, tourRoute(START_CONFIRM_ROUTE, worldData.uuid, tour.uuid))
     }
 
     private fun renderStartConfirm(player: Player, route: MenuRoute): InventoryMenuView {
@@ -177,24 +183,36 @@ class TourGui(private val plugin: MyWorldManager) {
             if (tour.description.isNotBlank()) add(GuiLoreLine.UserText(tour.description))
             add(GuiLoreLine.Metadata("by", ownerName))
         }
+        val layout = GuiHelper.confirmationLayout()
         return InventoryMenuView(
-            size = 45,
+            size = layout.size,
             title = GuiHelper.inventoryTitle(Component.text("§b【${tour.name}】")),
             elements = listOf(
-                MenuElement(22, createItem(
+                MenuElement(layout.previewSlot, createItem(
                 Material.FILLED_MAP,
                 "§b【${tour.name}】",
                 framedLore(previewLines),
                 ItemTag.TYPE_GUI_INFO
                 ), GuiElementRole.CONTENT),
-                MenuElement(40, createActionItem(
+                MenuElement(layout.confirmSlot, createActionItem(
                 player,
                 Material.LIME_WOOL,
                 "§eこのツアーをはじめる！",
                 emptyList(),
                 plugin.languageManager.getMessage(player, "gui.tour.menu.tour_item.action_start"),
                 ItemTag.TYPE_GUI_CONFIRM
-                ), GuiElementRole.ACTION, ACTION_START),
+                ), GuiElementRole.CONFIRM, ACTION_START),
+                MenuElement(
+                    layout.cancelSlot,
+                    createLoreItem(
+                        Material.RED_WOOL,
+                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                        emptyList(),
+                        ItemTag.TYPE_GUI_CANCEL,
+                    ),
+                    GuiElementRole.CANCEL,
+                    ACTION_START_CANCEL,
+                ),
             ),
         )
     }
@@ -487,10 +505,6 @@ class TourGui(private val plugin: MyWorldManager) {
         return when (plugin.tourManager.startTour(context.player, worldData, tour)) {
             me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED ->
                 MenuActionResult.Success(MenuUpdate.Close)
-            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WORLD_MEMBER -> {
-                context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.invite_already_member"))
-                MenuActionResult.Rejected()
-            }
             me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR -> {
                 context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.tour.none_available"))
                 MenuActionResult.Rejected()
@@ -535,10 +549,8 @@ class TourGui(private val plugin: MyWorldManager) {
             0.9f,
             1.4f,
         )
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            TourDialogManager.startTourCreation(context.player, plugin, worldData.uuid)
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        TourDialogManager.startTourCreation(context.player, plugin, worldData.uuid)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun editTour(context: MenuActionContext): MenuActionResult {
@@ -548,10 +560,9 @@ class TourGui(private val plugin: MyWorldManager) {
         val tour = plugin.tourManager.getTour(worldData, tourUuid)
             ?: return MenuActionResult.Rejected()
         val session = plugin.tourManager.openEditSession(context.player, worldData, tour)
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            openSingleEditMenu(context.player, worldData, session.draft, false)
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(tourRoute(SINGLE_EDIT_ROUTE, worldData.uuid, session.draft.uuid, false)),
+        )
     }
 
     private fun singleBack(context: MenuActionContext): MenuActionResult {
@@ -560,18 +571,14 @@ class TourGui(private val plugin: MyWorldManager) {
             ?: return MenuActionResult.Rejected()
         if (context.route.payload["is_new"].toBoolean()) {
             return MenuActionResult.Success(
-                MenuUpdate.Navigate(
+                MenuUpdate.Replace(
                     tourRoute(DISCARD_CONFIRM_ROUTE, worldData.uuid, session.draft.uuid, true),
                 ),
             )
         }
         if (!canSaveTour(context.player, session.draft)) return MenuActionResult.Rejected()
         plugin.tourManager.saveEditSession(context.player, worldData)
-        return MenuActionResult.Success(
-            MenuUpdate.Replace(
-                MenuRoute(OWNER, EDIT_ROUTE, mapOf("world" to worldData.uuid.toString(), "page" to "0")),
-            ),
-        )
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun editText(context: MenuActionContext): MenuActionResult {
@@ -583,17 +590,15 @@ class TourGui(private val plugin: MyWorldManager) {
             context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.icon_prompt"))
             return MenuActionResult.Success(MenuUpdate.Refresh)
         }
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            TourDialogManager.startTourTextEdit(
-                context.player,
-                plugin,
-                worldData.uuid,
-                session.draft.uuid,
-                session.draft.name,
-                session.draft.description,
-            )
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        TourDialogManager.startTourTextEdit(
+            context.player,
+            plugin,
+            worldData.uuid,
+            session.draft.uuid,
+            session.draft.name,
+            session.draft.description,
+        )
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun saveTour(context: MenuActionContext): MenuActionResult {
@@ -602,11 +607,7 @@ class TourGui(private val plugin: MyWorldManager) {
             ?: return MenuActionResult.Rejected()
         if (!canSaveTour(context.player, session.draft)) return MenuActionResult.Rejected()
         plugin.tourManager.saveEditSession(context.player, worldData)
-        return MenuActionResult.Success(
-            MenuUpdate.Replace(
-                MenuRoute(OWNER, EDIT_ROUTE, mapOf("world" to worldData.uuid.toString(), "page" to "0")),
-            ),
-        )
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun openDelete(context: MenuActionContext): MenuActionResult {
@@ -614,7 +615,7 @@ class TourGui(private val plugin: MyWorldManager) {
         val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
         return MenuActionResult.Success(
-            MenuUpdate.Navigate(
+            MenuUpdate.Replace(
                 tourRoute(
                     DELETE_CONFIRM_ROUTE,
                     worldData.uuid,
@@ -627,7 +628,8 @@ class TourGui(private val plugin: MyWorldManager) {
 
     private fun addWaypoint(context: MenuActionContext): MenuActionResult {
         plugin.tourListener.beginWaypointPick(context.player)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        runtime.suspendForExternal(context.player)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun removeWaypoint(context: MenuActionContext): MenuActionResult {
@@ -679,11 +681,18 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     private fun confirmDiscard(context: MenuActionContext): MenuActionResult {
-        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        world(context.route) ?: return MenuActionResult.Rejected()
         plugin.tourSessionManager.clearEdit(context.player.uniqueId)
+        return MenuActionResult.Success(MenuUpdate.Back)
+    }
+
+    private fun cancelDiscard(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
         return MenuActionResult.Success(
             MenuUpdate.Replace(
-                MenuRoute(OWNER, EDIT_ROUTE, mapOf("world" to worldData.uuid.toString(), "page" to "0")),
+                tourRoute(SINGLE_EDIT_ROUTE, worldData.uuid, session.draft.uuid, true),
             ),
         )
     }
@@ -694,6 +703,13 @@ class TourGui(private val plugin: MyWorldManager) {
             ?: return MenuActionResult.Rejected()
         val tour = plugin.tourManager.getTour(worldData, tourUuid)
             ?: return MenuActionResult.Rejected()
+        if (!plugin.tourManager.canManage(worldData, context.player.uniqueId) ||
+            tour.startSignUuid != null ||
+            !plugin.tourManager.canPlaceSign(worldData)
+        ) {
+            TourDialogManager.consumePlacement(context.player.uniqueId)
+            return MenuActionResult.Rejected()
+        }
         val placement = TourDialogManager.consumePlacement(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
         if (placement.worldUuid != worldData.uuid) {
@@ -711,6 +727,11 @@ class TourGui(private val plugin: MyWorldManager) {
         context.player.sendMessage(
             plugin.languageManager.getMessage(context.player, "messages.tour_sign.bound"),
         )
+        return MenuActionResult.Success(MenuUpdate.Close)
+    }
+
+    private fun cancelBindSign(context: MenuActionContext): MenuActionResult {
+        TourDialogManager.consumePlacement(context.player.uniqueId)
         return MenuActionResult.Success(MenuUpdate.Close)
     }
 
@@ -732,25 +753,23 @@ class TourGui(private val plugin: MyWorldManager) {
             plugin.tourManager.deleteTour(worldData, tourUuid)
         }
         plugin.tourSessionManager.clearEdit(context.player.uniqueId)
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            openEditMenu(context.player, worldData)
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun cancelDelete(context: MenuActionContext): MenuActionResult {
         val worldData = world(context.route) ?: return MenuActionResult.Rejected()
         val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            openSingleEditMenu(
-                context.player,
-                worldData,
-                session.draft,
-                context.route.payload["is_new"].toBoolean(),
-            )
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(
+                tourRoute(
+                    SINGLE_EDIT_ROUTE,
+                    worldData.uuid,
+                    session.draft.uuid,
+                    context.route.payload["is_new"].toBoolean(),
+                ),
+            ),
+        )
     }
 
     private fun world(route: MenuRoute): WorldData? =
@@ -862,7 +881,7 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openBindSignToTourMenu(player: Player, worldData: WorldData) {
-        runtime.navigate(
+        runtime.open(
             player,
             MenuRoute(OWNER, BIND_SIGN_ROUTE, mapOf("world" to worldData.uuid.toString())),
         )
@@ -889,6 +908,18 @@ class TourGui(private val plugin: MyWorldManager) {
                 mapOf("tour" to tour.uuid.toString()),
             )
         }
+        val footerStart = rows * 9 - 9
+        elements += MenuElement(
+            footerStart + 4,
+            createLoreItem(
+                Material.RED_WOOL,
+                lang.getMessage(player, "gui.common.cancel"),
+                emptyList(),
+                ItemTag.TYPE_GUI_CANCEL,
+            ),
+            GuiElementRole.CANCEL,
+            ACTION_BIND_CANCEL,
+        )
         return InventoryMenuView(
             size = rows * 9,
             title = GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.bind_sign_title"))),
@@ -907,6 +938,7 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val DISCARD_CONFIRM_ROUTE = "tour_discard_confirmation"
         private const val BIND_SIGN_ROUTE = "tour_bind_sign"
         private const val ACTION_START = "start"
+        private const val ACTION_START_CANCEL = "start_cancel"
         private const val ACTION_PAGE = "page"
         private const val ACTION_SELECT = "select"
         private const val ACTION_STOP = "stop"
@@ -922,6 +954,7 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val ACTION_DISCARD_CONFIRM = "discard_confirm"
         private const val ACTION_DISCARD_CANCEL = "discard_cancel"
         private const val ACTION_BIND_SIGN = "bind_sign"
+        private const val ACTION_BIND_CANCEL = "bind_cancel"
         private const val ACTION_DELETE_CONFIRM = "delete_confirm"
         private const val ACTION_DELETE_CANCEL = "delete_cancel"
     }

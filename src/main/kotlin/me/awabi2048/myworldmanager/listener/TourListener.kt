@@ -1,11 +1,13 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.TourDialogManager
 import me.awabi2048.myworldmanager.gui.TourGui
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Material
@@ -43,8 +45,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             editSession.awaitingWaypointPick = false
             plugin.soundManager.playGlobalClickSound(player)
             plugin.tourManager.addWaypoint(editSession, targetBlock.location)
-            val worldData = plugin.worldConfigRepository.findByUuid(editSession.worldUuid) ?: return
-            plugin.tourGui.openSingleEditMenu(player, worldData, editSession.draft, editSession.isNew)
+            CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
             return
         }
 
@@ -83,14 +84,31 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     fun onTourSignChange(event: SignChangeEvent) {
         val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-        if (plain.serialize(event.line(0) ?: Component.empty()) != "[Tour]") return
         val player = event.player
+        val worldData = plugin.worldConfigRepository.findByWorldName(event.block.world.name) ?: return
+        val existing = plugin.tourManager.findSignFromBlock(worldData, event.block)
+        if (existing != null && !plugin.tourManager.canManage(worldData, player.uniqueId)) {
+            event.isCancelled = true
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.no_permission"))
+            return
+        }
+        val isTourMarker = plain.serialize(event.line(0) ?: Component.empty()) == "[Tour]"
+        if (!isTourMarker) {
+            if (existing != null) {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    plugin.tourManager.unregisterTourSign(worldData, existing, event.block)
+                })
+            }
+            return
+        }
+        if (!plugin.tourManager.canManage(worldData, player.uniqueId)) return
+        if (existing != null) {
+            event.line(0, Component.text("[Tour]", NamedTextColor.DARK_AQUA))
+        }
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            val worldData = plugin.worldConfigRepository.findByWorldName(event.block.world.name) ?: return@Runnable
-            val existing = plugin.tourManager.findSignFromBlock(worldData, event.block)
             if (existing != null) {
                 plugin.tourManager.refreshTourSignText(worldData, existing, event.block)
                 return@Runnable
@@ -173,7 +191,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
     fun onBlockBreak(event: BlockBreakEvent) {
         val worldData = plugin.worldConfigRepository.findByWorldName(event.block.world.name) ?: return
         val signData = plugin.tourManager.findSignFromBlock(worldData, event.block) ?: return
-        if (!plugin.tourManager.isWorldMember(worldData, event.player.uniqueId)) {
+        if (!plugin.tourManager.canManage(worldData, event.player.uniqueId)) {
             event.isCancelled = true
             event.player.sendMessage(plugin.languageManager.getMessage(event.player, "error.tour.no_permission"))
             return

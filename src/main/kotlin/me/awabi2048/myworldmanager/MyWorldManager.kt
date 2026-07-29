@@ -514,7 +514,11 @@ class MyWorldManager : JavaPlugin() {
         if (::favoriteSessionManager.isInitialized) favoriteSessionManager.clearSession(playerUuid)
         if (::playerWorldSessionManager.isInitialized) playerWorldSessionManager.clearSession(playerUuid)
         if (::adminGuiSessionManager.isInitialized) adminGuiSessionManager.clearSession(playerUuid)
+        if (::tourManager.isInitialized) {
+            Bukkit.getPlayer(playerUuid)?.let { tourManager.stopTour(it, silent = true) }
+        }
         if (::tourSessionManager.isInitialized) tourSessionManager.clearPlayer(playerUuid)
+        me.awabi2048.myworldmanager.gui.TourDialogManager.clear(playerUuid)
         if (::templateWizardGui.isInitialized) templateWizardGui.removeSession(playerUuid)
     }
 
@@ -531,6 +535,7 @@ class MyWorldManager : JavaPlugin() {
         if (::playerWorldSessionManager.isInitialized) playerWorldSessionManager.clearAll()
         if (::adminGuiSessionManager.isInitialized) adminGuiSessionManager.clearAll()
         if (::tourSessionManager.isInitialized) tourSessionManager.clearAll()
+        me.awabi2048.myworldmanager.gui.TourDialogManager.clearAll()
         if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
     }
 
