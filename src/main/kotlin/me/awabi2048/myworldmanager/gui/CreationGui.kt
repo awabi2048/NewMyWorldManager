@@ -431,7 +431,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         }
         elements += MenuElement(
-            layout.backSlot,
+            layout.actionSlot,
             createBackButton(player),
             GuiElementRole.BACK,
             ACTION_TEMPLATE_LIST_BACK,

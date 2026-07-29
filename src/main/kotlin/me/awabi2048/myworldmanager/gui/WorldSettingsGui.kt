@@ -2332,7 +2332,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 戻るボタン
                 inventory.setItem(
-                        layout.backSlot,
+                        layout.actionSlot,
                         createItem(
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),

@@ -112,7 +112,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         }
         if (me.awabi2048.myworldmanager.util.GuiHelper.canGoBack(player)) {
             elements += MenuElement(
-                layout.backSlot,
+                layout.actionSlot,
                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list"),
                 GuiElementRole.BACK,
                 ACTION_BACK,
