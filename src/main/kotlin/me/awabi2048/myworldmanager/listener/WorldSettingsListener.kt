@@ -259,7 +259,7 @@ class WorldSettingsListener : Listener {
                         }
                         else -> Unit
                 }
-                return null
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleMemberPendingInviteClick(
@@ -865,123 +865,6 @@ class WorldSettingsListener : Listener {
                 }
 
                 when (session.action) {
-                        SettingsAction.MANAGE_MEMBERS -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage members")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
-                                                type == ItemTag.TYPE_GUI_NAV_PREV
-                                ) {
-                                        val targetPage = ItemTag.getTargetPage(item) ?: return
-
-                                        val latestWorld =
-                                                plugin.worldConfigRepository.findByUuid(worldData.uuid)
-                                                        ?: return
-                                        plugin.worldSettingsGui.openMemberManagement(
-                                                player,
-                                                latestWorld,
-                                                targetPage
-                                        )
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_MEMBER_INVITE) {
-
-                                        val forceAddMode =
-                                                PermissionManager.canForceAddMember(player) &&
-                                                        event.isShiftClick
-
-                                        if (
-                                                openBedrockMemberInviteInputForm(
-                                                        player,
-                                                        worldData,
-                                                        forceAddMode
-                                                )
-                                        ) {
-                                                event.externalSurfaceOpened()
-                                                return
-                                        }
-
-                                        if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                                                reopenMemberManagementLatest(player, worldData.uuid)
-                                                return
-                                        }
-
-                                        plugin.settingsSessionManager.updateSessionAction(
-                                                player,
-                                                worldData.uuid,
-                                                SettingsAction.MEMBER_INVITE,
-                                                isGui = true
-                                        )
-                                        plugin.settingsSessionManager
-                                                .getSession(player)
-                                                ?.setMetadata(
-                                                        "member_invite_force_add_mode",
-                                                        forceAddMode
-                                                )
-                                        plugin.logger.info(
-                                                "[MemberInviteDebug] stage=before_dialog player=${player.name}/${player.uniqueId} " +
-                                                        "world=${worldData.uuid} forceAdd=$forceAddMode " +
-                                                        "screen=${event.runtimeContext.screen}"
-                                        )
-                                        showMemberInviteDialog(player, forceAddMode)
-                                        event.externalSurfaceOpened()
-                                        plugin.logger.info(
-                                                "[MemberInviteDebug] stage=after_dialog_request player=${player.name}/${player.uniqueId} " +
-                                                        "world=${worldData.uuid} result=${event.result}"
-                                        )
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL ||
-                                                type == ItemTag.TYPE_GUI_BACK ||
-                                                type == ItemTag.TYPE_GUI_RETURN
-                                ) {
-                                        handleCommandCancel()
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE) {
-                                        handleMemberPendingInviteClick(
-                                                player,
-                                                item,
-                                                worldData,
-                                                event.isLeftClick
-                                        )
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST) {
-                                        handleMemberPendingRequestClick(
-                                                player,
-                                                item,
-                                                worldData,
-                                                event.isLeftClick
-                                        )
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_MEMBER_ADMIN_OWNER_RESET) {
-                                        if (!session.isAdminFlow) {
-                                                PermissionManager.sendNoPermissionMessage(player)
-                                                return
-                                        }
-                                        showAdminOwnerResetDialog(player, worldData)
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
-                                        handleMemberManagementMemberItemClick(
-                                                player,
-                                                item,
-                                                worldData,
-                                                event.isShiftClick,
-                                                event.isLeftClick,
-                                                event.isRightClick
-                                        )
-                                }
-                        }
                         SettingsAction.MEMBER_REMOVE_CONFIRM -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: member remove confirm")
                                 if (event.clickedInventory != event.view.topInventory) return
