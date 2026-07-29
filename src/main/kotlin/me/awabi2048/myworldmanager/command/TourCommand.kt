@@ -23,7 +23,6 @@ class TourCommand(private val plugin: MyWorldManager) : CommandExecutor {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.none_available"))
             return true
         }
-        plugin.soundManager.playChatClickSound(player)
         plugin.tourGui.openVisitorMenu(player, worldData)
         return true
     }

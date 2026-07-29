@@ -1362,6 +1362,17 @@ class WorldSettingsListener : Listener {
                                                 startIconSelection(player, worldData)
                                         }
                                         ItemTag.TYPE_GUI_SETTING_EXPAND -> {
+                                                if (MyWorldManagerApi.getWorldService()
+                                                                ?.isPlayerInWorld(player, worldData) != true
+                                                ) {
+                                                        player.sendMessage(
+                                                                plugin.languageManager.getMessage(
+                                                                        player,
+                                                                        "gui.settings.common.must_be_in_world"
+                                                                )
+                                                        )
+                                                        return
+                                                }
                                                 if (worldData.borderExpansionLevel ==
                                                                 WorldData.EXPANSION_LEVEL_SPECIAL
                                                 )

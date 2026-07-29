@@ -2,6 +2,8 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
@@ -68,6 +70,11 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val rowCount = (contentRows + 2).coerceIn(3, 6)
         val footerStart = (rowCount - 1) * 9
         val elements = mutableListOf<MenuElement>()
+        elements += MenuElement(
+            4,
+            createInfoItem(player, entries.size, currentPage + 1, maxPage),
+            GuiElementRole.CONTENT,
+        )
         pageEntries.forEachIndexed { index, entry ->
             val row = index / 7
             val col = index % 7
@@ -113,7 +120,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         }
         if (me.awabi2048.myworldmanager.util.GuiHelper.canGoBack(player)) {
             elements += MenuElement(
-                footerStart,
+                footerStart + 4,
                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list"),
                 GuiElementRole.BACK,
                 ACTION_BACK,
@@ -321,6 +328,29 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         item.itemMeta = meta
         ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
         return item
+    }
+
+    private fun createInfoItem(player: Player, count: Int, page: Int, pages: Int): ItemStack {
+        return GuiItemFactory.item(
+            Material.BOOK,
+            plugin.languageManager.getMessage(player, "gui.pending_list.info.name"),
+            GuiLoreSpec.Rich(
+                listOf(
+                    GuiLoreLine.Data(
+                        plugin.languageManager.getMessage(player, "gui.pending_list.info.count_label"),
+                        count,
+                        "§e",
+                    ),
+                    GuiLoreLine.Data(
+                        plugin.languageManager.getMessage(player, "gui.pending_list.info.page_label"),
+                        "$page/$pages",
+                        "§e",
+                    ),
+                ),
+                GuiLoreFrame.BOTH,
+            ),
+            ItemTag.TYPE_GUI_INFO,
+        )
     }
 
     private fun typeLabel(player: Player, type: PendingDecisionManager.PendingType): String {

@@ -31,12 +31,6 @@ import org.bukkit.inventory.ItemStack
 class InviteGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
-    private val playerSlots = listOf(
-        10, 11, 12, 13, 14, 15, 16,
-        19, 20, 21, 22, 23, 24, 25,
-        28, 29, 30, 31, 32, 33, 34
-    )
-
     init {
         runtime.register(
             InventoryMenuDefinition(
@@ -92,13 +86,15 @@ class InviteGui(private val plugin: MyWorldManager) {
             ?: error("招待元ワールドが見つかりません。")
         val targets = InviteTargetResolver.collectAvailableTargets(plugin, player, currentWorldData)
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
-        val maxPage = (targets.size - 1).coerceAtLeast(0) / playerSlots.size
-        val page = (route.payload[PAGE]?.toIntOrNull() ?: 0).coerceIn(0, maxPage)
-        val pageTargets = targets.drop(page * playerSlots.size).take(playerSlots.size)
+        val pageLayout = CCSystem.getAPI().getGuiLayoutService()
+            .sevenColumnPage(targets.size, route.payload[PAGE]?.toIntOrNull() ?: 0)
+        val page = pageLayout.page
+        val layout = pageLayout.layout
+        val pageTargets = targets.drop(pageLayout.startIndex).take(pageLayout.itemCount)
         val elements = mutableListOf<MenuElement>()
         pageTargets.forEachIndexed { index, target ->
             elements += MenuElement(
-                playerSlots[index],
+                layout.itemSlots[index],
                 createTargetHead(target, player),
                 GuiElementRole.ACTION,
                 ACTION_INVITE,
@@ -135,7 +131,7 @@ class InviteGui(private val plugin: MyWorldManager) {
 
         if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(
-                40,
+                layout.backSlot,
                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "meet"),
                 GuiElementRole.BACK,
                 ACTION_BACK,
@@ -143,16 +139,16 @@ class InviteGui(private val plugin: MyWorldManager) {
         }
         if (page > 0) {
             elements += MenuElement(
-                37,
+                layout.previousPageSlot,
                 GuiHelper.createPrevPageItem(plugin, player, "meet", page - 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
                 mapOf(PAGE to (page - 1).toString()),
             )
         }
-        if (page < maxPage) {
+        if (page < pageLayout.totalPages - 1) {
             elements += MenuElement(
-                43,
+                layout.nextPageSlot,
                 GuiHelper.createNextPageItem(plugin, player, "meet", page + 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
@@ -160,7 +156,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             )
         }
 
-        return InventoryMenuView(45, title, elements)
+        return InventoryMenuView(layout.size, title, elements)
     }
 
     private fun back(context: MenuActionContext): MenuActionResult {

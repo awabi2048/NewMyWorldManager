@@ -47,6 +47,7 @@ class TourManager(private val plugin: MyWorldManager) {
         private const val ARROW_INTERVAL_TICKS = 2L
         private const val PARTICLE_INTERVAL_TICKS = 10L
         private const val MIN_ARROW_MOVEMENT_SQUARED = 0.0004
+        private const val ARROW_STATIONARY_GRACE_MILLIS = 5_000L
         val TOUR_SIGN_KEY = org.bukkit.NamespacedKey("myworldmanager", "tour_sign_uuid")
     }
 
@@ -61,10 +62,15 @@ class TourManager(private val plugin: MyWorldManager) {
         var lastNotifiedAt: Long = 0L
     )
 
+    private data class ArrowMotionState(
+        var lastLocation: Location,
+        var lastMovedAt: Long,
+    )
+
     private val bossBars = ConcurrentHashMap<UUID, BossBar>()
     private val arrowTasks = ConcurrentHashMap<UUID, BukkitTask>()
     private val particleTasks = ConcurrentHashMap<UUID, BukkitTask>()
-    private val lastArrowLocations = ConcurrentHashMap<UUID, Location>()
+    private val arrowMotionStates = ConcurrentHashMap<UUID, ArrowMotionState>()
     private val startSignNoticeStates = ConcurrentHashMap<UUID, StartSignNoticeState>()
     private var progressCheckTask: BukkitTask? = null
     private var startSignNoticeTask: BukkitTask? = null
@@ -86,7 +92,7 @@ class TourManager(private val plugin: MyWorldManager) {
         arrowTasks.clear()
         particleTasks.values.forEach { it.cancel() }
         particleTasks.clear()
-        lastArrowLocations.clear()
+        arrowMotionStates.clear()
         bossBars.forEach { (uuid, bar) -> Bukkit.getPlayer(uuid)?.hideBossBar(bar) }
         bossBars.clear()
         startSignNoticeStates.clear()
@@ -378,7 +384,7 @@ class TourManager(private val plugin: MyWorldManager) {
         bossBars.remove(player.uniqueId)?.let { player.hideBossBar(it) }
         arrowTasks.remove(player.uniqueId)?.cancel()
         particleTasks.remove(player.uniqueId)?.cancel()
-        lastArrowLocations.remove(player.uniqueId)
+        arrowMotionStates.remove(player.uniqueId)
         if (session != null) {
             val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
             val tour = worldData?.let { getTour(it, session.tourUuid) }
@@ -440,7 +446,10 @@ class TourManager(private val plugin: MyWorldManager) {
     private fun startVisualTask(player: Player, worldData: WorldData, tour: TourData) {
         arrowTasks.remove(player.uniqueId)?.cancel()
         particleTasks.remove(player.uniqueId)?.cancel()
-        lastArrowLocations[player.uniqueId] = player.location.clone()
+        arrowMotionStates[player.uniqueId] = ArrowMotionState(
+            player.location.clone(),
+            System.currentTimeMillis(),
+        )
 
         val arrowTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             if (!player.isOnline) {
@@ -459,11 +468,20 @@ class TourManager(private val plugin: MyWorldManager) {
             updateNavigationDisplay(player, currentWorldData, currentTour, session.nextIndex, bossBar)
             player.showBossBar(bossBar)
             if (mode == TourNavigationMode.ALL) {
-                val previous = lastArrowLocations.put(player.uniqueId, player.location.clone())
-                if (previous != null &&
-                    previous.world?.uid == player.world.uid &&
-                    horizontalDistanceSquared(previous, player.location) >= MIN_ARROW_MOVEMENT_SQUARED
-                ) {
+                val now = System.currentTimeMillis()
+                val currentLocation = player.location.clone()
+                val motion = arrowMotionStates.compute(player.uniqueId) { _, previous ->
+                    if (previous == null || previous.lastLocation.world?.uid != currentLocation.world?.uid) {
+                        ArrowMotionState(currentLocation, now)
+                    } else {
+                        if (horizontalDistanceSquared(previous.lastLocation, currentLocation) >= MIN_ARROW_MOVEMENT_SQUARED) {
+                            previous.lastMovedAt = now
+                        }
+                        previous.lastLocation = currentLocation
+                        previous
+                    }
+                }
+                if (motion != null && now - motion.lastMovedAt < ARROW_STATIONARY_GRACE_MILLIS) {
                     spawnDirectionArrow(player, currentTour, session.nextIndex)
                 }
             }
@@ -565,9 +583,9 @@ class TourManager(private val plugin: MyWorldManager) {
 
     private fun spawnWaypointParticles(player: Player, tour: TourData, nextIndex: Int) {
         val world = player.world
-        val completedColor = Color.fromRGB(0xbb, 0xbb, 0xff)
-        val currentColor = Color.fromRGB(0xbb, 0xff, 0xbb)
-        val futureColor = Color.fromRGB(0xbb, 0xff, 0xff)
+        val completedColor = Color.fromRGB(0x77, 0x77, 0xff)
+        val currentColor = Color.fromRGB(0x77, 0xff, 0x77)
+        val futureColor = Color.fromRGB(0x77, 0xff, 0xff)
         val white = Color.fromRGB(0xff, 0xff, 0xff)
 
         tour.waypoints.forEachIndexed { index, waypoint ->
@@ -578,7 +596,7 @@ class TourManager(private val plugin: MyWorldManager) {
                 else -> futureColor
             }
             val count = if (index == nextIndex) 90 else 30
-            val transition = Particle.DustTransition(startColor, white, 0.5f)
+            val transition = Particle.DustTransition(startColor, white, 0.75f)
             player.spawnParticle(
                 Particle.DUST_COLOR_TRANSITION,
                 center,

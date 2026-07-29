@@ -27,7 +27,6 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
-import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.block.BlockFace
@@ -36,9 +35,7 @@ import java.util.UUID
 
 class TourGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
-    // ツアー一覧は5行固定にし、ヘッダー中央を現在ワールド表示、下段を操作領域として使う。
-    private val pageSlots = listOf(10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34)
-
+    // ツアー一覧は共通の3～6行可変レイアウトを使い、ヘッダー中央と下段を操作領域として使う。
     init {
         runtime.register(
             InventoryMenuDefinition(
@@ -56,9 +53,23 @@ class TourGui(private val plugin: MyWorldManager) {
         runtime.register(
             InventoryMenuDefinition(
                 owner = OWNER,
+                id = STOP_CONFIRM_ROUTE,
+                renderer = { context -> renderStopConfirm(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_STOP_CONFIRM to MenuActionHandler(::confirmStopTour),
+                    ACTION_STOP_CANCEL to MenuActionHandler {
+                        MenuActionResult.Success(MenuUpdate.Back)
+                    },
+                ),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
                 id = BIND_SIGN_ROUTE,
                 renderer = { context -> renderBindSignMenu(context.player, context.route) },
                 actions = mapOf(
+                    ACTION_PAGE to MenuActionHandler(::changeTourPage),
                     ACTION_BIND_SIGN to MenuActionHandler(::bindSign),
                     ACTION_BIND_CANCEL to MenuActionHandler(::cancelBindSign),
                 ),
@@ -178,10 +189,16 @@ class TourGui(private val plugin: MyWorldManager) {
         val tour = tour(worldData, route) ?: error("開始対象ツアーがありません")
         val ownerName = Bukkit.getOfflinePlayer(tour.createdBy ?: worldData.owner).name
             ?: plugin.languageManager.getMessage(player, "general.unknown")
+        val replacingActiveTour = plugin.tourSessionManager.get(player.uniqueId) != null
 
         val previewLines = buildList {
             if (tour.description.isNotBlank()) add(GuiLoreLine.UserText(tour.description))
             add(GuiLoreLine.Metadata("by", ownerName))
+            if (replacingActiveTour) {
+                add(GuiLoreLine.Warning(
+                    plugin.languageManager.getMessage(player, "gui.tour.menu.start_confirm.replace_active"),
+                ))
+            }
         }
         val layout = GuiHelper.confirmationLayout()
         return InventoryMenuView(
@@ -217,6 +234,56 @@ class TourGui(private val plugin: MyWorldManager) {
         )
     }
 
+    private fun renderStopConfirm(player: Player, route: MenuRoute): InventoryMenuView {
+        val layout = GuiHelper.confirmationLayout()
+        return InventoryMenuView(
+            size = layout.size,
+            title = GuiHelper.inventoryTitle(
+                Component.text(plugin.languageManager.getMessage(player, "gui.tour.menu.stop_confirm.title")),
+            ),
+            elements = listOf(
+                MenuElement(
+                    layout.previewSlot,
+                    createLoreItem(
+                        Material.BARRIER,
+                        plugin.languageManager.getMessage(player, "gui.tour.menu.stop.display"),
+                        listOf(
+                            GuiLoreLine.Warning(
+                                plugin.languageManager.getMessage(player, "gui.tour.menu.stop_confirm.question"),
+                            ),
+                        ),
+                        ItemTag.TYPE_GUI_INFO,
+                    ),
+                    GuiElementRole.CONTENT,
+                ),
+                MenuElement(
+                    layout.confirmSlot,
+                    createActionItem(
+                        player,
+                        Material.LIME_WOOL,
+                        plugin.languageManager.getMessage(player, "gui.common.confirm"),
+                        emptyList(),
+                        plugin.languageManager.getMessage(player, "gui.tour.menu.stop_confirm.confirm"),
+                        ItemTag.TYPE_GUI_CONFIRM,
+                    ),
+                    GuiElementRole.CONFIRM,
+                    ACTION_STOP_CONFIRM,
+                ),
+                MenuElement(
+                    layout.cancelSlot,
+                    createLoreItem(
+                        Material.RED_WOOL,
+                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                        emptyList(),
+                        ItemTag.TYPE_GUI_CANCEL,
+                    ),
+                    GuiElementRole.CANCEL,
+                    ACTION_STOP_CANCEL,
+                ),
+            ),
+        )
+    }
+
     private fun renderPagedTours(
         player: Player,
         route: MenuRoute,
@@ -230,24 +297,25 @@ class TourGui(private val plugin: MyWorldManager) {
             plugin.tourManager.findToursBySign(worldData, signUuid)
         }
         val requestedPage = route.payload["page"]?.toIntOrNull() ?: 0
-        val maxPage = ((tours.size - 1).coerceAtLeast(0) / pageSlots.size)
-        val safePage = requestedPage.coerceIn(0, maxPage)
+        val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(tours.size, requestedPage)
+        val layout = page.layout
+        val safePage = page.page
         val elements = mutableListOf<MenuElement>()
-        tours.drop(safePage * pageSlots.size).take(pageSlots.size).forEachIndexed { index, tour ->
+        tours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
             elements += MenuElement(
-                pageSlots[index],
+                layout.itemSlots[index],
                 createTourItem(player, worldData, tour, false),
                 GuiElementRole.ACTION,
                 ACTION_SELECT,
                 mapOf("tour" to tour.uuid.toString()),
             )
         }
-        val footerStart = 36
+        val footerStart = layout.size - 9
         if (showWorldIcon) {
             elements += MenuElement(4, createCurrentWorldItem(player, worldData), GuiElementRole.CONTENT)
             if (plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid) {
                 elements += MenuElement(
-                    42,
+                    footerStart + 6,
                     createActionItem(
                         player,
                         Material.BARRIER,
@@ -263,16 +331,16 @@ class TourGui(private val plugin: MyWorldManager) {
         }
         if (safePage > 0) {
             elements += MenuElement(
-                footerStart,
+                layout.previousPageSlot,
                 GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
                 mapOf("page" to (safePage - 1).toString()),
             )
         }
-        if ((safePage + 1) * pageSlots.size < tours.size) {
+        if (safePage + 1 < page.totalPages) {
             elements += MenuElement(
-                footerStart + 8,
+                layout.nextPageSlot,
                 GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
@@ -285,7 +353,7 @@ class TourGui(private val plugin: MyWorldManager) {
             "gui.tour.menu.start_selection_title"
         }
         return InventoryMenuView(
-            size = 45,
+            size = layout.size,
             title = GuiHelper.inventoryTitle(Component.text(plugin.languageManager.getMessage(player, titleKey))),
             elements = elements,
         )
@@ -303,27 +371,46 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     private fun stopTour(context: MenuActionContext): MenuActionResult {
+        if (plugin.tourSessionManager.get(context.player.uniqueId) == null) {
+            return MenuActionResult.Rejected()
+        }
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(
+                MenuRoute(
+                    OWNER,
+                    STOP_CONFIRM_ROUTE,
+                    context.route.payload,
+                ),
+            ),
+        )
+    }
+
+    private fun confirmStopTour(context: MenuActionContext): MenuActionResult {
         plugin.tourManager.stopTour(context.player)
-        return MenuActionResult.Success(MenuUpdate.Refresh)
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun renderEditMenu(player: Player, route: MenuRoute): InventoryMenuView {
         val worldData = world(route) ?: error("ツアー対象ワールドがありません")
         val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
-        val maxPage = ((tours.size - 1).coerceAtLeast(0) / pageSlots.size)
-        val safePage = (route.payload["page"]?.toIntOrNull() ?: 0).coerceIn(0, maxPage)
+        val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
+            tours.size,
+            route.payload["page"]?.toIntOrNull() ?: 0,
+        )
+        val layout = page.layout
+        val safePage = page.page
         val elements = mutableListOf<MenuElement>()
-        tours.drop(safePage * pageSlots.size).take(pageSlots.size).forEachIndexed { index, tour ->
+        tours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
             elements += MenuElement(
-                pageSlots[index],
+                layout.itemSlots[index],
                 createEditTourItem(player, worldData, tour),
                 GuiElementRole.ACTION,
                 ACTION_EDIT,
                 mapOf("tour" to tour.uuid.toString()),
             )
         }
-        val footerStart = 36
+        val footerStart = layout.size - 9
         elements += MenuElement(
             footerStart + 4,
             createLoreItem(Material.REDSTONE, lang.getMessage(player, "gui.tour.menu.back"), emptyList(), ItemTag.TYPE_GUI_TOUR_BACK),
@@ -347,16 +434,16 @@ class TourGui(private val plugin: MyWorldManager) {
         )
         if (safePage > 0) {
             elements += MenuElement(
-                footerStart,
+                layout.previousPageSlot,
                 GuiHelper.createPrevPageItem(plugin, player, "tour", safePage - 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
                 mapOf("page" to (safePage - 1).toString()),
             )
         }
-        if ((safePage + 1) * pageSlots.size < tours.size) {
+        if (safePage + 1 < page.totalPages) {
             elements += MenuElement(
-                footerStart + 8,
+                layout.nextPageSlot,
                 GuiHelper.createNextPageItem(plugin, player, "tour", safePage + 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
@@ -364,7 +451,7 @@ class TourGui(private val plugin: MyWorldManager) {
             )
         }
         return InventoryMenuView(
-            size = 45,
+            size = layout.size,
             title = GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.menu.edit_title"))),
             elements = elements,
         )
@@ -543,12 +630,6 @@ class TourGui(private val plugin: MyWorldManager) {
 
     private fun createTour(context: MenuActionContext): MenuActionResult {
         val worldData = world(context.route) ?: return MenuActionResult.Rejected()
-        context.player.playSound(
-            context.player.location,
-            Sound.ENTITY_EXPERIENCE_ORB_PICKUP,
-            0.9f,
-            1.4f,
-        )
         TourDialogManager.startTourCreation(context.player, plugin, worldData.uuid)
         return MenuActionResult.Success(MenuUpdate.None)
     }
@@ -890,27 +971,46 @@ class TourGui(private val plugin: MyWorldManager) {
     private fun renderBindSignMenu(player: Player, route: MenuRoute): InventoryMenuView {
         val worldData = world(route) ?: error("ツアー対象ワールドがありません")
         val lang = plugin.languageManager
-        val unboundTours = worldData.tours.filter { it.startSignUuid == null }
-        val rows = (((minOf(pageSlots.size, maxOf(7, unboundTours.size)) + 6) / 7) + 2).coerceIn(3, 6)
+        val unboundTours = worldData.tours.filter { it.startSignUuid == null }.sortedBy { it.createdAt }
+        val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
+            unboundTours.size,
+            route.payload["page"]?.toIntOrNull() ?: 0,
+        )
+        val layout = page.layout
         val elements = mutableListOf<MenuElement>()
-        unboundTours.sortedBy { it.createdAt }.take((rows - 2) * 7).forEachIndexed { index, tour ->
-            val row = index / 7 + 1
-            val col = index % 7 + 1
+        unboundTours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
             val item = createActionItem(player, tour.icon, tour.name,
                 if (tour.description.isBlank()) emptyList() else listOf(GuiLoreLine.UserText(tour.description)), lang.getMessage(player, "gui.tour.menu.tour_item.action_bind"),
                 ItemTag.TYPE_GUI_TOUR_ITEM)
             ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
             elements += MenuElement(
-                row * 9 + col,
+                layout.itemSlots[index],
                 item,
                 GuiElementRole.ACTION,
                 ACTION_BIND_SIGN,
                 mapOf("tour" to tour.uuid.toString()),
             )
         }
-        val footerStart = rows * 9 - 9
+        if (page.page > 0) {
+            elements += MenuElement(
+                layout.previousPageSlot,
+                GuiHelper.createPrevPageItem(plugin, player, "tour", page.page - 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf("page" to (page.page - 1).toString()),
+            )
+        }
+        if (page.page + 1 < page.totalPages) {
+            elements += MenuElement(
+                layout.nextPageSlot,
+                GuiHelper.createNextPageItem(plugin, player, "tour", page.page + 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_PAGE,
+                mapOf("page" to (page.page + 1).toString()),
+            )
+        }
         elements += MenuElement(
-            footerStart + 4,
+            layout.backSlot,
             createLoreItem(
                 Material.RED_WOOL,
                 lang.getMessage(player, "gui.common.cancel"),
@@ -921,7 +1021,7 @@ class TourGui(private val plugin: MyWorldManager) {
             ACTION_BIND_CANCEL,
         )
         return InventoryMenuView(
-            size = rows * 9,
+            size = layout.size,
             title = GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, "gui.tour.bind_sign_title"))),
             elements = elements,
         )
@@ -930,6 +1030,7 @@ class TourGui(private val plugin: MyWorldManager) {
     private companion object {
         private const val OWNER = "myworldmanager"
         private const val START_CONFIRM_ROUTE = "tour_start_confirmation"
+        private const val STOP_CONFIRM_ROUTE = "tour_stop_confirmation"
         private const val DELETE_CONFIRM_ROUTE = "tour_delete_confirmation"
         private const val VISITOR_ROUTE = "tour_visitor"
         private const val START_SELECTION_ROUTE = "tour_start_selection"
@@ -942,6 +1043,8 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val ACTION_PAGE = "page"
         private const val ACTION_SELECT = "select"
         private const val ACTION_STOP = "stop"
+        private const val ACTION_STOP_CONFIRM = "stop_confirm"
+        private const val ACTION_STOP_CANCEL = "stop_cancel"
         private const val ACTION_BACK = "back"
         private const val ACTION_CREATE = "create"
         private const val ACTION_EDIT = "edit"

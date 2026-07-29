@@ -36,19 +36,6 @@ object GuiLoreActions {
         )
     }
 
-    fun cyclePreviousNext(languageManager: LanguageManager, player: Player): List<GuiLoreLine.Action> {
-        return listOf(
-            GuiLoreLine.Action(
-                languageManager.getMessage(player, "lore.click.left"),
-                languageManager.getMessage(player, "gui.common.action.next")
-            ),
-            GuiLoreLine.Action(
-                languageManager.getMessage(player, "lore.click.right"),
-                languageManager.getMessage(player, "gui.common.action.previous")
-            )
-        )
-    }
-
     fun singleClick(languageManager: LanguageManager, player: Player, action: String): GuiLoreLine.SingleAction {
         return single(
             languageManager,

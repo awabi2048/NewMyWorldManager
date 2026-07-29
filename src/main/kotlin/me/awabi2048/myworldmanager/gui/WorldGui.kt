@@ -1282,7 +1282,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
+                                add(GuiLoreActions.cycle(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta
@@ -1314,7 +1314,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
+                                add(GuiLoreActions.cycle(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta
@@ -1401,7 +1401,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
                                 }
                                 add(GuiLoreLine.Spacer)
-                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
+                                add(GuiLoreActions.cycle(lang, player))
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta

@@ -31,13 +31,6 @@ class MeetGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
     // 1行7アイコン中央寄せのレイアウト (スロット 10~16, 19~25, ...)
-    private val playerSlots = listOf(
-        10, 11, 12, 13, 14, 15, 16,
-        19, 20, 21, 22, 23, 24, 25,
-        28, 29, 30, 31, 32, 33, 34,
-    )
-    private val itemsPerPage = playerSlots.size
-
     init {
         runtime.register(
             InventoryMenuDefinition(
@@ -79,17 +72,19 @@ class MeetGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val session = plugin.meetSessionManager.getSession(player.uniqueId)
         val targets = collectTargets(player)
-        val totalPages = if (targets.isEmpty()) 1 else (targets.size + itemsPerPage - 1) / itemsPerPage
-        val currentPage = (route.payload[PAGE]?.toIntOrNull() ?: session.currentPage).coerceIn(0, totalPages - 1)
+        val pageLayout = CCSystem.getAPI().getGuiLayoutService()
+            .sevenColumnPage(targets.size, route.payload[PAGE]?.toIntOrNull() ?: session.currentPage)
+        val currentPage = pageLayout.page
+        val layout = pageLayout.layout
         session.currentPage = currentPage
         val title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
         val elements = mutableListOf<MenuElement>()
-        val pageTargets = targets.drop(currentPage * itemsPerPage).take(itemsPerPage)
+        val pageTargets = targets.drop(pageLayout.startIndex).take(pageLayout.itemCount)
         pageTargets.forEachIndexed { index, target ->
             val action = resolveTargetAction(player, target)
             val actionable = action == TargetAction.DIRECT || action == TargetAction.REQUEST
             elements += MenuElement(
-                playerSlots[index],
+                layout.itemSlots[index],
                 createTargetHead(target, player, plugin),
                 if (actionable) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                 if (actionable) ACTION_TARGET else null,
@@ -119,20 +114,20 @@ class MeetGui(private val plugin: MyWorldManager) {
             statusItem.itemMeta = meta
         }
         ItemTag.tagItem(statusItem, ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE)
-        elements += MenuElement(40, statusItem, GuiElementRole.ACTION, ACTION_STATUS)
+        elements += MenuElement(layout.actionSlot, statusItem, GuiElementRole.ACTION, ACTION_STATUS)
 
         if (currentPage > 0) {
             elements += MenuElement(
-                37,
+                layout.previousPageSlot,
                 GuiHelper.createPrevPageItem(plugin, player, "meet", currentPage - 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
                 mapOf(PAGE to (currentPage - 1).toString()),
             )
         }
-        if (currentPage < totalPages - 1) {
+        if (currentPage < pageLayout.totalPages - 1) {
             elements += MenuElement(
-                43,
+                layout.nextPageSlot,
                 GuiHelper.createNextPageItem(plugin, player, "meet", currentPage + 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
@@ -141,13 +136,13 @@ class MeetGui(private val plugin: MyWorldManager) {
         }
         if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(
-                36,
+                layout.backSlot,
                 GuiHelper.createReturnItem(plugin, player, "meet"),
                 GuiElementRole.BACK,
                 ACTION_BACK,
             )
         }
-        return InventoryMenuView(GuiHelper.confirmationLayout().size, title, elements)
+        return InventoryMenuView(layout.size, title, elements)
     }
 
     private fun collectTargets(player: Player): List<Player> =

@@ -36,8 +36,6 @@ import org.bukkit.inventory.ItemStack
 
 class FavoriteGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
-    private val itemsPerPage = 27
-
     init {
         runtime.register(
             InventoryMenuDefinition(
@@ -88,13 +86,15 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
         if (resolved.size != favoriteIds.size) plugin.playerStatsRepository.save(stats)
         val worlds = resolved.filter { selectedTag == null || selectedTag in it.tags }
-        val totalPages = ((worlds.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
-        val currentPage = route.payload[PAGE]?.toIntOrNull()?.coerceIn(0, totalPages - 1) ?: 0
+        val pageLayout = CCSystem.getAPI().getGuiLayoutService()
+            .sevenColumnPage(worlds.size, route.payload[PAGE]?.toIntOrNull() ?: 0)
+        val currentPage = pageLayout.page
+        val layout = pageLayout.layout
         val elements = mutableListOf<MenuElement>()
 
-        worlds.drop(currentPage * itemsPerPage).take(itemsPerPage).forEachIndexed { index, data ->
+        worlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, data ->
             elements += MenuElement(
-                slot = index + 9,
+                slot = layout.itemSlots[index],
                 item = createWorldItem(player, data),
                 role = GuiElementRole.ACTION,
                 actionId = ACTION_WORLD,
@@ -116,17 +116,17 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
         if (currentPage > 0) {
             elements += MenuElement(
-                37,
+                layout.previousPageSlot,
                 GuiHelper.createPrevPageItem(plugin, player, "favorite", currentPage - 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
                 mapOf(PAGE to (currentPage - 1).toString()),
             )
         }
-        elements += MenuElement(40, createPlayerHead(player, worlds.size), GuiElementRole.CONTENT)
-        if (currentPage < totalPages - 1) {
+        elements += MenuElement(layout.actionSlot, createPlayerHead(player, worlds.size), GuiElementRole.CONTENT)
+        if (currentPage < pageLayout.totalPages - 1) {
             elements += MenuElement(
-                44,
+                layout.nextPageSlot,
                 GuiHelper.createNextPageItem(plugin, player, "favorite", currentPage + 1),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
@@ -134,21 +134,21 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             )
         }
         elements += MenuElement(
-            43,
+            layout.size - 2,
             createTagFilterButton(player, session.selectedTag),
             GuiElementRole.ACTION,
             ACTION_TAG,
         )
         if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(
-                36,
+                layout.backSlot,
                 GuiHelper.createReturnItem(plugin, player, "favorite"),
                 GuiElementRole.BACK,
                 ACTION_BACK,
             )
         }
         return InventoryMenuView(
-            size = 45,
+            size = layout.size,
             title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.favorite.title")),
             elements = elements,
         )

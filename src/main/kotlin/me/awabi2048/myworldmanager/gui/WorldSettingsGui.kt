@@ -368,7 +368,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // Check if player is in the world for restricted settings
                 val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                val isInWorld = player.world.key.toString() == worldData.worldKey
+                val isInWorld =
+                        MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) == true
                 val warningLore =
                         if (!isInWorld)
                                 lang.getMessage(player, "gui.settings.common.must_be_in_world")
@@ -622,7 +623,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 }
                                         ))
                                         add(GuiLoreLine.Spacer)
-                                        addAll(GuiLoreActions.cyclePreviousNext(lang, player))
+                                        add(GuiLoreActions.cycle(lang, player))
                                 }, GuiLoreFrame.BOTH)
 
                         inventory.setItem(
@@ -1659,7 +1660,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 戻ると招待の位置は共通レイアウトから取得し、一覧本文の行数変更に追従させる。
                 inventory.setItem(
-                        layout.backSlot,
+                        footerStart + 4,
                         GuiHelper.createReturnItem(
                                 plugin,
                                 player,
@@ -1706,7 +1707,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ))
                 }
                 inventory.setItem(
-                        layout.actionSlot,
+                        footerStart + 6,
                         createItem(
                                 Material.PAPER,
                                 lang.getMessage(player, "gui.member_management.invite.name"),
@@ -1722,7 +1723,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         lang.getMessage(player, "general.unknown")
                                 )
                         inventory.setItem(
-                                footerStart + 7,
+                                footerStart + 2,
                                 createItem(
                                         Material.NAME_TAG,
                                         lang.getMessage(
@@ -2955,47 +2956,50 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val allPortals =
                         plugin.portalRepository.findAll().filter { it.worldKey == worldData.worldKey }
 
-                val itemsPerPage = 21
-                val startIndex = page * itemsPerPage
-                val currentPagePortals = allPortals.drop(startIndex).take(itemsPerPage)
+                val pageLayout =
+                        CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(allPortals.size, page)
+                val currentPage = pageLayout.page
+                val layout = pageLayout.layout
+                val currentPagePortals =
+                        allPortals.drop(pageLayout.startIndex).take(pageLayout.itemCount)
 
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(layout.size)
                 // 背景
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 inventory.applyStandardFrame()
 
                 currentPagePortals.forEachIndexed { index, portal ->
-                        val slot = 9 + index
+                        val slot = layout.itemSlots[index]
                         inventory.setItem(slot, createPortalManagementItem(player, portal))
                 }
 
                 // ナビゲーション
-                if (page > 0) {
+                if (currentPage > 0) {
                         inventory.setItem(
-                                40,
-                                createItem(
-                                        Material.ARROW,
-                                        lang.getMessage(player, "gui.common.prev_page"),
-                                        GuiLoreSpec.None,
-                                        ItemTag.TYPE_GUI_NAV_PREV
-                                ).also { ItemTag.setTargetPage(it, page - 1) }
+                                layout.previousPageSlot,
+                                GuiHelper.createPrevPageItem(
+                                        plugin,
+                                        player,
+                                        "world_settings",
+                                        currentPage - 1
+                                )
                         )
                 }
-                if (startIndex + itemsPerPage < allPortals.size) {
+                if (currentPage + 1 < pageLayout.totalPages) {
                         inventory.setItem(
-                                44,
-                                createItem(
-                                        Material.ARROW,
-                                        lang.getMessage(player, "gui.common.next_page"),
-                                        GuiLoreSpec.None,
-                                        ItemTag.TYPE_GUI_NAV_NEXT
-                                ).also { ItemTag.setTargetPage(it, page + 1) }
+                                layout.nextPageSlot,
+                                GuiHelper.createNextPageItem(
+                                        plugin,
+                                        player,
+                                        "world_settings",
+                                        currentPage + 1
+                                )
                         )
                 }
 
                 // 戻るボタン
                 inventory.setItem(
-                        36,
+                        layout.backSlot,
                         createItem(
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
