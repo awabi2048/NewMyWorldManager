@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
@@ -246,10 +247,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 action == null -> MenuInteraction.DisplayOnly
                                                 else -> MenuInteraction.Action(
                                                         actionId = action,
+                                                        acceptedClicks = acceptedClicks(type),
                                                         payload = mapOf("slot" to slot.toString()),
                                                 )
                                         },
                                 )
+                        }
+
+                private fun acceptedClicks(type: String?): Set<org.bukkit.event.inventory.ClickType> =
+                        when (type) {
+                                ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE,
+                                ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST ->
+                                        MenuAcceptedClicks.LEFT
+                                else -> MenuAcceptedClicks.LEFT_RIGHT
                         }
 
                 companion object {
