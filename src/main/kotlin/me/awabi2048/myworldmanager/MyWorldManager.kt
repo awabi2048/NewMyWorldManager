@@ -540,7 +540,9 @@ class MyWorldManager : JavaPlugin() {
     }
 
     @Suppress("UNUSED_PARAMETER")
-    fun logWorldSettingsDebug(message: String) = Unit
+    fun logWorldSettingsDebug(message: String) {
+        logger.info("[WorldSettingsDebug] $message")
+    }
 
     private fun loadWorldsFromPreviousShutdown() {
         val file = File(dataFolder, "data/loaded_worlds_at_shutdown.yml")

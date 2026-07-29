@@ -14,6 +14,7 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogButton
 import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
 import com.awabi2048.ccsystem.api.gui.MenuDialogInput
 import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import java.util.Locale
@@ -92,6 +93,7 @@ class WorldSettingsListener : Listener {
                 click: ClickType,
                 item: ItemStack,
                 slot: Int,
+                route: MenuRoute,
         ): MenuActionResult {
                 if (player.openInventory.topInventory.getItem(slot)?.isSimilar(item) != true) {
                         return MenuActionResult.Ignored
@@ -140,6 +142,7 @@ class WorldSettingsListener : Listener {
                                 rawSlot = slot,
                                 click = click,
                                 currentItem = item,
+                                route = route,
                         )
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
@@ -152,9 +155,10 @@ class WorldSettingsListener : Listener {
                 val rawSlot: Int,
                 val click: ClickType,
                 val currentItem: ItemStack?,
+                val route: MenuRoute,
                 val action: InventoryAction = InventoryAction.NOTHING,
                 var isCancelled: Boolean = true,
-                var result: MenuActionResult = MenuActionResult.Success(MenuUpdate.Refresh),
+                var result: MenuActionResult = MenuActionResult.Ignored,
         ) {
                 val whoClicked: Player
                         get() = player
@@ -173,6 +177,10 @@ class WorldSettingsListener : Listener {
 
                 fun externalSurfaceOpened() {
                         result = MenuActionResult.Success(MenuUpdate.None)
+                }
+
+                fun useLegacyRefreshFallback() {
+                        result = MenuActionResult.Success(MenuUpdate.Refresh)
                 }
         }
         private val borderResetSpawnService = BorderResetSpawnService()
@@ -275,7 +283,7 @@ class WorldSettingsListener : Listener {
                 if (session != null) {
                         plugin.logWorldSettingsDebug(
                                 "click=received player=${player.name}/${player.uniqueId} " +
-                                        "route=${CCSystem.getAPI().getMenuNavigationService().currentRoute(player)} rawSlot=${event.rawSlot} " +
+                                        "route=${event.route} rawSlot=${event.rawSlot} " +
                                         "click=${event.click} action=${event.action} cancelled=${event.isCancelled} " +
                                         "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"}"
                         )
@@ -283,22 +291,6 @@ class WorldSettingsListener : Listener {
                 if (session == null) {
                         return
                 }
-                if (!GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
-                        return
-                }
-                val runtimeRoute = CCSystem.getAPI().getMenuNavigationService().currentRoute(player)
-                val isWorldSettingsRuntime =
-                        runtimeRoute?.owner == "myworldmanager" &&
-                                runtimeRoute.id == "world_settings_runtime"
-                if (!isWorldSettingsRuntime) {
-                        plugin.logWorldSettingsDebug(
-                                "click=delegated_to_extension player=${player.name}/${player.uniqueId} " +
-                                        "route=$runtimeRoute session=${session.action}/${session.worldUuid}"
-                        )
-                        return
-                }
-
-
                 // GUI遷移中のクリックを無視
 
                 // セッションが有効な場合、基本キャンセル (各caseで解除も可能だが基本はGUI)
@@ -321,6 +313,7 @@ class WorldSettingsListener : Listener {
 
                 val lang = plugin.languageManager
                 val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
+                event.useLegacyRefreshFallback()
 
                 val extensionMenuType =
                         when (session.action) {
@@ -453,7 +446,7 @@ class WorldSettingsListener : Listener {
                                         plugin.logger.info(
                                                 "[MemberInviteDebug] stage=before_dialog player=${player.name}/${player.uniqueId} " +
                                                         "world=${worldData.uuid} forceAdd=$forceAddMode " +
-                                                        "route=${CCSystem.getAPI().getMenuNavigationService().currentRoute(player)}"
+                                                        "route=${event.route}"
                                         )
                                         showMemberInviteDialog(player, forceAddMode)
                                         event.externalSurfaceOpened()

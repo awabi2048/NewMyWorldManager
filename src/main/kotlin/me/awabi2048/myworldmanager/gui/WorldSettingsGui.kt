@@ -81,6 +81,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.item,
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                                context.route,
                                                         )
                                                 },
                                 ),
@@ -114,6 +115,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.item,
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                                context.route,
                                                         )
                                                 },
                                         MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
@@ -160,6 +162,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.item,
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                                context.route,
                                                         )
                                                 },
                                 ),
