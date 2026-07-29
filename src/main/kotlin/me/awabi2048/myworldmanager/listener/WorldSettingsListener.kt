@@ -14,7 +14,6 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogButton
 import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
 import com.awabi2048.ccsystem.api.gui.MenuDialogInput
 import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
-import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import java.util.Locale
@@ -80,6 +79,8 @@ import org.bukkit.scheduler.BukkitTask
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
+import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeContext
+import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeScreen
 
 class WorldSettingsListener : Listener {
 
@@ -93,7 +94,7 @@ class WorldSettingsListener : Listener {
                 click: ClickType,
                 item: ItemStack,
                 slot: Int,
-                route: MenuRoute,
+                runtimeContext: WorldSettingsRuntimeContext,
         ): MenuActionResult {
                 if (player.openInventory.topInventory.getItem(slot)?.isSimilar(item) != true) {
                         return MenuActionResult.Ignored
@@ -110,7 +111,7 @@ class WorldSettingsListener : Listener {
                                 }
                         val extensionContext =
                                 MenuExtensionContext(
-                                        if (session.action == SettingsAction.MANAGE_MEMBERS) {
+                                        if (runtimeContext.screen == WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT) {
                                                 "member_management"
                                         } else {
                                                 "world_settings"
@@ -142,7 +143,7 @@ class WorldSettingsListener : Listener {
                                 rawSlot = slot,
                                 click = click,
                                 currentItem = item,
-                                route = route,
+                                runtimeContext = runtimeContext,
                         )
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
@@ -155,7 +156,7 @@ class WorldSettingsListener : Listener {
                 val rawSlot: Int,
                 val click: ClickType,
                 val currentItem: ItemStack?,
-                val route: MenuRoute,
+                val runtimeContext: WorldSettingsRuntimeContext,
                 val action: InventoryAction = InventoryAction.NOTHING,
                 var isCancelled: Boolean = true,
                 var result: MenuActionResult = MenuActionResult.Ignored,
@@ -283,7 +284,7 @@ class WorldSettingsListener : Listener {
                 if (session != null) {
                         plugin.logWorldSettingsDebug(
                                 "click=received player=${player.name}/${player.uniqueId} " +
-                                        "route=${event.route} rawSlot=${event.rawSlot} " +
+                                        "screen=${event.runtimeContext.screen} rawSlot=${event.rawSlot} " +
                                         "click=${event.click} action=${event.action} cancelled=${event.isCancelled} " +
                                         "session=${session?.action ?: "none"}/${session?.worldUuid ?: "none"}"
                         )
@@ -446,7 +447,7 @@ class WorldSettingsListener : Listener {
                                         plugin.logger.info(
                                                 "[MemberInviteDebug] stage=before_dialog player=${player.name}/${player.uniqueId} " +
                                                         "world=${worldData.uuid} forceAdd=$forceAddMode " +
-                                                        "route=${event.route}"
+                                                        "screen=${event.runtimeContext.screen}"
                                         )
                                         showMemberInviteDialog(player, forceAddMode)
                                         event.externalSurfaceOpened()

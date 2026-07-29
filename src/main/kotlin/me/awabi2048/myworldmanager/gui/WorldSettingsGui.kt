@@ -81,7 +81,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.item,
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
-                                                                context.route,
+                                                                WorldSettingsRuntimeContext(
+                                                                        screen = WorldSettingsRuntimeScreen.WORLD_SETTINGS,
+                                                                ),
                                                         )
                                                 },
                                 ),
@@ -115,7 +117,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.item,
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
-                                                                context.route,
+                                                                WorldSettingsRuntimeContext(
+                                                                        screen = WorldSettingsRuntimeScreen.ICON_SELECTION,
+                                                                ),
                                                         )
                                                 },
                                         MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
@@ -156,13 +160,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 actions = mapOf(
                                         ACTION_RUNTIME_DISPATCH to
                                                 MenuActionHandler { context ->
+                                                        val worldUuid =
+                                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored
                                                         plugin.worldSettingsListener.handleRuntimeInventoryClick(
                                                                 context.player,
                                                                 context.click,
                                                                 context.item,
                                                                 context.payload["slot"]?.toIntOrNull()
                                                                         ?: return@MenuActionHandler MenuActionResult.Ignored,
-                                                                context.route,
+                                                                WorldSettingsRuntimeContext(
+                                                                        screen = WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT,
+                                                                        worldUuid = worldUuid,
+                                                                        page = context.route.payload[ROUTE_PAGE]
+                                                                                ?.toIntOrNull()
+                                                                                ?.coerceAtLeast(0)
+                                                                                ?: 0,
+                                                                ),
                                                         )
                                                 },
                                 ),
@@ -191,6 +206,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         private data class RuntimeViewEntry(
                 val playerUuid: UUID,
                 val view: InventoryMenuView,
+                val screen: WorldSettingsRuntimeScreen,
         )
 
         private class RuntimeItemBuffer(val size: Int) {
@@ -3154,6 +3170,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 standardFrame = false,
                                 playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
                         ),
+                        WorldSettingsRuntimeScreen.WORLD_SETTINGS,
                 )
                 val route = MenuRoute(
                         RUNTIME_OWNER,
