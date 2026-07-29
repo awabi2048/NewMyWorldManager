@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -240,9 +241,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         slot = slot,
                                         item = item,
                                         role = role,
-                                        actionId = action,
-                                        actionPayload = if (action == null) emptyMap()
-                                        else mapOf("slot" to slot.toString()),
+                                        interaction = when {
+                                                role == GuiElementRole.BACK -> MenuInteraction.Back()
+                                                action == null -> MenuInteraction.DisplayOnly
+                                                else -> MenuInteraction.Action(
+                                                        actionId = action,
+                                                        payload = mapOf("slot" to slot.toString()),
+                                                )
+                                        },
                                 )
                         }
 
