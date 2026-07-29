@@ -139,6 +139,9 @@ class WorldSettingsListener : Listener {
                 handleConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handleMemberManagementInviteClick(player, click, item, runtimeContext)?.let { return it }
                 handleMemberManagementRouteClick(player, click, item, runtimeContext)?.let { return it }
+                handleVisitorManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
+                handleEnvironmentSettingsRuntimeClick(runtimeContext)?.let { return it }
+                handleEnvironmentConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
                 val runtimeClick =
                         RuntimeSettingsClick(
                                 player = player,
@@ -152,6 +155,89 @@ class WorldSettingsListener : Listener {
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
         }
+        private fun handleVisitorManagementRuntimeClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT) return null
+                val worldUuid = runtimeContext.worldUuid
+                        ?: plugin.settingsSessionManager.getSession(player)?.worldUuid
+                        ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Ignored
+                val type = ItemTag.getType(item)
+                if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
+                        val targetPage = ItemTag.getTargetPage(item) ?: return MenuActionResult.Ignored
+                        plugin.worldSettingsGui.openVisitorManagement(player, worldData, targetPage)
+                        return MenuActionResult.Success(MenuUpdate.None)
+                }
+                if (type == ItemTag.TYPE_GUI_VISITOR_ITEM && (click.isLeftClick || click.isRightClick)) {
+                        val visitorUuid = ItemTag.getWorldUuid(item) ?: return MenuActionResult.Ignored
+                        val lang = plugin.languageManager
+                        val targetName = PlayerNameUtil.getNameOrDefault(visitorUuid, lang.getMessage(player, "general.unknown"))
+                        val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
+                                lang.getMessage(player, "gui.visitor_management.kick_confirm.title", mapOf("player" to targetName))
+                        )
+                        val bodyLines = listOf(
+                                LegacyComponentSerializer.legacySection().deserialize(
+                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.question")
+                                ),
+                                Component.text("${lang.getMessage(player, "gui.visitor_management.kick_confirm.player_label")}: ", NamedTextColor.GRAY)
+                                        .append(Component.text(targetName, NamedTextColor.WHITE)),
+                        )
+                        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VISITOR_KICK_CONFIRM, isGui = true)
+                        DialogConfirmManager.showConfirmationByPreference(
+                                player, plugin, dialogTitle, bodyLines,
+                                "mwm:confirm/visitor_kick/$visitorUuid", "mwm:confirm/cancel",
+                                lang.getMessage(player, "gui.visitor_management.kick_confirm.confirm"),
+                                lang.getMessage(player, "gui.visitor_management.kick_confirm.cancel"),
+                                onBedrockConfirm = {
+                                        handleBedrockDialogAction(player, worldData, "mwm:confirm/visitor_kick/$visitorUuid")
+                                },
+                                onBedrockCancel = { handleBedrockDialogCancel(player, worldData) },
+                        ) {
+                                plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, visitorUuid)
+                        }
+                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
+                        stopBorderDirectionPreview(player)
+                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleEnvironmentSettingsRuntimeClick(
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? =
+                if (runtimeContext.screen == WorldSettingsRuntimeScreen.ENVIRONMENT_SETTINGS) {
+                        MenuActionResult.Success(MenuUpdate.None)
+                } else {
+                        null
+                }
+
+        private fun handleEnvironmentConfirmationRuntimeClick(
+                player: Player,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.ENVIRONMENT_CONFIRM) return null
+                val session = plugin.settingsSessionManager.getSession(player) ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return MenuActionResult.Ignored
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                val confirmItem = session.confirmItem ?: return MenuActionResult.Ignored
+                                if (ItemTag.isType(confirmItem, ItemTag.TYPE_MOON_STONE)) {
+                                        executeGravityChange(player, worldData, confirmItem)
+                                } else if (ItemTag.isType(confirmItem, ItemTag.TYPE_BOTTLED_BIOME_AIR)) {
+                                        executeBiomeChange(player, worldData, confirmItem)
+                                }
+                        }
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.environmentGui.open(player, worldData)
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
         private fun handleIconSelectionTopInventoryClick(
                 runtimeContext: WorldSettingsRuntimeContext,
         ): MenuActionResult? {
@@ -1171,74 +1257,6 @@ class WorldSettingsListener : Listener {
                 }
 
                 when (event.runtimeContext.screen) {
-                        WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: manage visitors")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_NAV_NEXT ||
-                                                type == ItemTag.TYPE_GUI_NAV_PREV
-                                ) {
-                                        val targetPage = ItemTag.getTargetPage(item) ?: return
-                                        plugin.worldSettingsGui.openVisitorManagement(player, worldData, targetPage)
-                                        return
-                                }
-
-                                if (type == ItemTag.TYPE_GUI_VISITOR_ITEM) {
-                                        val canKickByClick = event.isLeftClick || event.isRightClick
-                                        if (canKickByClick) {
-                                                val visitorUuid =
-                                                        ItemTag.getWorldUuid(item) ?: return
-                                                val targetName = PlayerNameUtil.getNameOrDefault(visitorUuid, lang.getMessage(player, "general.unknown"))
-                                                val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
-                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.title", mapOf("player" to targetName))
-                                                )
-                                                val bodyLines = listOf(
-                                                        LegacyComponentSerializer.legacySection().deserialize(
-                                                                lang.getMessage(player, "gui.visitor_management.kick_confirm.question")
-                                                        ),
-                                                        Component.text(
-                                                                "${lang.getMessage(player, "gui.visitor_management.kick_confirm.player_label")}: ",
-                                                                NamedTextColor.GRAY
-                                                        ).append(Component.text(targetName, NamedTextColor.WHITE))
-                                                )
-
-                                                plugin.settingsSessionManager.updateSessionAction(
-                                                        player,
-                                                        worldData.uuid,
-                                                        SettingsAction.VISITOR_KICK_CONFIRM,
-                                                        isGui = true
-                                                )
-                                                DialogConfirmManager.showConfirmationByPreference(
-                                                        player,
-                                                        plugin,
-                                                        dialogTitle,
-                                                        bodyLines,
-                                                        "mwm:confirm/visitor_kick/$visitorUuid",
-                                                        "mwm:confirm/cancel",
-                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.confirm"),
-                                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.cancel"),
-                                                        onBedrockConfirm = {
-                                                                handleBedrockDialogAction(
-                                                                        player,
-                                                                        worldData,
-                                                                        "mwm:confirm/visitor_kick/$visitorUuid"
-                                                                )
-                                                        },
-                                                        onBedrockCancel = {
-                                                                handleBedrockDialogCancel(player, worldData)
-                                                        }
-                                                ) {
-                                                        plugin.worldSettingsGui.openVisitorKickConfirmation(
-                                                                player,
-                                                                worldData,
-                                                                visitorUuid
-                                                        )
-                                                }
-                                        }
-                                } else if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        handleCommandCancel()
-                                }
-                        }
                         WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION -> {
                                 event.cancelWithDebug("WorldSettingsListener.onInventoryClick: expand select method")
                                 if (event.clickedInventory != event.view.topInventory) return
@@ -1748,41 +1766,6 @@ class WorldSettingsListener : Listener {
                                                 if (player.hasPermission("myworldmanager.admin")) {
                                                         plugin.environmentGui.open(player, worldData)
                                                 }
-                                        }
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.ENVIRONMENT_SETTINGS -> Unit
-                        WorldSettingsRuntimeScreen.ENVIRONMENT_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: env confirm")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                when (type) {
-                                        ItemTag.TYPE_GUI_CONFIRM -> {
-                                                val confirmItem = session.confirmItem ?: return
-                                                if (ItemTag.isType(
-                                                                confirmItem,
-                                                                ItemTag.TYPE_MOON_STONE
-                                                        )
-                                                ) {
-                                                        executeGravityChange(
-                                                                player,
-                                                                worldData,
-                                                                confirmItem
-                                                        )
-                                                } else if (ItemTag.isType(
-                                                                confirmItem,
-                                                                ItemTag.TYPE_BOTTLED_BIOME_AIR
-                                                        )
-                                                ) {
-                                                        executeBiomeChange(
-                                                                player,
-                                                                worldData,
-                                                                confirmItem
-                                                        )
-                                                }
-                                        }
-                                        ItemTag.TYPE_GUI_CANCEL -> {
-                                                plugin.environmentGui.open(player, worldData)
                                         }
                                 }
                         }
