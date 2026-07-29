@@ -52,6 +52,7 @@ class TourManager(private val plugin: MyWorldManager) {
         private const val START_SIGN_NOTICE_CHECK_INTERVAL_TICKS = 20L
         private const val ARROW_INTERVAL_TICKS = 2L
         private const val PARTICLE_INTERVAL_TICKS = 10L
+        private const val MIN_ARROW_MOVEMENT_SQUARED = 0.0004
         val TOUR_SIGN_KEY = org.bukkit.NamespacedKey("myworldmanager", "tour_sign_uuid")
     }
 
@@ -70,6 +71,7 @@ class TourManager(private val plugin: MyWorldManager) {
     private val bossBars = ConcurrentHashMap<UUID, BossBar>()
     private val arrowTasks = ConcurrentHashMap<UUID, BukkitTask>()
     private val particleTasks = ConcurrentHashMap<UUID, BukkitTask>()
+    private val lastArrowLocations = ConcurrentHashMap<UUID, Location>()
     private val startSignNoticeStates = ConcurrentHashMap<UUID, StartSignNoticeState>()
     private var progressCheckTask: BukkitTask? = null
     private var startSignNoticeTask: BukkitTask? = null
@@ -91,6 +93,7 @@ class TourManager(private val plugin: MyWorldManager) {
         arrowTasks.clear()
         particleTasks.values.forEach { it.cancel() }
         particleTasks.clear()
+        lastArrowLocations.clear()
         bossBars.forEach { (uuid, bar) -> Bukkit.getPlayer(uuid)?.hideBossBar(bar) }
         bossBars.clear()
         startSignNoticeStates.clear()
@@ -216,6 +219,43 @@ class TourManager(private val plugin: MyWorldManager) {
         return signData
     }
 
+    fun registerExistingTourSign(worldData: WorldData, player: Player, signBlock: Block): TourSignData? {
+        val sign = signBlock.state as? Sign ?: return null
+        val side = sign.getSide(org.bukkit.block.sign.Side.FRONT)
+        val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        val signData = TourSignData(
+            uuid = UUID.randomUUID(),
+            worldUuid = worldData.uuid,
+            title = plain.serialize(side.line(1)).take(MAX_TITLE_LENGTH),
+            description = listOf(side.line(2), side.line(3))
+                .map(plain::serialize)
+                .joinToString("\n")
+                .take(MAX_DESCRIPTION_LENGTH),
+            placedBy = player.uniqueId,
+            blockX = signBlock.x,
+            blockY = signBlock.y,
+            blockZ = signBlock.z,
+            blockFace = BlockFace.NORTH.name,
+        )
+        sign.persistentDataContainer.set(TOUR_SIGN_KEY, PersistentDataType.STRING, signData.uuid.toString())
+        sign.update()
+        worldData.tourSigns.add(signData)
+        plugin.worldConfigRepository.save(worldData)
+        return signData
+    }
+
+    fun refreshTourSignText(worldData: WorldData, signData: TourSignData, signBlock: Block) {
+        val sign = signBlock.state as? Sign ?: return
+        val side = sign.getSide(org.bukkit.block.sign.Side.FRONT)
+        val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        signData.title = plain.serialize(side.line(1)).take(MAX_TITLE_LENGTH)
+        signData.description = listOf(side.line(2), side.line(3))
+            .map(plain::serialize)
+            .joinToString("\n")
+            .take(MAX_DESCRIPTION_LENGTH)
+        plugin.worldConfigRepository.save(worldData)
+    }
+
     fun updateTourSign(signData: TourSignData, worldData: WorldData) {
         val world = Bukkit.getWorld(plugin.worldService.getWorldFolderName(worldData)) ?: return
         val block = world.getBlockAt(signData.blockX, signData.blockY, signData.blockZ)
@@ -262,16 +302,7 @@ class TourManager(private val plugin: MyWorldManager) {
     }
 
     fun updateSignText(sign: Sign, signData: TourSignData, worldData: WorldData) {
-        val boundTour = worldData.tours.find { it.startSignUuid == signData.uuid }
-        val tourName = boundTour?.name ?: ""
-        sign.getSide(org.bukkit.block.sign.Side.FRONT).line(0, Component.text("§3［Tour］"))
-        sign.getSide(org.bukkit.block.sign.Side.FRONT).line(1, Component.text("§8${signVisitCount(worldData, signData.uuid)} Visitors"))
-        if (tourName.isNotEmpty()) {
-            sign.getSide(org.bukkit.block.sign.Side.FRONT).line(2, Component.text("§f【$tourName】"))
-        } else {
-            sign.getSide(org.bukkit.block.sign.Side.FRONT).line(2, Component.empty())
-        }
-        sign.getSide(org.bukkit.block.sign.Side.FRONT).line(3, Component.text("§e§nクリック！"))
+        sign.persistentDataContainer.set(TOUR_SIGN_KEY, PersistentDataType.STRING, signData.uuid.toString())
         sign.update()
     }
 
@@ -280,7 +311,7 @@ class TourManager(private val plugin: MyWorldManager) {
         val affectedTourUuids = worldData.tours.filter { it.startSignUuid == signUuid }.map { it.uuid }
         val world = Bukkit.getWorld(plugin.worldService.getWorldFolderName(worldData))
         val block = world?.getBlockAt(signData.blockX, signData.blockY, signData.blockZ)
-        if (block != null && (block.type == Material.PALE_OAK_SIGN || block.type == Material.PALE_OAK_WALL_SIGN)) {
+        if (block != null && org.bukkit.Tag.ALL_SIGNS.isTagged(block.type)) {
             block.type = Material.AIR
         }
         worldData.tours.forEach {
@@ -291,12 +322,10 @@ class TourManager(private val plugin: MyWorldManager) {
         worldData.tourSigns.removeIf { it.uuid == signUuid }
         plugin.worldConfigRepository.save(worldData)
         affectedTourUuids.forEach { cancelActiveTourSessions(worldData.uuid, it, "messages.tour.cancelled_edited") }
-        returnItemTo?.inventory?.addItem(me.awabi2048.myworldmanager.util.CustomItem.TOUR_SIGN.create(plugin.languageManager, returnItemTo))
     }
 
     fun breakTourSign(worldData: WorldData, signUuid: UUID, location: Location) {
         removeTourSign(worldData, signUuid, null)
-        location.world?.dropItemNaturally(location, me.awabi2048.myworldmanager.util.CustomItem.TOUR_SIGN.create(plugin.languageManager, null))
     }
 
     fun findSignFromBlock(worldData: WorldData, signBlock: Block): TourSignData? {
@@ -327,6 +356,7 @@ class TourManager(private val plugin: MyWorldManager) {
         bossBars.remove(player.uniqueId)?.let { player.hideBossBar(it) }
         arrowTasks.remove(player.uniqueId)?.cancel()
         particleTasks.remove(player.uniqueId)?.cancel()
+        lastArrowLocations.remove(player.uniqueId)
         if (session != null) {
             val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
             val tour = worldData?.let { getTour(it, session.tourUuid) }
@@ -388,6 +418,7 @@ class TourManager(private val plugin: MyWorldManager) {
     private fun startVisualTask(player: Player, worldData: WorldData, tour: TourData) {
         arrowTasks.remove(player.uniqueId)?.cancel()
         particleTasks.remove(player.uniqueId)?.cancel()
+        lastArrowLocations[player.uniqueId] = player.location.clone()
 
         val arrowTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             if (!player.isOnline) {
@@ -406,7 +437,13 @@ class TourManager(private val plugin: MyWorldManager) {
             updateNavigationDisplay(player, currentWorldData, currentTour, session.nextIndex, bossBar)
             player.showBossBar(bossBar)
             if (mode == TourNavigationMode.ALL) {
-                spawnDirectionArrow(player, currentTour, session.nextIndex)
+                val previous = lastArrowLocations.put(player.uniqueId, player.location.clone())
+                if (previous != null &&
+                    previous.world?.uid == player.world.uid &&
+                    horizontalDistanceSquared(previous, player.location) >= MIN_ARROW_MOVEMENT_SQUARED
+                ) {
+                    spawnDirectionArrow(player, currentTour, session.nextIndex)
+                }
             }
         }, 0L, ARROW_INTERVAL_TICKS)
         arrowTasks[player.uniqueId] = arrowTask
@@ -463,6 +500,12 @@ class TourManager(private val plugin: MyWorldManager) {
             angle >= -112.5 && angle < -67.5 -> "←"
             else -> "↖"
         }
+    }
+
+    private fun horizontalDistanceSquared(first: Location, second: Location): Double {
+        val dx = first.x - second.x
+        val dz = first.z - second.z
+        return dx * dx + dz * dz
     }
 
     private fun spawnDirectionArrow(player: Player, tour: TourData, nextIndex: Int) {

@@ -120,6 +120,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 actions = mapOf(
                     ACTION_PAGE to MenuActionHandler(::changeTourPage),
                     ACTION_SELECT to MenuActionHandler(::selectTour),
+                    ACTION_STOP to MenuActionHandler(::stopTour),
                 ),
             ),
         )
@@ -226,6 +227,21 @@ class TourGui(private val plugin: MyWorldManager) {
         val footerStart = 36
         if (showWorldIcon) {
             elements += MenuElement(4, createCurrentWorldItem(player, worldData), GuiElementRole.CONTENT)
+            if (plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid) {
+                elements += MenuElement(
+                    42,
+                    createActionItem(
+                        player,
+                        Material.BARRIER,
+                        plugin.languageManager.getMessage(player, "gui.tour.menu.stop.display"),
+                        emptyList(),
+                        plugin.languageManager.getMessage(player, "gui.tour.menu.stop.action"),
+                        ItemTag.TYPE_GUI_CANCEL,
+                    ),
+                    GuiElementRole.CANCEL,
+                    ACTION_STOP,
+                )
+            }
         }
         if (safePage > 0) {
             elements += MenuElement(
@@ -266,6 +282,11 @@ class TourGui(private val plugin: MyWorldManager) {
                 mapOf("world" to worldData.uuid.toString(), "page" to page.coerceAtLeast(0).toString()),
             ),
         )
+    }
+
+    private fun stopTour(context: MenuActionContext): MenuActionResult {
+        plugin.tourManager.stopTour(context.player)
+        return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun renderEditMenu(player: Player, route: MenuRoute): InventoryMenuView {
@@ -675,29 +696,18 @@ class TourGui(private val plugin: MyWorldManager) {
             ?: return MenuActionResult.Rejected()
         val placement = TourDialogManager.consumePlacement(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
-        val placementItem = if (placement.hand == EquipmentSlot.HAND) {
-            context.player.inventory.itemInMainHand
-        } else {
-            context.player.inventory.itemInOffHand
-        }
-        if (!ItemTag.isType(placementItem, ItemTag.TYPE_TOUR_SIGN) || placementItem.amount <= 0) {
+        if (placement.worldUuid != worldData.uuid) {
             return MenuActionResult.Rejected()
         }
-        val signBlock = context.player.world.getBlockAt(placement.x, placement.y, placement.z)
-        val blockFace = runCatching { BlockFace.valueOf(placement.blockFace) }
-            .getOrDefault(BlockFace.UP)
-        val signData = plugin.tourManager.createTourSignAt(
+        val world = Bukkit.getWorld(plugin.worldService.getWorldFolderName(worldData))
+            ?: return MenuActionResult.Rejected()
+        val signData = plugin.tourManager.registerExistingTourSign(
             worldData,
             context.player,
-            signBlock,
-            blockFace,
-            "",
-            "",
-        )
-        placementItem.amount -= 1
+            world.getBlockAt(placement.x, placement.y, placement.z),
+        ) ?: return MenuActionResult.Rejected()
         tour.startSignUuid = signData.uuid
         plugin.worldConfigRepository.save(worldData)
-        plugin.tourManager.updateTourSign(signData, worldData)
         context.player.sendMessage(
             plugin.languageManager.getMessage(context.player, "messages.tour_sign.bound"),
         )
@@ -899,6 +909,7 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val ACTION_START = "start"
         private const val ACTION_PAGE = "page"
         private const val ACTION_SELECT = "select"
+        private const val ACTION_STOP = "stop"
         private const val ACTION_BACK = "back"
         private const val ACTION_CREATE = "create"
         private const val ACTION_EDIT = "edit"

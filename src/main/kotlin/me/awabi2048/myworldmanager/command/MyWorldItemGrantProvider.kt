@@ -15,7 +15,7 @@ class MyWorldItemGrantProvider(
 
     override fun definitions(): Collection<ItemGrantDefinition> =
         CustomItem.entries
-            .filterNot { it.id == "like_sign" }
+            .filterNot { it.id == "like_sign" || it.id == "tour_sign" }
             .filterNot { it == CustomItem.WORLD_SEED && !MyWorldManagerApi.isWorldSlotSystemEnabled() }
             .map { item ->
                 ItemGrantDefinition(

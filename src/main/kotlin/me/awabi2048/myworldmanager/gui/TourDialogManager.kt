@@ -14,14 +14,12 @@ import me.awabi2048.myworldmanager.service.TourManager
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.block.Block
-import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
-import org.bukkit.inventory.EquipmentSlot
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class TourDialogManager {
-    data class PlacementSession(val worldUuid: UUID, val x: Int, val y: Int, val z: Int, val blockFace: String, val hand: EquipmentSlot)
+    data class PlacementSession(val worldUuid: UUID, val x: Int, val y: Int, val z: Int)
     data class EditTourSession(val worldUuid: UUID, val tourUuid: UUID)
     data class EditSignSession(val worldUuid: UUID, val signUuid: UUID)
     data class CreateTourSession(val worldUuid: UUID)
@@ -32,25 +30,27 @@ class TourDialogManager {
         private val signEdit = ConcurrentHashMap<UUID, EditSignSession>()
         private val createTour = ConcurrentHashMap<UUID, CreateTourSession>()
 
-        fun startPlacement(player: Player, plugin: MyWorldManager, block: Block, blockFace: BlockFace, hand: EquipmentSlot) {
-            val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: run {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.my_world_only"))
-                return
-            }
+        fun startExistingSignBinding(player: Player, plugin: MyWorldManager, block: Block) {
+            val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return
             if (!plugin.tourManager.canManage(worldData, player.uniqueId)) {
                 player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.no_permission"))
                 return
             }
             if (!plugin.tourManager.canPlaceSign(worldData)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.limit_reached", mapOf("limit" to TourManager.MAX_START_SIGNS_PER_WORLD.toString())))
+                player.sendMessage(
+                    plugin.languageManager.getMessage(
+                        player,
+                        "error.tour.limit_reached",
+                        mapOf("limit" to TourManager.MAX_START_SIGNS_PER_WORLD.toString()),
+                    ),
+                )
                 return
             }
-            val unboundTours = worldData.tours.filter { it.startSignUuid == null }
-            if (unboundTours.isEmpty()) {
+            if (worldData.tours.none { it.startSignUuid == null }) {
                 player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.sign_no_available_tour"))
                 return
             }
-            placement[player.uniqueId] = PlacementSession(worldData.uuid, block.x, block.y, block.z, blockFace.name, hand)
+            placement[player.uniqueId] = PlacementSession(worldData.uuid, block.x, block.y, block.z)
             plugin.tourGui.openBindSignToTourMenu(player, worldData)
         }
 

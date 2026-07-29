@@ -5,13 +5,12 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.TourDialogManager
 import me.awabi2048.myworldmanager.gui.TourGui
-import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.Particle
-import org.bukkit.block.BlockFace
+import org.bukkit.Tag
 import org.bukkit.block.Sign
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -19,7 +18,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerInteractEvent
@@ -51,7 +50,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
 
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
         val signBlock = event.clickedBlock ?: return
-        if (signBlock.type != Material.PALE_OAK_SIGN && signBlock.type != Material.PALE_OAK_WALL_SIGN) return
+        if (!Tag.ALL_SIGNS.isTagged(signBlock.type)) return
         if (signBlock.state !is Sign) return
         val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return
         val signData = plugin.tourManager.findSignFromBlock(worldData, signBlock) ?: return
@@ -84,17 +83,20 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    fun onTourSignPlace(event: BlockPlaceEvent) {
-        val item = event.itemInHand
-        if (!ItemTag.isType(item, ItemTag.TYPE_TOUR_SIGN)) return
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    fun onTourSignChange(event: SignChangeEvent) {
+        val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        if (plain.serialize(event.line(0) ?: Component.empty()) != "[Tour]") return
         val player = event.player
-        val blockFace = event.blockAgainst.getFace(event.blockPlaced) ?: return
-        if (blockFace != BlockFace.UP && blockFace != BlockFace.NORTH && blockFace != BlockFace.SOUTH && blockFace != BlockFace.EAST && blockFace != BlockFace.WEST) {
-            return
-        }
-        event.isCancelled = true
-        TourDialogManager.startPlacement(player, plugin, event.blockPlaced, blockFace, event.hand)
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            val worldData = plugin.worldConfigRepository.findByWorldName(event.block.world.name) ?: return@Runnable
+            val existing = plugin.tourManager.findSignFromBlock(worldData, event.block)
+            if (existing != null) {
+                plugin.tourManager.refreshTourSignText(worldData, existing, event.block)
+                return@Runnable
+            }
+            TourDialogManager.startExistingSignBinding(player, plugin, event.block)
+        })
     }
 
     private fun startWaypointPreview(player: Player) {
