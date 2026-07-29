@@ -450,8 +450,17 @@ class WorldSettingsListener : Listener {
                                                         "member_invite_force_add_mode",
                                                         forceAddMode
                                                 )
+                                        plugin.logger.info(
+                                                "[MemberInviteDebug] stage=before_dialog player=${player.name}/${player.uniqueId} " +
+                                                        "world=${worldData.uuid} forceAdd=$forceAddMode " +
+                                                        "route=${CCSystem.getAPI().getMenuNavigationService().currentRoute(player)}"
+                                        )
                                         showMemberInviteDialog(player, forceAddMode)
                                         event.externalSurfaceOpened()
+                                        plugin.logger.info(
+                                                "[MemberInviteDebug] stage=after_dialog_request player=${player.name}/${player.uniqueId} " +
+                                                        "world=${worldData.uuid} result=${event.result}"
+                                        )
                                         return
                                 }
 
