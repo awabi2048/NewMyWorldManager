@@ -191,7 +191,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
     fun onBlockBreak(event: BlockBreakEvent) {
         val worldData = plugin.worldConfigRepository.findByWorldName(event.block.world.name) ?: return
         val signData = plugin.tourManager.findSignFromBlock(worldData, event.block) ?: return
-        if (!plugin.tourManager.canManage(worldData, event.player.uniqueId)) {
+        if (!plugin.tourManager.isWorldMember(worldData, event.player.uniqueId)) {
             event.isCancelled = true
             event.player.sendMessage(plugin.languageManager.getMessage(event.player, "error.tour.no_permission"))
             return
