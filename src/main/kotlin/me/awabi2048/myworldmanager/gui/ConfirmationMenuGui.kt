@@ -114,20 +114,21 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
 
     private fun render(route: MenuRoute): InventoryMenuView {
         val session = session(route)
+        val layout = CCSystem.getAPI().getGuiLayoutService().confirmation45()
         return InventoryMenuView(
-            size = 27,
+            size = layout.size,
             title = session.title,
             elements = listOf(
                 MenuElement(
-                    11,
+                    layout.confirmSlot,
                     session.confirmItem.clone(),
                     GuiElementRole.CONFIRM,
                     ACTION_CONFIRM,
                     sounds = MenuActionSoundPolicy(success = session.confirmSound),
                 ),
-                MenuElement(13, session.centerItem.clone(), GuiElementRole.CONTENT),
+                MenuElement(layout.previewSlot, session.centerItem.clone(), GuiElementRole.CONTENT),
                 MenuElement(
-                    15,
+                    layout.cancelSlot,
                     session.cancelItem.clone(),
                     GuiElementRole.CANCEL,
                     ACTION_CANCEL,
