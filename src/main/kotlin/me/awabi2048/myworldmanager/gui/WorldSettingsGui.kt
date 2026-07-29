@@ -130,6 +130,45 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 },
                         ),
                 )
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = RUNTIME_OWNER,
+                                id = RUNTIME_MEMBER_MANAGEMENT_ROUTE,
+                                renderer = { context ->
+                                        val worldUuid =
+                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                        ?: error("メンバー管理の対象ワールドがありません")
+                                        val worldData =
+                                                plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                        ?: error("メンバー管理の対象ワールドが見つかりません")
+                                        val page =
+                                                context.route.payload[ROUTE_PAGE]
+                                                        ?.toIntOrNull()
+                                                        ?.coerceAtLeast(0)
+                                                        ?: 0
+                                        renderMemberManagement(context.player, worldData, page)
+                                },
+                                actions = mapOf(
+                                        ACTION_RUNTIME_DISPATCH to
+                                                MenuActionHandler { context ->
+                                                        plugin.worldSettingsListener.handleRuntimeInventoryClick(
+                                                                context.player,
+                                                                context.click,
+                                                                context.item,
+                                                                context.payload["slot"]?.toIntOrNull()
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                        )
+                                                },
+                                ),
+                                onClose = { context ->
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(
+                                                context.player,
+                                                context.reason,
+                                        )
+                                },
+                        ),
+                )
         }
 
         fun enableRuntimeIconSelection(player: Player) {
@@ -1531,15 +1570,29 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 playSound: Boolean = true,
                 replaceCurrent: Boolean = false
         ) {
+                val route =
+                        MenuRoute(
+                                RUNTIME_OWNER,
+                                RUNTIME_MEMBER_MANAGEMENT_ROUTE,
+                                mapOf(
+                                        ROUTE_WORLD_UUID to worldData.uuid.toString(),
+                                        ROUTE_PAGE to page.coerceAtLeast(0).toString(),
+                                ),
+                        )
+                if (replaceCurrent) {
+                        runtime.replace(player, route)
+                } else {
+                        runtime.navigate(player, route)
+                }
+        }
+
+        private fun renderMemberManagement(
+                player: Player,
+                worldData: WorldData,
+                page: Int,
+        ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.member_management.title")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
-
-                if (playSound) {
-                }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1790,7 +1843,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                presentRuntime(player, title, inventory, replaceCurrent)
+                return InventoryMenuView(
+                        size = inventory.size,
+                        title = GuiHelper.inventoryTitle(title),
+                        elements = inventory.elements(),
+                        standardFrame = false,
+                        playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
+                )
         }
 
         fun openMemberPendingInviteCancelConfirmation(
@@ -3193,6 +3252,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val RUNTIME_OWNER = "myworldmanager"
                 const val RUNTIME_ROUTE = "world_settings_runtime"
                 const val RUNTIME_SELECTION_ROUTE = "world_settings_runtime_icon_selection"
+                const val RUNTIME_MEMBER_MANAGEMENT_ROUTE = "member_management"
                 const val ACTION_RUNTIME_DISPATCH = "dispatch"
+                const val ROUTE_WORLD_UUID = "world_uuid"
+                const val ROUTE_PAGE = "page"
         }
 }

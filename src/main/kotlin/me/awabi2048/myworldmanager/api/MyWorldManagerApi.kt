@@ -687,19 +687,14 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
-    fun setMemberManagementOpener(opener: (Player, UUID, Boolean) -> Unit) {
+    fun setMemberManagementOpener(opener: (Player, UUID) -> Unit) {
         memberManagementOpener = opener
     }
 
     @JvmStatic
     fun openMemberManagementMenu(player: Player, worldUuid: UUID) {
-        memberManagementOpener?.invoke(player, worldUuid, false)
+        memberManagementOpener?.invoke(player, worldUuid)
     }
 
-    @JvmStatic
-    fun replaceWithLatestMemberManagementMenu(player: Player, worldUuid: UUID) {
-        memberManagementOpener?.invoke(player, worldUuid, true)
-    }
-
-    private var memberManagementOpener: ((Player, UUID, Boolean) -> Unit)? = null
+    private var memberManagementOpener: ((Player, UUID) -> Unit)? = null
 }
