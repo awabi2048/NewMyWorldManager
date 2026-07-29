@@ -239,14 +239,15 @@ class WorldSettingsListener : Listener {
                                 return MenuActionResult.Success(MenuUpdate.None)
                         }
                         ItemTag.TYPE_GUI_MEMBER_ITEM -> {
-                                if (!click.isShiftClick && click.isLeftClick) {
-                                        val memberId = ItemTag.getWorldUuid(item)
-                                                ?: return MenuActionResult.Ignored
-                                        if (memberId != player.uniqueId) {
-                                                toggleMemberRole(player, worldData, memberId)
-                                        }
-                                        return MenuActionResult.Success(MenuUpdate.None)
-                                }
+                                handleMemberManagementMemberItemClick(
+                                        player,
+                                        item,
+                                        worldData,
+                                        click.isShiftClick,
+                                        click.isLeftClick,
+                                        click.isRightClick
+                                )
+                                return MenuActionResult.Success(MenuUpdate.None)
                         }
                         ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE -> {
                                 handleMemberPendingInviteClick(player, item, worldData, click.isLeftClick)
@@ -435,6 +436,192 @@ class WorldSettingsListener : Listener {
                                 ),
                                 interaction.id.toString()
                         )
+                }
+        }
+
+        private fun handleMemberManagementMemberItemClick(
+                player: Player,
+                item: ItemStack,
+                worldData: WorldData,
+                isShiftClick: Boolean,
+                isLeftClick: Boolean,
+                isRightClick: Boolean,
+        ) {
+                val memberId = ItemTag.getWorldUuid(item)
+                if (memberId == null || memberId == player.uniqueId) {
+                        return
+                }
+                val lang = plugin.languageManager
+                if (!isShiftClick) {
+                        if (isLeftClick) {
+                                toggleMemberRole(player, worldData, memberId)
+                        }
+                        return
+                }
+                if (isLeftClick) {
+                        val stats = plugin.playerStatsRepository.findByUuid(memberId)
+                        val maxCounts =
+                                WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
+                                        stats.unlockedWorldSlot
+                        val currentCounts =
+                                plugin.worldConfigRepository.findAll().count { it.owner == memberId }
+                        val standardLimitReached =
+                                MyWorldManagerApi.isWorldSlotSystemEnabled() &&
+                                        currentCounts >= maxCounts
+                        val addonDecision =
+                                MyWorldManagerApi.checkWorldCreation(
+                                        me.awabi2048.myworldmanager.api.extension.WorldCreationRequest(
+                                                actor = player,
+                                                player = null,
+                                                operation =
+                                                        me.awabi2048.myworldmanager.api.extension
+                                                                .WorldCreationOperation.NORMAL,
+                                                type = null,
+                                                targetUuid = memberId
+                                        )
+                                )
+                        if (
+                                !PermissionManager.canBypassWorldLimits(player) &&
+                                        (standardLimitReached || !addonDecision.allowed)
+                        ) {
+                                player.sendMessage(
+                                        plugin.languageManager.getMessage(
+                                                "messages.owner_transfer_failed_limit"
+                                        )
+                                )
+                                plugin.soundManager.playActionSound(
+                                        player,
+                                        "creation",
+                                        "limit_reached"
+                                )
+                                return
+                        }
+
+                        val memberName =
+                                PlayerNameUtil.getNameOrDefault(
+                                        memberId,
+                                        lang.getMessage(player, "general.unknown")
+                                )
+                        val dialogTitle =
+                                LegacyComponentSerializer.legacySection().deserialize(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.transfer_confirm.title",
+                                                mapOf("player" to memberName)
+                                        )
+                                )
+                        val bodyLines =
+                                listOf(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.transfer_confirm.question"
+                                        ),
+                                        "${lang.getMessage(player, "gui.member_management.transfer_confirm.player_label")}: $memberName",
+                                        "${lang.getMessage(player, "gui.member_management.transfer_confirm.world_label")}: ${worldData.name}",
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.transfer_confirm.owner_warning"
+                                        )
+                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                        plugin.settingsSessionManager.updateSessionAction(
+                                player,
+                                worldData.uuid,
+                                SettingsAction.MEMBER_TRANSFER_CONFIRM,
+                                isGui = true
+                        )
+                        DialogConfirmManager.showConfirmationByPreference(
+                                player,
+                                plugin,
+                                dialogTitle,
+                                bodyLines,
+                                "mwm:confirm/member_transfer/$memberId",
+                                "mwm:confirm/cancel",
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.transfer_confirm.confirm"
+                                ),
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.transfer_confirm.cancel"
+                                ),
+                                onBedrockConfirm = {
+                                        handleBedrockDialogAction(
+                                                player,
+                                                worldData,
+                                                "mwm:confirm/member_transfer/$memberId"
+                                        )
+                                },
+                                onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
+                        ) {
+                                plugin.worldSettingsGui.openMemberTransferConfirmation(
+                                        player,
+                                        worldData,
+                                        memberId
+                                )
+                        }
+                } else if (isRightClick) {
+                        val memberName =
+                                PlayerNameUtil.getNameOrDefault(
+                                        memberId,
+                                        lang.getMessage(player, "general.unknown")
+                                )
+                        val dialogTitle =
+                                LegacyComponentSerializer.legacySection().deserialize(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.remove_confirm.title",
+                                                mapOf("player" to memberName)
+                                        )
+                                )
+                        val bodyLines =
+                                listOf(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.remove_confirm.question"
+                                        ),
+                                        "${lang.getMessage(player, "gui.member_management.remove_confirm.player_label")}: $memberName",
+                                        "${lang.getMessage(player, "gui.member_management.remove_confirm.world_label")}: ${worldData.name}",
+                                        lang.getMessage(
+                                                player,
+                                                "gui.member_management.remove_confirm.access_warning"
+                                        )
+                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                        plugin.settingsSessionManager.updateSessionAction(
+                                player,
+                                worldData.uuid,
+                                SettingsAction.MEMBER_REMOVE_CONFIRM,
+                                isGui = true
+                        )
+                        DialogConfirmManager.showConfirmationByPreference(
+                                player,
+                                plugin,
+                                dialogTitle,
+                                bodyLines,
+                                "mwm:confirm/member_remove/$memberId",
+                                "mwm:confirm/cancel",
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.remove_confirm.confirm"
+                                ),
+                                lang.getMessage(
+                                        player,
+                                        "gui.member_management.remove_confirm.cancel"
+                                ),
+                                onBedrockConfirm = {
+                                        handleBedrockDialogAction(
+                                                player,
+                                                worldData,
+                                                "mwm:confirm/member_remove/$memberId"
+                                        )
+                                },
+                                onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
+                        ) {
+                                plugin.worldSettingsGui.openMemberRemoveConfirmation(
+                                        player,
+                                        worldData,
+                                        memberId
+                                )
+                        }
                 }
         }
 
@@ -785,147 +972,14 @@ class WorldSettingsListener : Listener {
                                 }
 
                                 if (type == ItemTag.TYPE_GUI_MEMBER_ITEM) {
-                                        val memberId = ItemTag.getWorldUuid(item)
-                                        if (memberId != null && memberId != player.uniqueId) {
-                                                if (event.isShiftClick) {
-                                                        if (event.isLeftClick) {
-                                                                // オーナー権限の移譲
-                                                                val stats = plugin.playerStatsRepository.findByUuid(memberId)
-                                                                val maxCounts = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
-                                                                        stats.unlockedWorldSlot
-                                                                val currentCounts =
-                                                                        plugin.worldConfigRepository
-                                                                                .findAll()
-                                                                                .count {
-                                                                                        it.owner == memberId
-                                                                                }
-
-                                                                val standardLimitReached =
-                                                                        MyWorldManagerApi.isWorldSlotSystemEnabled() &&
-                                                                        currentCounts >= maxCounts
-                                                                val addonDecision = MyWorldManagerApi.checkWorldCreation(
-                                                                        me.awabi2048.myworldmanager.api.extension.WorldCreationRequest(
-                                                                                actor = player,
-                                                                                player = null,
-                                                                                operation = me.awabi2048.myworldmanager.api.extension.WorldCreationOperation.NORMAL,
-                                                                                type = null,
-                                                                                targetUuid = memberId
-                                                                        )
-                                                                )
-                                                                if (!PermissionManager.canBypassWorldLimits(player) &&
-                                                                        (standardLimitReached || !addonDecision.allowed)
-                                                                ) {
-                                                                        player.sendMessage(
-                                                                                plugin.languageManager
-                                                                                        .getMessage(
-                                                                                                "messages.owner_transfer_failed_limit"
-                                                                                        )
-                                                                        )
-                                                                        plugin.soundManager.playActionSound(
-                                                                                player,
-                                                                                "creation",
-                                                                                "limit_reached"
-                                                                        )
-                                                                        return
-                                                                }
-
-                                                                val memberName = PlayerNameUtil.getNameOrDefault(memberId, lang.getMessage(player, "general.unknown"))
-                                                                val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
-                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.title", mapOf("player" to memberName))
-                                                                )
-                                                                val bodyLines = listOf(
-                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.question"),
-                                                                        "${lang.getMessage(player, "gui.member_management.transfer_confirm.player_label")}: $memberName",
-                                                                        "${lang.getMessage(player, "gui.member_management.transfer_confirm.world_label")}: ${worldData.name}",
-                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.owner_warning")
-                                                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
-
-                                                                plugin.settingsSessionManager.updateSessionAction(
-                                                                        player,
-                                                                        worldData.uuid,
-                                                                        SettingsAction.MEMBER_TRANSFER_CONFIRM,
-                                                                        isGui = true
-                                                                )
-                                                                DialogConfirmManager.showConfirmationByPreference(
-                                                                        player,
-                                                                        plugin,
-                                                                        dialogTitle,
-                                                                        bodyLines,
-                                                                        "mwm:confirm/member_transfer/$memberId",
-                                                                        "mwm:confirm/cancel",
-                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.confirm"),
-                                                                        lang.getMessage(player, "gui.member_management.transfer_confirm.cancel"),
-                                                                        onBedrockConfirm = {
-                                                                                handleBedrockDialogAction(
-                                                                                        player,
-                                                                                        worldData,
-                                                                                        "mwm:confirm/member_transfer/$memberId"
-                                                                                )
-                                                                        },
-                                                                        onBedrockCancel = {
-                                                                                handleBedrockDialogCancel(player, worldData)
-                                                                        }
-                                                                ) {
-                                                                        plugin.worldSettingsGui.openMemberTransferConfirmation(
-                                                                                player,
-                                                                                worldData,
-                                                                                memberId
-                                                                        )
-                                                                }
-                                                        } else if (event.isRightClick) {
-                                                                // メンバー削除
-                                                                val memberName = PlayerNameUtil.getNameOrDefault(memberId, lang.getMessage(player, "general.unknown"))
-                                                                val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
-                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.title", mapOf("player" to memberName))
-                                                                )
-                                                                val bodyLines = listOf(
-                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.question"),
-                                                                        "${lang.getMessage(player, "gui.member_management.remove_confirm.player_label")}: $memberName",
-                                                                        "${lang.getMessage(player, "gui.member_management.remove_confirm.world_label")}: ${worldData.name}",
-                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.access_warning")
-                                                                ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
-
-                                                                plugin.settingsSessionManager.updateSessionAction(
-                                                                        player,
-                                                                        worldData.uuid,
-                                                                        SettingsAction.MEMBER_REMOVE_CONFIRM,
-                                                                        isGui = true
-                                                                )
-                                                                DialogConfirmManager.showConfirmationByPreference(
-                                                                        player,
-                                                                        plugin,
-                                                                        dialogTitle,
-                                                                        bodyLines,
-                                                                        "mwm:confirm/member_remove/$memberId",
-                                                                        "mwm:confirm/cancel",
-                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.confirm"),
-                                                                        lang.getMessage(player, "gui.member_management.remove_confirm.cancel"),
-                                                                        onBedrockConfirm = {
-                                                                                handleBedrockDialogAction(
-                                                                                        player,
-                                                                                        worldData,
-                                                                                        "mwm:confirm/member_remove/$memberId"
-                                                                                )
-                                                                        },
-                                                                        onBedrockCancel = {
-                                                                                handleBedrockDialogCancel(player, worldData)
-                                                                        }
-                                                                ) {
-                                                                        plugin.worldSettingsGui.openMemberRemoveConfirmation(
-                                                                                player,
-                                                                                worldData,
-                                                                                memberId
-                                                                        )
-                                                                }
-                                                        }
-                                                } else if (event.isLeftClick) {
-                                                        toggleMemberRole(
-                                                                player,
-                                                                worldData,
-                                                                memberId
-                                                        )
-                                                }
-                                        }
+                                        handleMemberManagementMemberItemClick(
+                                                player,
+                                                item,
+                                                worldData,
+                                                event.isShiftClick,
+                                                event.isLeftClick,
+                                                event.isRightClick
+                                        )
                                 }
                         }
                         SettingsAction.MEMBER_REMOVE_CONFIRM -> {
