@@ -135,6 +135,7 @@ class WorldSettingsListener : Listener {
                                 return MenuActionResult.Ignored
                         }
                 }
+                handleIconSelectionTopInventoryClick(runtimeContext)?.let { return it }
                 handleMemberManagementInviteClick(player, click, item, runtimeContext)?.let { return it }
                 handleMemberManagementRouteClick(player, click, item, runtimeContext)?.let { return it }
                 val runtimeClick =
@@ -149,6 +150,13 @@ class WorldSettingsListener : Listener {
                         )
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
+        }
+
+        private fun handleIconSelectionTopInventoryClick(
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.ICON_SELECTION) return null
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         /**
@@ -2527,11 +2535,6 @@ plugin.languageManager
         ): MenuActionResult {
                 val session = plugin.settingsSessionManager.getSession(player)
                         ?: return MenuActionResult.Ignored
-                if (session.action != SettingsAction.SELECT_ICON ||
-                        !session.isExternalInputActive(MenuExternalInput.SELECT_ICON)
-                ) {
-                        return MenuActionResult.Ignored
-                }
                 if (clickedItem.type == Material.AIR) {
                         return MenuActionResult.Ignored
                 }
