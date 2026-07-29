@@ -146,6 +146,7 @@ class WorldSettingsListener : Listener {
                 handleEnvironmentConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handlePortalManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
                 handleCriticalSettingsRuntimeClick(player, item, runtimeContext)?.let { return it }
+                handleWorldSettingsRuntimeClick(player, click, item, runtimeContext)?.let { return it }
                 val runtimeClick =
                         RuntimeSettingsClick(
                                 player = player,
@@ -158,6 +159,203 @@ class WorldSettingsListener : Listener {
                         )
                 onInventoryClick(runtimeClick)
                 return runtimeClick.result
+        }
+
+        /**
+         * ワールド設定本体のクリックを、Runtime が確定した画面種別として処理します。
+         *
+         * 画面を開いた時点の Inventory や SettingsSession.action を画面識別に使わず、
+         * [WorldSettingsRuntimeContext.screen] だけを入口の契約にします。外部入力や
+         * ワールド内操作を続けるための SettingsSession は、ここではワークフロー状態としてのみ使用します。
+         */
+        private fun handleWorldSettingsRuntimeClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.WORLD_SETTINGS) return null
+                val session = plugin.settingsSessionManager.getSession(player) ?: return MenuActionResult.Ignored
+                val worldData = runtimeContext.worldUuid?.let(plugin.worldConfigRepository::findByUuid)
+                        ?: plugin.worldConfigRepository.findByUuid(session.worldUuid)
+                        ?: return MenuActionResult.Ignored
+                val itemTag = ItemTag.getType(item) ?: return MenuActionResult.Ignored
+
+                if (itemTag == ItemTag.TYPE_GUI_INFO && ItemTag.getWorldUuid(item) == worldData.uuid) {
+                        if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
+                                return MenuActionResult.Ignored
+                        }
+                        plugin.settingsSessionManager.updateSessionAction(
+                                player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true,
+                                isPlayerWorldFlow = session.isPlayerWorldFlow,
+                                parentShowBackButton = session.parentShowBackButton
+                        )
+                        CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
+                        plugin.worldService.teleportToWorld(player, worldData.uuid, closeInventoryOnLoad = false) {
+                                if (!player.isOnline) return@teleportToWorld
+                                player.sendMessage(plugin.languageManager.getMessage(
+                                        player, "messages.warp_success", mapOf("world" to worldData.name)
+                                ))
+                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                        }
+                        return MenuActionResult.Success(MenuUpdate.None)
+                }
+
+                val restrictedTags = setOf(
+                        ItemTag.TYPE_GUI_SETTING_SPAWN,
+                        ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION,
+                        ItemTag.TYPE_GUI_SETTING_EXPAND,
+                        ItemTag.TYPE_GUI_SETTING_ENVIRONMENT,
+                        ItemTag.TYPE_GUI_SETTING_CRITICAL,
+                )
+                if (itemTag in restrictedTags) {
+                        val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                        if (player.world.name != targetWorldName) {
+                                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                                return MenuActionResult.Ignored
+                        }
+                }
+
+                when (itemTag) {
+                        ItemTag.TYPE_GUI_RETURN -> return MenuActionResult.Success(MenuUpdate.Back)
+                        ItemTag.TYPE_GUI_SETTING_INFO -> {
+                                if (openBedrockWorldInfoInputForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
+                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
+                                        plugin.worldSettingsGui.open(player, worldData)
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
+                                showWorldInfoDialog(player, worldData)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_SPAWN -> {
+                                val isGuest = click.isLeftClick
+                                val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
+                                val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
+                                val typeName = plugin.languageManager.getMessage(player, typeKey)
+                                player.sendMessage(
+                                        Component.text().append(Component.text(plugin.languageManager.getMessage(
+                                                player, "messages.spawn_set_start", mapOf("type" to typeName)
+                                        ))).append(Component.newline()).append(
+                                                Component.text("ﾂｧ7繝ｯ繝ｼ繝ｫ繝芽ｨｭ螳壹Γ繝九Η繝ｼ繧帝幕縺・※繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺励∪縺吶・)")
+                                                        .clickEvent(ClickEvent.runCommand("/worldmenu"))
+                                                        .hoverEvent(HoverEvent.showText(Component.text("ﾂｧa繧ｯ繝ｪ繝・け縺ｧ髢九￥")))
+                                        ).build()
+                                )
+                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
+                                startSpawnPreview(player)
+                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_ICON -> startIconSelection(player, worldData)
+                        ItemTag.TYPE_GUI_SETTING_EXPAND -> {
+                                if (MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) != true) {
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "gui.settings.common.must_be_in_world"))
+                                        return MenuActionResult.Ignored
+                                }
+                                if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) return MenuActionResult.Ignored
+                                if (!plugin.playerPlatformResolver.isBedrock(player) && click.isRightClick) {
+                                        if (!teleportToBorderCenterSurface(player, worldData)) {
+                                                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_load_failed"))
+                                        }
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                                val maxLevel = plugin.config.getConfigurationSection("expansion.costs")?.getKeys(false)?.size ?: 3
+                                if (worldData.borderExpansionLevel >= maxLevel) {
+                                        player.sendMessage(plugin.languageManager.getMessage("error.max_expansion_reached"))
+                                        return MenuActionResult.Ignored
+                                }
+                                plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_PUBLISH -> {
+                                if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
+                                        return MenuActionResult.Success(MenuUpdate.Refresh)
+                                }
+                                val nextLevel = GuiCycle.select(worldData.publishLevel, PublishLevel.values(), GuiCycle.direction(click)
+                                        ?: return MenuActionResult.Ignored)
+                                worldData.publishLevel = nextLevel
+                                if (nextLevel == PublishLevel.PUBLIC) {
+                                        worldData.publicAt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                                .format(java.time.LocalDateTime.now())
+                                }
+                                plugin.worldConfigRepository.save(worldData)
+                                return MenuActionResult.Success(MenuUpdate.Refresh)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_MEMBER -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        ItemTag.TYPE_GUI_SETTING_ARCHIVE -> {
+                                val title = LegacyComponentSerializer.legacySection().deserialize(plugin.languageManager.getMessage(player, "gui.archive.confirm_title"))
+                                val bodyLines = listOf(LegacyComponentSerializer.legacySection().deserialize(
+                                        plugin.languageManager.getMessage(player, "gui.common.confirm_warning")
+                                ))
+                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.ARCHIVE_WORLD, isGui = true)
+                                DialogConfirmManager.showConfirmationByPreference(
+                                        player, plugin, title, bodyLines, "mwm:confirm/archive_world", "mwm:confirm/cancel",
+                                        plugin.languageManager.getMessage(player, "gui.archive.confirm"),
+                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                        onBedrockConfirm = { handleBedrockDialogAction(player, worldData, "mwm:confirm/archive_world") },
+                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) },
+                                ) { plugin.worldSettingsGui.openArchiveConfirmation(player, worldData) }
+                        }
+                        ItemTag.TYPE_GUI_SETTING_TAGS -> {
+                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
+                                showTagEditorDialog(player, worldData)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_VISITOR -> {
+                                val world = Bukkit.getWorld(worldData.customWorldName ?: "my_world.${worldData.uuid}")
+                                val visitorCount = world?.players?.count {
+                                        it.uniqueId != worldData.owner && it.uniqueId !in worldData.moderators && it.uniqueId !in worldData.members
+                                } ?: 0
+                                if (visitorCount == 0) {
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "gui.visitor_management.no_visitors"))
+                                        return MenuActionResult.Ignored
+                                }
+                                plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_NOTIFICATION -> {
+                                worldData.notificationEnabled = !worldData.notificationEnabled
+                                plugin.worldConfigRepository.save(worldData)
+                                return MenuActionResult.Success(MenuUpdate.Refresh)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_TOUR -> plugin.tourGui.openEditMenu(player, worldData)
+                        ItemTag.TYPE_GUI_SETTING_CRITICAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
+                                if (openBedrockAnnouncementActionForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
+                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
+                                        plugin.worldSettingsGui.open(player, worldData)
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                                if (click.isRightClick) {
+                                        worldData.announcementMessages.clear()
+                                        plugin.worldConfigRepository.save(worldData)
+                                        player.sendMessage(plugin.languageManager.getMessage("messages.announcement_reset"))
+                                        return MenuActionResult.Success(MenuUpdate.Refresh)
+                                }
+                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
+                                me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_PORTALS -> {
+                                val isOwner = worldData.owner == player.uniqueId || session.isAdminFlow
+                                if (!isOwner) {
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "general.no_permission"))
+                                        return MenuActionResult.Ignored
+                                }
+                                if (plugin.portalRepository.findAll().none { it.worldKey == worldData.worldKey }) {
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "error.no_portals_found"))
+                                        return MenuActionResult.Ignored
+                                }
+                                plugin.worldSettingsGui.openPortalManagement(player, worldData)
+                        }
+                        ItemTag.TYPE_GUI_SETTING_ENVIRONMENT -> {
+                                if (plugin.playerPlatformResolver.isBedrock(player)) {
+                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_option_unavailable"))
+                                        return MenuActionResult.Ignored
+                                }
+                                if (!player.hasPermission("myworldmanager.admin")) return MenuActionResult.Ignored
+                                plugin.environmentGui.open(player, worldData)
+                        }
+                        else -> return MenuActionResult.Ignored
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
         }
         private fun handleExpansionMethodSelectionRuntimeClick(
                 player: Player,
