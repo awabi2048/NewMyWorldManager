@@ -2283,25 +2283,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         !worldData.members.contains(it.uniqueId)
                         }
 
-                val itemsPerPage = 28
-                val startIndex = page * itemsPerPage
-                val currentPageVisitors = visitorPlayers.drop(startIndex).take(itemsPerPage)
-
-                // 行数を計算
-                val contentRows =
-                        if (currentPageVisitors.isEmpty()) 1
-                        else (currentPageVisitors.size - 1) / 7 + 1
-                val rowCount = (contentRows + 2).coerceIn(3, 6)
-
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
-                val inventory = RuntimeItemBuffer(rowCount * 9)
-                val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
+                val visitorPage = CCSystem.getAPI().getGuiLayoutService()
+                        .sevenColumnPage(visitorPlayers.size, page)
+                val layout = visitorPage.layout
+                val currentPageVisitors = visitorPlayers
+                        .drop(visitorPage.startIndex)
+                        .take(visitorPage.itemCount)
+                val inventory = RuntimeItemBuffer(layout.size)
                 inventory.applyStandardFrame()
-
-                val footerStart = (rowCount - 1) * 9
 
                 // プレイヤーリストの描画
                 val isAdminFlow = plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
@@ -2311,42 +2300,39 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 isAdminFlow
 
                 currentPageVisitors.forEachIndexed { index, visitor ->
-                        val row = index / 7
-                        val col = index % 7
-                        val slot = (row + 1) * 9 + (col + 1)
                         inventory.setItem(
-                                slot,
+                                layout.itemSlots[index],
                                 createVisitorItem(player, visitor.uniqueId, canKick)
                         )
                 }
 
                 // ナビゲーション
-                if (page > 0) {
+                if (visitorPage.page > 0) {
                         inventory.setItem(
-                                footerStart + 1,
+                                layout.previousPageSlot,
                                 createItem(
                                         Material.ARROW,
                                         lang.getMessage(player, "gui.common.prev_page"),
                                         GuiLoreSpec.None,
                                         ItemTag.TYPE_GUI_NAV_PREV
-                                ).also { ItemTag.setTargetPage(it, page - 1) }
+                                ).also { ItemTag.setTargetPage(it, visitorPage.page - 1) }
                         )
                 }
-                if (startIndex + itemsPerPage < visitorPlayers.size) {
+                if (visitorPage.page < visitorPage.totalPages - 1) {
                         inventory.setItem(
-                                footerStart + 8,
+                                layout.nextPageSlot,
                                 createItem(
                                         Material.ARROW,
                                         lang.getMessage(player, "gui.common.next_page"),
                                         GuiLoreSpec.None,
                                         ItemTag.TYPE_GUI_NAV_NEXT
-                                ).also { ItemTag.setTargetPage(it, page + 1) }
+                                ).also { ItemTag.setTargetPage(it, visitorPage.page + 1) }
                         )
                 }
 
                 // 戻るボタン
                 inventory.setItem(
-                        footerStart,
+                        layout.backSlot,
                         createItem(
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
@@ -2357,7 +2343,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-                for (i in 9 until footerStart) {
+                for (i in 9 until layout.size - 9) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 

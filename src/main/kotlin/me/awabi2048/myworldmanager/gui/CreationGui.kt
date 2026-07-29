@@ -81,9 +81,10 @@ class CreationGui(private val plugin: MyWorldManager) {
             InventoryMenuDefinition(
                 owner = OWNER,
                 id = TEMPLATE_LIST_ROUTE,
-                renderer = { context -> renderTemplateSelection(context.player) },
+                renderer = { context -> renderTemplateSelection(context.player, context.route) },
                 actions = mapOf(
                     ACTION_SELECT_TEMPLATE to MenuActionHandler(::selectTemplate),
+                    ACTION_TEMPLATE_LIST_PAGE to MenuActionHandler(::templateListPage),
                     ACTION_TEMPLATE_LIST_BACK to MenuActionHandler(::templateListBack),
                 ),
                 onClose = MenuCloseHandler(::closed),
@@ -230,11 +231,18 @@ class CreationGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.Replace(MenuRoute(OWNER, TYPE_ROUTE)))
     }
 
+    private fun templateListPage(context: MenuActionContext): MenuActionResult {
+        val page = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(MenuRoute(OWNER, TEMPLATE_LIST_ROUTE, mapOf(PAGE to page.toString()))),
+        )
+    }
+
     private fun templateDetailBack(context: MenuActionContext): MenuActionResult {
         val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
         session.phase = WorldCreationPhase.TEMPLATE_SELECT
-        return MenuActionResult.Success(MenuUpdate.Replace(MenuRoute(OWNER, TEMPLATE_LIST_ROUTE)))
+        return MenuActionResult.Success(MenuUpdate.Back)
     }
 
     private fun useTemplate(context: MenuActionContext): MenuActionResult {
@@ -359,18 +367,17 @@ class CreationGui(private val plugin: MyWorldManager) {
         runtime.navigate(player, MenuRoute(OWNER, TEMPLATE_LIST_ROUTE))
     }
 
-    private fun renderTemplateSelection(player: Player): InventoryMenuView {
+    private fun renderTemplateSelection(player: Player, route: MenuRoute): InventoryMenuView {
         val lang = plugin.languageManager
         val templates = plugin.templateRepository.findAll()
             .filter(plugin.templateRepository::isUsable)
-        val worldsPerRow = 7
-        val neededDataRows = (templates.size + worldsPerRow - 1) / worldsPerRow
-        val rowCount = (neededDataRows + 2).coerceIn(3, 6)
+        val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
+            templates.size,
+            route.payload[PAGE]?.toIntOrNull() ?: 0,
+        )
+        val layout = page.layout
         val elements = mutableListOf<MenuElement>()
-        templates.take((rowCount - 2) * worldsPerRow).forEachIndexed { index, template ->
-            val row = index / worldsPerRow
-            val col = index % worldsPerRow
-            val slot = (row + 1) * 9 + 1 + col
+        templates.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, template ->
             val issue = plugin.templateRepository.validationIssue(template)
             val loreBuilder = GuiLoreBuilder(lang, player)
                 .block(template.description.map(GuiLoreLine::Text))
@@ -398,21 +405,39 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
             ItemTag.setTemplateId(item, template.id)
             elements += MenuElement(
-                slot,
+                layout.itemSlots[index],
                 item,
                 GuiElementRole.ACTION,
                 ACTION_SELECT_TEMPLATE,
                 mapOf("template" to template.id),
             )
         }
+        if (page.page > 0) {
+            elements += MenuElement(
+                layout.previousPageSlot,
+                me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(plugin, player, "creation_template", page.page - 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_TEMPLATE_LIST_PAGE,
+                mapOf(PAGE to (page.page - 1).toString()),
+            )
+        }
+        if (page.page < page.totalPages - 1) {
+            elements += MenuElement(
+                layout.nextPageSlot,
+                me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(plugin, player, "creation_template", page.page + 1),
+                GuiElementRole.NAVIGATION,
+                ACTION_TEMPLATE_LIST_PAGE,
+                mapOf(PAGE to (page.page + 1).toString()),
+            )
+        }
         elements += MenuElement(
-            (rowCount - 1) * 9 + 4,
+            layout.backSlot,
             createBackButton(player),
-            GuiElementRole.NAVIGATION,
+            GuiElementRole.BACK,
             ACTION_TEMPLATE_LIST_BACK,
         )
         return InventoryMenuView(
-            size = rowCount * 9,
+            size = layout.size,
             title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
                 lang.getMessage(player, "gui.creation.title_template"),
             ),
@@ -814,11 +839,13 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val ACTION_SELECT_TYPE = "select_type"
         private const val ACTION_BACK = "back"
         private const val ACTION_SELECT_TEMPLATE = "select_template"
+        private const val ACTION_TEMPLATE_LIST_PAGE = "template_list_page"
         private const val ACTION_TEMPLATE_LIST_BACK = "template_list_back"
         private const val ACTION_USE_TEMPLATE = "use_template"
         private const val ACTION_PREVIEW_TEMPLATE = "preview_template"
         private const val ACTION_TEMPLATE_DETAIL_BACK = "template_detail_back"
         private const val ACTION_CONFIRM_INTERACTION = "confirm_interaction"
+        private const val PAGE = "page"
     }
 
 }

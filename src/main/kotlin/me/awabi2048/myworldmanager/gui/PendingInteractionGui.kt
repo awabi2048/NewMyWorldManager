@@ -29,7 +29,6 @@ import java.util.UUID
 
 class PendingInteractionGui(private val plugin: MyWorldManager) {
 
-    private val itemsPerPage = 28
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
     init {
@@ -62,25 +61,18 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
 
     private fun render(player: Player, route: MenuRoute): InventoryMenuView {
         val entries = plugin.pendingDecisionManager.getPendingEntries(player.uniqueId)
-        val maxPage = if (entries.isEmpty()) 1 else ((entries.size - 1) / itemsPerPage) + 1
-        val currentPage = page(route).coerceIn(0, maxPage - 1)
-        val start = currentPage * itemsPerPage
-        val pageEntries = entries.drop(start).take(itemsPerPage)
-        val contentRows = if (pageEntries.isEmpty()) 1 else ((pageEntries.size - 1) / 7) + 1
-        val rowCount = (contentRows + 2).coerceIn(3, 6)
-        val footerStart = (rowCount - 1) * 9
+        val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(entries.size, page(route))
+        val layout = page.layout
+        val pageEntries = entries.drop(page.startIndex).take(page.itemCount)
         val elements = mutableListOf<MenuElement>()
         elements += MenuElement(
             4,
-            createInfoItem(player, entries.size, currentPage + 1, maxPage),
+            createInfoItem(player, entries.size, page.page + 1, page.totalPages),
             GuiElementRole.CONTENT,
         )
         pageEntries.forEachIndexed { index, entry ->
-            val row = index / 7
-            val col = index % 7
-            val slot = (row + 1) * 9 + 1 + col
             elements += MenuElement(
-                slot,
+                layout.itemSlots[index],
                 createEntryItem(player, entry),
                 GuiElementRole.ACTION,
                 ACTION_OPEN,
@@ -88,46 +80,46 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             )
         }
         if (pageEntries.isEmpty()) {
-            elements += MenuElement(22, createEmptyItem(player), GuiElementRole.CONTENT)
+            elements += MenuElement(layout.itemSlots[layout.itemSlots.size / 2], createEmptyItem(player), GuiElementRole.CONTENT)
         }
-        if (currentPage > 0) {
+        if (page.page > 0) {
             elements += MenuElement(
-                footerStart + 1,
+                layout.previousPageSlot,
                 me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
                     plugin,
                     player,
                     "pending_list",
-                    currentPage - 1
+                    page.page - 1
                 ),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
-                mapOf(PAGE to (currentPage - 1).toString()),
+                mapOf(PAGE to (page.page - 1).toString()),
             )
         }
-        if (start + pageEntries.size < entries.size) {
+        if (page.page < page.totalPages - 1) {
             elements += MenuElement(
-                footerStart + 8,
+                layout.nextPageSlot,
                 me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
                     plugin,
                     player,
                     "pending_list",
-                    currentPage + 1
+                    page.page + 1
                 ),
                 GuiElementRole.NAVIGATION,
                 ACTION_PAGE,
-                mapOf(PAGE to (currentPage + 1).toString()),
+                mapOf(PAGE to (page.page + 1).toString()),
             )
         }
         if (me.awabi2048.myworldmanager.util.GuiHelper.canGoBack(player)) {
             elements += MenuElement(
-                footerStart + 4,
+                layout.backSlot,
                 me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list"),
                 GuiElementRole.BACK,
                 ACTION_BACK,
             )
         }
         return InventoryMenuView(
-            rowCount * 9,
+            layout.size,
             me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
                 plugin.languageManager.getComponent(player, "gui.pending_list.title"),
             ),

@@ -46,7 +46,6 @@ import java.time.LocalDate
 
 class DiscoveryGui(private val plugin: MyWorldManager) {
         private val runtime = CCSystem.getAPI().getMenuRuntimeService()
-        private val itemsPerPage = 10
 
         init {
                 runtime.register(
@@ -130,17 +129,18 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 }
                         }
 
-                val totalPages =
-                        if (sortedWorlds.isEmpty()) 1
-                        else (sortedWorlds.size + itemsPerPage - 1) / itemsPerPage
-                val currentPage = route.payload[PAGE]?.toIntOrNull()?.coerceIn(0, totalPages - 1) ?: 0
-                val worldItemSlots = listOf(21, 22, 23, 28, 29, 30, 31, 32, 33, 34)
-                val pageWorlds = sortedWorlds.drop(currentPage * itemsPerPage).take(itemsPerPage)
+                val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
+                        sortedWorlds.size,
+                        route.payload[PAGE]?.toIntOrNull() ?: 0,
+                )
+                val layout = page.layout
+                val footerStart = layout.size - 9
+                val pageWorlds = sortedWorlds.drop(page.startIndex).take(page.itemCount)
                 val elements = mutableListOf<MenuElement>()
 
                 if (sortedWorlds.isEmpty()) {
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
-                                worldItemSlots.forEach { slot ->
+                                layout.itemSlots.forEach { slot ->
                                         elements += MenuElement(
                                                 slot,
                                                 createSpotlightEmptyItem(player),
@@ -157,12 +157,16 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 )
                                 noResultItem.itemMeta = noResultMeta
                                 ItemTag.tagItem(noResultItem, ItemTag.TYPE_GUI_DECORATION)
-                                elements += MenuElement(31, noResultItem, GuiElementRole.CONTENT)
+                                elements += MenuElement(
+                                        layout.itemSlots[layout.itemSlots.size / 2],
+                                        noResultItem,
+                                        GuiElementRole.CONTENT,
+                                )
                         }
                 } else {
                         pageWorlds.forEachIndexed { index, worldData ->
                                 elements += MenuElement(
-                                        worldItemSlots[index],
+                                        layout.itemSlots[index],
                                         createWorldItem(player, worldData),
                                         GuiElementRole.ACTION,
                                         ACTION_WORLD,
@@ -170,9 +174,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 )
                         }
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
-                                for (i in pageWorlds.size until worldItemSlots.size) {
+                                for (i in pageWorlds.size until layout.itemSlots.size) {
                                         elements += MenuElement(
-                                                worldItemSlots[i],
+                                                layout.itemSlots[i],
                                                 createSpotlightEmptyItem(player),
                                                 GuiElementRole.ACTION,
                                                 ACTION_SPOTLIGHT_EMPTY,
@@ -182,36 +186,36 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 }
                 if (GuiHelper.canGoBack(player)) {
                         elements += MenuElement(
-                                45,
+                                layout.backSlot,
                                 GuiHelper.createReturnItem(plugin, player, "discovery"),
                                 GuiElementRole.BACK,
                                 ACTION_BACK,
                         )
                 }
-                if (currentPage > 0) {
+                if (page.page > 0) {
                         elements += MenuElement(
-                                46,
-                                GuiHelper.createPrevPageItem(plugin, player, "discovery", currentPage - 1),
+                                layout.previousPageSlot,
+                                GuiHelper.createPrevPageItem(plugin, player, "discovery", page.page - 1),
                                 GuiElementRole.NAVIGATION,
                                 ACTION_PAGE,
-                                mapOf(PAGE to (currentPage - 1).toString()),
+                                mapOf(PAGE to (page.page - 1).toString()),
                         )
                 }
-                elements += MenuElement(47, createTagFilterButton(player, session.selectedTag), GuiElementRole.ACTION, ACTION_TAG)
-                elements += MenuElement(48, createSortButton(player, session.sort), GuiElementRole.ACTION, ACTION_SORT)
-                elements += MenuElement(49, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size), GuiElementRole.CONTENT)
-                elements += MenuElement(50, createSpecialFilterButton(player, session.specialFilter), GuiElementRole.ACTION, ACTION_SPECIAL_FILTER)
-                if (currentPage < totalPages - 1) {
+                elements += MenuElement(footerStart + 2, createTagFilterButton(player, session.selectedTag), GuiElementRole.ACTION, ACTION_TAG)
+                elements += MenuElement(footerStart + 3, createSortButton(player, session.sort), GuiElementRole.ACTION, ACTION_SORT)
+                elements += MenuElement(layout.actionSlot, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size), GuiElementRole.CONTENT)
+                elements += MenuElement(footerStart + 5, createSpecialFilterButton(player, session.specialFilter), GuiElementRole.ACTION, ACTION_SPECIAL_FILTER)
+                if (page.page < page.totalPages - 1) {
                         elements += MenuElement(
-                                53,
-                                GuiHelper.createNextPageItem(plugin, player, "discovery", currentPage + 1),
+                                layout.nextPageSlot,
+                                GuiHelper.createNextPageItem(plugin, player, "discovery", page.page + 1),
                                 GuiElementRole.NAVIGATION,
                                 ACTION_PAGE,
-                                mapOf(PAGE to (currentPage + 1).toString()),
+                                mapOf(PAGE to (page.page + 1).toString()),
                         )
                 }
                 return InventoryMenuView(
-                        GuiHelper.settingsLayout().size,
+                        layout.size,
                         GuiHelper.inventoryTitle(lang.getMessage(player, "gui.discovery.title")),
                         elements,
                 )
