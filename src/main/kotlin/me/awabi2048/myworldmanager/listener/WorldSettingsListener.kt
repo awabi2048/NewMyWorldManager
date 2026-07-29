@@ -136,6 +136,7 @@ class WorldSettingsListener : Listener {
                         }
                 }
                 handleMemberManagementInviteClick(player, click, item, runtimeContext)?.let { return it }
+                handleMemberManagementRouteClick(player, click, item, runtimeContext)?.let { return it }
                 val runtimeClick =
                         RuntimeSettingsClick(
                                 player = player,
@@ -202,6 +203,54 @@ class WorldSettingsListener : Listener {
                                 "world=${worldData.uuid} result=${MenuUpdate.None}"
                 )
                 return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        /** Route 固有で、外部入力を開始しないメンバー管理操作です。 */
+        private fun handleMemberManagementRouteClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT) return null
+                val worldUuid = runtimeContext.worldUuid ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Ignored
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_NAV_NEXT,
+                        ItemTag.TYPE_GUI_NAV_PREV -> {
+                                val targetPage = ItemTag.getTargetPage(item)
+                                        ?: return MenuActionResult.Ignored
+                                plugin.worldSettingsGui.openMemberManagement(player, worldData, targetPage)
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        ItemTag.TYPE_GUI_CANCEL,
+                        ItemTag.TYPE_GUI_BACK,
+                        ItemTag.TYPE_GUI_RETURN -> {
+                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        ItemTag.TYPE_GUI_MEMBER_ADMIN_OWNER_RESET -> {
+                                if (plugin.settingsSessionManager.getSession(player)?.isAdminFlow != true) {
+                                        PermissionManager.sendNoPermissionMessage(player)
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                                showAdminOwnerResetDialog(player, worldData)
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        ItemTag.TYPE_GUI_MEMBER_ITEM -> {
+                                if (!click.isShiftClick && click.isLeftClick) {
+                                        val memberId = ItemTag.getWorldUuid(item)
+                                                ?: return MenuActionResult.Ignored
+                                        if (memberId != player.uniqueId) {
+                                                toggleMemberRole(player, worldData, memberId)
+                                        }
+                                        return MenuActionResult.Success(MenuUpdate.None)
+                                }
+                        }
+                        else -> Unit
+                }
+                return null
         }
 
         private data class RuntimeSettingsClick(
