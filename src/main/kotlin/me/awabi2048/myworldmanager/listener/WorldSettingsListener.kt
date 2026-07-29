@@ -174,6 +174,14 @@ class WorldSettingsListener : Listener {
                                 handleMemberPendingInviteCancelConfirmationRuntime(player, item, worldData)
                         WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM ->
                                 handleVisitorKickConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.EXPANSION_CONFIRM ->
+                                handleExpansionConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM ->
+                                handleExpansionStepBackConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM ->
+                                handleExpansionResetConfirmationRuntime(player, item, worldData)
+                        WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM ->
+                                handleExpansionResetSpawnUnsafeConfirmationRuntime(player, item, worldData)
                         else -> null
                 }
         }
@@ -253,6 +261,74 @@ class WorldSettingsListener : Listener {
                                 }
                                 plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                         }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleExpansionConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                val type = ItemTag.getType(item)
+                if (type == ItemTag.TYPE_GUI_CANCEL ||
+                        (item.type == Material.RED_WOOL && type == null) ||
+                        (item.type == Material.RED_WOOL && type == ItemTag.TYPE_GUI_CANCEL)
+                ) {
+                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                } else if (type == ItemTag.TYPE_GUI_CONFIRM ||
+                        (item.type == Material.LIME_WOOL && type == null) ||
+                        (item.type == Material.LIME_WOOL && type == ItemTag.TYPE_GUI_CONFIRM)
+                ) {
+                        val cost = calculateExpansionCost(worldData.borderExpansionLevel)
+                        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                        if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
+                                player.sendMessage("§cポイントが不足しています。")
+                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        CCSystem.getAPI().getMenuRuntimeService().close(player)
+                        val messageList = plugin.languageManager.getMessageList(player, "messages.oage_ganbaru_messages")
+                        val randomMessage = if (messageList.isNotEmpty()) messageList.random() else plugin.languageManager.getMessage(player, "messages.oage_ganbaru_default")
+                        player.sendMessage(randomMessage)
+                        player.playSound(player.location, Sound.BLOCK_ANVIL_USE, 0.5f, 0.5f)
+                        val task = Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                                val pending = pendingExpansions.remove(player.uniqueId) ?: return@Runnable
+                                executeExpansionFinal(player, pending.worldData, pending.cost, pending.direction)
+                        }, 40L)
+                        val direction = plugin.settingsSessionManager.getSession(player)?.expansionDirection
+                        pendingExpansions[player.uniqueId] = PendingExpansion(worldData, cost, direction, task)
+                        plugin.settingsSessionManager.endSession(player)
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleExpansionStepBackConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                        ItemTag.TYPE_GUI_CONFIRM -> executeExpansionStepBack(player, worldData, closeInventory = false)
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleExpansionResetConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        ItemTag.TYPE_GUI_CONFIRM -> {
+                                val world = resolveWorld(worldData)
+                                if (world != null && !isSpawnAreaPlaceable(world.spawnLocation)) {
+                                        plugin.worldSettingsGui.openResetExpansionSpawnUnsafeConfirmation(player, worldData)
+                                } else {
+                                        executeExpansionReset(player, worldData, closeInventory = true)
+                                }
+                        }
+                        else -> Unit
+                }
+                return MenuActionResult.Success(MenuUpdate.None)
+        }
+
+        private fun handleExpansionResetSpawnUnsafeConfirmationRuntime(player: Player, item: ItemStack, worldData: WorldData): MenuActionResult {
+                when (ItemTag.getType(item)) {
+                        ItemTag.TYPE_GUI_CANCEL -> plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
+                        ItemTag.TYPE_GUI_CONFIRM -> executeExpansionReset(player, worldData, closeInventory = true)
                         else -> Unit
                 }
                 return MenuActionResult.Success(MenuUpdate.None)
@@ -1100,93 +1176,6 @@ class WorldSettingsListener : Listener {
                                                 type == ItemTag.TYPE_GUI_RETURN
                                 ) {
                                         handleCommandCancel()
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.EXPANSION_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: expand confirm")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL ||
-                                                (item?.type == Material.RED_WOOL && type == null) ||
-                                                (item?.type == Material.RED_WOOL &&
-                                                        type == ItemTag.TYPE_GUI_CANCEL)
-                                ) {
-                                        plugin.worldSettingsGui.openExpansionMethodSelection(
-                                                player,
-                                                worldData
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM ||
-                                                (item?.type == Material.LIME_WOOL &&
-                                                        type == null) ||
-                                                (item?.type == Material.LIME_WOOL &&
-                                                        type == ItemTag.TYPE_GUI_CONFIRM)
-                                ) {
-                                        val cost =
-                                                calculateExpansionCost(
-                                                        worldData.borderExpansionLevel
-                                                )
-                                        val stats =
-                                                plugin.playerStatsRepository.findByUuid(
-                                                        player.uniqueId
-                                                )
-
-                                        if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
-                                                 player.sendMessage("§cポイントが不足しています。")
-                                                CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                                return
-                                        }
-
-                                        CCSystem.getAPI().getMenuRuntimeService().close(player)
-
-                                        val messageList =
-                                                plugin.languageManager.getMessageList(
-                                                        player,
-                                                        "messages.oage_ganbaru_messages"
-                                                )
-                                        val randomMessage =
-                                                if (messageList.isNotEmpty()) messageList.random()
-                                                else
-                                                        plugin.languageManager.getMessage(
-                                                                player,
-                                                                "messages.oage_ganbaru_default"
-                                                        )
-                                        player.sendMessage(randomMessage)
-                                        player.playSound(
-                                                player.location,
-                                                Sound.BLOCK_ANVIL_USE,
-                                                0.5f,
-                                                0.5f
-                                        )
-
-                                        val task =
-                                                Bukkit.getScheduler()
-                                                        .runTaskLater(
-                                                                plugin,
-                                                                Runnable {
-                                                                        val pending =
-                                                                                pendingExpansions
-                                                                                        .remove(
-                                                                                                player.uniqueId
-                                                                                        )
-                                                                                        ?: return@Runnable
-                                                                        executeExpansionFinal(
-                                                                                player,
-                                                                                pending.worldData,
-                                                                                pending.cost,
-                                                                                pending.direction
-                                                                        )
-                                                                },
-                                                                40L
-                                                        )
-
-                                        pendingExpansions[player.uniqueId] =
-                                                PendingExpansion(
-                                                        worldData,
-                                                        cost,
-                                                        session.expansionDirection,
-                                                        task
-                                                )
-                                        plugin.settingsSessionManager.endSession(player)
                                 }
                         }
                         WorldSettingsRuntimeScreen.WORLD_SETTINGS -> {
@@ -2045,53 +2034,6 @@ class WorldSettingsListener : Listener {
                                                         )
                                                 }
                                         }
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: step back expansion confirm")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        plugin.worldSettingsGui.openExpansionMethodSelection(
-                                                player,
-                                                worldData
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        executeExpansionStepBack(player, worldData, closeInventory = false)
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: reset expansion confirm")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        plugin.worldSettingsGui.openCriticalSettings(
-                                                player,
-                                                worldData
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        val world = resolveWorld(worldData)
-                                        if (world != null && !isSpawnAreaPlaceable(world.spawnLocation)) {
-                                                plugin.worldSettingsGui.openResetExpansionSpawnUnsafeConfirmation(
-                                                        player,
-                                                        worldData
-                                                )
-                                                return
-                                        }
-                                        executeExpansionReset(player, worldData, closeInventory = true)
-                                }
-                        }
-                        WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM -> {
-                                event.cancelWithDebug("WorldSettingsListener.onInventoryClick: reset expansion confirm spawn unsafe")
-                                if (event.clickedInventory != event.view.topInventory) return
-
-                                if (type == ItemTag.TYPE_GUI_CANCEL) {
-                                        plugin.worldSettingsGui.openResetExpansionConfirmation(
-                                                player,
-                                                worldData
-                                        )
-                                } else if (type == ItemTag.TYPE_GUI_CONFIRM) {
-                                        executeExpansionReset(player, worldData, closeInventory = true)
                                 }
                         }
                         WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM -> {
