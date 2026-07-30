@@ -49,6 +49,16 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player, showBackButton: Boolean? = null) {
+        val route = prepareOpen(player, showBackButton) ?: return
+        val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
+        if (session.showBackButton) {
+            runtime.navigate(player, route)
+        } else {
+            runtime.open(player, route)
+        }
+    }
+
+    fun prepareOpen(player: Player, showBackButton: Boolean? = null): MenuRoute? {
         val lang = plugin.languageManager
         val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
         if (showBackButton != null) {
@@ -58,15 +68,10 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         val titleKey = "gui.user_settings.title"
         if (!lang.hasKey(player, titleKey)) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return
+            return null
         }
         plugin.settingsSessionManager.updateSessionAction(player, UUID(0, 0), SettingsAction.VIEW_SETTINGS, isGui = true)
-        val route = MenuRoute(OWNER, ROUTE_ID)
-        if (session.showBackButton) {
-            runtime.navigate(player, route)
-        } else {
-            runtime.open(player, route)
-        }
+        return MenuRoute(OWNER, ROUTE_ID)
     }
 
     private fun render(player: Player): InventoryMenuView {

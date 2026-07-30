@@ -55,9 +55,16 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     ) {
         runtime.navigate(
             player,
-            route(page, returnPage, showBackButton, fromBedrockMenu),
+            prepareOpen(page, returnPage, showBackButton, fromBedrockMenu),
         )
     }
+
+    fun prepareOpen(
+        page: Int = 0,
+        returnPage: Int = 0,
+        showBackButton: Boolean = false,
+        fromBedrockMenu: Boolean = false,
+    ): MenuRoute = route(page, returnPage, showBackButton, fromBedrockMenu)
 
     private fun render(player: Player, route: MenuRoute): InventoryMenuView {
         val entries = plugin.pendingDecisionManager.getPendingEntries(player.uniqueId)

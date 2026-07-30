@@ -19,6 +19,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -383,28 +384,31 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
                 val session = plugin.creationSessionManager.startSession(context.player.uniqueId)
                 session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(context.player)
-                plugin.creationGui.openTypeSelection(context.player)
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Success(
+                        MenuUpdate.Navigate(plugin.creationGui.typeSelectionRoute()),
+                )
         }
 
         private fun userSettings(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
-                val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
-                plugin.userSettingsGui.open(context.player, showBackButton = true)
-                return MenuActionResult.Success(MenuUpdate.None)
+                val route = plugin.userSettingsGui.prepareOpen(context.player, showBackButton = true)
+                        ?: return MenuActionResult.Rejected()
+                return MenuActionResult.Success(MenuUpdate.Navigate(route))
         }
 
         private fun pending(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
                 val session = plugin.playerWorldSessionManager.getSession(context.player.uniqueId)
-                plugin.pendingInteractionGui.open(
-                        player = context.player,
-                        page = 0,
-                        returnPage = session.currentPage,
-                        showBackButton = session.showBackButton,
-                        fromBedrockMenu = false,
+                return MenuActionResult.Success(
+                        MenuUpdate.Navigate(
+                                plugin.pendingInteractionGui.prepareOpen(
+                                        page = 0,
+                                        returnPage = session.currentPage,
+                                        showBackButton = session.showBackButton,
+                                        fromBedrockMenu = false,
+                                ),
+                        ),
                 )
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun world(context: MenuActionContext): MenuActionResult {
@@ -505,14 +509,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun openSettings(player: Player, worldData: WorldData): MenuActionResult {
                 val session = plugin.playerWorldSessionManager.getSession(player.uniqueId)
-                plugin.worldSettingsGui.open(
+                val route = MyWorldManagerApi.prepareWorldSettingsRoute(
                         player,
-                        worldData,
-                        showBackButton = true,
-                        isPlayerWorldFlow = true,
-                        parentShowBackButton = session.showBackButton,
-                )
-                return MenuActionResult.Success(MenuUpdate.None)
+                        worldData.uuid,
+                        WorldSettingsNavigationRequest(
+                                showBackButton = true,
+                                isPlayerWorldFlow = true,
+                                parentShowBackButton = session.showBackButton,
+                        ),
+                ) ?: return MenuActionResult.Rejected()
+                return MenuActionResult.Success(MenuUpdate.Navigate(route))
         }
 
         private fun canOpenWorldSettings(player: Player, worldData: WorldData): Boolean =
