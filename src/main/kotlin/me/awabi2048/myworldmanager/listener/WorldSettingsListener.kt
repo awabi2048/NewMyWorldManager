@@ -634,7 +634,6 @@ class WorldSettingsListener : Listener {
                 } else {
                         player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
                 }
-                plugin.worldSettingsGui.openPortalManagement(player, worldData)
         }
 
         private fun teleportToManagedPortal(
@@ -644,7 +643,6 @@ class WorldSettingsListener : Listener {
         ) {
                 val portal = plugin.portalRepository.findAll().find { it.id == portalId } ?: return
                 plugin.portalManager.addIgnorePlayer(player)
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
                 if (!plugin.portalManager.teleportPlayerToPortalLocation(player, portal) {
                                 plugin.soundManager.playTeleportSound(player)
                                 player.sendMessage(lang.getMessage(player, "messages.warp_generic"))
@@ -725,8 +723,9 @@ class WorldSettingsListener : Listener {
                 worldData: WorldData,
                 memberId: UUID?,
         ): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> reopenMemberManagementLatest(player, worldData.uuid)
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL ->
+                                MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 if (memberId != null) {
                                         val memberName = PlayerNameUtil.getNameOrDefault(memberId, "Unknown")
@@ -737,11 +736,10 @@ class WorldSettingsListener : Listener {
                                         player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
                                         plugin.macroManager.execute("on_member_remove", mapOf("world_uuid" to worldData.uuid.toString(), "member" to memberName))
                                 }
-                                reopenMemberManagementLatest(player, worldData.uuid)
+                                MenuActionResult.Success(MenuUpdate.Back)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleMemberTransferConfirmationRuntime(
@@ -750,11 +748,12 @@ class WorldSettingsListener : Listener {
                 worldData: WorldData,
                 newOwnerId: UUID?,
         ): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> reopenMemberManagementLatest(player, worldData.uuid)
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL ->
+                                MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 newOwnerId ?: return MenuActionResult.Ignored
-                                if (!WorldCreationChecks.checkLimits(plugin, player, newOwnerId)) return MenuActionResult.Success(MenuUpdate.None)
+                                if (!WorldCreationChecks.checkLimits(plugin, player, newOwnerId)) return MenuActionResult.Rejected()
                                 val oldOwnerId = worldData.owner
                                 val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
                                 val newOwnerName = PlayerNameUtil.getNameOrDefault(newOwnerId, "Unknown")
@@ -766,11 +765,10 @@ class WorldSettingsListener : Listener {
                                 Bukkit.getPluginManager().callEvent(MwmOwnerTransferredEvent(worldData.uuid, oldOwnerId, oldOwnerName, newOwnerId, newOwnerName, player.uniqueId, MwmOwnerTransferSource.MANUAL))
                                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transferred", mapOf("old_owner" to newOwnerName)))
                                 plugin.macroManager.execute("on_owner_transfer", mapOf("old_owner" to oldOwnerName, "new_owner" to newOwnerName, "world_uuid" to worldData.uuid.toString()))
-                                reopenMemberManagementLatest(player, worldData.uuid)
+                                MenuActionResult.Success(MenuUpdate.Back)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleMemberPendingInviteCancelConfirmationRuntime(
@@ -779,15 +777,16 @@ class WorldSettingsListener : Listener {
                 worldData: WorldData,
                 decisionId: UUID?,
         ): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> reopenMemberManagementLatest(player, worldData.uuid)
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL ->
+                                MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 decisionId ?: return MenuActionResult.Ignored
                                 cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
+                                MenuActionResult.Success(MenuUpdate.Back)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleVisitorKickConfirmationRuntime(
@@ -796,8 +795,9 @@ class WorldSettingsListener : Listener {
                 worldData: WorldData,
                 visitorUuid: UUID?,
         ): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL ->
+                                MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 visitorUuid ?: return MenuActionResult.Ignored
                                 val visitor = Bukkit.getPlayer(visitorUuid)
@@ -807,11 +807,10 @@ class WorldSettingsListener : Listener {
                                         visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
                                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to visitor.name)))
                                 }
-                                plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                                MenuActionResult.Success(MenuUpdate.Back)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleExpansionConfirmationRuntime(
@@ -820,16 +819,14 @@ class WorldSettingsListener : Listener {
                 worldData: WorldData,
         ): MenuActionResult {
                 if (operation == WorldSettingsRuntimeOperation.CANCEL) {
-                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                        return MenuActionResult.Success(MenuUpdate.Back)
                 } else if (operation == WorldSettingsRuntimeOperation.CONFIRM) {
                         val cost = calculateExpansionCost(worldData.borderExpansionLevel)
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                         if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                                 player.sendMessage("§cポイントが不足しています。")
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
-                                return MenuActionResult.Success(MenuUpdate.None)
+                                return MenuActionResult.Rejected()
                         }
-                        CCSystem.getAPI().getMenuRuntimeService().close(player)
                         val messageList = plugin.languageManager.getMessageList(player, "messages.oage_ganbaru_messages")
                         val randomMessage = if (messageList.isNotEmpty()) messageList.random() else plugin.languageManager.getMessage(player, "messages.oage_ganbaru_default")
                         player.sendMessage(randomMessage)
@@ -841,65 +838,81 @@ class WorldSettingsListener : Listener {
                         val direction = plugin.settingsSessionManager.getSession(player)?.expansionDirection
                         pendingExpansions[player.uniqueId] = PendingExpansion(worldData, cost, direction, task)
                         plugin.settingsSessionManager.endSession(player)
+                        return MenuActionResult.Success(MenuUpdate.Close)
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Ignored
         }
 
         private fun handleExpansionStepBackConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
-                        WorldSettingsRuntimeOperation.CONFIRM -> executeExpansionStepBack(player, worldData, closeInventory = false)
-                        else -> Unit
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.CONFIRM -> {
+                                executeExpansionStepBack(player, worldData, closeInventory = false)
+                                MenuActionResult.Success(MenuUpdate.Close)
+                        }
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleExpansionResetConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 val world = resolveWorld(worldData)
                                 if (world != null && !isSpawnAreaPlaceable(world.spawnLocation)) {
-                                        plugin.worldSettingsGui.openResetExpansionSpawnUnsafeConfirmation(player, worldData)
+                                        MenuActionResult.Success(
+                                                MenuUpdate.Navigate(
+                                                        plugin.worldSettingsGui.runtimeRoute(
+                                                                WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM,
+                                                                worldData.uuid,
+                                                        ),
+                                                ),
+                                        )
                                 } else {
                                         executeExpansionReset(player, worldData, closeInventory = true)
+                                        MenuActionResult.Success(MenuUpdate.Close)
                                 }
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleExpansionResetSpawnUnsafeConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
-                        WorldSettingsRuntimeOperation.CONFIRM -> executeExpansionReset(player, worldData, closeInventory = true)
-                        else -> Unit
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.CONFIRM -> {
+                                executeExpansionReset(player, worldData, closeInventory = true)
+                                MenuActionResult.Success(MenuUpdate.Close)
+                        }
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleDeleteWorldConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                        WorldSettingsRuntimeOperation.DELETE_WORLD -> plugin.worldSettingsGui.openDeleteWorldConfirmation2(player, worldData)
-                        else -> Unit
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.DELETE_WORLD -> MenuActionResult.Success(
+                                MenuUpdate.Navigate(
+                                        plugin.worldSettingsGui.runtimeRoute(
+                                                WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM,
+                                                worldData.uuid,
+                                        ),
+                                ),
+                        )
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleDeleteWorldFinalConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 if (!canOwnerExecuteDelete(worldData)) {
                                         sendDeleteUnavailableMessage(player)
-                                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                                        return MenuActionResult.Success(MenuUpdate.None)
+                                        return MenuActionResult.Rejected()
                                 }
                                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
                                 val refund = (worldData.cumulativePoints * refundRate).toInt()
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
                                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_start", mapOf("world" to worldData.name)))
                                 plugin.worldService.deleteWorld(worldData.uuid, player).thenAccept { success: Boolean ->
                                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -911,35 +924,33 @@ class WorldSettingsListener : Listener {
                                         })
                                 }
                                 plugin.settingsSessionManager.endSession(player)
+                                MenuActionResult.Success(MenuUpdate.Close)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleArchiveConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
+                return when (operation) {
                         WorldSettingsRuntimeOperation.CANCEL -> {
                                 stopBorderDirectionPreview(player)
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                MenuActionResult.Success(MenuUpdate.Back)
                         }
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
                                 worldData.isArchived = true
                                 plugin.worldConfigRepository.save(worldData)
                                 plugin.settingsSessionManager.endSession(player)
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                MenuActionResult.Success(MenuUpdate.Close)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleArchiveFromCriticalConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
                                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
                                 plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success: Boolean ->
                                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -955,20 +966,18 @@ class WorldSettingsListener : Listener {
                                         })
                                 }
                                 plugin.settingsSessionManager.endSession(player)
+                                MenuActionResult.Success(MenuUpdate.Close)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleUnarchiveConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
-                when (operation) {
+                return when (operation) {
                         WorldSettingsRuntimeOperation.CANCEL -> {
-                                plugin.settingsSessionManager.endSession(player)
-                                plugin.playerWorldGui.open(player)
+                                MenuActionResult.Success(MenuUpdate.Back)
                         }
                         WorldSettingsRuntimeOperation.CONFIRM -> {
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
                                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
                                 plugin.worldService.unarchiveWorld(worldData.uuid).thenAccept { success: Boolean ->
                                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -986,10 +995,10 @@ class WorldSettingsListener : Listener {
                                         })
                                 }
                                 plugin.settingsSessionManager.endSession(player)
+                                MenuActionResult.Success(MenuUpdate.Close)
                         }
-                        else -> Unit
+                        else -> MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         /**
