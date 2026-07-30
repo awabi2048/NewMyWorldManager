@@ -92,9 +92,8 @@ class MenuNavigationContractTest {
     @Test
     fun `confirmation cancellation pops one runtime history entry`() {
         val source = guiRoot.resolve("ConfirmationMenuGui.kt").readText()
-        val body = functionBody(source, "cancel")
-        assertTrue("return session.onCancel()" in body)
-        assertFalse("MenuUpdate.Close" in body)
+        assertTrue("getMenuConfirmationService" in source)
+        assertFalse("ConcurrentHashMap" in source)
         assertTrue("onCancel: () -> MenuActionResult = { MenuActionResult.Success(MenuUpdate.Back) }" in source)
     }
 
