@@ -40,26 +40,33 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                 renderer = { context -> render(context.player) },
                 actions = mapOf(
                     ACTION_UPDATE_DATA to MenuActionHandler { context ->
-                        openUpdateDataConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.None)
+                        MenuActionResult.Success(
+                            MenuUpdate.Navigate(prepareUpdateDataConfirmation(context.player)),
+                        )
                     },
                     ACTION_REPAIR_TEMPLATES to MenuActionHandler { context ->
-                        openRepairTemplatesConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.None)
+                        MenuActionResult.Success(
+                            MenuUpdate.Navigate(prepareRepairTemplatesConfirmation(context.player)),
+                        )
                     },
                     ACTION_CREATE_TEMPLATE to MenuActionHandler(::createTemplate),
                     ACTION_ARCHIVE_ALL to MenuActionHandler { context ->
-                        openArchiveAllConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.None)
+                        MenuActionResult.Success(
+                            MenuUpdate.Navigate(prepareArchiveAllConfirmation(context.player)),
+                        )
                     },
                     ACTION_CONVERT to MenuActionHandler(::convert),
                     ACTION_UNLINK to MenuActionHandler { context ->
-                        openUnlinkConfirmation(context.player)
-                        MenuActionResult.Success(MenuUpdate.None)
+                        MenuActionResult.Success(
+                            MenuUpdate.Navigate(prepareUnlinkConfirmation(context.player)),
+                        )
                     },
                     ACTION_EXPORT to MenuActionHandler { context ->
-                        openExportConfirmation(context.player, context.player.world.name)
-                        MenuActionResult.Success(MenuUpdate.None)
+                        MenuActionResult.Success(
+                            MenuUpdate.Navigate(
+                                prepareExportConfirmation(context.player, context.player.world.name),
+                            ),
+                        )
                     },
                     ACTION_INFO to MenuActionHandler(::openWorldList),
                     ACTION_CAPABILITY to MenuActionHandler(::executeCapability),
@@ -264,8 +271,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     }
 
     private fun createTemplate(context: MenuActionContext): MenuActionResult {
-        plugin.templateWizardGui.open(context.player)
-        return MenuActionResult.Success(MenuUpdate.None)
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(plugin.templateWizardGui.prepareOpen(context.player)),
+        )
     }
 
     private fun convert(context: MenuActionContext): MenuActionResult {
@@ -274,13 +282,15 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             ClickType.RIGHT, ClickType.SHIFT_RIGHT -> WorldService.ConversionMode.ADMIN
             else -> return MenuActionResult.Ignored
         }
-        openConvertConfirmation(context.player, mode)
-        return MenuActionResult.Success(MenuUpdate.None)
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(prepareConvertConfirmation(context.player, mode)),
+        )
     }
 
     private fun openWorldList(context: MenuActionContext): MenuActionResult {
-        plugin.worldGui.open(context.player, fromAdminMenu = true)
-        return MenuActionResult.Success(MenuUpdate.None)
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(plugin.worldGui.prepareOpen(context.player, fromAdminMenu = true)),
+        )
     }
 
     private fun executeCapability(context: MenuActionContext): MenuActionResult =
@@ -317,6 +327,10 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     // --- 確認画面 ---
 
     fun openConvertConfirmation(player: Player, mode: WorldService.ConversionMode) {
+        runtime.navigate(player, prepareConvertConfirmation(player, mode))
+    }
+
+    private fun prepareConvertConfirmation(player: Player, mode: WorldService.ConversionMode): MenuRoute {
         val lang = plugin.languageManager
         val action = if (mode == WorldService.ConversionMode.NORMAL) SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM else SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM
         val titleKey = if (mode == WorldService.ConversionMode.NORMAL) "gui.admin_menu.convert.confirm_normal" else "gui.admin_menu.convert.confirm_admin"
@@ -326,110 +340,132 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         } else {
             "mwm:confirm/admin/convert_admin"
         }
-        showDialogOrGuiConfirmation(player, player.uniqueId, action, title, confirmId) {}
+        return prepareConfirmation(player, player.uniqueId, action, title, confirmId)
     }
 
     fun openUnlinkConfirmation(player: Player) {
+        runtime.navigate(player, prepareUnlinkConfirmation(player))
+    }
+
+    private fun prepareUnlinkConfirmation(player: Player): MenuRoute {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.unlink.confirm_title")
-        showDialogOrGuiConfirmation(
+        return prepareConfirmation(
             player,
             player.uniqueId,
             SettingsAction.ADMIN_UNLINK_CONFIRM,
             title,
             "mwm:confirm/admin/unlink"
-        ) {}
+        )
     }
 
     fun openExportConfirmation(player: Player, worldName: String) {
+        runtime.navigate(player, prepareExportConfirmation(player, worldName))
+    }
+
+    private fun prepareExportConfirmation(player: Player, worldName: String): MenuRoute {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.export.confirm_title")
         val extraInfo = listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.admin_menu.target_world_label"), worldName, "§b"))
-        showDialogOrGuiConfirmation(
+        return prepareConfirmation(
             player,
             player.uniqueId,
             SettingsAction.ADMIN_EXPORT_CONFIRM,
             title,
             "mwm:confirm/admin/export",
             extraInfo
-        ) {}
+        )
     }
 
     fun openArchiveAllConfirmation(player: Player) {
+        runtime.navigate(player, prepareArchiveAllConfirmation(player))
+    }
+
+    private fun prepareArchiveAllConfirmation(player: Player): MenuRoute {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.archive.confirm_title")
-        showDialogOrGuiConfirmation(
+        return prepareConfirmation(
             player,
             player.uniqueId,
             SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
             title,
             "mwm:confirm/admin/archive_all"
-        ) {}
+        )
     }
 
     fun openUpdateDataConfirmation(player: Player) {
+        runtime.navigate(player, prepareUpdateDataConfirmation(player))
+    }
+
+    private fun prepareUpdateDataConfirmation(player: Player): MenuRoute {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.update_data.confirm_title")
-        showDialogOrGuiConfirmation(
+        return prepareConfirmation(
             player,
             player.uniqueId,
             SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
             title,
             "mwm:confirm/admin/update_data"
-        ) {}
+        )
     }
 
     fun openRepairTemplatesConfirmation(player: Player) {
+        runtime.navigate(player, prepareRepairTemplatesConfirmation(player))
+    }
+
+    private fun prepareRepairTemplatesConfirmation(player: Player): MenuRoute {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.repair_templates.confirm_title")
-        showDialogOrGuiConfirmation(
+        return prepareConfirmation(
             player,
             player.uniqueId,
             SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM,
             title,
             "mwm:confirm/admin/repair_templates"
-        ) {}
+        )
     }
 
     fun openArchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.archive_world.confirm_title")
         val extraInfo = listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.admin_menu.target_world_label"), worldName, "§b"))
-        showDialogOrGuiConfirmation(
+        runtime.navigate(player, prepareConfirmation(
             player,
             worldUuid,
             SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM,
             title,
             "mwm:confirm/admin/archive_world/$worldUuid",
             extraInfo
-        ) {}
+        ))
     }
 
     fun openUnarchiveWorldConfirmation(player: Player, worldName: String, worldUuid: UUID) {
         val lang = plugin.languageManager
         val title = lang.getComponent(player, "gui.admin_menu.unarchive_world.confirm_title")
         val extraInfo = listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.admin_menu.target_world_label"), worldName, "§b"))
-        showDialogOrGuiConfirmation(
+        runtime.navigate(player, prepareConfirmation(
             player,
             worldUuid,
             SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM,
             title,
             "mwm:confirm/admin/unarchive_world/$worldUuid",
             extraInfo
-        ) {}
+        ))
     }
 
-    private fun showDialogOrGuiConfirmation(
+    private fun prepareConfirmation(
         player: Player,
         worldUuid: UUID,
         action: SettingsAction,
+        @Suppress("UNUSED_PARAMETER")
         title: Component,
+        @Suppress("UNUSED_PARAMETER")
         confirmActionId: String,
+        @Suppress("UNUSED_PARAMETER")
         extraInfo: List<GuiLoreLine> = emptyList(),
-        @Suppress("UNUSED_PARAMETER") onGuiFallback: () -> Unit
-    ) {
+    ): MenuRoute {
         plugin.settingsSessionManager.updateSessionAction(player, worldUuid, action, isGui = true)
-        runtime.navigate(player, MenuRoute(OWNER, CONFIRM_ROUTE_ID))
+        return MenuRoute(OWNER, CONFIRM_ROUTE_ID)
     }
 
     private fun renderConfirmation(player: Player): InventoryMenuView {

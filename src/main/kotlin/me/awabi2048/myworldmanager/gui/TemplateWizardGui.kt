@@ -74,10 +74,14 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player) {
+        runtime.navigate(player, prepareOpen(player))
+    }
+
+    fun prepareOpen(player: Player): MenuRoute {
         sessions.getOrPut(player.uniqueId) {
             WizardSession(player.world.name, player.world.key.toString())
         }
-        runtime.navigate(player, MenuRoute(OWNER, ROUTE_ID))
+        return MenuRoute(OWNER, ROUTE_ID)
     }
 
     private fun render(player: Player): InventoryMenuView {

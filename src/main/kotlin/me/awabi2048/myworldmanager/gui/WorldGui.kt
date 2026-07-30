@@ -102,6 +102,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                 fromAdminMenu: Boolean? = null,
                 suppressSound: Boolean = false
         ) {
+                runtime.navigate(player, prepareOpen(player, page, fromAdminMenu))
+        }
+
+        fun prepareOpen(
+                player: Player,
+                page: Int? = null,
+                fromAdminMenu: Boolean? = null,
+        ): MenuRoute {
                 val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
                 if (fromAdminMenu != null) {
                         session.fromAdminMenu = fromAdminMenu
@@ -116,8 +124,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                 )
 
                 repository.loadAll()
-                runtime.navigate(player, route(currentPage))
                 startAutoRefresh(player)
+                return route(currentPage)
         }
 
         private fun render(player: Player, route: MenuRoute): InventoryMenuView {
