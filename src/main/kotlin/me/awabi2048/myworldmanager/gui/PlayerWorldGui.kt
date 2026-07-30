@@ -36,6 +36,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -44,6 +45,8 @@ import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 
 class PlayerWorldGui(private val plugin: MyWorldManager) {
@@ -197,14 +200,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         )
                                 }
                         elements += capability?.let {
-                                MenuElement(
-                                        layout.itemSlots[index],
-                                        CCSystem.getAPI().getGuiElementService().menuCapability(player, it),
-                                        GuiElementRole.ACTION,
-                                        interaction = com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
-                                                ACTION_WORLD,
-                                                it.acceptedClicks,
-                                                mapOf(
+                                CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
+                                        player,
+                                        GuiMenuCapabilitySpec(
+                                                slot = layout.itemSlots[index],
+                                                capability = it,
+                                                actionId = ACTION_WORLD,
+                                                actionPayload = mapOf(
                                                         WORLD_UUID to world.uuid.toString(),
                                                         CAPABILITY_ID to it.capabilityId,
                                                 ),
@@ -225,24 +227,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         )
                                 }
                         if (capabilityView != null) {
-                                elements += MenuElement(
-                                        layout.actionSlot - 2,
-                                        CCSystem.getAPI().getGuiElementService()
-                                                .menuCapability(player, capabilityView),
-                                        if (capabilityView.actionable) {
-                                                GuiElementRole.ACTION
-                                        } else {
-                                                GuiElementRole.CONTENT
-                                        },
-                                        interaction = if (capabilityView.actionable) {
-                                                com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
-                                                        ACTION_CREATE,
-                                                        capabilityView.acceptedClicks,
-                                                        mapOf(CAPABILITY_ID to capabilityView.capabilityId),
-                                                )
-                                        } else {
-                                                com.awabi2048.ccsystem.api.gui.MenuInteraction.DisplayOnly
-                                        },
+                                elements += CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
+                                        player,
+                                        GuiMenuCapabilitySpec(
+                                                slot = layout.actionSlot - 2,
+                                                capability = capabilityView,
+                                                actionId = ACTION_CREATE,
+                                                actionPayload = mapOf(CAPABILITY_ID to capabilityView.capabilityId),
+                                        ),
                                 )
                         } else {
                                 val reason = creationBlockReason(
@@ -254,71 +246,43 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 elements += if (reason == null) {
                                         createCreationEntry(player, layout.actionSlot - 2)
                                 } else {
-                                        MenuElement(
-                                                layout.actionSlot - 2,
-                                                createCreationUnavailableButton(player, reason),
-                                                GuiElementRole.CONTENT,
-                                        )
+                                        createCreationUnavailableEntry(player, layout.actionSlot - 2, reason)
                                 }
                         }
                 }
-                elements += MenuElement(
-                        layout.actionSlot,
-                        capabilityService
-                                .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
-                                .firstNotNullOfOrNull { definition ->
-                                        capabilityService.resolve(
-                                                definition.capabilityId,
-                                                player,
-                                                attributes = playerWorldCapabilityAttributes(capabilitySubject),
-                                        )
-                                }
-                                ?.let {
-                                        CCSystem.getAPI().getGuiElementService()
-                                                .menuCapability(player, it)
-                                }
-                                ?: createStatsButton(player, targetUuid, targetName, createCount, maxSlot, stats),
-                        GuiElementRole.CONTENT,
-                )
+                val summaryCapability = capabilityService
+                        .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
+                        .firstNotNullOfOrNull { definition ->
+                                capabilityService.resolve(
+                                        definition.capabilityId,
+                                        player,
+                                        attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                                )
+                        }
+                elements += if (summaryCapability != null) {
+                        CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
+                                player,
+                                GuiMenuCapabilitySpec(
+                                        slot = layout.actionSlot,
+                                        capability = summaryCapability,
+                                        actionId = ACTION_WORLD,
+                                ),
+                        )
+                } else {
+                        createStatsEntry(player, layout.actionSlot, targetUuid, targetName, createCount, maxSlot, stats)
+                }
                 if (isOwnMenu) {
                         elements += createUserSettingsEntry(player, layout.actionSlot + 2)
                         elements += createPendingEntry(player, layout.size - 2)
                 }
                 if (pageLayout.page > 0) {
-                        elements += MenuElement(
-                                layout.previousPageSlot,
-                                GuiHelper.createPrevPageItem(
-                                        plugin,
-                                        player,
-                                        "player_world",
-                                        pageLayout.page - 1,
-                                ),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (pageLayout.page - 1).toString()),
-                        )
+                        elements += navigationEntry(player, layout.previousPageSlot, false, pageLayout.page - 1)
                 }
                 if (GuiHelper.canGoBack(player)) {
-                        elements += MenuElement(
-                                layout.backSlot,
-                                GuiHelper.createReturnItem(plugin, player, "player_world"),
-                                GuiElementRole.BACK,
-                                ACTION_BACK,
-                        )
+                        elements += backEntry(player, layout.backSlot)
                 }
                 if (pageLayout.page < pageLayout.totalPages - 1) {
-                        elements += MenuElement(
-                                layout.nextPageSlot,
-                                GuiHelper.createNextPageItem(
-                                        plugin,
-                                        player,
-                                        "player_world",
-                                        pageLayout.page + 1,
-                                ),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (pageLayout.page + 1).toString()),
-                        )
+                        elements += navigationEntry(player, layout.nextPageSlot, true, pageLayout.page + 1)
                 }
                 return InventoryMenuView(
                         layout.size,
@@ -694,6 +658,30 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 )
         }
 
+        private fun createCreationUnavailableEntry(
+                player: Player,
+                slot: Int,
+                reason: CreationBlockReason,
+        ): MenuElement = CCSystem.getAPI().getGuiElementService().menuDisplay(
+                GuiMenuDisplaySpec(
+                        slot,
+                        GuiItemSpec(
+                                Material.BARRIER,
+                                GuiNameSpec.Component(plugin.languageManager.getComponent(player, reason.displayKey)),
+                                GuiLoreSpec.Blocks(
+                                        listOf(
+                                                GuiLoreBlock(
+                                                        plugin.languageManager.getMessageList(player, reason.loreKey)
+                                                                .map(GuiLoreLine::Text),
+                                                ),
+                                        ),
+                                ),
+                                GuiElementRole.CONTENT,
+                                1,
+                        ),
+                ),
+        )
+
         private fun createCreationUnavailableButton(player: Player, reason: CreationBlockReason): ItemStack {
                 val lang = plugin.languageManager
                 val item = ItemStack(Material.BARRIER)
@@ -721,6 +709,140 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 if (currentCreateCount >= maxSlot) return CreationBlockReason.NO_SLOT
                 return null
         }
+
+        private fun createStatsEntry(
+                player: Player,
+                slot: Int,
+                targetPlayerUuid: UUID,
+                targetPlayerName: String?,
+                currentCreateCount: Int,
+                maxSlot: Int,
+                stats: PlayerStats,
+        ): MenuElement {
+                val lang = plugin.languageManager
+                val bypassLimits = PermissionManager.canBypassWorldLimits(player)
+                val lore = GuiLoreSpec.Blocks(buildList {
+                        if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                                val pointIcon = if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖 "
+                                add(
+                                        GuiLoreBlock(
+                                                listOf(
+                                                        GuiLoreLine.Data(
+                                                                lang.getMessage(player, "gui.player_world.stats_button.points_label"),
+                                                                "$pointIcon${stats.worldPoint}",
+                                                                "§6",
+                                                        ),
+                                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.points_description")),
+                                                ),
+                                        ),
+                                )
+                        }
+                        if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                                add(
+                                        GuiLoreBlock(
+                                                if (bypassLimits) {
+                                                        listOf(
+                                                                GuiLoreLine.Data(
+                                                                        lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
+                                                                        currentCreateCount,
+                                                                        "§a§l",
+                                                                ),
+                                                                GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_bypass_description")),
+                                                        )
+                                                } else {
+                                                        listOf(
+                                                                GuiLoreLine.Data(
+                                                                        lang.getMessage(player, "gui.player_world.stats_button.slots_label"),
+                                                                        "$currentCreateCount/$maxSlot",
+                                                                        "§a§l",
+                                                                ),
+                                                                GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_description")),
+                                                        )
+                                                },
+                                        ),
+                                )
+                        } else {
+                                add(
+                                        GuiLoreBlock(
+                                                listOf(
+                                                        GuiLoreLine.Data(
+                                                                lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
+                                                                currentCreateCount,
+                                                                "§a§l",
+                                                        ),
+                                                ),
+                                        ),
+                                )
+                        }
+                })
+                return CCSystem.getAPI().getGuiElementService().menuDisplay(
+                        GuiMenuDisplaySpec(
+                                slot,
+                                GuiItemSpec(
+                                        Material.PLAYER_HEAD,
+                                        GuiNameSpec.Component(
+                                                lang.getComponent(
+                                                        player,
+                                                        "gui.player_world.stats_button.display",
+                                                        mapOf(
+                                                                "player" to (
+                                                                        targetPlayerName
+                                                                                ?: PlayerNameUtil.getNameOrDefault(
+                                                                                        targetPlayerUuid,
+                                                                                        lang.getMessage(player, "general.unknown"),
+                                                                                )
+                                                                        ),
+                                                        ),
+                                                ),
+                                        ),
+                                        lore,
+                                        GuiElementRole.CONTENT,
+                                        1,
+                                ),
+                                playerHeadOwner = targetPlayerUuid,
+                        ),
+                )
+        }
+
+        private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+                val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+                val iconId = if (next) "next_page" else "prev_page"
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("player_world", iconId, Material.ARROW),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                role = GuiElementRole.NAVIGATION,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_PAGE,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, key),
+                                                mapOf(PAGE to targetPage.toString()),
+                                        ),
+                                ),
+                        ),
+                )
+        }
+
+        private fun backEntry(player: Player, slot: Int): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("player_world", "back", Material.REDSTONE),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
+                                role = GuiElementRole.BACK,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_BACK,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, "gui.common.return"),
+                                        ),
+                                ),
+                        ),
+                )
 
         private fun createStatsButton(
                 player: Player,
