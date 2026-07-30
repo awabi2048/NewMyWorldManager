@@ -53,7 +53,7 @@ class MenuNavigationContractTest {
     fun `アイコン選択時だけプレイヤーインベントリを選択モードにする`() {
         val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
         assertTrue("""id = RUNTIME_SELECTION_ROUTE""" in source)
-        assertTrue("enableRuntimeIconSelection" in source)
+        assertTrue("iconSelectionRoute" in source)
         assertTrue("internal fun route" in source)
     }
 

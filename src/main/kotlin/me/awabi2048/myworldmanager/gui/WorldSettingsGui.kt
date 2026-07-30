@@ -214,14 +214,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        fun enableRuntimeIconSelection(player: Player) {
-                val route = CCSystem.getAPI().getMenuNavigationService().currentRoute(player) ?: return
-                if (route.owner != RUNTIME_OWNER || route.id != RUNTIME_ROUTE) return
-                runtime.replace(player, route.copy(id = RUNTIME_SELECTION_ROUTE))
-        }
-
         internal fun route(worldUuid: UUID): MenuRoute =
                 runtimeRoute(WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldUuid)
+
+        internal fun iconSelectionRoute(worldUuid: UUID): MenuRoute =
+                route(worldUuid).copy(id = RUNTIME_SELECTION_ROUTE)
 
         internal fun memberManagementRoute(worldUuid: UUID, page: Int = 0): MenuRoute =
                 MenuRoute(
@@ -3851,10 +3848,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         fun editWorldInfo(player: Player, worldData: WorldData) {
                 plugin.worldSettingsListener.editWorldInfo(player, worldData)
-        }
-
-        fun enterIconSelection(player: Player, worldData: WorldData) {
-                plugin.worldSettingsListener.startIconSelection(player, worldData)
         }
 
         fun handleIconSelection(player: Player, clickedItem: ItemStack): MenuActionResult {

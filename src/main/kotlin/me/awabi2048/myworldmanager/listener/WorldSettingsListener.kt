@@ -195,7 +195,8 @@ class WorldSettingsListener : Listener {
                                 startSpawnPreview(player)
                                 CCSystem.getAPI().getMenuRuntimeService().close(player)
                         }
-                        WorldSettingsRuntimeOperation.SELECT_ICON -> startIconSelection(player, worldData)
+                        WorldSettingsRuntimeOperation.SELECT_ICON ->
+                                return startIconSelection(player, worldData)
                         WorldSettingsRuntimeOperation.EXPAND -> {
                                 if (MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) != true) {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "gui.settings.common.must_be_in_world"))
@@ -1555,7 +1556,7 @@ class WorldSettingsListener : Listener {
                 showWorldInfoDialog(player, worldData)
         }
 
-        fun startIconSelection(player: Player, worldData: WorldData) {
+        fun startIconSelection(player: Player, worldData: WorldData): MenuActionResult {
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1566,8 +1567,10 @@ class WorldSettingsListener : Listener {
                         ?.let {
                                 it.beginExternalInput(MenuExternalInput.SELECT_ICON)
                         }
-                plugin.worldSettingsGui.enableRuntimeIconSelection(player)
                 player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
+                return MenuActionResult.Success(
+                        MenuUpdate.Replace(plugin.worldSettingsGui.iconSelectionRoute(worldData.uuid)),
+                )
         }
 
         fun handleRuntimeIconSelection(
