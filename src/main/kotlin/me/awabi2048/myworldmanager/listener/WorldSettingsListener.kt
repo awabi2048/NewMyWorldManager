@@ -2573,7 +2573,6 @@ class WorldSettingsListener : Listener {
                 clearBorderPreview(event.player)
                 processImmediateExpansion(event.player)
                 CCSystem.getAPI().getMenuRuntimeService().clear(event.player)
-                plugin.worldSettingsGui.clearRuntimeViews(event.player)
         }
 
         fun startSpawnPreview(player: Player) {
