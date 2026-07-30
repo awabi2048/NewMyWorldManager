@@ -98,22 +98,6 @@ class MenuNavigationContractTest {
     }
 
     @Test
-    fun `runtime settings adapter preserves ignored extension clicks`() {
-        val listener = Path.of(
-            "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
-        ).readText()
-        val gui = guiRoot.resolve("WorldSettingsGui.kt").readText()
-        val dispatch = functionBody(listener, "handleRuntimeInventoryClick")
-
-        assertTrue("return MenuActionResult.Ignored" in dispatch)
-        assertTrue("return MenuActionResult.Success(MenuUpdate.None)" in dispatch)
-        assertFalse(
-            "handleRuntimeInventoryClick(" in gui &&
-                "MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)" in gui,
-        )
-    }
-
-    @Test
     fun `world settings child menus do not manually push before runtime navigation`() {
         val listener = Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",

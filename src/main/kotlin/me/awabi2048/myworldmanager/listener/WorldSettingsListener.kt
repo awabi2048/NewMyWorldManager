@@ -19,7 +19,7 @@ import java.util.UUID
 import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContext
 import me.awabi2048.myworldmanager.api.service.ExpansionExecutionMode
 import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
 import me.awabi2048.myworldmanager.api.service.ExpansionSequencePhase
@@ -96,42 +96,6 @@ class WorldSettingsListener : Listener {
         ): MenuActionResult {
                 if (player.openInventory.topInventory.getItem(slot)?.isSimilar(item) != true) {
                         return MenuActionResult.Ignored
-                }
-                val session = plugin.settingsSessionManager.getSession(player)
-                val worldData = session?.worldUuid?.let(plugin.worldConfigRepository::findByUuid)
-                if (session != null && worldData != null) {
-                        val page =
-                                when (val raw = session.getMetadata("member_management_page")) {
-                                        is Int -> raw
-                                        is Number -> raw.toInt()
-                                        is String -> raw.toIntOrNull() ?: 0
-                                        else -> 0
-                                }
-                        val extensionContext =
-                                MenuExtensionContext(
-                                        if (runtimeContext.screen == WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT) {
-                                                "member_management"
-                                        } else {
-                                                "world_settings"
-                                        },
-                                        mutableMapOf(
-                                                "worldData" to worldData,
-                                                "page" to page,
-                                                "action" to session.action,
-                                                "itemType" to ItemTag.getType(item),
-                                        ),
-                                )
-                        val handled =
-                                MyWorldManagerApi.getMenuExtensions()
-                                        .any { extension ->
-                                                extension.onClick(click, item, player, extensionContext)
-                                        }
-                        if (handled) {
-                                return MenuActionResult.Success(MenuUpdate.None)
-                        }
-                        if (ItemTag.getType(item) == ItemTag.TYPE_GUI_EXTENSION) {
-                                return MenuActionResult.Ignored
-                        }
                 }
                 handleIconSelectionTopInventoryClick(runtimeContext)?.let { return it }
                 handleConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
@@ -1124,6 +1088,30 @@ class WorldSettingsListener : Listener {
                                 return MenuActionResult.Success(MenuUpdate.None)
                         }
                         ItemTag.TYPE_GUI_MEMBER_ITEM -> {
+                                val memberId = ItemTag.getWorldUuid(item)
+                                if (
+                                        memberId != null &&
+                                        !click.isShiftClick &&
+                                        click.isLeftClick
+                                ) {
+                                        val capabilityContext =
+                                                MemberManagementCapabilityContext(
+                                                        player,
+                                                        worldData,
+                                                        memberId,
+                                                )
+                                        val capability =
+                                                MyWorldManagerApi
+                                                        .getMemberManagementCapabilities()
+                                                        .firstOrNull {
+                                                                it.resolve(capabilityContext) != null
+                                                        }
+                                        if (capability != null) {
+                                                return capability.handlePrimaryAction(
+                                                        capabilityContext,
+                                                )
+                                        }
+                                }
                                 handleMemberManagementMemberItemClick(
                                         player,
                                         item,

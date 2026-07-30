@@ -9,7 +9,7 @@ import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuProvider
 import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuRequest
 import me.awabi2048.myworldmanager.api.extension.FavoriteMenuProvider
-import me.awabi2048.myworldmanager.api.extension.MenuExtension
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapability
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
 import me.awabi2048.myworldmanager.api.extension.CreationConfirmationMenuProvider
@@ -100,7 +100,8 @@ object MyWorldManagerApi {
     private var worldTagService: ApiWorldTagService? = null
     private val worldCreationGuards = CopyOnWriteArrayList<WorldCreationGuard>()
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
-    private val menuExtensions = CopyOnWriteArrayList<MenuExtension>()
+    private val memberManagementCapabilities =
+        CopyOnWriteArrayList<MemberManagementCapability>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -122,6 +123,23 @@ object MyWorldManagerApi {
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
     private var bedrockFormService: ApiBedrockFormService? = null
+
+    @JvmStatic
+    fun registerMemberManagementCapability(capability: MemberManagementCapability) {
+        memberManagementCapabilities.removeIf { it.getId() == capability.getId() }
+        memberManagementCapabilities.add(capability)
+    }
+
+    @JvmStatic
+    fun unregisterMemberManagementCapability(capability: MemberManagementCapability) {
+        memberManagementCapabilities.removeIf {
+            it === capability || it.getId() == capability.getId()
+        }
+    }
+
+    @JvmStatic
+    fun getMemberManagementCapabilities(): List<MemberManagementCapability> =
+        memberManagementCapabilities.toList()
 
     @JvmStatic
     fun openWorldSettings(
@@ -358,22 +376,6 @@ object MyWorldManagerApi {
         org.bukkit.Bukkit.getOnlinePlayers().forEach { player ->
             repository.findByWorldKey(player.world.key.toString())?.let { syncWorldPlayerState(player, it) }
         }
-    }
-
-    @JvmStatic
-    fun registerMenuExtension(extension: MenuExtension) {
-        menuExtensions.removeIf { it.getId() == extension.getId() }
-        menuExtensions.add(extension)
-    }
-
-    @JvmStatic
-    fun unregisterMenuExtension(extension: MenuExtension) {
-        menuExtensions.removeIf { it === extension || it.getId() == extension.getId() }
-    }
-
-    @JvmStatic
-    fun getMenuExtensions(): List<MenuExtension> {
-        return menuExtensions.toList()
     }
 
     @JvmStatic

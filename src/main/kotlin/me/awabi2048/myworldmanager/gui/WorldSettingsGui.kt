@@ -31,7 +31,8 @@ import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContext
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityView
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsCapabilityPlacements
 import me.awabi2048.myworldmanager.model.PendingInteractionType
@@ -1280,20 +1281,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                 }
 
-                applyMenuExtensions(
-                        inventory,
-                        player,
-                        MenuExtensionContext(
-                                "world_settings",
-                                mutableMapOf(
-                                        "worldData" to worldData,
-                                        "showBackButton" to currentShowBack,
-                                        "isOwner" to isOwner,
-                                        "isMember" to isMember,
-                                        "isModerator" to isModerator
-                                )
-                        )
-                )
                 applyCapabilities(
                         inventory,
                         player,
@@ -1815,11 +1802,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 pendingType = entry.pendingType ?: PendingInteractionType.MEMBER_INVITE
                                         )
                                 } else {
+                                        val capabilityView =
+                                                MyWorldManagerApi
+                                                        .getMemberManagementCapabilities()
+                                                        .firstNotNullOfOrNull { capability ->
+                                                                capability.resolve(
+                                                                        MemberManagementCapabilityContext(
+                                                                                player,
+                                                                                worldData,
+                                                                                entry.playerUuid,
+                                                                        ),
+                                                                )
+                                                        }
                                         createMemberItem(
                                                 player,
                                                 entry.playerUuid,
                                                 entry.role ?: lang.getMessage(player, "role.member"),
-                                                canManageRoles
+                                                canManageRoles,
+                                                capabilityView,
                                         )
                                 }
                         inventory.setItem(slot, memberItem)
@@ -1953,21 +1953,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 )
                         )
                 }
-
-                applyMenuExtensions(
-                        inventory,
-                        player,
-                        MenuExtensionContext(
-                                "member_management",
-                                mutableMapOf(
-                                        "worldData" to worldData,
-                                        "page" to currentPage,
-                                        "footerStart" to footerStart,
-                                        "canManageRoles" to canManageRoles,
-                                        "isAdminFlow" to isAdminFlow
-                                )
-                        )
-                )
 
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
@@ -2258,7 +2243,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 viewer: Player,
                 uuid: java.util.UUID,
                 role: String,
-                isOwner: Boolean
+                isOwner: Boolean,
+                capabilityView: MemberManagementCapabilityView? = null,
         ): ItemStack {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
@@ -2284,7 +2270,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val itemLore = mutableListOf<GuiLoreLine>()
 
                 // Info section
-                if (isOnline) {
+                if (capabilityView != null) {
+                        itemLore += capabilityView.detailLines
+                } else if (isOnline) {
                         itemLore += GuiLoreLine.StyledText(
                                 lang.getMessage(viewer, "gui.member_management.item.online_label"),
                                 "§a",
@@ -2297,9 +2285,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ?: lang.getMessage(viewer, "general.unknown")
                         itemLore += GuiLoreLine.Data(onlineLabel, lastOnline, "§f")
                 }
-                itemLore += GuiLoreLine.Data(lang.getMessage(viewer, "gui.member_management.item.role_label"), role, "§f")
+                if (capabilityView == null) {
+                        itemLore += GuiLoreLine.Data(
+                                lang.getMessage(viewer, "gui.member_management.item.role_label"),
+                                role,
+                                "§f",
+                        )
+                }
 
-                if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
+                if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
                         val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
                                 lang.getMessage(null as Player?, "role.moderator")
                         } else {
@@ -2323,7 +2317,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                meta.lore(GuiItemFactory.menuLore(itemLore))
+                meta.lore(
+                        if (capabilityView == null) {
+                                GuiItemFactory.menuLore(itemLore)
+                        } else {
+                                CCSystem.getAPI().getLoreService().render(
+                                        GuiLoreSpec.Blocks(
+                                                listOf(
+                                                        GuiLoreBlock(itemLore),
+                                                        GuiLoreBlock(capabilityView.actionLines),
+                                                ),
+                                        ),
+                                )
+                        },
+                )
                 item.itemMeta = meta
 
                 me.awabi2048.myworldmanager.util.ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
@@ -3360,23 +3367,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid,
                 decisionId,
         )
-
-        private fun applyMenuExtensions(
-                inventory: RuntimeItemBuffer,
-                player: Player,
-                context: MenuExtensionContext,
-        ) {
-                var items = inventory.contents
-                        .mapIndexedNotNull { slot, item -> item?.let { slot to it.clone() } }
-                        .toMap()
-                MyWorldManagerApi.getMenuExtensions().forEach { extension ->
-                        items = extension.onRender(items, player, context)
-                }
-                inventory.clear()
-                items.forEach { (slot, item) ->
-                        if (slot in 0 until inventory.size) inventory.setItem(slot, item)
-                }
-        }
 
         private fun createDecorationItem(material: Material): ItemStack {
                 return GuiItemFactory.decoration(material)
