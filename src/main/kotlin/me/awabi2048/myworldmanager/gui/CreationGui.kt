@@ -31,7 +31,6 @@ import me.awabi2048.myworldmanager.listener.CreationConfirmationAction
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreAction
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager

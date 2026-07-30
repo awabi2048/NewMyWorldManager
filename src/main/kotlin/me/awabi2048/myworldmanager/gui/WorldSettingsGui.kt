@@ -8,7 +8,6 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
@@ -50,8 +49,6 @@ import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreActions
-import me.awabi2048.myworldmanager.util.GuiLoreAction
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -461,25 +458,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         runtime.replace(player, targetRoute)
                 } else {
                         runtime.navigate(player, targetRoute)
-                }
-        }
-
-        private fun contractGuiActions(
-                player: Player,
-                worldData: WorldData,
-                action: WorldSettingsAction,
-                actionTexts: List<String>,
-        ): List<GuiLoreAction> {
-                val contract = plugin.worldSettingsActionService.contract(player, worldData, action)
-                require(contract.options.size == actionTexts.size) {
-                        "World settings action presentation mismatch: $action options=${contract.options.size} texts=${actionTexts.size}"
-                }
-                val actionService = CCSystem.getAPI().getGuiActionService()
-                return contract.options.zip(actionTexts).map { (option, actionText) ->
-                        GuiLoreAction(
-                                actionService.clickLabel(player, option.displayClick),
-                                actionText,
-                        )
                 }
         }
 
@@ -979,48 +957,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .findByWorldAndType(worldData.uuid, PendingInteractionType.MEMBER_REQUEST)
                                         .size
 
-                        val memberLore =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.member.blocks.description"
-                                                ).map(GuiLoreLine::Text)
-                                        )
-                                        .spacer()
-                                        .block(buildList {
-                                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.member.blocks.count"), totalCount, "§b"))
-                                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.member.blocks.pending_requests"), pendingRequestCount, "§e"))
-                                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.member.blocks.pending_invites"), pendingInviteCount, "§e"))
-                                                add(GuiLoreLine.Text(lang.getMessage(player, "gui.settings.member.blocks.list_header")))
-                                                memberListString.lines().filter(String::isNotBlank).forEach { add(GuiLoreLine.Text(it.trim())) }
-                                        })
-                                        .actions(contractGuiActions(
-                                                player,
-                                                worldData,
-                                                WorldSettingsAction.MANAGE_MEMBERS,
-                                                listOf(lang.getMessage(player, "gui.settings.member.action.open_list")),
-                                        ))
-                                        .buildSpec()
-
-                        inventory.setItem(
-                                25,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "members",
-                                                Material.PLAYER_HEAD
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 25,
+                                        material = plugin.menuConfigManager.getIconMaterial("world_settings", "members", Material.PLAYER_HEAD),
+                                        name = GuiNameSpec.Text(lang.getMessage(player, "gui.settings.member.display"), GuiNameStyle.DEFAULT),
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(player, "gui.settings.member.blocks.description") +
+                                                lang.getMessage(player, "gui.settings.member.blocks.list_header") +
+                                                memberListString.lines().filter(String::isNotBlank).map(String::trim),
+                                        data = listOf(
+                                                GuiMenuEntryData(lang.getMessage(player, "gui.settings.member.blocks.count"), totalCount, GuiValueTone.INFO),
+                                                GuiMenuEntryData(lang.getMessage(player, "gui.settings.member.blocks.pending_requests"), pendingRequestCount, GuiValueTone.PRIMARY),
+                                                GuiMenuEntryData(lang.getMessage(player, "gui.settings.member.blocks.pending_invites"), pendingInviteCount, GuiValueTone.PRIMARY),
                                         ),
-                                        lang.getMessage(player, "gui.settings.member.display"),
-                                        memberLore,
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                25,
-                                WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS).sounds,
+                                        actions = contractMenuActions(
+                                                player, worldData, WorldSettingsAction.MANAGE_MEMBERS,
+                                                WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
+                                                listOf(lang.getMessage(player, "gui.settings.member.action.open_list")),
+                                        ),
+                                        sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS).sounds,
+                                ),
                         )
                 }
 
@@ -1069,55 +1027,26 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (hasManagePermission) {
                         val messagePreview = worldData.announcementMessages
 
-                        val announcementLoreBuilder =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.announcement.blocks.description"
-                                                ).map(GuiLoreLine::Text)
-                                        )
-
-                        if (messagePreview.isNotEmpty()) {
-                                announcementLoreBuilder
-                                        .spacer()
-                                        .block(buildList {
-                                                add(GuiLoreLine.Text(lang.getMessage(player, "gui.settings.announcement.preview_header")))
-                                                messagePreview.forEach { add(GuiLoreLine.UserText(it)) }
-                                        })
-                        }
-
-                        announcementLoreBuilder.actions(contractGuiActions(
+                        inventory.setMenuEntry(
                                 player,
-                                worldData,
-                                WorldSettingsAction.EDIT_ANNOUNCEMENT,
-                                listOf(
-                                        lang.getMessage(player, "gui.settings.announcement.action.set_message"),
-                                        lang.getMessage(player, "gui.settings.announcement.action.reset_message"),
+                                GuiMenuEntrySpec(
+                                        slot = announcementSettingSlot,
+                                        material = plugin.menuConfigManager.getIconMaterial("world_settings", "announcement", Material.OAK_SIGN),
+                                        name = GuiNameSpec.Text(lang.getMessage(player, "gui.settings.announcement.display"), GuiNameStyle.DEFAULT),
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(player, "gui.settings.announcement.blocks.description") +
+                                                if (messagePreview.isEmpty()) emptyList() else
+                                                        listOf(lang.getMessage(player, "gui.settings.announcement.preview_header")) + messagePreview,
+                                        actions = contractMenuActions(
+                                                player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT,
+                                                WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
+                                                listOf(
+                                                        lang.getMessage(player, "gui.settings.announcement.action.set_message"),
+                                                        lang.getMessage(player, "gui.settings.announcement.action.reset_message"),
+                                                ),
+                                        ),
+                                        sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).sounds,
                                 ),
-                        ))
-
-                        inventory.setItem(
-                                announcementSettingSlot,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "announcement",
-                                                Material.OAK_SIGN
-                                        ),
-                                        lang.getMessage(
-                                                player,
-                                                "gui.settings.announcement.display"
-                                        ),
-                                        announcementLoreBuilder.buildSpec(),
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                announcementSettingSlot,
-                                WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).sounds,
                         )
                 }
 
@@ -1409,39 +1338,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         it.worldKey == worldData.worldKey
                                 }
                 if (hasPortals) {
-                        val portalLore =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.portals.blocks.summary"
-                                                ).map(GuiLoreLine::Text)
-                                        )
-                                        .actions(contractGuiActions(
-                                                player,
-                                                worldData,
-                                                WorldSettingsAction.MANAGE_PORTALS,
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 52,
+                                        material = plugin.menuConfigManager.getIconMaterial("world_settings", "portals", Material.END_PORTAL_FRAME),
+                                        name = GuiNameSpec.Text(lang.getMessage(player, "gui.settings.portals.display"), GuiNameStyle.DEFAULT),
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(player, "gui.settings.portals.blocks.summary"),
+                                        actions = contractMenuActions(
+                                                player, worldData, WorldSettingsAction.MANAGE_PORTALS,
+                                                WorldSettingsRuntimeOperation.MANAGE_PORTALS,
                                                 listOf(lang.getMessage(player, "gui.settings.portals.action.open")),
-                                        ))
-                                        .buildSpec()
-                        inventory.setItem(
-                                52,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "portals",
-                                                Material.END_PORTAL_FRAME
                                         ),
-                                        lang.getMessage(player, "gui.settings.portals.display"),
-                                        portalLore,
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                52,
-                                WorldSettingsRuntimeOperation.MANAGE_PORTALS,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS).sounds,
+                                        sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS).sounds,
+                                ),
                         )
                 }
 
@@ -1673,10 +1584,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         createItem(
                                 Material.PAPER,
                                 lang.getMessage(player, "gui.unarchive_confirm.title"),
-                                GuiLoreSpec.Blocks(listOf(
-                                        GuiLoreBlock(lang.getMessageList(player, "gui.unarchive_confirm.description").map(GuiLoreLine::Text)),
-                                        GuiLoreBlock(listOf(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.unarchive_confirm.action"))))
-                                )),
+                                GuiLoreSpec.Rich(
+                                        lang.getMessageList(player, "gui.unarchive_confirm.description").map(GuiLoreLine::Text),
+                                        GuiLoreFrame.BOTH,
+                                ),
                                 ItemTag.TYPE_GUI_INFO
                         )
                 inventory.setItem(22, infoItem)
@@ -2058,73 +1969,54 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val canManageRoles = worldData.owner == player.uniqueId || isAdminFlow
                 currentPageMembers.forEachIndexed { index, entry ->
                         val slot = layout.itemSlots.getOrNull(index) ?: return@forEachIndexed
-                        var capabilityId: String? = null
-                                val memberItem =
-                                        if (entry.pendingDecisionId != null) {
+                        if (entry.pendingDecisionId != null) {
+                                inventory.setItem(
+                                        slot,
                                         createPendingItem(
                                                 viewer = player,
                                                 targetUuid = entry.playerUuid,
                                                 decisionId = entry.pendingDecisionId,
                                                 createdAt = entry.pendingCreatedAt ?: 0L,
                                                 pendingType = entry.pendingType ?: PendingInteractionType.MEMBER_INVITE
-                                        )
-                                } else {
-                                        val subject = MemberManagementCapabilitySubject(
+                                        ),
+                                )
+                                inventory.bindRuntimeOperation(
+                                        slot,
+                                        when (entry.pendingType) {
+                                                PendingInteractionType.MEMBER_REQUEST -> WorldSettingsRuntimeOperation.PENDING_REQUEST
+                                                else -> WorldSettingsRuntimeOperation.PENDING_INVITE
+                                        },
+                                        acceptedClicks = MenuAcceptedClicks.LEFT,
+                                        payload = mapOf(
+                                                ROUTE_TARGET_UUID to entry.playerUuid.toString(),
+                                                ROUTE_DECISION_ID to entry.pendingDecisionId.toString(),
+                                        ),
+                                )
+                        } else {
+                                val subject = MemberManagementCapabilitySubject(
                                                 player,
                                                 worldData,
                                                 entry.playerUuid,
-                                        )
-                                        val service = CCSystem.getAPI().getMenuCapabilityService()
-                                        val capabilityView = service
-                                                .definitions(MemberManagementCapabilityContract.PLACEMENT)
-                                                .firstNotNullOfOrNull { definition ->
-                                                        service.resolve(
-                                                                definition.capabilityId,
-                                                                player,
-                                                                attributes = mapOf(
-                                                                        MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject,
-                                                                ),
-                                                        )
-                                                }
-                                        capabilityId = capabilityView?.capabilityId
-                                        createMemberItem(
-                                                player,
-                                                entry.playerUuid,
+                                )
+                                val service = CCSystem.getAPI().getMenuCapabilityService()
+                                val capabilityView = service
+                                        .definitions(MemberManagementCapabilityContract.PLACEMENT)
+                                        .firstNotNullOfOrNull { definition ->
+                                                service.resolve(
+                                                        definition.capabilityId,
+                                                        player,
+                                                        attributes = mapOf(MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject),
+                                                )
+                                        }
+                                inventory.setMenuEntry(
+                                        player,
+                                        createMemberEntrySpec(
+                                                player, slot, entry.playerUuid,
                                                 entry.role ?: lang.getMessage(player, "role.member"),
-                                                canManageRoles,
-                                                capabilityView,
-                                        )
-                                }
-                        inventory.setItem(slot, memberItem)
-                        val operation = when (entry.pendingType) {
-                                PendingInteractionType.MEMBER_INVITE ->
-                                        WorldSettingsRuntimeOperation.PENDING_INVITE
-                                PendingInteractionType.MEMBER_REQUEST ->
-                                        WorldSettingsRuntimeOperation.PENDING_REQUEST
-                                else -> WorldSettingsRuntimeOperation.MEMBER
+                                                canManageRoles, capabilityView,
+                                        ),
+                                )
                         }
-                        inventory.bindRuntimeOperation(
-                                slot,
-                                operation,
-                                acceptedClicks = if (entry.pendingDecisionId == null) {
-                                        setOf(
-                                                org.bukkit.event.inventory.ClickType.LEFT,
-                                                org.bukkit.event.inventory.ClickType.SHIFT_LEFT,
-                                                org.bukkit.event.inventory.ClickType.SHIFT_RIGHT,
-                                        )
-                                } else {
-                                        MenuAcceptedClicks.LEFT
-                                },
-                                payload = buildMap {
-                                        put(ROUTE_TARGET_UUID, entry.playerUuid.toString())
-                                        entry.pendingDecisionId?.let {
-                                                put(ROUTE_DECISION_ID, it.toString())
-                                        }
-                                        capabilityId?.let {
-                                                put(ROUTE_CAPABILITY_ID, it)
-                                        }
-                                },
-                        )
                 }
 
                 // ナビゲーション
@@ -2173,58 +2065,36 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // メンバー招待ボタン
                 val canForceAddMember = PermissionManager.canForceAddMember(player)
-                val inviteLore =
-                        if (canForceAddMember) {
-                                val desc = lang.getMessage(player, "gui.member_management.invite.desc")
-                                GuiLoreSpec.Blocks(listOf(
-                                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
-                                        listOf(
-                                                GuiLoreLine.Text(desc),
-                                        )
-                                    ),
-                                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
-                                        listOf(
-                                                GuiLoreLine.Action(
-                                                        lang.getMessage(player, "lore.click.any"),
-                                                        lang.getMessage(player, "gui.member_management.invite.action.normal")
+                inventory.setMenuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = footerStart + 6,
+                                material = Material.PAPER,
+                                name = GuiNameSpec.Text(lang.getMessage(player, "gui.member_management.invite.name"), GuiNameStyle.DEFAULT),
+                                role = GuiElementRole.ACTION,
+                                description = listOf(lang.getMessage(player, "gui.member_management.invite.desc")),
+                                actions = buildList {
+                                        add(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.PLAIN_LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.member_management.invite.action.normal"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
+                                        ))
+                                        if (canForceAddMember) add(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                setOf(
+                                                        org.bukkit.event.inventory.ClickType.SHIFT_LEFT,
+                                                        org.bukkit.event.inventory.ClickType.SHIFT_RIGHT,
                                                 ),
-                                                GuiLoreLine.Action(
-                                                        lang.getMessage(player, "lore.click.shift_any"),
-                                                        lang.getMessage(player, "gui.member_management.invite.action.force")
-                                                )
-                                        )
-                                    )
-                                ))
-                        } else {
-                                GuiLoreSpec.Blocks(listOf(
-                                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                                        GuiLoreLine.Text(lang.getMessage(player, "gui.member_management.invite.desc"))
-                                    )),
-                                    com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                                        GuiLoreActions.singleClick(
-                                                lang,
-                                                player,
-                                                lang.getMessage(player, "gui.member_management.invite.action.normal")
-                                        )
-                                    ))
-                                ))
-                }
-                inventory.setItem(
-                        footerStart + 6,
-                        createItem(
-                                Material.PAPER,
-                                lang.getMessage(player, "gui.member_management.invite.name"),
-                                inviteLore,
-                                null
-                        )
+                                                lang.getMessage(player, "gui.member_management.invite.action.force"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
+                                        ))
+                                },
+                        ),
                 )
                 inventory.bindRuntimeOperation(
                         footerStart + 4,
                         WorldSettingsRuntimeOperation.BACK,
-                )
-                inventory.bindRuntimeOperation(
-                        footerStart + 6,
-                        WorldSettingsRuntimeOperation.INVITE_MEMBER,
                 )
 
                 if (isAdminFlow) {
@@ -2233,48 +2103,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         worldData.owner,
                                         lang.getMessage(player, "general.unknown")
                                 )
-                        inventory.setItem(
-                                footerStart + 2,
-                                createItem(
-                                        Material.NAME_TAG,
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.admin_owner_reset.name"
-                                        ),
-                                        GuiLoreSpec.Blocks(
-                                                listOf(
-                                                        com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
-                                                                listOf(
-                                                                        GuiLoreLine.Data(
-                                                                                lang.getMessage(
-                                                                                        player,
-                                                                                        "gui.member_management.admin_owner_reset.current_owner"
-                                                                                ),
-                                                                                ownerName,
-                                                                                "§e"
-                                                                        )
-                                                                )
-                                                        ),
-                                                        com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
-                                                                listOf(
-                                                                        GuiLoreActions.singleClick(
-                                                                                lang,
-                                                                                player,
-                                                                                lang.getMessage(
-                                                                                        player,
-                                                                                        "gui.member_management.admin_owner_reset.action"
-                                                                                )
-                                                                        )
-                                                                )
-                                                        )
-                                                )
-                                        ),
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                footerStart + 2,
-                                WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET,
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = footerStart + 2,
+                                        material = Material.NAME_TAG,
+                                        name = GuiNameSpec.Text(lang.getMessage(player, "gui.member_management.admin_owner_reset.name"), GuiNameStyle.DEFAULT),
+                                        role = GuiElementRole.ACTION,
+                                        data = listOf(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.member_management.admin_owner_reset.current_owner"),
+                                                ownerName,
+                                                GuiValueTone.PRIMARY,
+                                        )),
+                                        actions = listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.member_management.admin_owner_reset.action"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET.name),
+                                        )),
+                                ),
                         )
                 }
 
@@ -2570,13 +2417,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return runtimeView(title, inventory)
         }
 
-        private fun createMemberItem(
+        private fun createMemberEntrySpec(
                 viewer: Player,
+                slot: Int,
                 uuid: java.util.UUID,
                 role: String,
                 isOwner: Boolean,
                 capabilityView: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability? = null,
-        ): ItemStack {
+        ): GuiMenuEntrySpec {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
                 val stats = plugin.playerStatsRepository.findByUuid(uuid)
@@ -2589,91 +2437,78 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         displayName = stats.lastName ?: lang.getMessage(viewer, "general.unknown")
                 }
 
-                val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-                meta.owningPlayer = player
-
-                meta.displayName(
-                        Component.text("$color$displayName")
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-
-                val itemLore = mutableListOf<GuiLoreLine>()
-
-                // Info section
-                if (capabilityView != null) {
-                        itemLore += capabilityView.presentation.embeddedLoreBlocks
-                                .flatMap(GuiLoreBlock::lines)
-                } else if (isOnline) {
-                        itemLore += GuiLoreLine.StyledText(
-                                lang.getMessage(viewer, "gui.member_management.item.online_label"),
-                                "§a",
-                                false
-                        )
-                } else {
-                        val onlineLabel = lang.getMessage(viewer, "gui.member_management.item.last_online_label")
-                        val lastOnline = stats.lastOnline
-                                ?.let { formatStoredDateTimeForPlayer(viewer, it) }
-                                ?: lang.getMessage(viewer, "general.unknown")
-                        itemLore += GuiLoreLine.Data(onlineLabel, lastOnline, "§f")
+                val embedded = capabilityView?.presentation?.embeddedLoreBlocks
+                        ?.flatMap(GuiLoreBlock::lines).orEmpty()
+                val payload = buildMap {
+                        put(ROUTE_OPERATION, WorldSettingsRuntimeOperation.MEMBER.name)
+                        put(ROUTE_TARGET_UUID, uuid.toString())
+                        capabilityView?.capabilityId?.let { put(ROUTE_CAPABILITY_ID, it) }
                 }
-                if (capabilityView == null) {
-                        itemLore += GuiLoreLine.Data(
-                                lang.getMessage(viewer, "gui.member_management.item.role_label"),
-                                role,
-                                "§f",
-                        )
-                }
-
-                if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
-                        val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
-                                lang.getMessage(null as Player?, "role.moderator")
-                        } else {
-                                lang.getMessage(null as Player?, "role.member")
+                val actions = buildList {
+                        capabilityView?.actions?.forEach { action ->
+                                add(GuiMenuEntryAction(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        action.trigger.clicks,
+                                        action.text,
+                                        payload,
+                                ))
                         }
-                        itemLore.addAll(
-                                                listOf(
-                                                        GuiLoreLine.Action(
-                                                                lang.getMessage(viewer, "lore.click.left"),
-                                                                lang.getMessage(viewer, "gui.member_management.item.action.change_role", mapOf("next_role" to nextRole))
-                                                        ),
-                                                        GuiLoreLine.Action(
-                                                                lang.getMessage(viewer, "lore.click.shift_left"),
-                                                                lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner")
-                                                        ),
-                                                        GuiLoreLine.Action(
-                                                                lang.getMessage(viewer, "lore.click.shift_right"),
-                                                                lang.getMessage(viewer, "gui.member_management.item.action.remove_member")
-                                                        )
-                                                )
-                        )
+                        if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
+                                val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
+                                        lang.getMessage(null as Player?, "role.moderator")
+                                } else {
+                                        lang.getMessage(null as Player?, "role.member")
+                                }
+                                add(GuiMenuEntryAction(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        MenuAcceptedClicks.LEFT,
+                                        lang.getMessage(viewer, "gui.member_management.item.action.change_role", mapOf("next_role" to nextRole)),
+                                        payload,
+                                ))
+                        }
+                        if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
+                                add(GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.SHIFT_LEFT, lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"), payload))
+                                add(GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.SHIFT_RIGHT, lang.getMessage(viewer, "gui.member_management.item.action.remove_member"), payload))
+                        }
                 }
-                if (
-                        capabilityView != null &&
-                        isOwner &&
-                        role != lang.getMessage(viewer, "role.owner")
-                ) {
-                        itemLore += GuiLoreLine.Spacer
-                        itemLore += GuiLoreLine.Action(
-                                lang.getMessage(viewer, "lore.click.shift_left"),
-                                lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"),
-                        )
-                        itemLore += GuiLoreLine.Action(
-                                lang.getMessage(viewer, "lore.click.shift_right"),
-                                lang.getMessage(viewer, "gui.member_management.item.action.remove_member"),
-                        )
-                }
-
-                meta.lore(
-                        if (capabilityView == null) {
-                                GuiItemFactory.menuLore(itemLore)
-                        } else {
-                                GuiItemFactory.menuLore(itemLore)
+                return GuiMenuEntrySpec(
+                        slot = slot,
+                        material = Material.PLAYER_HEAD,
+                        name = GuiNameSpec.Component(Component.text("$color$displayName").decoration(TextDecoration.ITALIC, false)),
+                        role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                        description = embedded.mapNotNull {
+                                when (it) {
+                                        is GuiLoreLine.Text -> it.text
+                                        is GuiLoreLine.StyledText -> it.text
+                                        is GuiLoreLine.UserText -> it.text
+                                        else -> null
+                                }
+                        } + if (capabilityView == null && isOnline) listOf(lang.getMessage(viewer, "gui.member_management.item.online_label")) else emptyList(),
+                        data = buildList {
+                                embedded.forEach {
+                                        when (it) {
+                                                is GuiLoreLine.Data -> add(GuiMenuEntryData(it.label, it.value, toneFor(it.valueColor)))
+                                                is GuiLoreLine.Metadata -> add(GuiMenuEntryData(it.label, it.value))
+                                                else -> Unit
+                                        }
+                                }
+                                if (capabilityView == null && !isOnline) {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(viewer, "gui.member_management.item.last_online_label"),
+                                                stats.lastOnline?.let { formatStoredDateTimeForPlayer(viewer, it) }
+                                                        ?: lang.getMessage(viewer, "general.unknown"),
+                                        ))
+                                }
+                                if (capabilityView == null) add(GuiMenuEntryData(lang.getMessage(viewer, "gui.member_management.item.role_label"), role))
                         },
+                        options = embedded.filterIsInstance<GuiLoreLine.Option>()
+                                .map { GuiMenuEntryOption(it.label, it.selected) },
+                        warnings = embedded.filterIsInstance<GuiLoreLine.Warning>().map(GuiLoreLine.Warning::content),
+                        dangers = embedded.filterIsInstance<GuiLoreLine.Danger>().map(GuiLoreLine.Danger::content),
+                        actions = actions,
+                        glint = capabilityView?.presentation?.glint,
+                        playerHeadOwner = uuid,
                 )
-                item.itemMeta = meta
-
-                return item
         }
 
         private fun createPendingItem(
@@ -2714,6 +2549,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val dateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
                 return dateTime.format(pendingInviteDateTimeFormatterFor(player))
         }
+
+        private fun toneFor(colorCode: String): GuiValueTone =
+                GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT
 
         private fun pendingInviteDateTimeFormatterFor(player: Player): DateTimeFormatter {
                 val language = plugin.languageManager.resolveLocale(player).lowercase(Locale.ROOT)
@@ -2798,15 +2636,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 currentPageVisitors.forEachIndexed { index, visitor ->
                         val slot = layout.itemSlots[index]
-                        inventory.setItem(
-                                slot,
-                                createVisitorItem(player, visitor.uniqueId, canKick)
-                        )
-                        inventory.bindRuntimeOperation(
-                                slot,
-                                WorldSettingsRuntimeOperation.VISITOR,
-                                payload = mapOf(ROUTE_TARGET_UUID to visitor.uniqueId.toString()),
-                        )
+                        inventory.setMenuEntry(player, createVisitorEntrySpec(player, slot, visitor.uniqueId, canKick))
                 }
 
                 // ナビゲーション
@@ -2963,11 +2793,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return runtimeView(title, inventory)
         }
 
-        private fun createVisitorItem(
+        private fun createVisitorEntrySpec(
                 viewer: Player,
+                slot: Int,
                 uuid: java.util.UUID,
                 canKick: Boolean
-        ): ItemStack {
+        ): GuiMenuEntrySpec {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
                 val isOnline = player.isOnline
@@ -2975,54 +2806,34 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val offlineColor = lang.getMessage(viewer, "publish_level.color.offline")
                 val color = if (isOnline) onlineColor else offlineColor
 
-                val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-                meta.owningPlayer = player
-
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(
-                                        "$color${player.name ?: lang.getMessage(viewer, "general.unknown")}"
-                                )
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-
-                val lines = mutableListOf<String>()
-
                 val statusText =
                         if (isOnline) lang.getMessage(viewer, "status.online")
                         else lang.getMessage(viewer, "status.offline")
-                val statusColor = if (isOnline) onlineColor else offlineColor
-                lines.add(
-                        lang.getMessage(
-                                viewer,
-                                "gui.common.status_display",
-                                mapOf("color" to statusColor, "status" to statusText)
-                        )
+                return GuiMenuEntrySpec(
+                        slot = slot,
+                        material = Material.PLAYER_HEAD,
+                        name = GuiNameSpec.Component(
+                                LegacyComponentSerializer.legacySection().deserialize(
+                                        "$color${player.name ?: lang.getMessage(viewer, "general.unknown")}"
+                                ).decoration(TextDecoration.ITALIC, false),
+                        ),
+                        role = if (canKick) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                        data = listOf(GuiMenuEntryData(
+                                lang.getMessage(viewer, "gui.member_management.item.online_label"),
+                                statusText,
+                                if (isOnline) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
+                        )),
+                        actions = if (canKick) listOf(GuiMenuEntryAction(
+                                ACTION_RUNTIME_DISPATCH,
+                                MenuAcceptedClicks.LEFT_RIGHT,
+                                lang.getMessage(viewer, "gui.visitor_management.item.kick"),
+                                mapOf(
+                                        ROUTE_OPERATION to WorldSettingsRuntimeOperation.VISITOR.name,
+                                        ROUTE_TARGET_UUID to uuid.toString(),
+                                ),
+                        )) else emptyList(),
+                        playerHeadOwner = uuid,
                 )
-
-                if (canKick) {
-                        lines.add(
-                                CCSystem.getAPI().getLoreService().render(
-                                        GuiLoreSpec.Rich(
-                                                listOf(
-                                                        GuiLoreActions.singleClick(
-                                                                lang,
-                                                                viewer,
-                                                                lang.getMessage(viewer, "gui.visitor_management.item.kick")
-                                                        )
-                                                ),
-                                                GuiLoreFrame.NONE
-                                        )
-                                ).joinToString("") { net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(it) }
-                        )
-                }
-
-                val lore = GuiItemFactory.menuLore(lines.map(GuiLoreLine::Text))
-                meta.lore(lore)
-                item.itemMeta = meta
-
-                return item
         }
 
         private fun createItem(
@@ -3636,12 +3447,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 currentPagePortals.forEachIndexed { index, portal ->
                         val slot = layout.itemSlots[index]
-                        inventory.setItem(slot, createPortalManagementItem(player, portal))
-                        inventory.bindRuntimeOperation(
-                                slot,
-                                WorldSettingsRuntimeOperation.PORTAL,
-                                payload = mapOf(ROUTE_TARGET_UUID to portal.id.toString()),
-                        )
+                        inventory.setMenuEntry(player, createPortalManagementEntrySpec(player, slot, portal))
                 }
 
                 // ナビゲーション
@@ -3696,10 +3502,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return runtimeView(title, inventory)
         }
 
-        private fun createPortalManagementItem(player: Player, portal: PortalData): ItemStack {
+        private fun createPortalManagementEntrySpec(player: Player, slot: Int, portal: PortalData): GuiMenuEntrySpec {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.END_PORTAL_FRAME)
-                val meta = item.itemMeta ?: return item
 
                 val destName =
                         if (portal.worldUuid != null) {
@@ -3720,27 +3524,29 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 "gui.admin_portals.portal_item.name",
                                 mapOf("id" to destName)
                         )
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(displayTitle)
-                                .decoration(TextDecoration.ITALIC, false)
+                val payload = mapOf(
+                        ROUTE_OPERATION to WorldSettingsRuntimeOperation.PORTAL.name,
+                        ROUTE_TARGET_UUID to portal.id.toString(),
                 )
-
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                        com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                                GuiLoreLine.Data(
+                return GuiMenuEntrySpec(
+                        slot = slot,
+                        material = Material.END_PORTAL_FRAME,
+                        name = GuiNameSpec.Component(
+                                LegacyComponentSerializer.legacySection().deserialize(displayTitle)
+                                        .decoration(TextDecoration.ITALIC, false),
+                        ),
+                        role = GuiElementRole.ACTION,
+                        data = listOf(
+                                GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"),
                                         "${portal.x}, ${portal.y}, ${portal.z}",
-                                        "§f"
-                                )
-                        )),
-                        com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                                GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport")),
-                                GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"))
-                        ))
-                ))))
-                item.itemMeta = meta
-                return item
+                                ),
+                        ),
+                        actions = listOf(
+                                GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload),
+                                GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload),
+                        ),
+                )
         }
 
         private fun renderRuntimeRoute(player: Player, route: MenuRoute): InventoryMenuView {
