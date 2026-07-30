@@ -1941,9 +1941,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(allEntries.size, page)
                 val currentPage = pageLayout.page
-                plugin.settingsSessionManager
-                        .getSession(player)
-                        ?.setMetadata("member_management_page", currentPage)
                 val startIndex = pageLayout.startIndex
                 val currentPageMembers = allEntries.drop(startIndex).take(pageLayout.itemCount)
                 val layout = pageLayout.layout

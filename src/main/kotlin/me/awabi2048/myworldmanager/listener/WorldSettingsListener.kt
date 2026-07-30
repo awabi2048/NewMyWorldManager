@@ -2121,30 +2121,14 @@ class WorldSettingsListener : Listener {
 
         private fun reopenMemberManagementLatest(
                 player: Player,
-                worldUuid: UUID,
-                playSound: Boolean = false
+                @Suppress("UNUSED_PARAMETER") worldUuid: UUID,
+                @Suppress("UNUSED_PARAMETER") playSound: Boolean = false,
         ) {
-                val latestWorld = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-                val page =
-                        (plugin.settingsSessionManager.getSession(player)
-                                ?.getMetadata("member_management_page") as? Int)
-                                ?.coerceAtLeast(0)
-                                ?: 0
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                if (!player.isOnline) {
-                                        return@Runnable
-                                }
-                                plugin.worldSettingsGui.openMemberManagement(
-                                        player,
-                                        latestWorld,
-                                        page,
-                                        playSound,
-                                        replaceCurrent = true
-                                )
-                        }
-                )
+                if (!player.isOnline) return
+                val runtime = CCSystem.getAPI().getMenuRuntimeService()
+                if (!runtime.resumeFromExternal(player)) {
+                        runtime.refresh(player)
+                }
         }
 
         private fun cancelMemberInviteByDecisionId(
