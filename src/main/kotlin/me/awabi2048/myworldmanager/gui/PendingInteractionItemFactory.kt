@@ -32,7 +32,7 @@ object PendingInteractionItemFactory {
         createdAt: Long,
         decisionId: UUID,
         actionMode: PendingInteractionActionMode,
-        itemTagType: String
+        itemTagType: String?
     ): ItemStack {
         val lang = plugin.languageManager
         val subject = Bukkit.getOfflinePlayer(subjectUuid)
@@ -69,8 +69,10 @@ object PendingInteractionItemFactory {
         meta.setEnchantmentGlintOverride(true)
 
         item.itemMeta = meta
-        ItemTag.tagItem(item, itemTagType)
-        ItemTag.setString(item, "pending_decision_id", decisionId.toString())
+        if (itemTagType != null) {
+            ItemTag.tagItem(item, itemTagType)
+            ItemTag.setString(item, "pending_decision_id", decisionId.toString())
+        }
         return item
     }
 

@@ -48,6 +48,22 @@ enum class WorldSettingsRuntimeOperation {
     WARP,
     MANAGE_VISITORS,
     MANAGE_PORTALS,
+    CONFIRM,
+    CANCEL,
+    PAGE,
+    VISITOR,
+    PORTAL,
+    EXPAND_AUTOMATIC,
+    EXPAND_DIRECTION,
+    EXPANSION_STEP_BACK,
+    RESET_EXPANSION,
+    ARCHIVE,
+    DELETE_WORLD,
+    MEMBER_OWNER_RESET,
+    MEMBER,
+    PENDING_INVITE,
+    PENDING_REQUEST,
+    INVITE_MEMBER,
 }
 
 data class WorldSettingsRuntimeContext(
@@ -57,4 +73,5 @@ data class WorldSettingsRuntimeContext(
     val targetUuid: UUID? = null,
     val decisionId: UUID? = null,
     val operation: WorldSettingsRuntimeOperation? = null,
+    val actionPayload: Map<String, String> = emptyMap(),
 )

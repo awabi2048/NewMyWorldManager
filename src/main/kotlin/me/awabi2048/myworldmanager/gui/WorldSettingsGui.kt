@@ -93,6 +93,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                         targetUuid = runtimeTargetUuid(context.route),
                                                                         decisionId = runtimeDecisionId(context.route),
                                                                         operation = runtimeOperation(context.payload),
+                                                                        actionPayload = context.payload,
                                                                 ),
                                                         )
                                                 },
@@ -132,6 +133,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                         targetUuid = runtimeTargetUuid(context.route),
                                                                         decisionId = runtimeDecisionId(context.route),
                                                                         operation = runtimeOperation(context.payload),
+                                                                        actionPayload = context.payload,
                                                                 ),
                                                         )
                                                 },
@@ -191,6 +193,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                                 ?.coerceAtLeast(0)
                                                                                 ?: 0,
                                                                         operation = runtimeOperation(context.payload),
+                                                                        actionPayload = context.payload,
                                                                 ),
                                                         )
                                                 },
@@ -219,7 +222,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         private class RuntimeItemBuffer(val size: Int) {
                 private val items = arrayOfNulls<ItemStack>(size)
-                private val semanticInteractions = mutableMapOf<Int, MenuInteraction>()
+                private val semantics = mutableMapOf<Int, RuntimeItemSemantics>()
 
                 val contents: Array<ItemStack?>
                         get() = items.copyOf()
@@ -227,13 +230,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 fun setItem(slot: Int, item: ItemStack?) {
                         require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
                         items[slot] = item
-                        semanticInteractions.remove(slot)
+                        semantics.remove(slot)
                 }
 
-                fun setSemanticItem(slot: Int, item: ItemStack, interaction: MenuInteraction) {
+                fun setSemanticItem(
+                        slot: Int,
+                        item: ItemStack,
+                        interaction: MenuInteraction,
+                        role: GuiElementRole = when (interaction) {
+                                is MenuInteraction.Back -> GuiElementRole.BACK
+                                else -> GuiElementRole.ACTION
+                        },
+                ) {
                         require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
                         items[slot] = item
-                        semanticInteractions[slot] = interaction
+                        semantics[slot] = RuntimeItemSemantics(role, interaction)
                 }
 
                 fun setRuntimeOperation(
@@ -242,6 +253,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         operation: WorldSettingsRuntimeOperation,
                         acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
                                 MenuAcceptedClicks.LEFT_RIGHT,
+                        payload: Map<String, String> = emptyMap(),
                 ) {
                         setSemanticItem(
                                 slot,
@@ -252,8 +264,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         mapOf(
                                                 "slot" to slot.toString(),
                                                 ROUTE_OPERATION to operation.name,
-                                        ),
+                                        ) + payload,
                                 ),
+                                role = when (operation) {
+                                        WorldSettingsRuntimeOperation.BACK -> GuiElementRole.BACK
+                                        WorldSettingsRuntimeOperation.PAGE -> GuiElementRole.NAVIGATION
+                                        WorldSettingsRuntimeOperation.CONFIRM -> GuiElementRole.CONFIRM
+                                        WorldSettingsRuntimeOperation.CANCEL -> GuiElementRole.CANCEL
+                                        else -> GuiElementRole.ACTION
+                                },
                         )
                 }
 
@@ -262,18 +281,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         operation: WorldSettingsRuntimeOperation,
                         acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
                                 MenuAcceptedClicks.LEFT_RIGHT,
+                        payload: Map<String, String> = emptyMap(),
                 ) {
                         val item = requireNotNull(getItem(slot)) {
                                 "Runtime operation item is missing: $slot/$operation"
                         }
-                        setRuntimeOperation(slot, item, operation, acceptedClicks)
+                        setRuntimeOperation(slot, item, operation, acceptedClicks, payload)
+                }
+
+                fun bindConfirmation(
+                        confirmOperation: WorldSettingsRuntimeOperation =
+                                WorldSettingsRuntimeOperation.CONFIRM,
+                        cancelOperation: WorldSettingsRuntimeOperation =
+                                WorldSettingsRuntimeOperation.CANCEL,
+                        confirmSlot: Int = 20,
+                        cancelSlot: Int = 24,
+                ) {
+                        bindRuntimeOperation(confirmSlot, confirmOperation)
+                        bindRuntimeOperation(cancelSlot, cancelOperation)
                 }
 
                 fun getItem(slot: Int): ItemStack? = items.getOrNull(slot)
 
                 fun clear() {
                         items.fill(null)
-                        semanticInteractions.clear()
+                        semantics.clear()
                 }
 
                 fun applyStandardFrame() {
@@ -290,50 +322,29 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 fun elements(): List<MenuElement> =
                         items.mapIndexedNotNull { slot, item ->
                                 item ?: return@mapIndexedNotNull null
-                                val type = ItemTag.getType(item)
-                                val action = when (type) {
-                                        null,
-                                        ItemTag.TYPE_GUI_DECORATION,
-                                        ItemTag.TYPE_GUI_INFO -> null
-                                        else -> ACTION_RUNTIME_DISPATCH
-                                }
-                                val role = when (type) {
-                                        ItemTag.TYPE_GUI_CONFIRM -> GuiElementRole.CONFIRM
-                                        ItemTag.TYPE_GUI_CANCEL -> GuiElementRole.CANCEL
-                                        ItemTag.TYPE_GUI_BACK,
-                                        ItemTag.TYPE_GUI_RETURN -> GuiElementRole.BACK
-                                        ItemTag.TYPE_GUI_NAV_NEXT,
-                                        ItemTag.TYPE_GUI_NAV_PREV -> GuiElementRole.NAVIGATION
-                                        ItemTag.TYPE_GUI_DECORATION -> GuiElementRole.DECORATION
-                                        else -> if (action == null) GuiElementRole.CONTENT else GuiElementRole.ACTION
-                                }
-                                 MenuElement(
+                                val semantic = semantics[slot]
+                                MenuElement(
                                         slot = slot,
                                         item = item,
-                                        role = role,
-                                        interaction = semanticInteractions[slot] ?: when {
-                                                role == GuiElementRole.BACK -> MenuInteraction.Back()
-                                                action == null -> MenuInteraction.DisplayOnly
-                                                else -> MenuInteraction.Action(
-                                                        actionId = action,
-                                                        acceptedClicks = acceptedClicks(type),
-                                                        payload = mapOf("slot" to slot.toString()),
-                                                )
-                                        },
+                                        role = semantic?.role
+                                                ?: if (item.type.name.endsWith("_STAINED_GLASS_PANE")) {
+                                                        GuiElementRole.DECORATION
+                                                } else {
+                                                        GuiElementRole.CONTENT
+                                                },
+                                        interaction = semantic?.interaction
+                                                ?: MenuInteraction.DisplayOnly,
                                 )
-                        }
-
-                private fun acceptedClicks(type: String?): Set<org.bukkit.event.inventory.ClickType> =
-                        when (type) {
-                                ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE,
-                                ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST ->
-                                        MenuAcceptedClicks.LEFT
-                                else -> MenuAcceptedClicks.LEFT_RIGHT
                         }
 
                 companion object {
                         private const val ACTION_RUNTIME_DISPATCH = "dispatch"
                 }
+
+                private data class RuntimeItemSemantics(
+                        val role: GuiElementRole,
+                        val interaction: MenuInteraction,
+                )
         }
 
         private data class MemberManagementEntry(
@@ -1508,7 +1519,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiLoreSpec.Rich(lang.getMessageList(player, "gui.archive.warning").map(GuiLoreLine::Warning), GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -1530,6 +1540,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation()
                 if (player.openInventory.topInventory != inventory) {
                         presentRuntime(
                                 player,
@@ -1572,7 +1583,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 )),
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -1595,6 +1605,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation()
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM, worldData.uuid)
         }
 
@@ -1627,8 +1638,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.MAP,
                                 lang.getMessage(player, "gui.expansion.center_expand.name"),
                                 GuiLoreSpec.Rich(lang.getMessageList(player, "gui.expansion.center_expand.lore").map(GuiLoreLine::Text), GuiLoreFrame.BOTH),
-                                ItemTag.TYPE_GUI_SETTING_EXPAND
+                                null
                         )
+                )
+                inventory.bindRuntimeOperation(
+                        20,
+                        WorldSettingsRuntimeOperation.EXPAND_AUTOMATIC,
                 )
 
                 inventory.setItem(
@@ -1637,8 +1652,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.COMPASS,
                                 lang.getMessage(player, "gui.expansion.direction_expand.name"),
                                 GuiLoreSpec.Rich(lang.getMessageList(player, "gui.expansion.direction_expand.lore").map(GuiLoreLine::Text), GuiLoreFrame.BOTH),
-                                ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION
+                                null
                         )
+                )
+                inventory.bindRuntimeOperation(
+                        24,
+                        WorldSettingsRuntimeOperation.EXPAND_DIRECTION,
                 )
 
                 // 戻るボタン
@@ -1650,6 +1669,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 "world_settings"
                         )
                 )
+                inventory.bindRuntimeOperation(40, WorldSettingsRuntimeOperation.BACK)
 
                 val canStepBack = worldData.latestBorderExpansionRecord() != null
                 if (canStepBack) {
@@ -1659,8 +1679,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         Material.RECOVERY_COMPASS,
                                         lang.getMessage(player, "gui.expansion.step_back.name"),
                                         GuiLoreSpec.Rich(lang.getMessageList(player, "gui.expansion.step_back.lore").map(GuiLoreLine::Text), GuiLoreFrame.BOTH),
-                                        ItemTag.TYPE_GUI_SETTING_STEP_BACK_EXPANSION
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                42,
+                                WorldSettingsRuntimeOperation.EXPANSION_STEP_BACK,
                         )
                 }
 
@@ -1703,7 +1727,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -1725,6 +1748,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM, worldData.uuid)
         }
 
@@ -1812,6 +1836,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
+                inventory.bindConfirmation()
                 presentRuntime(
                         player,
                         title,
@@ -1966,6 +1991,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 }
                         inventory.setItem(slot, memberItem)
+                        val operation = when (entry.pendingType) {
+                                PendingInteractionType.MEMBER_INVITE ->
+                                        WorldSettingsRuntimeOperation.PENDING_INVITE
+                                PendingInteractionType.MEMBER_REQUEST ->
+                                        WorldSettingsRuntimeOperation.PENDING_REQUEST
+                                else -> WorldSettingsRuntimeOperation.MEMBER
+                        }
+                        inventory.bindRuntimeOperation(
+                                slot,
+                                operation,
+                                acceptedClicks = if (entry.pendingDecisionId == null) {
+                                        MenuAcceptedClicks.LEFT_RIGHT
+                                } else {
+                                        MenuAcceptedClicks.LEFT
+                                },
+                                payload = buildMap {
+                                        put(ROUTE_TARGET_UUID, entry.playerUuid.toString())
+                                        entry.pendingDecisionId?.let {
+                                                put(ROUTE_DECISION_ID, it.toString())
+                                        }
+                                },
+                        )
                 }
 
                 // ナビゲーション
@@ -1979,6 +2026,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         currentPage - 1
                                 )
                         )
+                        inventory.bindRuntimeOperation(
+                                layout.previousPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (currentPage - 1).toString()),
+                        )
                 }
                 if (currentPage + 1 < pageLayout.totalPages) {
                         inventory.setItem(
@@ -1989,6 +2041,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         "world_settings",
                                         currentPage + 1
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                layout.nextPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (currentPage + 1).toString()),
                         )
                 }
 
@@ -2046,8 +2103,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.PAPER,
                                 lang.getMessage(player, "gui.member_management.invite.name"),
                                 inviteLore,
-                                ItemTag.TYPE_GUI_MEMBER_INVITE
+                                null
                         )
+                )
+                inventory.bindRuntimeOperation(
+                        footerStart + 4,
+                        WorldSettingsRuntimeOperation.BACK,
+                )
+                inventory.bindRuntimeOperation(
+                        footerStart + 6,
+                        WorldSettingsRuntimeOperation.INVITE_MEMBER,
                 )
 
                 if (isAdminFlow) {
@@ -2092,8 +2157,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         )
                                                 )
                                         ),
-                                        ItemTag.TYPE_GUI_MEMBER_ADMIN_OWNER_RESET
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                footerStart + 2,
+                                WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET,
                         )
                 }
 
@@ -2157,9 +2226,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         ))
                 )))
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-                ItemTag.setWorldUuid(item, targetUuid)
-                ItemTag.setString(item, "member_pending_invite_id", decisionId.toString())
                 inventory.setItem(22, item)
 
                 inventory.setItem(
@@ -2181,6 +2247,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(
                         player,
                         title,
@@ -2240,7 +2307,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, targetUuid) // 削除対象のUUIDを保存
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -2279,6 +2345,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(
                         player,
                         title,
@@ -2334,7 +2401,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, targetUuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -2372,6 +2438,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(
                         player,
                         title,
@@ -2476,9 +2543,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 item.itemMeta = meta
 
-                me.awabi2048.myworldmanager.util.ItemTag.tagItem(item, ItemTag.TYPE_GUI_MEMBER_ITEM)
-                me.awabi2048.myworldmanager.util.ItemTag.setWorldUuid(item, uuid)
-
                 return item
         }
 
@@ -2511,15 +2575,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 createdAt = createdAt,
                                 decisionId = decisionId,
                                 actionMode = PendingInteractionActionMode.CANCEL,
-                                itemTagType =
-                                        if (pendingType == PendingInteractionType.MEMBER_INVITE) {
-                                                ItemTag.TYPE_GUI_MEMBER_PENDING_INVITE
-                                        } else {
-                                                ItemTag.TYPE_GUI_MEMBER_PENDING_REQUEST
-                                        }
+                                itemTagType = null,
                         )
-                ItemTag.setWorldUuid(item, targetUuid)
-                ItemTag.setString(item, "member_pending_invite_id", decisionId.toString())
                 return item
         }
 
@@ -2593,9 +2650,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 isAdminFlow
 
                 currentPageVisitors.forEachIndexed { index, visitor ->
+                        val slot = layout.itemSlots[index]
                         inventory.setItem(
-                                layout.itemSlots[index],
+                                slot,
                                 createVisitorItem(player, visitor.uniqueId, canKick)
+                        )
+                        inventory.bindRuntimeOperation(
+                                slot,
+                                WorldSettingsRuntimeOperation.VISITOR,
+                                payload = mapOf(ROUTE_TARGET_UUID to visitor.uniqueId.toString()),
                         )
                 }
 
@@ -2607,8 +2670,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         Material.ARROW,
                                         lang.getMessage(player, "gui.common.prev_page"),
                                         GuiLoreSpec.None,
-                                        ItemTag.TYPE_GUI_NAV_PREV
-                                ).also { ItemTag.setTargetPage(it, visitorPage.page - 1) }
+                                        null
+                                )
+                        )
+                        inventory.bindRuntimeOperation(
+                                layout.previousPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (visitorPage.page - 1).toString()),
                         )
                 }
                 if (visitorPage.page < visitorPage.totalPages - 1) {
@@ -2618,8 +2686,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         Material.ARROW,
                                         lang.getMessage(player, "gui.common.next_page"),
                                         GuiLoreSpec.None,
-                                        ItemTag.TYPE_GUI_NAV_NEXT
-                                ).also { ItemTag.setTargetPage(it, visitorPage.page + 1) }
+                                        null
+                                )
+                        )
+                        inventory.bindRuntimeOperation(
+                                layout.nextPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (visitorPage.page + 1).toString()),
                         )
                 }
 
@@ -2630,8 +2703,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
                                 GuiLoreSpec.None,
-                                ItemTag.TYPE_GUI_CANCEL
+                                null
                         )
+                )
+                inventory.bindRuntimeOperation(
+                        layout.actionSlot,
+                        WorldSettingsRuntimeOperation.BACK,
                 )
 
                 // 背景埋め
@@ -2734,6 +2811,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(
                         player,
                         title,
@@ -2803,8 +2881,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 meta.lore(lore)
                 item.itemMeta = meta
 
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_VISITOR_ITEM)
-                ItemTag.setWorldUuid(item, uuid)
                 return item
         }
 
@@ -2814,7 +2890,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 lore: GuiLoreSpec,
                 tag: String?
         ): ItemStack {
-                return GuiItemFactory.item(material, name, lore, tag)
+                return GuiItemFactory.item(material, name, lore)
         }
 
         private data class BorderInfo(
@@ -2864,7 +2940,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 lore: GuiLoreSpec,
                 tag: String?
         ): ItemStack {
-                return GuiItemFactory.item(material, name, lore, tag)
+                return GuiItemFactory.item(material, name, lore)
         }
 
         fun openCriticalSettings(player: Player, worldData: WorldData) {
@@ -2966,9 +3042,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                             Material.BARRIER,
                             lang.getMessage(player, "gui.critical.reset_expansion.display"),
                             resetLore,
-                            ItemTag.TYPE_GUI_SETTING_RESET_EXPANSION
+                            null
                         )
                     )
+                    if (currentLevel > 0) {
+                            inventory.bindRuntimeOperation(
+                                    20,
+                                    WorldSettingsRuntimeOperation.RESET_EXPANSION,
+                            )
+                    }
 
                     // アーカイブボタン (スロット22)
                     inventory.setItem(
@@ -2977,9 +3059,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                             plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
                             lang.getMessage(player, "gui.critical.archive_world.display"),
                             archiveLore,
-                            if (isOnCooldown) ItemTag.TYPE_GUI_INFO else ItemTag.TYPE_GUI_SETTING_ARCHIVE
+                            null
                         )
                     )
+                    if (!isOnCooldown) {
+                            inventory.bindRuntimeOperation(22, WorldSettingsRuntimeOperation.ARCHIVE)
+                    }
                 } else {
                     // 拡張なし: アーカイブは slot 24
                     inventory.setItem(
@@ -2988,9 +3073,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                             plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
                             lang.getMessage(player, "gui.critical.archive_world.display"),
                             archiveLore,
-                            if (isOnCooldown) ItemTag.TYPE_GUI_INFO else ItemTag.TYPE_GUI_SETTING_ARCHIVE
+                            null
                         )
                     )
+                    if (!isOnCooldown) {
+                            inventory.bindRuntimeOperation(24, WorldSettingsRuntimeOperation.ARCHIVE)
+                    }
                 }
 
                 // 削除ボタン
@@ -3032,9 +3120,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.LAVA_BUCKET,
                                 deleteDisplayName,
                                 deleteLore,
-                                if (canDeleteWorld) ItemTag.TYPE_GUI_SETTING_DELETE_WORLD else ItemTag.TYPE_GUI_INFO
+                                null
                         )
                 )
+                if (canDeleteWorld) {
+                        inventory.bindRuntimeOperation(
+                                deleteSlot,
+                                WorldSettingsRuntimeOperation.DELETE_WORLD,
+                        )
+                }
 
                 // 戻るボタン (スロット36から40へ移動)
                 inventory.setItem(
@@ -3043,9 +3137,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
                                 GuiLoreSpec.None,
-                                ItemTag.TYPE_GUI_CANCEL
+                                null
                         )
                 )
+                inventory.bindRuntimeOperation(40, WorldSettingsRuntimeOperation.BACK)
 
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.CRITICAL_SETTINGS, worldData.uuid)
         }
@@ -3085,7 +3180,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -3107,6 +3201,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM, worldData.uuid)
         }
 
@@ -3141,7 +3236,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -3163,6 +3257,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM, worldData.uuid)
         }
 
@@ -3232,7 +3327,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -3254,6 +3348,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(
+                        confirmOperation = WorldSettingsRuntimeOperation.DELETE_WORLD,
+                        confirmSlot = 24,
+                        cancelSlot = 20,
+                )
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM, worldData.uuid)
         }
 
@@ -3291,7 +3390,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(22, infoItem)
 
                 inventory.setItem(
@@ -3313,6 +3411,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM, worldData.uuid)
         }
 
@@ -3354,6 +3453,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 currentPagePortals.forEachIndexed { index, portal ->
                         val slot = layout.itemSlots[index]
                         inventory.setItem(slot, createPortalManagementItem(player, portal))
+                        inventory.bindRuntimeOperation(
+                                slot,
+                                WorldSettingsRuntimeOperation.PORTAL,
+                                payload = mapOf(ROUTE_TARGET_UUID to portal.id.toString()),
+                        )
                 }
 
                 // ナビゲーション
@@ -3367,6 +3471,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         currentPage - 1
                                 )
                         )
+                        inventory.bindRuntimeOperation(
+                                layout.previousPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (currentPage - 1).toString()),
+                        )
                 }
                 if (currentPage + 1 < pageLayout.totalPages) {
                         inventory.setItem(
@@ -3378,6 +3487,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         currentPage + 1
                                 )
                         )
+                        inventory.bindRuntimeOperation(
+                                layout.nextPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (currentPage + 1).toString()),
+                        )
                 }
 
                 // 戻るボタン
@@ -3387,8 +3501,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.REDSTONE,
                                 lang.getMessage(player, "gui.common.back"),
                                 GuiLoreSpec.None,
-                                ItemTag.TYPE_GUI_CANCEL
+                                null
                         )
+                )
+                inventory.bindRuntimeOperation(
+                        layout.backSlot,
+                        WorldSettingsRuntimeOperation.BACK,
                 )
 
                 presentRuntime(
@@ -3446,9 +3564,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         ))
                 ))))
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_PORTAL)
-                ItemTag.setPortalUuid(item, portal.id)
-
                 return item
         }
 
@@ -3696,7 +3811,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        private companion object {
+        companion object {
                 const val RUNTIME_OWNER = "myworldmanager"
                 const val RUNTIME_ROUTE = "world_settings_runtime"
                 const val RUNTIME_SELECTION_ROUTE = "world_settings_runtime_icon_selection"
@@ -3709,8 +3824,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 private const val ROUTE_SCREEN = "screen"
                 const val ROUTE_WORLD_UUID = "world_uuid"
                 const val ROUTE_PAGE = "page"
-                private const val ROUTE_TARGET_UUID = "target_uuid"
-                private const val ROUTE_DECISION_ID = "decision_id"
+                const val ROUTE_TARGET_UUID = "target_uuid"
+                const val ROUTE_DECISION_ID = "decision_id"
                 private const val ROUTE_OPERATION = "operation"
                 private const val ROUTE_EXPANSION_COST = "expansion_cost"
                 private const val ROUTE_EXPANSION_DIRECTION = "expansion_direction"
