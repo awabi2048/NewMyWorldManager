@@ -2,11 +2,15 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
@@ -171,15 +175,25 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             }
             loreLines.add(GuiLoreLine.Spacer)
             loreLines.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.admin_menu.export.unavailable_warning")))
-            elements += MenuElement(
-                25,
-                GuiItemFactory.item(
-                    Material.BARRIER,
-                    lang.getMessage(player, "gui.admin_menu.export.display"),
-                    GuiLoreSpec.Rich(loreLines, GuiLoreFrame.BOTH),
-                    ItemTag.TYPE_GUI_INFO
+            elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
+                GuiMenuDisplaySpec(
+                    25,
+                    GuiItemSpec(
+                        Material.BARRIER,
+                        GuiNameSpec.Text(
+                            lang.getMessage(player, "gui.admin_menu.export.display"),
+                            com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
+                        ),
+                        GuiLoreSpec.Blocks(
+                            listOf(
+                                GuiLoreBlock(loreLines.filterIsInstance<GuiLoreLine.Text>()),
+                                GuiLoreBlock(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.admin_menu.export.unavailable_warning")))),
+                            ),
+                        ),
+                        GuiElementRole.CONTENT,
+                        1,
+                    ),
                 ),
-                GuiElementRole.CONTENT,
             )
         }
 
@@ -206,15 +220,30 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         if (menuSwitch != null) {
             elements += capabilityElement(player, 40, menuSwitch, GuiElementRole.NAVIGATION)
         } else {
-            elements += MenuElement(
-                40,
-                createItem(
-                    Material.NETHER_STAR,
-                    lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
-                    textLore(player, "gui.admin_menu.plugin_info.lore", mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048")),
-                    ItemTag.TYPE_GUI_INFO
+            elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
+                GuiMenuDisplaySpec(
+                    40,
+                    GuiItemSpec(
+                        Material.NETHER_STAR,
+                        GuiNameSpec.Text(
+                            lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
+                            com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
+                        ),
+                        GuiLoreSpec.Blocks(
+                            listOf(
+                                GuiLoreBlock(
+                                    textLore(
+                                        player,
+                                        "gui.admin_menu.plugin_info.lore",
+                                        mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048"),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        GuiElementRole.CONTENT,
+                        1,
+                    ),
                 ),
-                GuiElementRole.CONTENT,
             )
         }
 
@@ -272,27 +301,18 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         role: GuiElementRole = GuiElementRole.ACTION,
     ): MenuElement {
         val presentation = capability.presentation
-        val item = CCSystem.getAPI().getGuiElementService().menuCapability(
+        return CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
             player,
-            capability.copy(
-                presentation = presentation.copy(
-                    item = presentation.item.copy(role = role),
+            GuiMenuCapabilitySpec(
+                slot = slot,
+                capability = capability.copy(
+                    presentation = presentation.copy(
+                        item = presentation.item.copy(role = role),
+                    ),
                 ),
+                actionId = ACTION_CAPABILITY,
+                actionPayload = mapOf(CAPABILITY_ID to capability.capabilityId),
             ),
-        )
-        return MenuElement(
-            slot = slot,
-            item = item,
-            role = role,
-            interaction = if (capability.actionable) {
-                MenuInteraction.Action(
-                    actionId = ACTION_CAPABILITY,
-                    acceptedClicks = capability.acceptedClicks,
-                    payload = mapOf(CAPABILITY_ID to capability.capabilityId),
-                )
-            } else {
-                MenuInteraction.DisplayOnly
-            },
         )
     }
 
@@ -538,39 +558,84 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         infoLore.add(GuiLoreLine.Spacer)
         infoLore.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.common.confirm_warning")))
 
-        val infoItem = createItem(
-            Material.PAPER,
-            lang.getMessage(player, "gui.common.confirmation"),
-            infoLore,
-            ItemTag.TYPE_GUI_INFO
-        )
-
-        // 実行ボタン
-        val confirmItem = createItem(
-            if (isDanger) Material.RED_WOOL else Material.LIME_WOOL,
-            lang.getMessage(player, "gui.common.confirm"),
-            listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.common.confirm_desc"))),
-            ItemTag.TYPE_GUI_CONFIRM
-        )
-
-        // キャンセルボタン
-        val cancelItem = createItem(
-            Material.GREEN_WOOL, // キャンセルは安全な色で
-            lang.getMessage(player, "gui.common.cancel"),
-            listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.common.cancel_desc"))),
-            ItemTag.TYPE_GUI_CANCEL
-        )
         val layout = GuiHelper.confirmationLayout()
         return InventoryMenuView(
             size = layout.size,
             title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey)),
             elements = listOf(
-                MenuElement(layout.previewSlot, infoItem, GuiElementRole.CONTENT),
-                MenuElement(layout.confirmSlot, confirmItem, GuiElementRole.CONFIRM, ACTION_CONFIRM),
-                MenuElement(layout.cancelSlot, cancelItem, GuiElementRole.CANCEL, ACTION_CANCEL),
+                CCSystem.getAPI().getGuiElementService().menuDisplay(
+                    GuiMenuDisplaySpec(
+                        layout.previewSlot,
+                        GuiItemSpec(
+                            Material.PAPER,
+                            GuiNameSpec.Text(
+                                lang.getMessage(player, "gui.common.confirmation"),
+                                com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
+                            ),
+                            GuiLoreSpec.Blocks(
+                                buildList {
+                                    val dataLines = infoLore.filterNot {
+                                        it == GuiLoreLine.Spacer || it is GuiLoreLine.Warning
+                                    }
+                                    if (dataLines.isNotEmpty()) add(GuiLoreBlock(dataLines))
+                                    add(GuiLoreBlock(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.common.confirm_warning")))))
+                                },
+                            ),
+                            GuiElementRole.CONTENT,
+                            1,
+                        ),
+                    ),
+                ),
+                confirmationAction(
+                    player,
+                    layout.confirmSlot,
+                    if (isDanger) Material.RED_WOOL else Material.LIME_WOOL,
+                    "gui.common.confirm",
+                    "gui.common.confirm_desc",
+                    GuiElementRole.CONFIRM,
+                    ACTION_CONFIRM,
+                ),
+                confirmationAction(
+                    player,
+                    layout.cancelSlot,
+                    Material.GREEN_WOOL,
+                    "gui.common.cancel",
+                    "gui.common.cancel_desc",
+                    GuiElementRole.CANCEL,
+                    ACTION_CANCEL,
+                ),
             ),
         )
     }
+
+    private fun confirmationAction(
+        player: Player,
+        slot: Int,
+        material: Material,
+        nameKey: String,
+        descriptionKey: String,
+        role: GuiElementRole,
+        actionId: String,
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+        player,
+        GuiMenuEntrySpec(
+            slot = slot,
+            material = material,
+            name = GuiNameSpec.Text(
+                plugin.languageManager.getMessage(player, nameKey),
+                com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
+            ),
+            role = role,
+            description = listOf(plugin.languageManager.getMessage(player, descriptionKey)),
+            actions = listOf(
+                GuiMenuEntryAction(
+                    actionId,
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    plugin.languageManager.getMessage(player, nameKey),
+                ),
+            ),
+        ),
+    )
 
     private fun createItem(material: Material, name: String, lore: List<GuiLoreLine>, tagType: String): ItemStack {
         return GuiItemFactory.item(
