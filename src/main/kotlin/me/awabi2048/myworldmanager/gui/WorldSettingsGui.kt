@@ -9,6 +9,8 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
@@ -290,6 +292,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         semantics[slot] = RuntimeItemSemantics(role, interaction)
                 }
 
+                fun setMenuEntry(
+                        player: Player,
+                        spec: com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec,
+                ) {
+                        val element = CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
+                        val interaction = requireNotNull(element.interaction) {
+                                "Menu entry interaction is missing: ${spec.slot}"
+                        }
+                        setSemanticItem(element.slot, element.item, interaction, element.role)
+                }
+
                 fun setRuntimeOperation(
                         slot: Int,
                         item: ItemStack,
@@ -467,6 +480,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
         }
 
+        private fun contractMenuActions(
+                player: Player,
+                worldData: WorldData,
+                action: WorldSettingsAction,
+                operation: WorldSettingsRuntimeOperation,
+                actionTexts: List<String>,
+        ): List<GuiMenuEntryAction> {
+                val contract = plugin.worldSettingsActionService.contract(player, worldData, action)
+                require(contract.options.size == actionTexts.size) {
+                        "World settings action presentation mismatch: $action options=${contract.options.size} texts=${actionTexts.size}"
+                }
+                return contract.options.zip(actionTexts).map { (option, actionText) ->
+                        GuiMenuEntryAction(
+                                ACTION_RUNTIME_DISPATCH,
+                                option.acceptedClicks,
+                                actionText,
+                                mapOf(ROUTE_OPERATION to operation.name),
+                                enabled = contract.actionable,
+                        )
+                }
+        }
+
         private fun renderWorldSettings(
                 player: Player,
                 worldData: WorldData,
@@ -560,62 +595,57 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 if (hasManagePermission && !isMemberLayout) {
-                        val tourAction = contractGuiActions(
+                        inventory.setMenuEntry(
                                 player,
-                                worldData,
-                                WorldSettingsAction.MANAGE_TOUR,
-                                listOf(lang.getMessage(player, "gui.tour.worldmenu.action.open")),
-                        ).single()
-                        inventory.setItem(
-                                tourSettingSlot,
-                                createItemComponent(
-                                        Material.PALE_OAK_BOAT,
-                                        lang.getMessage(player, "gui.tour.worldmenu.display"),
-                                        GuiLoreSpec.Blocks(listOf(
-                                                GuiLoreBlock(lang.getMessageList(player, "gui.tour.worldmenu.blocks.description").map(GuiLoreLine::Text)),
-                                                GuiLoreBlock(listOf(GuiLoreActions.single(lang, player, tourAction.operation, tourAction.action)))
-                                        )),
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                tourSettingSlot,
-                                WorldSettingsRuntimeOperation.TOUR,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_TOUR).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_TOUR).sounds,
+                                GuiMenuEntrySpec(
+                                        slot = tourSettingSlot,
+                                        material = Material.PALE_OAK_BOAT,
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.tour.worldmenu.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(player, "gui.tour.worldmenu.blocks.description"),
+                                        actions = contractMenuActions(
+                                                player,
+                                                worldData,
+                                                WorldSettingsAction.MANAGE_TOUR,
+                                                WorldSettingsRuntimeOperation.TOUR,
+                                                listOf(lang.getMessage(player, "gui.tour.worldmenu.action.open")),
+                                        ),
+                                        sounds = plugin.worldSettingsActionService
+                                                .contract(player, worldData, WorldSettingsAction.MANAGE_TOUR).sounds,
+                                ),
                         )
                 }
 
                 // ワールド名・説明変更
                 if (hasManagePermission) {
-                        val infoLoreBuilder =
-                                GuiLoreBuilder(lang, player)
-                                        .block(lang.getMessageList(player, "gui.settings.info.blocks.summary").map(GuiLoreLine::Text))
-                                        .actions(contractGuiActions(
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = infoSettingSlot,
+                                        material = plugin.menuConfigManager.getIconMaterial(
+                                                "world_settings",
+                                                "info",
+                                                Material.NAME_TAG,
+                                        ),
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.info.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(player, "gui.settings.info.blocks.summary"),
+                                        actions = contractMenuActions(
                                                 player,
                                                 worldData,
                                                 WorldSettingsAction.EDIT_INFO,
+                                                WorldSettingsRuntimeOperation.EDIT_INFO,
                                                 listOf(lang.getMessage(player, "gui.settings.info.action.open_editor")),
-                                        ))
-
-                        inventory.setItem(
-                                infoSettingSlot,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "info",
-                                                Material.NAME_TAG
                                         ),
-                                        lang.getMessage(player, "gui.settings.info.display"),
-                                        infoLoreBuilder.buildSpec(),
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                infoSettingSlot,
-                                WorldSettingsRuntimeOperation.EDIT_INFO,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_INFO).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_INFO).sounds,
+                                        sounds = plugin.worldSettingsActionService
+                                                .contract(player, worldData, WorldSettingsAction.EDIT_INFO).sounds,
+                                ),
                         )
                 }
 
@@ -630,85 +660,70 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // アイコン変更
                 if (hasManagePermission) {
-                        val iconLore =
-                                GuiLoreBuilder(lang, player)
-                                        .block(lang.getMessageList(player, "gui.settings.icon.blocks.description").map(GuiLoreLine::Text))
-                                        .actions(contractGuiActions(
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = iconSettingSlot,
+                                        material = plugin.menuConfigManager.getIconMaterial(
+                                                "world_settings",
+                                                "icon",
+                                                Material.ANVIL,
+                                        ),
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.icon.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(player, "gui.settings.icon.blocks.description"),
+                                        actions = contractMenuActions(
                                                 player,
                                                 worldData,
                                                 WorldSettingsAction.SELECT_ICON,
+                                                WorldSettingsRuntimeOperation.SELECT_ICON,
                                                 listOf(lang.getMessage(player, "gui.settings.icon.action.start_selection")),
-                                        ))
-                                        .buildSpec()
-
-                        inventory.setItem(
-                                iconSettingSlot,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "icon",
-                                                Material.ANVIL
                                         ),
-                                        lang.getMessage(player, "gui.settings.icon.display"),
-                                        iconLore,
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                iconSettingSlot,
-                                WorldSettingsRuntimeOperation.SELECT_ICON,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SELECT_ICON).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SELECT_ICON).sounds,
+                                        sounds = plugin.worldSettingsActionService
+                                                .contract(player, worldData, WorldSettingsAction.SELECT_ICON).sounds,
+                                ),
                         )
                 }
 
                 // スポーン位置変更
                 if (hasManagePermission) {
-                        val spawnLoreBuilder =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.spawn.blocks.description"
-                                                ).map(GuiLoreLine::Text)
-                                        )
-
-                        if (!isInWorld && warningLore != null) {
-                                spawnLoreBuilder.warning(warningLore)
+                        val spawnActions = if (isBedrock) {
+                                listOf(lang.getMessage(player, "gui.settings.spawn.action.set_both"))
+                        } else {
+                                listOf(
+                                        lang.getMessage(player, "gui.settings.spawn.action.set_guest"),
+                                        lang.getMessage(player, "gui.settings.spawn.action.set_member"),
+                                )
                         }
-
-                        spawnLoreBuilder.actions(contractGuiActions(
+                        inventory.setMenuEntry(
                                 player,
-                                worldData,
-                                WorldSettingsAction.SET_SPAWN,
-                                if (isBedrock) {
-                                        listOf(lang.getMessage(player, "gui.settings.spawn.action.set_both"))
-                                } else {
-                                        listOf(
-                                                lang.getMessage(player, "gui.settings.spawn.action.set_guest"),
-                                                lang.getMessage(player, "gui.settings.spawn.action.set_member"),
-                                        )
-                                },
-                        ))
-
-                        inventory.setItem(
-                                spawnSettingSlot,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
+                                GuiMenuEntrySpec(
+                                        slot = spawnSettingSlot,
+                                        material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "spawn",
-                                                Material.COMPASS
+                                                Material.COMPASS,
                                         ),
-                                        lang.getMessage(player, "gui.settings.spawn.display"),
-                                        spawnLoreBuilder.buildSpec(),
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                spawnSettingSlot,
-                                WorldSettingsRuntimeOperation.SET_SPAWN,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SET_SPAWN).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SET_SPAWN).sounds,
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.spawn.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                                        description = lang.getMessageList(player, "gui.settings.spawn.blocks.description"),
+                                        warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
+                                        actions = contractMenuActions(
+                                                player,
+                                                worldData,
+                                                WorldSettingsAction.SET_SPAWN,
+                                                WorldSettingsRuntimeOperation.SET_SPAWN,
+                                                spawnActions,
+                                        ),
+                                        sounds = plugin.worldSettingsActionService
+                                                .contract(player, worldData, WorldSettingsAction.SET_SPAWN).sounds,
+                                ),
                         )
                 }
 
