@@ -172,8 +172,7 @@ class WorldSettingsListener : Listener {
                                 if (openBedrockWorldInfoInputForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                         plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                                        plugin.worldSettingsGui.open(player, worldData)
-                                        return MenuActionResult.Success(MenuUpdate.None)
+                                        return MenuActionResult.Success(MenuUpdate.Refresh)
                                 }
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
                                 showWorldInfoDialog(player, worldData)
@@ -214,7 +213,14 @@ class WorldSettingsListener : Listener {
                                         player.sendMessage(plugin.languageManager.getMessage("error.max_expansion_reached"))
                                         return MenuActionResult.Ignored
                                 }
-                                plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.runtimeRoute(
+                                                        WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION,
+                                                        worldData.uuid,
+                                                ),
+                                        ),
+                                )
                         }
                         WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> {
                                 if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
@@ -231,7 +237,11 @@ class WorldSettingsListener : Listener {
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
                         WorldSettingsRuntimeOperation.MANAGE_MEMBERS ->
-                                plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.memberManagementRoute(worldData.uuid),
+                                        ),
+                                )
                         WorldSettingsRuntimeOperation.EDIT_TAGS -> {
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
                                 showTagEditorDialog(player, worldData)
@@ -245,22 +255,38 @@ class WorldSettingsListener : Listener {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "gui.visitor_management.no_visitors"))
                                         return MenuActionResult.Ignored
                                 }
-                                plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.runtimeRoute(
+                                                        WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
+                                                        worldData.uuid,
+                                                ),
+                                        ),
+                                )
                         }
                         WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> {
                                 worldData.notificationEnabled = !worldData.notificationEnabled
                                 plugin.worldConfigRepository.save(worldData)
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
-                        WorldSettingsRuntimeOperation.TOUR -> plugin.tourGui.openEditMenu(player, worldData)
+                        WorldSettingsRuntimeOperation.TOUR ->
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(plugin.tourGui.editRoute(worldData.uuid)),
+                                )
                         WorldSettingsRuntimeOperation.OPEN_CRITICAL ->
-                                plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.runtimeRoute(
+                                                        WorldSettingsRuntimeScreen.CRITICAL_SETTINGS,
+                                                        worldData.uuid,
+                                                ),
+                                        ),
+                                )
                         WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> {
                                 if (openBedrockAnnouncementActionForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                         plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                                        plugin.worldSettingsGui.open(player, worldData)
-                                        return MenuActionResult.Success(MenuUpdate.None)
+                                        return MenuActionResult.Success(MenuUpdate.Refresh)
                                 }
                                 if (click.isRightClick) {
                                         worldData.announcementMessages.clear()
@@ -281,7 +307,14 @@ class WorldSettingsListener : Listener {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "error.no_portals_found"))
                                         return MenuActionResult.Ignored
                                 }
-                                plugin.worldSettingsGui.openPortalManagement(player, worldData)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.runtimeRoute(
+                                                        WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT,
+                                                        worldData.uuid,
+                                                ),
+                                        ),
+                                )
                         }
                         WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> {
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
@@ -289,7 +322,9 @@ class WorldSettingsListener : Listener {
                                         return MenuActionResult.Ignored
                                 }
                                 if (!player.hasPermission("myworldmanager.admin")) return MenuActionResult.Ignored
-                                plugin.environmentGui.open(player, worldData)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(plugin.environmentGui.prepareOpen(player, worldData)),
+                                )
                         }
                         else -> return MenuActionResult.Ignored
                 }

@@ -361,15 +361,15 @@ class TourGui(private val plugin: MyWorldManager) {
     }
 
     fun openEditMenu(player: Player, worldData: WorldData, page: Int = 0) {
-        runtime.navigate(
-            player,
-            MenuRoute(
-                OWNER,
-                EDIT_ROUTE,
-                mapOf("world" to worldData.uuid.toString(), "page" to page.coerceAtLeast(0).toString()),
-            ),
-        )
+        runtime.navigate(player, editRoute(worldData.uuid, page))
     }
+
+    fun editRoute(worldUuid: UUID, page: Int = 0): MenuRoute =
+        MenuRoute(
+            OWNER,
+            EDIT_ROUTE,
+            mapOf("world" to worldUuid.toString(), "page" to page.coerceAtLeast(0).toString()),
+        )
 
     private fun stopTour(context: MenuActionContext): MenuActionResult {
         if (plugin.tourSessionManager.get(context.player.uniqueId) == null) {

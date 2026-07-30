@@ -221,14 +221,36 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         internal fun route(worldUuid: UUID): MenuRoute =
+                runtimeRoute(WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldUuid)
+
+        internal fun memberManagementRoute(worldUuid: UUID, page: Int = 0): MenuRoute =
                 MenuRoute(
                         RUNTIME_OWNER,
-                        RUNTIME_ROUTE,
+                        RUNTIME_MEMBER_MANAGEMENT_ROUTE,
                         mapOf(
-                                ROUTE_SCREEN to WorldSettingsRuntimeScreen.WORLD_SETTINGS.name,
                                 ROUTE_WORLD_UUID to worldUuid.toString(),
+                                ROUTE_PAGE to page.coerceAtLeast(0).toString(),
                         ),
                 )
+
+        internal fun runtimeRoute(
+                screen: WorldSettingsRuntimeScreen,
+                worldUuid: UUID,
+                page: Int? = null,
+                targetUuid: UUID? = null,
+                decisionId: UUID? = null,
+                arguments: Map<String, String> = emptyMap(),
+        ): MenuRoute {
+                val payload = mutableMapOf(
+                        ROUTE_SCREEN to screen.name,
+                        ROUTE_WORLD_UUID to worldUuid.toString(),
+                )
+                page?.let { payload[ROUTE_PAGE] = it.coerceAtLeast(0).toString() }
+                targetUuid?.let { payload[ROUTE_TARGET_UUID] = it.toString() }
+                decisionId?.let { payload[ROUTE_DECISION_ID] = it.toString() }
+                payload.putAll(arguments)
+                return MenuRoute(RUNTIME_OWNER, RUNTIME_ROUTE, payload)
+        }
 
         private class RuntimeItemBuffer(val size: Int) {
                 private val items = arrayOfNulls<ItemStack>(size)
@@ -1867,15 +1889,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 playSound: Boolean = true,
                 replaceCurrent: Boolean = false
         ) {
-                val route =
-                        MenuRoute(
-                                RUNTIME_OWNER,
-                                RUNTIME_MEMBER_MANAGEMENT_ROUTE,
-                                mapOf(
-                                        ROUTE_WORLD_UUID to worldData.uuid.toString(),
-                                        ROUTE_PAGE to page.coerceAtLeast(0).toString(),
-                                ),
-                        )
+                val route = memberManagementRoute(worldData.uuid, page)
                 if (replaceCurrent) {
                         runtime.replace(player, route)
                 } else {

@@ -49,13 +49,17 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player, worldData: WorldData) {
+        runtime.navigate(player, prepareOpen(player, worldData))
+    }
+
+    fun prepareOpen(player: Player, worldData: WorldData): MenuRoute {
         plugin.settingsSessionManager.updateSessionAction(
             player,
             worldData.uuid,
             SettingsAction.VIEW_ENVIRONMENT_SETTINGS,
             isGui = true,
         )
-        runtime.navigate(player, route(worldData.uuid))
+        return route(worldData.uuid)
     }
 
     private fun render(player: Player, route: MenuRoute): InventoryMenuView {
