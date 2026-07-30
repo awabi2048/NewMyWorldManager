@@ -3,6 +3,7 @@
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
@@ -11,6 +12,8 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiStructuredMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
@@ -20,7 +23,6 @@ import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
-import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -47,7 +49,6 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.BorderResetSpawnService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -62,7 +63,6 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.meta.SkullMeta
 
 private enum class WorldSettingsDisplayMode {
         DEFAULT,
@@ -265,30 +265,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         )
 
         private class RuntimeItemBuffer(val size: Int) {
-                private val items = arrayOfNulls<ItemStack>(size)
-                private val semantics = mutableMapOf<Int, RuntimeItemSemantics>()
+                private val items = arrayOfNulls<GuiItemSpec>(size)
+                private val elements = mutableMapOf<Int, MenuElement>()
 
-                val contents: Array<ItemStack?>
-                        get() = items.copyOf()
-
-                fun setItem(slot: Int, item: ItemStack?) {
+                fun setItem(slot: Int, item: GuiItemSpec?) {
                         require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
                         items[slot] = item
-                        semantics.remove(slot)
+                        elements.remove(slot)
                 }
 
-                fun setSemanticItem(
-                        slot: Int,
-                        item: ItemStack,
-                        interaction: MenuInteraction,
-                        role: GuiElementRole = when (interaction) {
-                                is MenuInteraction.Back -> GuiElementRole.BACK
-                                else -> GuiElementRole.ACTION
-                        },
-                ) {
-                        require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
-                        items[slot] = item
-                        semantics[slot] = RuntimeItemSemantics(role, interaction)
+                fun setElement(element: MenuElement) {
+                        require(element.slot in items.indices) {
+                                "slot is outside Runtime buffer: ${element.slot}/$size"
+                        }
+                        items[element.slot] = null
+                        elements[element.slot] = element
                 }
 
                 fun setMenuEntry(
@@ -296,40 +287,49 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         spec: com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec,
                 ) {
                         val element = CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
-                        val interaction = requireNotNull(element.interaction) {
-                                "Menu entry interaction is missing: ${spec.slot}"
-                        }
-                        setSemanticItem(element.slot, element.item, interaction, element.role)
+                        setElement(element)
+                }
+
+                fun setDisplay(spec: GuiMenuDisplaySpec) {
+                        setElement(CCSystem.getAPI().getGuiElementService().menuDisplay(spec))
                 }
 
                 fun setRuntimeOperation(
                         slot: Int,
-                        item: ItemStack,
+                        item: GuiItemSpec,
                         operation: WorldSettingsRuntimeOperation,
                         acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
                                 MenuAcceptedClicks.LEFT_RIGHT,
                         payload: Map<String, String> = emptyMap(),
                         sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
+                        actionLabel: String = itemName(item),
                 ) {
-                        setSemanticItem(
-                                slot,
-                                item,
-                                MenuInteraction.Action(
-                                        ACTION_RUNTIME_DISPATCH,
-                                        acceptedClicks,
-                                        mapOf(
-                                                "slot" to slot.toString(),
-                                                ROUTE_OPERATION to operation.name,
-                                        ) + payload,
-                                        sounds,
-                                ),
-                                role = when (operation) {
+                        setElement(
+                                CCSystem.getAPI().getGuiElementService().menuStructuredEntry(
+                                        null,
+                                        GuiStructuredMenuEntrySpec(
+                                                slot = slot,
+                                                item = item.copy(role = when (operation) {
                                         WorldSettingsRuntimeOperation.BACK -> GuiElementRole.BACK
                                         WorldSettingsRuntimeOperation.PAGE -> GuiElementRole.NAVIGATION
                                         WorldSettingsRuntimeOperation.CONFIRM -> GuiElementRole.CONFIRM
                                         WorldSettingsRuntimeOperation.CANCEL -> GuiElementRole.CANCEL
                                         else -> GuiElementRole.ACTION
-                                },
+                                                }),
+                                                actions = listOf(
+                                                        GuiMenuEntryAction(
+                                                                actionId = ACTION_RUNTIME_DISPATCH,
+                                                                acceptedClicks = acceptedClicks,
+                                                                label = actionLabel,
+                                                                payload = mapOf(
+                                                                        "slot" to slot.toString(),
+                                                                        ROUTE_OPERATION to operation.name,
+                                                                ) + payload,
+                                                        ),
+                                                ),
+                                                sounds = sounds,
+                                        ),
+                                ),
                         )
                 }
 
@@ -340,11 +340,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 MenuAcceptedClicks.LEFT_RIGHT,
                         payload: Map<String, String> = emptyMap(),
                         sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
+                        actionLabel: String? = null,
                 ) {
                         val item = requireNotNull(getItem(slot)) {
                                 "Runtime operation item is missing: $slot/$operation"
                         }
-                        setRuntimeOperation(slot, item, operation, acceptedClicks, payload, sounds)
+                        setRuntimeOperation(
+                                slot,
+                                item,
+                                operation,
+                                acceptedClicks,
+                                payload,
+                                sounds,
+                                actionLabel ?: itemName(item),
+                        )
                 }
 
                 fun bindConfirmation(
@@ -359,50 +368,56 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         bindRuntimeOperation(cancelSlot, cancelOperation)
                 }
 
-                fun getItem(slot: Int): ItemStack? = items.getOrNull(slot)
+                fun getItem(slot: Int): GuiItemSpec? =
+                        items.getOrNull(slot) ?: elements[slot]?.let { null }
+
+                fun isOccupied(slot: Int): Boolean =
+                        items.getOrNull(slot) != null || elements.containsKey(slot)
 
                 fun clear() {
                         items.fill(null)
-                        semantics.clear()
+                        elements.clear()
                 }
 
                 fun applyStandardFrame() {
-                        val black = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-                        val gray = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
+                        val black = decorationSpec(Material.BLACK_STAINED_GLASS_PANE)
+                        val gray = decorationSpec(Material.GRAY_STAINED_GLASS_PANE)
                         for (slot in items.indices) {
                                 items[slot] = when {
-                                        slot < 9 || slot >= size - 9 -> black.clone()
-                                        else -> gray.clone()
+                                        slot < 9 || slot >= size - 9 -> black
+                                        else -> gray
                                 }
                         }
                 }
 
                 fun elements(): List<MenuElement> =
-                        items.mapIndexedNotNull { slot, item ->
-                                item ?: return@mapIndexedNotNull null
-                                val semantic = semantics[slot]
-                                MenuElement(
-                                        slot = slot,
-                                        item = item,
-                                        role = semantic?.role
-                                                ?: if (item.type.name.endsWith("_STAINED_GLASS_PANE")) {
-                                                        GuiElementRole.DECORATION
-                                                } else {
-                                                        GuiElementRole.CONTENT
-                                                },
-                                        interaction = semantic?.interaction
-                                                ?: MenuInteraction.DisplayOnly,
-                                )
+                        items.indices.mapNotNull { slot ->
+                                elements[slot]
+                                        ?: items[slot]?.let { item ->
+                                                CCSystem.getAPI().getGuiElementService().menuDisplay(
+                                                        GuiMenuDisplaySpec(slot, item),
+                                                )
+                                        }
                         }
 
                 companion object {
                         private const val ACTION_RUNTIME_DISPATCH = "dispatch"
-                }
 
-                private data class RuntimeItemSemantics(
-                        val role: GuiElementRole,
-                        val interaction: MenuInteraction,
-                )
+                        private fun decorationSpec(material: Material): GuiItemSpec =
+                                GuiItemSpec(
+                                        material = material,
+                                        name = GuiNameSpec.Empty,
+                                        lore = GuiLoreSpec.None,
+                                        role = GuiElementRole.DECORATION,
+                                        amount = 1,
+                                )
+
+                        private fun itemName(item: GuiItemSpec): String = when (val name = item.name) {
+                                is GuiNameSpec.Text -> name.text
+                                is GuiNameSpec.Component -> "操作"
+                                GuiNameSpec.Empty -> error("Action item name must not be empty")
+                        }
+                }
         }
 
         private data class MemberManagementEntry(
@@ -1345,8 +1360,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // 空きスロットを灰色板ガラスで埋める
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 0 until inventory.size) {
-                        val item = inventory.getItem(i)
-                        if (item == null || item.type == Material.AIR) {
+                        if (!inventory.isOccupied(i)) {
                                 inventory.setItem(i, grayPane)
                         }
                 }
@@ -1451,19 +1465,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                         .zip(validSlots)
                         .forEach { (resolved, slot) ->
-                                val presentation = resolved.presentation
-                                val item = CCSystem.getAPI().getGuiElementService()
-                                        .menuCapability(player, resolved)
-                                val interaction = if (resolved.actionable) {
-                                        MenuInteraction.Capability(
-                                                capabilityId = resolved.capabilityId,
-                                                arguments = arguments,
-                                                acceptedClicks = resolved.acceptedClicks,
-                                        )
-                                } else {
-                                        MenuInteraction.DisplayOnly
-                                }
-                                inventory.setSemanticItem(slot, item, interaction)
+                                inventory.setElement(
+                                        CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
+                                                player,
+                                                com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec(
+                                                        slot = slot,
+                                                        capability = resolved,
+                                                        actionId = ACTION_CAPABILITY,
+                                                        actionPayload = arguments,
+                                                ),
+                                        ),
+                                )
                         }
         }
 
@@ -1663,11 +1675,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // 戻るボタン
                 inventory.setItem(
                         40,
-                        GuiHelper.createReturnItem(
-                                plugin,
-                                player,
-                                "world_settings"
-                        )
+                        returnItemSpec(player),
                 )
                 inventory.bindRuntimeOperation(40, WorldSettingsRuntimeOperation.BACK)
 
@@ -1690,7 +1698,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
+                        if (!inventory.isOccupied(i)) inventory.setItem(i, grayPane)
                 }
 
                 return runtimeView(title, inventory)
@@ -1849,7 +1857,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 0 until inventory.size) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
+                        if (!inventory.isOccupied(i)) inventory.setItem(i, grayPane)
                 }
 
                 inventory.bindConfirmation()
@@ -1956,26 +1964,35 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 currentPageMembers.forEachIndexed { index, entry ->
                         val slot = layout.itemSlots.getOrNull(index) ?: return@forEachIndexed
                         if (entry.pendingDecisionId != null) {
-                                inventory.setItem(
-                                        slot,
-                                        createPendingItem(
+                                val pendingType =
+                                        entry.pendingType ?: PendingInteractionType.MEMBER_INVITE
+                                val worldName = worldData.name
+                                inventory.setElement(
+                                        PendingInteractionItemFactory.createElement(
+                                                plugin = plugin,
                                                 viewer = player,
-                                                targetUuid = entry.playerUuid,
-                                                decisionId = entry.pendingDecisionId,
+                                                slot = slot,
+                                                subjectUuid = entry.playerUuid,
+                                                type = when (pendingType) {
+                                                        PendingInteractionType.MEMBER_INVITE ->
+                                                                me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_INVITE
+                                                        PendingInteractionType.MEMBER_REQUEST ->
+                                                                me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_REQUEST
+                                                },
+                                                worldName = worldName,
                                                 createdAt = entry.pendingCreatedAt ?: 0L,
-                                                pendingType = entry.pendingType ?: PendingInteractionType.MEMBER_INVITE
-                                        ),
-                                )
-                                inventory.bindRuntimeOperation(
-                                        slot,
-                                        when (entry.pendingType) {
-                                                PendingInteractionType.MEMBER_REQUEST -> WorldSettingsRuntimeOperation.PENDING_REQUEST
-                                                else -> WorldSettingsRuntimeOperation.PENDING_INVITE
-                                        },
-                                        acceptedClicks = MenuAcceptedClicks.LEFT,
-                                        payload = mapOf(
-                                                ROUTE_TARGET_UUID to entry.playerUuid.toString(),
-                                                ROUTE_DECISION_ID to entry.pendingDecisionId.toString(),
+                                                actionMode = PendingInteractionActionMode.CANCEL,
+                                                actionId = ACTION_RUNTIME_DISPATCH,
+                                                actionPayload = mapOf(
+                                                        ROUTE_OPERATION to when (pendingType) {
+                                                                PendingInteractionType.MEMBER_REQUEST ->
+                                                                        WorldSettingsRuntimeOperation.PENDING_REQUEST.name
+                                                                PendingInteractionType.MEMBER_INVITE ->
+                                                                        WorldSettingsRuntimeOperation.PENDING_INVITE.name
+                                                        },
+                                                        ROUTE_TARGET_UUID to entry.playerUuid.toString(),
+                                                        ROUTE_DECISION_ID to entry.pendingDecisionId.toString(),
+                                                ),
                                         ),
                                 )
                         } else {
@@ -2009,12 +2026,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (currentPage > 0) {
                         inventory.setItem(
                                 layout.previousPageSlot,
-                                GuiHelper.createPrevPageItem(
-                                        plugin,
-                                        player,
-                                        "world_settings",
-                                        currentPage - 1
-                                )
+                                pageItemSpec(player, previous = true),
                         )
                         inventory.bindRuntimeOperation(
                                 layout.previousPageSlot,
@@ -2025,12 +2037,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (currentPage + 1 < pageLayout.totalPages) {
                         inventory.setItem(
                                 layout.nextPageSlot,
-                                GuiHelper.createNextPageItem(
-                                        plugin,
-                                        player,
-                                        "world_settings",
-                                        currentPage + 1
-                                )
+                                pageItemSpec(player, previous = false),
                         )
                         inventory.bindRuntimeOperation(
                                 layout.nextPageSlot,
@@ -2042,11 +2049,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // 戻ると招待の位置は共通レイアウトから取得し、一覧本文の行数変更に追従させる。
                 inventory.setItem(
                         footerStart + 4,
-                        GuiHelper.createReturnItem(
-                                plugin,
-                                player,
-                                "world_settings"
-                        )
+                        returnItemSpec(player),
                 )
 
                 // メンバー招待ボタン
@@ -2114,7 +2117,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 9 until footerStart) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
+                        if (!inventory.isOccupied(i)) inventory.setItem(i, grayPane)
                 }
 
                 return InventoryMenuView(
@@ -2159,30 +2162,37 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
-                val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta as? SkullMeta
-                        ?: error("メンバー招待取消確認のプレイヤーヘッドを生成できません")
-                meta.owningPlayer = Bukkit.getOfflinePlayer(targetUuid)
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.member_management.pending_item.name",
-                                                mapOf("player" to targetName)
-                                        )
-                                )
-                                .decoration(TextDecoration.ITALIC, false)
+                inventory.setDisplay(
+                        GuiMenuDisplaySpec(
+                                slot = 22,
+                                item = GuiItemSpec(
+                                        material = Material.PLAYER_HEAD,
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(
+                                                        player,
+                                                        "gui.member_management.pending_item.name",
+                                                        mapOf("player" to targetName),
+                                                ),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        lore = GuiLoreSpec.Rich(
+                                                listOf(
+                                                        GuiLoreLine.Warning(
+                                                                lang.getMessage(
+                                                                        player,
+                                                                        "gui.member_management.pending_cancel_confirm.body",
+                                                                        mapOf("player" to targetName),
+                                                                ),
+                                                        ),
+                                                ),
+                                                GuiLoreFrame.BOTH,
+                                        ),
+                                        role = GuiElementRole.CONTENT,
+                                        amount = 1,
+                                ),
+                                playerHeadOwner = targetUuid,
+                        ),
                 )
-                meta.lore(GuiItemFactory.menuLore(listOf(
-                        GuiLoreLine.Warning(lang.getMessage(
-                                player,
-                                "gui.member_management.pending_cancel_confirm.body",
-                                mapOf("player" to targetName)
-                        ))
-                )))
-                item.itemMeta = meta
-                inventory.setItem(22, item)
 
                 inventory.setItem(
                         20,
@@ -2497,40 +2507,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        private fun createPendingItem(
-                viewer: Player,
-                targetUuid: UUID,
-                decisionId: UUID,
-                createdAt: Long,
-                pendingType: PendingInteractionType
-        ): ItemStack {
-                val worldName =
-                        plugin.worldConfigRepository
-                                .findByUuid(
-                                        plugin.settingsSessionManager.getSession(viewer)?.worldUuid
-                                                ?: return ItemStack(Material.BARRIER)
-                                )
-                                ?.name
-                                ?: plugin.languageManager.getMessage(viewer, "general.unknown")
-                val item =
-                        PendingInteractionItemFactory.createItem(
-                                plugin = plugin,
-                                viewer = viewer,
-                                subjectUuid = targetUuid,
-                                type =
-                                        when (pendingType) {
-                                                PendingInteractionType.MEMBER_INVITE -> me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_INVITE
-                                                PendingInteractionType.MEMBER_REQUEST -> me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_REQUEST
-                                        },
-                                worldName = worldName,
-                                createdAt = createdAt,
-                                decisionId = decisionId,
-                                actionMode = PendingInteractionActionMode.CANCEL,
-                                itemTagType = null,
-                        )
-                return item
-        }
-
         private fun formatPendingInviteDateTimeForPlayer(player: Player, timestamp: Long): String {
                 val dateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
                 return dateTime.format(pendingInviteDateTimeFormatterFor(player))
@@ -2677,7 +2653,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
                 for (i in 9 until layout.size - 9) {
-                        if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
+                        if (!inventory.isOccupied(i)) inventory.setItem(i, grayPane)
                 }
 
                 return runtimeView(title, inventory)
@@ -2827,9 +2803,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 name: String,
                 lore: GuiLoreSpec,
                 tag: String?
-        ): ItemStack {
-                return GuiItemFactory.item(material, name, lore)
-        }
+        ): GuiItemSpec =
+                GuiItemSpec(
+                        material = material,
+                        name = GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
+                        lore = lore,
+                        role = GuiElementRole.CONTENT,
+                        amount = 1,
+                )
 
         private data class BorderInfo(
                 val centerX: Double,
@@ -2877,9 +2858,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 name: String,
                 lore: GuiLoreSpec,
                 tag: String?
-        ): ItemStack {
-                return GuiItemFactory.item(material, name, lore)
-        }
+        ): GuiItemSpec =
+                GuiItemSpec(
+                        material = material,
+                        name = GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
+                        lore = lore,
+                        role = GuiElementRole.CONTENT,
+                        amount = 1,
+                )
 
         fun openCriticalSettings(player: Player, worldData: WorldData) {
                 if (!plugin.playerStatsRepository.findByUuid(player.uniqueId).criticalSettingsEnabled) {
@@ -3438,12 +3424,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (currentPage > 0) {
                         inventory.setItem(
                                 layout.previousPageSlot,
-                                GuiHelper.createPrevPageItem(
-                                        plugin,
-                                        player,
-                                        "world_settings",
-                                        currentPage - 1
-                                )
+                                pageItemSpec(player, previous = true),
                         )
                         inventory.bindRuntimeOperation(
                                 layout.previousPageSlot,
@@ -3454,12 +3435,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (currentPage + 1 < pageLayout.totalPages) {
                         inventory.setItem(
                                 layout.nextPageSlot,
-                                GuiHelper.createNextPageItem(
-                                        plugin,
-                                        player,
-                                        "world_settings",
-                                        currentPage + 1
-                                )
+                                pageItemSpec(player, previous = false),
                         )
                         inventory.bindRuntimeOperation(
                                 layout.nextPageSlot,
@@ -3662,9 +3638,49 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
                 )
 
-        private fun createDecorationItem(material: Material): ItemStack {
-                return GuiItemFactory.decoration(material)
-        }
+        private fun createDecorationItem(material: Material): GuiItemSpec =
+                GuiItemSpec(
+                        material = material,
+                        name = GuiNameSpec.Empty,
+                        lore = GuiLoreSpec.None,
+                        role = GuiElementRole.DECORATION,
+                        amount = 1,
+                )
+
+        private fun pageItemSpec(player: Player, previous: Boolean): GuiItemSpec =
+                GuiItemSpec(
+                        material = plugin.menuConfigManager.getIconMaterial(
+                                "world_settings",
+                                if (previous) "prev_page" else "next_page",
+                                Material.ARROW,
+                        ),
+                        name = GuiNameSpec.Text(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        if (previous) "gui.common.prev_page" else "gui.common.next_page",
+                                ),
+                                GuiNameStyle.DEFAULT,
+                        ),
+                        lore = GuiLoreSpec.None,
+                        role = GuiElementRole.NAVIGATION,
+                        amount = 1,
+                )
+
+        private fun returnItemSpec(player: Player): GuiItemSpec =
+                GuiItemSpec(
+                        material = plugin.menuConfigManager.getIconMaterial(
+                                "world_settings",
+                                "back",
+                                Material.REDSTONE,
+                        ),
+                        name = GuiNameSpec.Text(
+                                "§e§l${plugin.languageManager.getMessage(player, "gui.common.return")}",
+                                GuiNameStyle.DEFAULT,
+                        ),
+                        lore = GuiLoreSpec.None,
+                        role = GuiElementRole.BACK,
+                        amount = 1,
+                )
 
         fun editWorldInfo(player: Player, worldData: WorldData) {
                 plugin.worldSettingsInputService.editInfo(player, worldData)

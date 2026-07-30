@@ -70,9 +70,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         ACTION_SORT to MenuActionHandler(::sort),
                                         ACTION_CURRENT_WORLD to MenuActionHandler(::currentWorld),
                                         ACTION_WORLD to MenuActionHandler(::world),
-                                        ACTION_BACK to MenuActionHandler {
-                                                MenuActionResult.Success(MenuUpdate.Back)
-                                        },
+                                        ACTION_BACK to MenuActionHandler(::back),
                                 ),
                                 onClose = MenuCloseHandler(::closed),
                         ),
@@ -575,6 +573,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 ),
                         ),
                 )
+
+        private fun back(context: MenuActionContext): MenuActionResult {
+                return MenuActionResult.Success(MenuUpdate.Back)
+        }
 
         private fun createInfoEntry(
                 player: Player,

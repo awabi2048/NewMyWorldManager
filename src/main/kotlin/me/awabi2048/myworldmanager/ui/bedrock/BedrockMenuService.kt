@@ -4,6 +4,9 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
@@ -11,6 +14,7 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.GuiStructuredMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
@@ -29,7 +33,6 @@ import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
@@ -40,7 +43,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Instant
@@ -99,74 +101,61 @@ class BedrockMenuService(
     }
 
     private class RuntimeItemBuffer {
-        private val items = linkedMapOf<Int, ItemStack>()
-        private val actions = mutableMapOf<Int, RuntimeAction>()
+        private val items = linkedMapOf<Int, GuiItemSpec>()
+        private val elements = mutableMapOf<Int, MenuElement>()
 
-        fun setItem(slot: Int, item: ItemStack?) {
-            if (item == null || item.type == Material.AIR) {
+        fun setItem(slot: Int, item: GuiItemSpec?) {
+            if (item == null || item.material == Material.AIR) {
                 items.remove(slot)
-                actions.remove(slot)
+                elements.remove(slot)
             } else {
                 items[slot] = item
-                actions.remove(slot)
+                elements.remove(slot)
             }
         }
 
         fun setActionItem(
             slot: Int,
-            item: ItemStack,
+            item: GuiItemSpec,
             actionId: String,
             payload: Map<String, String> = emptyMap(),
             role: GuiElementRole = GuiElementRole.ACTION,
             acceptedClicks: Set<org.bukkit.event.inventory.ClickType> = MenuAcceptedClicks.LEFT_RIGHT,
         ) {
-            items[slot] = item
-            actions[slot] = RuntimeAction(actionId, payload, role, acceptedClicks)
-        }
-
-        fun setEntry(element: MenuElement) {
-            items[element.slot] = element.item
-            val interaction = element.resolvedInteraction()
-            if (interaction is com.awabi2048.ccsystem.api.gui.MenuInteraction.Action) {
-                actions[element.slot] = RuntimeAction(
-                    interaction.actionId,
-                    interaction.payload,
-                    element.role,
-                    interaction.acceptedClicks,
-                )
-            } else {
-                actions.remove(element.slot)
-            }
-        }
-
-        fun elements(): List<MenuElement> = items.map { (slot, item) ->
-            val action = actions[slot]
-            MenuElement(
-                slot = slot,
-                item = item,
-                role = action?.role ?: if (item.type.name.endsWith("_STAINED_GLASS_PANE")) {
-                    GuiElementRole.DECORATION
-                } else {
-                    GuiElementRole.CONTENT
-                },
-                actionId = action?.id,
-                actionPayload = action?.payload.orEmpty(),
-                interaction = action?.let {
-                    com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
-                        it.id,
-                        it.acceptedClicks,
-                        it.payload,
-                    )
-                },
+            items.remove(slot)
+            elements[slot] = CCSystem.getAPI().getGuiElementService().menuStructuredEntry(
+                null,
+                GuiStructuredMenuEntrySpec(
+                    slot = slot,
+                    item = item.copy(role = role),
+                    actions = listOf(
+                        GuiMenuEntryAction(
+                            actionId = actionId,
+                            acceptedClicks = acceptedClicks,
+                            label = itemName(item),
+                            payload = payload,
+                        ),
+                    ),
+                ),
             )
         }
 
-        private data class RuntimeAction(
-            val id: String,
-            val payload: Map<String, String>,
-            val role: GuiElementRole,
-            val acceptedClicks: Set<org.bukkit.event.inventory.ClickType>,
-        )
+        fun setEntry(element: MenuElement) {
+            items.remove(element.slot)
+            elements[element.slot] = element
+        }
+
+        fun elements(): List<MenuElement> = (items.keys + elements.keys).distinct().sorted().map { slot ->
+            elements[slot] ?: CCSystem.getAPI().getGuiElementService().menuDisplay(
+                GuiMenuDisplaySpec(slot, items.getValue(slot)),
+            )
+        }
+
+        private fun itemName(item: GuiItemSpec): String = when (val name = item.name) {
+            is GuiNameSpec.Text -> name.text
+            is GuiNameSpec.Component -> "操作"
+            GuiNameSpec.Empty -> error("Action item name must not be empty")
+        }
     }
 
     private data class FormAction(
@@ -446,12 +435,19 @@ class BedrockMenuService(
             if (capability == null) {
                 inventory.setEntry(createWorldListEntry(player, slot, worldData))
             } else {
-                inventory.setActionItem(
-                    slot,
-                    CCSystem.getAPI().getGuiElementService().menuCapability(player, capability),
-                    "capability_world",
-                    mapOf("world" to worldData.uuid.toString(), "capability" to capability.capabilityId),
-                    acceptedClicks = capability.acceptedClicks,
+                inventory.setEntry(
+                    CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
+                        player,
+                        GuiMenuCapabilitySpec(
+                            slot = slot,
+                            capability = capability,
+                            actionId = "capability_world",
+                            actionPayload = mapOf(
+                                "world" to worldData.uuid.toString(),
+                                "capability" to capability.capabilityId,
+                            ),
+                        ),
+                    ),
                 )
             }
         }
@@ -484,19 +480,17 @@ class BedrockMenuService(
                 )
             }
         if (creationCapability != null) {
-            val item = CCSystem.getAPI().getGuiElementService()
-                .menuCapability(player, creationCapability)
-            if (creationCapability.actionable) {
-                inventory.setActionItem(
-                    footerStart + 2,
-                    item,
-                    "capability_create",
-                    mapOf("capability" to creationCapability.capabilityId),
-                    acceptedClicks = creationCapability.acceptedClicks,
-                )
-            } else {
-                inventory.setItem(footerStart + 2, item)
-            }
+            inventory.setEntry(
+                CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
+                    player,
+                    GuiMenuCapabilitySpec(
+                        slot = footerStart + 2,
+                        capability = creationCapability,
+                        actionId = "capability_create",
+                        actionPayload = mapOf("capability" to creationCapability.capabilityId),
+                    ),
+                ),
+            )
         } else if (creationBlockReason == null) {
             inventory.setEntry(createCreationEntry(player, footerStart + 2))
         } else {
@@ -512,17 +506,16 @@ class BedrockMenuService(
                 )
             }
         if (summaryCapability != null) {
-            val statsItem = CCSystem.getAPI().getGuiElementService().menuCapability(player, summaryCapability)
-            if (summaryCapability.actionable) {
-                inventory.setActionItem(
-                    footerStart + 4,
-                    statsItem,
-                    "open_pending_interactions",
-                    acceptedClicks = summaryCapability.acceptedClicks,
-                )
-            } else {
-                inventory.setItem(footerStart + 4, statsItem)
-            }
+            inventory.setEntry(
+                CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
+                    player,
+                    GuiMenuCapabilitySpec(
+                        slot = footerStart + 4,
+                        capability = summaryCapability,
+                        actionId = "open_pending_interactions",
+                    ),
+                ),
+            )
         } else {
             inventory.setEntry(createStatsEntry(player, footerStart + 4, currentCreateCount, maxSlot, stats.worldPoint))
         }
@@ -1202,15 +1195,20 @@ class BedrockMenuService(
             ),
         )
 
-    private fun createCreationUnavailableButtonItem(player: Player, reason: CreationBlockReason): ItemStack {
-        val item = ItemStack(Material.BARRIER)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(plugin.languageManager.getComponent(player, reason.displayKey))
-        meta.lore(GuiItemFactory.menuLore(plugin.languageManager.getMessageList(player, reason.loreKey).map(GuiLoreLine::Text)))
-        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
-        item.itemMeta = meta
-        return item
-    }
+    private fun createCreationUnavailableButtonItem(
+        player: Player,
+        reason: CreationBlockReason,
+    ): GuiItemSpec =
+        GuiItemSpec(
+            material = Material.BARRIER,
+            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, reason.displayKey)),
+            lore = GuiLoreSpec.Rich(
+                plugin.languageManager.getMessageList(player, reason.loreKey).map(GuiLoreLine::Text),
+                com.awabi2048.ccsystem.api.gui.GuiLoreFrame.NONE,
+            ),
+            role = GuiElementRole.CONTENT,
+            amount = 1,
+        )
 
     private fun creationBlockReason(
         player: Player,
@@ -1347,19 +1345,14 @@ class BedrockMenuService(
         action: String,
         worldUuid: UUID? = null,
         lore: GuiLoreSpec = GuiLoreSpec.None
-    ): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-
-        meta.displayName(CCSystem.getAPI().getGuiElementService().name(displayName))
-
-        if (lore != GuiLoreSpec.None) {
-            meta.lore(CCSystem.getAPI().getLoreService().render(lore))
-        }
-
-        item.itemMeta = meta
-        return item
-    }
+    ): GuiItemSpec =
+        GuiItemSpec(
+            material = material,
+            name = GuiNameSpec.Text(displayName, GuiNameStyle.DEFAULT),
+            lore = lore,
+            role = GuiElementRole.ACTION,
+            amount = 1,
+        )
 
     private fun tr(player: Player, key: String, placeholders: Map<String, Any> = emptyMap()): String {
         return if (placeholders.isEmpty()) {
@@ -1386,14 +1379,14 @@ class BedrockMenuService(
         }
     }
 
-    private fun createDecorationItem(material: Material): ItemStack {
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(Component.empty())
-        meta.isHideTooltip = true
-        item.itemMeta = meta
-        return item
-    }
+    private fun createDecorationItem(material: Material): GuiItemSpec =
+        GuiItemSpec(
+            material = material,
+            name = GuiNameSpec.Empty,
+            lore = GuiLoreSpec.None,
+            role = GuiElementRole.DECORATION,
+            amount = 1,
+        )
 
     private fun playerWorldRoute(page: Int, showBackButton: Boolean): MenuRoute =
         MenuRoute(
