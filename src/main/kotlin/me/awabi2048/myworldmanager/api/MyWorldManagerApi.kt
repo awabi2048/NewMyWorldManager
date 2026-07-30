@@ -17,7 +17,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
 import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessContext
 import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessChallenge
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsPresentationPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsStatePolicy
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
@@ -90,8 +90,8 @@ object MyWorldManagerApi {
     private var worldTagService: ApiWorldTagService? = null
     private val worldCreationGuards = CopyOnWriteArrayList<WorldCreationGuard>()
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
-    private val worldSettingsPresentationPolicies =
-        CopyOnWriteArrayList<WorldSettingsPresentationPolicy>()
+    private val worldSettingsStatePolicies =
+        CopyOnWriteArrayList<WorldSettingsStatePolicy>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -106,21 +106,21 @@ object MyWorldManagerApi {
     private var bedrockFormService: ApiBedrockFormService? = null
 
     @JvmStatic
-    fun registerWorldSettingsPresentationPolicy(policy: WorldSettingsPresentationPolicy) {
-        worldSettingsPresentationPolicies.removeIf { it.getId() == policy.getId() }
-        worldSettingsPresentationPolicies.add(policy)
+    fun registerWorldSettingsStatePolicy(policy: WorldSettingsStatePolicy) {
+        worldSettingsStatePolicies.removeIf { it.getId() == policy.getId() }
+        worldSettingsStatePolicies.add(policy)
     }
 
     @JvmStatic
-    fun unregisterWorldSettingsPresentationPolicy(policy: WorldSettingsPresentationPolicy) {
-        worldSettingsPresentationPolicies.removeIf {
+    fun unregisterWorldSettingsStatePolicy(policy: WorldSettingsStatePolicy) {
+        worldSettingsStatePolicies.removeIf {
             it === policy || it.getId() == policy.getId()
         }
     }
 
     @JvmStatic
-    fun getWorldSettingsPresentationPolicies(): List<WorldSettingsPresentationPolicy> =
-        worldSettingsPresentationPolicies.toList()
+    fun getWorldSettingsStatePolicies(): List<WorldSettingsStatePolicy> =
+        worldSettingsStatePolicies.toList()
 
     @JvmStatic
     fun prepareWorldSettingsRoute(

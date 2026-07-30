@@ -31,8 +31,8 @@ import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsLayoutMode
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsPresentationContext
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsRestriction
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsStateContext
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsCapabilityPlacements
@@ -61,6 +61,13 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
+
+private enum class WorldSettingsDisplayMode {
+        DEFAULT,
+        COMPACT_LIMITED_OWNER,
+        READ_ONLY_DEFAULT,
+        READ_ONLY_COMPACT,
+}
 
 class WorldSettingsGui(private val plugin: MyWorldManager) {
         private val borderResetSpawnService = BorderResetSpawnService()
@@ -458,33 +465,48 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val isOwner = worldData.owner == player.uniqueId || currentSession?.isAdminFlow == true
                 val isModerator = worldData.moderators.contains(player.uniqueId)
                 val isMember = worldData.members.contains(player.uniqueId)
-                val presentationMode = MyWorldManagerApi.getWorldSettingsPresentationPolicies()
+                val restriction = MyWorldManagerApi.getWorldSettingsStatePolicies()
                         .firstNotNullOfOrNull { policy ->
-                                policy.evaluate(
-                                        WorldSettingsPresentationContext(
+                                policy.restriction(
+                                        WorldSettingsStateContext(
                                                 player,
                                                 worldData,
                                                 isOwner,
                                                 isModerator,
                                                 isMember,
                                         ),
-                                )?.layoutMode
-                        } ?: WorldSettingsLayoutMode.DEFAULT
+                                )
+                        }
+                val presentationMode = when (restriction) {
+                        WorldSettingsRestriction.SUBMISSION_LOCKED ->
+                                if (isOwner) {
+                                        WorldSettingsDisplayMode.COMPACT_LIMITED_OWNER
+                                } else {
+                                        WorldSettingsDisplayMode.READ_ONLY_COMPACT
+                                }
+                        WorldSettingsRestriction.IMPORTED_ARCHIVE ->
+                                if (isMember) {
+                                        WorldSettingsDisplayMode.READ_ONLY_COMPACT
+                                } else {
+                                        WorldSettingsDisplayMode.READ_ONLY_DEFAULT
+                                }
+                        null -> WorldSettingsDisplayMode.DEFAULT
+                }
                 val ownerActionsAllowed =
-                        isOwner && presentationMode == WorldSettingsLayoutMode.DEFAULT
+                        isOwner && presentationMode == WorldSettingsDisplayMode.DEFAULT
                 val hasManagePermission =
                         (isOwner || isModerator) &&
-                                presentationMode == WorldSettingsLayoutMode.DEFAULT
+                                presentationMode == WorldSettingsDisplayMode.DEFAULT
                 val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 val isMemberLayout = isMember && !hasManagePermission
                 val useModeratorCenteredLayout = isModerator && !isOwner
 
                 val inventorySize = when (presentationMode) {
-                        WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER,
-                        WorldSettingsLayoutMode.READ_ONLY_COMPACT -> 45
-                        WorldSettingsLayoutMode.READ_ONLY_DEFAULT -> 54
-                        WorldSettingsLayoutMode.DEFAULT -> if (isMemberLayout) 45 else 54
+                        WorldSettingsDisplayMode.COMPACT_LIMITED_OWNER,
+                        WorldSettingsDisplayMode.READ_ONLY_COMPACT -> 45
+                        WorldSettingsDisplayMode.READ_ONLY_DEFAULT -> 54
+                        WorldSettingsDisplayMode.DEFAULT -> if (isMemberLayout) 45 else 54
                 }
                 val bottomRowStartSlot = inventorySize - 9
                 // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定して、ツアー/Chanpon側と視線を揃える。
@@ -1431,7 +1453,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         player,
                         WorldSettingsCapabilityPlacements.PUBLISH_ACTION,
                         listOf(
-                                if (presentationMode == WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER) {
+                                if (presentationMode == WorldSettingsDisplayMode.COMPACT_LIMITED_OWNER) {
                                         21
                                 } else {
                                         24
@@ -1444,7 +1466,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         player,
                         WorldSettingsCapabilityPlacements.NOTIFICATION_ACTION,
                         listOf(
-                                if (presentationMode == WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER) {
+                                if (presentationMode == WorldSettingsDisplayMode.COMPACT_LIMITED_OWNER) {
                                         22
                                 } else {
                                         notificationSettingSlot
@@ -1478,7 +1500,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         player,
                         WorldSettingsCapabilityPlacements.FOOTER_LEFT_ACTIONS,
                         listOf(
-                                if (presentationMode == WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER) {
+                                if (presentationMode == WorldSettingsDisplayMode.COMPACT_LIMITED_OWNER) {
                                         23
                                 } else {
                                         bottomRowStartSlot + if (isOwner) 1 else 2
