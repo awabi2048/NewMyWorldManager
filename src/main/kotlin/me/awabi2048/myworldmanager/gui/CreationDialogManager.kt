@@ -22,7 +22,6 @@ import me.awabi2048.myworldmanager.session.WorldCreationSession
 import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.session.WorldSpawnCoordinates
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component

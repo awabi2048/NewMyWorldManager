@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
@@ -11,7 +12,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
+import me.awabi2048.myworldmanager.util.GuiSpecFactory
 
 class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
@@ -30,12 +31,10 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
                 GuiLoreFrame.BOTH,
             ),
         )
-        val confirmItem = ItemStack(Material.LIME_CONCRETE).apply {
-            editMeta { it.displayName(lang.getComponent(player, "gui.member_request_confirm.confirm")) }
-        }
-        val cancelItem = ItemStack(Material.RED_CONCRETE).apply {
-            editMeta { it.displayName(lang.getComponent(player, "gui.member_request_confirm.cancel")) }
-        }
+        val confirmLabel = lang.getMessage(player, "gui.member_request_confirm.confirm")
+        val cancelLabel = lang.getMessage(player, "gui.member_request_confirm.cancel")
+        val confirmItem = GuiSpecFactory.spec(Material.LIME_CONCRETE, confirmLabel, GuiLoreSpec.None, GuiElementRole.CONFIRM)
+        val cancelItem = GuiSpecFactory.spec(Material.RED_CONCRETE, cancelLabel, GuiLoreSpec.None, GuiElementRole.CANCEL)
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "member_request",
@@ -43,6 +42,8 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
             centerItem = worldItem,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
+            confirmActionText = confirmLabel,
+            cancelActionText = cancelLabel,
             onConfirm = {
                 plugin.memberRequestManager.sendRequest(player, worldData.uuid)
                 MenuActionResult.Success(MenuUpdate.Close)

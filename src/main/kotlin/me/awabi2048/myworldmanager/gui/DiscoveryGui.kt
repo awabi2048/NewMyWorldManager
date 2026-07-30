@@ -34,7 +34,6 @@ import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.NamedTextColor
@@ -651,69 +650,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 ),
                         ),
                 )
-
-        private fun createStatsItem(
-                player: Player,
-                sort: DiscoverySort,
-                tag: String?,
-                count: Int
-        ): ItemStack {
-                val lang = plugin.languageManager
-                val item = ItemStack(Material.BOOK)
-                val meta = item.itemMeta ?: return item
-
-                val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
-                val tagName = tag?.let { plugin.worldTagManager.getDisplayName(player, it) } ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
-                meta.displayName(lang.getComponent(player, "gui.discovery.stats.name"))
-                meta.lore(GuiItemFactory.menuLore(listOf(
-                        GuiLoreLine.Text(lang.getMessage(player, "gui.discovery.stats.desc")),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.sort_label"), sortName, "§b"),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.tag_label"), tagName, "§b"),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.count_label"), count, "§b")
-                )))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-                return item
-        }
-
-        private fun createNavButton(
-                player: Player,
-                label: String,
-                material: Material,
-                targetPage: Int
-        ): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(label)
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-                item.itemMeta = meta
-                ItemTag.setTargetPage(item, targetPage)
-                val lang = plugin.languageManager
-                val type =
-                        if (label == lang.getMessage(player, "gui.common.next_page"))
-                                ItemTag.TYPE_GUI_NAV_NEXT
-                        else ItemTag.TYPE_GUI_NAV_PREV
-                ItemTag.tagItem(item, type)
-                return item
-        }
-
-        private fun createReturnButton(player: Player): ItemStack {
-                val lang = plugin.languageManager
-                val item = ItemStack(Material.REDSTONE)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
-                        lang.getComponent(player, "gui.common.return")
-                                .color(NamedTextColor.YELLOW)
-                                .decorate(TextDecoration.BOLD)
-                )
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
-                return item
-        }
 
         companion object {
                 private const val OWNER = "myworldmanager"

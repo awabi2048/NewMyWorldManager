@@ -25,7 +25,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
@@ -273,35 +272,6 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
                 ),
             ),
         )
-
-    private fun createInfoItem(
-        player: Player,
-        query: String,
-        totalHit: Int,
-        shownCount: Int,
-        currentPage: Int,
-        totalPages: Int
-    ): ItemStack {
-        val lang = plugin.languageManager
-        val item = ItemStack(Material.BOOK)
-        val meta = item.itemMeta ?: return item
-
-        val lore = mutableListOf<GuiLoreLine>(
-            GuiLoreLine.Data(lang.getMessage(player, "gui.visitworld.info.query_label"), query, "§f"),
-            GuiLoreLine.Data(lang.getMessage(player, "gui.visitworld.info.hit_label"), totalHit, "§b"),
-            GuiLoreLine.Data(lang.getMessage(player, "gui.visitworld.info.shown_label"), shownCount, "§a")
-        )
-        if (totalPages > 1) {
-            lore += GuiLoreLine.Data(lang.getMessage(player, "gui.visitworld.info.page_label"), "$currentPage/$totalPages", "§a")
-        }
-
-        meta.displayName(lang.getComponent(player, "gui.visitworld.info.name").decoration(TextDecoration.ITALIC, false))
-        meta.lore(GuiItemFactory.menuLore(lore))
-
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        return item
-    }
 
     private fun createWorldEntry(viewer: Player, world: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager

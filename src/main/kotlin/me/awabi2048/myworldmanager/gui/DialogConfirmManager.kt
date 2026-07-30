@@ -2,8 +2,10 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Player
 
 /**
@@ -26,7 +28,7 @@ object DialogConfirmManager {
         player: Player,
         plugin: MyWorldManager,
         title: Component,
-        bodyLines: List<Component>,
+        bodyLines: List<String>,
         confirmText: String? = null,
         cancelText: String? = null,
         onConfirm: () -> MenuActionResult,
@@ -40,9 +42,12 @@ object DialogConfirmManager {
             player = player,
             menuId = "simple-confirmation",
             title = title,
-            bodyLines = bodyLines,
-            confirmLabel = Component.text(confirmLabel, NamedTextColor.GREEN),
-            cancelLabel = Component.text(cancelLabel, NamedTextColor.RED),
+            body = GuiLoreSpec.Rich(
+                bodyLines.map(GuiLoreLine::Text),
+                GuiLoreFrame.BOTH,
+            ),
+            confirmLabel = confirmLabel,
+            cancelLabel = cancelLabel,
             onConfirm = onConfirm,
             onCancel = onCancel,
         )

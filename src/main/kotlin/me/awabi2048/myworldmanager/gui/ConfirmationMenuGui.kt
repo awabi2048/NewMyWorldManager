@@ -1,6 +1,11 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuConfirmationDraft
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -10,7 +15,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
+import java.util.UUID
 
 class ConfirmationMenuGui(
     @Suppress("UNUSED_PARAMETER") plugin: MyWorldManager,
@@ -21,9 +26,12 @@ class ConfirmationMenuGui(
         player: Player,
         menuId: String,
         title: Component,
-        centerItem: ItemStack,
-        confirmItem: ItemStack,
-        cancelItem: ItemStack,
+        centerItem: GuiItemSpec,
+        confirmItem: GuiItemSpec,
+        cancelItem: GuiItemSpec,
+        confirmActionText: String,
+        cancelActionText: String,
+        previewPlayerHeadOwner: UUID? = null,
         onConfirm: () -> MenuActionResult,
         onCancel: () -> MenuActionResult = { MenuActionResult.Success(MenuUpdate.Back) },
         onAbandon: () -> Unit = {},
@@ -38,6 +46,9 @@ class ConfirmationMenuGui(
                 centerItem,
                 confirmItem,
                 cancelItem,
+                confirmActionText,
+                cancelActionText,
+                previewPlayerHeadOwner,
                 onConfirm,
                 onCancel,
                 onAbandon,
@@ -51,9 +62,12 @@ class ConfirmationMenuGui(
         player: Player,
         menuId: String,
         title: Component,
-        centerItem: ItemStack,
-        confirmItem: ItemStack,
-        cancelItem: ItemStack,
+        centerItem: GuiItemSpec,
+        confirmItem: GuiItemSpec,
+        cancelItem: GuiItemSpec,
+        confirmActionText: String,
+        cancelActionText: String,
+        previewPlayerHeadOwner: UUID? = null,
         onConfirm: () -> MenuActionResult,
         onCancel: () -> MenuActionResult = { MenuActionResult.Success(MenuUpdate.Back) },
         onAbandon: () -> Unit = {},
@@ -68,6 +82,9 @@ class ConfirmationMenuGui(
                 centerItem,
                 confirmItem,
                 cancelItem,
+                confirmActionText,
+                cancelActionText,
+                previewPlayerHeadOwner,
                 onConfirm,
                 onCancel,
                 onAbandon,
@@ -80,25 +97,34 @@ class ConfirmationMenuGui(
         player: Player,
         menuId: String,
         title: Component,
-        bodyLines: List<Component>,
-        confirmLabel: Component,
-        cancelLabel: Component,
+        body: GuiLoreSpec,
+        confirmLabel: String,
+        cancelLabel: String,
         onConfirm: () -> MenuActionResult,
         onCancel: () -> MenuActionResult = { MenuActionResult.Success(MenuUpdate.Back) },
         onAbandon: () -> Unit = {},
     ) {
-        val centerItem = ItemStack(Material.PAPER).apply {
-            editMeta {
-                it.displayName(title)
-                it.lore(bodyLines)
-            }
-        }
-        val confirmItem = ItemStack(Material.LIME_CONCRETE).apply {
-            editMeta { it.displayName(confirmLabel) }
-        }
-        val cancelItem = ItemStack(Material.RED_CONCRETE).apply {
-            editMeta { it.displayName(cancelLabel) }
-        }
+        val centerItem = GuiItemSpec(
+            Material.PAPER,
+            GuiNameSpec.Component(title),
+            body,
+            GuiElementRole.CONTENT,
+            1,
+        )
+        val confirmItem = GuiItemSpec(
+            Material.LIME_CONCRETE,
+            GuiNameSpec.Text(confirmLabel, GuiNameStyle.DEFAULT),
+            GuiLoreSpec.None,
+            GuiElementRole.CONFIRM,
+            1,
+        )
+        val cancelItem = GuiItemSpec(
+            Material.RED_CONCRETE,
+            GuiNameSpec.Text(cancelLabel, GuiNameStyle.DEFAULT),
+            GuiLoreSpec.None,
+            GuiElementRole.CANCEL,
+            1,
+        )
         open(
             player,
             menuId,
@@ -106,6 +132,9 @@ class ConfirmationMenuGui(
             centerItem,
             confirmItem,
             cancelItem,
+            confirmLabel,
+            cancelLabel,
+            null,
             onConfirm,
             onCancel,
             onAbandon,
@@ -115,9 +144,12 @@ class ConfirmationMenuGui(
     private fun draft(
         menuId: String,
         title: Component,
-        centerItem: ItemStack,
-        confirmItem: ItemStack,
-        cancelItem: ItemStack,
+        centerItem: GuiItemSpec,
+        confirmItem: GuiItemSpec,
+        cancelItem: GuiItemSpec,
+        confirmActionText: String,
+        cancelActionText: String,
+        previewPlayerHeadOwner: UUID?,
         onConfirm: () -> MenuActionResult,
         onCancel: () -> MenuActionResult,
         onAbandon: () -> Unit,
@@ -131,6 +163,9 @@ class ConfirmationMenuGui(
             previewItem = centerItem,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
+            confirmActionText = confirmActionText,
+            cancelActionText = cancelActionText,
+            previewPlayerHeadOwner = previewPlayerHeadOwner,
             onConfirm = onConfirm,
             onCancel = onCancel,
             onAbandon = onAbandon,

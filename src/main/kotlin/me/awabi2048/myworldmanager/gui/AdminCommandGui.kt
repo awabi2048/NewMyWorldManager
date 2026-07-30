@@ -27,7 +27,6 @@ import me.awabi2048.myworldmanager.api.extension.AdminMenuCapabilityPlacements
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
@@ -636,15 +635,6 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             ),
         ),
     )
-
-    private fun createItem(material: Material, name: String, lore: List<GuiLoreLine>, tagType: String): ItemStack {
-        return GuiItemFactory.item(
-            material,
-            name,
-            GuiLoreSpec.Rich(lore, GuiLoreFrame.BOTH),
-            tagType
-        )
-    }
 
     private fun createActionItem(
         player: Player,

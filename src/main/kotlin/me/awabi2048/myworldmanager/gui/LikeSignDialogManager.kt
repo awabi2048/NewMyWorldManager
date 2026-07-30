@@ -17,7 +17,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.LikeSignData
 import me.awabi2048.myworldmanager.model.LikeSignDisplayType
 import me.awabi2048.myworldmanager.service.LikeSignManager
-import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiSpecFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -345,26 +345,27 @@ class LikeSignDialogManager {
             unlikeSessions[player.uniqueId] = session
 
             val title = Component.text(lang.getMessage(player, "gui.like_sign.unlike_confirm.title"), NamedTextColor.RED)
-            val center = GuiItemFactory.item(
+            val confirmLabel = lang.getMessage(player, "gui.common.confirm")
+            val cancelLabel = lang.getMessage(player, "gui.common.cancel")
+            val center = GuiSpecFactory.spec(
                 org.bukkit.Material.RED_DYE,
                 lang.getMessage(player, "gui.like_sign.unlike_confirm.title"),
                 GuiLoreSpec.Rich(
                     listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.like_sign.unlike_confirm.description"))),
                     GuiLoreFrame.BOTH
                 ),
-                ItemTag.TYPE_GUI_INFO
             )
-            val confirmItem = GuiItemFactory.item(
+            val confirmItem = GuiSpecFactory.spec(
                 org.bukkit.Material.LIME_CONCRETE,
-                lang.getMessage(player, "gui.common.confirm"),
+                confirmLabel,
                 GuiLoreSpec.None,
-                ItemTag.TYPE_GUI_CONFIRM
+                com.awabi2048.ccsystem.api.gui.GuiElementRole.CONFIRM,
             )
-            val cancelItem = GuiItemFactory.item(
+            val cancelItem = GuiSpecFactory.spec(
                 org.bukkit.Material.RED_CONCRETE,
-                lang.getMessage(player, "gui.common.cancel"),
+                cancelLabel,
                 GuiLoreSpec.None,
-                ItemTag.TYPE_GUI_CANCEL
+                com.awabi2048.ccsystem.api.gui.GuiElementRole.CANCEL,
             )
 
             plugin.confirmationMenuGui.open(
@@ -374,6 +375,8 @@ class LikeSignDialogManager {
                 centerItem = center,
                 confirmItem = confirmItem,
                 cancelItem = cancelItem,
+                confirmActionText = confirmLabel,
+                cancelActionText = cancelLabel,
                 onConfirm = {
                     val session = unlikeSessions.remove(player.uniqueId) ?: return@open MenuActionResult.Rejected()
                     val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)

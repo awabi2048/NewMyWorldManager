@@ -33,7 +33,6 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.listener.CreationConfirmationAction
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
@@ -762,20 +761,6 @@ class CreationGui(private val plugin: MyWorldManager) {
                 CreationConfirmationCapabilityContract.DRAFT_ATTRIBUTE to SessionCreationDraft(session),
             ),
         )
-    }
-
-    private fun createBackButton(player: Player): ItemStack {
-        val lang = plugin.languageManager
-        return createItem(
-            plugin.menuConfigManager.getIconMaterial("creation", "back", Material.REDSTONE),
-            lang.getMessage(player, "gui.common.return"),
-            ItemTag.TYPE_GUI_BACK,
-            GuiLoreSpec.None
-        )
-    }
-
-    private fun createItem(material: Material, name: String, tag: String, lore: GuiLoreSpec): ItemStack {
-        return GuiItemFactory.item(material, name, lore, tag)
     }
 
     private fun displayEntry(

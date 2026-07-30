@@ -32,7 +32,6 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -614,15 +613,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        private fun createBlackPaneItem(): ItemStack {
-                return GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-        }
-
-        /** 背景用の灰色の板ガラスを作成 */
-        private fun createBackgroundItem(): ItemStack {
-                return GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        }
-
         private fun createAdminWorldEntry(
                 player: Player,
                 data: WorldData,
@@ -1043,28 +1033,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 return lang.getMessage(player, "gui.admin.world_item.archive_mode_manual")
         }
 
-        private fun createNavButton(
-                player: Player,
-                label: String,
-                material: Material,
-                currentPage: Int,
-                totalPages: Int,
-                isNext: Boolean
-        ): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
-                val lang = plugin.languageManager
-
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(label)
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-
-                item.itemMeta = meta
-                return item
-        }
-
         private fun createPageEntry(
                 player: Player,
                 slot: Int,
@@ -1168,30 +1136,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "gui.admin.world_item.mspt_error_with_reason", mapOf("reason" to reason)),
                         "§c"
                 )
-        }
-
-        private fun createInfoButton(totalCount: Int, current: Int, total: Int): ItemStack {
-                val item = ItemStack(Material.PAPER)
-                val meta = item.itemMeta ?: return item
-                val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
-                val lore = mutableListOf<GuiLoreLine>(
-                        GuiLoreLine.Data(lang.getMessage(null, "gui.admin.info.total_count_label"), totalCount, "§b"),
-                        GuiLoreLine.Data(lang.getMessage(null, "gui.admin.info.page_label"), "$current/$total", "§a")
-                )
-                if (me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
-                    val mspt = plugin.msptMonitorTask.currentServerMspt
-                    lore.add(GuiLoreLine.Data(
-                            lang.getMessage(null, "gui.admin.info.mspt_label"),
-                            "${me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColoredString(mspt)} ms",
-                            ""
-                    ))
-                }
-                meta.lore(GuiItemFactory.menuLore(lore))
-
-                item.itemMeta = meta
-                return item
         }
 
         /** アーカイブフィルターボタン */

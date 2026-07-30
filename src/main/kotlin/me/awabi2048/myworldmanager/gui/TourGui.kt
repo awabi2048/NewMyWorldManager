@@ -30,7 +30,6 @@ import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourWaypointData
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -909,17 +908,6 @@ class TourGui(private val plugin: MyWorldManager) {
         }, action, actionId, payload = mapOf("tour" to tour.uuid.toString()))
     }
 
-    private fun createLoreItem(
-        material: Material,
-        name: String,
-        lore: List<GuiLoreLine>,
-        type: String,
-        frame: GuiLoreFrame = GuiLoreFrame.TOP
-    ): ItemStack {
-        val spec = if (lore.isEmpty()) GuiLoreSpec.None else GuiLoreSpec.Rich(lore, frame)
-        return createItem(material, name, spec, type)
-    }
-
     private fun actionEntry(
         slot: Int,
         player: Player,
@@ -957,10 +945,6 @@ class TourGui(private val plugin: MyWorldManager) {
 
     private fun toneFor(colorCode: String): GuiValueTone =
         GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT
-
-    private fun createItem(material: Material, name: String, lore: GuiLoreSpec, type: String): ItemStack {
-        return GuiItemFactory.item(material, name, lore, type)
-    }
 
     private fun framedLore(lines: List<GuiLoreLine>): GuiLoreSpec {
         if (lines.isEmpty()) return GuiLoreSpec.None

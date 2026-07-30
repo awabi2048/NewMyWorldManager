@@ -24,7 +24,6 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
@@ -682,18 +681,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 ),
         )
 
-        private fun createCreationUnavailableButton(player: Player, reason: CreationBlockReason): ItemStack {
-                val lang = plugin.languageManager
-                val item = ItemStack(Material.BARRIER)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(lang.getComponent(player, reason.displayKey))
-                meta.lore(GuiItemFactory.menuLore(lang.getMessageList(player, reason.loreKey).map(GuiLoreLine::Text)))
-                meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-                return item
-        }
-
         private fun creationBlockReason(
                 player: Player,
                 currentCreateCount: Int,
@@ -843,82 +830,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 ),
                         ),
                 )
-
-        private fun createStatsButton(
-                player: Player,
-                targetPlayerUuid: UUID,
-                targetPlayerName: String?,
-                currentCreateCount: Int,
-                maxSlot: Int,
-                stats: PlayerStats
-        ): ItemStack {
-                val lang = plugin.languageManager
-                val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-                meta.owningPlayer = Bukkit.getOfflinePlayer(targetPlayerUuid)
-                val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-                val isOwnMenu = targetPlayerUuid == player.uniqueId
-                meta.displayName(
-                        lang.getComponent(
-                                player,
-                                "gui.player_world.stats_button.display",
-                                mapOf(
-                                        "player" to (
-                                                targetPlayerName
-                                                        ?: PlayerNameUtil.getNameOrDefault(targetPlayerUuid, lang.getMessage(player, "general.unknown"))
-                                                )
-                                )
-
-                        )
-                )
-
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                                val pointIcon = if (plugin.playerPlatformResolver.isBedrock(player)) "" else "🛖 "
-                                add(GuiLoreBlock(listOf(
-                                        GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.player_world.stats_button.points_label"),
-                                                "$pointIcon${stats.worldPoint}",
-                                                "§6"
-                                        ),
-                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.points_description"))
-                                )))
-                        }
-                        if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
-                                add(GuiLoreBlock(if (bypassLimits) {
-                                 listOf(
-                                        GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
-                                                currentCreateCount,
-                                                "§a§l"
-                                        ),
-                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_bypass_description"))
-                                )
-                        } else {
-                                listOf(
-                                        GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.player_world.stats_button.slots_label"),
-                                                "$currentCreateCount/$maxSlot",
-                                                "§a§l"
-                                        ),
-                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_description"))
-                                )
-                                }))
-                        } else {
-                                add(GuiLoreBlock(listOf(
-                                        GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
-                                                currentCreateCount,
-                                                "§a§l"
-                                        )
-                                )))
-                        }
-                })))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_PLAYER_STATS)
-                return item
-        }
 
         private fun createPendingEntry(player: Player, slot: Int): MenuElement {
                 val lang = plugin.languageManager

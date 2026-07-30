@@ -4,20 +4,22 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.meta.SkullMeta
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -58,21 +60,16 @@ object PendingInteractionItemFactory {
         ),
     )
 
-    fun createItem(
+    fun createDisplay(
         plugin: MyWorldManager,
         viewer: Player,
         subjectUuid: UUID,
         type: PendingDecisionManager.PendingType,
         worldName: String,
         createdAt: Long,
-        decisionId: UUID,
         actionMode: PendingInteractionActionMode,
-        itemTagType: String?,
-        showAction: Boolean = true,
-    ): ItemStack {
-        val item = CCSystem.getAPI().getGuiElementService().menuEntry(
-            viewer,
-            createSpec(
+    ): GuiMenuDisplaySpec {
+        val entry = createSpec(
                 plugin = plugin,
                 viewer = viewer,
                 slot = 0,
@@ -82,14 +79,24 @@ object PendingInteractionItemFactory {
                 createdAt = createdAt,
                 actionMode = actionMode,
                 actionId = "pending_interaction",
-                showAction = showAction,
+                showAction = false,
+            )
+        return GuiMenuDisplaySpec(
+            slot = 0,
+            item = GuiItemSpec(
+                entry.material,
+                entry.name,
+                GuiLoreSpec.Blocks(
+                    listOf(GuiLoreBlock(
+                        entry.data.map { GuiLoreLine.Data(it.label, it.value, it.tone.colorCode) },
+                    )),
+                ),
+                GuiElementRole.CONTENT,
+                entry.amount,
             ),
-        ).item
-        if (itemTagType != null) {
-            ItemTag.tagItem(item, itemTagType)
-            ItemTag.setString(item, "pending_decision_id", decisionId.toString())
-        }
-        return item
+            glint = entry.glint,
+            playerHeadOwner = entry.playerHeadOwner,
+        )
     }
 
     private fun createSpec(

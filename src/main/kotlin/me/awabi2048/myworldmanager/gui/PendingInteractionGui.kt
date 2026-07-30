@@ -23,7 +23,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
-import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiSpecFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.Component
@@ -152,17 +152,14 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val typeLabel = typeLabel(player, entry.type)
 
         val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
-        val center = PendingInteractionItemFactory.createItem(
+        val center = PendingInteractionItemFactory.createDisplay(
             plugin = plugin,
             viewer = player,
             subjectUuid = entry.actorUuid,
             type = entry.type,
             worldName = worldName,
             createdAt = entry.createdAt,
-            decisionId = decisionId,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_INFO,
-            showAction = false,
         )
 
         val confirmLabel = plugin.languageManager.getMessage(
@@ -175,26 +172,29 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         )
         val confirmAction = intendedAction ?: true
 
-        val confirmItem = GuiItemFactory.item(
+        val confirmItem = GuiSpecFactory.spec(
             org.bukkit.Material.LIME_CONCRETE,
             confirmLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CONFIRM
+            GuiElementRole.CONFIRM,
         )
-        val cancelItem = GuiItemFactory.item(
+        val cancelItem = GuiSpecFactory.spec(
             org.bukkit.Material.RED_CONCRETE,
             cancelLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CANCEL
+            GuiElementRole.CANCEL,
         )
 
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "pending_list",
             title = title,
-            centerItem = center,
+            centerItem = center.item,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
+            confirmActionText = confirmLabel,
+            cancelActionText = cancelLabel,
+            previewPlayerHeadOwner = center.playerHeadOwner,
             onConfirm = {
                 if (plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction)) {
                     MenuActionResult.Success(MenuUpdate.Back)
@@ -229,17 +229,14 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val typeLabel = typeLabel(player, entry.type)
 
         val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
-        val center = PendingInteractionItemFactory.createItem(
+        val center = PendingInteractionItemFactory.createDisplay(
             plugin = plugin,
             viewer = player,
             subjectUuid = entry.actorUuid,
             type = entry.type,
             worldName = worldName,
             createdAt = entry.createdAt,
-            decisionId = decisionId,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_INFO,
-            showAction = false,
         )
 
         val confirmLabel = plugin.languageManager.getMessage(
@@ -252,26 +249,29 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         )
         val confirmAction = intendedAction ?: true
 
-        val confirmItem = GuiItemFactory.item(
+        val confirmItem = GuiSpecFactory.spec(
             org.bukkit.Material.LIME_CONCRETE,
             confirmLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CONFIRM
+            GuiElementRole.CONFIRM,
         )
-        val cancelItem = GuiItemFactory.item(
+        val cancelItem = GuiSpecFactory.spec(
             org.bukkit.Material.RED_CONCRETE,
             cancelLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CANCEL
+            GuiElementRole.CANCEL,
         )
 
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "pending_list",
             title = title,
-            centerItem = center,
+            centerItem = center.item,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
+            confirmActionText = confirmLabel,
+            cancelActionText = cancelLabel,
+            previewPlayerHeadOwner = center.playerHeadOwner,
             onConfirm = {
                 if (plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction)) {
                     MenuActionResult.Success(MenuUpdate.Back)
@@ -405,41 +405,6 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             ),
         )
 
-    private fun createEmptyItem(player: Player): ItemStack {
-        val item = ItemStack(Material.BARRIER)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name"))
-        meta.lore(GuiItemFactory.menuLore(
-            plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
-        ))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        return item
-    }
-
-    private fun createInfoItem(player: Player, count: Int, page: Int, pages: Int): ItemStack {
-        return GuiItemFactory.item(
-            Material.BOOK,
-            plugin.languageManager.getMessage(player, "gui.pending_list.info.name"),
-            GuiLoreSpec.Rich(
-                listOf(
-                    GuiLoreLine.Data(
-                        plugin.languageManager.getMessage(player, "gui.pending_list.info.count_label"),
-                        count,
-                        "§e",
-                    ),
-                    GuiLoreLine.Data(
-                        plugin.languageManager.getMessage(player, "gui.pending_list.info.page_label"),
-                        "$page/$pages",
-                        "§e",
-                    ),
-                ),
-                GuiLoreFrame.BOTH,
-            ),
-            ItemTag.TYPE_GUI_INFO,
-        )
-    }
-
     private fun typeLabel(player: Player, type: PendingDecisionManager.PendingType): String {
         return when (type) {
             PendingDecisionManager.PendingType.WORLD_INVITE -> plugin.languageManager.getMessage(player, "gui.pending_list.type.world_invite")
@@ -454,10 +419,6 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.systemDefault())
             .format(Instant.ofEpochMilli(timestamp))
-    }
-
-    private fun createDecorationItem(material: Material): ItemStack {
-        return GuiItemFactory.decoration(material)
     }
 
     private fun route(page: Int, returnPage: Int, showBack: Boolean, fromBedrock: Boolean) =

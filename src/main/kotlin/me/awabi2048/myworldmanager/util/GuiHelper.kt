@@ -3,7 +3,10 @@ package me.awabi2048.myworldmanager.util
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiConfirmationLayout
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiPagedListLayout
 import com.awabi2048.ccsystem.api.gui.GuiSettingsLayout
 import com.awabi2048.ccsystem.api.gui.GuiThreeChoiceLayout
@@ -15,7 +18,6 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.ItemStack
 
 object GuiHelper {
         fun canGoBack(player: Player): Boolean =
@@ -65,32 +67,6 @@ object GuiHelper {
 
     fun threeChoiceLayout(): GuiThreeChoiceLayout = layoutService.threeChoice45()
 
-    /*
-     * MenuConfigManagerを使用してア イコンMaterialを取得し、アイテムを作成するヘルパーメソッド
-     */
-
-    fun createNextPageItem(plugin: MyWorldManager, player: Player, menuId: String, targetPage: Int): org.bukkit.inventory.ItemStack {
-        val material = plugin.menuConfigManager.getIconMaterial(menuId, "next_page", org.bukkit.Material.ARROW)
-        val name = plugin.languageManager.getMessage(player, "gui.common.next_page")
-        return createNavigationItem(player, material, name, targetPage, true)
-    }
-
-    fun createPrevPageItem(plugin: MyWorldManager, player: Player, menuId: String, targetPage: Int): org.bukkit.inventory.ItemStack {
-        val material = plugin.menuConfigManager.getIconMaterial(menuId, "prev_page", org.bukkit.Material.ARROW)
-        val name = plugin.languageManager.getMessage(player, "gui.common.prev_page")
-        return createNavigationItem(player, material, name, targetPage, false)
-    }
-
-    fun createReturnItem(plugin: MyWorldManager, player: Player, menuId: String): org.bukkit.inventory.ItemStack {
-        val material = plugin.menuConfigManager.getIconMaterial(menuId, "back", org.bukkit.Material.REDSTONE)
-        val item = org.bukkit.inventory.ItemStack(material)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(plugin.languageManager.getComponent(player, "gui.common.return").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW).decorate(net.kyori.adventure.text.format.TextDecoration.BOLD))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
-        return item
-    }
-
     fun handleReturnClick(plugin: MyWorldManager, player: Player) {
         if (CCSystem.getAPI().getMenuRuntimeService().back(player)) {
             return
@@ -107,60 +83,18 @@ object GuiHelper {
         player: Player,
         worldData: WorldData,
         lore: GuiLoreSpec,
-        attachWorldUuid: Boolean = true
-    ): org.bukkit.inventory.ItemStack {
-        return createContextWorldIconItemRendered(
-            plugin,
-            player,
-            worldData,
-            CCSystem.getAPI().getLoreService().render(lore),
-            attachWorldUuid
-        )
-    }
-
-    private fun createContextWorldIconItemRendered(
-        plugin: MyWorldManager,
-        player: Player,
-        worldData: WorldData,
-        renderedLore: List<Component>,
-        attachWorldUuid: Boolean
-    ): org.bukkit.inventory.ItemStack {
+    ): GuiItemSpec {
         val lang = plugin.languageManager
-        val item = org.bukkit.inventory.ItemStack(worldData.icon)
-        val meta = item.itemMeta ?: return item
-
         val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
-        meta.displayName(
-            lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))
-                .decoration(TextDecoration.ITALIC, false)
+        return GuiItemSpec(
+            worldData.icon,
+            GuiNameSpec.Component(
+                lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))
+                    .decoration(TextDecoration.ITALIC, false),
+            ),
+            lore,
+            GuiElementRole.CONTENT,
+            1,
         )
-        if (renderedLore.isNotEmpty()) {
-            meta.lore(renderedLore)
-        }
-
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        if (attachWorldUuid) {
-            ItemTag.setWorldUuid(item, worldData.uuid)
-        }
-        return item
-    }
-
-    private fun createNavigationItem(player: Player, material: org.bukkit.inventory.ItemStack, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
-        // Overload to accept ItemStack if needed, but below uses Material
-        return createNavigationItem(player, material.type, name, targetPage, isNext)
-    }
-
-    private fun createNavigationItem(player: Player, material: org.bukkit.Material, name: String, targetPage: Int, isNext: Boolean): org.bukkit.inventory.ItemStack {
-        val item = org.bukkit.inventory.ItemStack(material)
-        val meta = item.itemMeta ?: return item
-
-        meta.displayName(GuiItemFactory.legacy(name))
-
-        item.itemMeta = meta
-        ItemTag.setTargetPage(item, targetPage)
-        val type = if (isNext) ItemTag.TYPE_GUI_NAV_NEXT else ItemTag.TYPE_GUI_NAV_PREV
-        ItemTag.tagItem(item, type)
-        return item
     }
 }

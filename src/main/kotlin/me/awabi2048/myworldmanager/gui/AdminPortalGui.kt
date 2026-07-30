@@ -30,7 +30,6 @@ import me.awabi2048.myworldmanager.session.AdminGuiSession
 import me.awabi2048.myworldmanager.session.PortalSortType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Bukkit
@@ -288,31 +287,6 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 ),
             ),
         )
-
-    private fun createNavButton(player: Player, next: Boolean): ItemStack =
-        ItemStack(Material.ARROW).apply {
-            editMeta { it.displayName(GuiItemFactory.legacy(plugin.languageManager.getMessage(player, if (next) "gui.common.next_page" else "gui.common.prev_page"))) }
-        }
-
-    private fun createBackButton(player: Player): ItemStack =
-        ItemStack(Material.REDSTONE).apply {
-            editMeta { it.displayName(GuiItemFactory.legacy(plugin.languageManager.getMessage(player, "gui.common.back"))) }
-        }
-
-    private fun createInfoButton(player: Player, totalCount: Int, current: Int, total: Int): ItemStack =
-        ItemStack(Material.PAPER).apply {
-            editMeta { meta ->
-                meta.displayName(plugin.languageManager.getComponent(player, "gui.admin.info.display"))
-                meta.lore(
-                    GuiItemFactory.menuLore(
-                        listOf(
-                            GuiLoreLine.Data(plugin.languageManager.getMessage(player, "gui.admin.info.total_count_label"), totalCount, "§b"),
-                            GuiLoreLine.Data(plugin.languageManager.getMessage(player, "gui.admin.info.page_label"), "$current/$total", "§a"),
-                        ),
-                    ),
-                )
-            }
-        }
 
     private fun createSortEntry(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
         val lang = plugin.languageManager

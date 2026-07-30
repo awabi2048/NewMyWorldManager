@@ -6,6 +6,7 @@ package me.awabi2048.myworldmanager.listener
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
@@ -2754,8 +2755,8 @@ player.sendMessage(
                                         isGui = false
                                 )
                                 val title = Component.text(lang.getMessage(player, "gui.member_invite_accept_confirm.title"))
-                                val center = me.awabi2048.myworldmanager.util.GuiItemFactory.playerHead(
-                                        Bukkit.getOfflinePlayer(invite.senderUuid),
+                                val center = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
+                                        Material.PLAYER_HEAD,
                                         Component.text(senderName),
                                         GuiLoreSpec.Rich(
                                                 lang.getMessageList(
@@ -2765,19 +2766,20 @@ player.sendMessage(
                                                 ).map(GuiLoreLine::Text),
                                                 GuiLoreFrame.BOTH
                                         ),
-                                        me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_INFO
                                 )
-                                val confirmItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+                                val confirmLabel = lang.getMessage(player, "gui.member_invite_accept_confirm.confirm")
+                                val cancelLabel = lang.getMessage(player, "gui.member_invite_accept_confirm.cancel")
+                                val confirmItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                                         Material.LIME_CONCRETE,
-                                        lang.getMessage(player, "gui.member_invite_accept_confirm.confirm"),
+                                        confirmLabel,
                                         GuiLoreSpec.None,
-                                        me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CONFIRM
+                                        GuiElementRole.CONFIRM,
                                 )
-                                val cancelItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+                                val cancelItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                                         Material.RED_CONCRETE,
-                                        lang.getMessage(player, "gui.member_invite_accept_confirm.cancel"),
+                                        cancelLabel,
                                         GuiLoreSpec.None,
-                                        me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CANCEL
+                                        GuiElementRole.CANCEL,
                                 )
                                 plugin.confirmationMenuGui.open(
                                         player = player,
@@ -2786,6 +2788,9 @@ player.sendMessage(
                                         centerItem = center,
                                         confirmItem = confirmItem,
                                         cancelItem = cancelItem,
+                                        confirmActionText = confirmLabel,
+                                        cancelActionText = cancelLabel,
+                                        previewPlayerHeadOwner = invite.senderUuid,
                                         onConfirm = {
                                                 plugin.memberInviteManager.handleMemberInviteAccept(player, invite.id)
                                                 MenuActionResult.Success(MenuUpdate.Close)
@@ -2992,7 +2997,7 @@ player.sendMessage(
                 "biome" -> Material.GRASS_BLOCK
                 else -> Material.PAPER
             }
-            val centerItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+            val centerItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                 centerMaterial,
                 title,
                 GuiLoreSpec.Rich(
@@ -3004,19 +3009,20 @@ player.sendMessage(
                     },
                     GuiLoreFrame.BOTH
                 ),
-                me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_INFO
             )
-            val confirmItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+            val confirmLabel = lang.getMessage(player, "gui.common.confirm")
+            val cancelLabel = lang.getMessage(player, "gui.common.cancel")
+            val confirmItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                 Material.LIME_CONCRETE,
-                lang.getMessage(player, "gui.common.confirm"),
+                confirmLabel,
                 GuiLoreSpec.None,
-                me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CONFIRM
+                GuiElementRole.CONFIRM,
             )
-            val cancelItem = me.awabi2048.myworldmanager.util.GuiItemFactory.item(
+            val cancelItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                 Material.RED_CONCRETE,
-                lang.getMessage(player, "gui.common.cancel"),
+                cancelLabel,
                 GuiLoreSpec.None,
-                me.awabi2048.myworldmanager.util.ItemTag.TYPE_GUI_CANCEL
+                GuiElementRole.CANCEL,
             )
 
             plugin.confirmationMenuGui.open(
@@ -3026,6 +3032,8 @@ player.sendMessage(
                 centerItem = centerItem,
                 confirmItem = confirmItem,
                 cancelItem = cancelItem,
+                confirmActionText = confirmLabel,
+                cancelActionText = cancelLabel,
                 onConfirm = {
                     val session = plugin.settingsSessionManager.getSession(player)
                         ?: return@open MenuActionResult.Rejected()
@@ -3379,8 +3387,6 @@ player.sendMessage(
                                 worldData,
                                 worldDataResetTarget(worldData)
                         )?.let(bodyTextLines::addAll)
-                        val bodyLines = bodyTextLines
-                                .map { LegacyComponentSerializer.legacySection().deserialize(it) }
                         plugin.settingsSessionManager.updateSessionAction(
                                 player,
                                 worldData.uuid,
@@ -3391,7 +3397,7 @@ player.sendMessage(
                                 player,
                                 plugin,
                                 title,
-                                bodyLines,
+                                bodyTextLines,
                                 plugin.languageManager.getMessage(player, "gui.common.confirm"),
                                 plugin.languageManager.getMessage(player, "gui.common.cancel"),
                                 onConfirm = {
