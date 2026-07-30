@@ -7,6 +7,12 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
@@ -228,9 +234,9 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 // フィルターボタン
-                inventory.setAction(46, createArchiveFilterButton(player, session), GuiElementRole.ACTION, ACTION_ARCHIVE_FILTER)
-                inventory.setAction(47, createPublishFilterButton(player, session), GuiElementRole.ACTION, ACTION_PUBLISH_FILTER)
-                inventory.setAction(48, createPlayerFilterButton(player, session), GuiElementRole.ACTION, ACTION_PLAYER_FILTER)
+                inventory.setEntry(createArchiveFilterButton(player, session, 46))
+                inventory.setEntry(createPublishFilterButton(player, session, 47))
+                inventory.setEntry(createPlayerFilterButton(player, session, 48))
 
                 // 統計情報ボタン
                 inventory.setItem(
@@ -242,7 +248,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 inventory.setItem(50, blackPane)
 
                 // ソートボタン
-                inventory.setAction(51, createSortButton(player, session), GuiElementRole.ACTION, ACTION_SORT)
+                inventory.setEntry(createSortButton(player, session, 51))
 
                 // 装飾
                 if (GuiHelper.canGoBack(player)) {
@@ -486,6 +492,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                 fun setBack(slot: Int, item: ItemStack) {
                         items[slot] = item
                         interactions[slot] = GuiElementRole.BACK to MenuInteraction.Back()
+                }
+
+                fun setEntry(element: MenuElement) {
+                        items[element.slot] = element.item
+                        interactions[element.slot] = element.role to element.resolvedInteraction()
                 }
 
                 fun getItem(slot: Int): ItemStack? = items[slot]
@@ -1215,122 +1226,113 @@ class WorldGui(private val plugin: MyWorldManager) {
         }
 
         /** アーカイブフィルターボタン */
-        private fun createArchiveFilterButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.CHEST)
-                val meta = item.itemMeta ?: return item
+        private fun createArchiveFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.filter.archive.display"))
-
                 val options = ArchiveFilter.values().map { filter ->
                         filter to lang.getMessage(player, filter.displayKey)
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.CHEST,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.archive.display")),
+                                GuiElementRole.ACTION,
+                                data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.archive.label"),
                                         options.first { it.first == session.archiveFilter }.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (filter, displayName) ->
-                                        val selected = filter == session.archiveFilter
-                                        add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-                item.itemMeta = meta
-                return item
+                                        GuiValueTone.PRIMARY,
+                                )),
+                                options = options.map { (filter, name) ->
+                                        GuiMenuEntryOption(name, filter == session.archiveFilter)
+                                },
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_ARCHIVE_FILTER,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                )),
+                        ),
+                )
         }
 
         /** 公開レベルフィルターボタン */
-        private fun createPublishFilterButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.ENDER_EYE)
-                val meta = item.itemMeta ?: return item
+        private fun createPublishFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.filter.publish.display"))
-
                 val options = PublishFilter.values().map { filter ->
                         filter to lang.getMessage(player, filter.displayKey)
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.ENDER_EYE,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.publish.display")),
+                                GuiElementRole.ACTION,
+                                data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.publish.label"),
                                         options.first { it.first == session.publishFilter }.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (filter, displayName) ->
-                                        val selected = filter == session.publishFilter
-                                        add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-                item.itemMeta = meta
-                return item
+                                        GuiValueTone.PRIMARY,
+                                )),
+                                options = options.map { (filter, name) ->
+                                        GuiMenuEntryOption(name, filter == session.publishFilter)
+                                },
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_PUBLISH_FILTER,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                )),
+                        ),
+                )
         }
 
         /** プレイヤーフィルターボタン */
-        private fun createPlayerFilterButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta ?: return item
+        private fun createPlayerFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.filter.player.display"))
-
-                val information = mutableListOf<GuiLoreLine>()
-
-                // 現在の設定
-                val filterTypeName = lang.getMessage(player, session.playerFilterType.displayKey)
-                information.add(GuiLoreLine.Data(
-                        lang.getMessage(player, "gui.admin.filter.player.current_type"),
-                        filterTypeName,
-                        "§f"
-                ))
-
-                if (session.playerFilter != null) {
-                        val targetName = PlayerNameUtil.getNameOrDefault(session.playerFilter!!, "Unknown")
-
-                        information.add(GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.admin.filter.player.current_player"),
-                                targetName,
-                                "§b"
-                        ))
-                }
-
                 val actions = buildList {
-                        add(GuiLoreLine.Action(
-                                lang.getMessage(player, "gui.settings.click.left"),
-                                lang.getMessage(player, "gui.admin.filter.player.click_left")
+                        add(GuiMenuEntryAction(
+                                ACTION_PLAYER_FILTER,
+                                MenuAcceptedClicks.LEFT,
+                                lang.getMessage(player, "gui.admin.filter.player.click_left"),
                         ))
                         if (session.playerFilterType != PlayerFilterType.NONE) {
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.admin.filter.player.click_right")
+                                add(GuiMenuEntryAction(
+                                        ACTION_PLAYER_FILTER,
+                                        MenuAcceptedClicks.RIGHT,
+                                        lang.getMessage(player, "gui.admin.filter.player.click_right"),
                                 ))
                         }
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                        GuiLoreBlock(information),
-                        GuiLoreBlock(actions)
-                ))))
-                item.itemMeta = meta
-                return item
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.PLAYER_HEAD,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.player.display")),
+                                GuiElementRole.ACTION,
+                                data = buildList {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.admin.filter.player.current_type"),
+                                                lang.getMessage(player, session.playerFilterType.displayKey),
+                                        ))
+                                        session.playerFilter?.let {
+                                                add(GuiMenuEntryData(
+                                                        lang.getMessage(player, "gui.admin.filter.player.current_player"),
+                                                        PlayerNameUtil.getNameOrDefault(it, "Unknown"),
+                                                        GuiValueTone.INFO,
+                                                ))
+                                        }
+                                },
+                                options = PlayerFilterType.values().map {
+                                        GuiMenuEntryOption(
+                                                lang.getMessage(player, it.displayKey),
+                                                it == session.playerFilterType,
+                                        )
+                                },
+                                actions = actions,
+                        ),
+                )
         }
 
         /** ソートボタン */
-        private fun createSortButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.HOPPER)
-                val meta = item.itemMeta ?: return item
+        private fun createSortButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.sort.display"))
 
                 var sortTypes = AdminSortType.values()
                 if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
@@ -1341,24 +1343,27 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val options = sortTypes.map { sortType ->
                         sortType to lang.getMessage(player, sortType.displayKey)
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.HOPPER,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.sort.display")),
+                                GuiElementRole.ACTION,
+                                data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.sort.label"),
                                         options.first { it.first == session.sortBy }.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (sortType, displayName) ->
-                                        val selected = sortType == session.sortBy
-                                        add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-                item.itemMeta = meta
-                return item
+                                        GuiValueTone.PRIMARY,
+                                )),
+                                options = options.map { (type, name) ->
+                                        GuiMenuEntryOption(name, type == session.sortBy)
+                                },
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_SORT,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                )),
+                        ),
+                )
         }
 
 }
