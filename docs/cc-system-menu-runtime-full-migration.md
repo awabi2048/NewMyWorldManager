@@ -8,7 +8,46 @@
 - 再開時は、最初に本書、ワークスペースの `AGENTS.md`、`.docs/specs/ui/cross-system-ui-design.md` を読む。
 - 実装中に判明した追加対象は、コード変更より先に「対象台帳」へ追加する。
 
-最終更新日: 2026-07-25
+最終更新日: 2026-07-30
+
+## 第2段階: 画面所有権とプラグイン境界の分離
+
+第1段階で完了した「CC-System Runtimeへの接続」は、画面所有権の分離完了を意味しない。
+以後は次を正規境界とする。
+
+- CC-Systemは全プロジェクト共通のUI Runtimeだけを所有する。
+- MWMとMWM-Chanponは、それぞれ自分のRuntime Route、Presenter、Draftだけを所有する。
+- 他プラグイン画面のProvider置換、スロット差し込み、ItemStack/Loreの後付け変更、相手の画面セッション直接操作を禁止する。
+- 連携は公開Capability、Command、Eventを使用し、画面間は`MenuRoute`で遷移する。
+- 他プラグイン機能の発見にはCC-Systemの一般Capability Registryを使用する。外部機能はスロットを指定せず、ホスト画面が自身のレイアウト規則で配置する。
+- 画面はInventoryスナップショットではなく、Route payload、ページ、フィルタ、対象ID、最新のドメイン状態から再生成する。
+- 一時編集状態だけを画面所有者の専用Draftとして保持する。
+- Java Inventory、Java Dialog、Bedrock Formは同じユースケースとAction Handlerを異なるPresenterで表示する。
+
+依存方向:
+
+- 各UIからCC-System Runtime
+- 各UIから自ドメイン
+- 各UIから公開Capability
+
+禁止する依存:
+
+- Chanpon UIからMWM GUIまたはMWM画面セッション
+- ChanponからMWM画面のスロット変更
+- MWMからChanpon具体クラス
+- CC-SystemからMWMまたはChanponのドメイン型
+
+現在のProvider/Extension移行済み判定は、第1段階のRuntime接続完了として保持する。
+第2段階ではProvider置換と`MenuExtension`が残る限り未完了とする。
+
+最初の縦断移行対象は「ワールド提出」とする。
+
+1. CC-Systemへ一般Capability Registryを追加する。
+2. MWMはCapabilityを発見し、自身のレイアウト規則で入口を配置する。
+3. Chanponは提出専用Routeを所有し、未提出だけを左クリック限定Actionとして公開する。
+4. 提出済み、完了済み、状態エラーは描画時点でDisplayOnlyとする。
+5. `ProductionToggleExtension`のワールド設定差し込みとBooleanクリック処理を削除する。
+6. 以後、バックアップ、ツール権限、ポータル連携、本番用設定を同じ境界へ移行する。
 
 ## 現在の基準コミット
 

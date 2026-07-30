@@ -14,6 +14,7 @@ import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
@@ -21,6 +22,7 @@ import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.time.Instant
 import java.time.ZoneId
@@ -194,6 +196,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 ),
                                                         )
                                                 },
+                                        ACTION_CAPABILITY to
+                                                MenuActionHandler(::handleCapability),
                                 ),
                                 onClose = { context ->
                                         plugin.worldSettingsListener.onRuntimeInventoryClose(
@@ -226,6 +230,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         private class RuntimeItemBuffer(val size: Int) {
                 private val items = arrayOfNulls<ItemStack>(size)
+                private val semanticInteractions = mutableMapOf<Int, MenuInteraction>()
 
                 val contents: Array<ItemStack?>
                         get() = items.copyOf()
@@ -233,12 +238,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 fun setItem(slot: Int, item: ItemStack?) {
                         require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
                         items[slot] = item
+                        semanticInteractions.remove(slot)
+                }
+
+                fun setSemanticItem(slot: Int, item: ItemStack, interaction: MenuInteraction) {
+                        require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
+                        items[slot] = item
+                        semanticInteractions[slot] = interaction
                 }
 
                 fun getItem(slot: Int): ItemStack? = items.getOrNull(slot)
 
                 fun clear() {
                         items.fill(null)
+                        semanticInteractions.clear()
                 }
 
                 fun applyStandardFrame() {
@@ -272,11 +285,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ItemTag.TYPE_GUI_DECORATION -> GuiElementRole.DECORATION
                                         else -> if (action == null) GuiElementRole.CONTENT else GuiElementRole.ACTION
                                 }
-                                MenuElement(
+                                 MenuElement(
                                         slot = slot,
                                         item = item,
                                         role = role,
-                                        interaction = when {
+                                        interaction = semanticInteractions[slot] ?: when {
                                                 role == GuiElementRole.BACK -> MenuInteraction.Back()
                                                 action == null -> MenuInteraction.DisplayOnly
                                                 else -> MenuInteraction.Action(
@@ -1280,8 +1293,47 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 )
                         )
                 )
+                applyCapability(
+                        inventory,
+                        player,
+                        WORLD_SETTINGS_PRODUCTION_CAPABILITY,
+                        WORLD_SETTINGS_PRODUCTION_SLOT,
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
 
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldData.uuid, replaceCurrent)
+        }
+
+        private fun applyCapability(
+                inventory: RuntimeItemBuffer,
+                player: Player,
+                capabilityId: String,
+                slot: Int,
+                arguments: Map<String, String>,
+        ) {
+                val resolved = CCSystem.getAPI().getMenuCapabilityService()
+                        .resolve(capabilityId, player, arguments)
+                        ?: return
+                val interaction = resolved.targetRoute?.let {
+                        MenuInteraction.Action(
+                                actionId = ACTION_CAPABILITY,
+                                acceptedClicks = resolved.acceptedClicks,
+                                payload = arguments + (CAPABILITY_ID_PAYLOAD to capabilityId),
+                        )
+                } ?: MenuInteraction.DisplayOnly
+                inventory.setSemanticItem(slot, resolved.item, interaction)
+        }
+
+        private fun handleCapability(context: MenuActionContext): MenuActionResult {
+                val capabilityId = context.payload[CAPABILITY_ID_PAYLOAD]
+                        ?: return MenuActionResult.Ignored
+                val arguments = context.payload - CAPABILITY_ID_PAYLOAD
+                val resolved = CCSystem.getAPI().getMenuCapabilityService()
+                        .resolve(capabilityId, context.player, arguments)
+                        ?: return MenuActionResult.Ignored
+                val target = resolved.targetRoute ?: return MenuActionResult.Ignored
+                if (context.click !in resolved.acceptedClicks) return MenuActionResult.Ignored
+                return MenuActionResult.Success(MenuUpdate.Navigate(target))
         }
 
         fun openArchiveConfirmation(
@@ -3370,6 +3422,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val RUNTIME_SELECTION_ROUTE = "world_settings_runtime_icon_selection"
                 const val RUNTIME_MEMBER_MANAGEMENT_ROUTE = "member_management"
                 const val ACTION_RUNTIME_DISPATCH = "dispatch"
+                const val ACTION_CAPABILITY = "capability"
+                private const val CAPABILITY_ID_PAYLOAD = "capability"
+                private const val WORLD_UUID_ARGUMENT = "world_uuid"
+                private const val WORLD_SETTINGS_PRODUCTION_SLOT = 51
+                private const val WORLD_SETTINGS_PRODUCTION_CAPABILITY =
+                        "mwm-chanpon:world-production-submission"
                 const val ROUTE_WORLD_UUID = "world_uuid"
                 const val ROUTE_PAGE = "page"
         }
