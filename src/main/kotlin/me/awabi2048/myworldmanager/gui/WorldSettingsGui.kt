@@ -439,6 +439,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
+                val targetRoute = route(worldData.uuid)
+                if (replaceCurrent) {
+                        runtime.replace(player, targetRoute)
+                } else {
+                        runtime.navigate(player, targetRoute)
+                }
+        }
+
+        private fun renderWorldSettings(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
                 val title =
                         GuiHelper.inventoryTitle(
                                 lang.getComponent(
@@ -1488,7 +1501,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
 
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldData.uuid, replaceCurrent)
+                return InventoryMenuView(
+                        size = inventory.size,
+                        title = title,
+                        elements = inventory.elements(),
+                        standardFrame = false,
+                        playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
+                )
         }
 
         private fun applyCapabilities(
@@ -3623,7 +3642,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         when (screen) {
                                 WorldSettingsRuntimeScreen.WORLD_SETTINGS,
                                 WorldSettingsRuntimeScreen.ICON_SELECTION ->
-                                        open(player, worldData)
+                                        runtimeRenderCapture.set(renderWorldSettings(player, worldData))
                                 WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT ->
                                         runtimeRenderCapture.set(
                                                 renderMemberManagement(
