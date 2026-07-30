@@ -17,7 +17,8 @@ import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContext
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -169,34 +170,64 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val layout = pageLayout.layout
                 val stats = plugin.playerStatsRepository.findByUuid(targetUuid)
                 val isOwnMenu = targetUuid == player.uniqueId
-                val capabilityContext =
-                        PlayerWorldCapabilityContext(
+                val capabilitySubject =
+                        PlayerWorldCapabilitySubject(
                                 player,
                                 targetUuid,
                                 targetName,
                                 worlds,
                                 showBackButton(route),
+                                route,
                         )
-                val capability = MyWorldManagerApi.getPlayerWorldCapabilities().firstOrNull()
+                val capabilityService = CCSystem.getAPI().getMenuCapabilityService()
                 val elements = mutableListOf<MenuElement>()
                 worlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, world ->
+                        val attributes = playerWorldCapabilityAttributes(capabilitySubject, world)
+                        val capability = capabilityService
+                                .definitions(PlayerWorldCapabilityContract.WORLD_ITEM_PLACEMENT)
+                                .firstNotNullOfOrNull { definition ->
+                                        capabilityService.resolve(
+                                                definition.capabilityId,
+                                                player,
+                                                attributes = attributes,
+                                        )
+                                }
                         elements += MenuElement(
                                 layout.itemSlots[index],
-                                capability?.renderWorldItem(capabilityContext, world)
-                                        ?.let {
-                                                CCSystem.getAPI().getGuiElementService()
-                                                        .menuCapability(it)
-                                        }
+                                capability?.let {
+                                        CCSystem.getAPI().getGuiElementService()
+                                                .menuCapability(it.presentation)
+                                }
                                         ?: createWorldItem(player, world, targetUuid),
                                 GuiElementRole.ACTION,
                                 ACTION_WORLD,
-                                mapOf(WORLD_UUID to world.uuid.toString()),
+                                buildMap {
+                                        put(WORLD_UUID, world.uuid.toString())
+                                        capability?.let { put(CAPABILITY_ID, it.capabilityId) }
+                                },
+                                interaction = com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
+                                        ACTION_WORLD,
+                                        capability?.acceptedClicks
+                                                ?: com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks.LEFT_RIGHT,
+                                        buildMap {
+                                                put(WORLD_UUID, world.uuid.toString())
+                                                capability?.let { put(CAPABILITY_ID, it.capabilityId) }
+                                        },
+                                ),
                         )
                 }
                 val createCount = worlds.count { it.owner == targetUuid }
                 val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
                 if (isOwnMenu) {
-                        val capabilityView = capability?.renderCreationItem(capabilityContext)
+                        val capabilityView = capabilityService
+                                .definitions(PlayerWorldCapabilityContract.CREATION_PLACEMENT)
+                                .firstNotNullOfOrNull { definition ->
+                                        capabilityService.resolve(
+                                                definition.capabilityId,
+                                                player,
+                                                attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                                        )
+                                }
                         if (capabilityView != null) {
                                 elements += MenuElement(
                                         layout.actionSlot - 2,
@@ -207,7 +238,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         } else {
                                                 GuiElementRole.CONTENT
                                         },
-                                        if (capabilityView.actionable) ACTION_CREATE else null,
+                                        interaction = if (capabilityView.actionable) {
+                                                com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
+                                                        ACTION_CREATE,
+                                                        capabilityView.acceptedClicks,
+                                                        mapOf(CAPABILITY_ID to capabilityView.capabilityId),
+                                                )
+                                        } else {
+                                                com.awabi2048.ccsystem.api.gui.MenuInteraction.DisplayOnly
+                                        },
                                 )
                         } else {
                                 val reason = creationBlockReason(
@@ -234,10 +273,18 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
                 elements += MenuElement(
                         layout.actionSlot,
-                        capability?.renderSummaryItem(capabilityContext)
+                        capabilityService
+                                .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
+                                .firstNotNullOfOrNull { definition ->
+                                        capabilityService.resolve(
+                                                definition.capabilityId,
+                                                player,
+                                                attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                                        )
+                                }
                                 ?.let {
                                         CCSystem.getAPI().getGuiElementService()
-                                                .menuCapability(it)
+                                                .menuCapability(it.presentation)
                                 }
                                 ?: createStatsButton(player, targetUuid, targetName, createCount, maxSlot, stats),
                         GuiElementRole.CONTENT,
@@ -321,10 +368,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun create(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
-                val capabilityContext = playerWorldCapabilityContext(context.player, context.route)
-                MyWorldManagerApi.getPlayerWorldCapabilities().firstNotNullOfOrNull { capability ->
-                        capability.handleCreate(capabilityContext, context.click, context.route)
-                }?.let { return it }
+                context.payload[CAPABILITY_ID]?.let { capabilityId ->
+                        return CCSystem.getAPI().getMenuCapabilityService().execute(
+                                capabilityId,
+                                context.player,
+                                context.click,
+                                attributes = playerWorldCapabilityAttributes(
+                                        playerWorldCapabilitySubject(context.player, context.route),
+                                ),
+                        )
+                }
                 if (!WorldCreationChecks.checkSelfCreatePermission(context.player)) {
                         return MenuActionResult.Rejected()
                 }
@@ -360,10 +413,17 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         ?: return MenuActionResult.Rejected()
                 val worldData = plugin.worldConfigRepository.findByUuid(uuid)
                         ?: return MenuActionResult.Rejected()
-                val capabilityContext = playerWorldCapabilityContext(context.player, context.route)
-                MyWorldManagerApi.getPlayerWorldCapabilities().firstNotNullOfOrNull { capability ->
-                        capability.handleWorld(capabilityContext, context.click, worldData)
-                }?.let { return it }
+                context.payload[CAPABILITY_ID]?.let { capabilityId ->
+                        return CCSystem.getAPI().getMenuCapabilityService().execute(
+                                capabilityId,
+                                context.player,
+                                context.click,
+                                attributes = playerWorldCapabilityAttributes(
+                                        playerWorldCapabilitySubject(context.player, context.route),
+                                        worldData,
+                                ),
+                        )
+                }
                 val ownMenu = targetUuid(context.route) == context.player.uniqueId
                 return when {
                         ownMenu && context.click.isShiftClick && context.click.isLeftClick ->
@@ -485,16 +545,27 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         private fun showBackButton(route: MenuRoute): Boolean =
                 route.payload[SHOW_BACK]?.toBooleanStrictOrNull() ?: false
 
-        private fun playerWorldCapabilityContext(
+        private fun playerWorldCapabilitySubject(
                 player: Player,
                 route: MenuRoute,
-        ): PlayerWorldCapabilityContext = PlayerWorldCapabilityContext(
+        ): PlayerWorldCapabilitySubject = PlayerWorldCapabilitySubject(
                 player,
                 targetUuid(route),
                 route.payload[TARGET_NAME],
                 getPlayerWorlds(targetUuid(route)),
                 showBackButton(route),
+                route,
         )
+
+        private fun playerWorldCapabilityAttributes(
+                subject: PlayerWorldCapabilitySubject,
+                worldData: WorldData? = null,
+        ): Map<String, Any> = buildMap {
+                put(PlayerWorldCapabilityContract.SUBJECT_ATTRIBUTE, subject)
+                worldData?.let {
+                        put(PlayerWorldCapabilityContract.WORLD_ATTRIBUTE, it)
+                }
+        }
 
         private fun createWorldItem(
                 player: Player,
@@ -810,6 +881,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 private const val TARGET_NAME = "targetName"
                 private const val SHOW_BACK = "showBack"
                 private const val WORLD_UUID = "worldUuid"
+                private const val CAPABILITY_ID = "capabilityId"
                 private const val ACTION_PAGE = "page"
                 private const val ACTION_BACK = "back"
                 private const val ACTION_CREATE = "create"

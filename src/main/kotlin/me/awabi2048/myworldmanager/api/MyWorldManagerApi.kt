@@ -8,7 +8,6 @@ import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldRuntimePolicy
-import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapability
 import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldCreationDecision
 import me.awabi2048.myworldmanager.api.extension.WorldCreationGuard
@@ -93,8 +92,6 @@ object MyWorldManagerApi {
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
     private val memberManagementCapabilities =
         CopyOnWriteArrayList<MemberManagementCapability>()
-    private val playerWorldCapabilities =
-        CopyOnWriteArrayList<PlayerWorldCapability>()
     private val worldSettingsPresentationPolicies =
         CopyOnWriteArrayList<WorldSettingsPresentationPolicy>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
@@ -126,23 +123,6 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getMemberManagementCapabilities(): List<MemberManagementCapability> =
         memberManagementCapabilities.toList()
-
-    @JvmStatic
-    fun registerPlayerWorldCapability(capability: PlayerWorldCapability) {
-        playerWorldCapabilities.removeIf { it.getId() == capability.getId() }
-        playerWorldCapabilities.add(capability)
-    }
-
-    @JvmStatic
-    fun unregisterPlayerWorldCapability(capability: PlayerWorldCapability) {
-        playerWorldCapabilities.removeIf {
-            it === capability || it.getId() == capability.getId()
-        }
-    }
-
-    @JvmStatic
-    fun getPlayerWorldCapabilities(): List<PlayerWorldCapability> =
-        playerWorldCapabilities.toList()
 
     @JvmStatic
     fun registerWorldSettingsPresentationPolicy(policy: WorldSettingsPresentationPolicy) {
