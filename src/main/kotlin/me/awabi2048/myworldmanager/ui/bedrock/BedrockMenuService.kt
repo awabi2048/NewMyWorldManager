@@ -25,7 +25,6 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreActions
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
@@ -97,30 +96,49 @@ class BedrockMenuService(
 
     private class RuntimeItemBuffer {
         private val items = linkedMapOf<Int, ItemStack>()
+        private val actions = mutableMapOf<Int, RuntimeAction>()
 
         fun setItem(slot: Int, item: ItemStack?) {
             if (item == null || item.type == Material.AIR) {
                 items.remove(slot)
+                actions.remove(slot)
             } else {
                 items[slot] = item
+                actions.remove(slot)
             }
         }
 
+        fun setActionItem(
+            slot: Int,
+            item: ItemStack,
+            actionId: String,
+            payload: Map<String, String> = emptyMap(),
+            role: GuiElementRole = GuiElementRole.ACTION,
+        ) {
+            items[slot] = item
+            actions[slot] = RuntimeAction(actionId, payload, role)
+        }
+
         fun elements(): List<MenuElement> = items.map { (slot, item) ->
-            val action = ItemTag.getString(item, "bedrock_action")
-            val role = when (action) {
-                "return_command", "close_menu" -> GuiElementRole.CANCEL
-                "open_prev_page", "open_next_page", "back_to_worlds" -> GuiElementRole.NAVIGATION
-                null -> GuiElementRole.CONTENT
-                else -> GuiElementRole.ACTION
-            }
+            val action = actions[slot]
             MenuElement(
                 slot = slot,
                 item = item,
-                role = role,
-                actionId = action,
+                role = action?.role ?: if (item.type.name.endsWith("_STAINED_GLASS_PANE")) {
+                    GuiElementRole.DECORATION
+                } else {
+                    GuiElementRole.CONTENT
+                },
+                actionId = action?.id,
+                actionPayload = action?.payload.orEmpty(),
             )
         }
+
+        private data class RuntimeAction(
+            val id: String,
+            val payload: Map<String, String>,
+            val role: GuiElementRole,
+        )
     }
 
     private data class FormAction(
@@ -526,30 +544,52 @@ class BedrockMenuService(
             val row = index / 7
             val col = index % 7
             val slot = (row + 1) * 9 + 1 + col
-            inventory.setItem(slot, createWorldListItem(player, worldData))
+            inventory.setActionItem(
+                slot,
+                createWorldListItem(player, worldData),
+                "warp_world",
+                mapOf("world" to worldData.uuid.toString()),
+            )
         }
 
         if (page > 0) {
-            inventory.setItem(
+            inventory.setActionItem(
                 footerStart + 1,
-                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.prev"), "open_prev_page")
+                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.prev"), "open_prev_page"),
+                "open_prev_page",
+                role = GuiElementRole.NAVIGATION,
             )
         }
         if (start + pageWorlds.size < worlds.size) {
-            inventory.setItem(
+            inventory.setActionItem(
                 footerStart + 8,
-                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.next"), "open_next_page")
+                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.next"), "open_next_page"),
+                "open_next_page",
+                role = GuiElementRole.NAVIGATION,
             )
         }
 
         val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
         if (creationBlockReason == null) {
-            inventory.setItem(footerStart + 2, createCreationButtonItem(player))
+            inventory.setActionItem(
+                footerStart + 2,
+                createCreationButtonItem(player),
+                "start_creation",
+            )
         } else {
             inventory.setItem(footerStart + 2, createCreationUnavailableButtonItem(player, creationBlockReason))
         }
-        inventory.setItem(footerStart + 4, createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint))
-        inventory.setItem(
+        val statsItem = createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint)
+        if (plugin.pendingDecisionManager.getPendingCount(player.uniqueId) > 0) {
+            inventory.setActionItem(
+                footerStart + 4,
+                statsItem,
+                "open_pending_interactions",
+            )
+        } else {
+            inventory.setItem(footerStart + 4, statsItem)
+        }
+        inventory.setActionItem(
             footerStart + 6,
             createActionItem(
                 Material.WRITABLE_BOOK,
@@ -558,13 +598,16 @@ class BedrockMenuService(
                 lore = GuiLoreSpec.Blocks(listOf(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
                     GuiLoreActions.singleClick(plugin.languageManager, player, tr(player, "gui.user_settings.button.action"))
                 ))))
-            )
+            ),
+            "open_settings",
         )
 
         if (GuiHelper.canGoBack(player)) {
-            inventory.setItem(
+            inventory.setActionItem(
                 footerStart,
-                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.player_world.button.return"), "return_command")
+                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.player_world.button.return"), "return_command"),
+                "return_command",
+                role = GuiElementRole.CANCEL,
             )
         }
 
@@ -592,13 +635,14 @@ class BedrockMenuService(
             inventory.setItem(slot, blackPane)
         }
 
-        inventory.setItem(
+        inventory.setActionItem(
             10,
-            createActionItem(Material.ENDER_PEARL, tr(player, "gui.bedrock.world_action.button.warp"), "warp_world", worldData.uuid)
+            createActionItem(Material.ENDER_PEARL, tr(player, "gui.bedrock.world_action.button.warp"), "warp_world", worldData.uuid),
+            "warp_world",
         )
 
         if (canManagePublish(player, worldData)) {
-            inventory.setItem(
+            inventory.setActionItem(
                 11,
                 createActionItem(
                     Material.ENDER_EYE,
@@ -609,7 +653,8 @@ class BedrockMenuService(
                     ),
                     "cycle_publish",
                     worldData.uuid
-                )
+                ),
+                "cycle_publish",
             )
         }
 
@@ -620,43 +665,52 @@ class BedrockMenuService(
                 } else {
                     tr(player, "gui.bedrock.world_action.button.archive")
                 }
-            inventory.setItem(
+            inventory.setActionItem(
                 12,
-                createActionItem(Material.CHEST, label, "toggle_archive", worldData.uuid)
+                createActionItem(Material.CHEST, label, "toggle_archive", worldData.uuid),
+                "toggle_archive",
             )
         }
 
         if (canAccessWorldSettings(player, worldData)) {
-            inventory.setItem(
+            inventory.setActionItem(
                 14,
                 createActionItem(
                     Material.COMPARATOR,
                     tr(player, "gui.bedrock.world_action.button.advanced_settings"),
                     "open_advanced_settings",
                     worldData.uuid
-                )
+                ),
+                "open_advanced_settings",
             )
         }
 
-        inventory.setItem(
+        inventory.setActionItem(
             15,
-            createActionItem(Material.WRITABLE_BOOK, tr(player, "gui.bedrock.world_action.button.settings"), "open_settings")
+            createActionItem(Material.WRITABLE_BOOK, tr(player, "gui.bedrock.world_action.button.settings"), "open_settings"),
+            "open_settings",
         )
 
-        inventory.setItem(
+        inventory.setActionItem(
             16,
-            createActionItem(Material.ARROW, tr(player, "gui.bedrock.world_action.button.back_to_worlds"), "back_to_worlds")
+            createActionItem(Material.ARROW, tr(player, "gui.bedrock.world_action.button.back_to_worlds"), "back_to_worlds"),
+            "back_to_worlds",
+            role = GuiElementRole.NAVIGATION,
         )
 
         if (GuiHelper.canGoBack(player)) {
-            inventory.setItem(
+            inventory.setActionItem(
                 22,
-                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.world_action.button.return"), "return_command")
+                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.world_action.button.return"), "return_command"),
+                "return_command",
+                role = GuiElementRole.CANCEL,
             )
         } else {
-            inventory.setItem(
+            inventory.setActionItem(
                 22,
-                createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.world_action.button.close"), "close_menu")
+                createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.world_action.button.close"), "close_menu"),
+                "close_menu",
+                role = GuiElementRole.CANCEL,
             )
         }
 
@@ -693,7 +747,7 @@ class BedrockMenuService(
         val languageName = languageDisplay(player, plugin.languageManager.resolveLocale(player))
         val notifyStatus = statusText(player, stats.visitorNotificationEnabled)
 
-        inventory.setItem(
+        inventory.setActionItem(
             10,
             createSettingActionItem(
                 player,
@@ -705,9 +759,10 @@ class BedrockMenuService(
                 "toggle_notification",
                 "gui.user_settings.cycle_action.toggle",
                 glint = stats.visitorNotificationEnabled
-            )
+            ),
+            "toggle_notification",
         )
-        inventory.setItem(
+        inventory.setActionItem(
             11,
             createSettingActionItem(
                 player,
@@ -718,10 +773,15 @@ class BedrockMenuService(
                 "§f",
                 "cycle_language",
                 "gui.user_settings.cycle_action.next"
-            )
+            ),
+            "cycle_language",
         )
-        inventory.setItem(12, createCriticalVisibilityItem(player, stats.criticalSettingsEnabled))
-        inventory.setItem(
+        inventory.setActionItem(
+            12,
+            createCriticalVisibilityItem(player, stats.criticalSettingsEnabled),
+            "toggle_critical",
+        )
+        inventory.setActionItem(
             13,
             createSettingActionItem(
                 player,
@@ -740,12 +800,15 @@ class BedrockMenuService(
                         "§7"
                     )
                 }
-            )
+            ),
+            "cycle_tour_navigation",
         )
         if (GuiHelper.canGoBack(player)) {
-            inventory.setItem(
+            inventory.setActionItem(
                 22,
-                createActionItem(Material.REDSTONE, tr(player, "gui.common.return"), "return_command")
+                createActionItem(Material.REDSTONE, tr(player, "gui.common.return"), "return_command"),
+                "return_command",
+                role = GuiElementRole.CANCEL,
             )
         }
 
@@ -781,7 +844,8 @@ class BedrockMenuService(
         return when (context.route.id) {
             PLAYER_WORLD_ROUTE -> when (context.actionId) {
                 "warp_world" -> {
-                    val worldUuid = ItemTag.getWorldUuid(context.item)
+                    val worldUuid = context.payload["world"]
+                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                         ?: return MenuActionResult.Rejected()
                     val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
                         ?: return MenuActionResult.Rejected()
@@ -1175,9 +1239,6 @@ class BedrockMenuService(
         )))
 
         item.itemMeta = meta
-        ItemTag.tagItem(item, "bedrock_menu_item")
-        ItemTag.setString(item, "bedrock_action", "warp_world")
-        ItemTag.setWorldUuid(item, worldData.uuid)
         return item
     }
 
@@ -1196,8 +1257,6 @@ class BedrockMenuService(
             )))
         ))))
         item.itemMeta = meta
-        ItemTag.tagItem(item, "bedrock_menu_item")
-        ItemTag.setString(item, "bedrock_action", "start_creation")
         return item
     }
 
@@ -1208,8 +1267,6 @@ class BedrockMenuService(
         meta.lore(GuiItemFactory.menuLore(plugin.languageManager.getMessageList(player, reason.loreKey).map(GuiLoreLine::Text)))
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES)
         item.itemMeta = meta
-        ItemTag.tagItem(item, "bedrock_menu_item")
-        ItemTag.setString(item, "bedrock_action", "noop")
         return item
     }
 
@@ -1301,12 +1358,6 @@ class BedrockMenuService(
         })))
         meta.setEnchantmentGlintOverride(pendingCount > 0)
         item.itemMeta = meta
-        ItemTag.tagItem(item, "bedrock_menu_item")
-        ItemTag.setString(
-            item,
-            "bedrock_action",
-            if (pendingCount > 0) "open_pending_interactions" else "noop"
-        )
         return item
     }
 
@@ -1353,9 +1404,8 @@ class BedrockMenuService(
                 listOf(GuiLoreActions.menuSingleClick(plugin.languageManager, player, tr(player, actionKey))),
                 glint
             ),
-            "bedrock_menu_item"
+            null
         )
-        ItemTag.setString(item, "bedrock_action", actionId)
         return item
     }
 
@@ -1384,11 +1434,6 @@ class BedrockMenuService(
         }
 
         item.itemMeta = meta
-        ItemTag.tagItem(item, "bedrock_menu_item")
-        ItemTag.setString(item, "bedrock_action", action)
-        if (worldUuid != null) {
-            ItemTag.setWorldUuid(item, worldUuid)
-        }
         return item
     }
 
@@ -1423,7 +1468,6 @@ class BedrockMenuService(
         meta.displayName(Component.empty())
         meta.isHideTooltip = true
         item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_DECORATION)
         return item
     }
 
