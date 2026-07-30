@@ -22,6 +22,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
@@ -277,8 +278,7 @@ class BedrockMenuService(
             actions += FormAction(tr(player, "gui.bedrock.world_action.button.advanced_settings"), Material.COMPARATOR) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
                     ?: return@FormAction MenuActionResult.Rejected()
-                plugin.worldSettingsGui.open(player, latest, showBackButton)
-                MenuActionResult.Success(MenuUpdate.None)
+                advancedSettingsResult(player, latest, showBackButton)
             }
         }
 
@@ -822,14 +822,16 @@ class BedrockMenuService(
                 "open_settings" ->
                     MenuActionResult.Success(MenuUpdate.Navigate(settingsRoute(showBackButton, page)))
                 "open_pending_interactions" -> {
-                    plugin.pendingInteractionGui.open(
-                        player = player,
-                        page = 0,
-                        returnPage = page,
-                        showBackButton = showBackButton,
-                        fromBedrockMenu = true,
+                    MenuActionResult.Success(
+                        MenuUpdate.Navigate(
+                            plugin.pendingInteractionGui.prepareOpen(
+                                page = 0,
+                                returnPage = page,
+                                showBackButton = showBackButton,
+                                fromBedrockMenu = true,
+                            ),
+                        ),
                     )
-                    MenuActionResult.Success(MenuUpdate.None)
                 }
                 "return_command" -> {
                     performConfiguredReturn(player)
@@ -865,8 +867,7 @@ class BedrockMenuService(
                         MenuActionResult.Success(MenuUpdate.Close)
                     }
                     "open_advanced_settings" -> {
-                        plugin.worldSettingsGui.open(player, worldData, showBackButton)
-                        MenuActionResult.Success(MenuUpdate.None)
+                        advancedSettingsResult(player, worldData, showBackButton)
                     }
                     "open_settings" ->
                         MenuActionResult.Success(MenuUpdate.Navigate(settingsRoute(showBackButton, page)))
@@ -1071,6 +1072,19 @@ class BedrockMenuService(
 
     private fun performConfiguredReturn(player: Player) {
         CCSystem.getAPI().getMenuRuntimeService().back(player)
+    }
+
+    private fun advancedSettingsResult(
+        player: Player,
+        worldData: WorldData,
+        showBackButton: Boolean,
+    ): MenuActionResult {
+        val route = MyWorldManagerApi.prepareWorldSettingsRoute(
+            player,
+            worldData.uuid,
+            WorldSettingsNavigationRequest(showBackButton = showBackButton),
+        ) ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(MenuUpdate.Navigate(route))
     }
 
     private fun playerWorldCapabilitySubject(
