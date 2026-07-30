@@ -20,12 +20,10 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Material
-import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 
@@ -137,8 +135,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                 return MenuActionResult.Success(MenuUpdate.Close)
             }
             ItemTag.isType(clickedItem, ItemTag.TYPE_BOTTLED_BIOME_AIR) -> {
-                if (!canUseBiomeBottle(player, worldData, session.isAdminFlow)) {
-                    return MenuActionResult.Ignored
+                validateBiomeBottleUse(player, worldData, session.isAdminFlow)?.let { message ->
+                    return MenuActionResult.Rejected(message)
                 }
                 val biomeId = ItemTag.getBiomeId(clickedItem) ?: return MenuActionResult.Ignored
                 session.confirmItem = clickedItem.clone()
@@ -158,22 +156,25 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun canUseBiomeBottle(player: Player, worldData: WorldData, isAdminFlow: Boolean): Boolean {
+    private fun validateBiomeBottleUse(
+        player: Player,
+        worldData: WorldData,
+        isAdminFlow: Boolean,
+    ): net.kyori.adventure.text.Component? {
         if (worldData.customWorldName != null) {
-            player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.biome_bottle_disabled"))
-            return false
+            return plugin.languageManager.getComponent(
+                player,
+                "messages.custom_item.biome_bottle_disabled",
+            )
         }
         val isMember = player.uniqueId == worldData.owner ||
             player.uniqueId in worldData.moderators ||
             player.uniqueId in worldData.members ||
             isAdminFlow
         if (!isMember) {
-            player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.no_permission"))
-            return false
+            return plugin.languageManager.getComponent(player, "error.custom_item.no_permission")
         }
-        return true
+        return null
     }
 
     private fun createGravityItem(player: Player, worldData: WorldData): ItemStack {
@@ -195,10 +196,14 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             }
             add(GuiLoreLine.Spacer)
             add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.gravity.requirement")))
-            add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.gravity.action")))
+            add(
+                CCSystem.getAPI().getGuiActionService().singleClick(
+                    player,
+                    lang.getMessage(player, "gui.environment.gravity.action"),
+                ),
+            )
         }))
         item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_GRAVITY)
         return item
     }
 
@@ -221,7 +226,6 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.environment.weather.action.confirm")))
         }))
         item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_WEATHER)
         return item
     }
 
@@ -240,10 +244,14 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             }
             add(GuiLoreLine.Spacer)
             add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.requirement")))
-            add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.environment.biome.action")))
+            add(
+                CCSystem.getAPI().getGuiActionService().singleClick(
+                    player,
+                    lang.getMessage(player, "gui.environment.biome.action"),
+                ),
+            )
         }))
         item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_ENV_BIOME)
         return item
     }
 
@@ -252,7 +260,6 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         item.itemMeta = item.itemMeta?.also {
             it.displayName(plugin.languageManager.getComponent(player, "gui.common.back"))
         }
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_CANCEL)
         return item
     }
 

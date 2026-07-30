@@ -30,19 +30,11 @@ data class GuiLoreAction(val operation: String, val action: String)
 
 object GuiLoreActions {
     fun cycle(languageManager: LanguageManager, player: Player): GuiLoreLine.Action {
-        return GuiLoreLine.Action(
-            languageManager.getMessage(player, "lore.click.left_right"),
-            languageManager.getMessage(player, "gui.common.action.cycle")
-        )
+        return CCSystem.getAPI().getGuiActionService().cycle(player)
     }
 
     fun singleClick(languageManager: LanguageManager, player: Player, action: String): GuiLoreLine.SingleAction {
-        return single(
-            languageManager,
-            player,
-            languageManager.getMessage(player, "lore.click.any"),
-            action
-        )
+        return CCSystem.getAPI().getGuiActionService().singleClick(player, action)
     }
 
     fun single(
@@ -51,22 +43,7 @@ object GuiLoreActions {
         operation: String,
         action: String
     ): GuiLoreLine.SingleAction {
-        require(operation.isNotBlank()) { "Single action operation must not be blank" }
-        require(action.isNotBlank()) { "Single action content must not be blank" }
-        val resolved = languageManager.getMessage(
-            player,
-            "lore.action_single_with_operation",
-            mapOf(
-                "operation" to operation,
-                "action" to action
-            )
-        )
-        // SingleActionは操作と内容を分けて保持し、表示文だけロケール別テンプレートで解決する。
-        return GuiLoreLine.SingleAction(
-            operation = operation,
-            action = action,
-            resolvedText = resolved
-        )
+        return CCSystem.getAPI().getGuiActionService().single(player, operation, action)
     }
 
     fun menuSingleClick(
@@ -75,8 +52,11 @@ object GuiLoreActions {
         action: String,
         enabled: Boolean = true,
     ): GuiMenuIconAction {
-        val line = singleClick(languageManager, player, action)
-        return GuiMenuIconAction(line.operation, line.action, line.resolvedText, enabled)
+        return CCSystem.getAPI().getGuiActionService().menuSingleClick(
+            player,
+            action,
+            enabled,
+        )
     }
 }
 
