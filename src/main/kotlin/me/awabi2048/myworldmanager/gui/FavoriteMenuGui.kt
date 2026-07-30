@@ -112,7 +112,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val worldData = context.route.worldUuid()?.let(plugin.worldConfigRepository::findByUuid)
             ?: return MenuActionResult.Rejected()
         plugin.menuEntryRouter.openVisitMenu(context.player, Bukkit.getOfflinePlayer(worldData.owner), 0, worldData)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun toggleFavorite(context: MenuActionContext): MenuActionResult {
@@ -162,7 +162,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
     private fun openFavoriteList(context: MenuActionContext): MenuActionResult {
         val worldData = context.route.worldUuid()?.let(plugin.worldConfigRepository::findByUuid)
         plugin.menuEntryRouter.openFavoriteList(context.player, 0, worldData, returnToFavoriteMenu = true)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun createOtherWorldsItem(player: Player, worldData: WorldData): ItemStack {

@@ -325,24 +325,14 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         player.sendMessage(lang.getMessage(player, "error.member_request_already_member"))
                         return MenuActionResult.Rejected()
                 }
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                plugin.menuEntryRouter.openMemberRequestConfirm(player, worldData)
-                        },
-                )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                plugin.menuEntryRouter.openMemberRequestConfirm(player, worldData)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun removeSpotlight(player: Player, worldData: WorldData): MenuActionResult {
                 val lang = plugin.languageManager
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                plugin.menuEntryRouter.openSpotlightRemoveConfirm(player, worldData)
-                        },
-                )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                plugin.menuEntryRouter.openSpotlightRemoveConfirm(player, worldData)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun toggleFavorite(
@@ -401,7 +391,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         PreviewSessionManager.PreviewTarget.World(worldData),
                         PreviewSource.DISCOVERY_MENU,
                 )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun spotlightEmpty(context: MenuActionContext): MenuActionResult {
@@ -413,13 +403,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         )
                         return MenuActionResult.Rejected()
                 }
-                Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable {
-                                plugin.menuEntryRouter.openSpotlightConfirm(player, worldData)
-                        },
-                )
-                return MenuActionResult.Success(MenuUpdate.Close)
+                plugin.menuEntryRouter.openSpotlightConfirm(player, worldData)
+                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun currentManagedWorld(player: Player): WorldData? {

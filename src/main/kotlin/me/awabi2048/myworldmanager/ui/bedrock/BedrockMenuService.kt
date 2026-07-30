@@ -813,11 +813,9 @@ class BedrockMenuService(
                     }
                     val session = plugin.creationSessionManager.startSession(player.uniqueId)
                     session.isDialogMode = false
-                    Bukkit.getScheduler().runTask(
-                        plugin,
-                        Runnable { plugin.creationGui.openTypeSelection(player) },
+                    MenuActionResult.Success(
+                        MenuUpdate.Navigate(plugin.creationGui.typeSelectionRoute()),
                     )
-                    MenuActionResult.Success(MenuUpdate.Close)
                 }
                 "open_settings" ->
                     MenuActionResult.Success(MenuUpdate.Navigate(settingsRoute(showBackButton, page)))

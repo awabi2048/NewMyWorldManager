@@ -4358,7 +4358,7 @@ player.sendMessage(
                             ),
                             MenuDialogHandler { target, _ ->
                                 reopenMemberManagementLatest(target, worldData.uuid)
-                                MenuActionResult.Success(MenuUpdate.Close)
+                                MenuActionResult.Success(MenuUpdate.None)
                             },
                         ),
                     ),

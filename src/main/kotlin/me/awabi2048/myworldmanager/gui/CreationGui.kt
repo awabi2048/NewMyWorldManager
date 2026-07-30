@@ -203,7 +203,7 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun cancelCreation(context: MenuActionContext): MenuActionResult {
         plugin.creationGuiListener.cancelAndReturnToMyWorld(context.player)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun selectTemplate(context: MenuActionContext): MenuActionResult {
