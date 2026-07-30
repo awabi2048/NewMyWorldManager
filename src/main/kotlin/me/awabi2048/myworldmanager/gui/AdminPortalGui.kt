@@ -3,15 +3,19 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
-import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -23,7 +27,6 @@ import me.awabi2048.myworldmanager.session.PortalSortType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import org.bukkit.Bukkit
@@ -77,13 +80,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         session.portalPage = safePage
         val elements = mutableListOf<MenuElement>()
         portals.drop(safePage * layout.itemSlots.size).take(layout.itemSlots.size).forEachIndexed { index, portal ->
-            elements += MenuElement(
-                layout.itemSlots[index],
-                createPortalItem(player, portal),
-                GuiElementRole.ACTION,
-                ACTION_PORTAL,
-                mapOf(PORTAL_ID to portal.id.toString()),
-            )
+            elements += createPortalEntry(player, portal, layout.itemSlots[index])
         }
         if (safePage > 0) {
             elements += MenuElement(
@@ -95,7 +92,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             )
         }
         elements += MenuElement(49, createInfoButton(player, portals.size, safePage + 1, totalPages), GuiElementRole.CONTENT)
-        elements += MenuElement(51, createSortButton(player, session), GuiElementRole.ACTION, ACTION_SORT)
+        elements += createSortEntry(player, session, 51)
         if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(52, createBackButton(player), GuiElementRole.BACK, ACTION_BACK)
         }
@@ -206,7 +203,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             PortalSortType.CREATED_ASC -> plugin.portalRepository.findAll().sortedBy { it.createdAt }
         }
 
-    private fun createPortalItem(player: Player, portal: PortalData): ItemStack {
+    private fun createPortalEntry(player: Player, portal: PortalData, slot: Int): MenuElement {
         val lang = plugin.languageManager
         val destination = portal.worldUuid
             ?.let(plugin.worldConfigRepository::findByUuid)
@@ -214,50 +211,28 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             ?: plugin.config.getString("portal_targets.${portal.targetRuntimeName}")
             ?: portal.targetRuntimeName
             ?: "Unknown"
-        val item = ItemStack(Material.END_PORTAL_FRAME)
-        item.editMeta { meta ->
-            meta.displayName(
-                GuiItemFactory.legacy(
+        val payload = mapOf(PORTAL_ID to portal.id.toString())
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.END_PORTAL_FRAME,
+                name = GuiNameSpec.Text(
                     lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destination)),
+                    com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                 ),
-            )
-            meta.lore(
-                CCSystem.getAPI().getLoreService().render(
-                    GuiLoreSpec.Blocks(
-                        listOf(
-                            GuiLoreBlock(
-                                listOf(
-                                    GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.admin_portals.portal_item.owner"),
-                                        PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown"),
-                                        "§f",
-                                    ),
-                                    GuiLoreLine.Data(lang.getMessage(player, "gui.admin_portals.portal_item.world"), portal.worldKey, "§f"),
-                                    GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"),
-                                        "${portal.x}, ${portal.y}, ${portal.z}",
-                                        "§f",
-                                    ),
-                                ),
-                            ),
-                            GuiLoreBlock(
-                                listOf(
-                                    GuiLoreLine.Action(
-                                        lang.getMessage(player, "gui.settings.click.left"),
-                                        lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"),
-                                    ),
-                                    GuiLoreLine.Action(
-                                        lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
+                role = GuiElementRole.ACTION,
+                data = listOf(
+                    GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.owner"), PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown")),
+                    GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.world"), portal.worldKey),
+                    GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"), "${portal.x}, ${portal.y}, ${portal.z}"),
                 ),
-            )
-        }
-        return item
+                actions = listOf(
+                    GuiMenuEntryAction(ACTION_PORTAL, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload),
+                    GuiMenuEntryAction(ACTION_PORTAL, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload),
+                ),
+            ),
+        )
     }
 
     private fun createNavButton(player: Player, next: Boolean): ItemStack =
@@ -285,36 +260,34 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             }
         }
 
-    private fun createSortButton(player: Player, session: AdminGuiSession): ItemStack =
-        ItemStack(Material.HOPPER).apply {
-            editMeta { meta ->
-                val lang = plugin.languageManager
-                val options = PortalSortType.entries.map { it to lang.getMessage(player, it.displayKey) }
-                meta.displayName(lang.getComponent(player, "gui.admin_portals.sort.display"))
-                meta.lore(
-                    CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(
-                            buildList {
-                                add(
-                                    GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.admin_portals.sort.label"),
-                                        options.first { it.first == session.portalSortBy }.second,
-                                        "§e",
-                                    ),
-                                )
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (type, name) ->
-                                    add(GuiLoreLine.Option(name, type == session.portalSortBy, "§e", "§7"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
-                            },
-                            GuiLoreFrame.BOTH,
-                        ),
+    private fun createSortEntry(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
+        val lang = plugin.languageManager
+        val options = PortalSortType.entries.map { it to lang.getMessage(player, it.displayKey) }
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.HOPPER,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.admin_portals.sort.display")),
+                role = GuiElementRole.ACTION,
+                data = listOf(
+                    GuiMenuEntryData(
+                        lang.getMessage(player, "gui.admin_portals.sort.label"),
+                        options.first { it.first == session.portalSortBy }.second,
+                        GuiValueTone.PRIMARY,
                     ),
-                )
-            }
-        }
+                ),
+                options = options.map { (type, name) -> GuiMenuEntryOption(name, type == session.portalSortBy) },
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_SORT,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.common.action.cycle"),
+                    ),
+                ),
+            ),
+        )
+    }
 
     private fun route(page: Int) = MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to page.toString()))
 
