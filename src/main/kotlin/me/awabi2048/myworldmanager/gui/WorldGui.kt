@@ -18,8 +18,6 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
@@ -117,19 +115,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                         SettingsAction.ADMIN_WORLD_GUI,
                         isGui = true
                 )
-
-                if (
-                        MyWorldManagerApi.openAdminWorldListOverride(
-                                player,
-                                AdminWorldListRequest(
-                                        page = page,
-                                        fromAdminMenu = fromAdminMenu,
-                                        suppressSound = suppressSound
-                                )
-                        )
-                ) {
-                        return
-                }
 
                 repository.loadAll()
                 runtime.navigate(player, route(currentPage))

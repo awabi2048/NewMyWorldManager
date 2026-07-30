@@ -170,37 +170,28 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             )
         }
 
-        elements += actionElement(38, createActionItem(player,
-            Material.FILLED_MAP,
-            lang.getMessage(player, "gui.admin_menu.info.display"),
-            textLore(player, "gui.admin_menu.info.lore"),
-            lang.getMessage(player, "gui.admin_menu.info.action"),
-            ItemTag.TYPE_GUI_ADMIN_INFO
-        ), ACTION_INFO)
+        val worldListAction = resolveCapability(
+            player,
+            AdminMenuCapabilityPlacements.WORLD_LIST_ACTION,
+        )
+        elements += if (worldListAction != null) {
+            capabilityElement(38, worldListAction)
+        } else {
+            actionElement(38, createActionItem(player,
+                Material.FILLED_MAP,
+                lang.getMessage(player, "gui.admin_menu.info.display"),
+                textLore(player, "gui.admin_menu.info.lore"),
+                lang.getMessage(player, "gui.admin_menu.info.action"),
+                ItemTag.TYPE_GUI_ADMIN_INFO
+            ), ACTION_INFO)
+        }
 
-        val menuSwitch = CCSystem.getAPI().getMenuCapabilityService()
-            .definitions(AdminMenuCapabilityPlacements.MENU_SWITCH)
-            .asSequence()
-            .mapNotNull { definition ->
-                CCSystem.getAPI().getMenuCapabilityService()
-                    .resolve(definition.capabilityId, player)
-            }
-            .firstOrNull()
+        val menuSwitch = resolveCapability(
+            player,
+            AdminMenuCapabilityPlacements.MENU_SWITCH,
+        )
         if (menuSwitch != null) {
-            elements += MenuElement(
-                slot = 40,
-                item = menuSwitch.item,
-                role = GuiElementRole.NAVIGATION,
-                interaction = if (menuSwitch.actionable) {
-                    MenuInteraction.Action(
-                        actionId = ACTION_CAPABILITY,
-                        acceptedClicks = menuSwitch.acceptedClicks,
-                        payload = mapOf(CAPABILITY_ID to menuSwitch.capabilityId),
-                    )
-                } else {
-                    MenuInteraction.DisplayOnly
-                },
-            )
+            elements += capabilityElement(40, menuSwitch, GuiElementRole.NAVIGATION)
         } else {
             elements += MenuElement(
                 40,
@@ -231,6 +222,37 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
     private fun actionElement(slot: Int, item: ItemStack, actionId: String) =
         MenuElement(slot, item, GuiElementRole.ACTION, actionId)
+
+    private fun resolveCapability(
+        player: Player,
+        placement: String,
+    ) = CCSystem.getAPI().getMenuCapabilityService()
+        .definitions(placement)
+        .asSequence()
+        .mapNotNull { definition ->
+            CCSystem.getAPI().getMenuCapabilityService()
+                .resolve(definition.capabilityId, player)
+        }
+        .firstOrNull()
+
+    private fun capabilityElement(
+        slot: Int,
+        capability: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
+        role: GuiElementRole = GuiElementRole.ACTION,
+    ) = MenuElement(
+        slot = slot,
+        item = capability.item,
+        role = role,
+        interaction = if (capability.actionable) {
+            MenuInteraction.Action(
+                actionId = ACTION_CAPABILITY,
+                acceptedClicks = capability.acceptedClicks,
+                payload = mapOf(CAPABILITY_ID to capability.capabilityId),
+            )
+        } else {
+            MenuInteraction.DisplayOnly
+        },
+    )
 
     private fun createTemplate(context: MenuActionContext): MenuActionResult {
         plugin.templateWizardGui.open(context.player)

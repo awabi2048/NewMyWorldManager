@@ -1,8 +1,6 @@
 package me.awabi2048.myworldmanager.api
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.extension.AdminWorldListProvider
-import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuProvider
@@ -112,7 +110,6 @@ object MyWorldManagerApi {
     private val worldRuntimePolicies = CopyOnWriteArrayList<WorldRuntimePolicy>()
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
     private val worldPortalPolicies = CopyOnWriteArrayList<WorldPortalPolicy>()
-    private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
     private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
     private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
@@ -538,22 +535,6 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldPortalPolicy(): WorldPortalPolicy {
         return worldPortalPolicies.lastOrNull() ?: DefaultWorldPortalPolicy
-    }
-
-    @JvmStatic
-    fun registerAdminWorldListProvider(provider: AdminWorldListProvider) {
-        adminWorldListProviders.removeIf { it.getId() == provider.getId() }
-        adminWorldListProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterAdminWorldListProvider(provider: AdminWorldListProvider) {
-        adminWorldListProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openAdminWorldListOverride(player: Player, request: AdminWorldListRequest): Boolean {
-        return adminWorldListProviders.asReversed().any { it.open(player, request) }
     }
 
     @JvmStatic
