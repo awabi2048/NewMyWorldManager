@@ -14,7 +14,6 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.model.WorldData
@@ -70,17 +69,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val session = plugin.discoverySessionManager.getSession(player.uniqueId)
                 if (showBackButton != null) {
                         session.showBackButton = showBackButton
-                }
-                if (
-                        MyWorldManagerApi.openDiscoveryMenuOverride(
-                                player,
-                                DiscoveryMenuRequest(
-                                        page = page,
-                                        showBackButton = session.showBackButton
-                                )
-                        )
-                ) {
-                        return
                 }
                 runtime.navigate(player, route(page))
         }

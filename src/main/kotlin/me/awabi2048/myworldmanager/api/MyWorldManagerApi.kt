@@ -1,11 +1,6 @@
 package me.awabi2048.myworldmanager.api
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuProvider
-import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
-import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuProvider
-import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuRequest
-import me.awabi2048.myworldmanager.api.extension.FavoriteMenuProvider
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapability
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
@@ -15,8 +10,6 @@ import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldRuntimePolicy
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapability
-import me.awabi2048.myworldmanager.api.extension.VisitMenuProvider
-import me.awabi2048.myworldmanager.api.extension.VisitMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldCreationDecision
 import me.awabi2048.myworldmanager.api.extension.WorldCreationGuard
@@ -113,10 +106,6 @@ object MyWorldManagerApi {
     private val worldRuntimePolicies = CopyOnWriteArrayList<WorldRuntimePolicy>()
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
     private val worldPortalPolicies = CopyOnWriteArrayList<WorldPortalPolicy>()
-    private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
-    private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
-    private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
-    private val visitMenuProviders = CopyOnWriteArrayList<VisitMenuProvider>()
     private val worldEvacuationProviders = CopyOnWriteArrayList<WorldEvacuationProvider>()
     private val worldMenuAccessPolicies = CopyOnWriteArrayList<WorldMenuAccessPolicy>()
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
@@ -561,70 +550,6 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldPortalPolicy(): WorldPortalPolicy {
         return worldPortalPolicies.lastOrNull() ?: DefaultWorldPortalPolicy
-    }
-
-    @JvmStatic
-    fun registerDiscoveryMenuProvider(provider: DiscoveryMenuProvider) {
-        discoveryMenuProviders.removeIf { it.getId() == provider.getId() }
-        discoveryMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterDiscoveryMenuProvider(provider: DiscoveryMenuProvider) {
-        discoveryMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openDiscoveryMenuOverride(player: Player, request: DiscoveryMenuRequest): Boolean {
-        return discoveryMenuProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerFavoriteListMenuProvider(provider: FavoriteListMenuProvider) {
-        favoriteListMenuProviders.removeIf { it.getId() == provider.getId() }
-        favoriteListMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterFavoriteListMenuProvider(provider: FavoriteListMenuProvider) {
-        favoriteListMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openFavoriteListMenuOverride(player: Player, request: FavoriteListMenuRequest): Boolean {
-        return favoriteListMenuProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerFavoriteMenuProvider(provider: FavoriteMenuProvider) {
-        favoriteMenuProviders.removeIf { it.getId() == provider.getId() }
-        favoriteMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterFavoriteMenuProvider(provider: FavoriteMenuProvider) {
-        favoriteMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openFavoriteMenuOverride(player: Player, worldData: WorldData?): Boolean {
-        return favoriteMenuProviders.asReversed().any { it.open(player, worldData) }
-    }
-
-    @JvmStatic
-    fun registerVisitMenuProvider(provider: VisitMenuProvider) {
-        visitMenuProviders.removeIf { it.getId() == provider.getId() }
-        visitMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterVisitMenuProvider(provider: VisitMenuProvider) {
-        visitMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openVisitMenuOverride(player: Player, owner: OfflinePlayer, request: VisitMenuRequest): Boolean {
-        return visitMenuProviders.asReversed().any { it.open(player, owner, request) }
     }
 
     @JvmStatic
