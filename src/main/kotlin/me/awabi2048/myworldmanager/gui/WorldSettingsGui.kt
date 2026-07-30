@@ -1308,6 +1308,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         listOf(bottomRowStartSlot + if (isOwner) 1 else 2),
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
+                applyCapabilities(
+                        inventory,
+                        player,
+                        WorldSettingsCapabilityPlacements.FOOTER_RIGHT_ACTIONS,
+                        listOf(bottomRowStartSlot + 5),
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
 
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldData.uuid, replaceCurrent)
         }
