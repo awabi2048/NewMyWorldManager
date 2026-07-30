@@ -3,9 +3,10 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconOption
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
@@ -13,19 +14,17 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreActions
-import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 import java.util.UUID
 
 class UserSettingsGui(private val plugin: MyWorldManager) {
@@ -77,61 +76,58 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     private fun render(player: Player): InventoryMenuView {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val items = mutableListOf<ItemStack>()
+        val entries = mutableListOf<(Int) -> MenuElement>()
         val notifyStatus = if (stats.visitorNotificationEnabled) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
-        items.add(settingItem(
+        entries.add { slot -> settingEntry(
             player,
+            slot,
             Material.BELL,
             "gui.user_settings.notification.display",
             "notification",
             notifyStatus,
-            if (stats.visitorNotificationEnabled) "§a" else "§c",
-            ItemTag.TYPE_GUI_USER_SETTING_NOTIFICATION,
+            if (stats.visitorNotificationEnabled) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
+            ACTION_NOTIFICATION,
             "gui.user_settings.cycle_action.toggle",
             glint = stats.visitorNotificationEnabled
-        ))
+        ) }
 
         val currentLocale = lang.resolveLocale(player)
         val languageName = lang.getMessage(player, "general.language.$currentLocale")
-        items.add(settingItem(
+        entries.add { slot -> settingEntry(
             player,
+            slot,
             Material.WRITABLE_BOOK,
             "gui.user_settings.language.display",
             "language",
             languageName,
-            "§f",
-            ItemTag.TYPE_GUI_USER_SETTING_LANGUAGE,
+            GuiValueTone.DEFAULT,
+            ACTION_LANGUAGE,
             "gui.user_settings.cycle_action.next"
-        ))
+        ) }
 
         val criticalStatus = if (stats.criticalSettingsEnabled) {
             lang.getMessage(player, "messages.status_visible")
         } else {
             lang.getMessage(player, "messages.status_hidden")
         }
-        items.add(settingItem(
+        entries.add { slot -> settingEntry(
             player,
+            slot,
             Material.RECOVERY_COMPASS,
             "gui.user_settings.critical_settings_visibility.display",
             "critical_settings_visibility",
             criticalStatus,
-            if (stats.criticalSettingsEnabled) "§a" else "§7",
-            ItemTag.TYPE_GUI_USER_SETTING_CRITICAL_VISIBILITY,
+            if (stats.criticalSettingsEnabled) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
+            ACTION_CRITICAL_VISIBILITY,
             "gui.user_settings.cycle_action.toggle"
-        ))
+        ) }
 
-        items.add(tourNavigationItem(player, stats.tourNavigationMode))
+        entries.add { slot -> tourNavigationEntry(player, stats.tourNavigationMode, slot) }
         val totalRows = 5
         val centerRowStart = 2 * 9
-        val firstSlot = centerRowStart + ((9 - items.size) / 2)
-        val actionIds = listOf(
-            ACTION_NOTIFICATION,
-            ACTION_LANGUAGE,
-            ACTION_CRITICAL_VISIBILITY,
-            ACTION_TOUR_NAVIGATION,
-        )
-        val elements = items.mapIndexed { index, item ->
-            MenuElement(firstSlot + index, item, GuiElementRole.ACTION, actionIds[index])
+        val firstSlot = centerRowStart + ((9 - entries.size) / 2)
+        val elements = entries.mapIndexed { index, entry ->
+            entry(firstSlot + index)
         }.toMutableList()
 
         if (GuiHelper.canGoBack(player)) {
@@ -183,20 +179,23 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.Back)
     }
 
-    private fun settingItem(
+    private fun settingEntry(
         player: Player,
+        slot: Int,
         material: Material,
         displayKey: String,
         setting: String,
         currentValue: String,
-        currentValueColor: String,
-        tag: String,
+        currentValueTone: GuiValueTone,
+        actionId: String,
         actionKey: String,
         glint: Boolean? = null,
-    ): ItemStack {
+    ): MenuElement {
         val prefix = "gui.user_settings.$setting.blocks"
-        return GuiItemFactory.menuIcon(
-            GuiMenuIconSpec(
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
                 material = material,
                 name = GuiNameSpec.Text(
                     plugin.languageManager.getMessage(player, displayKey),
@@ -206,40 +205,39 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 amount = 1,
                 description = plugin.languageManager.getMessageList(player, "$prefix.description"),
                 data = listOf(
-                    GuiMenuIconData(
+                    GuiMenuEntryData(
                         plugin.languageManager.getMessage(player, "$prefix.current_label"),
                         currentValue,
-                        currentValueColor
+                        currentValueTone,
                     )
                 ),
                 options = emptyList(),
                 warnings = emptyList(),
                 dangers = emptyList(),
                 actions = listOf(
-                    GuiLoreActions.menuSingleClick(
-                        plugin.languageManager,
-                        player,
-                        plugin.languageManager.getMessage(player, actionKey)
-                    )
+                    GuiMenuEntryAction(
+                        actionId,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, actionKey),
+                    ),
                 ),
                 glint = glint,
             ),
-            tag
         )
     }
 
-    private fun tourNavigationItem(player: Player, currentMode: TourNavigationMode): ItemStack {
+    private fun tourNavigationEntry(player: Player, currentMode: TourNavigationMode, slot: Int): MenuElement {
         val lang = plugin.languageManager
         val options = TourNavigationMode.entries.map { mode ->
-            GuiMenuIconOption(
+            GuiMenuEntryOption(
                 label = lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase()}"),
                 selected = mode == currentMode,
-                selectedColor = "§b",
-                inactiveColor = "§7"
             )
         }
-        return GuiItemFactory.menuIcon(
-            GuiMenuIconSpec(
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
                 material = Material.COMPASS,
                 name = GuiNameSpec.Text(
                     lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
@@ -253,15 +251,14 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 warnings = emptyList(),
                 dangers = emptyList(),
                 actions = listOf(
-                    GuiLoreActions.menuSingleClick(
-                        lang,
-                        player,
-                        lang.getMessage(player, "gui.user_settings.cycle_action.toggle")
-                    )
+                    GuiMenuEntryAction(
+                        ACTION_TOUR_NAVIGATION,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.user_settings.cycle_action.toggle"),
+                    ),
                 ),
                 glint = null
             ),
-            ItemTag.TYPE_GUI_USER_SETTING_TOUR_NAVIGATION
         )
     }
 
