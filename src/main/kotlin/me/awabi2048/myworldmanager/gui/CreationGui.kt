@@ -18,7 +18,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContext
+import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.WorldCreationDraft
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.listener.CreationConfirmationAction
@@ -555,11 +555,18 @@ class CreationGui(private val plugin: MyWorldManager) {
             ?: error("ワールド作成セッションがありません")
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.confirmationLayout()
         val elements = mutableListOf<MenuElement>()
-        val capabilityContext =
-            CreationConfirmationCapabilityContext(player, SessionCreationDraft(session))
-        val confirmationCapability = MyWorldManagerApi.getCreationConfirmationCapabilities()
-            .firstNotNullOfOrNull { capability ->
-                capability.resolve(capabilityContext)?.let { capability to it }
+        val capabilityService = CCSystem.getAPI().getMenuCapabilityService()
+        val capabilityAttributes = mapOf<String, Any>(
+            CreationConfirmationCapabilityContract.DRAFT_ATTRIBUTE to SessionCreationDraft(session),
+        )
+        val confirmationCapability = capabilityService
+            .definitions(CreationConfirmationCapabilityContract.PLACEMENT)
+            .firstNotNullOfOrNull { definition ->
+                capabilityService.resolve(
+                    definition.capabilityId,
+                    player,
+                    attributes = capabilityAttributes,
+                )?.let { definition.capabilityId to it }
             }
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
         val generationLine: GuiLoreLine = when (session.creationType) {
@@ -714,8 +721,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ACTION_CONFIRM_INTERACTION,
                 mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.SPAWN_LOCATION.name),
             )
-            confirmationCapability?.let { (capability, view) ->
-                elements += confirmationCapabilityElement(capability.getId(), view.presentation)
+            confirmationCapability?.let { (capabilityId, resolved) ->
+                elements += confirmationCapabilityElement(capabilityId, resolved)
             }
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
             elements += MenuElement(
@@ -742,8 +749,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ACTION_CONFIRM_INTERACTION,
                 mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.BACK.name),
             )
-            confirmationCapability?.let { (capability, view) ->
-                elements += confirmationCapabilityElement(capability.getId(), view.presentation)
+            confirmationCapability?.let { (capabilityId, resolved) ->
+                elements += confirmationCapabilityElement(capabilityId, resolved)
             }
             elements += MenuElement(
                 41,
@@ -758,8 +765,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                 mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.TEMPLATE_CHANGE.name),
             )
         } else {
-            confirmationCapability?.let { (capability, view) ->
-                elements += confirmationCapabilityElement(capability.getId(), view.presentation)
+            confirmationCapability?.let { (capabilityId, resolved) ->
+                elements += confirmationCapabilityElement(capabilityId, resolved)
             }
         }
         return InventoryMenuView(
@@ -773,14 +780,24 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun confirmationCapabilityElement(
         capabilityId: String,
-        presentation: com.awabi2048.ccsystem.api.gui.MenuCapabilityPresentation,
-    ): MenuElement = MenuElement(
-        CONFIRM_CAPABILITY_SLOT,
-        CCSystem.getAPI().getGuiElementService().menuCapability(presentation),
-        GuiElementRole.ACTION,
-        ACTION_CONFIRM_CAPABILITY,
-        mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
-    )
+        resolved: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
+    ): MenuElement {
+        val interaction = if (resolved.actionable) {
+            com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
+                ACTION_CONFIRM_CAPABILITY,
+                resolved.acceptedClicks,
+                mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
+            )
+        } else {
+            com.awabi2048.ccsystem.api.gui.MenuInteraction.DisplayOnly
+        }
+        return MenuElement(
+            slot = CONFIRM_CAPABILITY_SLOT,
+            item = CCSystem.getAPI().getGuiElementService().menuCapability(resolved.presentation),
+            role = if (resolved.actionable) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+            interaction = interaction,
+        )
+    }
 
     private fun confirmationAction(context: MenuActionContext): MenuActionResult {
         val action = context.payload[CONFIRMATION_ACTION]
@@ -798,13 +815,14 @@ class CreationGui(private val plugin: MyWorldManager) {
             ?: return MenuActionResult.Ignored
         val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
-        val capability = MyWorldManagerApi.getCreationConfirmationCapabilities()
-            .firstOrNull { it.getId() == capabilityId }
-            ?: return MenuActionResult.Ignored
-        val capabilityContext =
-            CreationConfirmationCapabilityContext(context.player, SessionCreationDraft(session))
-        if (capability.resolve(capabilityContext) == null) return MenuActionResult.Ignored
-        return capability.handlePrimaryAction(capabilityContext)
+        return CCSystem.getAPI().getMenuCapabilityService().execute(
+            capabilityId,
+            context.player,
+            context.click,
+            attributes = mapOf(
+                CreationConfirmationCapabilityContract.DRAFT_ATTRIBUTE to SessionCreationDraft(session),
+            ),
+        )
     }
 
     private fun createBackButton(player: Player): ItemStack {

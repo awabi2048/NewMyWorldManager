@@ -4,7 +4,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapability
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
-import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapability
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
@@ -94,8 +93,6 @@ object MyWorldManagerApi {
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
     private val memberManagementCapabilities =
         CopyOnWriteArrayList<MemberManagementCapability>()
-    private val creationConfirmationCapabilities =
-        CopyOnWriteArrayList<CreationConfirmationCapability>()
     private val playerWorldCapabilities =
         CopyOnWriteArrayList<PlayerWorldCapability>()
     private val worldSettingsPresentationPolicies =
@@ -129,23 +126,6 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getMemberManagementCapabilities(): List<MemberManagementCapability> =
         memberManagementCapabilities.toList()
-
-    @JvmStatic
-    fun registerCreationConfirmationCapability(capability: CreationConfirmationCapability) {
-        creationConfirmationCapabilities.removeIf { it.getId() == capability.getId() }
-        creationConfirmationCapabilities.add(capability)
-    }
-
-    @JvmStatic
-    fun unregisterCreationConfirmationCapability(capability: CreationConfirmationCapability) {
-        creationConfirmationCapabilities.removeIf {
-            it === capability || it.getId() == capability.getId()
-        }
-    }
-
-    @JvmStatic
-    fun getCreationConfirmationCapabilities(): List<CreationConfirmationCapability> =
-        creationConfirmationCapabilities.toList()
 
     @JvmStatic
     fun registerPlayerWorldCapability(capability: PlayerWorldCapability) {
