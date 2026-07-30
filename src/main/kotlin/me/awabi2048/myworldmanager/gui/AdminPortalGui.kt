@@ -3,7 +3,11 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
@@ -83,27 +87,15 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             elements += createPortalEntry(player, portal, layout.itemSlots[index])
         }
         if (safePage > 0) {
-            elements += MenuElement(
-                46,
-                createNavButton(player, false),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (safePage - 1).toString()),
-            )
+            elements += navigationEntry(player, 46, false, safePage - 1)
         }
-        elements += MenuElement(49, createInfoButton(player, portals.size, safePage + 1, totalPages), GuiElementRole.CONTENT)
+        elements += createInfoEntry(player, portals.size, safePage + 1, totalPages)
         elements += createSortEntry(player, session, 51)
         if (GuiHelper.canGoBack(player)) {
-            elements += MenuElement(52, createBackButton(player), GuiElementRole.BACK, ACTION_BACK)
+            elements += backEntry(player, 52)
         }
         if (safePage < totalPages - 1) {
-            elements += MenuElement(
-                53,
-                createNavButton(player, true),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (safePage + 1).toString()),
-            )
+            elements += navigationEntry(player, 53, true, safePage + 1)
         }
         return InventoryMenuView(
             layout.size,
@@ -234,6 +226,68 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             ),
         )
     }
+
+    private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.ARROW,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                role = GuiElementRole.NAVIGATION,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_PAGE,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, key),
+                        mapOf(PAGE to targetPage.toString()),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    private fun backEntry(player: Player, slot: Int): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.REDSTONE,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
+                role = GuiElementRole.BACK,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BACK,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, "gui.common.back"),
+                    ),
+                ),
+            ),
+        )
+
+    private fun createInfoEntry(player: Player, totalCount: Int, current: Int, total: Int): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = 49,
+                item = GuiItemSpec(
+                    material = Material.PAPER,
+                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.admin.info.display")),
+                    lore = GuiLoreSpec.Blocks(
+                        listOf(
+                            GuiLoreBlock(
+                                listOf(
+                                    GuiLoreLine.Data(plugin.languageManager.getMessage(player, "gui.admin.info.total_count_label"), totalCount, "§b"),
+                                    GuiLoreLine.Data(plugin.languageManager.getMessage(player, "gui.admin.info.page_label"), "$current/$total", "§a"),
+                                ),
+                            ),
+                        ),
+                    ),
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
+        )
 
     private fun createNavButton(player: Player, next: Boolean): ItemStack =
         ItemStack(Material.ARROW).apply {
