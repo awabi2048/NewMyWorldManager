@@ -1301,6 +1301,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WORLD_SETTINGS_CAPABILITY_SLOTS,
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
+                applyCapabilities(
+                        inventory,
+                        player,
+                        WorldSettingsCapabilityPlacements.FOOTER_LEFT_ACTIONS,
+                        listOf(bottomRowStartSlot + if (isOwner) 1 else 2),
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
 
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldData.uuid, replaceCurrent)
         }
