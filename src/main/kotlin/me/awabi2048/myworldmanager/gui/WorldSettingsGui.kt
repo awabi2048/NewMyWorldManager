@@ -31,9 +31,10 @@ import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsLayoutMode
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsPresentationContext
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContext
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityView
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsCapabilityPlacements
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PortalData
@@ -363,27 +364,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                val requestSession = plugin.settingsSessionManager.getSession(player)
-                val currentShowBack = requestSession?.showBackButton ?: false
-                val currentIsPlayerWorldFlow = isPlayerWorldFlow ?: requestSession?.isPlayerWorldFlow
-                val currentParentShowBackButton =
-                        parentShowBackButton ?: requestSession?.parentShowBackButton
-
-                val overridden =
-                        MyWorldManagerApi.openWorldSettingsMenuOverride(
-                                player,
-                                worldData,
-                                WorldSettingsMenuRequest(
-                                        showBackButton = currentShowBack,
-                                        isPlayerWorldFlow = currentIsPlayerWorldFlow,
-                                        parentShowBackButton = currentParentShowBackButton
-                                )
-                        )
-                if (overridden) {
-                        return
-                }
-
-
                 val title =
                         GuiHelper.inventoryTitle(
                                 lang.getComponent(
@@ -397,13 +377,34 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val isOwner = worldData.owner == player.uniqueId || currentSession?.isAdminFlow == true
                 val isModerator = worldData.moderators.contains(player.uniqueId)
                 val isMember = worldData.members.contains(player.uniqueId)
-                val hasManagePermission = isOwner || isModerator
+                val presentationMode = MyWorldManagerApi.getWorldSettingsPresentationPolicies()
+                        .firstNotNullOfOrNull { policy ->
+                                policy.evaluate(
+                                        WorldSettingsPresentationContext(
+                                                player,
+                                                worldData,
+                                                isOwner,
+                                                isModerator,
+                                                isMember,
+                                        ),
+                                )?.layoutMode
+                        } ?: WorldSettingsLayoutMode.DEFAULT
+                val ownerActionsAllowed =
+                        isOwner && presentationMode == WorldSettingsLayoutMode.DEFAULT
+                val hasManagePermission =
+                        (isOwner || isModerator) &&
+                                presentationMode == WorldSettingsLayoutMode.DEFAULT
                 val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 val isMemberLayout = isMember && !hasManagePermission
                 val useModeratorCenteredLayout = isModerator && !isOwner
 
-                val inventorySize = if (isMemberLayout) 45 else 54
+                val inventorySize = when (presentationMode) {
+                        WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER,
+                        WorldSettingsLayoutMode.READ_ONLY_COMPACT -> 45
+                        WorldSettingsLayoutMode.READ_ONLY_DEFAULT -> 54
+                        WorldSettingsLayoutMode.DEFAULT -> if (isMemberLayout) 45 else 54
+                }
                 val bottomRowStartSlot = inventorySize - 9
                 // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定して、ツアー/Chanpon側と視線を揃える。
                 val backButtonSlot = bottomRowStartSlot + 4
@@ -561,7 +562,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット23: ワールド拡張 (オーナーのみ)
-                if (isOwner) {
+                if (ownerActionsAllowed) {
                         val config = plugin.config
                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                         val costsSection = config.getConfigurationSection("expansion.costs")
@@ -669,7 +670,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット24: 公開レベル変更 (オーナーのみ)
-                if (isOwner) {
+                if (ownerActionsAllowed) {
                         val levels =
                                 listOf(
                                         Triple(
@@ -744,7 +745,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット25: メンバー管理 (オーナーのみ)
-                if (isOwner) {
+                if (ownerActionsAllowed) {
 
                         val totalCount = worldData.members.size + worldData.moderators.size + 1
 
@@ -1012,7 +1013,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // スロット32: 環境設定 (オーナーのみ)
-                if (isOwner && !isBedrock) {
+                if (ownerActionsAllowed && !isBedrock) {
                         val environmentLoreBuilder =
                                 GuiLoreBuilder(lang, player)
                                         .block(
@@ -1045,7 +1046,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // スロット33: 重大な設定 (オーナーのみ)
                 // スロット33: 重大な設定 (オーナーのみ)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                if (isOwner && stats.criticalSettingsEnabled) {
+                if (ownerActionsAllowed && stats.criticalSettingsEnabled) {
                         val criticalLoreBuilder =
                                 GuiLoreBuilder(lang, player)
                                         .block(
@@ -1240,7 +1241,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // スロット52: 設置済みポータルの管理
                 // ワールドオーナーのみ表示
                 val hasPortals =
-                        isOwner &&
+                        ownerActionsAllowed &&
                                 plugin.portalRepository.findAll().any {
                                         it.worldKey == worldData.worldKey
                                 }
@@ -1284,6 +1285,53 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 applyCapabilities(
                         inventory,
                         player,
+                        WorldSettingsCapabilityPlacements.EXPANSION_ACTION,
+                        listOf(23),
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
+                applyCapabilities(
+                        inventory,
+                        player,
+                        WorldSettingsCapabilityPlacements.PUBLISH_ACTION,
+                        listOf(
+                                if (presentationMode == WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER) {
+                                        21
+                                } else {
+                                        24
+                                },
+                        ),
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
+                applyCapabilities(
+                        inventory,
+                        player,
+                        WorldSettingsCapabilityPlacements.NOTIFICATION_ACTION,
+                        listOf(
+                                if (presentationMode == WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER) {
+                                        22
+                                } else {
+                                        notificationSettingSlot
+                                },
+                        ),
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
+                applyCapabilities(
+                        inventory,
+                        player,
+                        WorldSettingsCapabilityPlacements.ENVIRONMENT_ACTION,
+                        listOf(32),
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
+                applyCapabilities(
+                        inventory,
+                        player,
+                        WorldSettingsCapabilityPlacements.CRITICAL_ACTION,
+                        listOf(33),
+                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
+                applyCapabilities(
+                        inventory,
+                        player,
                         WorldSettingsCapabilityPlacements.FOOTER_ACTIONS,
                         WORLD_SETTINGS_CAPABILITY_SLOTS,
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
@@ -1292,7 +1340,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory,
                         player,
                         WorldSettingsCapabilityPlacements.FOOTER_LEFT_ACTIONS,
-                        listOf(bottomRowStartSlot + if (isOwner) 1 else 2),
+                        listOf(
+                                if (presentationMode == WorldSettingsLayoutMode.COMPACT_LIMITED_OWNER) {
+                                        23
+                                } else {
+                                        bottomRowStartSlot + if (isOwner) 1 else 2
+                                },
+                        ),
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
                 applyCapabilities(
@@ -1314,12 +1368,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 arguments: Map<String, String>,
         ) {
                 val service = CCSystem.getAPI().getMenuCapabilityService()
+                val validSlots = slots.asSequence().filter { it in 0 until inventory.size }
                 service.definitions(placement)
                         .asSequence()
                         .mapNotNull { definition ->
                                 service.resolve(definition.capabilityId, player, arguments)
                         }
-                        .zip(slots.asSequence())
+                        .zip(validSlots)
                         .forEach { (resolved, slot) ->
                                 val interaction = if (resolved.actionable) {
                                         MenuInteraction.Action(

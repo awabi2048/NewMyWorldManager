@@ -27,8 +27,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldCreationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
 import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
 import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessProvider
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsPresentationPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
@@ -105,6 +104,8 @@ object MyWorldManagerApi {
         CopyOnWriteArrayList<CreationConfirmationCapability>()
     private val playerWorldCapabilities =
         CopyOnWriteArrayList<PlayerWorldCapability>()
+    private val worldSettingsPresentationPolicies =
+        CopyOnWriteArrayList<WorldSettingsPresentationPolicy>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -112,7 +113,6 @@ object MyWorldManagerApi {
     private val worldRuntimePolicies = CopyOnWriteArrayList<WorldRuntimePolicy>()
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
     private val worldPortalPolicies = CopyOnWriteArrayList<WorldPortalPolicy>()
-    private val worldSettingsMenuProviders = CopyOnWriteArrayList<WorldSettingsMenuProvider>()
     private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
     private val adminMenuProviders = CopyOnWriteArrayList<AdminMenuProvider>()
     private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
@@ -175,6 +175,23 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getPlayerWorldCapabilities(): List<PlayerWorldCapability> =
         playerWorldCapabilities.toList()
+
+    @JvmStatic
+    fun registerWorldSettingsPresentationPolicy(policy: WorldSettingsPresentationPolicy) {
+        worldSettingsPresentationPolicies.removeIf { it.getId() == policy.getId() }
+        worldSettingsPresentationPolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldSettingsPresentationPolicy(policy: WorldSettingsPresentationPolicy) {
+        worldSettingsPresentationPolicies.removeIf {
+            it === policy || it.getId() == policy.getId()
+        }
+    }
+
+    @JvmStatic
+    fun getWorldSettingsPresentationPolicies(): List<WorldSettingsPresentationPolicy> =
+        worldSettingsPresentationPolicies.toList()
 
     @JvmStatic
     fun openWorldSettings(
@@ -523,26 +540,6 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldPortalPolicy(): WorldPortalPolicy {
         return worldPortalPolicies.lastOrNull() ?: DefaultWorldPortalPolicy
-    }
-
-    @JvmStatic
-    fun registerWorldSettingsMenuProvider(provider: WorldSettingsMenuProvider) {
-        worldSettingsMenuProviders.removeIf { it.getId() == provider.getId() }
-        worldSettingsMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterWorldSettingsMenuProvider(provider: WorldSettingsMenuProvider) {
-        worldSettingsMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openWorldSettingsMenuOverride(
-        player: Player,
-        worldData: WorldData,
-        request: WorldSettingsMenuRequest
-    ): Boolean {
-        return worldSettingsMenuProviders.asReversed().any { it.open(player, worldData, request) }
     }
 
     @JvmStatic
