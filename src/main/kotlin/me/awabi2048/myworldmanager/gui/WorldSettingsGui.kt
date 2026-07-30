@@ -7,7 +7,6 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
