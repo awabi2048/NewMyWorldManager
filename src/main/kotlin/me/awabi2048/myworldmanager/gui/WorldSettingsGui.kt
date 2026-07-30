@@ -2629,16 +2629,27 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 )
                         )
                 }
+                if (
+                        capabilityView != null &&
+                        isOwner &&
+                        role != lang.getMessage(viewer, "role.owner")
+                ) {
+                        itemLore += GuiLoreLine.Spacer
+                        itemLore += GuiLoreLine.Action(
+                                lang.getMessage(viewer, "lore.click.shift_left"),
+                                lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"),
+                        )
+                        itemLore += GuiLoreLine.Action(
+                                lang.getMessage(viewer, "lore.click.shift_right"),
+                                lang.getMessage(viewer, "gui.member_management.item.action.remove_member"),
+                        )
+                }
 
                 meta.lore(
                         if (capabilityView == null) {
                                 GuiItemFactory.menuLore(itemLore)
                         } else {
-                                CCSystem.getAPI().getLoreService().render(
-                                        GuiLoreSpec.Blocks(
-                                                capabilityView.presentation.embeddedLoreBlocks,
-                                        ),
-                                )
+                                GuiItemFactory.menuLore(itemLore)
                         },
                 )
                 item.itemMeta = meta
