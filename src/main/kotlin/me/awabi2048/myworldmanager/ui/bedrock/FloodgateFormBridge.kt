@@ -101,6 +101,22 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
         return forms.show(player, request)
     }
 
+    fun sendSimpleFormResult(
+        player: Player,
+        title: String,
+        content: String,
+        buttons: List<String>,
+        onSelect: (Int) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null,
+    ): Boolean = sendSimpleFormWithImagesResult(
+        player,
+        title,
+        content,
+        buttons.map(::SimpleFormButton),
+        onSelect,
+        onClosed,
+    )
+
     fun sendCustomInputForm(
         player: Player,
         title: String,
@@ -116,6 +132,28 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
         { values -> onSubmit(values.firstOrNull().orEmpty()) },
         onClosed
     )
+
+    fun sendCustomInputFormResult(
+        player: Player,
+        title: String,
+        label: String,
+        placeholder: String,
+        defaultValue: String,
+        onSubmit: (String) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null,
+    ): Boolean {
+        val request = MenuCustomFormRequest(
+            owner = "my-world-manager",
+            id = "custom-input-form",
+            title = title,
+            inputs = listOf(MenuFormInput.Text("value", label, placeholder, defaultValue)),
+            handler = MenuFormHandler { _, response -> onSubmit(response.textValue("value")) },
+            onClosed = onClosed?.let { handler ->
+                MenuFormHandler { _, _ -> handler() }
+            },
+        )
+        return forms.show(player, request)
+    }
 
     fun sendCustomForm(
         player: Player,

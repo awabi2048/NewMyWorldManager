@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.api.internal
 
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import me.awabi2048.myworldmanager.api.service.ApiBedrockFormService
 import me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
 import me.awabi2048.myworldmanager.ui.PlayerPlatformResolver
@@ -16,9 +17,9 @@ class BedrockFormServiceAdapter(
         title: String,
         content: String,
         buttons: List<String>,
-        onSelect: (Int) -> Unit,
-        onClosed: (() -> Unit)?
-    ): Boolean = formBridge.sendSimpleForm(player, title, content, buttons, onSelect, onClosed)
+        onSelect: (Int) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)?
+    ): Boolean = formBridge.sendSimpleFormResult(player, title, content, buttons, onSelect, onClosed)
 
     override fun sendCustomInputForm(
         player: Player,
@@ -26,9 +27,9 @@ class BedrockFormServiceAdapter(
         label: String,
         placeholder: String,
         defaultValue: String,
-        onSubmit: (String) -> Unit,
-        onClosed: (() -> Unit)?
-    ): Boolean = formBridge.sendCustomInputForm(
+        onSubmit: (String) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)?
+    ): Boolean = formBridge.sendCustomInputFormResult(
         player,
         title,
         label,
