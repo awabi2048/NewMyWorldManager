@@ -1613,9 +1613,25 @@ class WorldSettingsListener : Listener {
                 player.sendMessage(
                         changedMessage
                 )
-                plugin.settingsSessionManager.endSession(player)
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.VIEW_SETTINGS,
+                        isGui = true,
+                )
+                val restoredSession = plugin.settingsSessionManager.getSession(player)
+                val restoredRoute = MyWorldManagerApi.prepareWorldSettingsRoute(
+                        player,
+                        worldData.uuid,
+                        me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest(
+                                showBackButton = restoredSession?.showBackButton ?: true,
+                                isAdminFlow = restoredSession?.isAdminFlow ?: false,
+                                isPlayerWorldFlow = restoredSession?.isPlayerWorldFlow,
+                                parentShowBackButton = restoredSession?.parentShowBackButton,
+                        ),
+                ) ?: return MenuActionResult.Rejected()
                 return MenuActionResult.Success(
-                        MenuUpdate.Replace(plugin.worldSettingsGui.route(worldData.uuid)),
+                        MenuUpdate.Replace(restoredRoute),
                 )
         }
 

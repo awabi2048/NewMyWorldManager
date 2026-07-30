@@ -1542,11 +1542,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 val item = CCSystem.getAPI().getGuiElementService()
                                         .menuCapability(presentation)
                                 val interaction = if (resolved.actionable) {
-                                        MenuInteraction.Action(
-                                                actionId = ACTION_CAPABILITY,
+                                        MenuInteraction.Capability(
+                                                capabilityId = resolved.capabilityId,
+                                                arguments = arguments,
                                                 acceptedClicks = resolved.acceptedClicks,
-                                                payload = arguments +
-                                                        (CAPABILITY_ID_PAYLOAD to resolved.capabilityId),
                                         )
                                 } else {
                                         MenuInteraction.DisplayOnly

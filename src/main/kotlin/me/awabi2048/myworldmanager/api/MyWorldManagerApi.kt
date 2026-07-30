@@ -92,6 +92,10 @@ object MyWorldManagerApi {
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
     private val worldSettingsStatePolicies =
         CopyOnWriteArrayList<WorldSettingsStatePolicy>()
+    private val worldSettingsRouteProviders =
+        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteProvider>()
+    private val playerWorldRouteProviders =
+        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteProvider>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -123,13 +127,43 @@ object MyWorldManagerApi {
         worldSettingsStatePolicies.toList()
 
     @JvmStatic
+    fun registerWorldSettingsRouteProvider(
+        provider: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteProvider,
+    ) {
+        worldSettingsRouteProviders.remove(provider)
+        worldSettingsRouteProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterWorldSettingsRouteProvider(
+        provider: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteProvider,
+    ) {
+        worldSettingsRouteProviders.remove(provider)
+    }
+
+    @JvmStatic
+    fun registerPlayerWorldRouteProvider(
+        provider: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteProvider,
+    ) {
+        playerWorldRouteProviders.remove(provider)
+        playerWorldRouteProviders.add(provider)
+    }
+
+    @JvmStatic
+    fun unregisterPlayerWorldRouteProvider(
+        provider: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteProvider,
+    ) {
+        playerWorldRouteProviders.remove(provider)
+    }
+
+    @JvmStatic
     fun prepareWorldSettingsRoute(
         player: Player,
         worldUuid: UUID,
         request: WorldSettingsNavigationRequest = WorldSettingsNavigationRequest(),
     ): com.awabi2048.ccsystem.api.gui.MenuRoute? {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
         plugin.settingsSessionManager.updateSessionAction(
             player,
             worldUuid,
@@ -140,7 +174,97 @@ object MyWorldManagerApi {
             parentShowBackButton = request.parentShowBackButton,
         )
         plugin.settingsSessionManager.getSession(player)?.showBackButton = request.showBackButton
+        worldSettingsRouteProviders.asReversed().forEach { provider ->
+            provider.prepare(player, worldData, request)?.let { return it }
+        }
         return plugin.worldSettingsGui.route(worldUuid)
+    }
+
+    @JvmStatic
+    fun preparePlayerWorldRoute(
+        player: Player,
+        request: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteRequest,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute {
+        playerWorldRouteProviders.asReversed().forEach { provider ->
+            provider.prepare(player, request)?.let { return it }
+        }
+        return JavaPlugin.getPlugin(MyWorldManager::class.java).playerWorldGui.route(
+            request.page,
+            request.targetPlayerUuid,
+            request.targetPlayerName,
+            request.showBackButton,
+        )
+    }
+
+    @JvmStatic
+    fun getPlayerWorlds(playerUuid: UUID): List<WorldData> =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).playerWorldGui
+            .getPlayerWorlds(playerUuid)
+
+    @JvmStatic
+    fun prepareUserSettingsRoute(
+        player: Player,
+        showBackButton: Boolean = true,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute? =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).userSettingsGui
+            .prepareOpen(player, showBackButton)
+
+    @JvmStatic
+    fun preparePendingInteractionRoute(
+        page: Int,
+        returnPage: Int,
+        showBackButton: Boolean,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).pendingInteractionGui
+            .prepareOpen(page, returnPage, showBackButton, fromBedrockMenu = false)
+
+    @JvmStatic
+    fun getPendingInteractionSummary(
+        playerUuid: UUID,
+    ): me.awabi2048.myworldmanager.api.extension.PendingInteractionSummary {
+        val manager = JavaPlugin.getPlugin(MyWorldManager::class.java).pendingDecisionManager
+        return me.awabi2048.myworldmanager.api.extension.PendingInteractionSummary(
+            manager.getPendingCount(playerUuid),
+            manager.getLatestPendingCreatedAt(playerUuid),
+        )
+    }
+
+    @JvmStatic
+    fun executeWorldSettingsAction(
+        request: me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest,
+    ): com.awabi2048.ccsystem.api.gui.MenuActionResult {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(request.worldUuid)
+            ?: return com.awabi2048.ccsystem.api.gui.MenuActionResult.Rejected()
+        val operation = when (request.action) {
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.WARP ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.WARP
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_INFO ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.EDIT_INFO
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.SELECT_ICON ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.SELECT_ICON
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.SET_SPAWN ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.SET_SPAWN
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_MEMBERS ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.MANAGE_MEMBERS
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_ANNOUNCEMENT ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_TOUR ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.TOUR
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_PORTALS ->
+                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.MANAGE_PORTALS
+        }
+        return plugin.worldSettingsListener.handleRuntimeInventoryClick(
+            request.player,
+            request.click,
+            org.bukkit.inventory.ItemStack(org.bukkit.Material.STONE),
+            -1,
+            me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeContext(
+                screen = me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeScreen.WORLD_SETTINGS,
+                worldUuid = worldData.uuid,
+                operation = operation,
+            ),
+        )
     }
 
     @JvmStatic
@@ -185,6 +309,13 @@ object MyWorldManagerApi {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         plugin.worldSettingsGui.toggleNotification(player, worldData)
         return true
+    }
+
+    @JvmStatic
+    fun hasWorldPortals(worldUuid: UUID): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
+        return plugin.portalRepository.findAll().any { it.worldKey == worldData.worldKey }
     }
 
     @JvmStatic

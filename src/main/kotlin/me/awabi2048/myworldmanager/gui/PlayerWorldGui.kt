@@ -513,7 +513,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         player.uniqueId in worldData.moderators ||
                         player.uniqueId in worldData.members
 
-        private fun route(
+        internal fun route(
                 page: Int,
                 targetUuid: UUID,
                 targetName: String?,

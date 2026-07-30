@@ -33,7 +33,16 @@ class MenuEntryRouter(
             return
         }
 
-        plugin.playerWorldGui.open(player, page, showBackButton, targetPlayerUuid, targetPlayerName)
+        val route = me.awabi2048.myworldmanager.api.MyWorldManagerApi.preparePlayerWorldRoute(
+            player,
+            me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteRequest(
+                page,
+                showBackButton,
+                targetPlayerUuid,
+                targetPlayerName,
+            ),
+        )
+        CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
     }
 
     fun openUserSettings(player: Player, showBackButton: Boolean = false) {
@@ -53,7 +62,13 @@ class MenuEntryRouter(
             return
         }
 
-        plugin.worldSettingsGui.open(player, worldData, showBackButton)
+        me.awabi2048.myworldmanager.api.MyWorldManagerApi.openWorldSettings(
+            player,
+            worldData.uuid,
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest(
+                showBackButton = showBackButton,
+            ),
+        )
     }
 
     fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
