@@ -4,6 +4,7 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import org.bukkit.entity.Player
@@ -149,8 +150,9 @@ enum class CustomItem(val id: String) {
         private fun actionLore(lang: LanguageManager, player: Player?, key: String) =
             CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
                 GuiLoreBlock(lang.getMessageList(player, "$key.description").map(GuiLoreLine::Text)),
-                GuiLoreBlock(listOf(GuiLoreLine.Action(
-                    lang.getMessage(player, "lore.click.right"),
+                GuiLoreBlock(listOf(GuiLoreLine.Interaction(
+                    player,
+                    MenuAcceptedClicks.RIGHT,
                     lang.getMessage(player, "$key.action")
                 )))
             )))

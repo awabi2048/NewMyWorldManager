@@ -188,7 +188,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             AdminMenuCapabilityPlacements.WORLD_LIST_ACTION,
         )
         elements += if (worldListAction != null) {
-            capabilityElement(38, worldListAction)
+            capabilityElement(player, 38, worldListAction)
         } else {
             actionElement(38, createActionItem(player,
                 Material.FILLED_MAP,
@@ -204,7 +204,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             AdminMenuCapabilityPlacements.MENU_SWITCH,
         )
         if (menuSwitch != null) {
-            elements += capabilityElement(40, menuSwitch, GuiElementRole.NAVIGATION)
+            elements += capabilityElement(player, 40, menuSwitch, GuiElementRole.NAVIGATION)
         } else {
             elements += MenuElement(
                 40,
@@ -266,15 +266,20 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         .firstOrNull()
 
     private fun capabilityElement(
+        player: Player,
         slot: Int,
         capability: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
         role: GuiElementRole = GuiElementRole.ACTION,
     ): MenuElement {
         val presentation = capability.presentation
-        val item = CCSystem.getAPI().getGuiElementService()
-            .menuCapability(
-                presentation.copy(item = presentation.item.copy(role = role)),
-            )
+        val item = CCSystem.getAPI().getGuiElementService().menuCapability(
+            player,
+            capability.copy(
+                presentation = presentation.copy(
+                    item = presentation.item.copy(role = role),
+                ),
+            ),
+        )
         return MenuElement(
             slot = slot,
             item = item,

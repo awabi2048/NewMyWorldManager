@@ -199,7 +199,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         elements += capability?.let {
                                 MenuElement(
                                         layout.itemSlots[index],
-                                        CCSystem.getAPI().getGuiElementService().menuCapability(it.presentation),
+                                        CCSystem.getAPI().getGuiElementService().menuCapability(player, it),
                                         GuiElementRole.ACTION,
                                         interaction = com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
                                                 ACTION_WORLD,
@@ -228,7 +228,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 elements += MenuElement(
                                         layout.actionSlot - 2,
                                         CCSystem.getAPI().getGuiElementService()
-                                                .menuCapability(capabilityView.presentation),
+                                                .menuCapability(player, capabilityView),
                                         if (capabilityView.actionable) {
                                                 GuiElementRole.ACTION
                                         } else {
@@ -275,7 +275,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 }
                                 ?.let {
                                         CCSystem.getAPI().getGuiElementService()
-                                                .menuCapability(it.presentation)
+                                                .menuCapability(player, it)
                                 }
                                 ?: createStatsButton(player, targetUuid, targetName, createCount, maxSlot, stats),
                         GuiElementRole.CONTENT,

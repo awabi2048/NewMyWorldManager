@@ -1,7 +1,6 @@
 package me.awabi2048.myworldmanager.api.extension
 
 import com.awabi2048.ccsystem.api.gui.MenuRoute
-import com.awabi2048.ccsystem.api.gui.GuiClickLabel
 import com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy
 import java.util.UUID
 import me.awabi2048.myworldmanager.model.WorldData
@@ -71,7 +70,6 @@ data class WorldSettingsActionContract(
 
 data class WorldSettingsActionOption(
     val acceptedClicks: Set<ClickType>,
-    val displayClick: GuiClickLabel,
 )
 
 data class PendingInteractionSummary(

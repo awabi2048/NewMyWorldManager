@@ -1453,7 +1453,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         .forEach { (resolved, slot) ->
                                 val presentation = resolved.presentation
                                 val item = CCSystem.getAPI().getGuiElementService()
-                                        .menuCapability(presentation)
+                                        .menuCapability(player, resolved)
                                 val interaction = if (resolved.actionable) {
                                         MenuInteraction.Capability(
                                                 capabilityId = resolved.capabilityId,

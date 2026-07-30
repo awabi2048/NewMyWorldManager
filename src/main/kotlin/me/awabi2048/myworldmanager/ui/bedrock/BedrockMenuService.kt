@@ -448,7 +448,7 @@ class BedrockMenuService(
             } else {
                 inventory.setActionItem(
                     slot,
-                    CCSystem.getAPI().getGuiElementService().menuCapability(capability.presentation),
+                    CCSystem.getAPI().getGuiElementService().menuCapability(player, capability),
                     "capability_world",
                     mapOf("world" to worldData.uuid.toString(), "capability" to capability.capabilityId),
                     acceptedClicks = capability.acceptedClicks,
@@ -485,7 +485,7 @@ class BedrockMenuService(
             }
         if (creationCapability != null) {
             val item = CCSystem.getAPI().getGuiElementService()
-                .menuCapability(creationCapability.presentation)
+                .menuCapability(player, creationCapability)
             if (creationCapability.actionable) {
                 inventory.setActionItem(
                     footerStart + 2,
@@ -512,7 +512,7 @@ class BedrockMenuService(
                 )
             }
         if (summaryCapability != null) {
-            val statsItem = CCSystem.getAPI().getGuiElementService().menuCapability(summaryCapability.presentation)
+            val statsItem = CCSystem.getAPI().getGuiElementService().menuCapability(player, summaryCapability)
             if (summaryCapability.actionable) {
                 inventory.setActionItem(
                     footerStart + 4,

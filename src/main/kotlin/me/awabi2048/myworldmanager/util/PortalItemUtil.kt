@@ -4,6 +4,7 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -84,11 +85,12 @@ object PortalItemUtil {
                 ))))
             }
             add(GuiLoreBlock(buildList {
-                add(GuiLoreLine.Action(
-                    lang.getMessage(player, "lore.click.right"),
+                add(GuiLoreLine.Interaction(
+                    player,
+                    MenuAcceptedClicks.RIGHT,
                     lang.getMessage(player, if (destination == null) "gui.portal_item.action.link" else "gui.portal_item.action.place")
                 ))
-                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.shift_right"), lang.getMessage(player, "gui.portal_item.action.unlink")))
+                add(GuiLoreLine.Interaction(player, MenuAcceptedClicks.SHIFT_RIGHT, lang.getMessage(player, "gui.portal_item.action.unlink")))
             }))
         }))
 }

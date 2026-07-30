@@ -697,7 +697,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ),
             )
             confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(capabilityId, resolved)
+                elements += confirmationCapabilityElement(player, capabilityId, resolved)
             }
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
             elements += MenuElement(
@@ -725,7 +725,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.BACK.name),
             )
             confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(capabilityId, resolved)
+                elements += confirmationCapabilityElement(player, capabilityId, resolved)
             }
             elements += MenuElement(
                 41,
@@ -741,7 +741,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         } else {
             confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(capabilityId, resolved)
+                elements += confirmationCapabilityElement(player, capabilityId, resolved)
             }
         }
         return InventoryMenuView(
@@ -754,6 +754,7 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun confirmationCapabilityElement(
+        player: Player,
         capabilityId: String,
         resolved: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
     ): MenuElement {
@@ -768,7 +769,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
         return MenuElement(
             slot = CONFIRM_CAPABILITY_SLOT,
-            item = CCSystem.getAPI().getGuiElementService().menuCapability(resolved.presentation),
+            item = CCSystem.getAPI().getGuiElementService().menuCapability(player, resolved),
             role = if (resolved.actionable) GuiElementRole.ACTION else GuiElementRole.CONTENT,
             interaction = interaction,
         )
