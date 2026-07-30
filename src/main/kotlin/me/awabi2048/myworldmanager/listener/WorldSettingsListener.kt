@@ -350,7 +350,15 @@ class WorldSettingsListener : Listener {
                         WorldSettingsRuntimeOperation.EXPAND_AUTOMATIC -> {
                                 session.expansionDirection = null
                                 val cost = calculateExpansionCost(worldData.borderExpansionLevel)
-                                openExpandConfirmationByPreference(player, worldData.uuid, null, cost)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.expansionConfirmationRoute(
+                                                        worldData.uuid,
+                                                        null,
+                                                        cost,
+                                                ),
+                                        ),
+                                )
                         }
                         WorldSettingsRuntimeOperation.EXPAND_DIRECTION -> {
                                 startExpansionDirectionSelection(player, session)
@@ -372,22 +380,29 @@ class WorldSettingsListener : Listener {
                                                 )
                                                 .build()
                                 )
+                                return MenuActionResult.Success(MenuUpdate.Close)
                         }
                         WorldSettingsRuntimeOperation.EXPANSION_STEP_BACK -> {
                                 if (worldData.latestBorderExpansionRecord() == null) {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.expansion_step_back_unavailable"))
-                                        plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
+                                        return MenuActionResult.Rejected()
                                 } else {
-                                        openExpansionStepBackConfirmationByPreference(player, worldData)
+                                        return MenuActionResult.Success(
+                                                MenuUpdate.Navigate(
+                                                        plugin.worldSettingsGui.runtimeRoute(
+                                                                WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM,
+                                                                worldData.uuid,
+                                                        ),
+                                                ),
+                                        )
                                 }
                         }
                         WorldSettingsRuntimeOperation.BACK -> {
                                 stopBorderDirectionPreview(player)
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                return MenuActionResult.Success(MenuUpdate.Back)
                         }
                         else -> return MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handleVisitorManagementRuntimeClick(
@@ -407,48 +422,35 @@ class WorldSettingsListener : Listener {
                         val targetPage = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_PAGE]
                                 ?.toIntOrNull()
                                 ?: return MenuActionResult.Ignored
-                        plugin.worldSettingsGui.openVisitorManagement(
-                                player,
-                                worldData,
-                                targetPage,
-                                replaceCurrent = true,
+                        return MenuActionResult.Success(
+                                MenuUpdate.Replace(
+                                        plugin.worldSettingsGui.runtimeRoute(
+                                                WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
+                                                worldData.uuid,
+                                                page = targetPage,
+                                        ),
+                                ),
                         )
-                        return MenuActionResult.Success(MenuUpdate.None)
                 }
                 if (operation == WorldSettingsRuntimeOperation.VISITOR && (click.isLeftClick || click.isRightClick)) {
                         val visitorUuid = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_TARGET_UUID]
                                 ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                                 ?: return MenuActionResult.Ignored
-                        val lang = plugin.languageManager
-                        val targetName = PlayerNameUtil.getNameOrDefault(visitorUuid, lang.getMessage(player, "general.unknown"))
-                        val dialogTitle = LegacyComponentSerializer.legacySection().deserialize(
-                                lang.getMessage(player, "gui.visitor_management.kick_confirm.title", mapOf("player" to targetName))
-                        )
-                        val bodyLines = listOf(
-                                LegacyComponentSerializer.legacySection().deserialize(
-                                        lang.getMessage(player, "gui.visitor_management.kick_confirm.question")
-                                ),
-                                Component.text("${lang.getMessage(player, "gui.visitor_management.kick_confirm.player_label")}: ", NamedTextColor.GRAY)
-                                        .append(Component.text(targetName, NamedTextColor.WHITE)),
-                        )
                         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VISITOR_KICK_CONFIRM, isGui = true)
-                        DialogConfirmManager.showConfirmationByPreference(
-                                player, plugin, dialogTitle, bodyLines,
-                                "mwm:confirm/visitor_kick/$visitorUuid", "mwm:confirm/cancel",
-                                lang.getMessage(player, "gui.visitor_management.kick_confirm.confirm"),
-                                lang.getMessage(player, "gui.visitor_management.kick_confirm.cancel"),
-                                onBedrockConfirm = {
-                                        handleBedrockDialogAction(player, worldData, "mwm:confirm/visitor_kick/$visitorUuid")
-                                },
-                                onBedrockCancel = { handleBedrockDialogCancel(player, worldData) },
-                        ) {
-                                plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, visitorUuid)
-                        }
+                        return MenuActionResult.Success(
+                                MenuUpdate.Navigate(
+                                        plugin.worldSettingsGui.runtimeRoute(
+                                                WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM,
+                                                worldData.uuid,
+                                                targetUuid = visitorUuid,
+                                        ),
+                                ),
+                        )
                 } else if (operation == WorldSettingsRuntimeOperation.BACK) {
                         stopBorderDirectionPreview(player)
-                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                        return MenuActionResult.Success(MenuUpdate.Back)
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Ignored
         }
 
         private fun handleCriticalSettingsRuntimeClick(
@@ -466,42 +468,21 @@ class WorldSettingsListener : Listener {
                 when (runtimeContext.operation) {
                         WorldSettingsRuntimeOperation.BACK -> {
                                 stopBorderDirectionPreview(player)
-                                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                                return MenuActionResult.Success(MenuUpdate.Back)
                         }
                         WorldSettingsRuntimeOperation.RESET_EXPANSION -> {
-                                if (worldData.borderExpansionLevel <= 0) return MenuActionResult.Success(MenuUpdate.None)
-                                val title = LegacyComponentSerializer.legacySection().deserialize(
-                                        plugin.languageManager.getMessage(player, "gui.confirm.reset_expansion.title")
-                                )
-                                val bodyTextLines = plugin.languageManager
-                                        .getMessageList(player, "gui.confirm.reset_expansion.lore")
-                                        .toMutableList()
-                                if (worldData.hasModifiedBorderExpansion()) {
-                                        bodyTextLines.addAll(
-                                                plugin.languageManager.getMessageList(
-                                                        player,
-                                                        "gui.confirm.reset_expansion.modified_warning"
-                                                )
-                                        )
-                                }
-                                appendSpawnAdjustmentWarning(player, worldData, worldDataResetTarget(worldData))
-                                        ?.let(bodyTextLines::addAll)
-                                val bodyLines = bodyTextLines.map { LegacyComponentSerializer.legacySection().deserialize(it) }
+                                if (worldData.borderExpansionLevel <= 0) return MenuActionResult.Ignored
                                 plugin.settingsSessionManager.updateSessionAction(
                                         player, worldData.uuid, SettingsAction.RESET_EXPANSION_CONFIRM, isGui = true
                                 )
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player, plugin, title, bodyLines,
-                                        "mwm:confirm/reset_expansion", "mwm:confirm/cancel",
-                                        plugin.languageManager.getMessage(player, "gui.common.confirm"),
-                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
-                                        onBedrockConfirm = {
-                                                handleBedrockDialogAction(player, worldData, "mwm:confirm/reset_expansion")
-                                        },
-                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
-                                ) {
-                                        plugin.worldSettingsGui.openResetExpansionConfirmation(player, worldData)
-                                }
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.runtimeRoute(
+                                                        WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM,
+                                                        worldData.uuid,
+                                                ),
+                                        ),
+                                )
                         }
                         WorldSettingsRuntimeOperation.ARCHIVE -> {
                                 val cooldownHours = plugin.config.getLong("critical_settings.archive_cooldown_hours", 24L)
@@ -525,65 +506,39 @@ class WorldSettingsListener : Listener {
                                                 player, "messages.archive_cooldown",
                                                 mapOf("cooldown_hours" to cooldownHours, "hours_remaining" to hoursRemaining)
                                         ))
-                                        return MenuActionResult.Success(MenuUpdate.None)
+                                        return MenuActionResult.Rejected()
                                 }
-                                val title = LegacyComponentSerializer.legacySection().deserialize(
-                                        plugin.languageManager.getMessage(player, "gui.archive.confirm_title")
-                                )
-                                val bodyLines = listOf(LegacyComponentSerializer.legacySection().deserialize(
-                                        plugin.languageManager.getMessage(player, "gui.common.confirm_warning")
-                                ))
                                 plugin.settingsSessionManager.updateSessionAction(
                                         player, worldData.uuid, SettingsAction.ARCHIVE_WORLD_FROM_CRITICAL, isGui = true
                                 )
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player, plugin, title, bodyLines,
-                                        "mwm:confirm/archive_world_critical", "mwm:confirm/cancel",
-                                        plugin.languageManager.getMessage(player, "gui.archive.confirm"),
-                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
-                                        onBedrockConfirm = {
-                                                handleBedrockDialogAction(player, worldData, "mwm:confirm/archive_world_critical")
-                                        },
-                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
-                                ) {
-                                        plugin.worldSettingsGui.openArchiveConfirmation(
-                                                player,
-                                                worldData,
-                                                fromCriticalSettings = true,
-                                        )
-                                }
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.runtimeRoute(
+                                                        WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM,
+                                                        worldData.uuid,
+                                                ),
+                                        ),
+                                )
                         }
                         WorldSettingsRuntimeOperation.DELETE_WORLD -> {
                                 if (!canOwnerExecuteDelete(worldData)) {
                                         sendDeleteUnavailableMessage(player)
-                                        plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                                        return MenuActionResult.Success(MenuUpdate.None)
+                                        return MenuActionResult.Rejected()
                                 }
-                                val title = LegacyComponentSerializer.legacySection().deserialize(
-                                        plugin.languageManager.getMessage(player, "gui.confirm.delete_1.title")
-                                )
-                                val bodyLines = plugin.languageManager
-                                        .getMessageList(player, "gui.confirm.delete_1.lore")
-                                        .map { LegacyComponentSerializer.legacySection().deserialize(it) }
                                 plugin.settingsSessionManager.updateSessionAction(
                                         player, worldData.uuid, SettingsAction.DELETE_WORLD_CONFIRM, isGui = true
                                 )
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player, plugin, title, bodyLines,
-                                        "mwm:confirm/delete_world_step1", "mwm:confirm/cancel",
-                                        plugin.languageManager.getMessage(player, "gui.confirm.delete_1.next"),
-                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
-                                        onBedrockConfirm = {
-                                                handleBedrockDialogAction(player, worldData, "mwm:confirm/delete_world_step1")
-                                        },
-                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) }
-                                ) {
-                                        plugin.worldSettingsGui.openDeleteWorldConfirmation1(player, worldData)
-                                }
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(
+                                                plugin.worldSettingsGui.runtimeRoute(
+                                                        WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM,
+                                                        worldData.uuid,
+                                                ),
+                                        ),
+                                )
                         }
                         else -> return MenuActionResult.Ignored
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun handlePortalManagementRuntimeClick(
@@ -604,13 +559,15 @@ class WorldSettingsListener : Listener {
                         val targetPage = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_PAGE]
                                 ?.toIntOrNull()
                                 ?: return MenuActionResult.Ignored
-                        plugin.worldSettingsGui.openPortalManagement(
-                                player,
-                                worldData,
-                                targetPage,
-                                replaceCurrent = true,
+                        return MenuActionResult.Success(
+                                MenuUpdate.Replace(
+                                        plugin.worldSettingsGui.runtimeRoute(
+                                                WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT,
+                                                worldData.uuid,
+                                                page = targetPage,
+                                        ),
+                                ),
                         )
-                        return MenuActionResult.Success(MenuUpdate.None)
                 }
                 if (operation == WorldSettingsRuntimeOperation.PORTAL) {
                         val portalId = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_TARGET_UUID]
@@ -619,14 +576,16 @@ class WorldSettingsListener : Listener {
                         val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
                         if (!isBedrock && click.isRightClick) {
                                 removePortalFromManagement(player, worldData, portalId, lang)
+                                return MenuActionResult.Success(MenuUpdate.Refresh)
                         } else if (click.isLeftClick) {
                                 teleportToManagedPortal(player, portalId, lang)
+                                return MenuActionResult.Success(MenuUpdate.Close)
                         }
                 } else if (operation == WorldSettingsRuntimeOperation.BACK) {
                         stopBorderDirectionPreview(player)
-                        CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                        return MenuActionResult.Success(MenuUpdate.Back)
                 }
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Ignored
         }
 
         private fun removePortalFromManagement(

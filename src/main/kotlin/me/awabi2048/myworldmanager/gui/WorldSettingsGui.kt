@@ -252,6 +252,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return MenuRoute(RUNTIME_OWNER, RUNTIME_ROUTE, payload)
         }
 
+        internal fun expansionConfirmationRoute(
+                worldUuid: UUID,
+                direction: org.bukkit.block.BlockFace?,
+                cost: Int,
+        ): MenuRoute = runtimeRoute(
+                WorldSettingsRuntimeScreen.EXPANSION_CONFIRM,
+                worldUuid,
+                arguments = mapOf(
+                        ROUTE_EXPANSION_COST to cost.toString(),
+                        ROUTE_EXPANSION_DIRECTION to (direction?.name ?: ROUTE_NULL_VALUE),
+                ),
+        )
+
         private class RuntimeItemBuffer(val size: Int) {
                 private val items = arrayOfNulls<ItemStack>(size)
                 private val semantics = mutableMapOf<Int, RuntimeItemSemantics>()
