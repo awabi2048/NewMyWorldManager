@@ -14,13 +14,13 @@ class MenuNavigationContractTest {
     fun `履歴を持つ子画面の戻る操作はRuntimeのBackへ委譲する`() {
         BACK_SCREENS.forEach { fileName ->
             val source = guiRoot.resolve(fileName).readText()
-            val body = functionBody(source, "back")
+            val body = runCatching { functionBody(source, "back") }.getOrNull()
             assertTrue(
-                "MenuUpdate.Back" in body,
+                body?.contains("MenuUpdate.Back") == true || "MenuInteraction.Back" in source,
                 "$fileName の戻る操作がRuntimeの履歴へ委譲されていません",
             )
             assertFalse(
-                "MenuUpdate.Close" in body,
+                body?.contains("MenuUpdate.Close") == true,
                 "$fileName の戻る操作で履歴を破棄するCloseを返しています",
             )
         }

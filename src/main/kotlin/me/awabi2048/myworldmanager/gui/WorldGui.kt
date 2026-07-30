@@ -12,9 +12,11 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -25,7 +27,6 @@ import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.StructuredLore
-import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -62,7 +63,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         ACTION_SORT to MenuActionHandler(::sort),
                                         ACTION_CURRENT_WORLD to MenuActionHandler(::currentWorld),
                                         ACTION_WORLD to MenuActionHandler(::world),
-                                        ACTION_BACK to MenuActionHandler(::back),
                                 ),
                                 onClose = MenuCloseHandler(::closed),
                         ),
@@ -87,7 +87,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 private const val ACTION_SORT = "sort"
                 private const val ACTION_CURRENT_WORLD = "currentWorld"
                 private const val ACTION_WORLD = "world"
-                private const val ACTION_BACK = "back"
         }
 
         /**
@@ -151,7 +150,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 if (currentWorldData != null) {
-                        inventory.setItem(4, createCurrentWorldInfoItem(player, currentWorldData))
+                        inventory.setAction(
+                                4,
+                                createCurrentWorldInfoItem(player, currentWorldData),
+                                GuiElementRole.ACTION,
+                                ACTION_CURRENT_WORLD,
+                                mapOf(WORLD_UUID to currentWorldData.uuid.toString()),
+                                MenuAcceptedClicks.STANDARD,
+                        )
                 }
 
                 // ワールドアイテムの配置 (スロット9から44まで)
@@ -159,7 +165,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val pageWorlds = filteredWorlds.drop(startIndex).take(itemsPerPage)
 
                 pageWorlds.forEachIndexed { index, worldData ->
-                        inventory.setItem(layout.itemSlots[index], createWorldItem(player, worldData))
+                        inventory.setAction(
+                                layout.itemSlots[index],
+                                createWorldItem(player, worldData),
+                                GuiElementRole.ACTION,
+                                ACTION_WORLD,
+                                mapOf(WORLD_UUID to worldData.uuid.toString()),
+                                MenuAcceptedClicks.STANDARD,
+                        )
                 }
 
                 // 6行目のレイアウト:
@@ -169,43 +182,47 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 // ページ移動ボタン（最終行の右端2つ）
                 if (safePage > 0) {
-                        inventory.setItem(
+                        inventory.setAction(
                                 52,
                                 createNavButton(
                                         player,
                                         lang.getMessage("gui.common.prev_page"),
                                         Material.ARROW,
-                                        safePage - 1,
                                         safePage + 1,
                                         totalPages,
                                         isNext = false
-                                )
+                                ),
+                                GuiElementRole.NAVIGATION,
+                                ACTION_PAGE,
+                                mapOf(PAGE to (safePage - 1).toString()),
                         )
                 } else {
                         inventory.setItem(52, blackPane)
                 }
 
                 if (safePage < totalPages - 1) {
-                        inventory.setItem(
+                        inventory.setAction(
                                 53,
                                 createNavButton(
                                         player,
                                         lang.getMessage("gui.common.next_page"),
                                         Material.ARROW,
                                         safePage + 1,
-                                        safePage + 1,
                                         totalPages,
                                         isNext = true
-                                )
+                                ),
+                                GuiElementRole.NAVIGATION,
+                                ACTION_PAGE,
+                                mapOf(PAGE to (safePage + 1).toString()),
                         )
                 } else {
                         inventory.setItem(53, blackPane)
                 }
 
                 // フィルターボタン
-                inventory.setItem(46, createArchiveFilterButton(player, session))
-                inventory.setItem(47, createPublishFilterButton(player, session))
-                inventory.setItem(48, createPlayerFilterButton(player, session))
+                inventory.setAction(46, createArchiveFilterButton(player, session), GuiElementRole.ACTION, ACTION_ARCHIVE_FILTER)
+                inventory.setAction(47, createPublishFilterButton(player, session), GuiElementRole.ACTION, ACTION_PUBLISH_FILTER)
+                inventory.setAction(48, createPlayerFilterButton(player, session), GuiElementRole.ACTION, ACTION_PLAYER_FILTER)
 
                 // 統計情報ボタン
                 inventory.setItem(
@@ -217,24 +234,21 @@ class WorldGui(private val plugin: MyWorldManager) {
                 inventory.setItem(50, blackPane)
 
                 // ソートボタン
-                inventory.setItem(51, createSortButton(player, session))
+                inventory.setAction(51, createSortButton(player, session), GuiElementRole.ACTION, ACTION_SORT)
 
                 // 装飾
                 if (GuiHelper.canGoBack(player)) {
-                        inventory.setItem(
+                        inventory.setBack(
                                 layout.backSlot,
                                 createNavButton(
                                         player,
                                         lang.getMessage("gui.common.back"),
                                         Material.REDSTONE,
-                                        0,
                                         safePage + 1,
                                         totalPages,
                                         isNext = false
-                                )
+                                ),
                         )
-                        val backItem = inventory.getItem(layout.backSlot)!!
-                        ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_RETURN)
                 } else {
                         inventory.setItem(layout.backSlot, blackPane)
                 }
@@ -417,10 +431,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 return MenuActionResult.Success(MenuUpdate.Close)
         }
 
-        private fun back(context: MenuActionContext): MenuActionResult {
-                return MenuActionResult.Success(MenuUpdate.Back)
-        }
-
         private fun startAutoRefresh(player: Player) {
                 refreshTasks.remove(player.uniqueId)?.cancel()
                 refreshTasks[player.uniqueId] = Bukkit.getScheduler().runTaskTimer(
@@ -451,9 +461,28 @@ class WorldGui(private val plugin: MyWorldManager) {
                 private val title: Component,
         ) {
                 private val items = mutableMapOf<Int, ItemStack>()
+                private val interactions = mutableMapOf<Int, Pair<GuiElementRole, MenuInteraction>>()
 
                 fun setItem(slot: Int, item: ItemStack?) {
                         if (item == null) items.remove(slot) else items[slot] = item
+                        interactions.remove(slot)
+                }
+
+                fun setAction(
+                        slot: Int,
+                        item: ItemStack,
+                        role: GuiElementRole,
+                        actionId: String,
+                        payload: Map<String, String> = emptyMap(),
+                        acceptedClicks: Set<org.bukkit.event.inventory.ClickType> = MenuAcceptedClicks.LEFT_RIGHT,
+                ) {
+                        items[slot] = item
+                        interactions[slot] = role to MenuInteraction.Action(actionId, acceptedClicks, payload)
+                }
+
+                fun setBack(slot: Int, item: ItemStack) {
+                        items[slot] = item
+                        interactions[slot] = GuiElementRole.BACK to MenuInteraction.Back()
                 }
 
                 fun getItem(slot: Int): ItemStack? = items[slot]
@@ -463,64 +492,15 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 size,
                                 title,
                                 items.entries.sortedBy { it.key }.map { (slot, item) ->
-                                        element(slot, item)
+                                        val semantic = interactions[slot]
+                                        if (semantic == null) {
+                                                MenuElement(slot, item, GuiElementRole.CONTENT)
+                                        } else {
+                                                MenuElement(slot, item, semantic.first, interaction = semantic.second)
+                                        }
                                 },
                                 standardFrame = false,
                         )
-
-                private fun element(slot: Int, item: ItemStack): MenuElement {
-                        val type = ItemTag.getType(item)
-                        val role: GuiElementRole
-                        val action: String?
-                        val payload = mutableMapOf<String, String>()
-                        when (type) {
-                                ItemTag.TYPE_GUI_NAV_NEXT,
-                                ItemTag.TYPE_GUI_NAV_PREV -> {
-                                        role = GuiElementRole.NAVIGATION
-                                        action = ACTION_PAGE
-                                        ItemTag.getTargetPage(item)?.let { payload[PAGE] = it.toString() }
-                                }
-                                ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE -> {
-                                        role = GuiElementRole.ACTION
-                                        action = ACTION_ARCHIVE_FILTER
-                                }
-                                ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH -> {
-                                        role = GuiElementRole.ACTION
-                                        action = ACTION_PUBLISH_FILTER
-                                }
-                                ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER -> {
-                                        role = GuiElementRole.ACTION
-                                        action = ACTION_PLAYER_FILTER
-                                }
-                                ItemTag.TYPE_GUI_ADMIN_SORT -> {
-                                        role = GuiElementRole.ACTION
-                                        action = ACTION_SORT
-                                }
-                                ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO -> {
-                                        role = GuiElementRole.ACTION
-                                        action = ACTION_CURRENT_WORLD
-                                        ItemTag.getWorldUuid(item)?.let { payload[WORLD_UUID] = it.toString() }
-                                }
-                                ItemTag.TYPE_GUI_WORLD_ITEM -> {
-                                        role = GuiElementRole.ACTION
-                                        action = ACTION_WORLD
-                                        ItemTag.getWorldUuid(item)?.let { payload[WORLD_UUID] = it.toString() }
-                                }
-                                ItemTag.TYPE_GUI_RETURN -> {
-                                        role = GuiElementRole.BACK
-                                        action = ACTION_BACK
-                                }
-                                else -> {
-                                        role = if (type == ItemTag.TYPE_GUI_DECORATION) {
-                                                GuiElementRole.DECORATION
-                                        } else {
-                                                GuiElementRole.CONTENT
-                                        }
-                                        action = null
-                                }
-                        }
-                        return MenuElement(slot, item, role, action, payload)
-                }
         }
 
         /** セッションのフィルター・ソート条件を適用してワールドリストを取得 */
@@ -648,8 +628,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                         )
                 )
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO)
-                ItemTag.setWorldUuid(item, worldData.uuid)
                 return item
         }
 
@@ -691,8 +669,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
-                ItemTag.setWorldUuid(item, data.uuid)
                 return item
         }
 
@@ -1107,7 +1083,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 player: Player,
                 label: String,
                 material: Material,
-                targetPage: Int,
                 currentPage: Int,
                 totalPages: Int,
                 isNext: Boolean
@@ -1134,12 +1109,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 item.itemMeta = meta
-                ItemTag.setTargetPage(item, targetPage)
-                val type =
-                        if (label == lang.getMessage("gui.common.next_page"))
-                                ItemTag.TYPE_GUI_NAV_NEXT
-                        else ItemTag.TYPE_GUI_NAV_PREV
-                ItemTag.tagItem(item, type)
                 return item
         }
 
@@ -1239,7 +1208,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                 meta.lore(GuiItemFactory.menuLore(lore))
 
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
                 return item
         }
 
@@ -1271,7 +1239,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE)
                 return item
         }
 
@@ -1303,7 +1270,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH)
                 return item
         }
 
@@ -1352,7 +1318,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                         GuiLoreBlock(actions)
                 ))))
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER)
                 return item
         }
 
@@ -1390,7 +1355,6 @@ class WorldGui(private val plugin: MyWorldManager) {
                         }, GuiLoreFrame.BOTH)
                 ))
                 item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_SORT)
                 return item
         }
 
