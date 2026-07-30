@@ -192,8 +192,8 @@ class WorldSettingsListener : Listener {
                                         ).build()
                                 )
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
+                                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
                                 startSpawnPreview(player)
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
                         }
                         WorldSettingsRuntimeOperation.SELECT_ICON ->
                                 return startIconSelection(player, worldData)
@@ -2954,7 +2954,7 @@ player.sendMessage(
                                 plugin.worldConfigRepository.save(worldData)
                                 stopSpawnPreview(player)
                                 showSpawnConfirmEffect(player, loc, currentAction == SettingsAction.SET_SPAWN_GUEST)
-                                plugin.worldSettingsGui.open(player, worldData)
+                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
                         }
                         return
                 }
