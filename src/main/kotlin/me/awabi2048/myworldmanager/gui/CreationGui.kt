@@ -6,11 +6,17 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
@@ -24,7 +30,6 @@ import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.listener.CreationConfirmationAction
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
-import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.GuiLoreAction
 import me.awabi2048.myworldmanager.util.GuiLoreBuilder
@@ -679,40 +684,43 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
 
             val coordinates = session.spawnCoordinates?.let {
-                "§6(${it.x}, ${it.y}, ${it.z})"
-            } ?: "§b${lang.getMessage(player, "gui.creation.confirm.spawn_location.default")}"
-            val spawnLore = GuiLoreSpec.Blocks(
-                listOf(
-                    GuiLoreBlock(
-                        listOf(
-                            GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.description")),
-                            GuiLoreLine.Text(lang.getMessage(player, "gui.creation.confirm.spawn_location.default_help")),
-                            GuiLoreLine.Spacer,
-                            GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.spawn_location.current_label"), coordinates, ""),
-                            GuiLoreActions.singleClick(
-                                lang,
-                                player,
-                                lang.getMessage(player, "gui.creation.confirm.spawn_location.action")
-                            )
-                        )
-                    )
-                )
-            )
-            elements += MenuElement(
-                if (confirmationCapability == null) {
+                "(${it.x}, ${it.y}, ${it.z})"
+            } ?: lang.getMessage(player, "gui.creation.confirm.spawn_location.default")
+            val spawnSlot = if (confirmationCapability == null) {
                     SEED_SPAWN_LOCATION_SLOT
                 } else {
                     SEED_SPAWN_LOCATION_WITH_CAPABILITY_SLOT
-                },
-                createItem(
-                    Material.COMPASS,
-                    lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
-                    ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION,
-                    spawnLore
+                }
+            elements += CCSystem.getAPI().getGuiElementService().menuEntry(
+                player,
+                GuiMenuEntrySpec(
+                    slot = spawnSlot,
+                    material = Material.COMPASS,
+                    name = GuiNameSpec.Text(
+                        lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
+                        com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
+                    ),
+                    role = GuiElementRole.ACTION,
+                    description = listOf(
+                        lang.getMessage(player, "gui.creation.confirm.spawn_location.description"),
+                        lang.getMessage(player, "gui.creation.confirm.spawn_location.default_help"),
+                    ),
+                    data = listOf(
+                        GuiMenuEntryData(
+                            lang.getMessage(player, "gui.creation.confirm.spawn_location.current_label"),
+                            coordinates,
+                            if (session.spawnCoordinates == null) GuiValueTone.INFO else GuiValueTone.WARNING,
+                        ),
+                    ),
+                    actions = listOf(
+                        GuiMenuEntryAction(
+                            ACTION_CONFIRM_INTERACTION,
+                            MenuAcceptedClicks.LEFT_RIGHT,
+                            lang.getMessage(player, "gui.creation.confirm.spawn_location.action"),
+                            mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.SPAWN_LOCATION.name),
+                        ),
+                    ),
                 ),
-                GuiElementRole.ACTION,
-                ACTION_CONFIRM_INTERACTION,
-                mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.SPAWN_LOCATION.name),
             )
             confirmationCapability?.let { (capabilityId, resolved) ->
                 elements += confirmationCapabilityElement(capabilityId, resolved)
