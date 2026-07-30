@@ -2219,9 +2219,21 @@ player.sendMessage(
                                         )
                                 }
                                 plugin.worldConfigRepository.save(worldData)
+                                plugin.settingsSessionManager.updateSessionAction(
+                                        player,
+                                        worldData.uuid,
+                                        SettingsAction.VIEW_SETTINGS,
+                                        isGui = true
+                                )
                                 plugin.worldSettingsSpawnPreviewService.stop(player)
                                 plugin.worldSettingsSpawnPreviewService.showSpawnConfirmEffect(player, loc, currentAction == SettingsAction.SET_SPAWN_GUEST)
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                                Bukkit.getScheduler().runTask(plugin, Runnable {
+                                        if (!player.isOnline) return@Runnable
+                                        val runtime = CCSystem.getAPI().getMenuRuntimeService()
+                                        if (!runtime.resumeFromExternal(player)) {
+                                                runtime.reopenCurrent(player)
+                                        }
+                                })
                         }
                         return
                 }

@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.service
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -19,11 +20,7 @@ import org.bukkit.event.inventory.ClickType
  */
 class WorldSettingsActionService(private val plugin: MyWorldManager) {
     fun contract(player: org.bukkit.entity.Player, worldData: WorldData, action: WorldSettingsAction): WorldSettingsActionContract {
-        val acceptedClicks = when (action) {
-            WorldSettingsAction.SET_SPAWN,
-            WorldSettingsAction.EDIT_ANNOUNCEMENT -> setOf(ClickType.LEFT, ClickType.RIGHT)
-            else -> setOf(ClickType.LEFT)
-        }
+        val acceptedClicks = MenuAcceptedClicks.LEFT_RIGHT
         return WorldSettingsActionContract(action, acceptedClicks, isActionable(player, worldData, action))
     }
 
@@ -97,8 +94,8 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
     }
 
     private fun setSpawn(player: org.bukkit.entity.Player, worldData: WorldData, click: ClickType): MenuActionResult {
-        val action = if (click == ClickType.LEFT) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
-        val typeKey = if (click == ClickType.LEFT) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
+        val action = if (click.isLeftClick) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
+        val typeKey = if (click.isLeftClick) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
         val typeName = plugin.languageManager.getMessage(player, typeKey)
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", mapOf("type" to typeName)))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
@@ -108,6 +105,6 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
     }
 
     private fun editAnnouncement(player: org.bukkit.entity.Player, worldData: WorldData, click: ClickType): MenuActionResult {
-        return plugin.worldSettingsInputService.editAnnouncement(player, worldData, click == ClickType.RIGHT)
+        return plugin.worldSettingsInputService.editAnnouncement(player, worldData, click.isRightClick)
     }
 }
