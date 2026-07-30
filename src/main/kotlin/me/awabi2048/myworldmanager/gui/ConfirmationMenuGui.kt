@@ -55,6 +55,39 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         confirmSound: MenuSoundPolicy = MenuSoundPolicy.Default,
         cancelSound: MenuSoundPolicy = MenuSoundPolicy.Default,
     ) {
+        val route = prepareOpen(
+            player,
+            menuId,
+            title,
+            centerItem,
+            confirmItem,
+            cancelItem,
+            onConfirm,
+            onCancel,
+            onAbandon,
+            returnOnConfirm,
+            confirmSound,
+            cancelSound,
+        )
+        if (!runtime.navigate(player, route)) {
+            route.payload[TOKEN]?.let { runCatching { UUID.fromString(it) }.getOrNull() }?.let(sessions::remove)
+        }
+    }
+
+    fun prepareOpen(
+        player: Player,
+        menuId: String,
+        title: Component,
+        centerItem: ItemStack,
+        confirmItem: ItemStack,
+        cancelItem: ItemStack,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit = {},
+        onAbandon: () -> Unit = {},
+        returnOnConfirm: Boolean = false,
+        confirmSound: MenuSoundPolicy = MenuSoundPolicy.Default,
+        cancelSound: MenuSoundPolicy = MenuSoundPolicy.Default,
+    ): MenuRoute {
         val token = UUID.randomUUID()
         sessions[token] = ConfirmationSession(
             player.uniqueId,
@@ -69,9 +102,7 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
             confirmSound,
             cancelSound,
         )
-        if (!runtime.navigate(player, MenuRoute(OWNER, ROUTE_ID, mapOf(TOKEN to token.toString(), MENU_ID to menuId)))) {
-            sessions.remove(token)
-        }
+        return MenuRoute(OWNER, ROUTE_ID, mapOf(TOKEN to token.toString(), MENU_ID to menuId))
     }
 
     fun openSimple(

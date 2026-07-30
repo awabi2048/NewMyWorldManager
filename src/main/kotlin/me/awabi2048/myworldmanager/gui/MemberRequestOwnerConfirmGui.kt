@@ -1,7 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -13,7 +15,12 @@ import org.bukkit.inventory.ItemStack
 
 class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, info: MemberRequestInfo, key: String) {
-        val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return
+        val route = prepareOpen(player, info, key) ?: return
+        CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
+    }
+
+    fun prepareOpen(player: Player, info: MemberRequestInfo, key: String): MenuRoute? {
+        val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return null
         val lang = plugin.languageManager
         val infoItem = ItemStack(Material.PAPER).apply {
             editMeta { meta ->
@@ -40,7 +47,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         val rejectItem = ItemStack(Material.RED_CONCRETE).apply {
             editMeta { it.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.reject")) }
         }
-        plugin.confirmationMenuGui.open(
+        return plugin.confirmationMenuGui.prepareOpen(
             player = player,
             menuId = "member_request_owner_confirm",
             title = GuiHelper.inventoryTitle(lang.getComponent(player, "gui.member_request_owner_confirm.title")),

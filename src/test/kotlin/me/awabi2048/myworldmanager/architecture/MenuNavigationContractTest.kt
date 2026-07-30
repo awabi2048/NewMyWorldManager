@@ -142,7 +142,7 @@ class MenuNavigationContractTest {
                 "Runtime history is cleared immediately before $dialogCall",
             )
         }
-        assertTrue("replaceCurrent = true" in listener)
+        assertTrue("MenuUpdate.Replace(" in listener)
 
         val announcement = guiRoot.resolve("AnnouncementDialogManager.kt").readText()
         assertFalse("playMenuOpen" in announcement)
