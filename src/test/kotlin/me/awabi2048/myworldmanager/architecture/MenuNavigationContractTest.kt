@@ -54,7 +54,7 @@ class MenuNavigationContractTest {
         val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
         assertTrue("""id = RUNTIME_SELECTION_ROUTE""" in source)
         assertTrue("enableRuntimeIconSelection" in source)
-        assertTrue("disableRuntimeIconSelection" in source)
+        assertTrue("internal fun route" in source)
     }
 
     @Test

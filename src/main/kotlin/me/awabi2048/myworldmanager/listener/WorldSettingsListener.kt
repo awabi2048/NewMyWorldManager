@@ -1611,8 +1611,9 @@ class WorldSettingsListener : Listener {
                         changedMessage
                 )
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldSettingsGui.disableRuntimeIconSelection(player, worldData)
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Success(
+                        MenuUpdate.Replace(plugin.worldSettingsGui.route(worldData.uuid)),
+                )
         }
 
         private fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {

@@ -77,8 +77,9 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
             session.creationType == WorldCreationType.TEMPLATE
         ) {
             session.phase = WorldCreationPhase.TEMPLATE_SELECT
-            plugin.creationGui.openTemplateSelection(player)
-            return MenuActionResult.Success(MenuUpdate.None)
+            return MenuActionResult.Success(
+                MenuUpdate.Navigate(plugin.creationGui.templateSelectionRoute()),
+            )
         }
         if (action == CreationConfirmationAction.CANCEL) {
             CCSystem.getAPI().getMenuRuntimeService().close(player)

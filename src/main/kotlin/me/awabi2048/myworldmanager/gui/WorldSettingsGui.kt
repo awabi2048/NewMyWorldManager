@@ -213,10 +213,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 runtime.replace(player, route.copy(id = RUNTIME_SELECTION_ROUTE))
         }
 
-        fun disableRuntimeIconSelection(player: Player, worldData: WorldData) {
-                open(player, worldData, replaceCurrent = true)
-        }
-
         internal fun route(worldUuid: UUID): MenuRoute =
                 runtimeRoute(WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldUuid)
 

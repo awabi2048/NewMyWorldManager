@@ -121,6 +121,8 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     internal fun typeSelectionRoute(): MenuRoute = MenuRoute(OWNER, TYPE_ROUTE)
 
+    internal fun templateSelectionRoute(): MenuRoute = MenuRoute(OWNER, TEMPLATE_LIST_ROUTE)
+
     private fun renderTypeSelection(player: Player): InventoryMenuView {
         val lang = plugin.languageManager
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.threeChoiceLayout()
