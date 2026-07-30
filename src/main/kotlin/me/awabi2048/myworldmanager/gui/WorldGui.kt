@@ -314,16 +314,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                         )
                         plugin.settingsSessionManager.getSession(context.player)
                                 ?.beginExternalInput(MenuExternalInput.ADMIN_PLAYER_FILTER)
-                        Bukkit.getScheduler().runTask(
+                        plugin.adminGuiListener.openAdminPlayerFilterInput(
                                 plugin,
-                                Runnable {
-                                        plugin.adminGuiListener.openAdminPlayerFilterInput(
-                                                plugin,
-                                                context.player,
-                                        )
-                                },
+                                context.player,
                         )
-                        return MenuActionResult.Success(MenuUpdate.Close)
+                        return MenuActionResult.Success(MenuUpdate.None)
                 }
                 return MenuActionResult.Ignored
         }

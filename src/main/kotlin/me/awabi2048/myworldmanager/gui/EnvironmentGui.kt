@@ -83,11 +83,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     private fun gravity(context: MenuActionContext): MenuActionResult {
         val worldData = worldData(context.route)
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-        Bukkit.getScheduler().runTask(
-            plugin,
-            Runnable { plugin.worldSettingsListener.showEnvironmentConfirmDialog(context.player, worldData, "gravity", cost) },
-        )
-        return MenuActionResult.Success(MenuUpdate.Close)
+        plugin.worldSettingsListener.showEnvironmentConfirmDialog(context.player, worldData, "gravity", cost)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun weather(context: MenuActionContext): MenuActionResult {
@@ -99,11 +96,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             }
             context.click.isRightClick -> {
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
-                Bukkit.getScheduler().runTask(
-                    plugin,
-                    Runnable { plugin.worldSettingsListener.showEnvironmentConfirmDialog(context.player, worldData, "weather", cost) },
-                )
-                MenuActionResult.Success(MenuUpdate.Close)
+                plugin.worldSettingsListener.showEnvironmentConfirmDialog(context.player, worldData, "weather", cost)
+                MenuActionResult.Success(MenuUpdate.None)
             }
             else -> MenuActionResult.Ignored
         }

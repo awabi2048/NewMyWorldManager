@@ -213,7 +213,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             PreviewSessionManager.PreviewTarget.World(worldData),
             PreviewSource.FAVORITE_MENU,
         )
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun removeFavorite(player: Player, worldData: WorldData): MenuActionResult {
@@ -221,11 +221,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         if (worldData.owner == player.uniqueId || worldData.uuid !in stats.favoriteWorlds) {
             return MenuActionResult.Ignored
         }
-        Bukkit.getScheduler().runTask(
-            plugin,
-            Runnable { showFavoriteRemovalConfirmation(player, worldData) },
-        )
-        return MenuActionResult.Success(MenuUpdate.Close)
+        showFavoriteRemovalConfirmation(player, worldData)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun showFavoriteRemovalConfirmation(player: Player, worldData: WorldData) {

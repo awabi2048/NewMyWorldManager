@@ -270,7 +270,7 @@ class BedrockMenuService(
                         openPlayerWorld(player, returnPage, showBackButton)
                     }
                 }
-                MenuActionResult.Success(MenuUpdate.Close)
+                MenuActionResult.Success(MenuUpdate.None)
             }
         }
 
@@ -862,7 +862,7 @@ class BedrockMenuService(
                                 runtime.replace(player, playerWorldRoute(page, showBackButton))
                             }
                         }
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     }
                     "open_advanced_settings" -> {
                         advancedSettingsResult(player, worldData, showBackButton)
