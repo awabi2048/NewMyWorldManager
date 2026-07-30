@@ -23,7 +23,9 @@ import me.awabi2048.myworldmanager.api.extension.WorldCreationGuard
 import me.awabi2048.myworldmanager.api.extension.WorldCreationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
 import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
-import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessProvider
+import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessContext
+import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessChallenge
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsPresentationPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
@@ -115,7 +117,7 @@ object MyWorldManagerApi {
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
     private val visitMenuProviders = CopyOnWriteArrayList<VisitMenuProvider>()
     private val worldEvacuationProviders = CopyOnWriteArrayList<WorldEvacuationProvider>()
-    private val worldMenuAccessProviders = CopyOnWriteArrayList<WorldMenuAccessProvider>()
+    private val worldMenuAccessPolicies = CopyOnWriteArrayList<WorldMenuAccessPolicy>()
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
     private var bedrockFormService: ApiBedrockFormService? = null
@@ -602,20 +604,25 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
-    fun registerWorldMenuAccessProvider(provider: WorldMenuAccessProvider) {
-        worldMenuAccessProviders.removeIf { it.getId() == provider.getId() }
-        worldMenuAccessProviders.add(provider)
+    fun registerWorldMenuAccessPolicy(policy: WorldMenuAccessPolicy) {
+        worldMenuAccessPolicies.removeIf { it.getId() == policy.getId() }
+        worldMenuAccessPolicies.add(policy)
     }
 
     @JvmStatic
-    fun unregisterWorldMenuAccessProvider(provider: WorldMenuAccessProvider) {
-        worldMenuAccessProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    fun unregisterWorldMenuAccessPolicy(policy: WorldMenuAccessPolicy) {
+        worldMenuAccessPolicies.removeIf { it === policy || it.getId() == policy.getId() }
     }
 
     @JvmStatic
-    fun openWorldMenuAccessOverride(player: Player, worldData: WorldData, showBackButton: Boolean): Boolean {
-        return worldMenuAccessProviders.asReversed().any { it.open(player, worldData, showBackButton) }
-    }
+    fun getWorldMenuAccessChallenge(
+        player: Player,
+        worldData: WorldData,
+    ): WorldMenuAccessChallenge? =
+        worldMenuAccessPolicies.asReversed()
+            .firstNotNullOfOrNull {
+                it.challenge(WorldMenuAccessContext(player, worldData))
+            }
 
     @JvmStatic
     fun registerWorldEvacuationProvider(provider: WorldEvacuationProvider) {

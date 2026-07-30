@@ -45,9 +45,15 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
         val isMember = worldData.members.contains(player.uniqueId)
         val isAdminFlow = PermissionManager.checkPermission(player, PermissionManager.ADMIN)
         if (!isOwner && !isModerator && !isMember && !isAdminFlow) {
-            if (MyWorldManagerApi.openWorldMenuAccessOverride(player, worldData, showBackButton)) {
-                return true
-            }
+            val challenge = MyWorldManagerApi.getWorldMenuAccessChallenge(player, worldData)
+            if (challenge != null &&
+                CCSystem.getAPI().getMenuCommandService().open(
+                    player,
+                    player,
+                    challenge.publicMenuRouteId,
+                    challenge.arguments,
+                )
+            ) return true
             player.sendMessage("§cこのコマンドを実行する権限がありません。（メンバー以上が必要）")
             return true
         }
