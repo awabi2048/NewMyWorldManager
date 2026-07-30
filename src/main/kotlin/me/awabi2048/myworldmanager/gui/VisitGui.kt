@@ -5,11 +5,17 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -91,13 +97,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey, mapOf("player" to targetName)))
                 val elements = mutableListOf<MenuElement>()
                 targetWorlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, worldData ->
-                        elements += MenuElement(
-                                layout.itemSlots[index],
-                                createWorldItem(player, worldData),
-                                GuiElementRole.ACTION,
-                                ACTION_WORLD,
-                                mapOf(WORLD_UUID to worldData.uuid.toString()),
-                        )
+                        elements += createWorldEntry(player, worldData, layout.itemSlots[index])
                 }
 
                 if (GuiHelper.canGoBack(player)) {
@@ -205,19 +205,8 @@ class VisitGui(private val plugin: MyWorldManager) {
                 return MenuActionResult.Success(MenuUpdate.Refresh)
         }
 
-        private fun createWorldItem(viewer: Player, world: WorldData): ItemStack {
-                val item = ItemStack(world.icon)
-                val meta = item.itemMeta ?: return item
+        private fun createWorldEntry(viewer: Player, world: WorldData, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(
-                        lang.getComponent(
-                                viewer,
-                                "gui.common.world_item_name",
-                                mapOf("world" to world.name)
-                        )
-                )
-
                 val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(viewer, "general.unknown"))
                 val tagNames = if (world.tags.isNotEmpty()) {
                         world.tags.joinToString(", ") {
@@ -241,30 +230,34 @@ class VisitGui(private val plugin: MyWorldManager) {
                         }
                 } else ""
 
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (world.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(world.description))))
-                        add(GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.owner"), ownerName, "§b"))
-                                add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.favorite"), world.favorite, "§c"))
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(viewer, "gui.common.world_item.recent_visitors"),
-                                        lang.getMessage(viewer, "gui.common.world_item.recent_visitors_value", mapOf("count" to world.recentVisitors.sum())),
-                                        "§a"
-                                ))
-                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.tags"), tagNames, "§e"))
-                        }))
-                        add(GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.left"), warpAction))
-                                if (favoriteAction.isNotBlank()) {
-                                        add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.right"), favoriteAction))
-                                }
-                        }))
-                })))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
-                ItemTag.setWorldUuid(item, world.uuid)
-                return item
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        viewer,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = world.icon,
+                                name = GuiNameSpec.Component(
+                                        lang.getComponent(viewer, "gui.common.world_item_name", mapOf("world" to world.name)),
+                                ),
+                                role = GuiElementRole.ACTION,
+                                description = listOfNotNull(world.description.takeIf(String::isNotBlank)),
+                                data = buildList {
+                                        add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.owner"), ownerName, GuiValueTone.INFO))
+                                        add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.favorite"), world.favorite, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(viewer, "gui.common.world_item.recent_visitors"),
+                                                lang.getMessage(viewer, "gui.common.world_item.recent_visitors_value", mapOf("count" to world.recentVisitors.sum())),
+                                                GuiValueTone.SUCCESS,
+                                        ))
+                                        tagNames?.let { add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
+                                },
+                                actions = buildList {
+                                        add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                        if (favoriteAction.isNotBlank()) {
+                                                add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                        }
+                                },
+                        ),
+                )
         }
 
         private fun createBackButton(player: Player): ItemStack {
