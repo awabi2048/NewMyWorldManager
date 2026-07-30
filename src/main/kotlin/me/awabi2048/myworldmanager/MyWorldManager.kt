@@ -124,6 +124,9 @@ class MyWorldManager : JavaPlugin() {
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
     lateinit var worldSettingsActionService: me.awabi2048.myworldmanager.service.WorldSettingsActionService
+    internal lateinit var worldSettingsIconSelectionService: me.awabi2048.myworldmanager.service.WorldSettingsIconSelectionService
+    internal lateinit var worldSettingsSpawnPreviewService: me.awabi2048.myworldmanager.service.WorldSettingsSpawnPreviewService
+    internal lateinit var worldSettingsInputService: me.awabi2048.myworldmanager.service.WorldSettingsInputService
     lateinit var templateWizardListener: TemplateWizardListener
     lateinit var discoveryListener: DiscoveryListener
     lateinit var adminGuiListener: AdminGuiListener
@@ -356,6 +359,9 @@ class MyWorldManager : JavaPlugin() {
         playerLocationRestoreListener = PlayerLocationRestoreListener(this, playerLocationSnapshotRepository)
         server.pluginManager.registerEvents(playerLocationRestoreListener, this)
         worldSettingsListener = WorldSettingsListener()
+        worldSettingsIconSelectionService = me.awabi2048.myworldmanager.service.WorldSettingsIconSelectionService(this)
+        worldSettingsSpawnPreviewService = me.awabi2048.myworldmanager.service.WorldSettingsSpawnPreviewService(this)
+        worldSettingsInputService = me.awabi2048.myworldmanager.service.WorldSettingsInputService(this)
         worldSettingsActionService = me.awabi2048.myworldmanager.service.WorldSettingsActionService(this)
         server.pluginManager.registerEvents(worldSettingsListener, this)
         server.pluginManager.registerEvents(WorldExpirationListener(worldConfigRepository), this)

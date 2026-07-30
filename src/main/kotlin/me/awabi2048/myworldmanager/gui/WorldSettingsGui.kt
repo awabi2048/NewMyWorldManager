@@ -3877,7 +3877,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action, isGui = true)
                 runtime.suspendForExternal(player)
 
-                plugin.worldSettingsListener.startSpawnPreview(player)
+                plugin.worldSettingsSpawnPreviewService.start(player)
 
                 val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
                 val typeName = plugin.languageManager.getMessage(player, typeKey)

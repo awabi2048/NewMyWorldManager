@@ -36,7 +36,7 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         return when (request.action) {
             WorldSettingsAction.WARP -> warp(request.player, worldData)
             WorldSettingsAction.EDIT_INFO -> editInfo(request.player, worldData)
-            WorldSettingsAction.SELECT_ICON -> plugin.worldSettingsListener.startIconSelection(request.player, worldData)
+            WorldSettingsAction.SELECT_ICON -> plugin.worldSettingsIconSelectionService.start(request.player, worldData)
             WorldSettingsAction.SET_SPAWN -> setSpawn(request.player, worldData, request.click)
             WorldSettingsAction.MANAGE_MEMBERS -> MenuActionResult.Success(
                 MenuUpdate.Navigate(plugin.worldSettingsGui.memberManagementRoute(worldData.uuid)),
@@ -93,14 +93,7 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
     }
 
     private fun editInfo(player: org.bukkit.entity.Player, worldData: WorldData): MenuActionResult {
-        if (plugin.worldSettingsListener.openBedrockWorldInfoInputForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
-        if (plugin.playerPlatformResolver.isBedrock(player)) {
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-            return MenuActionResult.Success(MenuUpdate.Refresh)
-        }
-        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
-        plugin.worldSettingsListener.showWorldInfoDialog(player, worldData)
-        return MenuActionResult.Success(MenuUpdate.None)
+        return plugin.worldSettingsInputService.editInfo(player, worldData)
     }
 
     private fun setSpawn(player: org.bukkit.entity.Player, worldData: WorldData, click: ClickType): MenuActionResult {
@@ -110,24 +103,11 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", mapOf("type" to typeName)))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
         CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
-        plugin.worldSettingsListener.startSpawnPreview(player)
+        plugin.worldSettingsSpawnPreviewService.start(player)
         return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun editAnnouncement(player: org.bukkit.entity.Player, worldData: WorldData, click: ClickType): MenuActionResult {
-        if (plugin.worldSettingsListener.openBedrockAnnouncementActionForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
-        if (plugin.playerPlatformResolver.isBedrock(player)) {
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-            return MenuActionResult.Success(MenuUpdate.Refresh)
-        }
-        if (click == ClickType.RIGHT) {
-            worldData.announcementMessages.clear()
-            plugin.worldConfigRepository.save(worldData)
-            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_reset"))
-            return MenuActionResult.Success(MenuUpdate.Refresh)
-        }
-        plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
-        me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
-        return MenuActionResult.Success(MenuUpdate.None)
+        return plugin.worldSettingsInputService.editAnnouncement(player, worldData, click == ClickType.RIGHT)
     }
 }
