@@ -5,11 +5,15 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -67,34 +71,13 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val layout = GuiHelper.threeChoiceLayout()
         val elements = mutableListOf<MenuElement>()
         if (worldData != null && worldData.owner == player.uniqueId) {
-            elements += MenuElement(
-                layout.centerSlot,
-                createFavoriteListItem(player, worldData),
-                GuiElementRole.ACTION,
-                ACTION_LIST,
-            )
+            elements += actionEntry(player, layout.centerSlot, Material.BOOK, "gui.favorite.favorite_menu.list", ACTION_LIST)
         } else {
             if (worldData != null) {
-                elements += MenuElement(
-                    layout.leftSlot,
-                    createOtherWorldsItem(player, worldData),
-                    GuiElementRole.ACTION,
-                    ACTION_OTHER_WORLDS,
-                )
+                elements += actionEntry(player, layout.leftSlot, Material.COMPASS, "gui.favorite.favorite_menu.other_worlds", ACTION_OTHER_WORLDS)
             }
-            val toggle = createToggleFavoriteItem(player, worldData)
-            elements += MenuElement(
-                layout.centerSlot,
-                toggle,
-                if (worldData == null) GuiElementRole.CONTENT else GuiElementRole.ACTION,
-                if (worldData == null) null else ACTION_TOGGLE,
-            )
-            elements += MenuElement(
-                layout.rightSlot,
-                createFavoriteListItem(player, worldData),
-                GuiElementRole.ACTION,
-                ACTION_LIST,
-            )
+            elements += createToggleFavoriteEntry(player, worldData, layout.centerSlot)
+            elements += actionEntry(player, layout.rightSlot, Material.BOOK, "gui.favorite.favorite_menu.list", ACTION_LIST)
         }
 
         if (worldData != null) {
@@ -165,81 +148,81 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.None)
     }
 
-    private fun createOtherWorldsItem(player: Player, worldData: WorldData): ItemStack {
+    private fun actionEntry(
+        player: Player,
+        slot: Int,
+        material: Material,
+        key: String,
+        actionId: String,
+    ): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.COMPASS)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.other_worlds.name"))
-
-        meta.lore(actionLore(player, "gui.favorite.favorite_menu.other_worlds"))
-
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_OTHER_WORLDS)
-        ItemTag.setWorldUuid(item, worldData.uuid)
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = material,
+                name = GuiNameSpec.Component(lang.getComponent(player, "$key.name")),
+                role = GuiElementRole.ACTION,
+                description = lang.getMessageList(player, "$key.lore"),
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        actionId,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "$key.action"),
+                    ),
+                ),
+            ),
+        )
     }
 
-    private fun createToggleFavoriteItem(player: Player, worldData: WorldData?): ItemStack {
+    private fun createToggleFavoriteEntry(player: Player, worldData: WorldData?, slot: Int): MenuElement {
         val lang = plugin.languageManager
 
         if (worldData == null) {
-            val item = ItemStack(Material.BARRIER)
-            val meta = item.itemMeta ?: return item
-            meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(GuiItemFactory.menuLore(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed")))))
-            item.itemMeta = meta
-            ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-            return item
+            return restrictedToggleEntry(player, slot, "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed")
         }
 
         if (worldData.owner == player.uniqueId) {
-            val item = ItemStack(Material.BARRIER)
-            val meta = item.itemMeta ?: return item
-            meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-            meta.lore(GuiItemFactory.menuLore(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.favorite.favorite_menu.toggle.lore_restricted_owner")))))
-            item.itemMeta = meta
-            ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-            return item
+            return restrictedToggleEntry(player, slot, "gui.favorite.favorite_menu.toggle.lore_restricted_owner")
         }
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val isFavorite = stats.favoriteWorlds.containsKey(worldData.uuid)
 
         val material = if (isFavorite) Material.RED_DYE else Material.GRAY_DYE
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: return item
-
         val nameKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.name_remove" else "gui.favorite.favorite_menu.toggle.name_add"
         val loreKey = if (isFavorite) "gui.favorite.favorite_menu.toggle.lore_remove" else "gui.favorite.favorite_menu.toggle.lore_add"
-
-        meta.displayName(lang.getComponent(player, nameKey).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
-        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-            GuiLoreBlock(listOf(GuiLoreLine.Text(lang.getMessage(player, loreKey)))),
-            GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(
-                lang,
-                player,
-                lang.getMessage(player, "gui.favorite.favorite_menu.toggle.action")
-            )))
-        ))))
-
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_TOGGLE)
-        ItemTag.setWorldUuid(item, worldData.uuid)
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = material,
+                name = GuiNameSpec.Component(lang.getComponent(player, nameKey)),
+                role = GuiElementRole.ACTION,
+                description = listOf(lang.getMessage(player, loreKey)),
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_TOGGLE,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.favorite.favorite_menu.toggle.action"),
+                    ),
+                ),
+            ),
+        )
     }
 
-    private fun createFavoriteListItem(player: Player, worldData: WorldData?): ItemStack {
+    private fun restrictedToggleEntry(player: Player, slot: Int, warningKey: String): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.BOOK)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.favorite.favorite_menu.list.name"))
-
-        meta.lore(actionLore(player, "gui.favorite.favorite_menu.list"))
-
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_LIST)
-        if (worldData != null) ItemTag.setWorldUuid(item, worldData.uuid)
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.BARRIER,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted")),
+                role = GuiElementRole.CONTENT,
+                warnings = listOf(lang.getMessage(player, warningKey)),
+            ),
+        )
     }
 
     private fun createWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
@@ -276,16 +259,6 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         ItemTag.setWorldUuid(item, worldData.uuid)
         return item
     }
-
-    private fun actionLore(player: Player, key: String) =
-        CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-            GuiLoreBlock(plugin.languageManager.getMessageList(player, "$key.lore").map(GuiLoreLine::Text)),
-            GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(
-                plugin.languageManager,
-                player,
-                plugin.languageManager.getMessage(player, "$key.action")
-            )))
-        )))
 
     private fun MenuRoute.worldUuid(): UUID? =
         payload[WORLD_UUID]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
