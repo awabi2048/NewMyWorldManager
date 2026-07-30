@@ -4,9 +4,11 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconOption
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
@@ -28,11 +30,9 @@ import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -122,6 +122,21 @@ class BedrockMenuService(
         ) {
             items[slot] = item
             actions[slot] = RuntimeAction(actionId, payload, role, acceptedClicks)
+        }
+
+        fun setEntry(element: MenuElement) {
+            items[element.slot] = element.item
+            val interaction = element.resolvedInteraction()
+            if (interaction is com.awabi2048.ccsystem.api.gui.MenuInteraction.Action) {
+                actions[element.slot] = RuntimeAction(
+                    interaction.actionId,
+                    interaction.payload,
+                    element.role,
+                    interaction.acceptedClicks,
+                )
+            } else {
+                actions.remove(element.slot)
+            }
         }
 
         fun elements(): List<MenuElement> = items.map { (slot, item) ->
@@ -428,18 +443,17 @@ class BedrockMenuService(
                         attributes = attributes,
                     )
                 }
-            inventory.setActionItem(
-                slot,
-                capability?.let {
-                    CCSystem.getAPI().getGuiElementService().menuCapability(it.presentation)
-                } ?: createWorldListItem(player, worldData),
-                if (capability == null) "warp_world" else "capability_world",
-                buildMap {
-                    put("world", worldData.uuid.toString())
-                    capability?.let { put("capability", it.capabilityId) }
-                },
-                acceptedClicks = capability?.acceptedClicks ?: MenuAcceptedClicks.LEFT_RIGHT,
-            )
+            if (capability == null) {
+                inventory.setEntry(createWorldListEntry(player, slot, worldData))
+            } else {
+                inventory.setActionItem(
+                    slot,
+                    CCSystem.getAPI().getGuiElementService().menuCapability(capability.presentation),
+                    "capability_world",
+                    mapOf("world" to worldData.uuid.toString(), "capability" to capability.capabilityId),
+                    acceptedClicks = capability.acceptedClicks,
+                )
+            }
         }
 
         if (page > 0) {
@@ -484,11 +498,7 @@ class BedrockMenuService(
                 inventory.setItem(footerStart + 2, item)
             }
         } else if (creationBlockReason == null) {
-            inventory.setActionItem(
-                footerStart + 2,
-                createCreationButtonItem(player),
-                "start_creation",
-            )
+            inventory.setEntry(createCreationEntry(player, footerStart + 2))
         } else {
             inventory.setItem(footerStart + 2, createCreationUnavailableButtonItem(player, creationBlockReason))
         }
@@ -501,30 +511,35 @@ class BedrockMenuService(
                     attributes = playerWorldCapabilityAttributes(capabilitySubject),
                 )
             }
-        val statsItem = summaryCapability?.let {
-            CCSystem.getAPI().getGuiElementService().menuCapability(it.presentation)
-        } ?: createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint)
-        if (plugin.pendingDecisionManager.getPendingCount(player.uniqueId) > 0) {
-            inventory.setActionItem(
-                footerStart + 4,
-                statsItem,
-                "open_pending_interactions",
-            )
+        if (summaryCapability != null) {
+            val statsItem = CCSystem.getAPI().getGuiElementService().menuCapability(summaryCapability.presentation)
+            if (summaryCapability.actionable) {
+                inventory.setActionItem(
+                    footerStart + 4,
+                    statsItem,
+                    "open_pending_interactions",
+                    acceptedClicks = summaryCapability.acceptedClicks,
+                )
+            } else {
+                inventory.setItem(footerStart + 4, statsItem)
+            }
         } else {
-            inventory.setItem(footerStart + 4, statsItem)
+            inventory.setEntry(createStatsEntry(player, footerStart + 4, currentCreateCount, maxSlot, stats.worldPoint))
         }
-        inventory.setActionItem(
-            footerStart + 6,
-            createActionItem(
-                Material.WRITABLE_BOOK,
-                tr(player, "gui.user_settings.button.display"),
-                "open_settings",
-                lore = GuiLoreSpec.Blocks(listOf(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    GuiLoreActions.singleClick(plugin.languageManager, player, tr(player, "gui.user_settings.button.action"))
-                ))))
+        inventory.setEntry(CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = footerStart + 6,
+                material = Material.WRITABLE_BOOK,
+                name = GuiNameSpec.Text(tr(player, "gui.user_settings.button.display"), GuiNameStyle.DEFAULT),
+                role = GuiElementRole.ACTION,
+                actions = listOf(GuiMenuEntryAction(
+                    "open_settings",
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    tr(player, "gui.user_settings.button.action"),
+                )),
             ),
-            "open_settings",
-        )
+        ))
 
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
@@ -671,10 +686,10 @@ class BedrockMenuService(
         val languageName = languageDisplay(player, plugin.languageManager.resolveLocale(player))
         val notifyStatus = statusText(player, stats.visitorNotificationEnabled)
 
-        inventory.setActionItem(
-            10,
-            createSettingActionItem(
+        inventory.setEntry(
+            createSettingActionEntry(
                 player,
+                10,
                 Material.BELL,
                 "gui.user_settings.notification.display",
                 "notification",
@@ -684,12 +699,11 @@ class BedrockMenuService(
                 "gui.user_settings.cycle_action.toggle",
                 glint = stats.visitorNotificationEnabled
             ),
-            "toggle_notification",
         )
-        inventory.setActionItem(
-            11,
-            createSettingActionItem(
+        inventory.setEntry(
+            createSettingActionEntry(
                 player,
+                11,
                 Material.WRITABLE_BOOK,
                 "gui.user_settings.language.display",
                 "language",
@@ -698,17 +712,12 @@ class BedrockMenuService(
                 "cycle_language",
                 "gui.user_settings.cycle_action.next"
             ),
-            "cycle_language",
         )
-        inventory.setActionItem(
-            12,
-            createCriticalVisibilityItem(player, stats.criticalSettingsEnabled),
-            "toggle_critical",
-        )
-        inventory.setActionItem(
-            13,
-            createSettingActionItem(
+        inventory.setEntry(createCriticalVisibilityEntry(player, 12, stats.criticalSettingsEnabled))
+        inventory.setEntry(
+            createSettingActionEntry(
                 player,
+                13,
                 Material.COMPASS,
                 "gui.user_settings.tour_navigation.display",
                 "tour_navigation",
@@ -717,15 +726,12 @@ class BedrockMenuService(
                 "cycle_tour_navigation",
                 "gui.user_settings.cycle_action.toggle",
                 TourNavigationMode.entries.map { mode ->
-                    GuiMenuIconOption(
+                    GuiMenuEntryOption(
                         tr(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase(Locale.ROOT)}"),
                         mode == stats.tourNavigationMode,
-                        "§b",
-                        "§7"
                     )
                 }
             ),
-            "cycle_tour_navigation",
         )
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
@@ -1111,18 +1117,7 @@ class BedrockMenuService(
         }
     }
 
-    private fun createWorldListItem(player: Player, worldData: WorldData): ItemStack {
-        val item = ItemStack(worldData.icon)
-        val meta = item.itemMeta ?: return item
-
-        meta.displayName(
-            plugin.languageManager.getComponent(
-                player,
-                "gui.common.world_item_name",
-                mapOf("world" to worldData.name)
-            )
-        )
-
+    private fun createWorldListEntry(player: Player, slot: Int, worldData: WorldData): MenuElement {
         val ownerName = PlayerNameUtil.getNameOrDefault(worldData.owner, tr(player, "general.unknown"))
         val publishLevelColor = tr(player, "publish_level.color.${worldData.publishLevel.name.lowercase()}")
         val publishLevelName = tr(player, "publish_level.${worldData.publishLevel.name.lowercase()}")
@@ -1147,7 +1142,6 @@ class BedrockMenuService(
         val expiresAtValue =
             if (expireDate.year < 2900) {
                 if (daysRemaining < 0) {
-                    meta.setEnchantmentGlintOverride(true)
                 }
                 tr(
                     player,
@@ -1158,54 +1152,55 @@ class BedrockMenuService(
                 null
             }
 
-        if (worldData.isArchived) meta.setEnchantmentGlintOverride(true)
-
         val warpAction = tr(player, "gui.player_world.world_item.warp")
-        // Bedrock uses the same semantic sections as the Java menu, with its own action text.
-        meta.lore(CCSystem.getAPI().getLoreService().render(StructuredLore.blocks(
-            *buildList {
-                if (worldData.description.isNotBlank()) add(listOf(GuiLoreLine.UserText(worldData.description)))
-                add(buildList {
-                    add(GuiLoreLine.Data(tr(player, "gui.common.world_item.owner"), ownerName, "§f"))
-                    add(GuiLoreLine.Data(tr(player, "gui.common.world_item.publish"), publishLevelName, publishLevelColor))
-                    add(GuiLoreLine.Data(tr(player, "gui.common.world_item.favorite"), worldData.favorite, "§c"))
-                    add(GuiLoreLine.Data(
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = worldData.icon,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldData.name))),
+                role = GuiElementRole.ACTION,
+                description = if (worldData.description.isBlank()) emptyList() else listOf(worldData.description),
+                data = buildList {
+                    add(GuiMenuEntryData(tr(player, "gui.common.world_item.owner"), ownerName))
+                    add(GuiMenuEntryData(tr(player, "gui.common.world_item.publish"), publishLevelName, toneFor(publishLevelColor)))
+                    add(GuiMenuEntryData(tr(player, "gui.common.world_item.favorite"), worldData.favorite, GuiValueTone.DANGER))
+                    add(GuiMenuEntryData(
                         tr(player, "gui.common.world_item.recent_visitors"),
                         tr(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to worldData.recentVisitors.sum())),
-                        "§a"
+                        GuiValueTone.SUCCESS,
                     ))
-                    if (tagNames != null) add(GuiLoreLine.Data(tr(player, "gui.common.world_item.tags"), tagNames, "§e"))
-                })
-                val lifecycle = buildList {
-                    if (expiresAtValue != null) add(GuiLoreLine.Data(tr(player, "gui.player_world.world_item.expires_at"), expiresAtValue, "§f"))
-                    if (worldData.isArchived) add(GuiLoreLine.Warning(tr(player, "gui.player_world.world_item.expired")))
-                }
-                if (lifecycle.isNotEmpty()) add(lifecycle)
-                add(listOf(GuiLoreActions.singleClick(plugin.languageManager, player, warpAction)))
-            }.toTypedArray()
-        )))
-
-        item.itemMeta = meta
-        return item
-    }
-
-    private fun createCreationButtonItem(player: Player): ItemStack {
-        val item = ItemStack(Material.NETHER_STAR)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display"))
-        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-            com.awabi2048.ccsystem.api.gui.GuiLoreBlock(
-                plugin.languageManager.getMessageList(player, "gui.player_world.creation_button.description").map(GuiLoreLine::Text)
+                    if (tagNames != null) add(GuiMenuEntryData(tr(player, "gui.common.world_item.tags"), tagNames, GuiValueTone.PRIMARY))
+                    if (expiresAtValue != null) add(GuiMenuEntryData(tr(player, "gui.player_world.world_item.expires_at"), expiresAtValue))
+                },
+                warnings = if (worldData.isArchived) listOf(tr(player, "gui.player_world.world_item.expired")) else emptyList(),
+                actions = listOf(GuiMenuEntryAction(
+                    "warp_world",
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    warpAction,
+                    mapOf("world" to worldData.uuid.toString()),
+                )),
+                glint = worldData.isArchived || daysRemaining < 0,
             ),
-            com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(GuiLoreActions.singleClick(
-                plugin.languageManager,
-                player,
-                tr(player, "gui.player_world.creation_button.action")
-            )))
-        ))))
-        item.itemMeta = meta
-        return item
+        )
     }
+
+    private fun createCreationEntry(player: Player, slot: Int): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.NETHER_STAR,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display")),
+                role = GuiElementRole.ACTION,
+                description = plugin.languageManager.getMessageList(player, "gui.player_world.creation_button.description"),
+                actions = listOf(GuiMenuEntryAction(
+                    "start_creation",
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    tr(player, "gui.player_world.creation_button.action"),
+                )),
+            ),
+        )
 
     private fun createCreationUnavailableButtonItem(player: Player, reason: CreationBlockReason): ItemStack {
         val item = ItemStack(Material.BARRIER)
@@ -1235,83 +1230,64 @@ class BedrockMenuService(
         return null
     }
 
-    private fun createStatsButtonItem(
+    private fun createStatsEntry(
         player: Player,
+        slot: Int,
         currentCreateCount: Int,
         maxSlot: Int,
         worldPoint: Int
-    ): ItemStack {
-        val item = ItemStack(Material.PLAYER_HEAD)
-        val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-        meta.owningPlayer = player
+    ): MenuElement {
         val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
         val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
-        meta.displayName(
-            plugin.languageManager.getComponent(
-                player,
-                "gui.player_world.stats_button.display",
-                mapOf("player" to playerName)
-            )
-        )
-        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.points_label"), worldPoint, "§6")
-                )))
-            }
-            if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    if (bypassLimits) {
-                        GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, "§a")
-                    } else {
-                        GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.slots_label"), "$currentCreateCount/$maxSlot", "§a")
-                    },
-                    GuiLoreLine.Text(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
-                )))
-            } else {
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    GuiLoreLine.Data(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, "§a")
-                )))
-            }
-            if (pendingCount > 0) {
-                val latest = plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
-                    ?.let {
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                            .withZone(ZoneId.systemDefault())
-                            .format(Instant.ofEpochMilli(it))
+        val latest = if (pendingCount > 0) {
+            plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
+                ?.let {
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        .withZone(ZoneId.systemDefault())
+                        .format(Instant.ofEpochMilli(it))
+                } ?: tr(player, "gui.player_world.pending_button.none")
+        } else null
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.PLAYER_HEAD,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.stats_button.display", mapOf("player" to playerName))),
+                role = if (pendingCount > 0) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                description = if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                    listOf(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
+                } else emptyList(),
+                data = buildList {
+                    if (MyWorldManagerApi.isWorldPointEconomyEnabled()) add(GuiMenuEntryData(tr(player, "gui.player_world.stats_button.points_label"), worldPoint, GuiValueTone.WARNING))
+                    if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                        add(GuiMenuEntryData(
+                            tr(player, if (bypassLimits) "gui.player_world.stats_button.world_count_label" else "gui.player_world.stats_button.slots_label"),
+                            if (bypassLimits) currentCreateCount else "$currentCreateCount/$maxSlot",
+                            GuiValueTone.SUCCESS,
+                        ))
+                    } else add(GuiMenuEntryData(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, GuiValueTone.SUCCESS))
+                    if (pendingCount > 0) {
+                        add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.count_label"), pendingCount, GuiValueTone.PRIMARY))
+                        add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO))
                     }
-                    ?: tr(player, "gui.player_world.pending_button.none")
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    GuiLoreLine.Data(
-                        tr(player, "gui.player_world.pending_button.count_label"),
-                        pendingCount,
-                        "§e"
-                    ),
-                    GuiLoreLine.Data(
-                        tr(player, "gui.player_world.pending_button.latest_label"),
-                        latest,
-                        "§b"
-                    )
-                )))
-                add(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    GuiLoreActions.singleClick(
-                        plugin.languageManager,
-                        player,
-                        tr(player, "gui.player_world.pending_button.action")
-                    )
-                )))
-            }
-        })))
-        meta.setEnchantmentGlintOverride(pendingCount > 0)
-        item.itemMeta = meta
-        return item
+                },
+                actions = if (pendingCount > 0) listOf(GuiMenuEntryAction(
+                    "open_pending_interactions",
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    tr(player, "gui.player_world.pending_button.action"),
+                )) else emptyList(),
+                glint = pendingCount > 0,
+                playerHeadOwner = player.uniqueId,
+            ),
+        )
     }
 
-    private fun createCriticalVisibilityItem(player: Player, enabled: Boolean): ItemStack {
+    private fun createCriticalVisibilityEntry(player: Player, slot: Int, enabled: Boolean): MenuElement {
         val status = if (enabled) tr(player, "messages.status_visible") else tr(player, "messages.status_hidden")
-        return createSettingActionItem(
+        return createSettingActionEntry(
             player,
+            slot,
             Material.RECOVERY_COMPASS,
             "gui.user_settings.critical_settings_visibility.display",
             "critical_settings_visibility",
@@ -1322,8 +1298,9 @@ class BedrockMenuService(
         )
     }
 
-    private fun createSettingActionItem(
+    private fun createSettingActionEntry(
         player: Player,
+        slot: Int,
         material: Material,
         displayKey: String,
         setting: String,
@@ -1331,29 +1308,26 @@ class BedrockMenuService(
         currentValueColor: String,
         actionId: String,
         actionKey: String,
-        options: List<GuiMenuIconOption> = emptyList(),
+        options: List<GuiMenuEntryOption> = emptyList(),
         glint: Boolean? = null
-    ): ItemStack {
+    ): MenuElement {
         val prefix = "gui.user_settings.$setting.blocks"
-        val item = GuiItemFactory.menuIcon(
-            GuiMenuIconSpec(
-                material,
-                GuiNameSpec.Text(tr(player, displayKey), GuiNameStyle.DEFAULT),
-                GuiElementRole.CONTENT,
-                1,
-                plugin.languageManager.getMessageList(player, "$prefix.description"),
-                currentValue?.let {
-                    listOf(GuiMenuIconData(tr(player, "$prefix.current_label"), it, currentValueColor))
-                } ?: emptyList(),
-                options,
-                emptyList(),
-                emptyList(),
-                listOf(GuiLoreActions.menuSingleClick(plugin.languageManager, player, tr(player, actionKey))),
-                glint
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = material,
+                name = GuiNameSpec.Text(tr(player, displayKey), GuiNameStyle.DEFAULT),
+                role = GuiElementRole.ACTION,
+                description = plugin.languageManager.getMessageList(player, "$prefix.description"),
+                data = currentValue?.let {
+                    listOf(GuiMenuEntryData(tr(player, "$prefix.current_label"), it, toneFor(currentValueColor)))
+                }.orEmpty(),
+                options = options,
+                actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, tr(player, actionKey))),
+                glint = glint,
             ),
-            null
         )
-        return item
     }
 
     private fun nextTourNavigationMode(mode: TourNavigationMode): TourNavigationMode {
@@ -1363,6 +1337,9 @@ class BedrockMenuService(
             TourNavigationMode.NONE -> TourNavigationMode.BOSSBAR_ONLY
         }
     }
+
+    private fun toneFor(colorCode: String): GuiValueTone =
+        GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT
 
     private fun createActionItem(
         material: Material,
