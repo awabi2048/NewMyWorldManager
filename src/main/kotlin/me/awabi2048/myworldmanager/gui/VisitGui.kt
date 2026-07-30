@@ -25,15 +25,12 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class VisitGui(private val plugin: MyWorldManager) {
         private val runtime = CCSystem.getAPI().getMenuRuntimeService()
@@ -101,30 +98,13 @@ class VisitGui(private val plugin: MyWorldManager) {
                 }
 
                 if (GuiHelper.canGoBack(player)) {
-                        elements += MenuElement(
-                                layout.backSlot,
-                                createBackButton(player),
-                                GuiElementRole.BACK,
-                                ACTION_BACK,
-                        )
+                        elements += backEntry(player, layout.backSlot)
                 }
                 if (currentPage > 0) {
-                        elements += MenuElement(
-                                layout.previousPageSlot,
-                                GuiHelper.createPrevPageItem(plugin, player, "visit", currentPage - 1),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (currentPage - 1).toString()),
-                        )
+                        elements += navigationEntry(player, layout.previousPageSlot, false, currentPage - 1)
                 }
                 if (currentPage < pageLayout.totalPages - 1) {
-                        elements += MenuElement(
-                                layout.nextPageSlot,
-                                GuiHelper.createNextPageItem(plugin, player, "visit", currentPage + 1),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (currentPage + 1).toString()),
-                        )
+                        elements += navigationEntry(player, layout.nextPageSlot, true, currentPage + 1)
                 }
 
                 return InventoryMenuView(layout.size, titleComp, elements)
@@ -260,13 +240,43 @@ class VisitGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        private fun createBackButton(player: Player): ItemStack {
-                val lang = plugin.languageManager
-                return GuiItemFactory.item(
-                        Material.REDSTONE,
-                        lang.getComponent(player, "gui.common.return"),
-                        GuiLoreSpec.None,
-                        ItemTag.TYPE_GUI_RETURN
+        private fun backEntry(player: Player, slot: Int): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("visit", "back", Material.REDSTONE),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
+                                role = GuiElementRole.BACK,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_BACK,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, "gui.common.return"),
+                                        ),
+                                ),
+                        ),
+                )
+
+        private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+                val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+                val iconId = if (next) "next_page" else "prev_page"
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("visit", iconId, Material.ARROW),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                role = GuiElementRole.NAVIGATION,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_PAGE,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, key),
+                                                mapOf(PAGE to targetPage.toString()),
+                                        ),
+                                ),
+                        ),
                 )
         }
 

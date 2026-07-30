@@ -2,9 +2,11 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -25,13 +27,10 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class MeetGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
@@ -91,7 +90,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             elements += createTargetEntry(target, player, layout.itemSlots[index], action)
         }
         if (pageTargets.isEmpty()) {
-            elements += MenuElement(22, createEmptyItem(player), GuiElementRole.CONTENT)
+            elements += createEmptyEntry(player)
         }
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
@@ -113,30 +112,13 @@ class MeetGui(private val plugin: MyWorldManager) {
         )
 
         if (currentPage > 0) {
-            elements += MenuElement(
-                layout.previousPageSlot,
-                GuiHelper.createPrevPageItem(plugin, player, "meet", currentPage - 1),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (currentPage - 1).toString()),
-            )
+            elements += navigationEntry(player, layout.previousPageSlot, false, currentPage - 1)
         }
         if (currentPage < pageLayout.totalPages - 1) {
-            elements += MenuElement(
-                layout.nextPageSlot,
-                GuiHelper.createNextPageItem(plugin, player, "meet", currentPage + 1),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (currentPage + 1).toString()),
-            )
+            elements += navigationEntry(player, layout.nextPageSlot, true, currentPage + 1)
         }
         if (GuiHelper.canGoBack(player)) {
-            elements += MenuElement(
-                layout.backSlot,
-                GuiHelper.createReturnItem(plugin, player, "meet"),
-                GuiElementRole.BACK,
-                ACTION_BACK,
-            )
+            elements += backEntry(player, layout.backSlot)
         }
         return InventoryMenuView(layout.size, title, elements)
     }
@@ -276,16 +258,59 @@ class MeetGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun createEmptyItem(viewer: Player): ItemStack {
-        val item = ItemStack(Material.QUARTZ)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(
-            plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")
+    private fun createEmptyEntry(viewer: Player): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = 22,
+                item = GuiItemSpec(
+                    material = Material.QUARTZ,
+                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")),
+                    lore = GuiLoreSpec.None,
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
         )
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        return item
+
+    private fun navigationEntry(viewer: Player, slot: Int, next: Boolean, page: Int): MenuElement {
+        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val iconId = if (next) "next_page" else "prev_page"
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            viewer,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("meet", iconId, Material.ARROW),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, key)),
+                role = GuiElementRole.NAVIGATION,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_PAGE,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(viewer, key),
+                        mapOf(PAGE to page.toString()),
+                    ),
+                ),
+            ),
+        )
     }
+
+    private fun backEntry(viewer: Player, slot: Int): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuEntry(
+            viewer,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("meet", "back", Material.REDSTONE),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.common.return")),
+                role = GuiElementRole.BACK,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BACK,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(viewer, "gui.common.return"),
+                    ),
+                ),
+            ),
+        )
 
     private fun createTargetEntry(
         target: Player,
