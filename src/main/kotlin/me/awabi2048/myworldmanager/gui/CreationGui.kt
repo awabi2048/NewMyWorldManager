@@ -177,33 +177,26 @@ class CreationGui(private val plugin: MyWorldManager) {
                     MenuActionResult.Rejected()
                 } else {
                     session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                    Bukkit.getScheduler().runTask(plugin, Runnable {
-                        openTemplateSelection(context.player)
-                    })
-                    MenuActionResult.Success(MenuUpdate.Close)
+                    MenuActionResult.Success(MenuUpdate.Navigate(templateSelectionRoute()))
                 }
             }
             WorldCreationType.SEED -> {
                 session.phase = WorldCreationPhase.SEED_INPUT
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (session.isDialogMode) {
-                        CreationDialogManager.showSeedInputDialog(context.player, session)
-                    } else {
-                        plugin.creationGuiListener.openSeedInputByPlatform(context.player, session)
-                    }
-                })
-                MenuActionResult.Success(MenuUpdate.Close)
+                if (session.isDialogMode) {
+                    CreationDialogManager.showSeedInputDialog(context.player, session)
+                } else {
+                    plugin.creationGuiListener.openSeedInputByPlatform(context.player, session)
+                }
+                MenuActionResult.Success(MenuUpdate.None)
             }
             WorldCreationType.RANDOM -> {
                 session.phase = WorldCreationPhase.NAME_INPUT
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (session.isDialogMode) {
-                        CreationDialogManager.showNameInputDialog(context.player, session)
-                    } else {
-                        plugin.creationGuiListener.openNameInputByPlatform(context.player, session)
-                    }
-                })
-                MenuActionResult.Success(MenuUpdate.Close)
+                if (session.isDialogMode) {
+                    CreationDialogManager.showNameInputDialog(context.player, session)
+                } else {
+                    plugin.creationGuiListener.openNameInputByPlatform(context.player, session)
+                }
+                MenuActionResult.Success(MenuUpdate.None)
             }
         }
     }
@@ -254,24 +247,20 @@ class CreationGui(private val plugin: MyWorldManager) {
             ?: return MenuActionResult.Rejected()
         session.templateId = template.id
         session.phase = WorldCreationPhase.NAME_INPUT
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            plugin.creationGuiListener.openNameInputByPlatform(context.player, session)
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        plugin.creationGuiListener.openNameInputByPlatform(context.player, session)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun previewTemplate(context: MenuActionContext): MenuActionResult {
         val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
         val templateId = session.templateId ?: return MenuActionResult.Rejected()
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            plugin.previewSessionManager.startPreview(
-                context.player,
-                PreviewSessionManager.PreviewTarget.Template(templateId),
-                PreviewSource.TEMPLATE_DETAIL,
-            )
-        })
-        return MenuActionResult.Success(MenuUpdate.Close)
+        plugin.previewSessionManager.startPreview(
+            context.player,
+            PreviewSessionManager.PreviewTarget.Template(templateId),
+            PreviewSource.TEMPLATE_DETAIL,
+        )
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun closed(context: MenuCloseContext) {

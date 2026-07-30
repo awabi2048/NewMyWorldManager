@@ -72,7 +72,7 @@ class CreationDialogManager {
                         lang.getComponent(player, "gui.creation.confirm.action_back"),
                         MenuDialogHandler { target, _ ->
                             backFromName(target, session, plugin)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.None)
                         },
                     ),
                 ),
@@ -117,7 +117,7 @@ class CreationDialogManager {
                         MenuDialogHandler { target, _ ->
                             session.phase = WorldCreationPhase.TYPE_SELECT
                             plugin.creationGui.openTypeSelection(target)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.None)
                         },
                     ),
                 ),
@@ -185,7 +185,7 @@ class CreationDialogManager {
                         MenuDialogHandler { target, _ ->
                             session.phase = WorldCreationPhase.CONFIRM
                             plugin.creationGui.openConfirmation(target, session)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.None)
                         },
                     ),
                 ),
@@ -282,7 +282,7 @@ class CreationDialogManager {
                         MenuDialogHandler { target, _ ->
                             session.phase = WorldCreationPhase.TEMPLATE_SELECT
                             plugin.creationGui.openTemplateSelection(target)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.None)
                         },
                     ),
                 )
@@ -310,7 +310,7 @@ class CreationDialogManager {
                         MenuDialogHandler { target, _ ->
                             session.phase = WorldCreationPhase.NAME_INPUT
                             showNameInputDialog(target, session)
-                            MenuActionResult.Success(MenuUpdate.Close)
+                            MenuActionResult.Success(MenuUpdate.None)
                         },
                     ),
                     additionalActions = additionalActions,
@@ -337,7 +337,7 @@ class CreationDialogManager {
                 })
                 return MenuActionResult.Rejected()
             }
-            return MenuActionResult.Success(MenuUpdate.Close)
+            return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun applyWorldName(
@@ -374,7 +374,7 @@ class CreationDialogManager {
                 session.phase = WorldCreationPhase.CONFIRM
                 plugin.creationGui.openConfirmation(player, session)
             }
-            return MenuActionResult.Success(MenuUpdate.Close)
+            return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun backFromName(
@@ -417,7 +417,7 @@ class CreationDialogManager {
             session.inputSeedString = seed
             session.phase = WorldCreationPhase.NAME_INPUT
             showNameInputDialog(player, session)
-            return MenuActionResult.Success(MenuUpdate.Close)
+            return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun applySpawnCoordinates(
@@ -458,7 +458,7 @@ class CreationDialogManager {
             }
             session.phase = WorldCreationPhase.CONFIRM
             plugin.creationGui.openConfirmation(player, session)
-            return MenuActionResult.Success(MenuUpdate.Close)
+            return MenuActionResult.Success(MenuUpdate.None)
         }
 
         private fun performWorldCreation(

@@ -389,9 +389,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
     fun cancelAndReturnToMyWorld(player: Player) {
         plugin.creationSessionManager.endSession(player.uniqueId)
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (player.isOnline) plugin.menuEntryRouter.openPlayerWorld(player, 0, false)
-        })
+        if (player.isOnline) plugin.menuEntryRouter.openPlayerWorld(player, 0, false)
     }
 }
 

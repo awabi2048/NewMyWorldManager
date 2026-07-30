@@ -48,7 +48,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
             ),
         )
         plugin.menuEntryRouter.openDiscovery(player)
-        return MenuActionResult.Success(MenuUpdate.Close)
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     private fun canManageSpotlight(player: Player): Boolean =
@@ -108,7 +108,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
                     ),
                     MenuDialogHandler { target, _ ->
                         plugin.menuEntryRouter.openDiscovery(target)
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                 ),
             ),

@@ -85,7 +85,7 @@ class AdminGuiListener {
                     Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
                     MenuDialogHandler { target, response ->
                         applyAdminPlayerFilter(plugin, target, response.textValue("admin_player_name"))
-                        MenuActionResult.Success(MenuUpdate.Close)
+                        MenuActionResult.Success(MenuUpdate.None)
                     },
                 ),
                 cancel = MenuDialogButton(
