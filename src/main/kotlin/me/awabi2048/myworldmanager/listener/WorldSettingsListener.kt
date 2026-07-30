@@ -152,26 +152,6 @@ class WorldSettingsListener : Listener {
                         )
                 }
 
-                if (operation == WorldSettingsRuntimeOperation.WARP) {
-                        if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
-                                return MenuActionResult.Ignored
-                        }
-                        plugin.settingsSessionManager.updateSessionAction(
-                                player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true,
-                                isPlayerWorldFlow = session.isPlayerWorldFlow,
-                                parentShowBackButton = session.parentShowBackButton
-                        )
-                        CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
-                        plugin.worldService.teleportToWorld(player, worldData.uuid, closeInventoryOnLoad = false) {
-                                if (!player.isOnline) return@teleportToWorld
-                                player.sendMessage(plugin.languageManager.getMessage(
-                                        player, "messages.warp_success", mapOf("world" to worldData.name)
-                                ))
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-                        }
-                        return MenuActionResult.Success(MenuUpdate.None)
-                }
-
                 val restrictedOperations = setOf(
                         WorldSettingsRuntimeOperation.SET_SPAWN,
                         WorldSettingsRuntimeOperation.EXPAND,
@@ -188,35 +168,6 @@ class WorldSettingsListener : Listener {
                 when (operation) {
                         WorldSettingsRuntimeOperation.BACK ->
                                 return MenuActionResult.Success(MenuUpdate.Back)
-                        WorldSettingsRuntimeOperation.EDIT_INFO -> {
-                                if (openBedrockWorldInfoInputForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
-                                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                                        return MenuActionResult.Success(MenuUpdate.Refresh)
-                                }
-                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
-                                showWorldInfoDialog(player, worldData)
-                        }
-                        WorldSettingsRuntimeOperation.SET_SPAWN -> {
-                                val isGuest = click.isLeftClick
-                                val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
-                                val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
-                                val typeName = plugin.languageManager.getMessage(player, typeKey)
-                                player.sendMessage(
-                                        Component.text().append(Component.text(plugin.languageManager.getMessage(
-                                                player, "messages.spawn_set_start", mapOf("type" to typeName)
-                                        ))).append(Component.newline()).append(
-                                                Component.text("ﾂｧ7繝ｯ繝ｼ繝ｫ繝芽ｨｭ螳壹Γ繝九Η繝ｼ繧帝幕縺・※繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺励∪縺吶・)")
-                                                        .clickEvent(ClickEvent.runCommand("/worldmenu"))
-                                                        .hoverEvent(HoverEvent.showText(Component.text("ﾂｧa繧ｯ繝ｪ繝・け縺ｧ髢九￥")))
-                                        ).build()
-                                )
-                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
-                                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
-                                plugin.worldSettingsSpawnPreviewService.start(player)
-                        }
-                        WorldSettingsRuntimeOperation.SELECT_ICON ->
-                                return startIconSelection(player, worldData)
                         WorldSettingsRuntimeOperation.EXPAND -> {
                                 if (MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) != true) {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "gui.settings.common.must_be_in_world"))
@@ -257,12 +208,6 @@ class WorldSettingsListener : Listener {
                                 plugin.worldConfigRepository.save(worldData)
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
-                        WorldSettingsRuntimeOperation.MANAGE_MEMBERS ->
-                                return MenuActionResult.Success(
-                                        MenuUpdate.Navigate(
-                                                plugin.worldSettingsGui.memberManagementRoute(worldData.uuid),
-                                        ),
-                                )
                         WorldSettingsRuntimeOperation.EDIT_TAGS -> {
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
                                 showTagEditorDialog(player, worldData)
@@ -290,10 +235,6 @@ class WorldSettingsListener : Listener {
                                 plugin.worldConfigRepository.save(worldData)
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
-                        WorldSettingsRuntimeOperation.TOUR ->
-                                return MenuActionResult.Success(
-                                        MenuUpdate.Navigate(plugin.tourGui.editRoute(worldData.uuid)),
-                                )
                         WorldSettingsRuntimeOperation.OPEN_CRITICAL ->
                                 return MenuActionResult.Success(
                                         MenuUpdate.Navigate(
@@ -303,40 +244,6 @@ class WorldSettingsListener : Listener {
                                                 ),
                                         ),
                                 )
-                        WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> {
-                                if (openBedrockAnnouncementActionForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
-                                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                                        return MenuActionResult.Success(MenuUpdate.Refresh)
-                                }
-                                if (click.isRightClick) {
-                                        worldData.announcementMessages.clear()
-                                        plugin.worldConfigRepository.save(worldData)
-                                        player.sendMessage(plugin.languageManager.getMessage("messages.announcement_reset"))
-                                        return reopenWorldSettingsLatest(player, worldData)
-                                }
-                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
-                                me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
-                        }
-                        WorldSettingsRuntimeOperation.MANAGE_PORTALS -> {
-                                val isOwner = worldData.owner == player.uniqueId || session.isAdminFlow
-                                if (!isOwner) {
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "general.no_permission"))
-                                        return MenuActionResult.Ignored
-                                }
-                                if (plugin.portalRepository.findAll().none { it.worldKey == worldData.worldKey }) {
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "error.no_portals_found"))
-                                        return MenuActionResult.Ignored
-                                }
-                                return MenuActionResult.Success(
-                                        MenuUpdate.Navigate(
-                                                plugin.worldSettingsGui.runtimeRoute(
-                                                        WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT,
-                                                        worldData.uuid,
-                                                ),
-                                        ),
-                                )
-                        }
                         WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> {
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_option_unavailable"))
@@ -1567,167 +1474,6 @@ class WorldSettingsListener : Listener {
                 return opened
         }
 
-        fun editWorldInfo(player: Player, worldData: WorldData) {
-                if (openBedrockWorldInfoInputForm(player, worldData)) return
-                if (plugin.playerPlatformResolver.isBedrock(player)) return
-                plugin.settingsSessionManager.updateSessionAction(
-                        player, worldData.uuid, SettingsAction.RENAME_WORLD
-                )
-                showWorldInfoDialog(player, worldData)
-        }
-
-        fun startIconSelection(player: Player, worldData: WorldData): MenuActionResult {
-                return plugin.worldSettingsIconSelectionService.start(player, worldData)
-                /*
-                plugin.settingsSessionManager.updateSessionAction(
-                        player,
-                        worldData.uuid,
-                        SettingsAction.SELECT_ICON
-                )
-                plugin.settingsSessionManager
-                        .getSession(player)
-                        ?.let {
-                                it.beginExternalInput(MenuExternalInput.SELECT_ICON)
-                        }
-                player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
-                return MenuActionResult.Success(
-                        MenuUpdate.Replace(plugin.worldSettingsGui.iconSelectionRoute(worldData.uuid)),
-                )
-                */
-        }
-
-        fun handleRuntimeIconSelection(
-                player: Player,
-                clickedItem: ItemStack,
-        ): MenuActionResult {
-                val session = plugin.settingsSessionManager.getSession(player)
-                        ?: return MenuActionResult.Ignored
-                if (clickedItem.type == Material.AIR) {
-                        return MenuActionResult.Ignored
-                }
-
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
-                        ?: return MenuActionResult.Ignored
-
-                if (clickedItem.type == Material.BLACK_STAINED_GLASS_PANE ||
-                        clickedItem.type == Material.GRAY_STAINED_GLASS_PANE
-                ) {
-                        player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BIT, 1.0f, 0.5f)
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_forbidden"))
-                        return MenuActionResult.Rejected()
-                }
-
-                worldData.icon = clickedItem.type
-                plugin.worldConfigRepository.save(worldData)
-                val iconPlaceholder = "\uE000mwm_icon\uE001"
-                val itemName = clickedItem.effectiveName().decoration(TextDecoration.ITALIC, false)
-                val changedMessage =
-                        plugin.languageManager
-                                .getComponent(
-                                        player,
-                                        "messages.icon_changed",
-                                        mapOf("icon" to iconPlaceholder)
-                                )
-                                .replaceText { replacement ->
-                                        replacement
-                                                .matchLiteral(iconPlaceholder)
-                                                .replacement(itemName)
-                                }
-                player.sendMessage(
-                        changedMessage
-                )
-                plugin.settingsSessionManager.updateSessionAction(
-                        player,
-                        worldData.uuid,
-                        SettingsAction.VIEW_SETTINGS,
-                        isGui = true,
-                )
-                val restoredSession = plugin.settingsSessionManager.getSession(player)
-                val restoredRoute = MyWorldManagerApi.prepareWorldSettingsRoute(
-                        player,
-                        worldData.uuid,
-                        me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest(
-                                showBackButton = restoredSession?.showBackButton ?: true,
-                                isAdminFlow = restoredSession?.isAdminFlow ?: false,
-                                isPlayerWorldFlow = restoredSession?.isPlayerWorldFlow,
-                                parentShowBackButton = restoredSession?.parentShowBackButton,
-                        ),
-                ) ?: return MenuActionResult.Rejected()
-                return MenuActionResult.Success(
-                        MenuUpdate.Replace(restoredRoute),
-                )
-        }
-
-        fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {
-                if (!plugin.playerPlatformResolver.isBedrock(player)) {
-                        return false
-                }
-                if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                        return false
-                }
-
-                val lang = plugin.languageManager
-                val worldUuid = worldData.uuid
-                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
-
-                return plugin.floodgateFormBridge.sendCustomForm(
-                        player = player,
-                        title = lang.getMessage(player, "gui.bedrock.input.info_form.title"),
-                        inputs =
-                                listOf(
-                                        me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
-                                                .CustomFormInput(
-                                                        label =
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.bedrock.input.rename.label"
-                                                                ),
-                                                        placeholder =
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.bedrock.input.rename.placeholder"
-                                                                ),
-                                                        defaultValue = worldData.name
-                                                ),
-                                        me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
-                                                .CustomFormInput(
-                                                        label =
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.bedrock.input.description.label"
-                                                                ),
-                                                        placeholder =
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.bedrock.input.description.placeholder"
-                                                                ),
-                                                        defaultValue = worldData.description
-                                                )
-                                ),
-                        onSubmit = { values ->
-                                val latestWorld =
-                                        plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                ?: return@sendCustomForm
-                                val newName = values.getOrNull(0).orEmpty().trim()
-                                val newDescription = values.getOrNull(1).orEmpty().trim()
-                                applyWorldInfoUpdate(
-                                        player,
-                                        latestWorld,
-                                        newName,
-                                        newDescription
-                                )
-                        },
-                        onClosed = {
-                                if (!player.isOnline) {
-                                        return@sendCustomForm
-                                }
-                                if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
-                                        return@sendCustomForm
-                                }
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-                        }
-                )
-        }
 
         private fun openBedrockMemberInviteInputForm(
                 player: Player,
@@ -1767,213 +1513,8 @@ class WorldSettingsListener : Listener {
                 )
         }
 
-        fun openBedrockAnnouncementActionForm(player: Player, worldData: WorldData): Boolean {
-                if (!plugin.playerPlatformResolver.isBedrock(player)) {
-                        return false
-                }
-                if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                        return false
-                }
 
-                val lang = plugin.languageManager
-                val worldUuid = worldData.uuid
-                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
 
-                return plugin.floodgateFormBridge.sendSimpleForm(
-                        player = player,
-                        title =
-                                lang.getMessage(
-                                        player,
-                                        "gui.bedrock.input.announcement_menu.title"
-                                ),
-                        content =
-                                lang.getMessage(
-                                        player,
-                                        "gui.bedrock.input.announcement_menu.content"
-                                ),
-                        buttons =
-                                listOf(
-                                        lang.getMessage(
-                                                player,
-                                                "gui.bedrock.input.announcement_menu.edit"
-                                        ),
-                                        lang.getMessage(
-                                                player,
-                                                "gui.bedrock.input.announcement_menu.reset"
-                                        )
-                                ),
-                        onSelect = { index ->
-                                val latestWorld =
-                                        plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                ?: return@sendSimpleForm
-                                if (index == 1) {
-                                        latestWorld.announcementMessages.clear()
-                                        plugin.worldConfigRepository.save(latestWorld)
-                                        player.sendMessage(
-                                                lang.getMessage(player, "messages.announcement_reset")
-                                        )
-                                        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-                                        return@sendSimpleForm
-                                }
-                                if (!openBedrockAnnouncementEditForm(player, latestWorld)) {
-                                        player.sendMessage(
-                                                lang.getMessage(
-                                                        player,
-                                                        "messages.operation_cancelled"
-                                                )
-                                        )
-                                        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-                                }
-                        },
-                        onClosed = {
-                                if (!player.isOnline) {
-                                        return@sendSimpleForm
-                                }
-                                if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
-                                        return@sendSimpleForm
-                                }
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-                        }
-                )
-        }
-
-        private fun openBedrockAnnouncementEditForm(player: Player, worldData: WorldData): Boolean {
-                if (!plugin.playerPlatformResolver.isBedrock(player)) {
-                        return false
-                }
-                if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                        return false
-                }
-
-                val lang = plugin.languageManager
-                val maxLines = plugin.config.getInt("announcement.max_lines", 5)
-                val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
-                val worldUuid = worldData.uuid
-                val inputs =
-                        (0 until maxLines).map { index ->
-                                val current = worldData.announcementMessages.getOrNull(index).orEmpty()
-                                me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge
-                                        .CustomFormInput(
-                                                label =
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.bedrock.input.announcement_edit.label",
-                                                                mapOf("line" to index + 1)
-                                                        ),
-                                                placeholder =
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.bedrock.input.announcement_edit.placeholder",
-                                                                mapOf("max" to maxLength)
-                                                        ),
-                                                defaultValue =
-                                                        current
-                                                                .removePrefix("§f")
-                                                                .replace("§", "&")
-                                        )
-                        }
-
-                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
-
-                return plugin.floodgateFormBridge.sendCustomForm(
-                        player = player,
-                        title =
-                                lang.getMessage(
-                                        player,
-                                        "gui.bedrock.input.announcement_edit.title",
-                                        mapOf("max_lines" to maxLines, "max_length" to maxLength)
-                                ),
-                        inputs = inputs,
-                        onSubmit = { values ->
-                                val latestWorld =
-                                        plugin.worldConfigRepository.findByUuid(worldUuid)
-                                                ?: return@sendCustomForm
-                                applyAnnouncementUpdateFromForm(
-                                        player,
-                                        latestWorld,
-                                        values
-                                )
-                        },
-                        onClosed = {
-                                if (!player.isOnline) {
-                                        return@sendCustomForm
-                                }
-                                if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
-                                        return@sendCustomForm
-                                }
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-                        }
-                )
-        }
-
-        private fun applyAnnouncementUpdateFromForm(
-                player: Player,
-                worldData: WorldData,
-                rawInputs: List<String>
-        ) {
-                val lang = plugin.languageManager
-                val maxLines = plugin.config.getInt("announcement.max_lines", 5)
-                val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
-                val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
-
-                val trimmed = rawInputs.map { it.trim() }.filter { it.isNotEmpty() }
-                if (trimmed.size > maxLines) {
-                        player.sendMessage(
-                                lang.getMessage(
-                                        player,
-                                        "messages.announcement_invalid_length",
-                                        mapOf(
-                                                "max_lines" to maxLines,
-                                                "max_length" to maxLength
-                                        )
-                                )
-                        )
-                        plugin.worldSettingsGui.open(player, worldData)
-                        return
-                }
-
-                for (line in trimmed) {
-                        if (line.length > maxLength) {
-                                player.sendMessage(
-                                        lang.getMessage(
-                                                player,
-                                                "messages.announcement_invalid_length",
-                                                mapOf(
-                                                        "max_lines" to maxLines,
-                                                        "max_length" to maxLength
-                                                )
-                                        )
-                                )
-                                plugin.worldSettingsGui.open(player, worldData)
-                                return
-                        }
-
-                        val blocked =
-                                blockedStrings.firstOrNull {
-                                        line.contains(it, ignoreCase = true)
-                                }
-                        if (blocked != null) {
-                                player.sendMessage(
-                                        lang.getMessage(
-                                                player,
-                                                "messages.announcement_blocked_string",
-                                                mapOf("string" to blocked)
-                                        )
-                                )
-                                plugin.worldSettingsGui.open(player, worldData)
-                                return
-                        }
-                }
-
-                worldData.announcementMessages.clear()
-                trimmed.forEach { line ->
-                        worldData.announcementMessages.add("§f${line.replace("&", "§")}")
-                }
-
-                plugin.worldConfigRepository.save(worldData)
-                player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
-                plugin.worldSettingsGui.open(player, worldData)
-        }
 
         private fun canCancelMemberInvite(player: Player, worldData: WorldData): Boolean {
                 return worldData.owner == player.uniqueId ||
@@ -2280,39 +1821,6 @@ class WorldSettingsListener : Listener {
                 return PlayerNameUtil.resolveOfflinePlayer(plugin, inputName)
         }
 
-        private fun applyWorldInfoUpdate(
-                player: Player,
-                worldData: WorldData,
-                newName: String,
-                newDescription: String
-        ) {
-                val lang = plugin.languageManager
-                var updated = false
-
-                if (newName.isNotBlank()) {
-                        val result = plugin.worldValidator.validateName(newName)
-                        if (result is WorldNameValidation.Failure) {
-                                player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
-                        } else if (plugin.worldConfigRepository.findByOwnerAndDisplayName(worldData.owner, newName, worldData.uuid) != null) {
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
-                        } else if (worldData.name != newName) {
-                                worldData.name = newName
-                                updated = true
-                                player.sendMessage(lang.getMessage(player, "messages.world_name_change"))
-                        }
-                }
-
-                if (worldData.description != newDescription) {
-                        worldData.description = newDescription
-                        updated = true
-                        player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
-                }
-
-                if (updated) {
-                        plugin.worldConfigRepository.save(worldData)
-                }
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
-        }
 
         private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
                 val lang = plugin.languageManager
@@ -3307,53 +2815,6 @@ player.sendMessage(
 
 
 
-        fun showWorldInfoDialog(player: Player, worldData: WorldData) {
-            val lang = plugin.languageManager
-            CCSystem.getAPI().getMenuDialogService().show(
-                player,
-                MenuDialogRequest(
-                    owner = "myworldmanager",
-                    id = "settings-world-info",
-                    title = Component.text(
-                        lang.getMessage(player, "gui.bedrock.input.info_form.title"),
-                        NamedTextColor.YELLOW,
-                    ),
-                    body = listOf(Component.text(lang.getMessage(player, "gui.settings.info.dialog.body"))),
-                    inputs = listOf(
-                        MenuDialogInput.Text(
-                            "world_name",
-                            Component.text(lang.getMessage(player, "gui.bedrock.input.rename.label")),
-                            worldData.name.take(16),
-                            maxLength = 16,
-                        ),
-                        MenuDialogInput.Text(
-                            "world_desc",
-                            Component.text(lang.getMessage(player, "gui.bedrock.input.description.label")),
-                            worldData.description.take(100),
-                            maxLength = 100,
-                        ),
-                    ),
-                    confirm = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                        MenuDialogHandler { target, response ->
-                            applyWorldInfoUpdate(
-                                target,
-                                worldData,
-                                response.textValue("world_name").trim(),
-                                response.textValue("world_desc").trim(),
-                            )
-                            MenuActionResult.Success(MenuUpdate.None)
-                        },
-                    ),
-                    cancel = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY),
-                        MenuDialogHandler { target, _ ->
-                            MenuActionResult.Success(MenuUpdate.Resume)
-                        },
-                    ),
-                ),
-            )
-        }
 
         private fun showMemberInviteDialog(
                 player: Player,

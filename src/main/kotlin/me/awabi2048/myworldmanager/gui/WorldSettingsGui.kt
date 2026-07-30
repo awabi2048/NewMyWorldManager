@@ -143,7 +143,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 },
                                         MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
                                                 MenuActionHandler { context ->
-                                                        plugin.worldSettingsListener.handleRuntimeIconSelection(
+                                                        plugin.worldSettingsIconSelectionService.select(
                                                                 context.player,
                                                                 context.item,
                                                         )
@@ -3861,11 +3861,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun editWorldInfo(player: Player, worldData: WorldData) {
-                plugin.worldSettingsListener.editWorldInfo(player, worldData)
+                plugin.worldSettingsInputService.editInfo(player, worldData)
         }
 
         fun handleIconSelection(player: Player, clickedItem: ItemStack): MenuActionResult {
-                return plugin.worldSettingsListener.handleRuntimeIconSelection(player, clickedItem)
+                return plugin.worldSettingsIconSelectionService.select(player, clickedItem)
         }
 
         fun handleManagedMenuClose(player: Player, reason: MenuCloseReason) {
