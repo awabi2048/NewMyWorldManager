@@ -1036,9 +1036,6 @@ class WorldSettingsListener : Listener {
                         SettingsAction.MEMBER_INVITE,
                         isGui = true,
                 )
-                plugin.settingsSessionManager
-                        .getSession(player)
-                        ?.setMetadata("member_invite_force_add_mode", forceAddMode)
                 showMemberInviteDialog(player, forceAddMode)
                 return MenuActionResult.Success(MenuUpdate.None)
         }
@@ -1175,9 +1172,6 @@ class WorldSettingsListener : Listener {
                         SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
                         isGui = true
                 )
-                plugin.settingsSessionManager
-                        .getSession(player)
-                        ?.setMetadata("member_pending_invite_cancel_id", decisionId.toString())
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
 
                 val title =
@@ -1490,8 +1484,6 @@ class WorldSettingsListener : Listener {
         }
 
         private val borderResetSpawnService = BorderResetSpawnService()
-        private val expansionExecutionModeMetadataKey = "expansion_execution_mode"
-        private val expansionSkipPhasesMetadataKey = "expansion_skip_phases"
         private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
 
         data class PendingExpansion(
@@ -1544,9 +1536,8 @@ class WorldSettingsListener : Listener {
                         isGui = false
                 )
                 val session = plugin.settingsSessionManager.getSession(player) ?: return false
-                session.setMetadata(expansionExecutionModeMetadataKey, options.executionMode.name)
-                session.setMetadata(expansionSkipPhasesMetadataKey, options.skipPhases.map { it.name })
-                session.setMetadata("expand_cost", 0)
+                session.expansionExecutionMode = options.executionMode
+                session.expansionCost = 0
                 session.expansionDirection = options.direction
 
                 return when (options.startPhase) {
@@ -1599,7 +1590,7 @@ class WorldSettingsListener : Listener {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return false
                 session.action = SettingsAction.EXPAND_CONFIRM
                 session.expansionDirection = direction
-                session.setMetadata("expand_cost", cost)
+                session.expansionCost = cost
 
                 val lang = plugin.languageManager
                 val directionKey =
@@ -2989,13 +2980,7 @@ player.sendMessage(
 
         private fun expansionExecutionMode(
                 session: me.awabi2048.myworldmanager.session.SettingsSession
-        ): ExpansionExecutionMode {
-                val raw = session.getMetadata(expansionExecutionModeMetadataKey) as? String
-                return runCatching {
-                        if (raw == null) ExpansionExecutionMode.STANDARD
-                        else ExpansionExecutionMode.valueOf(raw)
-                }.getOrDefault(ExpansionExecutionMode.STANDARD)
-        }
+        ): ExpansionExecutionMode = session.expansionExecutionMode
 
         @EventHandler
         fun onInteract(event: PlayerInteractEvent) {
@@ -3049,7 +3034,7 @@ player.sendMessage(
                                                 calculateExpansionCost(worldData.borderExpansionLevel)
                                         }
 
-                                settingsSession.setMetadata("expand_cost", cost)
+                                settingsSession.expansionCost = cost
 
                                 val directionKey =
                                         when (direction) {
@@ -3595,7 +3580,7 @@ player.sendMessage(
                                 if (session.action == SettingsAction.EXPAND_DIRECTION_CONFIRM) {
                                         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
                                         val direction = session.expansionDirection
-                                        val cost = session.getMetadata("expand_cost") as? Int ?: 0
+                                        val cost = session.expansionCost
                                         if (expansionExecutionMode(session) ==
                                                         ExpansionExecutionMode.IMMEDIATE_NO_COST
                                         ) {
@@ -3664,9 +3649,6 @@ player.sendMessage(
                                         SettingsAction.MEMBER_INVITE,
                                         isGui = false
                                 )
-                                plugin.settingsSessionManager
-                                        .getSession(player)
-                                        ?.setMetadata("member_invite_accept_id", invite.id.toString())
                                 val title = Component.text(lang.getMessage(player, "gui.member_invite_accept_confirm.title"))
                                 val center = me.awabi2048.myworldmanager.util.GuiItemFactory.playerHead(
                                         Bukkit.getOfflinePlayer(invite.senderUuid),
@@ -3921,7 +3903,7 @@ player.sendMessage(
                 )
                 plugin.settingsSessionManager.getSession(player)?.let {
                         it.expansionDirection = direction
-                        it.setMetadata("expand_cost", cost)
+                        it.expansionCost = cost
                 }
 
                 DialogConfirmManager.showConfirmationByPreference(
@@ -4065,7 +4047,7 @@ player.sendMessage(
                         "gravity" -> handleEnvGravityConfirm(player, worldData)
                         "weather" -> handleWeatherConfirm(player, worldData)
                         "biome" -> {
-                            val biomeId = session.getMetadata("temp_biome") as? String ?: return@open
+                            val biomeId = session.tempBiomeId ?: return@open
                             handleEnvBiomeConfirm(player, worldData, biomeId)
                         }
                     }
@@ -4119,7 +4101,7 @@ player.sendMessage(
 
         private fun handleWeatherConfirm(player: Player, worldData: WorldData) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val nextWeather = session.tempWeather ?: session.getMetadata("temp_weather") as? String ?: return
+                val nextWeather = session.tempWeather ?: return
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
@@ -4188,7 +4170,7 @@ player.sendMessage(
 
         private fun handleExpandConfirm(player: Player, worldData: WorldData) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val cost = (session.getMetadata("expand_cost") as? Number)?.toInt() ?: return
+                val cost = session.expansionCost
                 val direction = session.expansionDirection
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
 
@@ -4778,7 +4760,7 @@ player.sendMessage(
                                 "gravity" -> handleEnvGravityConfirm(player, worldData)
                                 "weather" -> handleWeatherConfirm(player, worldData)
                                 "biome" -> {
-                                        val biomeId = session.getMetadata("temp_biome") as? String ?: return
+                                        val biomeId = session.tempBiomeId ?: return
                                         handleEnvBiomeConfirm(player, worldData, biomeId)
                                 }
                         }

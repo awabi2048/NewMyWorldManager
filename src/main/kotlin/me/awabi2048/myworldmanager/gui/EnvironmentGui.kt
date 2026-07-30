@@ -140,7 +140,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                 }
                 val biomeId = ItemTag.getBiomeId(clickedItem) ?: return MenuActionResult.Ignored
                 session.confirmItem = clickedItem.clone()
-                session.setMetadata("temp_biome", biomeId)
+                session.tempBiomeId = biomeId
                 val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
                 showConfirmationNextTick(player, worldData, "biome", cost)
                 return MenuActionResult.Success(MenuUpdate.Close)
