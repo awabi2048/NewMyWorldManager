@@ -2,9 +2,11 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -22,12 +24,9 @@ import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 import java.time.LocalDate
 import java.util.UUID
 
@@ -81,7 +80,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         }
 
         if (worldData != null) {
-            elements += MenuElement(layout.backSlot, createWorldInfoItem(player, worldData), GuiElementRole.CONTENT)
+            elements += createWorldInfoEntry(player, worldData, layout.backSlot)
         }
 
         return InventoryMenuView(
@@ -225,17 +224,15 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun createWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
+    private fun createWorldInfoEntry(player: Player, worldData: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
 
-        val item = ItemStack(worldData.icon)
-        val meta = item.itemMeta ?: return item
         val owner = Bukkit.getOfflinePlayer(worldData.owner)
         val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
         val tagNames = worldData.tags.takeIf(List<String>::isNotEmpty)?.joinToString(", ") {
             plugin.worldTagManager.getDisplayName(player, it)
         }
-        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
+        val lore = GuiLoreSpec.Blocks(listOf(
             GuiLoreBlock(buildList {
                 add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.world_name"), worldData.name, "§a"))
                 if (worldData.description.isNotBlank()) add(GuiLoreLine.UserText(worldData.description))
@@ -250,14 +247,20 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                 ))
                 if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
             })
-        )))
+        ))
 
-        meta.displayName(lang.getComponent(player, "gui.favorite.current_world.name"))
-        meta.lore(lore)
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        ItemTag.setWorldUuid(item, worldData.uuid)
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = slot,
+                item = GuiItemSpec(
+                    material = worldData.icon,
+                    name = GuiNameSpec.Component(lang.getComponent(player, "gui.favorite.current_world.name")),
+                    lore = lore,
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
+        )
     }
 
     private fun MenuRoute.worldUuid(): UUID? =

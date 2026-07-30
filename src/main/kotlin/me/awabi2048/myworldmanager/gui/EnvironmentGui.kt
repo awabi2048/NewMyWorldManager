@@ -29,7 +29,6 @@ import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class EnvironmentGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
@@ -78,7 +77,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                 createGravityEntry(player, worldData, layout.leftSlot),
                 createWeatherEntry(player, worldData, layout.centerSlot),
                 createBiomeEntry(player, worldData, layout.rightSlot),
-                MenuElement(layout.backSlot, createBackItem(player), GuiElementRole.BACK, ACTION_BACK),
+                createBackEntry(player, layout.backSlot),
             ),
             playerInventoryInteraction = PlayerInventoryInteraction.SELECTION,
         )
@@ -283,13 +282,23 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     private fun menuEntry(player: Player, spec: GuiMenuEntrySpec): MenuElement =
         CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
 
-    private fun createBackItem(player: Player): ItemStack {
-        val item = ItemStack(Material.REDSTONE)
-        item.itemMeta = item.itemMeta?.also {
-            it.displayName(plugin.languageManager.getComponent(player, "gui.common.back"))
-        }
-        return item
-    }
+    private fun createBackEntry(player: Player, slot: Int): MenuElement =
+        menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.REDSTONE,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
+                role = GuiElementRole.BACK,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BACK,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, "gui.common.back"),
+                    ),
+                ),
+            ),
+        )
 
     private fun worldData(route: MenuRoute): WorldData {
         val uuid = route.payload[WORLD_UUID]?.let(UUID::fromString)
