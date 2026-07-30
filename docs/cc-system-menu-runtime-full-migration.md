@@ -582,3 +582,25 @@ standalone_export:
 - 全Creation Routeへ共通Close Handlerを追加した。Dialog・Form入力中とテンプレートプレビュー中は作成セッションを維持し、Route遷移ではなくユーザーが画面を閉じた場合だけセッションを終了してマイワールド画面へ戻す。
 - `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
 - `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。
+
+### 2026-07-30
+
+- 第1段階のRuntime接続完了と、第2段階の画面所有権分離を別の完了条件として再定義した。
+- CC-System 26.730.1へ一般的な`MenuCapabilityService`を追加した。RegistryはMWM/Chanponのドメイン型、画面、スロットを所有しない。
+- MWM 26.730.24のワールド設定画面は、Capabilityを解決して自身のスロット規則で配置し、遷移時に最新状態からCapabilityを再解決する。
+- MWM-Chanpon 26.730.2は「本番用設定・ワールド提出」を`mwm-chanpon:world-production-submission`として登録した。
+- 未提出だけを左クリック限定Actionとし、提出済み、完了済み、状態不正、提出停止中は遷移先なしのDisplayOnlyとした。
+- 提出確認画面をChanpon所有Route `mwm-chanpon:world-production-submission-confirmation`へ移した。
+- `ProductionToggleExtension`をMWM `MenuExtension`から外し、ワールド設定へのスロット差し込み、Booleanクリック結果、手動成功・拒否音を削除した。
+- Chanpon側に残っていた`logWorldSettingsDebug`呼び出し6件を削除した。
+- CC-System、MWM、MWM-Chanponのビルドで、それぞれ既存テスト、53件、55件が成功した。
+- 3成果物を規定手順で配置し、PID 31740で起動した。RCONで各版、25566/25576、起動完了、Capability APIクラスのJAR同梱、API不整合例外がないことを確認した。
+
+第2段階の残件:
+
+1. `ChanponWorldSettingsMenuProvider`と`SubmittedWorldMenuProvider`によるMWM設定画面置換を廃止する。
+2. `ChanponPlayerWorldMenuProvider`によるMWMプレイヤーワールド画面置換を廃止する。
+3. `ChanponCreationConfirmationMenuProvider`による作成確認画面置換を、共通ユースケースとChanpon所有Draftへ分離する。
+4. `WorldBackupMenuExtension`、`ToolPermissionMenuExtension`、`LinkedPortalMenuExtension`をCapabilityと独立Routeへ移す。
+5. ChanponからMWMの`settingsSessionManager`、`worldSettingsGui`を直接参照する7ファイルを解消する。
+6. MWMのProvider逆順置換APIと旧`MenuExtension`を、全利用箇所の移行後に削除する。
