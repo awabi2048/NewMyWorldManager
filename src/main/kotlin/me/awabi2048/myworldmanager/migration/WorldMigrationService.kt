@@ -2,10 +2,17 @@ package me.awabi2048.myworldmanager.migration
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -20,7 +27,6 @@ import org.bukkit.WorldCreator
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -316,23 +322,20 @@ class WorldMigrationService(
                 plugin.languageManager.getComponent(player, "gui.migration.confirm.title"),
             ),
             elements = listOf(
-                MenuElement(
-                    layout.previewSlot,
-                    item(Material.COMPASS, plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
-                    GuiElementRole.CONTENT,
+                CCSystem.getAPI().getGuiElementService().menuDisplay(
+                    GuiMenuDisplaySpec(
+                        layout.previewSlot,
+                        GuiItemSpec(
+                            Material.COMPASS,
+                            GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
+                            GuiLoreSpec.None,
+                            GuiElementRole.CONTENT,
+                            1,
+                        ),
+                    ),
                 ),
-                MenuElement(
-                    layout.confirmSlot,
-                    item(Material.LIME_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.execute")),
-                    GuiElementRole.ACTION,
-                    ACTION_EXECUTE,
-                ),
-                MenuElement(
-                    layout.cancelSlot,
-                    item(Material.RED_CONCRETE, plugin.languageManager.getComponent(player, "gui.migration.confirm.cancel")),
-                    GuiElementRole.NAVIGATION,
-                    ACTION_CANCEL,
-                ),
+                actionEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.migration.confirm.execute", GuiElementRole.CONFIRM, ACTION_EXECUTE),
+                actionEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.migration.confirm.cancel", GuiElementRole.CANCEL, ACTION_CANCEL),
             ),
         )
     }
@@ -389,8 +392,29 @@ class WorldMigrationService(
         }
     }
 
-    private fun item(material: Material, name: net.kyori.adventure.text.Component): ItemStack =
-        ItemStack(material).apply { editMeta { it.displayName(name) } }
+    private fun actionEntry(
+        player: Player,
+        slot: Int,
+        material: Material,
+        key: String,
+        role: GuiElementRole,
+        actionId: String,
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+        player,
+        GuiMenuEntrySpec(
+            slot = slot,
+            material = material,
+            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+            role = role,
+            actions = listOf(
+                GuiMenuEntryAction(
+                    actionId,
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    plugin.languageManager.getMessage(player, key),
+                ),
+            ),
+        ),
+    )
 
     private fun send(
         sender: CommandSender?,
