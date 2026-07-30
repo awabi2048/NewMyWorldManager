@@ -14,11 +14,14 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
@@ -114,9 +117,10 @@ class BedrockMenuService(
             actionId: String,
             payload: Map<String, String> = emptyMap(),
             role: GuiElementRole = GuiElementRole.ACTION,
+            acceptedClicks: Set<org.bukkit.event.inventory.ClickType> = MenuAcceptedClicks.LEFT_RIGHT,
         ) {
             items[slot] = item
-            actions[slot] = RuntimeAction(actionId, payload, role)
+            actions[slot] = RuntimeAction(actionId, payload, role, acceptedClicks)
         }
 
         fun elements(): List<MenuElement> = items.map { (slot, item) ->
@@ -131,6 +135,13 @@ class BedrockMenuService(
                 },
                 actionId = action?.id,
                 actionPayload = action?.payload.orEmpty(),
+                interaction = action?.let {
+                    com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
+                        it.id,
+                        it.acceptedClicks,
+                        it.payload,
+                    )
+                },
             )
         }
 
@@ -138,6 +149,7 @@ class BedrockMenuService(
             val id: String,
             val payload: Map<String, String>,
             val role: GuiElementRole,
+            val acceptedClicks: Set<org.bukkit.event.inventory.ClickType>,
         )
     }
 
@@ -508,6 +520,15 @@ class BedrockMenuService(
         val page = requestedPage.coerceIn(0, totalPages - 1)
         val start = page * pageSize
         val pageWorlds = worlds.drop(start).take(pageSize)
+        val capabilitySubject = PlayerWorldCapabilitySubject(
+            player,
+            player.uniqueId,
+            player.name,
+            worlds,
+            showBackButton,
+            playerWorldRoute(page, showBackButton),
+        )
+        val capabilityService = CCSystem.getAPI().getMenuCapabilityService()
 
         val neededDataRows = if (pageWorlds.isEmpty()) 1 else (pageWorlds.size + 6) / 7
         val rowCount = (neededDataRows + 2).coerceIn(3, 6)
@@ -544,11 +565,27 @@ class BedrockMenuService(
             val row = index / 7
             val col = index % 7
             val slot = (row + 1) * 9 + 1 + col
+            val attributes = playerWorldCapabilityAttributes(capabilitySubject, worldData)
+            val capability = capabilityService
+                .definitions(PlayerWorldCapabilityContract.WORLD_ITEM_PLACEMENT)
+                .firstNotNullOfOrNull { definition ->
+                    capabilityService.resolve(
+                        definition.capabilityId,
+                        player,
+                        attributes = attributes,
+                    )
+                }
             inventory.setActionItem(
                 slot,
-                createWorldListItem(player, worldData),
-                "warp_world",
-                mapOf("world" to worldData.uuid.toString()),
+                capability?.let {
+                    CCSystem.getAPI().getGuiElementService().menuCapability(it.presentation)
+                } ?: createWorldListItem(player, worldData),
+                if (capability == null) "warp_world" else "capability_world",
+                buildMap {
+                    put("world", worldData.uuid.toString())
+                    capability?.let { put("capability", it.capabilityId) }
+                },
+                acceptedClicks = capability?.acceptedClicks ?: MenuAcceptedClicks.LEFT_RIGHT,
             )
         }
 
@@ -570,7 +607,30 @@ class BedrockMenuService(
         }
 
         val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
-        if (creationBlockReason == null) {
+        val creationCapability = capabilityService
+            .definitions(PlayerWorldCapabilityContract.CREATION_PLACEMENT)
+            .firstNotNullOfOrNull { definition ->
+                capabilityService.resolve(
+                    definition.capabilityId,
+                    player,
+                    attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                )
+            }
+        if (creationCapability != null) {
+            val item = CCSystem.getAPI().getGuiElementService()
+                .menuCapability(creationCapability.presentation)
+            if (creationCapability.actionable) {
+                inventory.setActionItem(
+                    footerStart + 2,
+                    item,
+                    "capability_create",
+                    mapOf("capability" to creationCapability.capabilityId),
+                    acceptedClicks = creationCapability.acceptedClicks,
+                )
+            } else {
+                inventory.setItem(footerStart + 2, item)
+            }
+        } else if (creationBlockReason == null) {
             inventory.setActionItem(
                 footerStart + 2,
                 createCreationButtonItem(player),
@@ -579,7 +639,18 @@ class BedrockMenuService(
         } else {
             inventory.setItem(footerStart + 2, createCreationUnavailableButtonItem(player, creationBlockReason))
         }
-        val statsItem = createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint)
+        val summaryCapability = capabilityService
+            .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
+            .firstNotNullOfOrNull { definition ->
+                capabilityService.resolve(
+                    definition.capabilityId,
+                    player,
+                    attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                )
+            }
+        val statsItem = summaryCapability?.let {
+            CCSystem.getAPI().getGuiElementService().menuCapability(it.presentation)
+        } ?: createStatsButtonItem(player, currentCreateCount, maxSlot, stats.worldPoint)
         if (plugin.pendingDecisionManager.getPendingCount(player.uniqueId) > 0) {
             inventory.setActionItem(
                 footerStart + 4,
@@ -843,6 +914,33 @@ class BedrockMenuService(
         val showBackButton = context.route.payload["back"]?.toBooleanStrictOrNull() ?: false
         return when (context.route.id) {
             PLAYER_WORLD_ROUTE -> when (context.actionId) {
+                "capability_world" -> {
+                    val capabilityId = context.payload["capability"]
+                        ?: return MenuActionResult.Ignored
+                    val worldUuid = context.payload["world"]
+                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return MenuActionResult.Rejected()
+                    val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Rejected()
+                    val subject = playerWorldCapabilitySubject(player, page, showBackButton)
+                    CCSystem.getAPI().getMenuCapabilityService().execute(
+                        capabilityId,
+                        player,
+                        context.click,
+                        attributes = playerWorldCapabilityAttributes(subject, worldData),
+                    )
+                }
+                "capability_create" -> {
+                    val capabilityId = context.payload["capability"]
+                        ?: return MenuActionResult.Ignored
+                    val subject = playerWorldCapabilitySubject(player, page, showBackButton)
+                    CCSystem.getAPI().getMenuCapabilityService().execute(
+                        capabilityId,
+                        player,
+                        context.click,
+                        attributes = playerWorldCapabilityAttributes(subject),
+                    )
+                }
                 "warp_world" -> {
                     val worldUuid = context.payload["world"]
                         ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
@@ -1162,6 +1260,32 @@ class BedrockMenuService(
 
     private fun performConfiguredReturn(player: Player) {
         CCSystem.getAPI().getMenuRuntimeService().back(player)
+    }
+
+    private fun playerWorldCapabilitySubject(
+        player: Player,
+        page: Int,
+        showBackButton: Boolean,
+    ): PlayerWorldCapabilitySubject {
+        val worlds = getAccessibleWorlds(player)
+        return PlayerWorldCapabilitySubject(
+            player,
+            player.uniqueId,
+            player.name,
+            worlds,
+            showBackButton,
+            playerWorldRoute(page, showBackButton),
+        )
+    }
+
+    private fun playerWorldCapabilityAttributes(
+        subject: PlayerWorldCapabilitySubject,
+        worldData: WorldData? = null,
+    ): Map<String, Any> = buildMap {
+        put(PlayerWorldCapabilityContract.SUBJECT_ATTRIBUTE, subject)
+        worldData?.let {
+            put(PlayerWorldCapabilityContract.WORLD_ATTRIBUTE, it)
+        }
     }
 
     private fun createWorldListItem(player: Player, worldData: WorldData): ItemStack {
@@ -1512,6 +1636,8 @@ class BedrockMenuService(
         const val WORLD_ACTION_ROUTE = "bedrock_world_action"
         const val SETTINGS_ROUTE = "bedrock_user_settings"
         val RUNTIME_ACTION_IDS = setOf(
+            "capability_world",
+            "capability_create",
             "warp_world",
             "open_prev_page",
             "open_next_page",
