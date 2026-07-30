@@ -1320,14 +1320,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                         .zip(slots.asSequence())
                         .forEach { (resolved, slot) ->
-                                val interaction = resolved.targetRoute?.let {
+                                val interaction = if (resolved.actionable) {
                                         MenuInteraction.Action(
                                                 actionId = ACTION_CAPABILITY,
                                                 acceptedClicks = resolved.acceptedClicks,
                                                 payload = arguments +
                                                         (CAPABILITY_ID_PAYLOAD to resolved.capabilityId),
                                         )
-                                } ?: MenuInteraction.DisplayOnly
+                                } else {
+                                        MenuInteraction.DisplayOnly
+                                }
                                 inventory.setSemanticItem(slot, resolved.item, interaction)
                         }
         }
@@ -1336,12 +1338,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val capabilityId = context.payload[CAPABILITY_ID_PAYLOAD]
                         ?: return MenuActionResult.Ignored
                 val arguments = context.payload - CAPABILITY_ID_PAYLOAD
-                val resolved = CCSystem.getAPI().getMenuCapabilityService()
-                        .resolve(capabilityId, context.player, arguments)
-                        ?: return MenuActionResult.Ignored
-                val target = resolved.targetRoute ?: return MenuActionResult.Ignored
-                if (context.click !in resolved.acceptedClicks) return MenuActionResult.Ignored
-                return MenuActionResult.Success(MenuUpdate.Navigate(target))
+                return CCSystem.getAPI().getMenuCapabilityService()
+                        .execute(capabilityId, context.player, context.click, arguments)
         }
 
         fun openArchiveConfirmation(
