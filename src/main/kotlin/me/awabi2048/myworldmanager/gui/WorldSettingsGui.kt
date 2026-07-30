@@ -1556,12 +1556,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
                 fromCriticalSettings: Boolean = false,
         ) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.archive_confirm.title")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -1572,7 +1566,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         },
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                if (fromCriticalSettings) {
+                                        WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM
+                                } else {
+                                        WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM
+                                },
+                                worldData.uuid,
+                        ),
+                )
+        }
 
+        private fun renderArchiveConfirmation(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.archive_confirm.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -1605,35 +1617,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation()
-                if (player.openInventory.topInventory != inventory) {
-                        presentRuntime(
-                                player,
-                                title,
-                                inventory,
-                                if (fromCriticalSettings) {
-                                        WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM
-                                } else {
-                                        WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM
-                                },
-                                worldData.uuid,
-                        )
-                }
+                return runtimeView(title, inventory)
         }
 
         fun openUnarchiveConfirmation(player: Player, worldData: WorldData) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.unarchive_confirm.title")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.UNARCHIVE_CONFIRM,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM, worldData.uuid),
+                )
+        }
 
+        private fun renderUnarchiveConfirmation(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.unarchive_confirm.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -1670,7 +1675,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation()
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         fun openExpansionMethodSelection(
@@ -3707,11 +3712,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM ->
                                         openDeleteWorldConfirmation2(player, worldData)
                                 WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM ->
-                                        openArchiveConfirmation(player, worldData)
+                                        runtimeRenderCapture.set(renderArchiveConfirmation(player, worldData))
                                 WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM ->
-                                        openArchiveConfirmation(player, worldData, fromCriticalSettings = true)
+                                        runtimeRenderCapture.set(renderArchiveConfirmation(player, worldData))
                                 WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM ->
-                                        openUnarchiveConfirmation(player, worldData)
+                                        runtimeRenderCapture.set(renderUnarchiveConfirmation(player, worldData))
                                 WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT ->
                                         openPortalManagement(
                                                 player,
@@ -3750,6 +3755,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         private fun runtimePage(route: MenuRoute): Int? =
                 route.payload[ROUTE_PAGE]?.toIntOrNull()?.coerceAtLeast(0)
+
+        private fun runtimeView(
+                title: String,
+                inventory: RuntimeItemBuffer,
+        ): InventoryMenuView =
+                runtimeView(GuiHelper.inventoryTitle(title), inventory)
+
+        private fun runtimeView(
+                title: Component,
+                inventory: RuntimeItemBuffer,
+        ): InventoryMenuView =
+                InventoryMenuView(
+                        size = inventory.size,
+                        title = title,
+                        elements = inventory.elements(),
+                        standardFrame = false,
+                        playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
+                )
 
         private fun presentRuntime(
                 player: Player,
