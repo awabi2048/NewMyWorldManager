@@ -2705,17 +2705,34 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 page: Int = 0,
                 replaceCurrent: Boolean = false,
         ) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.visitor_management.title")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.MANAGE_VISITORS,
                         isGui = true
                 )
-                val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
+                val targetRoute = runtimeRoute(
+                        WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
+                        worldData.uuid,
+                        page = page,
+                )
+                if (replaceCurrent) {
+                        runtime.replace(player, targetRoute)
+                } else {
+                        runtime.navigate(player, targetRoute)
+                }
+        }
+
+        private fun renderVisitorManagement(
+                player: Player,
+                worldData: WorldData,
+                page: Int,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.visitor_management.title")
+                val world = Bukkit.getWorld("my_world.${worldData.uuid}")
                 val visitorPlayers =
-                        world.players.filter {
+                        world?.players.orEmpty().filter {
                                 it.uniqueId != worldData.owner &&
                                         !worldData.moderators.contains(it.uniqueId) &&
                                         !worldData.members.contains(it.uniqueId)
@@ -2805,15 +2822,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                presentRuntime(
-                        player,
-                        title,
-                        inventory,
-                        WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
-                        worldData.uuid,
-                        replaceCurrent,
-                        routeArguments = mapOf(ROUTE_PAGE to visitorPage.page.toString()),
-                )
+                return runtimeView(title, inventory)
         }
 
         fun openVisitorKickConfirmation(
@@ -2821,25 +2830,34 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
                 targetUuid: java.util.UUID
         ) {
-                val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
-
-                val title =
-                        lang.getMessage(
-                                player,
-                                "gui.visitor_management.kick_confirm.title",
-                                mapOf("player" to targetName)
-                        )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.VISITOR_KICK_CONFIRM,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM,
+                                worldData.uuid,
+                                targetUuid = targetUuid,
+                        ),
+                )
+        }
+
+        private fun renderVisitorKickConfirmation(
+                player: Player,
+                targetUuid: UUID,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val title =
+                        lang.getMessage(
+                                player,
+                                "gui.visitor_management.kick_confirm.title",
+                                mapOf("player" to targetName)
+                        )
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -2900,14 +2918,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(
-                        player,
-                        title,
-                        inventory,
-                        WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM,
-                        worldData.uuid,
-                        targetUuid = targetUuid,
-                )
+                return runtimeView(title, inventory)
         }
 
         private fun createVisitorItem(
@@ -3734,16 +3745,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 ),
                                         )
                                 WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT ->
-                                        openVisitorManagement(
-                                                player,
-                                                worldData,
-                                                runtimePage(route) ?: 0,
+                                        runtimeRenderCapture.set(
+                                                renderVisitorManagement(
+                                                        player,
+                                                        worldData,
+                                                        runtimePage(route) ?: 0,
+                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM ->
-                                        openVisitorKickConfirmation(
-                                                player,
-                                                worldData,
-                                                requireNotNull(runtimeTargetUuid(route)),
+                                        runtimeRenderCapture.set(
+                                                renderVisitorKickConfirmation(
+                                                        player,
+                                                        requireNotNull(runtimeTargetUuid(route)),
+                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION ->
                                         runtimeRenderCapture.set(
