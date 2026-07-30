@@ -5,12 +5,19 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -212,14 +219,15 @@ class TourGui(private val plugin: MyWorldManager) {
                 framedLore(previewLines),
                 ItemTag.TYPE_GUI_INFO
                 ), GuiElementRole.CONTENT),
-                MenuElement(layout.confirmSlot, createActionItem(
+                actionEntry(
+                layout.confirmSlot,
                 player,
                 Material.LIME_WOOL,
                 "§eこのツアーをはじめる！",
                 emptyList(),
                 plugin.languageManager.getMessage(player, "gui.tour.menu.tour_item.action_start"),
-                ItemTag.TYPE_GUI_CONFIRM
-                ), GuiElementRole.CONFIRM, ACTION_START),
+                ACTION_START,
+                GuiElementRole.CONFIRM),
                 MenuElement(
                     layout.cancelSlot,
                     createLoreItem(
@@ -257,18 +265,15 @@ class TourGui(private val plugin: MyWorldManager) {
                     ),
                     GuiElementRole.CONTENT,
                 ),
-                MenuElement(
+                actionEntry(
                     layout.confirmSlot,
-                    createActionItem(
-                        player,
-                        Material.LIME_WOOL,
-                        plugin.languageManager.getMessage(player, "gui.common.confirm"),
-                        emptyList(),
-                        plugin.languageManager.getMessage(player, "gui.tour.menu.stop_confirm.confirm"),
-                        ItemTag.TYPE_GUI_CONFIRM,
-                    ),
-                    GuiElementRole.CONFIRM,
+                    player,
+                    Material.LIME_WOOL,
+                    plugin.languageManager.getMessage(player, "gui.common.confirm"),
+                    emptyList(),
+                    plugin.languageManager.getMessage(player, "gui.tour.menu.stop_confirm.confirm"),
                     ACTION_STOP_CONFIRM,
+                    GuiElementRole.CONFIRM,
                 ),
                 MenuElement(
                     layout.cancelSlot,
@@ -303,30 +308,21 @@ class TourGui(private val plugin: MyWorldManager) {
         val safePage = page.page
         val elements = mutableListOf<MenuElement>()
         tours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
-            elements += MenuElement(
-                layout.itemSlots[index],
-                createTourItem(player, worldData, tour, false),
-                GuiElementRole.ACTION,
-                ACTION_SELECT,
-                mapOf("tour" to tour.uuid.toString()),
-            )
+            elements += createTourEntry(layout.itemSlots[index], player, worldData, tour, false, ACTION_SELECT)
         }
         val footerStart = layout.size - 9
         if (showWorldIcon) {
             elements += MenuElement(4, createCurrentWorldItem(player, worldData), GuiElementRole.CONTENT)
             if (plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid) {
-                elements += MenuElement(
+                elements += actionEntry(
                     footerStart + 6,
-                    createActionItem(
-                        player,
-                        Material.BARRIER,
-                        plugin.languageManager.getMessage(player, "gui.tour.menu.stop.display"),
-                        emptyList(),
-                        plugin.languageManager.getMessage(player, "gui.tour.menu.stop.action"),
-                        ItemTag.TYPE_GUI_CANCEL,
-                    ),
-                    GuiElementRole.CANCEL,
+                    player,
+                    Material.BARRIER,
+                    plugin.languageManager.getMessage(player, "gui.tour.menu.stop.display"),
+                    emptyList(),
+                    plugin.languageManager.getMessage(player, "gui.tour.menu.stop.action"),
                     ACTION_STOP,
+                    GuiElementRole.CANCEL,
                 )
             }
         }
@@ -403,13 +399,7 @@ class TourGui(private val plugin: MyWorldManager) {
         val safePage = page.page
         val elements = mutableListOf<MenuElement>()
         tours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
-            elements += MenuElement(
-                layout.itemSlots[index],
-                createEditTourItem(player, worldData, tour),
-                GuiElementRole.ACTION,
-                ACTION_EDIT,
-                mapOf("tour" to tour.uuid.toString()),
-            )
+            elements += createTourEntry(layout.itemSlots[index], player, worldData, tour, true, ACTION_EDIT)
         }
         val footerStart = layout.size - 9
         elements += MenuElement(
@@ -419,10 +409,13 @@ class TourGui(private val plugin: MyWorldManager) {
             ACTION_BACK,
         )
         if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
-            elements += MenuElement(
+            elements += actionEntry(
                 footerStart + 2,
-                createActionItem(player, Material.NETHER_STAR, lang.getMessage(player, "gui.tour.menu.create.display"), listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.create.description"))), lang.getMessage(player, "gui.tour.menu.create.action"), ItemTag.TYPE_GUI_TOUR_CREATE),
-                GuiElementRole.ACTION,
+                player,
+                Material.NETHER_STAR,
+                lang.getMessage(player, "gui.tour.menu.create.display"),
+                listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.create.description"))),
+                lang.getMessage(player, "gui.tour.menu.create.action"),
                 ACTION_CREATE,
             )
         }
@@ -477,19 +470,19 @@ class TourGui(private val plugin: MyWorldManager) {
         val slots = mutableListOf<Int>()
         repeat(waypointRows) { row -> slots.addAll((1..7).map { (row + 1) * 9 + it }) }
         tour.waypoints.take(28).forEachIndexed { index, waypoint ->
-            elements += MenuElement(
-                slots[index],
-                createWaypointItem(player, waypoint, lang.getMessage(player, "gui.tour.menu.remove_waypoint_action")),
-                GuiElementRole.ACTION,
-                ACTION_REMOVE_WAYPOINT,
-                mapOf("waypoint" to waypoint.uuid.toString()),
+            elements += actionEntry(
+                slots[index], player, Material.OAK_BOAT, waypoint.name,
+                listOf(GuiLoreLine.Metadata("XYZ", "${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}")),
+                lang.getMessage(player, "gui.tour.menu.remove_waypoint_action"), ACTION_REMOVE_WAYPOINT,
+                payload = mapOf("waypoint" to waypoint.uuid.toString()),
             )
         }
         if (tour.waypoints.size < 28) {
-            elements += MenuElement(
+            elements += actionEntry(
                 slots[tour.waypoints.size],
-                createActionItem(player, Material.YELLOW_STAINED_GLASS_PANE, lang.getMessage(player, "gui.tour.menu.add_waypoint_button"), emptyList(), lang.getMessage(player, "gui.tour.menu.add_sign_action"), ItemTag.TYPE_GUI_TOUR_ADD_WAYPOINT),
-                GuiElementRole.ACTION,
+                player, Material.YELLOW_STAINED_GLASS_PANE,
+                lang.getMessage(player, "gui.tour.menu.add_waypoint_button"), emptyList(),
+                lang.getMessage(player, "gui.tour.menu.add_sign_action"),
                 ACTION_ADD_WAYPOINT,
             )
         }
@@ -500,28 +493,29 @@ class TourGui(private val plugin: MyWorldManager) {
             GuiElementRole.NAVIGATION,
             ACTION_SINGLE_BACK,
         )
-        val editTextLore = GuiLoreSpec.Blocks(listOf(
-            GuiLoreBlock(listOf(
-                GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.tour.menu.edit_text.action.text")),
-                GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"))
-            ))
-        ))
-        elements += MenuElement(
-            bottom + 2,
-            createItem(Material.NAME_TAG, lang.getMessage(player, "gui.tour.menu.edit_text.display"), editTextLore, ItemTag.TYPE_GUI_TOUR_EDIT_TEXT),
-            GuiElementRole.ACTION,
-            ACTION_EDIT_TEXT,
+        elements += CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = bottom + 2,
+                material = Material.NAME_TAG,
+                name = GuiNameSpec.Text(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
+                role = GuiElementRole.ACTION,
+                actions = listOf(
+                    GuiMenuEntryAction(ACTION_EDIT_TEXT, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text")),
+                    GuiMenuEntryAction(ACTION_EDIT_TEXT, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon")),
+                ),
+            ),
         )
-        elements += MenuElement(
+        elements += actionEntry(
             bottom + 4,
-            createActionItem(player, Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.save.action"), ItemTag.TYPE_GUI_TOUR_SAVE),
-            GuiElementRole.ACTION,
+            player, Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"),
+            emptyList(), lang.getMessage(player, "gui.tour.menu.save.action"),
             ACTION_SAVE,
         )
-        elements += MenuElement(
+        elements += actionEntry(
             bottom + 6,
-            createActionItem(player, Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"), emptyList(), lang.getMessage(player, "gui.tour.menu.delete.action"), ItemTag.TYPE_GUI_TOUR_DELETE),
-            GuiElementRole.ACTION,
+            player, Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"),
+            emptyList(), lang.getMessage(player, "gui.tour.menu.delete.action"),
             ACTION_DELETE,
         )
         return InventoryMenuView(
@@ -900,7 +894,7 @@ class TourGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    private fun createTourItem(player: Player, worldData: WorldData, tour: TourData, editing: Boolean): ItemStack {
+    private fun createTourEntry(slot: Int, player: Player, worldData: WorldData, tour: TourData, editing: Boolean, actionId: String): MenuElement {
         val lang = plugin.languageManager
         val current = plugin.tourSessionManager.get(player.uniqueId)?.let { it.tourUuid == tour.uuid && it.worldUuid == worldData.uuid } == true
         val countValue = if (tour.completedCount == 0) {
@@ -913,23 +907,10 @@ class TourGui(private val plugin: MyWorldManager) {
             current -> lang.getMessage(player, "gui.tour.menu.tour_item.action_current")
             else -> lang.getMessage(player, "gui.tour.menu.tour_item.action_start")
         }
-        val item = createActionItem(player, tour.icon, tour.name, buildList {
+        return actionEntry(slot, player, tour.icon, tour.name, buildList {
             if (tour.description.isNotBlank()) add(GuiLoreLine.UserText(tour.description))
             add(GuiLoreLine.Data(lang.getMessage(player, "gui.tour.menu.tour_item.visitors_label"), countValue, "§a"))
-        }, action, ItemTag.TYPE_GUI_TOUR_ITEM)
-        ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
-        return item
-    }
-
-    private fun createEditTourItem(player: Player, worldData: WorldData, tour: TourData): ItemStack = createTourItem(player, worldData, tour, true)
-
-    private fun createWaypointItem(player: Player, waypoint: TourWaypointData, actionLine: String): ItemStack {
-        val lang = plugin.languageManager
-        val item = createActionItem(player, Material.OAK_BOAT, waypoint.name, listOf(
-            GuiLoreLine.Metadata("XYZ", "${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}")
-        ), actionLine, ItemTag.TYPE_GUI_TOUR_WAYPOINT_ITEM)
-        ItemTag.setString(item, "tour_waypoint_uuid", waypoint.uuid.toString())
-        return item
+        }, action, actionId, payload = mapOf("tour" to tour.uuid.toString()))
     }
 
     private fun createLoreItem(
@@ -943,20 +924,43 @@ class TourGui(private val plugin: MyWorldManager) {
         return createItem(material, name, spec, type)
     }
 
-    private fun createActionItem(
+    private fun actionEntry(
+        slot: Int,
         player: Player,
         material: Material,
         name: String,
         information: List<GuiLoreLine>,
         action: String,
-        type: String
-    ): ItemStack {
-        val lore = GuiLoreSpec.Blocks(buildList {
-            if (information.isNotEmpty()) add(GuiLoreBlock(information))
-            add(GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(plugin.languageManager, player, action))))
-        })
-        return createItem(material, name, lore, type)
-    }
+        actionId: String,
+        role: GuiElementRole = GuiElementRole.ACTION,
+        payload: Map<String, String> = emptyMap(),
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+        player,
+        GuiMenuEntrySpec(
+            slot = slot,
+            material = material,
+            name = GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
+            role = role,
+            description = information.mapNotNull {
+                when (it) {
+                    is GuiLoreLine.Text -> it.text
+                    is GuiLoreLine.UserText -> it.text
+                    else -> null
+                }
+            },
+            data = information.mapNotNull {
+                when (it) {
+                    is GuiLoreLine.Data -> GuiMenuEntryData(it.label, it.value, toneFor(it.valueColor))
+                    is GuiLoreLine.Metadata -> GuiMenuEntryData(it.label, it.value)
+                    else -> null
+                }
+            },
+            actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, action, payload)),
+        ),
+    )
+
+    private fun toneFor(colorCode: String): GuiValueTone =
+        GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT
 
     private fun createItem(material: Material, name: String, lore: GuiLoreSpec, type: String): ItemStack {
         return GuiItemFactory.item(material, name, lore, type)
@@ -985,16 +989,15 @@ class TourGui(private val plugin: MyWorldManager) {
         val layout = page.layout
         val elements = mutableListOf<MenuElement>()
         unboundTours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
-            val item = createActionItem(player, tour.icon, tour.name,
-                if (tour.description.isBlank()) emptyList() else listOf(GuiLoreLine.UserText(tour.description)), lang.getMessage(player, "gui.tour.menu.tour_item.action_bind"),
-                ItemTag.TYPE_GUI_TOUR_ITEM)
-            ItemTag.setString(item, "tour_uuid", tour.uuid.toString())
-            elements += MenuElement(
+            elements += actionEntry(
                 layout.itemSlots[index],
-                item,
-                GuiElementRole.ACTION,
+                player,
+                tour.icon,
+                tour.name,
+                if (tour.description.isBlank()) emptyList() else listOf(GuiLoreLine.UserText(tour.description)),
+                lang.getMessage(player, "gui.tour.menu.tour_item.action_bind"),
                 ACTION_BIND_SIGN,
-                mapOf("tour" to tour.uuid.toString()),
+                payload = mapOf("tour" to tour.uuid.toString()),
             )
         }
         if (page.page > 0) {
