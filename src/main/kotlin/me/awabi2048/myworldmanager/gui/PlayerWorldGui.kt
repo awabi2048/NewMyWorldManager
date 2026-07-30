@@ -145,7 +145,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         me.awabi2048.myworldmanager.session.SettingsAction.PLAYER_WORLD_GUI,
                         isGui = true
                 )
-                runtime.navigate(player, route(page, targetPlayerUuid, targetPlayerName))
+                runtime.navigate(
+                        player,
+                        route(
+                                page,
+                                targetPlayerUuid,
+                                targetPlayerName,
+                                session.showBackButton,
+                        ),
+                )
         }
 
         private fun render(player: Player, route: MenuRoute): InventoryMenuView {
@@ -162,7 +170,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val stats = plugin.playerStatsRepository.findByUuid(targetUuid)
                 val isOwnMenu = targetUuid == player.uniqueId
                 val capabilityContext =
-                        PlayerWorldCapabilityContext(player, targetUuid, targetName)
+                        PlayerWorldCapabilityContext(
+                                player,
+                                targetUuid,
+                                targetName,
+                                worlds,
+                                showBackButton(route),
+                        )
                 val capability = MyWorldManagerApi.getPlayerWorldCapabilities().firstOrNull()
                 val elements = mutableListOf<MenuElement>()
                 worlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, world ->
@@ -282,7 +296,12 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val targetPage = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
                 return MenuActionResult.Success(
                         MenuUpdate.Replace(
-                                route(targetPage, targetUuid(context.route), context.route.payload[TARGET_NAME]),
+                                route(
+                                        targetPage,
+                                        targetUuid(context.route),
+                                        context.route.payload[TARGET_NAME],
+                                        showBackButton(context.route),
+                                ),
                         ),
                 )
         }
@@ -437,6 +456,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 page: Int,
                 targetUuid: UUID,
                 targetName: String?,
+                showBackButton: Boolean,
         ): MenuRoute =
                 MenuRoute(
                         OWNER,
@@ -444,6 +464,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         buildMap {
                                 put(PAGE, page.toString())
                                 put(TARGET_UUID, targetUuid.toString())
+                                put(SHOW_BACK, showBackButton.toString())
                                 targetName?.let { put(TARGET_NAME, it) }
                         },
                 )
@@ -452,6 +473,9 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 route.payload[TARGET_UUID]?.let(UUID::fromString)
                         ?: error("プレイヤーワールド一覧の対象UUIDがありません")
 
+        private fun showBackButton(route: MenuRoute): Boolean =
+                route.payload[SHOW_BACK]?.toBooleanStrictOrNull() ?: false
+
         private fun playerWorldCapabilityContext(
                 player: Player,
                 route: MenuRoute,
@@ -459,6 +483,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 player,
                 targetUuid(route),
                 route.payload[TARGET_NAME],
+                getPlayerWorlds(targetUuid(route)),
+                showBackButton(route),
         )
 
         private fun createWorldItem(
@@ -773,6 +799,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 private const val PAGE = "page"
                 private const val TARGET_UUID = "targetUuid"
                 private const val TARGET_NAME = "targetName"
+                private const val SHOW_BACK = "showBack"
                 private const val WORLD_UUID = "worldUuid"
                 private const val ACTION_PAGE = "page"
                 private const val ACTION_BACK = "back"

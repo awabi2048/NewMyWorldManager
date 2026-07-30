@@ -12,6 +12,8 @@ data class PlayerWorldCapabilityContext(
     val player: Player,
     val targetPlayerUuid: UUID,
     val targetPlayerName: String?,
+    val worlds: List<WorldData>,
+    val showBackButton: Boolean,
 )
 
 data class PlayerWorldCreationView(

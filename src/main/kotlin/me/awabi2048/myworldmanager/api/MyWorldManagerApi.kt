@@ -45,6 +45,7 @@ import me.awabi2048.myworldmanager.api.service.ApiWorldTagService
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.api.service.WorldOperationLocks
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import org.bukkit.Location
@@ -222,6 +223,29 @@ object MyWorldManagerApi {
         JavaPlugin.getPlugin(MyWorldManager::class.java)
             .settingsSessionManager
             .endSession(player)
+    }
+
+    @JvmStatic
+    fun prioritizePlayerWorld(playerUuid: UUID, worldUuid: UUID) {
+        val repository = JavaPlugin.getPlugin(MyWorldManager::class.java).playerStatsRepository
+        val stats = repository.findByUuid(playerUuid)
+        stats.worldDisplayOrder.remove(worldUuid)
+        stats.worldDisplayOrder.add(0, worldUuid)
+        repository.save(stats)
+    }
+
+    @JvmStatic
+    fun openStandardWorldCreation(
+        player: Player,
+        billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
+    ): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val session = plugin.creationSessionManager.startSession(player.uniqueId)
+        session.isDialogMode = true
+        session.billingMode = billingMode
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_start"))
+        plugin.creationGui.openTypeSelection(player)
+        return true
     }
 
     @JvmStatic
