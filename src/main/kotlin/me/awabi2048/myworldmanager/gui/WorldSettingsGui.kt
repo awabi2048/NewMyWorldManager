@@ -1682,20 +1682,27 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 player: Player,
                 worldData: WorldData
         ) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.expansion.method_title")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
-
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.EXPAND_SELECT_METHOD,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION,
+                                worldData.uuid,
+                        ),
+                )
+        }
 
+        private fun renderExpansionMethodSelection(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.expansion.method_title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1762,22 +1769,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         if (inventory.getItem(i) == null) inventory.setItem(i, grayPane)
                 }
 
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         fun openExpansionStepBackConfirmation(player: Player, worldData: WorldData) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.step_back_expansion.title")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.STEP_BACK_EXPANSION_CONFIRM,
                         isGui = true
                 )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM,
+                                worldData.uuid,
+                        ),
+                )
+        }
+
+        private fun renderExpansionStepBackConfirmation(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.confirm.step_back_expansion.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -1818,7 +1834,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         fun openExpansionConfirmation(
@@ -1827,18 +1843,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 direction: org.bukkit.block.BlockFace?,
                 cost: Int
         ) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.expansion.confirm_title")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldUuid,
                         SettingsAction.EXPAND_CONFIRM,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        expansionConfirmationRoute(worldUuid, direction, cost),
+                )
+        }
+
+        private fun renderExpansionConfirmation(
+                player: Player,
+                direction: org.bukkit.block.BlockFace?,
+                cost: Int,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.expansion.confirm_title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1906,17 +1929,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 inventory.bindConfirmation()
-                presentRuntime(
-                        player,
-                        title,
-                        inventory,
-                        WorldSettingsRuntimeScreen.EXPANSION_CONFIRM,
-                        worldUuid,
-                        routeArguments = mapOf(
-                                ROUTE_EXPANSION_COST to cost.toString(),
-                                ROUTE_EXPANSION_DIRECTION to (direction?.name ?: ROUTE_NULL_VALUE),
-                        ),
-                )
+                return runtimeView(title, inventory)
         }
 
         fun openMemberManagement(
@@ -3688,19 +3701,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 requireNotNull(runtimeTargetUuid(route)),
                                         )
                                 WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION ->
-                                        openExpansionMethodSelection(player, worldData)
+                                        runtimeRenderCapture.set(
+                                                renderExpansionMethodSelection(player, worldData),
+                                        )
                                 WorldSettingsRuntimeScreen.EXPANSION_CONFIRM ->
-                                        openExpansionConfirmation(
-                                                player,
-                                                worldUuid,
+                                        runtimeRenderCapture.set(
+                                                renderExpansionConfirmation(
+                                                        player,
                                                 route.payload[ROUTE_EXPANSION_DIRECTION]
                                                         ?.takeUnless { it == ROUTE_NULL_VALUE }
                                                         ?.let(org.bukkit.block.BlockFace::valueOf),
                                                 route.payload[ROUTE_EXPANSION_COST]?.toIntOrNull()
                                                         ?: error("ワールド拡張コストがありません"),
+                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM ->
-                                        openExpansionStepBackConfirmation(player, worldData)
+                                        runtimeRenderCapture.set(
+                                                renderExpansionStepBackConfirmation(player, worldData),
+                                        )
                                 WorldSettingsRuntimeScreen.CRITICAL_SETTINGS ->
                                         openCriticalSettings(player, worldData)
                                 WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM ->
