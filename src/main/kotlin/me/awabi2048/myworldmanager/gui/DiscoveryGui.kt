@@ -34,7 +34,6 @@ import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration

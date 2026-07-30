@@ -32,7 +32,6 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.StructuredLore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
