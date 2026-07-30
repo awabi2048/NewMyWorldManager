@@ -33,8 +33,8 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsLayoutMode
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsPresentationContext
-import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContext
-import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityView
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsCapabilityPlacements
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PortalData
@@ -1960,6 +1960,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val canManageRoles = worldData.owner == player.uniqueId || isAdminFlow
                 currentPageMembers.forEachIndexed { index, entry ->
                         val slot = layout.itemSlots.getOrNull(index) ?: return@forEachIndexed
+                        var capabilityId: String? = null
                                 val memberItem =
                                         if (entry.pendingDecisionId != null) {
                                         createPendingItem(
@@ -1970,18 +1971,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 pendingType = entry.pendingType ?: PendingInteractionType.MEMBER_INVITE
                                         )
                                 } else {
-                                        val capabilityView =
-                                                MyWorldManagerApi
-                                                        .getMemberManagementCapabilities()
-                                                        .firstNotNullOfOrNull { capability ->
-                                                                capability.resolve(
-                                                                        MemberManagementCapabilityContext(
-                                                                                player,
-                                                                                worldData,
-                                                                                entry.playerUuid,
-                                                                        ),
-                                                                )
-                                                        }
+                                        val subject = MemberManagementCapabilitySubject(
+                                                player,
+                                                worldData,
+                                                entry.playerUuid,
+                                        )
+                                        val service = CCSystem.getAPI().getMenuCapabilityService()
+                                        val capabilityView = service
+                                                .definitions(MemberManagementCapabilityContract.PLACEMENT)
+                                                .firstNotNullOfOrNull { definition ->
+                                                        service.resolve(
+                                                                definition.capabilityId,
+                                                                player,
+                                                                attributes = mapOf(
+                                                                        MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject,
+                                                                ),
+                                                        )
+                                                }
+                                        capabilityId = capabilityView?.capabilityId
                                         createMemberItem(
                                                 player,
                                                 entry.playerUuid,
@@ -2010,6 +2017,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         put(ROUTE_TARGET_UUID, entry.playerUuid.toString())
                                         entry.pendingDecisionId?.let {
                                                 put(ROUTE_DECISION_ID, it.toString())
+                                        }
+                                        capabilityId?.let {
+                                                put(ROUTE_CAPABILITY_ID, it)
                                         }
                                 },
                         )
@@ -2454,7 +2464,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 uuid: java.util.UUID,
                 role: String,
                 isOwner: Boolean,
-                capabilityView: MemberManagementCapabilityView? = null,
+                capabilityView: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability? = null,
         ): ItemStack {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
@@ -2481,7 +2491,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // Info section
                 if (capabilityView != null) {
-                        itemLore += capabilityView.detailLines
+                        itemLore += capabilityView.presentation.embeddedLoreBlocks
+                                .flatMap(GuiLoreBlock::lines)
                 } else if (isOnline) {
                         itemLore += GuiLoreLine.StyledText(
                                 lang.getMessage(viewer, "gui.member_management.item.online_label"),
@@ -2533,10 +2544,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         } else {
                                 CCSystem.getAPI().getLoreService().render(
                                         GuiLoreSpec.Blocks(
-                                                listOf(
-                                                        GuiLoreBlock(itemLore),
-                                                        GuiLoreBlock(capabilityView.actionLines),
-                                                ),
+                                                capabilityView.presentation.embeddedLoreBlocks,
                                         ),
                                 )
                         },
@@ -3826,6 +3834,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val ROUTE_PAGE = "page"
                 const val ROUTE_TARGET_UUID = "target_uuid"
                 const val ROUTE_DECISION_ID = "decision_id"
+                const val ROUTE_CAPABILITY_ID = "capability_id"
                 private const val ROUTE_OPERATION = "operation"
                 private const val ROUTE_EXPANSION_COST = "expansion_cost"
                 private const val ROUTE_EXPANSION_DIRECTION = "expansion_direction"

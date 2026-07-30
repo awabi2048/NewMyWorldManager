@@ -1,7 +1,6 @@
 package me.awabi2048.myworldmanager.api
 
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.extension.MemberManagementCapability
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
@@ -90,8 +89,6 @@ object MyWorldManagerApi {
     private var worldTagService: ApiWorldTagService? = null
     private val worldCreationGuards = CopyOnWriteArrayList<WorldCreationGuard>()
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
-    private val memberManagementCapabilities =
-        CopyOnWriteArrayList<MemberManagementCapability>()
     private val worldSettingsPresentationPolicies =
         CopyOnWriteArrayList<WorldSettingsPresentationPolicy>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
@@ -106,23 +103,6 @@ object MyWorldManagerApi {
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
     private var bedrockFormService: ApiBedrockFormService? = null
-
-    @JvmStatic
-    fun registerMemberManagementCapability(capability: MemberManagementCapability) {
-        memberManagementCapabilities.removeIf { it.getId() == capability.getId() }
-        memberManagementCapabilities.add(capability)
-    }
-
-    @JvmStatic
-    fun unregisterMemberManagementCapability(capability: MemberManagementCapability) {
-        memberManagementCapabilities.removeIf {
-            it === capability || it.getId() == capability.getId()
-        }
-    }
-
-    @JvmStatic
-    fun getMemberManagementCapabilities(): List<MemberManagementCapability> =
-        memberManagementCapabilities.toList()
 
     @JvmStatic
     fun registerWorldSettingsPresentationPolicy(policy: WorldSettingsPresentationPolicy) {

@@ -19,7 +19,8 @@ import java.util.UUID
 import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContext
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilitySubject
 import me.awabi2048.myworldmanager.api.service.ExpansionExecutionMode
 import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
 import me.awabi2048.myworldmanager.api.service.ExpansionSequencePhase
@@ -1087,21 +1088,22 @@ class WorldSettingsListener : Listener {
                                         !click.isShiftClick &&
                                         click.isLeftClick
                                 ) {
-                                        val capabilityContext =
-                                                MemberManagementCapabilityContext(
+                                        val capabilityId = runtimeContext.actionPayload[
+                                                WorldSettingsGui.ROUTE_CAPABILITY_ID
+                                        ]
+                                        if (capabilityId != null) {
+                                                return CCSystem.getAPI().getMenuCapabilityService().execute(
+                                                        capabilityId,
                                                         player,
-                                                        worldData,
-                                                        memberId,
-                                                )
-                                        val capability =
-                                                MyWorldManagerApi
-                                                        .getMemberManagementCapabilities()
-                                                        .firstOrNull {
-                                                                it.resolve(capabilityContext) != null
-                                                        }
-                                        if (capability != null) {
-                                                return capability.handlePrimaryAction(
-                                                        capabilityContext,
+                                                        click,
+                                                        attributes = mapOf(
+                                                                MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to
+                                                                        MemberManagementCapabilitySubject(
+                                                                                player,
+                                                                                worldData,
+                                                                                memberId,
+                                                                        ),
+                                                        ),
                                                 )
                                         }
                                 }
