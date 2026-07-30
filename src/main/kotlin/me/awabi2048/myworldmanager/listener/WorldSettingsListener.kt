@@ -297,11 +297,10 @@ class WorldSettingsListener : Listener {
         }
 
         private fun reopenWorldSettingsLatest(
-                player: Player,
-                worldData: WorldData,
+                @Suppress("UNUSED_PARAMETER") player: Player,
+                @Suppress("UNUSED_PARAMETER") worldData: WorldData,
         ): MenuActionResult {
-                plugin.worldSettingsGui.open(player, worldData, replaceCurrent = true)
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Success(MenuUpdate.Refresh)
         }
         private fun handleExpansionMethodSelectionRuntimeClick(
                 player: Player,
