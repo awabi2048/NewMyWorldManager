@@ -18,6 +18,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContext
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
@@ -73,6 +74,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                         )
                         MenuActionResult.Ignored
                     },
+                    ACTION_CONFIRM_CAPABILITY to MenuActionHandler(::useConfirmationCapability),
                 ),
                 onClose = MenuCloseHandler(::closed),
             ),
@@ -548,9 +550,6 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     fun openConfirmation(player: Player, session: WorldCreationSession) {
-        if (MyWorldManagerApi.openCreationConfirmationMenuOverride(player, session)) {
-            return
-        }
         clearSettingsGuiTransition(player)
         runtime.navigate(player, MenuRoute(OWNER, CONFIRM_ROUTE))
     }
@@ -561,6 +560,11 @@ class CreationGui(private val plugin: MyWorldManager) {
             ?: error("ワールド作成セッションがありません")
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.confirmationLayout()
         val elements = mutableListOf<MenuElement>()
+        val capabilityContext = CreationConfirmationCapabilityContext(player, session)
+        val confirmationCapability = MyWorldManagerApi.getCreationConfirmationCapabilities()
+            .firstNotNullOfOrNull { capability ->
+                capability.resolve(capabilityContext)?.let { capability to it }
+            }
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
         val generationLine: GuiLoreLine = when (session.creationType) {
             WorldCreationType.TEMPLATE -> {
@@ -696,7 +700,11 @@ class CreationGui(private val plugin: MyWorldManager) {
                 )
             )
             elements += MenuElement(
-                SEED_SPAWN_LOCATION_SLOT,
+                if (confirmationCapability == null) {
+                    SEED_SPAWN_LOCATION_SLOT
+                } else {
+                    SEED_SPAWN_LOCATION_WITH_CAPABILITY_SLOT
+                },
                 createItem(
                     Material.COMPASS,
                     lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
@@ -706,9 +714,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiElementRole.ACTION,
                 ACTION_CONFIRM_INTERACTION,
             )
+            confirmationCapability?.let { (capability, view) ->
+                elements += confirmationCapabilityElement(capability.getId(), view.item)
+            }
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
             elements += MenuElement(
-                39,
+                if (confirmationCapability == null) 39 else 38,
                 createItem(
                     Material.ENDER_EYE,
                     lang.getMessage(player, "gui.creation.template_detail.preview"),
@@ -719,7 +730,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ACTION_CONFIRM_INTERACTION,
             )
             elements += MenuElement(
-                40,
+                39,
                 createItem(
                     Material.NAME_TAG,
                     lang.getMessage(player, "gui.creation.confirm.change_name"),
@@ -729,6 +740,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiElementRole.NAVIGATION,
                 ACTION_CONFIRM_INTERACTION,
             )
+            confirmationCapability?.let { (capability, view) ->
+                elements += confirmationCapabilityElement(capability.getId(), view.item)
+            }
             elements += MenuElement(
                 41,
                 createItem(
@@ -740,6 +754,10 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiElementRole.NAVIGATION,
                 ACTION_CONFIRM_INTERACTION,
             )
+        } else {
+            confirmationCapability?.let { (capability, view) ->
+                elements += confirmationCapabilityElement(capability.getId(), view.item)
+            }
         }
         return InventoryMenuView(
             size = layout.size,
@@ -748,6 +766,30 @@ class CreationGui(private val plugin: MyWorldManager) {
             ),
             elements = elements,
         )
+    }
+
+    private fun confirmationCapabilityElement(
+        capabilityId: String,
+        item: ItemStack,
+    ): MenuElement = MenuElement(
+        CONFIRM_CAPABILITY_SLOT,
+        item,
+        GuiElementRole.ACTION,
+        ACTION_CONFIRM_CAPABILITY,
+        mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
+    )
+
+    private fun useConfirmationCapability(context: MenuActionContext): MenuActionResult {
+        val capabilityId = context.payload[CONFIRM_CAPABILITY_ARGUMENT]
+            ?: return MenuActionResult.Ignored
+        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val capability = MyWorldManagerApi.getCreationConfirmationCapabilities()
+            .firstOrNull { it.getId() == capabilityId }
+            ?: return MenuActionResult.Ignored
+        val capabilityContext = CreationConfirmationCapabilityContext(context.player, session)
+        if (capability.resolve(capabilityContext) == null) return MenuActionResult.Ignored
+        return capability.handlePrimaryAction(capabilityContext)
     }
 
     private fun createBackButton(player: Player): ItemStack {
@@ -831,6 +873,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         const val ADMIN_COMMAND_SESSION_KEY = "mwm:admin_command_creation"
         const val SEED_DIMENSION_SLOT = 39
         const val SEED_SPAWN_LOCATION_SLOT = 40
+        const val SEED_SPAWN_LOCATION_WITH_CAPABILITY_SLOT = 41
         private const val OWNER = "myworldmanager"
         private const val TYPE_ROUTE = "creation_type"
         private const val TEMPLATE_LIST_ROUTE = "creation_template_list"
@@ -845,6 +888,9 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val ACTION_PREVIEW_TEMPLATE = "preview_template"
         private const val ACTION_TEMPLATE_DETAIL_BACK = "template_detail_back"
         private const val ACTION_CONFIRM_INTERACTION = "confirm_interaction"
+        private const val ACTION_CONFIRM_CAPABILITY = "confirm_capability"
+        private const val CONFIRM_CAPABILITY_ARGUMENT = "capability_id"
+        private const val CONFIRM_CAPABILITY_SLOT = 40
         private const val PAGE = "page"
     }
 

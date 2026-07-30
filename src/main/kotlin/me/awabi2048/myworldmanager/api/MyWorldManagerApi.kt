@@ -12,7 +12,7 @@ import me.awabi2048.myworldmanager.api.extension.FavoriteMenuProvider
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapability
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
-import me.awabi2048.myworldmanager.api.extension.CreationConfirmationMenuProvider
+import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapability
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
@@ -102,6 +102,8 @@ object MyWorldManagerApi {
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
     private val memberManagementCapabilities =
         CopyOnWriteArrayList<MemberManagementCapability>()
+    private val creationConfirmationCapabilities =
+        CopyOnWriteArrayList<CreationConfirmationCapability>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -113,7 +115,6 @@ object MyWorldManagerApi {
     private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
     private val adminMenuProviders = CopyOnWriteArrayList<AdminMenuProvider>()
     private val playerWorldMenuProviders = CopyOnWriteArrayList<PlayerWorldMenuProvider>()
-    private val creationConfirmationMenuProviders = CopyOnWriteArrayList<CreationConfirmationMenuProvider>()
     private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
     private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
@@ -140,6 +141,23 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getMemberManagementCapabilities(): List<MemberManagementCapability> =
         memberManagementCapabilities.toList()
+
+    @JvmStatic
+    fun registerCreationConfirmationCapability(capability: CreationConfirmationCapability) {
+        creationConfirmationCapabilities.removeIf { it.getId() == capability.getId() }
+        creationConfirmationCapabilities.add(capability)
+    }
+
+    @JvmStatic
+    fun unregisterCreationConfirmationCapability(capability: CreationConfirmationCapability) {
+        creationConfirmationCapabilities.removeIf {
+            it === capability || it.getId() == capability.getId()
+        }
+    }
+
+    @JvmStatic
+    fun getCreationConfirmationCapabilities(): List<CreationConfirmationCapability> =
+        creationConfirmationCapabilities.toList()
 
     @JvmStatic
     fun openWorldSettings(
@@ -566,39 +584,6 @@ object MyWorldManagerApi {
     @JvmStatic
     fun openPlayerWorldMenuOverride(player: Player, request: PlayerWorldMenuRequest): Boolean {
         return playerWorldMenuProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
-        creationConfirmationMenuProviders.removeIf { it.getId() == provider.getId() }
-        creationConfirmationMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
-        creationConfirmationMenuProviders.removeIf {
-            it === provider || it.getId() == provider.getId()
-        }
-    }
-
-    @JvmStatic
-    fun openCreationConfirmationMenuOverride(
-        player: Player,
-        session: me.awabi2048.myworldmanager.session.WorldCreationSession
-    ): Boolean {
-        for (provider in creationConfirmationMenuProviders.asReversed()) {
-            val handled = runCatching { provider.open(player, session) }
-                .onFailure { error ->
-                    Bukkit.getLogger().log(
-                        java.util.logging.Level.SEVERE,
-                        "Creation confirmation provider '${provider.getId()}' failed; using the next provider or MWM fallback.",
-                        error
-                    )
-                }
-                .getOrDefault(false)
-            if (handled) return true
-        }
-        return false
     }
 
     @JvmStatic
