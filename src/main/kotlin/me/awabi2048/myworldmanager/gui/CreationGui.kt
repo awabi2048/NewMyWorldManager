@@ -19,6 +19,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContext
+import me.awabi2048.myworldmanager.api.extension.WorldCreationDraft
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
@@ -560,7 +561,8 @@ class CreationGui(private val plugin: MyWorldManager) {
             ?: error("ワールド作成セッションがありません")
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.confirmationLayout()
         val elements = mutableListOf<MenuElement>()
-        val capabilityContext = CreationConfirmationCapabilityContext(player, session)
+        val capabilityContext =
+            CreationConfirmationCapabilityContext(player, SessionCreationDraft(session))
         val confirmationCapability = MyWorldManagerApi.getCreationConfirmationCapabilities()
             .firstNotNullOfOrNull { capability ->
                 capability.resolve(capabilityContext)?.let { capability to it }
@@ -715,7 +717,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ACTION_CONFIRM_INTERACTION,
             )
             confirmationCapability?.let { (capability, view) ->
-                elements += confirmationCapabilityElement(capability.getId(), view.item)
+                elements += confirmationCapabilityElement(capability.getId(), view.presentation)
             }
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
             elements += MenuElement(
@@ -741,7 +743,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ACTION_CONFIRM_INTERACTION,
             )
             confirmationCapability?.let { (capability, view) ->
-                elements += confirmationCapabilityElement(capability.getId(), view.item)
+                elements += confirmationCapabilityElement(capability.getId(), view.presentation)
             }
             elements += MenuElement(
                 41,
@@ -756,7 +758,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         } else {
             confirmationCapability?.let { (capability, view) ->
-                elements += confirmationCapabilityElement(capability.getId(), view.item)
+                elements += confirmationCapabilityElement(capability.getId(), view.presentation)
             }
         }
         return InventoryMenuView(
@@ -770,10 +772,10 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun confirmationCapabilityElement(
         capabilityId: String,
-        item: ItemStack,
+        presentation: com.awabi2048.ccsystem.api.gui.MenuCapabilityPresentation,
     ): MenuElement = MenuElement(
         CONFIRM_CAPABILITY_SLOT,
-        item,
+        CCSystem.getAPI().getGuiElementService().menuCapability(presentation),
         GuiElementRole.ACTION,
         ACTION_CONFIRM_CAPABILITY,
         mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
@@ -787,7 +789,8 @@ class CreationGui(private val plugin: MyWorldManager) {
         val capability = MyWorldManagerApi.getCreationConfirmationCapabilities()
             .firstOrNull { it.getId() == capabilityId }
             ?: return MenuActionResult.Ignored
-        val capabilityContext = CreationConfirmationCapabilityContext(context.player, session)
+        val capabilityContext =
+            CreationConfirmationCapabilityContext(context.player, SessionCreationDraft(session))
         if (capability.resolve(capabilityContext) == null) return MenuActionResult.Ignored
         return capability.handlePrimaryAction(capabilityContext)
     }
@@ -867,6 +870,20 @@ class CreationGui(private val plugin: MyWorldManager) {
     }
 
     private fun clearSettingsGuiTransition(player: Player) {
+    }
+
+    private class SessionCreationDraft(
+        private val session: WorldCreationSession,
+    ) : WorldCreationDraft {
+        override val worldName: String?
+            get() = session.worldName
+
+        override fun getBoolean(key: String): Boolean? =
+            session.extras[key] as? Boolean
+
+        override fun setBoolean(key: String, value: Boolean) {
+            session.extras[key] = value
+        }
     }
 
     companion object {

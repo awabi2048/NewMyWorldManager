@@ -1,17 +1,24 @@
 package me.awabi2048.myworldmanager.api.extension
 
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import me.awabi2048.myworldmanager.session.WorldCreationSession
+import com.awabi2048.ccsystem.api.gui.MenuCapabilityPresentation
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
+
+interface WorldCreationDraft {
+    val worldName: String?
+
+    fun getBoolean(key: String): Boolean?
+
+    fun setBoolean(key: String, value: Boolean)
+}
 
 data class CreationConfirmationCapabilityContext(
     val player: Player,
-    val session: WorldCreationSession,
+    val draft: WorldCreationDraft,
 )
 
 data class CreationConfirmationCapabilityView(
-    val item: ItemStack,
+    val presentation: MenuCapabilityPresentation,
 )
 
 interface CreationConfirmationCapability {

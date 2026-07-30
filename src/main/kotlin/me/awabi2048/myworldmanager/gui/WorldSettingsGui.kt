@@ -1361,12 +1361,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         .forEach { (resolved, slot) ->
                                 val presentation = resolved.presentation
                                 val item = CCSystem.getAPI().getGuiElementService()
-                                        .item(presentation.item)
-                                presentation.glint?.let { enabled ->
-                                        item.editMeta { meta ->
-                                                meta.setEnchantmentGlintOverride(enabled)
-                                        }
-                                }
+                                        .menuCapability(presentation)
                                 val interaction = if (resolved.actionable) {
                                         MenuInteraction.Action(
                                                 actionId = ACTION_CAPABILITY,

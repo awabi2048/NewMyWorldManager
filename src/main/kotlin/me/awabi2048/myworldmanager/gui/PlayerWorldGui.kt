@@ -183,6 +183,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         elements += MenuElement(
                                 layout.itemSlots[index],
                                 capability?.renderWorldItem(capabilityContext, world)
+                                        ?.let {
+                                                CCSystem.getAPI().getGuiElementService()
+                                                        .menuCapability(it)
+                                        }
                                         ?: createWorldItem(player, world, targetUuid),
                                 GuiElementRole.ACTION,
                                 ACTION_WORLD,
@@ -196,7 +200,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         if (capabilityView != null) {
                                 elements += MenuElement(
                                         layout.actionSlot - 2,
-                                        capabilityView.item,
+                                        CCSystem.getAPI().getGuiElementService()
+                                                .menuCapability(capabilityView.presentation),
                                         if (capabilityView.actionable) {
                                                 GuiElementRole.ACTION
                                         } else {
@@ -230,6 +235,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 elements += MenuElement(
                         layout.actionSlot,
                         capability?.renderSummaryItem(capabilityContext)
+                                ?.let {
+                                        CCSystem.getAPI().getGuiElementService()
+                                                .menuCapability(it)
+                                }
                                 ?: createStatsButton(player, targetUuid, targetName, createCount, maxSlot, stats),
                         GuiElementRole.CONTENT,
                 )

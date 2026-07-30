@@ -242,10 +242,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     ): MenuElement {
         val presentation = capability.presentation
         val item = CCSystem.getAPI().getGuiElementService()
-            .item(presentation.item.copy(role = role))
-        presentation.glint?.let { enabled ->
-            item.editMeta { meta -> meta.setEnchantmentGlintOverride(enabled) }
-        }
+            .menuCapability(
+                presentation.copy(item = presentation.item.copy(role = role)),
+            )
         return MenuElement(
             slot = slot,
             item = item,

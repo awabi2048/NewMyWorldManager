@@ -1,12 +1,12 @@
 package me.awabi2048.myworldmanager.api.extension
 
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuCapabilityPresentation
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import java.util.UUID
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.inventory.ItemStack
 
 data class PlayerWorldCapabilityContext(
     val player: Player,
@@ -17,7 +17,7 @@ data class PlayerWorldCapabilityContext(
 )
 
 data class PlayerWorldCreationView(
-    val item: ItemStack,
+    val presentation: MenuCapabilityPresentation,
     val actionable: Boolean,
 )
 
@@ -27,9 +27,9 @@ interface PlayerWorldCapability {
     fun renderWorldItem(
         context: PlayerWorldCapabilityContext,
         worldData: WorldData,
-    ): ItemStack?
+    ): MenuCapabilityPresentation?
 
-    fun renderSummaryItem(context: PlayerWorldCapabilityContext): ItemStack?
+    fun renderSummaryItem(context: PlayerWorldCapabilityContext): MenuCapabilityPresentation?
 
     fun renderCreationItem(context: PlayerWorldCapabilityContext): PlayerWorldCreationView?
 

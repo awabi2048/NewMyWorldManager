@@ -209,6 +209,14 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
+    fun openAdminMenu(player: Player): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        if (!player.hasPermission("myworldmanager.admin")) return false
+        plugin.adminCommandGui.open(player)
+        return true
+    }
+
+    @JvmStatic
     fun closeWorldSettingsContext(player: Player) {
         JavaPlugin.getPlugin(MyWorldManager::class.java)
             .settingsSessionManager

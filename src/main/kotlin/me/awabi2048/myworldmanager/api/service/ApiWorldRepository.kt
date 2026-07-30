@@ -7,6 +7,11 @@ interface ApiWorldRepository {
 
     fun findByUuid(uuid: UUID): WorldData?
     fun findByOwner(ownerUuid: UUID): List<WorldData>
+    fun findByOwnerAndDisplayName(
+        ownerUuid: UUID,
+        worldName: String,
+        excludingUuid: UUID? = null,
+    ): WorldData?
     fun findByWorldName(worldName: String): WorldData?
     fun findByWorldKey(worldKey: String): WorldData?
     fun findAll(): List<WorldData>
