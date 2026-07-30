@@ -5,11 +5,18 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -82,14 +89,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val pageTargets = targets.drop(pageLayout.startIndex).take(pageLayout.itemCount)
         pageTargets.forEachIndexed { index, target ->
             val action = resolveTargetAction(player, target)
-            val actionable = action == TargetAction.DIRECT || action == TargetAction.REQUEST
-            elements += MenuElement(
-                layout.itemSlots[index],
-                createTargetHead(target, player, plugin),
-                if (actionable) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                if (actionable) ACTION_TARGET else null,
-                if (actionable) mapOf(TARGET_UUID to target.uniqueId.toString()) else emptyMap(),
-            )
+            elements += createTargetEntry(target, player, layout.itemSlots[index], action)
         }
         if (pageTargets.isEmpty()) {
             elements += MenuElement(22, createEmptyItem(player), GuiElementRole.CONTENT)
@@ -291,28 +291,16 @@ class MeetGui(private val plugin: MyWorldManager) {
         return item
     }
 
-    private fun createTargetHead(target: Player, viewer: Player, plugin: MyWorldManager): ItemStack {
+    private fun createTargetEntry(
+        target: Player,
+        viewer: Player,
+        slot: Int,
+        targetAction: TargetAction?,
+    ): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.PLAYER_HEAD)
-        val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-        meta.owningPlayer = target
-
-        meta.displayName(GuiItemFactory.legacy("§f${target.name}"))
-
-        val information = mutableListOf<GuiLoreLine>()
-
-        // Status
         val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
         val statusKey = "general.status.${stats.meetStatus.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else stats.meetStatus
-        information.add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.meet.world_item.status"), statusName, "§e"))
-        information.add(GuiLoreLine.Data(
-            lang.getMessage(viewer, "gui.meet.world_item.online_state"),
-            lang.getMessage(viewer, if (target.isOnline) "gui.meet.world_item.online" else "gui.meet.world_item.offline"),
-            if (target.isOnline) "§a" else "§8"
-        ))
-
-        // 現在のワールド名取得
         val world = target.world
         val worldName = world.name
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
@@ -327,44 +315,48 @@ class MeetGui(private val plugin: MyWorldManager) {
         } else {
             displayWorldName
         }
-        information.add(GuiLoreLine.Data(
-            lang.getMessage(viewer, "gui.meet.world_item.current_world"),
-            worldValue,
-            if (isSameWorld) "§6" else "§f"
-        ))
-
-        // クリックしてワールドを訪れる/申請の表示判定
-        var action: String? = null
-        if (worldData != null && !isSameWorld) {
-            val isMember = worldData.owner == viewer.uniqueId ||
-                           worldData.moderators.contains(viewer.uniqueId) ||
-                           worldData.members.contains(viewer.uniqueId)
-
-            // Logic based on status
-            if (stats.meetStatus == "JOIN_ME") {
-                when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(viewer, target, worldData, isMember)) {
-                    MeetTargetAction.DIRECT -> action = lang.getMessage(viewer, "gui.meet.world_item.click_visit")
-                    MeetTargetAction.REQUEST -> action = lang.getMessage(viewer, "gui.meet.world_item.click_request")
-                    MeetTargetAction.DENY -> Unit
-                }
-            } else if (stats.meetStatus == "ASK_ME") {
-                // Request needed
-                action = lang.getMessage(viewer, "gui.meet.world_item.click_request")
-            }
+        val actionLabel = when (targetAction) {
+            TargetAction.DIRECT -> lang.getMessage(viewer, "gui.meet.world_item.click_visit")
+            TargetAction.REQUEST -> lang.getMessage(viewer, "gui.meet.world_item.click_request")
+            TargetAction.DENY, null -> null
         }
-
-        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            add(GuiLoreBlock(information))
-            action?.let {
-                add(GuiLoreBlock(listOf(GuiLoreLine.Action(lang.getMessage(viewer, "lore.click.any"), it))))
-            }
-        }))
-        meta.lore(lore)
-        item.itemMeta = meta
-
-        // タグ付け
-        ItemTag.tagItem(item, "gui_meet_target_head")
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            viewer,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.PLAYER_HEAD,
+                name = GuiNameSpec.Text(target.name, GuiNameStyle.DEFAULT),
+                role = if (actionLabel == null) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                data = listOf(
+                    GuiMenuEntryData(
+                        lang.getMessage(viewer, "gui.meet.world_item.status"),
+                        statusName,
+                        GuiValueTone.PRIMARY,
+                    ),
+                    GuiMenuEntryData(
+                        lang.getMessage(viewer, "gui.meet.world_item.online_state"),
+                        lang.getMessage(viewer, if (target.isOnline) "gui.meet.world_item.online" else "gui.meet.world_item.offline"),
+                        if (target.isOnline) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
+                    ),
+                    GuiMenuEntryData(
+                        lang.getMessage(viewer, "gui.meet.world_item.current_world"),
+                        worldValue,
+                        if (isSameWorld) GuiValueTone.WARNING else GuiValueTone.DEFAULT,
+                    ),
+                ),
+                actions = actionLabel?.let {
+                    listOf(
+                        GuiMenuEntryAction(
+                            ACTION_TARGET,
+                            MenuAcceptedClicks.LEFT_RIGHT,
+                            it,
+                            mapOf(TARGET_UUID to target.uniqueId.toString()),
+                        ),
+                    )
+                }.orEmpty(),
+                playerHeadOwner = target.uniqueId,
+            ),
+        )
     }
 
     private enum class TargetAction {
