@@ -156,12 +156,10 @@ class BedrockMenuService(
     private data class FormAction(
         val label: String,
         val iconMaterial: Material? = null,
-        val onClick: () -> Unit
+        val onClick: () -> MenuActionResult,
     )
 
     private val playerWorldPageSize = 28
-
-    private val formPageSize = 8
 
     private val materialPathOverrides =
         mapOf(
@@ -268,65 +266,6 @@ class BedrockMenuService(
         return true
     }
 
-    private fun openPlayerWorldForm(player: Player, requestedPage: Int, showBackButton: Boolean): Boolean {
-        val worlds = getAccessibleWorlds(player)
-        val totalPages = if (worlds.isEmpty()) 1 else (worlds.size + formPageSize - 1) / formPageSize
-        val page = requestedPage.coerceIn(0, totalPages - 1)
-        val start = page * formPageSize
-        val pageWorlds = worlds.drop(start).take(formPageSize)
-        val archivedPrefix = tr(player, "gui.bedrock.player_world.archived_prefix")
-
-        val actions = mutableListOf<FormAction>()
-        pageWorlds.forEach { world ->
-            val archivedMarker = if (world.isArchived) archivedPrefix else ""
-            actions += FormAction("$archivedMarker${world.name}", world.icon) {
-                val latestWorld = plugin.worldConfigRepository.findByUuid(world.uuid) ?: return@FormAction
-                openWorldActionMenu(player, latestWorld, page, showBackButton)
-            }
-        }
-
-        if (page > 0) {
-            actions += FormAction(tr(player, "gui.bedrock.player_world.button.prev"), Material.ARROW) {
-                openPlayerWorld(player, page - 1, showBackButton)
-            }
-        }
-        if (start + pageWorlds.size < worlds.size) {
-            actions += FormAction(tr(player, "gui.bedrock.player_world.button.next"), Material.ARROW) {
-                openPlayerWorld(player, page + 1, showBackButton)
-            }
-        }
-
-        actions += FormAction(tr(player, "gui.bedrock.player_world.button.settings"), Material.WRITABLE_BOOK) {
-            openSettings(player, showBackButton, page)
-        }
-
-        val currentManagedWorld = getCurrentManagedWorld(player)
-        if (currentManagedWorld != null && canAccessWorldSettings(player, currentManagedWorld)) {
-            actions += FormAction(tr(player, "gui.bedrock.player_world.button.current_world"), Material.COMPASS) {
-                openCurrentWorldMenu(player, currentManagedWorld, showBackButton)
-            }
-        }
-
-        if (GuiHelper.canGoBack(player)) {
-            actions += FormAction(tr(player, "gui.bedrock.player_world.button.return"), Material.BARRIER) {
-                performConfiguredReturn(player)
-            }
-        }
-
-        actions += FormAction(tr(player, "gui.bedrock.player_world.button.close"), Material.REDSTONE) {
-            runtime.close(player)
-        }
-
-        val title = tr(player, "gui.bedrock.player_world.title")
-        val content =
-            tr(
-                player,
-                "gui.bedrock.player_world.page_content",
-                mapOf("current" to page + 1, "total" to totalPages)
-            )
-        return sendActionForm(player, title, content, actions)
-    }
-
     private fun openWorldActionsForm(
         player: Player,
         worldData: WorldData,
@@ -336,8 +275,10 @@ class BedrockMenuService(
         val actions = mutableListOf<FormAction>()
 
         actions += FormAction(tr(player, "gui.bedrock.world_action.button.warp"), Material.ENDER_PEARL) {
-            val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
+            val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
+                ?: return@FormAction MenuActionResult.Rejected()
             warpToWorld(player, latest)
+            MenuActionResult.Success(MenuUpdate.Close)
         }
 
         if (canManagePublish(player, worldData)) {
@@ -350,9 +291,14 @@ class BedrockMenuService(
                     ),
                     Material.ENDER_EYE
                 ) {
-                val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
+                val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
+                    ?: return@FormAction MenuActionResult.Rejected()
                 cyclePublishLevel(player, latest)
-                openWorldActionMenu(player, latest, returnPage, showBackButton)
+                MenuActionResult.Success(
+                    MenuUpdate.Replace(
+                        worldActionRoute(worldData.uuid, returnPage, showBackButton),
+                    ),
+                )
             }
         }
 
@@ -364,7 +310,8 @@ class BedrockMenuService(
                     tr(player, "gui.bedrock.world_action.button.archive")
                 }
             actions += FormAction(label, Material.CHEST) {
-                val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
+                val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
+                    ?: return@FormAction MenuActionResult.Rejected()
                 toggleArchiveState(player, latest) {
                     val refreshed = plugin.worldConfigRepository.findByUuid(worldData.uuid)
                     if (refreshed != null) {
@@ -373,32 +320,40 @@ class BedrockMenuService(
                         openPlayerWorld(player, returnPage, showBackButton)
                     }
                 }
+                MenuActionResult.Success(MenuUpdate.Close)
             }
         }
 
         if (canAccessWorldSettings(player, worldData)) {
             actions += FormAction(tr(player, "gui.bedrock.world_action.button.advanced_settings"), Material.COMPARATOR) {
-                val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@FormAction
+                val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
+                    ?: return@FormAction MenuActionResult.Rejected()
                 plugin.worldSettingsGui.open(player, latest, showBackButton)
+                MenuActionResult.Success(MenuUpdate.None)
             }
         }
 
         actions += FormAction(tr(player, "gui.bedrock.world_action.button.back_to_worlds"), Material.ARROW) {
-            openPlayerWorld(player, returnPage, showBackButton)
+            MenuActionResult.Success(
+                MenuUpdate.Replace(playerWorldRoute(returnPage, showBackButton)),
+            )
         }
 
         actions += FormAction(tr(player, "gui.bedrock.world_action.button.settings"), Material.WRITABLE_BOOK) {
-            openSettings(player, showBackButton, returnPage)
+            MenuActionResult.Success(
+                MenuUpdate.Navigate(settingsRoute(showBackButton, returnPage)),
+            )
         }
 
         if (GuiHelper.canGoBack(player)) {
             actions += FormAction(tr(player, "gui.bedrock.world_action.button.return"), Material.BARRIER) {
                 performConfiguredReturn(player)
+                MenuActionResult.Success(MenuUpdate.Close)
             }
         }
 
         actions += FormAction(tr(player, "gui.bedrock.world_action.button.close"), Material.REDSTONE) {
-            runtime.close(player)
+            MenuActionResult.Success(MenuUpdate.Close)
         }
 
         val content =
@@ -428,58 +383,6 @@ class BedrockMenuService(
         )
     }
 
-    private fun openSettingsForm(player: Player, showBackButton: Boolean, returnPage: Int): Boolean {
-        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val actions = mutableListOf<FormAction>()
-
-        actions +=
-            FormAction(
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.notification",
-                    mapOf("status" to statusText(player, stats.visitorNotificationEnabled))
-                ),
-                Material.BELL
-            ) {
-            stats.visitorNotificationEnabled = !stats.visitorNotificationEnabled
-            plugin.playerStatsRepository.save(stats)
-            openSettings(player, showBackButton, returnPage)
-        }
-
-        actions +=
-            FormAction(
-                tr(
-                    player,
-                    "gui.bedrock.settings.button.language",
-                    mapOf("language" to languageDisplay(player, plugin.languageManager.resolveLocale(player)))
-                ),
-                Material.WRITABLE_BOOK
-            ) {
-            openSettings(player, showBackButton, returnPage)
-        }
-
-        actions += FormAction(tr(player, "gui.bedrock.settings.button.back_to_worlds"), Material.ARROW) {
-            openPlayerWorld(player, returnPage, showBackButton)
-        }
-
-        if (GuiHelper.canGoBack(player)) {
-            actions += FormAction(tr(player, "gui.bedrock.settings.button.return"), Material.BARRIER) {
-                performConfiguredReturn(player)
-            }
-        }
-
-        actions += FormAction(tr(player, "gui.bedrock.settings.button.close"), Material.REDSTONE) {
-            runtime.close(player)
-        }
-
-        return sendActionForm(
-            player,
-            tr(player, "gui.bedrock.settings.title"),
-            tr(player, "gui.bedrock.settings.form_content"),
-            actions
-        )
-    }
-
     private fun sendActionForm(
         player: Player,
         title: String,
@@ -497,13 +400,14 @@ class BedrockMenuService(
                     imagePath = materialToBedrockPath(action.iconMaterial)
                 )
             }
-        return formBridge.sendSimpleFormWithImages(
+        return formBridge.sendSimpleFormWithImagesResult(
             player = player,
             title = title,
             content = content,
             buttons = buttons,
             onSelect = { index ->
-                val action = actions.getOrNull(index) ?: return@sendSimpleFormWithImages
+                val action = actions.getOrNull(index)
+                    ?: return@sendSimpleFormWithImagesResult MenuActionResult.Ignored
                 action.onClick()
             }
         )

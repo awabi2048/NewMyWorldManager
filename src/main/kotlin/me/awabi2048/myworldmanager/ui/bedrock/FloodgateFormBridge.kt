@@ -64,11 +64,39 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
             },
             handler = MenuFormHandler { _, response ->
                 response.textValue("button").toIntOrNull()?.let(onSelect)
-                MenuActionResult.Success()
+                MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
             },
             onClosed = onClosed?.let { callback ->
                 MenuFormHandler { _, _ -> callback(); MenuActionResult.Ignored }
             }
+        )
+        return forms.show(player, request)
+    }
+
+    fun sendSimpleFormWithImagesResult(
+        player: Player,
+        title: String,
+        content: String,
+        buttons: List<SimpleFormButton>,
+        onSelect: (Int) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null,
+    ): Boolean {
+        val request = MenuSimpleFormRequest(
+            owner = "my-world-manager",
+            id = "simple-form",
+            title = title,
+            content = content,
+            buttons = buttons.mapIndexed { index, button ->
+                MenuFormButton(index.toString(), button.label, button.imagePath)
+            },
+            handler = MenuFormHandler { _, response ->
+                response.textValue("button").toIntOrNull()
+                    ?.let(onSelect)
+                    ?: MenuActionResult.Ignored
+            },
+            onClosed = onClosed?.let { handler ->
+                MenuFormHandler { _, _ -> handler() }
+            },
         )
         return forms.show(player, request)
     }
@@ -105,7 +133,7 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
             },
             handler = MenuFormHandler { _, response ->
                 onSubmit(inputs.indices.map { response.textValue(it.toString()) })
-                MenuActionResult.Success()
+                MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
             },
             onClosed = onClosed?.let { callback ->
                 MenuFormHandler { _, _ -> callback(); MenuActionResult.Ignored }
