@@ -461,34 +461,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         )
                         return MenuActionResult.Rejected()
                 }
-                val lang = plugin.languageManager
-                val title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                        .legacySection()
-                        .deserialize(lang.getMessage(player, "gui.unarchive_confirm.title"))
-                val body = lang.getMessageList(player, "gui.unarchive_confirm.description").map {
-                        net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                                .legacySection()
-                                .deserialize(it)
-                }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         me.awabi2048.myworldmanager.session.SettingsAction.UNARCHIVE_CONFIRM,
                         isGui = true,
                 )
-                DialogConfirmManager.showConfirmationByPreference(
-                        player,
-                        plugin,
-                        title,
-                        body,
-                        "mwm:confirm/unarchive_world",
-                        "mwm:confirm/cancel",
-                        lang.getMessage(player, "gui.common.confirm"),
-                        lang.getMessage(player, "gui.common.cancel"),
-                ) {
-                        plugin.worldSettingsGui.openUnarchiveConfirmation(player, worldData)
-                }
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Success(
+                        MenuUpdate.Navigate(
+                                plugin.worldSettingsGui.runtimeRoute(
+                                        WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM,
+                                        worldData.uuid,
+                                ),
+                        ),
+                )
         }
 
         private fun warp(player: Player, worldData: WorldData): MenuActionResult {

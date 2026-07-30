@@ -3,7 +3,6 @@ package me.awabi2048.myworldmanager.listener
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.TourDialogManager
 import me.awabi2048.myworldmanager.gui.TourGui
 import net.kyori.adventure.text.Component

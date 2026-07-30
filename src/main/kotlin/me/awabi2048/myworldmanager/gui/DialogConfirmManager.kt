@@ -10,22 +10,6 @@ import org.bukkit.entity.Player
  */
 object DialogConfirmManager {
 
-    fun showConfirmationByPreference(
-        player: Player,
-        plugin: MyWorldManager,
-        title: Component,
-        bodyLines: List<Component>,
-        confirmActionId: String,
-        cancelActionId: String = "mwm:confirm/cancel",
-        confirmText: String? = null,
-        cancelText: String? = null,
-        onBedrockConfirm: (() -> Unit)? = null,
-        onBedrockCancel: (() -> Unit)? = null,
-        onGuiFallback: () -> Unit
-    ) {
-        onGuiFallback()
-    }
-
     /**
      * 確認ダイアログを表示する
      * @param player 対象プレイヤー

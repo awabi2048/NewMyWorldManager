@@ -229,30 +229,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
     }
 
     private fun showFavoriteRemovalConfirmation(player: Player, worldData: WorldData) {
-        val lang = plugin.languageManager
-        val title = LegacyComponentSerializer.legacySection().deserialize(
-            lang.getMessage(player, "gui.favorite.remove_confirm.title"),
-        )
-        val body = lang.getMessageList(
-            player,
-            "gui.favorite.remove_confirm.lore",
-            mapOf("world" to worldData.name),
-        ).map(LegacyComponentSerializer.legacySection()::deserialize)
-        DialogConfirmManager.showConfirmationByPreference(
-            player,
-            plugin,
-            title,
-            body,
-            "mwm:confirm/favorite_remove/${worldData.uuid}",
-            "mwm:confirm/favorite_cancel",
-            lang.getMessage(player, "gui.favorite.remove_confirm.confirm"),
-            lang.getMessage(player, "gui.common.cancel"),
-        ) {
-            plugin.menuEntryRouter.openFavoriteRemoveConfirm(
-                player,
-                worldData,
-            )
-        }
+        plugin.menuEntryRouter.openFavoriteRemoveConfirm(player, worldData)
     }
 
     private fun createWorldItem(player: Player, data: WorldData): ItemStack {

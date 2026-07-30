@@ -325,28 +325,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         player.sendMessage(lang.getMessage(player, "error.member_request_already_member"))
                         return MenuActionResult.Rejected()
                 }
-                val title = Component.text(lang.getMessage(player, "gui.member_request_confirm.title"))
-                val body = lang.getMessageList(
-                        player,
-                        "gui.member_request_confirm.lore",
-                        mapOf("world" to worldData.name),
-                ).map(Component::text)
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player,
-                                        plugin,
-                                        title,
-                                        body,
-                                        "mwm:confirm/member_request_send/${worldData.uuid}",
-                                        "mwm:confirm/cancel",
-                                ) {
-                                        plugin.menuEntryRouter.openMemberRequestConfirm(
-                                                player,
-                                                worldData,
-                                        )
-                                }
+                                plugin.menuEntryRouter.openMemberRequestConfirm(player, worldData)
                         },
                 )
                 return MenuActionResult.Success(MenuUpdate.Close)
@@ -354,28 +336,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
         private fun removeSpotlight(player: Player, worldData: WorldData): MenuActionResult {
                 val lang = plugin.languageManager
-                val title = Component.text(lang.getMessage(player, "gui.discovery.spotlight_remove_confirm.title"))
-                val body = lang.getMessageList(
-                        player,
-                        "gui.discovery.spotlight_remove_confirm.lore",
-                        mapOf("world" to worldData.name),
-                ).map(Component::text)
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player,
-                                        plugin,
-                                        title,
-                                        body,
-                                        "mwm:confirm/spotlight_remove/${worldData.uuid}",
-                                        "mwm:confirm/cancel",
-                                ) {
-                                        plugin.menuEntryRouter.openSpotlightRemoveConfirm(
-                                                player,
-                                                worldData,
-                                        )
-                                }
+                                plugin.menuEntryRouter.openSpotlightRemoveConfirm(player, worldData)
                         },
                 )
                 return MenuActionResult.Success(MenuUpdate.Close)
@@ -449,29 +413,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         )
                         return MenuActionResult.Rejected()
                 }
-                val lang = plugin.languageManager
-                val title = Component.text(lang.getMessage(player, "gui.spotlight_confirm.title"))
-                val body = lang.getMessageList(
-                        player,
-                        "gui.spotlight_confirm.lore",
-                        mapOf("world" to worldData.name),
-                ).map(Component::text)
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player,
-                                        plugin,
-                                        title,
-                                        body,
-                                        "mwm:confirm/spotlight_add/${worldData.uuid}",
-                                        "mwm:confirm/cancel",
-                                ) {
-                                        plugin.menuEntryRouter.openSpotlightConfirm(
-                                                player,
-                                                worldData,
-                                        )
-                                }
+                                plugin.menuEntryRouter.openSpotlightConfirm(player, worldData)
                         },
                 )
                 return MenuActionResult.Success(MenuUpdate.Close)

@@ -3693,34 +3693,6 @@ player.sendMessage(
                 cost: Int
         ) {
                 val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-                val lang = plugin.languageManager
-                val title = LegacyComponentSerializer.legacySection().deserialize(
-                        lang.getMessage(player, "gui.expansion.confirm_title")
-                )
-                val directionKey = when (direction) {
-                        org.bukkit.block.BlockFace.NORTH_WEST -> "general.direction.north_west"
-                        org.bukkit.block.BlockFace.NORTH_EAST -> "general.direction.north_east"
-                        org.bukkit.block.BlockFace.SOUTH_WEST -> "general.direction.south_west"
-                        org.bukkit.block.BlockFace.SOUTH_EAST -> "general.direction.south_east"
-                        else -> "general.direction.unknown"
-                }
-                val directionName = lang.getMessage(player, directionKey)
-                val methodText = if (direction == null) {
-                        lang.getMessage(player, "gui.expansion.method_center")
-                } else {
-                        lang.getMessage(player, "gui.expansion.method_direction", mapOf("direction" to directionName))
-                }
-                val bodyLines = listOf(
-                        LegacyComponentSerializer.legacySection().deserialize(
-                                "${lang.getMessage(player, "gui.expansion.method_label")}: $methodText"
-                        ),
-                        LegacyComponentSerializer.legacySection().deserialize(
-                                "${lang.getMessage(player, "gui.expansion.cost_label")}: $cost"
-                        ),
-                        LegacyComponentSerializer.legacySection().deserialize(
-                                lang.getMessage(player, "gui.expansion.warning")
-                        )
-                )
 
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
@@ -3733,24 +3705,10 @@ player.sendMessage(
                         it.expansionCost = cost
                 }
 
-                DialogConfirmManager.showConfirmationByPreference(
+                CCSystem.getAPI().getMenuRuntimeService().navigate(
                         player,
-                        plugin,
-                        title,
-                        bodyLines,
-                        "mwm:confirm/expand",
-                        "mwm:confirm/cancel",
-                        lang.getMessage(player, "gui.common.confirm"),
-                        lang.getMessage(player, "gui.common.cancel"),
-                        onBedrockConfirm = {
-                                handleBedrockDialogAction(player, worldData, "mwm:confirm/expand")
-                        },
-                        onBedrockCancel = {
-                                handleBedrockDialogCancel(player, worldData)
-                        }
-                ) {
-                        plugin.worldSettingsGui.openExpansionConfirmation(player, worldData.uuid, direction, cost)
-                }
+                        plugin.worldSettingsGui.expansionConfirmationRoute(worldData.uuid, direction, cost),
+                )
         }
 
         private fun openExpansionStepBackConfirmationByPreference(
@@ -3767,28 +3725,6 @@ player.sendMessage(
                         return
                 }
 
-                val title = LegacyComponentSerializer.legacySection().deserialize(
-                        lang.getMessage(player, "gui.confirm.step_back_expansion.title")
-                )
-                val bodyTextLines = lang
-                        .getMessageList(player, "gui.confirm.step_back_expansion.lore")
-                        .toMutableList()
-                if (record.modified) {
-                        bodyTextLines.addAll(
-                                lang.getMessageList(
-                                        player,
-                                        "gui.confirm.step_back_expansion.modified_warning"
-                                )
-                        )
-                }
-                appendSpawnAdjustmentWarning(
-                        player,
-                        worldData,
-                        worldDataStepBackTarget(worldData)
-                )?.let(bodyTextLines::addAll)
-                val bodyLines = bodyTextLines
-                        .map { LegacyComponentSerializer.legacySection().deserialize(it) }
-
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
@@ -3796,24 +3732,13 @@ player.sendMessage(
                         isGui = true
                 )
 
-                DialogConfirmManager.showConfirmationByPreference(
+                CCSystem.getAPI().getMenuRuntimeService().navigate(
                         player,
-                        plugin,
-                        title,
-                        bodyLines,
-                        "mwm:confirm/step_back_expansion",
-                        "mwm:confirm/cancel",
-                        lang.getMessage(player, "gui.common.confirm"),
-                        lang.getMessage(player, "gui.common.cancel"),
-                        onBedrockConfirm = {
-                                handleBedrockDialogAction(player, worldData, "mwm:confirm/step_back_expansion")
-                        },
-                        onBedrockCancel = {
-                                handleBedrockDialogCancel(player, worldData)
-                        }
-                ) {
-                        plugin.worldSettingsGui.openExpansionStepBackConfirmation(player, worldData)
-                }
+                        plugin.worldSettingsGui.runtimeRoute(
+                                WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM,
+                                worldData.uuid,
+                        ),
+                )
         }
 
         // Helper to show generic simple confirmation

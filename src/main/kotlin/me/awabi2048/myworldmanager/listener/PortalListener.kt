@@ -11,7 +11,6 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.PortalGui
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
@@ -331,54 +330,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
     }
 
     private fun showWorldGateConfirm(player: org.bukkit.entity.Player) {
-        val pending = pendingGatePlacements[player.uniqueId] ?: return
-        val lang = plugin.languageManager
-
-        val first = pending.first
-        val second = pending.second
-        val minX = minOf(first.blockX, second.blockX)
-        val minY = minOf(first.blockY, second.blockY)
-        val minZ = minOf(first.blockZ, second.blockZ)
-        val maxX = maxOf(first.blockX, second.blockX)
-        val maxY = maxOf(first.blockY, second.blockY)
-        val maxZ = maxOf(first.blockZ, second.blockZ)
-        val pointEconomyEnabled = MyWorldManagerApi.isWorldPointEconomyEnabled()
-        val requiredPoints = plugin.portalManager.calculateWorldGatePlacementCost(minX, minY, minZ, maxX, maxY, maxZ)
-        val currentPoints = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint
-        val remainingPoints = (currentPoints - requiredPoints).coerceAtLeast(0)
-
-        val title = LegacyComponentSerializer.legacySection().deserialize(
-            lang.getMessage(player, "messages.world_gate_confirm_title")
-        )
-        val bodyLines = lang.getMessageList(
-            player,
-            if (pointEconomyEnabled) "messages.world_gate_confirm_body"
-            else "messages.world_gate_confirm_body_without_points",
-            mapOf(
-                "min_x" to minX,
-                "min_y" to minY,
-                "min_z" to minZ,
-                "max_x" to maxX,
-                "max_y" to maxY,
-                "max_z" to maxZ,
-                "required" to requiredPoints,
-                "current" to currentPoints,
-                "remaining" to remainingPoints
-            )
-        ).map { LegacyComponentSerializer.legacySection().deserialize(it) }
-
-        DialogConfirmManager.showConfirmationByPreference(
-            player,
-            plugin,
-            title,
-            bodyLines,
-            WORLD_GATE_CONFIRM_ACTION,
-            WORLD_GATE_CANCEL_ACTION,
-            lang.getMessage(player, "gui.common.confirm"),
-            lang.getMessage(player, "gui.common.cancel")
-        ) {
-            openWorldGateConfirmGui(player)
-        }
+        pendingGatePlacements[player.uniqueId] ?: return
+        openWorldGateConfirmGui(player)
     }
 
     private fun openWorldGateConfirmGui(player: org.bukkit.entity.Player) {
