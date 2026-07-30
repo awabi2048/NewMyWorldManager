@@ -7,11 +7,18 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -93,13 +100,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val elements = mutableListOf<MenuElement>()
 
         worlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, data ->
-            elements += MenuElement(
-                slot = layout.itemSlots[index],
-                item = createWorldItem(player, data),
-                role = GuiElementRole.ACTION,
-                actionId = ACTION_WORLD,
-                actionPayload = mapOf(WORLD_UUID to data.uuid.toString()),
-            )
+            elements += createWorldEntry(player, data, layout.itemSlots[index])
         }
         if (worlds.isEmpty()) {
             val empty = ItemStack(Material.QUARTZ)
@@ -123,7 +124,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 mapOf(PAGE to (currentPage - 1).toString()),
             )
         }
-        elements += MenuElement(layout.actionSlot, createPlayerHead(player, worlds.size), GuiElementRole.CONTENT)
+        elements += createPlayerHeadEntry(player, worlds.size, layout.actionSlot)
         if (currentPage < pageLayout.totalPages - 1) {
             elements += MenuElement(
                 layout.nextPageSlot,
@@ -133,12 +134,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 mapOf(PAGE to (currentPage + 1).toString()),
             )
         }
-        elements += MenuElement(
-            layout.size - 2,
-            createTagFilterButton(player, session.selectedTag),
-            GuiElementRole.ACTION,
-            ACTION_TAG,
-        )
+        elements += createTagFilterEntry(player, session.selectedTag, layout.size - 2)
         if (GuiHelper.canGoBack(player)) {
             elements += MenuElement(
                 layout.backSlot,
@@ -229,15 +225,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         plugin.menuEntryRouter.openFavoriteRemoveConfirm(player, worldData)
     }
 
-    private fun createWorldItem(player: Player, data: WorldData): ItemStack {
-        val item = ItemStack(data.icon)
-        val meta = item.itemMeta ?: return item
+    private fun createWorldEntry(player: Player, data: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
         val worldName = lang.getMessageStrict(player, data.name) ?: data.name
-        meta.displayName(
-            lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))
-                .decoration(TextDecoration.ITALIC, false),
-        )
         val ownerName = PlayerNameUtil.getNameOrDefault(
             data.owner,
             lang.getMessage(player, "general.unknown"),
@@ -250,60 +240,52 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             player.uniqueId in data.members
         val canWarp = MyWorldManagerApi.getWorldAccessPolicy().canUseSharedEntry(player, data, isMember)
         val canUnfavorite = !data.isArchived && !isMember
-        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            if (data.description.isNotBlank()) {
-                add(GuiLoreBlock(listOf(GuiLoreLine.UserText(data.description))))
-            }
-            add(GuiLoreBlock(buildList {
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b"))
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.favorite"), data.favorite, "§c"))
-                add(GuiLoreLine.Data(
-                    lang.getMessage(player, "gui.common.world_item.recent_visitors"),
-                    lang.getMessage(
-                        player,
-                        "gui.common.world_item.recent_visitors_value",
-                        mapOf("count" to data.recentVisitors.sum()),
-                    ),
-                    "§a",
-                ))
-                if (tagNames != null) {
-                    add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
-                }
-            }))
-            if (data.isArchived) {
-                add(GuiLoreBlock(listOf(
-                    GuiLoreLine.Warning(lang.getMessage(player, "gui.favorite.world_item.archived_label")),
-                )))
-            }
-            val actions = buildList {
+        val payload = mapOf(WORLD_UUID to data.uuid.toString())
+        val actions = if (data.isArchived) {
+            emptyList()
+        } else {
+            buildList {
                 if (canWarp) {
-                    add(GuiLoreLine.Action(
-                        lang.getMessage(player, "gui.settings.click.left"),
-                        lang.getMessage(player, "gui.favorite.world_item.warp"),
-                    ))
+                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.favorite.world_item.warp"), payload))
+                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.favorite.world_item.preview"), payload))
                 }
                 if (canUnfavorite) {
-                    add(GuiLoreLine.Action(
-                        lang.getMessage(player, "lore.click.shift_right"),
-                        lang.getMessage(player, "gui.favorite.world_item.unfavorite"),
-                    ))
+                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_RIGHT, lang.getMessage(player, "gui.favorite.world_item.unfavorite"), payload))
                 }
             }
-            if (actions.isNotEmpty()) add(GuiLoreBlock(actions))
-        })))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
-        ItemTag.setWorldUuid(item, data.uuid)
-        return item
+        }
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = data.icon,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))),
+                role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                description = listOfNotNull(data.description.takeIf(String::isNotBlank)),
+                data = buildList {
+                    add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, GuiValueTone.INFO))
+                    add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.favorite"), data.favorite, GuiValueTone.DANGER))
+                    add(GuiMenuEntryData(
+                        lang.getMessage(player, "gui.common.world_item.recent_visitors"),
+                        lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to data.recentVisitors.sum())),
+                        GuiValueTone.SUCCESS,
+                    ))
+                    tagNames?.let { add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
+                },
+                warnings = if (data.isArchived) listOf(lang.getMessage(player, "gui.favorite.world_item.archived_label")) else emptyList(),
+                actions = actions,
+            ),
+        )
     }
 
-    private fun createPlayerHead(player: Player, totalCount: Int): ItemStack {
+    private fun createPlayerHeadEntry(player: Player, totalCount: Int, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.PLAYER_HEAD)
-        val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-        meta.owningPlayer = player
-        meta.displayName(
-            lang.getComponent(
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.PLAYER_HEAD,
+                name = GuiNameSpec.Component(lang.getComponent(
                 player,
                 "gui.favorite.player_icon.name",
                 mapOf(
@@ -312,58 +294,39 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "general.unknown"),
                     ),
                 ),
-            ).decoration(TextDecoration.ITALIC, false),
-        )
-        meta.lore(GuiLoreBuilder(lang, player).block(listOf(
-            GuiLoreLine.Data(
-                lang.getMessage(player, "gui.favorite.player_icon.lore_count"),
-                totalCount,
-                "§a",
+            )),
+                role = GuiElementRole.CONTENT,
+                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.favorite.player_icon.lore_count"), totalCount, GuiValueTone.SUCCESS)),
+                playerHeadOwner = player.uniqueId,
             ),
-        )).build())
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        return item
+        )
     }
 
-    private fun createTagFilterButton(player: Player, selectedTag: String?): ItemStack {
+    private fun createTagFilterEntry(player: Player, selectedTag: String?, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(
-            plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG),
-        )
-        val meta = item.itemMeta ?: return item
-        meta.displayName(
-            lang.getComponent(player, "gui.discovery.tag_filter.name")
-                .decoration(TextDecoration.ITALIC, false),
-        )
         val options = listOf("" to lang.getMessage(player, "gui.discovery.tag_filter.no_selection")) +
             plugin.worldTagManager.getEnabledTagIds().map {
                 it to plugin.worldTagManager.getDisplayName(player, it)
             }
         val selected = options.firstOrNull { it.first == selectedTag.orEmpty() } ?: options.first()
-        meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Rich(buildList {
-            add(GuiLoreLine.Data(
-                lang.getMessage(player, "gui.discovery.tag_filter.label"),
-                selected.second,
-                "§e",
-            ))
-            add(GuiLoreLine.Spacer)
-            options.forEach { (id, displayName) ->
-                add(GuiLoreLine.Option(displayName, id == selected.first, "§e", "§7"))
-            }
-            add(GuiLoreLine.Spacer)
-            add(GuiLoreLine.Action(
-                lang.getMessage(player, "lore.click.left"),
-                lang.getMessage(player, "gui.discovery.tag_filter.action.next"),
-            ))
-            add(GuiLoreLine.Action(
-                lang.getMessage(player, "lore.click.right"),
-                lang.getMessage(player, "gui.discovery.tag_filter.action.clear"),
-            ))
-        }, GuiLoreFrame.BOTH)))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_FAVORITE_TAG)
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG),
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.tag_filter.name")),
+                role = GuiElementRole.ACTION,
+                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.tag_filter.label"), selected.second, GuiValueTone.PRIMARY)),
+                options = options.map { (id, displayName) -> GuiMenuEntryOption(displayName, id == selected.first) },
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_TAG,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.common.action.cycle"),
+                    ),
+                ),
+            ),
+        )
     }
 
     private fun route(page: Int, returnWorld: UUID?, returnToFavoriteMenu: Boolean): MenuRoute =
