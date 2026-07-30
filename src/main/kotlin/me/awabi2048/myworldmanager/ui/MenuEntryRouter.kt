@@ -118,60 +118,28 @@ class MenuEntryRouter(
     fun openFavoriteRemoveConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openFavoriteRemoveConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.favoriteConfirmGui.open(player, worldData)
     }
 
     fun openSpotlightConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openSpotlightConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.spotlightConfirmGui.open(player, worldData)
     }
 
     fun openSpotlightRemoveConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openSpotlightRemoveConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.spotlightRemoveConfirmGui.open(player, worldData)
     }
 
     fun openMemberRequestConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openMemberRequestConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.memberRequestConfirmGui.open(player, worldData)
     }
 
@@ -184,21 +152,7 @@ class MenuEntryRouter(
         player: Player,
         currentSlots: Int,
         nextSlots: Int,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openWorldSeedConfirm(
-                player,
-                currentSlots,
-                nextSlots,
-                onBedrockConfirm,
-                onBedrockCancel
-            )
-        ) {
-            return
-        }
-
         plugin.worldSeedConfirmGui.open(player, currentSlots, nextSlots)
     }
 

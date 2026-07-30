@@ -215,57 +215,6 @@ class BedrockMenuService(
         plugin.meetGui.open(player, showBackButton)
     }
 
-    fun openFavoriteRemoveConfirm(
-        player: Player,
-        worldData: WorldData,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit
-    ): Boolean {
-        plugin.favoriteConfirmGui.open(player, worldData)
-        return true
-    }
-
-    fun openSpotlightConfirm(
-        player: Player,
-        worldData: WorldData,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit
-    ): Boolean {
-        plugin.spotlightConfirmGui.open(player, worldData)
-        return true
-    }
-
-    fun openSpotlightRemoveConfirm(
-        player: Player,
-        worldData: WorldData,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit
-    ): Boolean {
-        plugin.spotlightRemoveConfirmGui.open(player, worldData)
-        return true
-    }
-
-    fun openMemberRequestConfirm(
-        player: Player,
-        worldData: WorldData,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit
-    ): Boolean {
-        plugin.memberRequestConfirmGui.open(player, worldData)
-        return true
-    }
-
-    fun openWorldSeedConfirm(
-        player: Player,
-        currentSlots: Int,
-        nextSlots: Int,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit
-    ): Boolean {
-        plugin.worldSeedConfirmGui.open(player, currentSlots, nextSlots)
-        return true
-    }
-
     private fun openWorldActionsForm(
         player: Player,
         worldData: WorldData,
@@ -963,48 +912,6 @@ class BedrockMenuService(
             }
             else -> MenuActionResult.Ignored
         }
-    }
-
-    private fun openSimpleConfirmationForm(
-        player: Player,
-        title: String,
-        bodyLines: List<String>,
-        confirmLabel: String,
-        cancelLabel: String,
-        failureReason: String,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit
-    ): Boolean {
-        if (!routingService.shouldUseForm(player)) {
-            return false
-        }
-
-        val content = bodyLines.joinToString("\n")
-        val opened =
-            formBridge.sendSimpleForm(
-                player = player,
-                title = title,
-                content = content,
-                buttons = listOf(confirmLabel, cancelLabel),
-                onSelect = { index ->
-                    if (index == 0) {
-                        onConfirm()
-                    } else {
-                        onCancel()
-                    }
-                },
-                onClosed = {
-                    onCancel()
-                }
-            )
-
-        if (!opened) {
-            routingService.markFormFailure(player, failureReason)
-            return false
-        }
-
-        routingService.clearFormFailure(player)
-        return true
     }
 
     private fun getAccessibleWorlds(player: Player): List<WorldData> {

@@ -251,36 +251,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             plugin.menuEntryRouter.openFavoriteRemoveConfirm(
                 player,
                 worldData,
-                onBedrockConfirm = { confirmFavoriteRemoval(player, worldData) },
-                onBedrockCancel = {
-                    plugin.menuEntryRouter.openFavoriteList(
-                        player,
-                        0,
-                        returnToFavoriteMenu = plugin.favoriteSessionManager
-                            .getSession(player.uniqueId)
-                            .returnToFavoriteMenu,
-                    )
-                },
             )
         }
-    }
-
-    private fun confirmFavoriteRemoval(player: Player, worldData: WorldData) {
-        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        if (stats.favoriteWorlds.remove(worldData.uuid) != null) {
-            worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
-            plugin.playerStatsRepository.save(stats)
-            plugin.worldConfigRepository.save(worldData)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
-            plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
-        }
-        plugin.menuEntryRouter.openFavoriteList(
-            player,
-            0,
-            returnToFavoriteMenu = plugin.favoriteSessionManager
-                .getSession(player.uniqueId)
-                .returnToFavoriteMenu,
-        )
     }
 
     private fun createWorldItem(player: Player, data: WorldData): ItemStack {

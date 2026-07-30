@@ -210,10 +210,6 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                           player,
                           currentSlots,
                           currentSlots + 1,
-                          onBedrockConfirm = {
-                              WorldSeedListener.expandWorldSlot(plugin, player)
-                          },
-                          onBedrockCancel = {}
                       )
                   }
                }

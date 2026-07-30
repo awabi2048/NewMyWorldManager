@@ -345,16 +345,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         plugin.menuEntryRouter.openMemberRequestConfirm(
                                                 player,
                                                 worldData,
-                                                onBedrockConfirm = {
-                                                        plugin.memberRequestManager.sendRequest(player, worldData.uuid)
-                                                },
-                                                onBedrockCancel = {
-                                                        plugin.soundManager.playActionSound(
-                                                                player,
-                                                                "member_request",
-                                                                "cancel",
-                                                        )
-                                                },
                                         )
                                 }
                         },
@@ -384,20 +374,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         plugin.menuEntryRouter.openSpotlightRemoveConfirm(
                                                 player,
                                                 worldData,
-                                                onBedrockConfirm = {
-                                                        plugin.spotlightRepository.remove(worldData.uuid)
-                                                        player.sendMessage(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "messages.spotlight_removed",
-                                                                        mapOf("world" to worldData.name),
-                                                                ),
-                                                        )
-                                                        plugin.menuEntryRouter.openDiscovery(player)
-                                                },
-                                                onBedrockCancel = {
-                                                        plugin.menuEntryRouter.openDiscovery(player)
-                                                },
                                         )
                                 }
                         },
@@ -494,35 +470,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         plugin.menuEntryRouter.openSpotlightConfirm(
                                                 player,
                                                 worldData,
-                                                onBedrockConfirm = {
-                                                        if (plugin.spotlightRepository.isSpotlight(worldData.uuid)) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "error.spotlight_already_registered",
-                                                                        ),
-                                                                )
-                                                        } else if (plugin.spotlightRepository.add(worldData.uuid)) {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "messages.spotlight_added",
-                                                                                mapOf("world" to worldData.name),
-                                                                        ),
-                                                                )
-                                                        } else {
-                                                                player.sendMessage(
-                                                                        lang.getMessage(
-                                                                                player,
-                                                                                "error.spotlight_limit_reached",
-                                                                        ),
-                                                                )
-                                                        }
-                                                        plugin.menuEntryRouter.openDiscovery(player)
-                                                },
-                                                onBedrockCancel = {
-                                                        plugin.menuEntryRouter.openDiscovery(player)
-                                                },
                                         )
                                 }
                         },

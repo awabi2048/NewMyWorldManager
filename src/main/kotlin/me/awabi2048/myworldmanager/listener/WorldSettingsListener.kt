@@ -4413,10 +4413,6 @@ player.sendMessage(
                                 },
                                 onCancel = {
                                         handleBedrockDialogCancel(player, worldData)
-                                },
-                                onBedrockFallback = {
-                                        plugin.worldSettingsGui
-                                                .openResetExpansionSpawnUnsafeConfirmation(player, worldData)
                                 }
                         )
                         return
