@@ -42,6 +42,7 @@ import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import org.bukkit.Location
+import org.bukkit.Material
 import org.bukkit.OfflinePlayer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -213,6 +214,31 @@ object MyWorldManagerApi {
             .settingsSessionManager
             .endSession(player)
     }
+
+    @JvmStatic
+    fun toggleWorldVisitNotification(player: Player, worldUuid: UUID): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
+        plugin.worldSettingsGui.toggleNotification(player, worldData)
+        return true
+    }
+
+    @JvmStatic
+    fun isCriticalSettingsEnabled(playerUuid: UUID): Boolean =
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .playerStatsRepository
+            .findByUuid(playerUuid)
+            .criticalSettingsEnabled
+
+    @JvmStatic
+    fun getConfiguredMenuIcon(
+        menuId: String,
+        iconId: String,
+        fallback: Material,
+    ): Material =
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .menuConfigManager
+            .getIconMaterial(menuId, iconId, fallback)
 
     @JvmStatic
     fun prioritizePlayerWorld(playerUuid: UUID, worldUuid: UUID) {
