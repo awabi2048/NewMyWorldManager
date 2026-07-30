@@ -35,7 +35,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
         if (action == CreationConfirmationAction.BACK) {
             session.phase = WorldCreationPhase.NAME_INPUT
-            CCSystem.getAPI().getMenuRuntimeService().close(player)
             openNameInputByPlatform(player, session)
             return MenuActionResult.Success(MenuUpdate.None)
         }
@@ -57,7 +56,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
             session.creationType == WorldCreationType.SEED
         ) {
             session.phase = WorldCreationPhase.SPAWN_INPUT
-            CCSystem.getAPI().getMenuRuntimeService().close(player)
             openSpawnInputByPlatform(player, session)
             return MenuActionResult.Success(MenuUpdate.None)
         }
@@ -65,7 +63,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
             session.creationType == WorldCreationType.TEMPLATE
         ) {
             val templateId = session.templateId ?: return MenuActionResult.Ignored
-            CCSystem.getAPI().getMenuRuntimeService().close(player)
             plugin.previewSessionManager.startPreview(
                 player,
                 PreviewSessionManager.PreviewTarget.Template(templateId),
