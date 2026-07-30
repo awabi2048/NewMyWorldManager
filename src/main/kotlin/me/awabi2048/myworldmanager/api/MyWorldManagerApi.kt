@@ -233,38 +233,18 @@ object MyWorldManagerApi {
     fun executeWorldSettingsAction(
         request: me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest,
     ): com.awabi2048.ccsystem.api.gui.MenuActionResult {
+        return JavaPlugin.getPlugin(MyWorldManager::class.java).worldSettingsActionService.execute(request)
+    }
+
+    @JvmStatic
+    fun getWorldSettingsActionContract(
+        player: Player,
+        worldUuid: UUID,
+        action: me.awabi2048.myworldmanager.api.extension.WorldSettingsAction,
+    ): me.awabi2048.myworldmanager.api.extension.WorldSettingsActionContract? {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val worldData = plugin.worldConfigRepository.findByUuid(request.worldUuid)
-            ?: return com.awabi2048.ccsystem.api.gui.MenuActionResult.Rejected()
-        val operation = when (request.action) {
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.WARP ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.WARP
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_INFO ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.EDIT_INFO
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.SELECT_ICON ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.SELECT_ICON
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.SET_SPAWN ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.SET_SPAWN
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_MEMBERS ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.MANAGE_MEMBERS
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_ANNOUNCEMENT ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_TOUR ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.TOUR
-            me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_PORTALS ->
-                me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation.MANAGE_PORTALS
-        }
-        return plugin.worldSettingsListener.handleRuntimeInventoryClick(
-            request.player,
-            request.click,
-            org.bukkit.inventory.ItemStack(org.bukkit.Material.STONE),
-            -1,
-            me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeContext(
-                screen = me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeScreen.WORLD_SETTINGS,
-                worldUuid = worldData.uuid,
-                operation = operation,
-            ),
-        )
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
+        return plugin.worldSettingsActionService.contract(player, worldData, action)
     }
 
     @JvmStatic

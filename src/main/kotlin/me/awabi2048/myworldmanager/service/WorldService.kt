@@ -120,14 +120,6 @@ class WorldService(
         }
         creatingWorlds.add(player.uniqueId.toString())
 
-        player.sendMessage(
-                plugin.languageManager.getMessage(
-                        player,
-                        "messages.world_creation_started",
-                        mapOf("world" to worldName)
-                )
-        )
-
         // 非同期でワールド作成（BukkitのWorldCreatorはメインスレッドで呼ぶ必要があるが、準備等の重い処理を分割できるか検討。
         // ただし、WorldCreator.createWorld()自体はメインスレッド必須。
         // ここでは、ラグ軽減のため、チャット送信などを先に行い、1tick後に作成開始するなどの工夫が可能だが、
@@ -238,13 +230,6 @@ class WorldService(
                 future.complete(false)
                 return future
             }
-            player.sendMessage(
-                plugin.languageManager.getMessage(
-                    player,
-                    "messages.world_creation_started",
-                    mapOf("world" to request.worldName)
-                )
-            )
             val creator = WorldCreator(NamespacedKey.minecraft(folderName))
                 .environment(request.environment)
                 .type(request.worldType)
@@ -610,14 +595,6 @@ class WorldService(
             return future
         }
         creatingWorlds.add(player.uniqueId.toString())
-
-        player.sendMessage(
-                plugin.languageManager.getMessage(
-                        player,
-                        "messages.world_creation_started",
-                        mapOf("world" to worldName)
-                )
-        )
 
         val templateFolder = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
         if (templateFolder == null || !templateFolder.exists() || !templateFolder.isDirectory) {

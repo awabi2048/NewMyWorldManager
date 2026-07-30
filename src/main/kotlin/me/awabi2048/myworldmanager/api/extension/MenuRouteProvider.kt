@@ -54,6 +54,15 @@ data class WorldSettingsActionRequest(
     val click: ClickType,
 )
 
+/**
+ * ワールド設定の標準操作について、表示と実行が共有する操作契約です。
+ */
+data class WorldSettingsActionContract(
+    val action: WorldSettingsAction,
+    val acceptedClicks: Set<ClickType>,
+    val actionable: Boolean,
+)
+
 data class PendingInteractionSummary(
     val count: Int,
     val latestCreatedAt: Long?,

@@ -108,7 +108,7 @@ class WorldSettingsListener : Listener {
                 handleExpansionMethodSelectionRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handlePortalManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
                 handleCriticalSettingsRuntimeClick(player, item, runtimeContext)?.let { return it }
-                handleWorldSettingsRuntimeClick(player, click, item, runtimeContext)?.let { return it }
+                handleWorldSettingsRuntimeAction(player, click, runtimeContext)?.let { return it }
                 return MenuActionResult.Ignored
         }
 
@@ -119,10 +119,9 @@ class WorldSettingsListener : Listener {
          * [WorldSettingsRuntimeContext.screen] だけを入口の契約にします。外部入力や
          * ワールド内操作を続けるための SettingsSession は、ここではワークフロー状態としてのみ使用します。
          */
-        private fun handleWorldSettingsRuntimeClick(
+        fun handleWorldSettingsRuntimeAction(
                 player: Player,
                 click: ClickType,
-                item: ItemStack,
                 runtimeContext: WorldSettingsRuntimeContext,
         ): MenuActionResult? {
                 if (runtimeContext.screen != WorldSettingsRuntimeScreen.WORLD_SETTINGS) return null
@@ -131,6 +130,28 @@ class WorldSettingsListener : Listener {
                         ?: plugin.worldConfigRepository.findByUuid(session.worldUuid)
                         ?: return MenuActionResult.Ignored
                 val operation = runtimeContext.operation ?: return MenuActionResult.Ignored
+
+                val standardAction = when (operation) {
+                        WorldSettingsRuntimeOperation.WARP -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.WARP
+                        WorldSettingsRuntimeOperation.EDIT_INFO -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_INFO
+                        WorldSettingsRuntimeOperation.SELECT_ICON -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.SELECT_ICON
+                        WorldSettingsRuntimeOperation.SET_SPAWN -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.SET_SPAWN
+                        WorldSettingsRuntimeOperation.MANAGE_MEMBERS -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_MEMBERS
+                        WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_ANNOUNCEMENT
+                        WorldSettingsRuntimeOperation.TOUR -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_TOUR
+                        WorldSettingsRuntimeOperation.MANAGE_PORTALS -> me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.MANAGE_PORTALS
+                        else -> null
+                }
+                if (standardAction != null) {
+                        return plugin.worldSettingsActionService.execute(
+                                me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest(
+                                        player,
+                                        worldData.uuid,
+                                        standardAction,
+                                        click,
+                                ),
+                        )
+                }
 
                 if (operation == WorldSettingsRuntimeOperation.WARP) {
                         if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
@@ -1635,7 +1656,7 @@ class WorldSettingsListener : Listener {
                 )
         }
 
-        private fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {
+        fun openBedrockWorldInfoInputForm(player: Player, worldData: WorldData): Boolean {
                 if (!plugin.playerPlatformResolver.isBedrock(player)) {
                         return false
                 }
@@ -1744,7 +1765,7 @@ class WorldSettingsListener : Listener {
                 )
         }
 
-        private fun openBedrockAnnouncementActionForm(player: Player, worldData: WorldData): Boolean {
+        fun openBedrockAnnouncementActionForm(player: Player, worldData: WorldData): Boolean {
                 if (!plugin.playerPlatformResolver.isBedrock(player)) {
                         return false
                 }
@@ -3564,7 +3585,7 @@ player.sendMessage(
 
 
 
-        private fun showWorldInfoDialog(player: Player, worldData: WorldData) {
+        fun showWorldInfoDialog(player: Player, worldData: WorldData) {
             val lang = plugin.languageManager
             CCSystem.getAPI().getMenuDialogService().show(
                 player,
