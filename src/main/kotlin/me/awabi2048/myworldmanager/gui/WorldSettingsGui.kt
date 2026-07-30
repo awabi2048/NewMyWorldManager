@@ -33,6 +33,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsCapabilityPlacements
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
@@ -1293,35 +1294,42 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 )
                         )
                 )
-                applyCapability(
+                applyCapabilities(
                         inventory,
                         player,
-                        WORLD_SETTINGS_PRODUCTION_CAPABILITY,
-                        WORLD_SETTINGS_PRODUCTION_SLOT,
+                        WorldSettingsCapabilityPlacements.FOOTER_ACTIONS,
+                        WORLD_SETTINGS_CAPABILITY_SLOTS,
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
 
                 presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.WORLD_SETTINGS, worldData.uuid, replaceCurrent)
         }
 
-        private fun applyCapability(
+        private fun applyCapabilities(
                 inventory: RuntimeItemBuffer,
                 player: Player,
-                capabilityId: String,
-                slot: Int,
+                placement: String,
+                slots: List<Int>,
                 arguments: Map<String, String>,
         ) {
-                val resolved = CCSystem.getAPI().getMenuCapabilityService()
-                        .resolve(capabilityId, player, arguments)
-                        ?: return
-                val interaction = resolved.targetRoute?.let {
-                        MenuInteraction.Action(
-                                actionId = ACTION_CAPABILITY,
-                                acceptedClicks = resolved.acceptedClicks,
-                                payload = arguments + (CAPABILITY_ID_PAYLOAD to capabilityId),
-                        )
-                } ?: MenuInteraction.DisplayOnly
-                inventory.setSemanticItem(slot, resolved.item, interaction)
+                val service = CCSystem.getAPI().getMenuCapabilityService()
+                service.definitions(placement)
+                        .asSequence()
+                        .mapNotNull { definition ->
+                                service.resolve(definition.capabilityId, player, arguments)
+                        }
+                        .zip(slots.asSequence())
+                        .forEach { (resolved, slot) ->
+                                val interaction = resolved.targetRoute?.let {
+                                        MenuInteraction.Action(
+                                                actionId = ACTION_CAPABILITY,
+                                                acceptedClicks = resolved.acceptedClicks,
+                                                payload = arguments +
+                                                        (CAPABILITY_ID_PAYLOAD to resolved.capabilityId),
+                                        )
+                                } ?: MenuInteraction.DisplayOnly
+                                inventory.setSemanticItem(slot, resolved.item, interaction)
+                        }
         }
 
         private fun handleCapability(context: MenuActionContext): MenuActionResult {
@@ -3425,9 +3433,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val ACTION_CAPABILITY = "capability"
                 private const val CAPABILITY_ID_PAYLOAD = "capability"
                 private const val WORLD_UUID_ARGUMENT = "world_uuid"
-                private const val WORLD_SETTINGS_PRODUCTION_SLOT = 51
-                private const val WORLD_SETTINGS_PRODUCTION_CAPABILITY =
-                        "mwm-chanpon:world-production-submission"
+                private val WORLD_SETTINGS_CAPABILITY_SLOTS = listOf(51)
                 const val ROUTE_WORLD_UUID = "world_uuid"
                 const val ROUTE_PAGE = "page"
         }
