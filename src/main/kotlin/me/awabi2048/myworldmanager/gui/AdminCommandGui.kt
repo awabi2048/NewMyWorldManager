@@ -82,8 +82,10 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
     fun open(player: Player) {
         plugin.settingsSessionManager.updateSessionAction(player, player.uniqueId, SettingsAction.ADMIN_MENU, isGui = true)
-        runtime.open(player, MenuRoute(OWNER, ROUTE_ID))
+        runtime.open(player, route())
     }
+
+    internal fun route(): MenuRoute = MenuRoute(OWNER, ROUTE_ID)
 
     private fun render(player: Player): InventoryMenuView {
         val lang = plugin.languageManager

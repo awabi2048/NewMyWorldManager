@@ -154,11 +154,22 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
-    fun openAdminMenu(player: Player): Boolean {
+    fun prepareAdminMenuRoute(player: Player): com.awabi2048.ccsystem.api.gui.MenuRoute? {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        if (!player.hasPermission("myworldmanager.admin")) return false
-        plugin.adminCommandGui.open(player)
-        return true
+        if (!player.hasPermission("myworldmanager.admin")) return null
+        plugin.settingsSessionManager.updateSessionAction(
+            player,
+            player.uniqueId,
+            SettingsAction.ADMIN_MENU,
+            isGui = true,
+        )
+        return plugin.adminCommandGui.route()
+    }
+
+    @JvmStatic
+    fun openAdminMenu(player: Player): Boolean {
+        val route = prepareAdminMenuRoute(player) ?: return false
+        return CCSystem.getAPI().getMenuRuntimeService().open(player, route)
     }
 
     @JvmStatic
@@ -203,17 +214,25 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
-    fun openStandardWorldCreation(
+    fun prepareStandardWorldCreationRoute(
         player: Player,
         billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
-    ): Boolean {
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val session = plugin.creationSessionManager.startSession(player.uniqueId)
         session.isDialogMode = true
         session.billingMode = billingMode
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_start"))
-        plugin.creationGui.openTypeSelection(player)
-        return true
+        return plugin.creationGui.typeSelectionRoute()
+    }
+
+    @JvmStatic
+    fun openStandardWorldCreation(
+        player: Player,
+        billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
+    ): Boolean {
+        val route = prepareStandardWorldCreationRoute(player, billingMode)
+        return CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
     }
 
     @JvmStatic

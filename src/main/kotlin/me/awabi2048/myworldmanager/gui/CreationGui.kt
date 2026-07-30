@@ -116,8 +116,10 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
 
         clearSettingsGuiTransition(player)
-        runtime.navigate(player, MenuRoute(OWNER, TYPE_ROUTE))
+        runtime.navigate(player, typeSelectionRoute())
     }
+
+    internal fun typeSelectionRoute(): MenuRoute = MenuRoute(OWNER, TYPE_ROUTE)
 
     private fun renderTypeSelection(player: Player): InventoryMenuView {
         val lang = plugin.languageManager
