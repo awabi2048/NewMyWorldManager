@@ -29,7 +29,9 @@ class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     }
 
     fun playCopySound(player: Player) {
-        menuSoundService.onGenericClick(player)
+        if (!hasManagedMenuRoute(player)) {
+            menuSoundService.onGenericClick(player)
+        }
         player.playSound(player.location, Sound.ENTITY_VILLAGER_WORK_CARTOGRAPHER, 1.0f, 1.0f)
     }
 
@@ -38,11 +40,16 @@ class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     }
 
     fun playGlobalClickSound(player: Player) {
-        CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
+        if (!hasManagedMenuRoute(player)) {
+            CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
+        }
     }
 
     fun playChatClickSound(player: Player) {
         CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
     }
+
+    private fun hasManagedMenuRoute(player: Player): Boolean =
+        CCSystem.getAPI().getMenuNavigationService().currentRoute(player) != null
 
 }
