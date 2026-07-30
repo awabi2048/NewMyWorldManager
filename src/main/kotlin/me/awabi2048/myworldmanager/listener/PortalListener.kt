@@ -2,10 +2,19 @@ package me.awabi2048.myworldmanager.listener
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -355,65 +364,70 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.confirmationLayout()
 
-        val infoItem = ItemStack(Material.BOOK)
-        val infoMeta = infoItem.itemMeta
-        infoMeta?.displayName(lang.getComponent(player, "messages.world_gate_confirm_title"))
-        infoMeta?.lore(
-            me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
-                lang.getMessageList(
-                    player,
-                    if (pointEconomyEnabled) "messages.world_gate_confirm_body"
-                    else "messages.world_gate_confirm_body_without_points",
-                    mapOf(
-                    "min_x" to minX,
-                    "min_y" to minY,
-                    "min_z" to minZ,
-                    "max_x" to maxX,
-                    "max_y" to maxY,
-                    "max_z" to maxZ,
-                    "required" to requiredPoints,
-                    "current" to currentPoints,
-                    "remaining" to remainingPoints
-                    )
-                ).map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
-            )
-        )
-        infoItem.itemMeta = infoMeta
-        ItemTag.tagItem(infoItem, ItemTag.TYPE_GUI_INFO)
-
-        val confirmItem = ItemStack(Material.LIME_CONCRETE)
-        val confirmMeta = confirmItem.itemMeta
-        confirmMeta?.displayName(lang.getComponent(player, "gui.common.confirm"))
-        confirmItem.itemMeta = confirmMeta
-        ItemTag.tagItem(confirmItem, ItemTag.TYPE_GUI_CONFIRM)
-
-        val cancelItem = ItemStack(Material.RED_CONCRETE)
-        val cancelMeta = cancelItem.itemMeta
-        cancelMeta?.displayName(lang.getComponent(player, "gui.common.cancel"))
-        cancelItem.itemMeta = cancelMeta
-        ItemTag.tagItem(cancelItem, ItemTag.TYPE_GUI_CANCEL)
+        val infoLines = lang.getMessageList(
+            player,
+            if (pointEconomyEnabled) "messages.world_gate_confirm_body"
+            else "messages.world_gate_confirm_body_without_points",
+            mapOf(
+                "min_x" to minX,
+                "min_y" to minY,
+                "min_z" to minZ,
+                "max_x" to maxX,
+                "max_y" to maxY,
+                "max_z" to maxZ,
+                "required" to requiredPoints,
+                "current" to currentPoints,
+                "remaining" to remainingPoints,
+            ),
+        ).map(GuiLoreLine::Text)
+        val guiElements = CCSystem.getAPI().getGuiElementService()
         return InventoryMenuView(
             size = layout.size,
             title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
                 lang.getMessage(player, "messages.world_gate_confirm_title"),
             ),
             elements = listOf(
-                MenuElement(layout.previewSlot, infoItem, GuiElementRole.CONTENT),
-                MenuElement(
-                    layout.confirmSlot,
-                    confirmItem,
-                    GuiElementRole.CONFIRM,
-                    ACTION_CONFIRM_GATE,
+                guiElements.menuDisplay(
+                    GuiMenuDisplaySpec(
+                        layout.previewSlot,
+                        GuiItemSpec(
+                            Material.BOOK,
+                            GuiNameSpec.Component(lang.getComponent(player, "messages.world_gate_confirm_title")),
+                            GuiLoreSpec.Blocks(listOf(GuiLoreBlock(infoLines))),
+                            GuiElementRole.CONTENT,
+                            1,
+                        ),
+                    ),
                 ),
-                MenuElement(
-                    layout.cancelSlot,
-                    cancelItem,
-                    GuiElementRole.CANCEL,
-                    ACTION_CANCEL_GATE,
-                ),
+                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
+                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
             ),
         )
     }
+
+    private fun confirmationEntry(
+        player: org.bukkit.entity.Player,
+        slot: Int,
+        material: Material,
+        nameKey: String,
+        role: GuiElementRole,
+        actionId: String,
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+        player,
+        GuiMenuEntrySpec(
+            slot = slot,
+            material = material,
+            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, nameKey)),
+            role = role,
+            actions = listOf(
+                GuiMenuEntryAction(
+                    actionId,
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    plugin.languageManager.getMessage(player, nameKey),
+                ),
+            ),
+        ),
+    )
 
     private fun confirmGatePlacement(player: org.bukkit.entity.Player) {
         val lang = plugin.languageManager
