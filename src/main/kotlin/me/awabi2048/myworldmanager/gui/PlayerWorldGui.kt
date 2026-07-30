@@ -5,6 +5,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -23,7 +24,6 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
@@ -35,13 +35,16 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
-import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 
 class PlayerWorldGui(private val plugin: MyWorldManager) {
 
@@ -193,29 +196,21 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                                 attributes = attributes,
                                         )
                                 }
-                        elements += MenuElement(
-                                layout.itemSlots[index],
-                                capability?.let {
-                                        CCSystem.getAPI().getGuiElementService()
-                                                .menuCapability(it.presentation)
-                                }
-                                        ?: createWorldItem(player, world, targetUuid),
-                                GuiElementRole.ACTION,
-                                ACTION_WORLD,
-                                buildMap {
-                                        put(WORLD_UUID, world.uuid.toString())
-                                        capability?.let { put(CAPABILITY_ID, it.capabilityId) }
-                                },
-                                interaction = com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
-                                        ACTION_WORLD,
-                                        capability?.acceptedClicks
-                                                ?: com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks.LEFT_RIGHT,
-                                        buildMap {
-                                                put(WORLD_UUID, world.uuid.toString())
-                                                capability?.let { put(CAPABILITY_ID, it.capabilityId) }
-                                        },
-                                ),
-                        )
+                        elements += capability?.let {
+                                MenuElement(
+                                        layout.itemSlots[index],
+                                        CCSystem.getAPI().getGuiElementService().menuCapability(it.presentation),
+                                        GuiElementRole.ACTION,
+                                        interaction = com.awabi2048.ccsystem.api.gui.MenuInteraction.Action(
+                                                ACTION_WORLD,
+                                                it.acceptedClicks,
+                                                mapOf(
+                                                        WORLD_UUID to world.uuid.toString(),
+                                                        CAPABILITY_ID to it.capabilityId,
+                                                ),
+                                        ),
+                                )
+                        } ?: createWorldEntry(player, world, targetUuid, layout.itemSlots[index])
                 }
                 val createCount = worlds.count { it.owner == targetUuid }
                 val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
@@ -257,12 +252,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         PermissionManager.canBypassWorldLimits(player),
                                 )
                                 elements += if (reason == null) {
-                                        MenuElement(
-                                                layout.actionSlot - 2,
-                                                createCreationButton(player),
-                                                GuiElementRole.ACTION,
-                                                ACTION_CREATE,
-                                        )
+                                        createCreationEntry(player, layout.actionSlot - 2)
                                 } else {
                                         MenuElement(
                                                 layout.actionSlot - 2,
@@ -291,18 +281,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiElementRole.CONTENT,
                 )
                 if (isOwnMenu) {
-                        elements += MenuElement(
-                                layout.actionSlot + 2,
-                                createUserSettingsButton(player),
-                                GuiElementRole.ACTION,
-                                ACTION_SETTINGS,
-                        )
-                        elements += MenuElement(
-                                layout.size - 2,
-                                createPendingButton(player),
-                                GuiElementRole.ACTION,
-                                ACTION_PENDING,
-                        )
+                        elements += createUserSettingsEntry(player, layout.actionSlot + 2)
+                        elements += createPendingEntry(player, layout.size - 2)
                 }
                 if (pageLayout.page > 0) {
                         elements += MenuElement(
@@ -559,32 +539,17 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
         }
 
-        private fun createWorldItem(
+        private fun createWorldEntry(
                 player: Player,
                 world: WorldData,
-                @Suppress("UNUSED_PARAMETER") playerUuid: UUID
-        ): ItemStack {
-                val item = ItemStack(world.icon)
-                val meta = item.itemMeta ?: return item
+                playerUuid: UUID,
+                slot: Int,
+        ): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(
-                        lang.getComponent(
-                                player,
-                                "gui.common.world_item_name",
-                                mapOf("world" to world.name)
-                        )
-                )
-
                 val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(player, "general.unknown"))
-
-                val publishLevelColor = lang.getMessage(player, "publish_level.color.${world.publishLevel.name.lowercase()}")
                 val publishLevelName = lang.getMessage(player, "publish_level.${world.publishLevel.name.lowercase()}")
-
                 val favorites = world.favorite
-
                 val visitors = world.recentVisitors.sum()
-
                 val tagNames = if (world.tags.isNotEmpty()) {
                         world.tags.joinToString(", ") {
                                 plugin.worldTagManager.getDisplayName(player, it)
@@ -602,94 +567,131 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
 
                 val expiresAtValue = if (expireDate.year < 2900) {
-                        if (daysRemaining < 0) meta.setEnchantmentGlintOverride(true)
                         lang.getMessage(player, "gui.player_world.world_item.expires_value", mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate)))
                 } else null
-
-                val isArchived = if (world.isArchived) {
-                    meta.setEnchantmentGlintOverride(true)
-                    true
-                } else false
-
+                val isArchived = world.isArchived
                 val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
                 val settingsAction = lang.getMessage(player, "gui.player_world.world_item.settings")
                 val isCurrentWorld = isCurrentWorld(player, world)
-                // MWM owns semantic block order; CC-System draws the outer frame and ordinary boundary blank lines, while explicit separators draw middle rules.
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (world.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(world.description))))
-                        add(GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§f"))
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.publish"), publishLevelName, publishLevelColor))
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, "§c"))
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.common.world_item.recent_visitors"),
-                                        lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
-                                        "§a"
+                val payload = mapOf(WORLD_UUID to world.uuid.toString())
+                val ownMenu = playerUuid == player.uniqueId
+                val canOpenSettings = canOpenWorldSettings(player, world)
+                val actions = buildList {
+                        if (ownMenu) {
+                                add(GuiMenuEntryAction(
+                                        ACTION_WORLD,
+                                        MenuAcceptedClicks.SHIFT_LEFT,
+                                        lang.getMessage(player, "gui.player_world.world_item.move_to_top"),
+                                        payload,
                                 ))
-                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
-                        }))
-                        val lifecycle = buildList {
-                                if (expiresAtValue != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.player_world.world_item.expires_at"), expiresAtValue, "§f"))
-                                if (isArchived) add(GuiLoreLine.Warning(lang.getMessage(player, "gui.player_world.world_item.expired")))
                         }
-                        if (lifecycle.isNotEmpty()) add(GuiLoreBlock(lifecycle))
-                        add(GuiLoreBlock(buildList {
-                                if (isCurrentWorld) {
-                                        add(GuiLoreActions.singleClick(lang, player, settingsAction))
-                                } else {
-                                        add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), warpAction))
-                                        add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), settingsAction))
+                        when {
+                                isArchived -> add(GuiMenuEntryAction(
+                                        ACTION_WORLD,
+                                        MenuAcceptedClicks.PLAIN_LEFT,
+                                        lang.getMessage(player, "gui.unarchive_confirm.action"),
+                                        payload,
+                                ))
+                                isCurrentWorld && canOpenSettings -> add(GuiMenuEntryAction(
+                                        ACTION_WORLD,
+                                        MenuAcceptedClicks.PLAIN_LEFT_RIGHT,
+                                        settingsAction,
+                                        payload,
+                                ))
+                                !isCurrentWorld -> {
+                                        add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, warpAction, payload))
+                                        if (canOpenSettings) {
+                                                add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, settingsAction, payload))
+                                        }
                                 }
-                        }))
-                })))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
-                ItemTag.setWorldUuid(item, world.uuid)
-                return item
+                        }
+                }
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = world.icon,
+                                name = GuiNameSpec.Component(
+                                        lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to world.name)),
+                                ),
+                                role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                                description = listOfNotNull(world.description.takeIf(String::isNotBlank)),
+                                data = buildList {
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.owner"), ownerName))
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.common.world_item.publish"),
+                                                publishLevelName,
+                                                when (world.publishLevel.name) {
+                                                        "PUBLIC" -> GuiValueTone.SUCCESS
+                                                        "FRIEND" -> GuiValueTone.PRIMARY
+                                                        else -> GuiValueTone.DANGER
+                                                },
+                                        ))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.common.world_item.recent_visitors"),
+                                                lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
+                                                GuiValueTone.SUCCESS,
+                                        ))
+                                        tagNames?.let { add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
+                                        expiresAtValue?.let {
+                                                add(GuiMenuEntryData(lang.getMessage(player, "gui.player_world.world_item.expires_at"), it))
+                                        }
+                                },
+                                warnings = if (isArchived) {
+                                        listOf(lang.getMessage(player, "gui.player_world.world_item.expired"))
+                                } else {
+                                        emptyList()
+                                },
+                                actions = actions,
+                                glint = isArchived || daysRemaining < 0,
+                        ),
+                )
         }
 
         private fun isCurrentWorld(player: Player, world: WorldData): Boolean {
                 return plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == world.uuid
         }
 
-        private fun createUserSettingsButton(player: Player): ItemStack {
+        private fun createUserSettingsEntry(player: Player, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val item = CCSystem.getAPI().getGuiElementService().item(
-                        GuiItemSpec(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
                                 material = Material.WRITABLE_BOOK,
                                 name = GuiNameSpec.Text(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
-                                lore = GuiLoreSpec.Blocks(listOf(GuiLoreBlock(listOf(GuiLoreActions.singleClick(
-                                        lang,
-                                        player,
-                                        lang.getMessage(player, "gui.user_settings.button.action")
-                                ))))),
                                 role = GuiElementRole.ACTION,
-                                amount = 1
-                        )
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_SETTINGS,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.user_settings.button.action"),
+                                        ),
+                                ),
+                        ),
                 )
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_USER_SETTINGS_BUTTON)
-                return item
         }
 
-        private fun createCreationButton(player: Player): ItemStack {
+        private fun createCreationEntry(player: Player, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.NETHER_STAR)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
-                        lang.getComponent(player, "gui.player_world.creation_button.display")
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.NETHER_STAR,
+                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.player_world.creation_button.display")),
+                                role = GuiElementRole.ACTION,
+                                description = lang.getMessageList(player, "gui.player_world.creation_button.description"),
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_CREATE,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.player_world.creation_button.action"),
+                                        ),
+                                ),
+                        ),
                 )
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                        GuiLoreBlock(lang.getMessageList(player, "gui.player_world.creation_button.description").map(GuiLoreLine::Text)),
-                        GuiLoreBlock(listOf(GuiLoreActions.singleClick(
-                                lang,
-                                player,
-                                lang.getMessage(player, "gui.player_world.creation_button.action")
-                        )))
-                ))))
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_CREATION_BUTTON)
-                return item
         }
 
         private fun createCreationUnavailableButton(player: Player, reason: CreationBlockReason): ItemStack {
@@ -796,7 +798,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 return item
         }
 
-        private fun createPendingButton(player: Player): ItemStack {
+        private fun createPendingEntry(player: Player, slot: Int): MenuElement {
                 val lang = plugin.languageManager
                 val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
                 val latestPendingText = plugin.pendingDecisionManager
@@ -807,38 +809,36 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         .format(Instant.ofEpochMilli(it))
                         }
                         ?: lang.getMessage(player, "gui.player_world.pending_button.none")
-                val item = ItemStack(Material.WRITABLE_BOOK)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(lang.getComponent(player, "gui.player_world.pending_button.display"))
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                        GuiLoreBlock(
-                                lang.getMessageList(player, "gui.player_world.pending_button.description")
-                                        .map(GuiLoreLine::Text)
-                        ),
-                        GuiLoreBlock(listOf(
-                                GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.player_world.pending_button.count_label"),
-                                        pendingCount,
-                                        if (pendingCount > 0) "§e" else "§7"
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.WRITABLE_BOOK,
+                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.player_world.pending_button.display")),
+                                role = GuiElementRole.ACTION,
+                                description = lang.getMessageList(player, "gui.player_world.pending_button.description"),
+                                data = listOf(
+                                        GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.player_world.pending_button.count_label"),
+                                                pendingCount,
+                                                if (pendingCount > 0) GuiValueTone.PRIMARY else GuiValueTone.MUTED,
+                                        ),
+                                        GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.player_world.pending_button.latest_label"),
+                                                latestPendingText,
+                                                GuiValueTone.INFO,
+                                        ),
                                 ),
-                                GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.player_world.pending_button.latest_label"),
-                                        latestPendingText,
-                                        "§b"
-                                )
-                        )),
-                        GuiLoreBlock(listOf(
-                                GuiLoreActions.singleClick(
-                                        lang,
-                                        player,
-                                        lang.getMessage(player, "gui.player_world.pending_button.action")
-                                )
-                        ))
-                ))))
-                meta.setEnchantmentGlintOverride(pendingCount > 0)
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_PENDING_BUTTON)
-                return item
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_PENDING,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.player_world.pending_button.action"),
+                                        ),
+                                ),
+                                glint = pendingCount > 0,
+                        ),
+                )
         }
 
         private fun dateFormatterFor(player: Player): DateTimeFormatter {
