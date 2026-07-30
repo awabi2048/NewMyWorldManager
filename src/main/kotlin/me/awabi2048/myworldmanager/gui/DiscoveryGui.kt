@@ -3,6 +3,11 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
@@ -43,10 +48,7 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
-import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
-import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import java.time.LocalDate
 
 class DiscoveryGui(private val plugin: MyWorldManager) {
@@ -138,18 +140,20 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         elements += createSpotlightEmptyEntry(player, slot)
                                 }
                         } else {
-                                val noResultItem = ItemStack(Material.GRAY_DYE)
-                                val noResultMeta = noResultItem.itemMeta
-                                noResultMeta.displayName(
-                                        lang.getComponent(player, "gui.discovery.no_result")
-                                                .decoration(TextDecoration.ITALIC, false)
-                                )
-                                noResultItem.itemMeta = noResultMeta
-                                ItemTag.tagItem(noResultItem, ItemTag.TYPE_GUI_DECORATION)
-                                elements += MenuElement(
-                                        layout.itemSlots[layout.itemSlots.size / 2],
-                                        noResultItem,
-                                        GuiElementRole.CONTENT,
+                                elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
+                                        GuiMenuDisplaySpec(
+                                                layout.itemSlots[layout.itemSlots.size / 2],
+                                                GuiItemSpec(
+                                                        Material.GRAY_DYE,
+                                                        GuiNameSpec.Component(
+                                                                lang.getComponent(player, "gui.discovery.no_result")
+                                                                        .decoration(TextDecoration.ITALIC, false),
+                                                        ),
+                                                        GuiLoreSpec.None,
+                                                        GuiElementRole.CONTENT,
+                                                        1,
+                                                ),
+                                        ),
                                 )
                         }
                 } else {
@@ -163,34 +167,17 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         }
                 }
                 if (GuiHelper.canGoBack(player)) {
-                        elements += MenuElement(
-                                layout.backSlot,
-                                GuiHelper.createReturnItem(plugin, player, "discovery"),
-                                GuiElementRole.BACK,
-                                ACTION_BACK,
-                        )
+                        elements += backEntry(player, layout.backSlot)
                 }
                 if (page.page > 0) {
-                        elements += MenuElement(
-                                layout.previousPageSlot,
-                                GuiHelper.createPrevPageItem(plugin, player, "discovery", page.page - 1),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (page.page - 1).toString()),
-                        )
+                        elements += navigationEntry(player, layout.previousPageSlot, false, page.page - 1)
                 }
                 elements += createTagFilterEntry(player, session.selectedTag, footerStart + 2)
                 elements += createSortEntry(player, session.sort, footerStart + 3)
-                elements += MenuElement(layout.actionSlot, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size), GuiElementRole.CONTENT)
+                elements += createStatsEntry(player, layout.actionSlot, session.sort, session.selectedTag, sortedWorlds.size)
                 elements += createSpecialFilterEntry(player, session.specialFilter, footerStart + 5)
                 if (page.page < page.totalPages - 1) {
-                        elements += MenuElement(
-                                layout.nextPageSlot,
-                                GuiHelper.createNextPageItem(plugin, player, "discovery", page.page + 1),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (page.page + 1).toString()),
-                        )
+                        elements += navigationEntry(player, layout.nextPageSlot, true, page.page + 1)
                 }
                 return InventoryMenuView(
                         layout.size,
@@ -588,6 +575,82 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         } else emptyList(),
                 ))
         }
+
+        private fun createStatsEntry(
+                player: Player,
+                slot: Int,
+                sort: DiscoverySort,
+                tag: String?,
+                count: Int,
+        ): MenuElement {
+                val lang = plugin.languageManager
+                val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
+                val tagName = tag?.let { plugin.worldTagManager.getDisplayName(player, it) }
+                        ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
+                return CCSystem.getAPI().getGuiElementService().menuDisplay(
+                        GuiMenuDisplaySpec(
+                                slot,
+                                GuiItemSpec(
+                                        Material.BOOK,
+                                        GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.stats.name")),
+                                        GuiLoreSpec.Blocks(
+                                                listOf(
+                                                        GuiLoreBlock(
+                                                                listOf(
+                                                                        GuiLoreLine.Text(lang.getMessage(player, "gui.discovery.stats.desc")),
+                                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.sort_label"), sortName, "§b"),
+                                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.tag_label"), tagName, "§b"),
+                                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.count_label"), count, "§b"),
+                                                                ),
+                                                        ),
+                                                ),
+                                        ),
+                                        GuiElementRole.CONTENT,
+                                        1,
+                                ),
+                        ),
+                )
+        }
+
+        private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+                val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+                val iconId = if (next) "next_page" else "prev_page"
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("discovery", iconId, Material.ARROW),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                role = GuiElementRole.NAVIGATION,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_PAGE,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, key),
+                                                mapOf(PAGE to targetPage.toString()),
+                                        ),
+                                ),
+                        ),
+                )
+        }
+
+        private fun backEntry(player: Player, slot: Int): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("discovery", "back", Material.REDSTONE),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
+                                role = GuiElementRole.BACK,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_BACK,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, "gui.common.return"),
+                                        ),
+                                ),
+                        ),
+                )
 
         private fun createStatsItem(
                 player: Player,
