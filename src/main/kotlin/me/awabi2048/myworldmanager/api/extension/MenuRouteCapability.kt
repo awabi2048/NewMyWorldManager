@@ -10,9 +10,9 @@ import org.bukkit.event.inventory.ClickType
 /**
  * 表示実装をMWM本体から分離するためのRoute境界です。
  *
- * Providerは画面とRouteだけを所有し、ワールドの保存や権限処理はMWMの公開APIへ委譲します。
+ * Capabilityは遷移先Routeだけを公開します。MWMの画面生成、セッション、スロットには関与しません。
  */
-fun interface WorldSettingsRouteProvider {
+fun interface WorldSettingsRouteCapability {
     fun prepare(
         player: Player,
         worldData: WorldData,
@@ -27,7 +27,7 @@ data class PlayerWorldRouteRequest(
     val targetPlayerName: String? = null,
 )
 
-fun interface PlayerWorldRouteProvider {
+fun interface PlayerWorldRouteCapability {
     fun prepare(
         player: Player,
         request: PlayerWorldRouteRequest,

@@ -92,10 +92,10 @@ object MyWorldManagerApi {
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
     private val worldSettingsStatePolicies =
         CopyOnWriteArrayList<WorldSettingsStatePolicy>()
-    private val worldSettingsRouteProviders =
-        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteProvider>()
-    private val playerWorldRouteProviders =
-        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteProvider>()
+    private val worldSettingsRouteCapabilities =
+        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteCapability>()
+    private val playerWorldRouteCapabilities =
+        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteCapability>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -127,33 +127,33 @@ object MyWorldManagerApi {
         worldSettingsStatePolicies.toList()
 
     @JvmStatic
-    fun registerWorldSettingsRouteProvider(
-        provider: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteProvider,
+    fun registerWorldSettingsRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteCapability,
     ) {
-        worldSettingsRouteProviders.remove(provider)
-        worldSettingsRouteProviders.add(provider)
+        worldSettingsRouteCapabilities.remove(capability)
+        worldSettingsRouteCapabilities.add(capability)
     }
 
     @JvmStatic
-    fun unregisterWorldSettingsRouteProvider(
-        provider: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteProvider,
+    fun unregisterWorldSettingsRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteCapability,
     ) {
-        worldSettingsRouteProviders.remove(provider)
+        worldSettingsRouteCapabilities.remove(capability)
     }
 
     @JvmStatic
-    fun registerPlayerWorldRouteProvider(
-        provider: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteProvider,
+    fun registerPlayerWorldRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteCapability,
     ) {
-        playerWorldRouteProviders.remove(provider)
-        playerWorldRouteProviders.add(provider)
+        playerWorldRouteCapabilities.remove(capability)
+        playerWorldRouteCapabilities.add(capability)
     }
 
     @JvmStatic
-    fun unregisterPlayerWorldRouteProvider(
-        provider: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteProvider,
+    fun unregisterPlayerWorldRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteCapability,
     ) {
-        playerWorldRouteProviders.remove(provider)
+        playerWorldRouteCapabilities.remove(capability)
     }
 
     @JvmStatic
@@ -164,6 +164,9 @@ object MyWorldManagerApi {
     ): com.awabi2048.ccsystem.api.gui.MenuRoute? {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
+        worldSettingsRouteCapabilities.asReversed().forEach { capability ->
+            capability.prepare(player, worldData, request)?.let { return it }
+        }
         plugin.settingsSessionManager.updateSessionAction(
             player,
             worldUuid,
@@ -174,9 +177,6 @@ object MyWorldManagerApi {
             parentShowBackButton = request.parentShowBackButton,
         )
         plugin.settingsSessionManager.getSession(player)?.showBackButton = request.showBackButton
-        worldSettingsRouteProviders.asReversed().forEach { provider ->
-            provider.prepare(player, worldData, request)?.let { return it }
-        }
         return plugin.worldSettingsGui.route(worldUuid)
     }
 
@@ -185,8 +185,8 @@ object MyWorldManagerApi {
         player: Player,
         request: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteRequest,
     ): com.awabi2048.ccsystem.api.gui.MenuRoute {
-        playerWorldRouteProviders.asReversed().forEach { provider ->
-            provider.prepare(player, request)?.let { return it }
+        playerWorldRouteCapabilities.asReversed().forEach { capability ->
+            capability.prepare(player, request)?.let { return it }
         }
         return JavaPlugin.getPlugin(MyWorldManager::class.java).playerWorldGui.route(
             request.page,

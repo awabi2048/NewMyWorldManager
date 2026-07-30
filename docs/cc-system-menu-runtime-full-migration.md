@@ -596,11 +596,15 @@ standalone_export:
 - CC-System、MWM、MWM-Chanponのビルドで、それぞれ既存テスト、53件、55件が成功した。
 - 3成果物を規定手順で配置し、PID 31740で起動した。RCONで各版、25566/25576、起動完了、Capability APIクラスのJAR同梱、API不整合例外がないことを確認した。
 
-第2段階の残件:
+### 2026-07-31 完了監査
 
-1. `ChanponWorldSettingsMenuProvider`と`SubmittedWorldMenuProvider`によるMWM設定画面置換を廃止する。
-2. `ChanponPlayerWorldMenuProvider`によるMWMプレイヤーワールド画面置換を廃止する。
-3. `ChanponCreationConfirmationMenuProvider`による作成確認画面置換を、共通ユースケースとChanpon所有Draftへ分離する。
-4. `WorldBackupMenuExtension`、`ToolPermissionMenuExtension`、`LinkedPortalMenuExtension`をCapabilityと独立Routeへ移す。
-5. ChanponからMWMの`settingsSessionManager`、`worldSettingsGui`を直接参照する7ファイルを解消する。
-6. MWMのProvider逆順置換APIと旧`MenuExtension`を、全利用箇所の移行後に削除する。
+- `ChanponWorldSettingsMenuProvider`、`SubmittedWorldMenuProvider`、`ChanponPlayerWorldMenuProvider`、`ChanponCreationConfirmationMenuProvider`を削除した。Chanponのワールド設定とプレイヤーワールド画面は、Chanpon所有のRuntime Routeとして独立している。
+- MWMとChanponの画面間連携は、画面実装を置換するProviderではなく、遷移先だけを公開する`WorldSettingsRouteCapability`と`PlayerWorldRouteCapability`へ限定した。外部Capabilityが選択された場合、MWMの設定セッションは生成しない。
+- `WorldBackupMenuExtension`、`ToolPermissionMenuExtension`、`LinkedPortalMenuExtension`を廃止し、CC-Systemの一般`MenuCapabilityService`とChanpon所有Routeへ移した。
+- ChanponからMWMのGUI具体クラス、`settingsSessionManager`、`worldSettingsGui`への直接参照は0件である。
+- MWMの旧画面置換Provider API、旧`MenuExtension`、完成済みItemStack/Loreを渡す旧メニューAPIを削除した。
+- MWM/Chanponの画面コードは`GuiMenuEntrySpec`、`GuiStructuredMenuEntrySpec`、`GuiMenuDisplaySpec`による意味データだけを渡す。操作案内、受付クリック、Role、効果音、実行結果はCC-Systemが同じAction定義から生成する。
+- CC-Systemの旧`menuCapability(...): ItemStack`公開APIを削除し、CC-System自身のお知らせ画面も意味データ経路へ移した。
+- 日英言語正本から、Runtime移行前にLore組み立てへ使用していた未参照のクリック種別キーを削除した。
+- 自動検証はCC-System 97件、MWM 52件、MWM-Chanpon 52件、CC-Content 192件に成功した。
+- 実機GUI、Dialog、Form、完全バニラZIP読込は、ユーザー指示により自動操作を行わず、手動受入確認へ引き渡す。これはコード移行の残件ではなく運用上の受入確認として扱う。
