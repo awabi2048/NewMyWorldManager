@@ -3,12 +3,19 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.*
@@ -22,7 +29,6 @@ import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.StructuredLore
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -129,12 +135,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 if (sortedWorlds.isEmpty()) {
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
                                 layout.itemSlots.forEach { slot ->
-                                        elements += MenuElement(
-                                                slot,
-                                                createSpotlightEmptyItem(player),
-                                                GuiElementRole.ACTION,
-                                                ACTION_SPOTLIGHT_EMPTY,
-                                        )
+                                        elements += createSpotlightEmptyEntry(player, slot)
                                 }
                         } else {
                                 val noResultItem = ItemStack(Material.GRAY_DYE)
@@ -153,22 +154,11 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         }
                 } else {
                         pageWorlds.forEachIndexed { index, worldData ->
-                                elements += MenuElement(
-                                        layout.itemSlots[index],
-                                        createWorldItem(player, worldData),
-                                        GuiElementRole.ACTION,
-                                        ACTION_WORLD,
-                                        mapOf(WORLD_UUID to worldData.uuid.toString()),
-                                )
+                                elements += createWorldEntry(player, worldData, layout.itemSlots[index])
                         }
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
                                 for (i in pageWorlds.size until layout.itemSlots.size) {
-                                        elements += MenuElement(
-                                                layout.itemSlots[i],
-                                                createSpotlightEmptyItem(player),
-                                                GuiElementRole.ACTION,
-                                                ACTION_SPOTLIGHT_EMPTY,
-                                        )
+                                        elements += createSpotlightEmptyEntry(player, layout.itemSlots[i])
                                 }
                         }
                 }
@@ -189,10 +179,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 mapOf(PAGE to (page.page - 1).toString()),
                         )
                 }
-                elements += MenuElement(footerStart + 2, createTagFilterButton(player, session.selectedTag), GuiElementRole.ACTION, ACTION_TAG)
-                elements += MenuElement(footerStart + 3, createSortButton(player, session.sort), GuiElementRole.ACTION, ACTION_SORT)
+                elements += createTagFilterEntry(player, session.selectedTag, footerStart + 2)
+                elements += createSortEntry(player, session.sort, footerStart + 3)
                 elements += MenuElement(layout.actionSlot, createStatsItem(player, session.sort, session.selectedTag, sortedWorlds.size), GuiElementRole.CONTENT)
-                elements += MenuElement(footerStart + 5, createSpecialFilterButton(player, session.specialFilter), GuiElementRole.ACTION, ACTION_SPECIAL_FILTER)
+                elements += createSpecialFilterEntry(player, session.specialFilter, footerStart + 5)
                 if (page.page < page.totalPages - 1) {
                         elements += MenuElement(
                                 layout.nextPageSlot,
@@ -427,19 +417,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         private fun route(page: Int): MenuRoute =
                 MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to page.toString()))
 
-        private fun createWorldItem(player: Player, data: WorldData): ItemStack {
-                val item = ItemStack(data.icon)
-                val meta = item.itemMeta ?: return item
+        private fun createWorldEntry(player: Player, data: WorldData, slot: Int): MenuElement {
                 val lang = plugin.languageManager
                 val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
-
-                meta.displayName(
-                        lang.getComponent(
-                                player,
-                                "gui.common.world_item_name",
-                                mapOf("world" to data.name)
-                        ).decoration(TextDecoration.ITALIC, false)
-                )
 
                 val favorites = data.favorite
                 val visitors = data.recentVisitors.sum()
@@ -472,85 +452,60 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 } else {
                         lang.getMessage(player, "gui.discovery.world_item.favorite_hint_add")
                 }
-                val leftClick = lang.getMessage(player, "lore.click.left")
-                val rightClick = lang.getMessage(player, "lore.click.right")
-                val shiftLeftClick = lang.getMessage(player, "lore.click.shift_left")
-                val shiftRightClick = lang.getMessage(player, "lore.click.shift_right")
                 val ownerName = PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown"))
-                // 操作文言は内容だけを言語キーから受け取り、操作方法は共通Loreモデルで表現する。
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (data.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(data.description))))
-                        add(GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§f"))
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, "§c"))
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.common.world_item.recent_visitors"),
-                                        lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
-                                        "§a"
-                                ))
-                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, "§e"))
-                        }))
-                        add(GuiLoreBlock(buildList {
-                                if (warpHint.isNotBlank()) add(GuiLoreLine.Action(leftClick, warpHint))
-                                if (previewHint.isNotBlank()) add(GuiLoreLine.Action(rightClick, previewHint))
-                                if (memberRequestHint.isNotBlank()) add(GuiLoreLine.Action(shiftLeftClick, memberRequestHint))
-                                if (favoriteHint.isNotBlank()) add(GuiLoreLine.Action(shiftRightClick, favoriteHint))
-                        }))
-                })))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
-                ItemTag.setWorldUuid(item, data.uuid)
-                return item
+                val payload = mapOf(WORLD_UUID to data.uuid.toString())
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = data.icon,
+                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name))),
+                                role = GuiElementRole.ACTION,
+                                description = if (data.description.isBlank()) emptyList() else listOf(data.description),
+                                data = buildList {
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.owner"), ownerName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.common.world_item.recent_visitors"),
+                                                lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
+                                                GuiValueTone.SUCCESS,
+                                        ))
+                                        if (tagNames != null) add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, GuiValueTone.PRIMARY))
+                                },
+                                actions = buildList {
+                                        if (warpHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, warpHint, payload))
+                                        if (previewHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, previewHint, payload))
+                                        if (memberRequestHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_LEFT, memberRequestHint, payload))
+                                        if (favoriteHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_RIGHT, favoriteHint, payload))
+                                },
+                        ),
+                )
         }
 
-        private fun createSortButton(player: Player, currentSort: DiscoverySort): ItemStack {
+        private fun createSortEntry(player: Player, currentSort: DiscoverySort, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "sort", Material.HOPPER))
-                val meta = item.itemMeta ?: return item
-
                 val sortDesc = getSortDescription(player, currentSort)
-
-                meta.displayName(lang.getComponent(player, "gui.discovery.sort.display"))
                 val canEditSpotlight = currentSort == DiscoverySort.SPOTLIGHT && canManageSpotlight(player)
                 val options = DiscoverySort.values().map { sort ->
                         sort to lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.discovery.sort.label"),
-                                        options.first { it.first == currentSort }.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreLine.Text(sortDesc))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (sort, displayName) ->
-                                        val selected = sort == currentSort
-                                        add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
-                                if (canEditSpotlight) {
-                                        add(GuiLoreLine.Action(
-                                                lang.getMessage(player, "lore.click.shift_left"),
-                                                lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight")
-                                        ))
-                                }
-                        }, GuiLoreFrame.BOTH)
+                return CCSystem.getAPI().getGuiElementService().menuEntry(player, GuiMenuEntrySpec(
+                        slot = slot,
+                        material = plugin.menuConfigManager.getIconMaterial("discovery", "sort", Material.HOPPER),
+                        name = GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.sort.display")),
+                        role = GuiElementRole.ACTION,
+                        description = listOf(sortDesc),
+                        data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.sort.label"), options.first { it.first == currentSort }.second, GuiValueTone.PRIMARY)),
+                        options = options.map { GuiMenuEntryOption(it.second, it.first == currentSort) },
+                        actions = buildList {
+                                add(GuiMenuEntryAction(ACTION_SORT, MenuAcceptedClicks.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle")))
+                                if (canEditSpotlight) add(GuiMenuEntryAction(ACTION_SORT, MenuAcceptedClicks.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight")))
+                        },
                 ))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_SORT)
-                return item
         }
 
-        private fun createTagFilterButton(player: Player, selectedTag: String?): ItemStack {
+        private fun createTagFilterEntry(player: Player, selectedTag: String?, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val item = ItemStack(plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG))
-                val meta = item.itemMeta ?: return item
-                meta.displayName(lang.getComponent(player, "gui.discovery.tag_filter.name"))
                 val options = listOf(
                         "" to lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
                 ) + plugin.worldTagManager.getEnabledTagIds().map { tagId ->
@@ -558,56 +513,53 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 }
                 val selectedId = selectedTag.orEmpty()
                 val selectedOption = options.firstOrNull { it.first == selectedId } ?: options.first()
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.discovery.tag_filter.label"),
-                                        selectedOption.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (tagId, displayName) ->
-                                        val selected = tagId == selectedOption.first
-                                        add(GuiLoreLine.Option(displayName, selected, "\u00A7e", "\u00A77"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_TAG)
-                return item
+                return cycleEntry(
+                        player, slot,
+                        plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG),
+                        GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.tag_filter.name")),
+                        lang.getMessage(player, "gui.discovery.tag_filter.label"),
+                        selectedOption.second,
+                        options.map { GuiMenuEntryOption(it.second, it.first == selectedOption.first) },
+                        ACTION_TAG,
+                )
         }
 
-        private fun createSpecialFilterButton(player: Player, filter: DiscoverySpecialFilter): ItemStack {
+        private fun createSpecialFilterEntry(player: Player, filter: DiscoverySpecialFilter, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.COMPASS)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(lang.getComponent(player, "gui.discovery.special_filter.name"))
                 val display = lang.getMessage(player, "gui.discovery.special_filter.type.${filter.name.lowercase()}")
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.discovery.special_filter.label"),
-                                        display,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                DiscoverySpecialFilter.values().forEach { option ->
-                                        val selected = option == filter
-                                        val name = lang.getMessage(player, "gui.discovery.special_filter.type.${option.name.lowercase()}")
-                                        add(GuiLoreLine.Option(name, selected, "\u00A7e", "\u00A77"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                add(GuiLoreActions.cycle(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_DISCOVERY_SPECIAL_FILTER)
-                return item
+                return cycleEntry(
+                        player, slot, Material.COMPASS,
+                        GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.special_filter.name")),
+                        lang.getMessage(player, "gui.discovery.special_filter.label"),
+                        display,
+                        DiscoverySpecialFilter.values().map { option ->
+                                GuiMenuEntryOption(
+                                        lang.getMessage(player, "gui.discovery.special_filter.type.${option.name.lowercase()}"),
+                                        option == filter,
+                                )
+                        },
+                        ACTION_SPECIAL_FILTER,
+                )
         }
+
+        private fun cycleEntry(
+                player: Player,
+                slot: Int,
+                material: Material,
+                name: GuiNameSpec,
+                label: String,
+                currentValue: String,
+                options: List<GuiMenuEntryOption>,
+                actionId: String,
+        ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+                player,
+                GuiMenuEntrySpec(
+                        slot, material, name, GuiElementRole.ACTION,
+                        data = listOf(GuiMenuEntryData(label, currentValue, GuiValueTone.PRIMARY)),
+                        options = options,
+                        actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT_RIGHT, plugin.languageManager.getMessage(player, "gui.common.action.cycle"))),
+                ),
+        )
 
         private fun canManageSpotlight(player: Player): Boolean {
                 return player.hasPermission("myworldmanager.admin")
@@ -623,37 +575,18 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         ?: lang.getMessage(player, "gui.discovery.sort_info.spotlight")
         }
 
-        private fun createSpotlightEmptyItem(player: Player): ItemStack {
+        private fun createSpotlightEmptyEntry(player: Player, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val item = ItemStack(Material.GLASS_PANE)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
-                        lang.getComponent(player, "gui.discovery.spotlight_empty.name")
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-
-                meta.lore(
-                        CCSystem.getAPI().getLoreService().render(
-                                GuiLoreSpec.Rich(
-                                        buildList {
-                                                add(GuiLoreLine.Text(lang.getMessage(player, "gui.discovery.spotlight_empty.description")))
-                                                if (player.hasPermission("myworldmanager.admin")) {
-                                                        add(GuiLoreLine.Spacer)
-                                                        add(GuiLoreActions.singleClick(
-                                                                lang,
-                                                                player,
-                                                                lang.getMessage(player, "gui.discovery.spotlight_empty.action.register")
-                                                        ))
-                                                }
-                                        },
-                                        GuiLoreFrame.BOTH
-                                )
-                        )
-                )
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, "discovery_spotlight_empty")
-                return item
+                return CCSystem.getAPI().getGuiElementService().menuEntry(player, GuiMenuEntrySpec(
+                        slot = slot,
+                        material = Material.GLASS_PANE,
+                        name = GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.spotlight_empty.name")),
+                        role = if (player.hasPermission("myworldmanager.admin")) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                        description = listOf(lang.getMessage(player, "gui.discovery.spotlight_empty.description")),
+                        actions = if (player.hasPermission("myworldmanager.admin")) {
+                                listOf(GuiMenuEntryAction(ACTION_SPOTLIGHT_EMPTY, MenuAcceptedClicks.LEFT_RIGHT, lang.getMessage(player, "gui.discovery.spotlight_empty.action.register")))
+                        } else emptyList(),
+                ))
         }
 
         private fun createStatsItem(
