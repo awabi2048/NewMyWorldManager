@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
@@ -11,6 +12,7 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
@@ -68,6 +70,9 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         ACTION_SORT to MenuActionHandler(::sort),
                                         ACTION_CURRENT_WORLD to MenuActionHandler(::currentWorld),
                                         ACTION_WORLD to MenuActionHandler(::world),
+                                        ACTION_BACK to MenuActionHandler {
+                                                MenuActionResult.Success(MenuUpdate.Back)
+                                        },
                                 ),
                                 onClose = MenuCloseHandler(::closed),
                         ),
@@ -92,6 +97,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 private const val ACTION_SORT = "sort"
                 private const val ACTION_CURRENT_WORLD = "currentWorld"
                 private const val ACTION_WORLD = "world"
+                private const val ACTION_BACK = "back"
         }
 
         /**
@@ -157,9 +163,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val inventory = MenuViewBuilder(layout.size, title)
 
                 // 1行目を黒の板ガラスで敷き詰める
-                val blackPane = createBlackPaneItem()
                 for (i in 0..8) {
-                        inventory.setItem(i, blackPane)
+                        inventory.setEntry(decorationEntry(i, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 if (currentWorldData != null) {
@@ -195,13 +200,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                 if (safePage > 0) {
                         inventory.setEntry(createPageEntry(player, 52, safePage + 1, totalPages, false, safePage - 1))
                 } else {
-                        inventory.setItem(52, blackPane)
+                        inventory.setEntry(decorationEntry(52, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 if (safePage < totalPages - 1) {
                         inventory.setEntry(createPageEntry(player, 53, safePage + 1, totalPages, true, safePage + 1))
                 } else {
-                        inventory.setItem(53, blackPane)
+                        inventory.setEntry(decorationEntry(53, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 // フィルターボタン
@@ -210,39 +215,25 @@ class WorldGui(private val plugin: MyWorldManager) {
                 inventory.setEntry(createPlayerFilterButton(player, session, 48))
 
                 // 統計情報ボタン
-                inventory.setItem(
-                        layout.infoSlot,
-                        createInfoButton(filteredWorlds.size, safePage + 1, totalPages)
-                )
+                inventory.setEntry(createInfoEntry(player, layout.infoSlot, filteredWorlds.size, safePage + 1, totalPages))
 
                 // 装飾
-                inventory.setItem(50, blackPane)
+                inventory.setEntry(decorationEntry(50, Material.BLACK_STAINED_GLASS_PANE))
 
                 // ソートボタン
                 inventory.setEntry(createSortButton(player, session, 51))
 
                 // 装飾
                 if (GuiHelper.canGoBack(player)) {
-                        inventory.setBack(
-                                layout.backSlot,
-                                createNavButton(
-                                        player,
-                                        lang.getMessage("gui.common.back"),
-                                        Material.REDSTONE,
-                                        safePage + 1,
-                                        totalPages,
-                                        isNext = false
-                                ),
-                        )
+                        inventory.setEntry(createBackEntry(player, layout.backSlot))
                 } else {
-                        inventory.setItem(layout.backSlot, blackPane)
+                        inventory.setEntry(decorationEntry(layout.backSlot, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 // 余ったスロットは灰色の板ガラスで埋める (背景)
-                val background = createBackgroundItem()
                 for (slot in 0 until inventory.size) {
-                        if (inventory.getItem(slot) == null) {
-                                inventory.setItem(slot, background)
+                        if (!inventory.hasElement(slot)) {
+                                inventory.setEntry(decorationEntry(slot, Material.GRAY_STAINED_GLASS_PANE))
                         }
                 }
 
@@ -440,50 +431,19 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val size: Int,
                 private val title: Component,
         ) {
-                private val items = mutableMapOf<Int, ItemStack>()
-                private val interactions = mutableMapOf<Int, Pair<GuiElementRole, MenuInteraction>>()
-
-                fun setItem(slot: Int, item: ItemStack?) {
-                        if (item == null) items.remove(slot) else items[slot] = item
-                        interactions.remove(slot)
-                }
-
-                fun setAction(
-                        slot: Int,
-                        item: ItemStack,
-                        role: GuiElementRole,
-                        actionId: String,
-                        payload: Map<String, String> = emptyMap(),
-                        acceptedClicks: Set<org.bukkit.event.inventory.ClickType> = MenuAcceptedClicks.LEFT_RIGHT,
-                ) {
-                        items[slot] = item
-                        interactions[slot] = role to MenuInteraction.Action(actionId, acceptedClicks, payload)
-                }
-
-                fun setBack(slot: Int, item: ItemStack) {
-                        items[slot] = item
-                        interactions[slot] = GuiElementRole.BACK to MenuInteraction.Back()
-                }
+                private val elements = mutableMapOf<Int, MenuElement>()
 
                 fun setEntry(element: MenuElement) {
-                        items[element.slot] = element.item
-                        interactions[element.slot] = element.role to element.resolvedInteraction()
+                        elements[element.slot] = element
                 }
 
-                fun getItem(slot: Int): ItemStack? = items[slot]
+                fun hasElement(slot: Int): Boolean = slot in elements
 
                 fun build(): InventoryMenuView =
                         InventoryMenuView(
                                 size,
                                 title,
-                                items.entries.sortedBy { it.key }.map { (slot, item) ->
-                                        val semantic = interactions[slot]
-                                        if (semantic == null) {
-                                                MenuElement(slot, item, GuiElementRole.CONTENT)
-                                        } else {
-                                                MenuElement(slot, item, semantic.first, interaction = semantic.second)
-                                        }
-                                },
+                                elements.values.sortedBy(MenuElement::slot),
                                 standardFrame = false,
                         )
         }
@@ -584,6 +544,74 @@ class WorldGui(private val plugin: MyWorldManager) {
         }
 
         /** 黒の板ガラスを作成 (1行目・6行目用) */
+        private fun decorationEntry(slot: Int, material: Material): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuDisplay(
+                        GuiMenuDisplaySpec(
+                                slot,
+                                GuiItemSpec(
+                                        material,
+                                        GuiNameSpec.Empty,
+                                        GuiLoreSpec.None,
+                                        GuiElementRole.DECORATION,
+                                        1,
+                                ),
+                        ),
+                )
+
+        private fun createBackEntry(player: Player, slot: Int): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.REDSTONE,
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
+                                role = GuiElementRole.BACK,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_BACK,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, "gui.common.back"),
+                                        ),
+                                ),
+                        ),
+                )
+
+        private fun createInfoEntry(
+                player: Player,
+                slot: Int,
+                totalCount: Int,
+                current: Int,
+                total: Int,
+        ): MenuElement {
+                val lang = plugin.languageManager
+                val lore = buildList {
+                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.info.total_count_label"), totalCount, "§b"))
+                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.info.page_label"), "$current/$total", "§a"))
+                        if (me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
+                                val mspt = plugin.msptMonitorTask.currentServerMspt
+                                add(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.admin.info.mspt_label"),
+                                                "${me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColoredString(mspt)} ms",
+                                                "",
+                                        ),
+                                )
+                        }
+                }
+                return CCSystem.getAPI().getGuiElementService().menuDisplay(
+                        GuiMenuDisplaySpec(
+                                slot,
+                                GuiItemSpec(
+                                        Material.PAPER,
+                                        GuiNameSpec.Component(lang.getComponent(player, "gui.admin.info.display")),
+                                        GuiLoreSpec.Blocks(listOf(GuiLoreBlock(lore))),
+                                        GuiElementRole.CONTENT,
+                                        1,
+                                ),
+                        ),
+                )
+        }
+
         private fun createBlackPaneItem(): ItemStack {
                 return GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
         }
