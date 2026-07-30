@@ -5,11 +5,15 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -229,8 +233,25 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun actionElement(slot: Int, item: ItemStack, actionId: String) =
-        MenuElement(slot, item, GuiElementRole.ACTION, actionId)
+    private fun actionElement(slot: Int, item: AdminActionItemSpec, actionId: String): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuEntry(
+            item.player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = item.material,
+                name = GuiNameSpec.Text(item.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                role = GuiElementRole.ACTION,
+                description = item.description,
+                actions = if (item.rightAction == null) {
+                    listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, item.leftAction))
+                } else {
+                    listOf(
+                        GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT, item.leftAction),
+                        GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_RIGHT, item.rightAction),
+                    )
+                },
+            ),
+        )
 
     private fun resolveCapability(
         player: Player,
@@ -555,15 +576,20 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun createActionItem(player: Player, material: Material, name: String, lore: List<GuiLoreLine>, action: String, tagType: String): ItemStack {
-        return GuiItemFactory.item(
+    private fun createActionItem(
+        player: Player,
+        material: Material,
+        name: String,
+        lore: List<GuiLoreLine>,
+        action: String,
+        @Suppress("UNUSED_PARAMETER") tagType: String,
+    ): AdminActionItemSpec {
+        return AdminActionItemSpec(
+            player,
             material,
             name,
-            GuiLoreSpec.Blocks(listOf(
-                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(lore),
-                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(plugin.languageManager, player, action)))
-            )),
-            tagType
+            lore.mapNotNull { (it as? GuiLoreLine.Text)?.text },
+            action,
         )
     }
 
@@ -575,20 +601,25 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         leftAction: String,
         rightAction: String,
         tagType: String
-    ): ItemStack {
-        return GuiItemFactory.item(
+    ): AdminActionItemSpec {
+        return AdminActionItemSpec(
+            player,
             material,
             name,
-            GuiLoreSpec.Blocks(listOf(
-                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(lore),
-                com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(
-                    GuiLoreLine.Action(plugin.languageManager.getMessage(player, "lore.click.left"), leftAction),
-                    GuiLoreLine.Action(plugin.languageManager.getMessage(player, "lore.click.right"), rightAction)
-                ))
-            )),
-            tagType
+            lore.mapNotNull { (it as? GuiLoreLine.Text)?.text },
+            leftAction,
+            rightAction,
         )
     }
+
+    private data class AdminActionItemSpec(
+        val player: Player,
+        val material: Material,
+        val name: String,
+        val description: List<String>,
+        val leftAction: String,
+        val rightAction: String? = null,
+    )
 
     private fun textLore(player: Player, key: String, placeholders: Map<String, Any> = emptyMap()): List<GuiLoreLine> {
         return plugin.languageManager.getMessageList(player, key, placeholders).map(GuiLoreLine::Text)
