@@ -2,9 +2,17 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
@@ -13,13 +21,12 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.listener.WorldSeedListener
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+    private val guiElements = CCSystem.getAPI().getGuiElementService()
 
     init {
         runtime.register(
@@ -50,36 +57,44 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val currentSlots = route.payload[CURRENT_SLOTS]?.toIntOrNull() ?: 0
         val nextSlots = route.payload[NEXT_SLOTS]?.toIntOrNull() ?: 0
-        val info = ItemStack(Material.PAPER).also { item ->
-            item.editMeta { meta ->
-                meta.displayName(lang.getComponent(player, "gui.world_seed_confirm.title"))
-                meta.lore(
-                    GuiItemFactory.menuLore(
+        val info = guiElements.menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = 13,
+                item = GuiItemSpec(
+                    material = Material.PAPER,
+                    name = GuiNameSpec.Component(lang.getComponent(player, "gui.world_seed_confirm.title")),
+                    lore = GuiLoreSpec.Blocks(
                         listOf(
-                            GuiLoreLine.Warning(lang.getMessage(player, "gui.world_seed_confirm.question")),
-                            GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.world_seed_confirm.current_label"),
-                                currentSlots,
-                                "§a",
+                            GuiLoreBlock(
+                                listOf(
+                                    GuiLoreLine.Warning(lang.getMessage(player, "gui.world_seed_confirm.question")),
+                                    GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.world_seed_confirm.current_label"),
+                                        currentSlots,
+                                        "§a",
+                                    ),
+                                    GuiLoreLine.Data(
+                                        lang.getMessage(player, "gui.world_seed_confirm.next_label"),
+                                        nextSlots,
+                                        "§a",
+                                    ),
+                                ) + lang.getMessageList(player, "gui.world_seed_confirm.description")
+                                    .map(GuiLoreLine::Text),
                             ),
-                            GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.world_seed_confirm.next_label"),
-                                nextSlots,
-                                "§a",
-                            ),
-                        ) + lang.getMessageList(player, "gui.world_seed_confirm.description")
-                            .map(GuiLoreLine::Text),
+                        ),
                     ),
-                )
-            }
-        }
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
+        )
         return InventoryMenuView(
             27,
             lang.getComponent(player, "gui.world_seed_confirm.title"),
             listOf(
-                MenuElement(13, info, GuiElementRole.CONTENT),
-                MenuElement(11, button(player, Material.LIME_CONCRETE, "gui.common.confirm"), GuiElementRole.CONFIRM, ACTION_CONFIRM),
-                MenuElement(15, button(player, Material.RED_CONCRETE, "gui.common.cancel"), GuiElementRole.CANCEL, ACTION_CANCEL),
+                info,
+                button(player, 11, Material.LIME_CONCRETE, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_CONFIRM),
+                button(player, 15, Material.RED_CONCRETE, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_CANCEL),
             ),
         )
     }
@@ -92,10 +107,29 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         }
     }
 
-    private fun button(player: Player, material: Material, key: String): ItemStack =
-        ItemStack(material).also { item ->
-            item.editMeta { meta -> meta.displayName(plugin.languageManager.getComponent(player, key)) }
-        }
+    private fun button(
+        player: Player,
+        slot: Int,
+        material: Material,
+        key: String,
+        role: GuiElementRole,
+        actionId: String,
+    ): MenuElement = guiElements.menuEntry(
+        player,
+        GuiMenuEntrySpec(
+            slot = slot,
+            material = material,
+            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+            role = role,
+            actions = listOf(
+                GuiMenuEntryAction(
+                    actionId,
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    plugin.languageManager.getMessage(player, key),
+                ),
+            ),
+        ),
+    )
 
     private companion object {
         private const val OWNER = "myworldmanager"

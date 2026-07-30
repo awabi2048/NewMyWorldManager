@@ -2,14 +2,22 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -30,6 +38,7 @@ import java.util.UUID
 class PendingInteractionGui(private val plugin: MyWorldManager) {
 
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+    private val guiElements = CCSystem.getAPI().getGuiElementService()
 
     init {
         runtime.register(
@@ -72,58 +81,21 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val layout = page.layout
         val pageEntries = entries.drop(page.startIndex).take(page.itemCount)
         val elements = mutableListOf<MenuElement>()
-        elements += MenuElement(
-            4,
-            createInfoItem(player, entries.size, page.page + 1, page.totalPages),
-            GuiElementRole.CONTENT,
-        )
+        elements += createInfoEntry(player, entries.size, page.page + 1, page.totalPages)
         pageEntries.forEachIndexed { index, entry ->
-            elements += MenuElement(
-                layout.itemSlots[index],
-                createEntryItem(player, entry),
-                GuiElementRole.ACTION,
-                ACTION_OPEN,
-                mapOf(DECISION_ID to entry.id.toString()),
-            )
+            elements += createEntry(player, entry, layout.itemSlots[index])
         }
         if (pageEntries.isEmpty()) {
-            elements += MenuElement(layout.itemSlots[layout.itemSlots.size / 2], createEmptyItem(player), GuiElementRole.CONTENT)
+            elements += createEmptyEntry(player, layout.itemSlots[layout.itemSlots.size / 2])
         }
         if (page.page > 0) {
-            elements += MenuElement(
-                layout.previousPageSlot,
-                me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
-                    plugin,
-                    player,
-                    "pending_list",
-                    page.page - 1
-                ),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (page.page - 1).toString()),
-            )
+            elements += navigationEntry(player, layout.previousPageSlot, false, page.page - 1)
         }
         if (page.page < page.totalPages - 1) {
-            elements += MenuElement(
-                layout.nextPageSlot,
-                me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
-                    plugin,
-                    player,
-                    "pending_list",
-                    page.page + 1
-                ),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (page.page + 1).toString()),
-            )
+            elements += navigationEntry(player, layout.nextPageSlot, true, page.page + 1)
         }
         if (me.awabi2048.myworldmanager.util.GuiHelper.canGoBack(player)) {
-            elements += MenuElement(
-                layout.actionSlot,
-                me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list"),
-                GuiElementRole.BACK,
-                ACTION_BACK,
-            )
+            elements += backEntry(player, layout.actionSlot)
         }
         return InventoryMenuView(
             layout.size,
@@ -317,21 +289,121 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun createEntryItem(player: Player, entry: PendingDecisionManager.PendingEntryView): ItemStack {
+    private fun createEntry(
+        player: Player,
+        entry: PendingDecisionManager.PendingEntryView,
+        slot: Int,
+    ): MenuElement {
         val worldName = entry.worldUuid?.let { plugin.worldConfigRepository.findByUuid(it)?.name }
             ?: plugin.languageManager.getMessage(player, "general.unknown")
-        return PendingInteractionItemFactory.createItem(
+        return PendingInteractionItemFactory.createElement(
             plugin = plugin,
             viewer = player,
+            slot = slot,
             subjectUuid = entry.actorUuid,
             type = entry.type,
             worldName = worldName,
             createdAt = entry.createdAt,
-            decisionId = entry.id,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_PENDING_ENTRY
+            actionId = ACTION_OPEN,
+            actionPayload = mapOf(DECISION_ID to entry.id.toString()),
         )
     }
+
+    private fun createEmptyEntry(player: Player, slot: Int): MenuElement =
+        guiElements.menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = slot,
+                item = GuiItemSpec(
+                    material = Material.BARRIER,
+                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name")),
+                    lore = GuiLoreSpec.Blocks(
+                        listOf(
+                            GuiLoreBlock(
+                                plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore")
+                                    .map(GuiLoreLine::Text),
+                            ),
+                        ),
+                    ),
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
+        )
+
+    private fun createInfoEntry(player: Player, count: Int, page: Int, pages: Int): MenuElement =
+        guiElements.menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = 4,
+                item = GuiItemSpec(
+                    material = Material.BOOK,
+                    name = GuiNameSpec.Text(
+                        plugin.languageManager.getMessage(player, "gui.pending_list.info.name"),
+                        GuiNameStyle.DEFAULT,
+                    ),
+                    lore = GuiLoreSpec.Blocks(
+                        listOf(
+                            GuiLoreBlock(
+                                listOf(
+                                    GuiLoreLine.Data(
+                                        plugin.languageManager.getMessage(player, "gui.pending_list.info.count_label"),
+                                        count,
+                                        "§e",
+                                    ),
+                                    GuiLoreLine.Data(
+                                        plugin.languageManager.getMessage(player, "gui.pending_list.info.page_label"),
+                                        "$page/$pages",
+                                        "§e",
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
+        )
+
+    private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val iconId = if (next) "next_page" else "prev_page"
+        return guiElements.menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("pending_list", iconId, Material.ARROW),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                role = GuiElementRole.NAVIGATION,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        actionId = ACTION_PAGE,
+                        acceptedClicks = MenuAcceptedClicks.LEFT_RIGHT,
+                        label = plugin.languageManager.getMessage(player, key),
+                        payload = mapOf(PAGE to targetPage.toString()),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    private fun backEntry(player: Player, slot: Int): MenuElement =
+        guiElements.menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("pending_list", "back", Material.REDSTONE),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
+                role = GuiElementRole.BACK,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BACK,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, "gui.common.return"),
+                    ),
+                ),
+            ),
+        )
 
     private fun createEmptyItem(player: Player): ItemStack {
         val item = ItemStack(Material.BARRIER)
