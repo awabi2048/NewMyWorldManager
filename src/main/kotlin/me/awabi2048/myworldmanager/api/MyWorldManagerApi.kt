@@ -3,7 +3,6 @@ package me.awabi2048.myworldmanager.api
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListProvider
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
-import me.awabi2048.myworldmanager.api.extension.AdminMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
 import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuProvider
@@ -114,7 +113,6 @@ object MyWorldManagerApi {
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
     private val worldPortalPolicies = CopyOnWriteArrayList<WorldPortalPolicy>()
     private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
-    private val adminMenuProviders = CopyOnWriteArrayList<AdminMenuProvider>()
     private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
     private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
     private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
@@ -556,32 +554,6 @@ object MyWorldManagerApi {
     @JvmStatic
     fun openAdminWorldListOverride(player: Player, request: AdminWorldListRequest): Boolean {
         return adminWorldListProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerAdminMenuProvider(provider: AdminMenuProvider) {
-        adminMenuProviders.removeIf { it.getId() == provider.getId() }
-        adminMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterAdminMenuProvider(provider: AdminMenuProvider) {
-        adminMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun getAdminMenuProviders(): List<AdminMenuProvider> {
-        return adminMenuProviders.toList()
-    }
-
-    @JvmStatic
-    fun openNextAdminMenu(player: Player, currentProviderId: String? = null): Boolean {
-        val providers = adminMenuProviders.toList()
-        if (providers.isEmpty()) return false
-        val currentIndex = currentProviderId?.let { id -> providers.indexOfFirst { it.getId() == id } } ?: -1
-        val nextIndex = if (currentIndex < 0 || currentIndex + 1 >= providers.size) 0 else currentIndex + 1
-        providers[nextIndex].open(player)
-        return true
     }
 
     @JvmStatic

@@ -11,10 +11,11 @@ import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.AdminMenuCapabilityPlacements
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -61,7 +62,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                         MenuActionResult.Success(MenuUpdate.None)
                     },
                     ACTION_INFO to MenuActionHandler(::openWorldList),
-                    ACTION_MENU_SWITCH to MenuActionHandler(::switchMenu),
+                    ACTION_CAPABILITY to MenuActionHandler(::executeCapability),
                     ACTION_PORTALS to MenuActionHandler(::openPortals),
                 ),
             ),
@@ -177,15 +178,29 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             ItemTag.TYPE_GUI_ADMIN_INFO
         ), ACTION_INFO)
 
-        val adminMenuProviders = MyWorldManagerApi.getAdminMenuProviders()
-        if (adminMenuProviders.isNotEmpty()) {
-            elements += actionElement(40, createActionItem(player,
-                Material.NETHER_STAR,
-                lang.getMessage(player, "gui.admin_menu.menu_switch.display"),
-                textLore(player, "gui.admin_menu.menu_switch.lore", mapOf("next" to adminMenuProviders.first().getDisplayName(player))),
-                lang.getMessage(player, "gui.admin_menu.menu_switch.action"),
-                ItemTag.TYPE_GUI_ADMIN_MENU_SWITCH
-            ), ACTION_MENU_SWITCH)
+        val menuSwitch = CCSystem.getAPI().getMenuCapabilityService()
+            .definitions(AdminMenuCapabilityPlacements.MENU_SWITCH)
+            .asSequence()
+            .mapNotNull { definition ->
+                CCSystem.getAPI().getMenuCapabilityService()
+                    .resolve(definition.capabilityId, player)
+            }
+            .firstOrNull()
+        if (menuSwitch != null) {
+            elements += MenuElement(
+                slot = 40,
+                item = menuSwitch.item,
+                role = GuiElementRole.NAVIGATION,
+                interaction = if (menuSwitch.actionable) {
+                    MenuInteraction.Action(
+                        actionId = ACTION_CAPABILITY,
+                        acceptedClicks = menuSwitch.acceptedClicks,
+                        payload = mapOf(CAPABILITY_ID to menuSwitch.capabilityId),
+                    )
+                } else {
+                    MenuInteraction.DisplayOnly
+                },
+            )
         } else {
             elements += MenuElement(
                 40,
@@ -237,10 +252,13 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.None)
     }
 
-    private fun switchMenu(context: MenuActionContext): MenuActionResult {
-        MyWorldManagerApi.openNextAdminMenu(context.player)
-        return MenuActionResult.Success(MenuUpdate.None)
-    }
+    private fun executeCapability(context: MenuActionContext): MenuActionResult =
+        context.payload[CAPABILITY_ID]
+            ?.let {
+                CCSystem.getAPI().getMenuCapabilityService()
+                    .execute(it, context.player, context.click)
+            }
+            ?: MenuActionResult.Ignored
 
     private fun openPortals(context: MenuActionContext): MenuActionResult {
         return MenuActionResult.Success(
@@ -523,7 +541,8 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         private const val ACTION_UNLINK = "unlink"
         private const val ACTION_EXPORT = "export"
         private const val ACTION_INFO = "info"
-        private const val ACTION_MENU_SWITCH = "menu_switch"
+        private const val ACTION_CAPABILITY = "capability"
+        private const val CAPABILITY_ID = "capability_id"
         private const val ACTION_PORTALS = "portals"
     }
 }
