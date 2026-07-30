@@ -1,4 +1,4 @@
-package me.awabi2048.myworldmanager.gui
+﻿package me.awabi2048.myworldmanager.gui
 
 
 import com.awabi2048.ccsystem.CCSystem
@@ -65,9 +65,6 @@ import org.bukkit.inventory.meta.SkullMeta
 class WorldSettingsGui(private val plugin: MyWorldManager) {
         private val borderResetSpawnService = BorderResetSpawnService()
         private val runtime = CCSystem.getAPI().getMenuRuntimeService()
-        private val runtimeRenderCapture = ThreadLocal<InventoryMenuView?>()
-        private val runtimeRenderCaptureActive = ThreadLocal.withInitial { false }
-
         init {
                 runtime.register(
                         InventoryMenuDefinition(
@@ -3552,20 +3549,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 page: Int = 0,
                 replaceCurrent: Boolean = false,
         ) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.settings.portals.display")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
-
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.MANAGE_PORTALS,
                         isGui = true
                 )
+                val targetRoute = runtimeRoute(
+                        WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT,
+                        worldData.uuid,
+                        page = page,
+                )
+                if (replaceCurrent) {
+                        runtime.replace(player, targetRoute)
+                } else {
+                        runtime.navigate(player, targetRoute)
+                }
+        }
 
+        private fun renderPortalManagement(
+                player: Player,
+                worldData: WorldData,
+                page: Int,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.settings.portals.display")
                 val allPortals =
                         plugin.portalRepository.findAll().filter { it.worldKey == worldData.worldKey }
 
@@ -3640,15 +3648,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WorldSettingsRuntimeOperation.BACK,
                 )
 
-                presentRuntime(
-                        player,
-                        title,
-                        inventory,
-                        WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT,
-                        worldData.uuid,
-                        replaceCurrent,
-                        routeArguments = mapOf(ROUTE_PAGE to currentPage.toString()),
-                )
+                return runtimeView(title, inventory)
         }
 
         private fun createPortalManagementItem(player: Player, portal: PortalData): ItemStack {
@@ -3706,120 +3706,83 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
                         ?: error("ワールド設定Runtimeの対象ワールドが見つかりません: $worldUuid")
 
-                runtimeRenderCapture.remove()
-                runtimeRenderCaptureActive.set(true)
-                try {
-                        when (screen) {
+                return when (screen) {
                                 WorldSettingsRuntimeScreen.WORLD_SETTINGS,
                                 WorldSettingsRuntimeScreen.ICON_SELECTION ->
-                                        runtimeRenderCapture.set(renderWorldSettings(player, worldData))
+                                        renderWorldSettings(player, worldData)
                                 WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT ->
-                                        runtimeRenderCapture.set(
-                                                renderMemberManagement(
+                                        renderMemberManagement(
                                                         player,
                                                         worldData,
                                                         runtimePage(route) ?: 0,
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderMemberPendingInviteCancelConfirmation(
+                                        renderMemberPendingInviteCancelConfirmation(
                                                         player,
                                                         requireNotNull(runtimeTargetUuid(route)),
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderMemberRemoveConfirmation(
+                                        renderMemberRemoveConfirmation(
                                                         player,
                                                         worldData,
                                                         requireNotNull(runtimeTargetUuid(route)),
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderMemberTransferConfirmation(
+                                        renderMemberTransferConfirmation(
                                                         player,
                                                         worldData,
                                                         requireNotNull(runtimeTargetUuid(route)),
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT ->
-                                        runtimeRenderCapture.set(
-                                                renderVisitorManagement(
+                                        renderVisitorManagement(
                                                         player,
                                                         worldData,
                                                         runtimePage(route) ?: 0,
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderVisitorKickConfirmation(
+                                        renderVisitorKickConfirmation(
                                                         player,
                                                         requireNotNull(runtimeTargetUuid(route)),
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.EXPANSION_METHOD_SELECTION ->
-                                        runtimeRenderCapture.set(
-                                                renderExpansionMethodSelection(player, worldData),
-                                        )
+                                        renderExpansionMethodSelection(player, worldData)
                                 WorldSettingsRuntimeScreen.EXPANSION_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderExpansionConfirmation(
+                                        renderExpansionConfirmation(
                                                         player,
                                                 route.payload[ROUTE_EXPANSION_DIRECTION]
                                                         ?.takeUnless { it == ROUTE_NULL_VALUE }
                                                         ?.let(org.bukkit.block.BlockFace::valueOf),
                                                 route.payload[ROUTE_EXPANSION_COST]?.toIntOrNull()
                                                         ?: error("ワールド拡張コストがありません"),
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderExpansionStepBackConfirmation(player, worldData),
-                                        )
+                                        renderExpansionStepBackConfirmation(player, worldData)
                                 WorldSettingsRuntimeScreen.CRITICAL_SETTINGS ->
-                                        runtimeRenderCapture.set(
-                                                renderCriticalSettings(player, worldData),
-                                        )
+                                        renderCriticalSettings(player, worldData)
                                 WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderResetExpansionConfirmation(player, worldData),
-                                        )
+                                        renderResetExpansionConfirmation(player, worldData)
                                 WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderResetExpansionSpawnUnsafeConfirmation(
+                                        renderResetExpansionSpawnUnsafeConfirmation(
                                                         player,
                                                         worldData,
-                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderDeleteWorldConfirmation1(player),
-                                        )
+                                        renderDeleteWorldConfirmation1(player)
                                 WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM ->
-                                        runtimeRenderCapture.set(
-                                                renderDeleteWorldConfirmation2(player),
-                                        )
+                                        renderDeleteWorldConfirmation2(player)
                                 WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM ->
-                                        runtimeRenderCapture.set(renderArchiveConfirmation(player, worldData))
+                                        renderArchiveConfirmation(player, worldData)
                                 WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM ->
-                                        runtimeRenderCapture.set(renderArchiveConfirmation(player, worldData))
+                                        renderArchiveConfirmation(player, worldData)
                                 WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM ->
-                                        runtimeRenderCapture.set(renderUnarchiveConfirmation(player, worldData))
+                                        renderUnarchiveConfirmation(player, worldData)
                                 WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT ->
-                                        openPortalManagement(
+                                        renderPortalManagement(
                                                 player,
                                                 worldData,
                                                 runtimePage(route) ?: 0,
                                         )
                         }
-                        return runtimeRenderCapture.get()
-                                ?: error("ワールド設定Runtimeの再生成結果がありません: $screen")
-                } finally {
-                        runtimeRenderCapture.remove()
-                        runtimeRenderCaptureActive.remove()
-                }
         }
 
         private fun runtimeScreen(route: MenuRoute): WorldSettingsRuntimeScreen? =
@@ -3863,69 +3826,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         standardFrame = false,
                         playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
                 )
-
-        private fun presentRuntime(
-                player: Player,
-                title: Component,
-                inventory: RuntimeItemBuffer,
-                screen: WorldSettingsRuntimeScreen,
-                worldUuid: UUID,
-                replaceCurrent: Boolean = false,
-                targetUuid: UUID? = null,
-                decisionId: UUID? = null,
-                routeArguments: Map<String, String> = emptyMap(),
-        ) {
-                val view = InventoryMenuView(
-                        size = inventory.size,
-                        title = title,
-                        elements = inventory.elements(),
-                        standardFrame = false,
-                        playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
-                )
-                if (runtimeRenderCaptureActive.get()) {
-                        runtimeRenderCapture.set(view)
-                        return
-                }
-                val payload = mutableMapOf(
-                        ROUTE_SCREEN to screen.name,
-                        ROUTE_WORLD_UUID to worldUuid.toString(),
-                )
-                targetUuid?.let { payload[ROUTE_TARGET_UUID] = it.toString() }
-                decisionId?.let { payload[ROUTE_DECISION_ID] = it.toString() }
-                payload.putAll(routeArguments)
-                val route = MenuRoute(
-                        RUNTIME_OWNER,
-                        RUNTIME_ROUTE,
-                        payload,
-                )
-                if (replaceCurrent) {
-                        runtime.replace(player, route)
-                } else {
-                        runtime.navigate(player, route)
-                }
-        }
-
-        private fun presentRuntime(
-                player: Player,
-                title: String,
-                inventory: RuntimeItemBuffer,
-                screen: WorldSettingsRuntimeScreen,
-                worldUuid: UUID,
-                replaceCurrent: Boolean = false,
-                targetUuid: UUID? = null,
-                decisionId: UUID? = null,
-                routeArguments: Map<String, String> = emptyMap(),
-        ) = presentRuntime(
-                player,
-                GuiHelper.inventoryTitle(title),
-                inventory,
-                screen,
-                worldUuid,
-                replaceCurrent,
-                targetUuid,
-                decisionId,
-                routeArguments,
-        )
 
         private fun createDecorationItem(material: Material): ItemStack {
                 return GuiItemFactory.decoration(material)
