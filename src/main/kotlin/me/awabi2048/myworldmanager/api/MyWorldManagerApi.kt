@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.api
 
+import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListProvider
 import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.api.extension.AdminMenuProvider
@@ -29,6 +30,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
 import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessProvider
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
@@ -53,6 +55,8 @@ import org.bukkit.OfflinePlayer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.java.JavaPlugin
+import me.awabi2048.myworldmanager.session.SettingsAction
 
 object MyWorldManagerApi {
     private val logoutRelocations = java.util.concurrent.ConcurrentHashMap<UUID, String>()
@@ -118,6 +122,48 @@ object MyWorldManagerApi {
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
     private var bedrockFormService: ApiBedrockFormService? = null
+
+    @JvmStatic
+    fun openWorldSettings(
+        player: Player,
+        worldUuid: UUID,
+        request: WorldSettingsNavigationRequest = WorldSettingsNavigationRequest(),
+    ): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
+        plugin.settingsSessionManager.updateSessionAction(
+            player,
+            worldUuid,
+            SettingsAction.VIEW_SETTINGS,
+            isGui = true,
+            isAdminFlow = request.isAdminFlow,
+            isPlayerWorldFlow = request.isPlayerWorldFlow,
+            parentShowBackButton = request.parentShowBackButton,
+        )
+        plugin.worldSettingsGui.open(
+            player,
+            worldData,
+            request.showBackButton,
+            request.isPlayerWorldFlow,
+            request.parentShowBackButton,
+        )
+        return true
+    }
+
+    @JvmStatic
+    fun closeWorldSettingsContext(player: Player) {
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .settingsSessionManager
+            .endSession(player)
+    }
+
+    @JvmStatic
+    fun hasWorldSettingsAdminAccess(player: Player): Boolean =
+        player.hasPermission("myworldmanager.admin") ||
+            JavaPlugin.getPlugin(MyWorldManager::class.java)
+                .settingsSessionManager
+                .getSession(player)
+                ?.isAdminFlow == true
 
     @JvmStatic
     fun registerBedrockFormService(service: ApiBedrockFormService) {
