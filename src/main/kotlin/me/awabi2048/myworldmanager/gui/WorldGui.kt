@@ -31,7 +31,6 @@ import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreActions
 import me.awabi2048.myworldmanager.util.StructuredLore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
@@ -164,14 +163,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 if (currentWorldData != null) {
-                        inventory.setAction(
-                                4,
-                                createCurrentWorldInfoItem(player, currentWorldData),
-                                GuiElementRole.ACTION,
+                        inventory.setEntry(createAdminWorldEntry(
+                                player, currentWorldData, 4,
+                                lang.getMessage(player, "gui.admin_menu.current_world.display"),
                                 ACTION_CURRENT_WORLD,
-                                mapOf(WORLD_UUID to currentWorldData.uuid.toString()),
-                                MenuAcceptedClicks.STANDARD,
-                        )
+                                includeWarpAction = false,
+                                includeWorldName = true,
+                        ))
                 }
 
                 // ワールドアイテムの配置 (スロット9から44まで)
@@ -179,14 +177,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val pageWorlds = filteredWorlds.drop(startIndex).take(itemsPerPage)
 
                 pageWorlds.forEachIndexed { index, worldData ->
-                        inventory.setAction(
-                                layout.itemSlots[index],
-                                createWorldItem(player, worldData),
-                                GuiElementRole.ACTION,
+                        inventory.setEntry(createAdminWorldEntry(
+                                player, worldData, layout.itemSlots[index],
+                                lang.getMessage(player, "gui.common.world_item_name_simple", mapOf("world" to worldData.name)),
                                 ACTION_WORLD,
-                                mapOf(WORLD_UUID to worldData.uuid.toString()),
-                                MenuAcceptedClicks.STANDARD,
-                        )
+                                includeWarpAction = true,
+                                includeWorldName = false,
+                        ))
                 }
 
                 // 6行目のレイアウト:
@@ -196,39 +193,13 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 // ページ移動ボタン（最終行の右端2つ）
                 if (safePage > 0) {
-                        inventory.setAction(
-                                52,
-                                createNavButton(
-                                        player,
-                                        lang.getMessage("gui.common.prev_page"),
-                                        Material.ARROW,
-                                        safePage + 1,
-                                        totalPages,
-                                        isNext = false
-                                ),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (safePage - 1).toString()),
-                        )
+                        inventory.setEntry(createPageEntry(player, 52, safePage + 1, totalPages, false, safePage - 1))
                 } else {
                         inventory.setItem(52, blackPane)
                 }
 
                 if (safePage < totalPages - 1) {
-                        inventory.setAction(
-                                53,
-                                createNavButton(
-                                        player,
-                                        lang.getMessage("gui.common.next_page"),
-                                        Material.ARROW,
-                                        safePage + 1,
-                                        totalPages,
-                                        isNext = true
-                                ),
-                                GuiElementRole.NAVIGATION,
-                                ACTION_PAGE,
-                                mapOf(PAGE to (safePage + 1).toString()),
-                        )
+                        inventory.setEntry(createPageEntry(player, 53, safePage + 1, totalPages, true, safePage + 1))
                 } else {
                         inventory.setItem(53, blackPane)
                 }
@@ -622,78 +593,17 @@ class WorldGui(private val plugin: MyWorldManager) {
                 return GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
         }
 
-        private fun createCurrentWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
-                val lang = plugin.languageManager
-                val worldDirectory = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                val item = ItemStack(worldData.icon)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(lang.getMessage(player, "gui.admin_menu.current_world.display"))
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-                meta.lore(
-                        createAdminWorldLore(
-                                player,
-                                worldData,
-                                worldDirectory,
-                                includeWarpAction = false,
-                                includeWorldName = true
-                        )
-                )
-                item.itemMeta = meta
-                return item
-        }
-
-        /** ワールド情報の表示用アイテム */
-        private fun createWorldItem(player: Player, data: WorldData): ItemStack {
-                val item = ItemStack(data.icon)
-                val meta = item.itemMeta ?: return item
-                val lang = plugin.languageManager
-
-                meta.displayName(
-                        lang.getComponent(
-                                player,
-                                "gui.common.world_item_name_simple",
-                                mapOf("world" to data.name)
-                        )
-                )
-
-                // Owner Line
-                val worldDirectory = data.customWorldName ?: "my_world.${data.uuid}"
-                meta.lore(
-                        createAdminWorldLore(
-                                player,
-                                data,
-                                worldDirectory,
-                                includeWarpAction = true,
-                                includeWorldName = false
-                        )
-                )
-                if (data.sourceWorld != "CONVERT") {
-                        try {
-                                val formatter =
-                                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                                val expireDate = java.time.LocalDate.parse(data.expireDate, formatter)
-                                if (java.time.LocalDate.now().isAfter(expireDate)) {
-                                        meta.setEnchantmentGlintOverride(true)
-                                }
-                        } catch (_: Exception) {
-                        }
-                }
-
-                item.itemMeta = meta
-                return item
-        }
-
-        private fun createAdminWorldLore(
+        private fun createAdminWorldEntry(
                 player: Player,
                 data: WorldData,
-                worldDirectory: String,
+                slot: Int,
+                name: String,
+                actionId: String,
                 includeWarpAction: Boolean,
                 includeWorldName: Boolean
-        ): List<Component> {
+        ): MenuElement {
                 val lang = plugin.languageManager
+                val worldDirectory = data.customWorldName ?: "my_world.${data.uuid}"
                 val ownerName =
                         PlayerNameUtil.getNameOrDefault(
                                 data.owner,
@@ -825,37 +735,47 @@ class WorldGui(private val plugin: MyWorldManager) {
                         else ""
                 val worldSizeValue = buildWorldSizeValue(player, data)
 
-                return CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                        GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.uuid"), worldDirectory, "§8"))
-                                if (includeWorldName) add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.world_name_line"), data.name, "§a"))
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.owner"), ownerName, "§f"))
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.admin.world_item.status"),
-                                        statusVal,
-                                        if (data.isArchived) "§c" else "§b"
-                                ))
-                        }),
-                        GuiLoreBlock(listOf(
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.publish"), publishName, publishColor),
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.generation"), generationMethod, "§e")
-                        )),
-                        GuiLoreBlock(buildList {
-                                if (createdValue != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.created_at"), createdValue, "§e"))
-                                if (expireValue != null) add(GuiLoreLine.Data(lang.getMessage(player, expireLabelKey), expireValue, "§e"))
-                        }),
-                        GuiLoreBlock(listOf(
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.mspt"), msptValue.value, msptValue.color),
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.world_size_line"), worldSizeValue.value, worldSizeValue.color)
-                        )),
-                        GuiLoreBlock(buildList {
-                                if (actionWarp.isNotBlank()) add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), actionWarp))
-                                add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), actionSettings))
-                                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.shift_right"), actionArchive))
-                                if (uuidCopyHint.isNotBlank()) add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.middle"), uuidCopyHint))
-                        })
-                )))
+                val payload = mapOf(WORLD_UUID to data.uuid.toString())
+                val glint = if (data.sourceWorld == "CONVERT") {
+                        false
+                } else {
+                        runCatching {
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                java.time.LocalDate.now().isAfter(java.time.LocalDate.parse(data.expireDate, formatter))
+                        }.getOrDefault(false)
+                }
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = data.icon,
+                                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                                role = GuiElementRole.ACTION,
+                                data = buildList {
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.uuid"), worldDirectory))
+                                        if (includeWorldName) add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_name_line"), data.name, GuiValueTone.SUCCESS))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.owner"), ownerName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.status"), statusVal, if (data.isArchived) GuiValueTone.DANGER else GuiValueTone.INFO))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.publish"), publishName, toneFor(publishColor)))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.generation"), generationMethod, GuiValueTone.PRIMARY))
+                                        if (createdValue != null) add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.created_at"), createdValue, GuiValueTone.PRIMARY))
+                                        if (expireValue != null) add(GuiMenuEntryData(lang.getMessage(player, expireLabelKey), expireValue, GuiValueTone.PRIMARY))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.mspt"), msptValue.value, toneFor(msptValue.color)))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_size_line"), worldSizeValue.value, toneFor(worldSizeValue.color)))
+                                },
+                                actions = buildList {
+                                        if (actionWarp.isNotBlank()) add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT, actionWarp, payload))
+                                        add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_RIGHT, actionSettings, payload))
+                                        add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.SHIFT_RIGHT, actionArchive, payload))
+                                        if (uuidCopyHint.isNotBlank()) add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.MIDDLE, uuidCopyHint, payload))
+                                },
+                                glint = glint,
+                        ),
+                )
         }
+
+        private fun toneFor(colorCode: String): GuiValueTone =
+                GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT
 
         private fun getGenerationMethodLabel(player: Player, sourceWorld: String): String {
                 val lang = plugin.languageManager
@@ -1111,19 +1031,38 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 .decoration(TextDecoration.ITALIC, false)
                 )
 
-                if (material == Material.ARROW) {
-                        val lore = listOf(
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.common.page_info_label"), "$currentPage/$totalPages", "§a"),
-                                GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.shift_any"),
-                                        lang.getMessage(player, if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev")
-                                )
-                        )
-                        meta.lore(GuiItemFactory.menuLore(lore))
-                }
-
                 item.itemMeta = meta
                 return item
+        }
+
+        private fun createPageEntry(
+                player: Player,
+                slot: Int,
+                currentPage: Int,
+                totalPages: Int,
+                isNext: Boolean,
+                targetPage: Int,
+        ): MenuElement {
+                val lang = plugin.languageManager
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.ARROW,
+                                name = GuiNameSpec.Text(
+                                        lang.getMessage(player, if (isNext) "gui.common.next_page" else "gui.common.prev_page"),
+                                        com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
+                                ),
+                                role = GuiElementRole.NAVIGATION,
+                                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.common.page_info_label"), "$currentPage/$totalPages", GuiValueTone.SUCCESS)),
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_PAGE,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev"),
+                                        mapOf(PAGE to targetPage.toString()),
+                                )),
+                        ),
+                )
         }
 
         private fun buildMsptValue(player: Player, data: WorldData): DisplayValue {
