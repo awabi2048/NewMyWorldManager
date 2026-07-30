@@ -10,7 +10,10 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconData
 import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
@@ -874,42 +877,35 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 )
 
-                        val inactiveColor = lang.getMessage(player, "publish_level.color.inactive")
-                        val publishLore = GuiLoreSpec.Rich(buildList {
-                                        add(GuiLoreLine.Text(lang.getMessage(
-                                                player,
-                                                "publish_level.description.${worldData.publishLevel.name.lowercase()}"
-                                        )))
-                                        add(GuiLoreLine.Spacer)
-                                        // 現在値行は持たず、選択肢リスト内のマーカーで現在の公開レベルを示す。
-                                        addAll(StructuredLore.selectionLines(
-                                                levels.map { (level, name, color) ->
-                                                        StructuredLore.SelectionOption(
-                                                                label = name,
-                                                                selected = level == worldData.publishLevel,
-                                                                selectedColor = color,
-                                                                inactiveColor = inactiveColor
-                                                        )
-                                                }
-                                        ))
-                                        add(GuiLoreLine.Spacer)
-                                        add(GuiLoreActions.cycle(lang, player))
-                                }, GuiLoreFrame.BOTH)
-
-                        inventory.setItem(
-                                24,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 24,
+                                        material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "publish",
-                                                Material.OAK_DOOR
+                                                Material.OAK_DOOR,
                                         ),
-                                        lang.getMessage(player, "gui.settings.publish.display"),
-                                        publishLore,
-                                        null
-                                )
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.publish.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = GuiElementRole.ACTION,
+                                        description = listOf(lang.getMessage(
+                                                player,
+                                                "publish_level.description.${worldData.publishLevel.name.lowercase()}",
+                                        )),
+                                        options = levels.map { (level, name, _) ->
+                                                GuiMenuEntryOption(name, level == worldData.publishLevel)
+                                        },
+                                        actions = listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.common.action.cycle"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
+                                        )),
+                                ),
                         )
-                        inventory.bindRuntimeOperation(24, WorldSettingsRuntimeOperation.CYCLE_PUBLISH)
                 }
 
                 // スロット25: メンバー管理 (オーナーのみ)
@@ -1146,54 +1142,33 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         lang.getMessage(player, "gui.settings.notification.on")
                                 else lang.getMessage(player, "gui.settings.notification.off")
 
-                        val notificationItem =
-                                GuiItemFactory.menuIcon(
-                                        GuiMenuIconSpec(
-                                                material = Material.BELL,
-                                                name = GuiNameSpec.Text(
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.settings.notification.display"
-                                                        ),
-                                                        GuiNameStyle.DEFAULT
-                                                ),
-                                                role = GuiElementRole.CONTENT,
-                                                amount = 1,
-                                                description = lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.notification.blocks.description"
-                                                ),
-                                                data = listOf(
-                                                        GuiMenuIconData(
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.settings.notification.blocks.current_label"
-                                                                ),
-                                                                statusText,
-                                                                statusColor
-                                                        )
-                                                ),
-                                                options = emptyList(),
-                                                warnings = emptyList(),
-                                                dangers = emptyList(),
-                                                actions = listOf(
-                                                        GuiLoreActions.menuSingleClick(
-                                                                lang,
-                                                                player,
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.settings.notification.action.toggle"
-                                                                )
-                                                        )
-                                                ),
-                                                glint = worldData.notificationEnabled
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = notificationSettingSlot,
+                                        material = Material.BELL,
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.notification.display"),
+                                                GuiNameStyle.DEFAULT,
                                         ),
-                                        null
-                                )
-                        inventory.setItem(notificationSettingSlot, notificationItem)
-                        inventory.bindRuntimeOperation(
-                                notificationSettingSlot,
-                                WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION,
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(
+                                                player,
+                                                "gui.settings.notification.blocks.description",
+                                        ),
+                                        data = listOf(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.notification.blocks.current_label"),
+                                                statusText,
+                                                if (worldData.notificationEnabled) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
+                                        )),
+                                        actions = listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.settings.notification.action.toggle"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION.name),
+                                        )),
+                                        glint = worldData.notificationEnabled,
+                                ),
                         )
                 }
 
