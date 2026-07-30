@@ -26,7 +26,6 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
 import org.bukkit.Bukkit
@@ -99,22 +98,19 @@ class MeetGui(private val plugin: MyWorldManager) {
         val currentStatus = stats.meetStatus
         val statusNameKey = "general.status.${currentStatus.lowercase()}"
         val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
-        val statusLore = GuiLoreBuilder(lang, player)
-            .block(listOf(
-                GuiLoreLine.Data(lang.getMessage(player, "gui.meet.status_button.current"), statusName, "§e"),
-                GuiLoreLine.Text(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}"))
-            ))
-            .actions(lang.getMessage(player, "gui.meet.status_button.action"))
-            .build()
-        val statusItem = ItemStack(Material.PLAYER_HEAD)
-        (statusItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta)?.let { meta ->
-            meta.owningPlayer = player
-            meta.displayName(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name)))
-            meta.lore(statusLore)
-            statusItem.itemMeta = meta
-        }
-        ItemTag.tagItem(statusItem, ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE)
-        elements += MenuElement(layout.actionSlot, statusItem, GuiElementRole.ACTION, ACTION_STATUS)
+        elements += CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = layout.actionSlot,
+                material = Material.PLAYER_HEAD,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name))),
+                role = GuiElementRole.ACTION,
+                description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
+                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
+                actions = listOf(GuiMenuEntryAction(ACTION_STATUS, MenuAcceptedClicks.LEFT_RIGHT, lang.getMessage(player, "gui.meet.status_button.action"))),
+                playerHeadOwner = player.uniqueId,
+            ),
+        )
 
         if (currentPage > 0) {
             elements += MenuElement(

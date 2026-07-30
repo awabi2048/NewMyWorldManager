@@ -31,7 +31,6 @@ import me.awabi2048.myworldmanager.listener.CreationConfirmationAction
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreBuilder
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
@@ -373,37 +372,27 @@ class CreationGui(private val plugin: MyWorldManager) {
         val elements = mutableListOf<MenuElement>()
         templates.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, template ->
             val issue = plugin.templateRepository.validationIssue(template)
-            val loreBuilder = GuiLoreBuilder(lang, player)
-                .block(template.description.map(GuiLoreLine::Text))
-                .data(
-                    lang.getMessage(player, "gui.creation.template_detail.status_label"),
-                    lang.getMessage(
-                        player,
-                        if (issue == null) {
-                            "gui.creation.template_detail.status_available"
-                        } else {
-                            "gui.creation.template_detail.status_unavailable"
-                        }
-                    )
-                )
-            if (issue != null) {
-                loreBuilder.warning(templateValidationMessage(player, issue))
-            }
-            loreBuilder.actions(lang.getMessage(player, "gui.creation.template_item.action.details"))
-
-            val item = createItem(
-                template.icon,
-                template.name,
-                ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM,
-                loreBuilder.buildSpec()
-            )
-            ItemTag.setTemplateId(item, template.id)
-            elements += MenuElement(
-                layout.itemSlots[index],
-                item,
-                GuiElementRole.ACTION,
-                ACTION_SELECT_TEMPLATE,
-                mapOf("template" to template.id),
+            elements += CCSystem.getAPI().getGuiElementService().menuEntry(
+                player,
+                GuiMenuEntrySpec(
+                    slot = layout.itemSlots[index],
+                    material = template.icon,
+                    name = GuiNameSpec.Text(template.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                    role = GuiElementRole.ACTION,
+                    description = template.description,
+                    data = listOf(GuiMenuEntryData(
+                        lang.getMessage(player, "gui.creation.template_detail.status_label"),
+                        lang.getMessage(player, if (issue == null) "gui.creation.template_detail.status_available" else "gui.creation.template_detail.status_unavailable"),
+                        if (issue == null) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
+                    )),
+                    warnings = issue?.let { listOf(templateValidationMessage(player, it)) }.orEmpty(),
+                    actions = listOf(GuiMenuEntryAction(
+                        ACTION_SELECT_TEMPLATE,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.creation.template_item.action.details"),
+                        mapOf("template" to template.id),
+                    )),
+                ),
             )
         }
         if (page.page > 0) {
@@ -499,31 +488,17 @@ class CreationGui(private val plugin: MyWorldManager) {
         val elements = mutableListOf<MenuElement>()
         elements += MenuElement(layout.leftSlot, detailItem, GuiElementRole.CONTENT)
         if (issue == null) {
-            elements += MenuElement(
-                layout.centerSlot,
-                createItem(
-                    Material.LIME_CONCRETE,
-                    lang.getMessage(player, "gui.creation.template_detail.use"),
-                    ItemTag.TYPE_GUI_CREATION_TEMPLATE_USE,
-                    GuiLoreBuilder(lang, player)
-                        .actions(lang.getMessage(player, "gui.creation.template_detail.use_action"))
-                        .buildSpec()
-                ),
-                GuiElementRole.ACTION,
+            elements += actionEntry(
+                player, layout.centerSlot, Material.LIME_CONCRETE,
+                lang.getMessage(player, "gui.creation.template_detail.use"),
                 ACTION_USE_TEMPLATE,
+                lang.getMessage(player, "gui.creation.template_detail.use_action"),
             )
-            elements += MenuElement(
-                layout.rightSlot,
-                createItem(
-                    Material.ENDER_EYE,
-                    lang.getMessage(player, "gui.creation.template_detail.preview"),
-                    ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW,
-                    GuiLoreBuilder(lang, player)
-                        .actions(lang.getMessage(player, "gui.creation.template_detail.preview_action"))
-                        .buildSpec()
-                ),
-                GuiElementRole.ACTION,
+            elements += actionEntry(
+                player, layout.rightSlot, Material.ENDER_EYE,
+                lang.getMessage(player, "gui.creation.template_detail.preview"),
                 ACTION_PREVIEW_TEMPLATE,
+                lang.getMessage(player, "gui.creation.template_detail.preview_action"),
             )
         }
         elements += MenuElement(
@@ -901,6 +876,24 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun clearSettingsGuiTransition(player: Player) {
     }
+
+    private fun actionEntry(
+        player: Player,
+        slot: Int,
+        material: Material,
+        name: String,
+        actionId: String,
+        actionText: String,
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+        player,
+        GuiMenuEntrySpec(
+            slot = slot,
+            material = material,
+            name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+            role = GuiElementRole.ACTION,
+            actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, actionText)),
+        ),
+    )
 
     private class SessionCreationDraft(
         private val session: WorldCreationSession,

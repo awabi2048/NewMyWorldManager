@@ -2,13 +2,17 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -19,9 +23,6 @@ import java.util.concurrent.ConcurrentHashMap
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TemplateData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreBuilder
-import me.awabi2048.myworldmanager.util.ItemTag
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -91,106 +92,57 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val choices = GuiHelper.threeChoiceLayout()
         val elements = mutableListOf<MenuElement>()
 
-        elements += MenuElement(
-            13,
-            setting(
-                Material.FILLED_MAP,
-                lang.getMessage(player, "gui.template_wizard.status.display"),
-                GuiLoreBuilder(lang, player)
-                    .data(lang.getMessage(player, "gui.template_wizard.status.source_world"), session.sourceWorldKey)
-                    .data(
-                        lang.getMessage(player, "gui.template_wizard.status.template_id"),
-                        session.id.ifEmpty { lang.getMessage(player, "general.unknown") },
-                    )
-                    .data(
-                        lang.getMessage(player, "gui.template_wizard.status.spawn"),
-                        session.originLocation?.let { "(${it.blockX}, ${it.blockY}, ${it.blockZ})" }
-                            ?: lang.getMessage(player, "general.unknown"),
-                    )
-                    .buildSpec(),
-                ItemTag.TYPE_GUI_INFO,
-            ),
+        elements += menuEntry(
+            player, 13, Material.FILLED_MAP,
+            lang.getMessage(player, "gui.template_wizard.status.display"),
             GuiElementRole.CONTENT,
+            data = listOf(
+                GuiMenuEntryData(lang.getMessage(player, "gui.template_wizard.status.source_world"), session.sourceWorldKey),
+                GuiMenuEntryData(lang.getMessage(player, "gui.template_wizard.status.template_id"), session.id.ifEmpty { lang.getMessage(player, "general.unknown") }),
+                GuiMenuEntryData(
+                    lang.getMessage(player, "gui.template_wizard.status.spawn"),
+                    session.originLocation?.let { "(${it.blockX}, ${it.blockY}, ${it.blockZ})" }
+                        ?: lang.getMessage(player, "general.unknown"),
+                ),
+            )
         )
-        elements += MenuElement(
-            choices.leftSlot,
-            setting(
+        elements += actionEntry(
+            player, choices.leftSlot,
                 plugin.menuConfigManager.getIconMaterial(MENU_ID, "name_input", Material.NAME_TAG),
                 lang.getMessage(player, "gui.template_wizard.name_input.display"),
-                GuiLoreBuilder(lang, player)
-                    .block(lang.getMessageList(
-                        player,
-                        "gui.template_wizard.name_input.description",
-                        mapOf(
-                            "name" to session.name.ifEmpty { "未設定" },
-                            "id" to session.id.ifEmpty { "未設定" },
-                        ),
-                    ).map(GuiLoreLine::Text))
-                    .actions(lang.getMessage(player, "gui.template_wizard.name_input.action"))
-                    .buildSpec(),
-                "name_input",
-            ),
-            GuiElementRole.ACTION,
-            ACTION_NAME,
-        )
-        elements += MenuElement(
-            choices.centerSlot,
-            setting(
+                lang.getMessageList(player, "gui.template_wizard.name_input.description", mapOf(
+                    "name" to session.name.ifEmpty { "未設定" },
+                    "id" to session.id.ifEmpty { "未設定" },
+                )),
+                ACTION_NAME,
+                lang.getMessage(player, "gui.template_wizard.name_input.action"),
+            )
+        elements += actionEntry(
+            player, choices.centerSlot,
                 plugin.menuConfigManager.getIconMaterial(MENU_ID, "desc_input", Material.WRITABLE_BOOK),
                 lang.getMessage(player, "gui.template_wizard.desc_input.display"),
-                GuiLoreBuilder(lang, player)
-                    .block(lang.getMessageList(
-                        player,
-                        "gui.template_wizard.desc_input.description",
-                        mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" }),
-                    ).map(GuiLoreLine::Text))
-                    .actions(lang.getMessage(player, "gui.template_wizard.desc_input.action"))
-                    .buildSpec(),
-                "desc_input",
-            ),
-            GuiElementRole.ACTION,
-            ACTION_DESCRIPTION,
-        )
-        elements += MenuElement(
-            choices.rightSlot,
-            setting(
+                lang.getMessageList(player, "gui.template_wizard.desc_input.description", mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" })),
+                ACTION_DESCRIPTION,
+                lang.getMessage(player, "gui.template_wizard.desc_input.action"),
+            )
+        elements += actionEntry(
+            player, choices.rightSlot,
                 session.icon,
                 lang.getMessage(player, "gui.template_wizard.icon_select.display"),
-                GuiLoreBuilder(lang, player)
-                    .block(lang.getMessageList(
-                        player,
-                        "gui.template_wizard.icon_select.description",
-                        mapOf("icon" to session.icon.name),
-                    ).map(GuiLoreLine::Text))
-                    .actions(lang.getMessage(player, "gui.template_wizard.icon_select.action"))
-                    .buildSpec(),
-                "icon_select",
-            ),
-            GuiElementRole.ACTION,
-            ACTION_ICON,
-        )
-        elements += MenuElement(
-            31,
-            setting(
+                lang.getMessageList(player, "gui.template_wizard.icon_select.description", mapOf("icon" to session.icon.name)),
+                ACTION_ICON,
+                lang.getMessage(player, "gui.template_wizard.icon_select.action"),
+            )
+        elements += actionEntry(
+            player, 31,
                 plugin.menuConfigManager.getIconMaterial(MENU_ID, "origin_set", Material.COMPASS),
                 lang.getMessage(player, "gui.template_wizard.origin_set.display"),
-                GuiLoreBuilder(lang, player)
-                    .block(lang.getMessageList(
-                        player,
-                        "gui.template_wizard.origin_set.description",
-                        mapOf(
-                            "origin" to (session.originLocation?.let {
-                                "${it.blockX}, ${it.blockY}, ${it.blockZ}"
-                            } ?: "未設定"),
-                        ),
-                    ).map(GuiLoreLine::Text))
-                    .actions(lang.getMessage(player, "gui.template_wizard.origin_set.action"))
-                    .buildSpec(),
-                "origin_set",
-            ),
-            GuiElementRole.ACTION,
-            ACTION_ORIGIN,
-        )
+                lang.getMessageList(player, "gui.template_wizard.origin_set.description", mapOf(
+                    "origin" to (session.originLocation?.let { "${it.blockX}, ${it.blockY}, ${it.blockZ}" } ?: "未設定"),
+                )),
+                ACTION_ORIGIN,
+                lang.getMessage(player, "gui.template_wizard.origin_set.action"),
+            )
 
         val missing = buildList {
             if (session.id.isEmpty() || session.name.isEmpty()) {
@@ -204,60 +156,35 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             }
         }
         elements += if (missing.isEmpty()) {
-            MenuElement(
-                40,
-                setting(
+            actionEntry(
+                player, 40,
                     plugin.menuConfigManager.getIconMaterial(MENU_ID, "save_confirm", Material.NETHER_STAR),
                     lang.getMessage(player, "gui.template_wizard.save_confirm.display"),
-                    GuiLoreBuilder(lang, player)
-                        .block(lang.getMessageList(
-                            player,
-                            "gui.template_wizard.save_confirm.description",
-                        ).map(GuiLoreLine::Text))
-                        .actions(lang.getMessage(player, "gui.template_wizard.save_confirm.action"))
-                        .buildSpec(),
-                    "save_confirm",
-                ),
-                GuiElementRole.CONFIRM,
+                    lang.getMessageList(player, "gui.template_wizard.save_confirm.description"),
                 ACTION_SAVE,
+                lang.getMessage(player, "gui.template_wizard.save_confirm.action"),
+                GuiElementRole.CONFIRM,
             )
         } else {
-            MenuElement(
-                40,
-                setting(
-                    Material.BARRIER,
-                    lang.getMessage(player, "gui.template_wizard.requirement.display"),
-                    GuiLoreBuilder(lang, player).block(missing.map(GuiLoreLine::Warning)).buildSpec(),
-                    ItemTag.TYPE_GUI_INFO,
-                ),
+            menuEntry(
+                player, 40, Material.BARRIER,
+                lang.getMessage(player, "gui.template_wizard.requirement.display"),
                 GuiElementRole.CONTENT,
+                warnings = missing,
             )
         }
-        elements += MenuElement(
-            39,
-            setting(
-                Material.SPYGLASS,
-                lang.getMessage(player, "gui.template_wizard.validate.display"),
-                GuiLoreBuilder(lang, player)
-                    .actions(lang.getMessage(player, "gui.template_wizard.validate.action"))
-                    .buildSpec(),
-                "wizard_validate",
-            ),
-            GuiElementRole.ACTION,
-            ACTION_VALIDATE,
+        elements += actionEntry(
+            player, 39, Material.SPYGLASS,
+            lang.getMessage(player, "gui.template_wizard.validate.display"),
+            emptyList(), ACTION_VALIDATE,
+            lang.getMessage(player, "gui.template_wizard.validate.action"),
         )
-        elements += MenuElement(
-            49,
-            setting(
-                Material.RED_CONCRETE,
-                lang.getMessage(player, "gui.template_wizard.cancel.display"),
-                GuiLoreBuilder(lang, player)
-                    .actions(lang.getMessage(player, "gui.template_wizard.cancel.action"))
-                    .buildSpec(),
-                "wizard_cancel",
-            ),
+        elements += actionEntry(
+            player, 49, Material.RED_CONCRETE,
+            lang.getMessage(player, "gui.template_wizard.cancel.display"),
+            emptyList(), ACTION_CANCEL,
+            lang.getMessage(player, "gui.template_wizard.cancel.action"),
             GuiElementRole.CANCEL,
-            ACTION_CANCEL,
         )
         return InventoryMenuView(
             layout.size,
@@ -376,8 +303,40 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
     private fun session(context: MenuActionContext): WizardSession? = sessions[context.player.uniqueId]
 
-    private fun setting(material: Material, display: String, lore: GuiLoreSpec, id: String): ItemStack =
-        GuiItemFactory.item(material, display, lore, id)
+    private fun menuEntry(
+        player: Player,
+        slot: Int,
+        material: Material,
+        name: String,
+        role: GuiElementRole,
+        description: List<String> = emptyList(),
+        data: List<GuiMenuEntryData> = emptyList(),
+        warnings: List<String> = emptyList(),
+        actions: List<GuiMenuEntryAction> = emptyList(),
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+        player,
+        GuiMenuEntrySpec(
+            slot, material, GuiNameSpec.Text(name, GuiNameStyle.DEFAULT), role,
+            description = description,
+            data = data,
+            warnings = warnings,
+            actions = actions,
+        ),
+    )
+
+    private fun actionEntry(
+        player: Player,
+        slot: Int,
+        material: Material,
+        name: String,
+        description: List<String>,
+        actionId: String,
+        actionText: String,
+        role: GuiElementRole = GuiElementRole.ACTION,
+    ): MenuElement = menuEntry(
+        player, slot, material, name, role, description = description,
+        actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, actionText)),
+    )
 
     fun getSession(uuid: UUID) = sessions[uuid]
     fun removeSession(uuid: UUID) = sessions.remove(uuid)

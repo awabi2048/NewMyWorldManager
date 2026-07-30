@@ -9,8 +9,6 @@ import com.awabi2048.ccsystem.api.gui.GuiFrameSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconAction
-import com.awabi2048.ccsystem.api.gui.GuiMenuIconSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import net.kyori.adventure.text.Component
@@ -25,40 +23,6 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.meta.SkullMeta
 
 private val guiLegacySerializer = LegacyComponentSerializer.legacySection()
-
-data class GuiLoreAction(val operation: String, val action: String)
-
-object GuiLoreActions {
-    fun cycle(languageManager: LanguageManager, player: Player): GuiLoreLine.Action {
-        return CCSystem.getAPI().getGuiActionService().cycle(player)
-    }
-
-    fun singleClick(languageManager: LanguageManager, player: Player, action: String): GuiLoreLine.SingleAction {
-        return CCSystem.getAPI().getGuiActionService().singleClick(player, action)
-    }
-
-    fun single(
-        languageManager: LanguageManager,
-        player: Player,
-        operation: String,
-        action: String
-    ): GuiLoreLine.SingleAction {
-        return CCSystem.getAPI().getGuiActionService().single(player, operation, action)
-    }
-
-    fun menuSingleClick(
-        languageManager: LanguageManager,
-        player: Player,
-        action: String,
-        enabled: Boolean = true,
-    ): GuiMenuIconAction {
-        return CCSystem.getAPI().getGuiActionService().menuSingleClick(
-            player,
-            action,
-            enabled,
-        )
-    }
-}
 
 private data class GuiLoreSection(
     val lines: List<GuiLoreLine>,
@@ -91,36 +55,6 @@ class GuiLoreBuilder(
             addSection(entries.map { (name, value) -> GuiLoreLine.Data(name, value, "§7") })
         }
         return this
-    }
-
-    fun actions(action: String): GuiLoreBuilder {
-        joinActionWithPreviousContent()
-        addSection(listOf(GuiLoreActions.singleClick(languageManager, player, action)))
-        return this
-    }
-
-    /**
-     * 操作案内の件数を一箇所で判定し、単一操作と複数操作の表示規則を統一する。
-     */
-    fun actions(actions: List<GuiLoreAction>): GuiLoreBuilder {
-        if (actions.isEmpty()) return this
-
-        joinActionWithPreviousContent()
-        if (actions.size == 1) {
-            val action = actions.single()
-            addSection(
-                listOf(GuiLoreActions.single(languageManager, player, action.operation, action.action))
-            )
-        } else {
-            addSection(actions.map { GuiLoreLine.Action(it.operation, it.action) })
-        }
-        return this
-    }
-
-    private fun joinActionWithPreviousContent() {
-        if (sections.isNotEmpty() && !sections.last().isSpacer) {
-            spacer()
-        }
     }
 
     fun warning(text: String): GuiLoreBuilder {
@@ -203,15 +137,6 @@ object GuiItemFactory {
     fun decoration(material: Material, tag: String = ItemTag.TYPE_GUI_DECORATION): ItemStack {
         val item = CCSystem.getAPI().getGuiElementService().item(decorationSpec(material))
         ItemTag.tagItem(item, tag)
-        return item
-    }
-
-    fun menuIcon(
-        spec: GuiMenuIconSpec,
-        tag: String? = null,
-    ): ItemStack {
-        val item = CCSystem.getAPI().getGuiElementService().menuIcon(spec)
-        tag?.let { ItemTag.tagItem(item, it) }
         return item
     }
 

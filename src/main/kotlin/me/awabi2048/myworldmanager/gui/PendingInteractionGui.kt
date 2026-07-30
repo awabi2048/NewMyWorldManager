@@ -189,7 +189,8 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             createdAt = entry.createdAt,
             decisionId = decisionId,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_INFO
+            itemTagType = ItemTag.TYPE_GUI_INFO,
+            showAction = false,
         )
 
         val confirmLabel = plugin.languageManager.getMessage(
@@ -265,7 +266,8 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             createdAt = entry.createdAt,
             decisionId = decisionId,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_INFO
+            itemTagType = ItemTag.TYPE_GUI_INFO,
+            showAction = false,
         )
 
         val confirmLabel = plugin.languageManager.getMessage(

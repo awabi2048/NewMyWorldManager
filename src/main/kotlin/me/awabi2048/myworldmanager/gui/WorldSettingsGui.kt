@@ -1299,34 +1299,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                                 ?: emptyList()
                 if (hasManagePermission && visitors.isNotEmpty()) {
-                        val visitorLore =
-                                GuiLoreBuilder(lang, player)
-                                        .block(listOf(GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.settings.visitors.blocks.count_label"),
-                                                visitors.size,
-                                                "§e"
-                                        )))
-                                        .actions(
-                                                lang.getMessage(player, "gui.settings.visitors.action.open")
-                                        )
-                                        .buildSpec()
-
-                        inventory.setItem(
-                                51,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "visitor",
-                                                Material.SPYGLASS
-                                        ),
-                                        lang.getMessage(player, "gui.settings.visitors.display"),
-                                        visitorLore,
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                51,
-                                WorldSettingsRuntimeOperation.MANAGE_VISITORS,
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 51,
+                                        material = plugin.menuConfigManager.getIconMaterial("world_settings", "visitor", Material.SPYGLASS),
+                                        name = GuiNameSpec.Text(lang.getMessage(player, "gui.settings.visitors.display"), GuiNameStyle.DEFAULT),
+                                        role = GuiElementRole.ACTION,
+                                        data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.settings.visitors.blocks.count_label"), visitors.size, GuiValueTone.PRIMARY)),
+                                        actions = listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.settings.visitors.action.open"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MANAGE_VISITORS.name),
+                                        )),
+                                ),
                         )
                 }
 
@@ -2953,16 +2940,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                     } catch (e: Exception) { 0L }
                 } else 0L
 
-                val archiveLoreBuilder = GuiLoreBuilder(lang, player)
-                    .block(lang.getMessageList(player, "gui.critical.archive_world.description").map(GuiLoreLine::Text))
-                if (isOnCooldown) {
-                    archiveLoreBuilder
-                        .warning(lang.getMessage(player, "gui.critical.archive_world.cooldown_warning", mapOf("cooldown_hours" to cooldownHours)))
-                        .block(listOf(GuiLoreLine.StyledText(lang.getMessage(player, "gui.critical.archive_world.remaining", mapOf("hours_remaining" to hoursRemaining)), "§8", false)))
-                } else {
-                    archiveLoreBuilder.actions(lang.getMessage(player, "gui.critical.archive_world.action"))
-                }
-                val archiveLore = archiveLoreBuilder.buildSpec()
+                val archiveDescription = lang.getMessageList(player, "gui.critical.archive_world.description") +
+                        if (isOnCooldown) listOf(lang.getMessage(player, "gui.critical.archive_world.remaining", mapOf("hours_remaining" to hoursRemaining))) else emptyList()
+                val archiveWarnings = if (isOnCooldown) {
+                        listOf(lang.getMessage(player, "gui.critical.archive_world.cooldown_warning", mapOf("cooldown_hours" to cooldownHours)))
+                } else emptyList()
 
                 // 動的スロット配置: ボーダー拡張の有無に応じて決定
                 // - 拡張あり (level > 0): スロット20=リセット, 22=アーカイブ, 24=削除
@@ -2973,96 +2955,66 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (isExpansionEnabled || hasSpecialExpansion) {
                     // 拡張リセットボタン (スロット20)
                     val currentLevel = worldData.borderExpansionLevel
-                    val resetLore: GuiLoreSpec
-
                     if (currentLevel > 0) {
                         val resetRefund = (calculateTotalExpansionCost(currentLevel) * refundRate).toInt()
-                        resetLore = GuiLoreBuilder(lang, player)
-                            .block(listOf(
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.critical.reset_expansion.level_label"), currentLevel.toString(), "§e"),
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.critical.reset_expansion.refund_label"), resetRefund.toString(), "§e")
-                            ))
-                            .warning(lang.getMessage(player, "gui.critical.reset_expansion.warning"))
-                            .actions(lang.getMessage(player, "gui.critical.reset_expansion.action"))
-                            .buildSpec()
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 20,
+                                        material = Material.BARRIER,
+                                        name = GuiNameSpec.Text(lang.getMessage(player, "gui.critical.reset_expansion.display"), GuiNameStyle.DEFAULT),
+                                        role = GuiElementRole.ACTION,
+                                        data = listOf(
+                                                GuiMenuEntryData(lang.getMessage(player, "gui.critical.reset_expansion.level_label"), currentLevel, GuiValueTone.PRIMARY),
+                                                GuiMenuEntryData(lang.getMessage(player, "gui.critical.reset_expansion.refund_label"), resetRefund, GuiValueTone.PRIMARY),
+                                        ),
+                                        warnings = listOf(lang.getMessage(player, "gui.critical.reset_expansion.warning")),
+                                        actions = listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.critical.reset_expansion.action"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.RESET_EXPANSION.name),
+                                        )),
+                                ),
+                        )
                     } else {
-                        resetLore = GuiLoreSpec.Rich(
-                            listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.critical.reset_expansion.unavailable"))),
-                            GuiLoreFrame.BOTH
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 20,
+                                        material = Material.BARRIER,
+                                        name = GuiNameSpec.Text(lang.getMessage(player, "gui.critical.reset_expansion.display"), GuiNameStyle.DEFAULT),
+                                        role = GuiElementRole.CONTENT,
+                                        warnings = listOf(lang.getMessage(player, "gui.critical.reset_expansion.unavailable")),
+                                ),
                         )
-                    }
-
-                    inventory.setItem(
-                        20,
-                        createItem(
-                            Material.BARRIER,
-                            lang.getMessage(player, "gui.critical.reset_expansion.display"),
-                            resetLore,
-                            null
-                        )
-                    )
-                    if (currentLevel > 0) {
-                            inventory.bindRuntimeOperation(
-                                    20,
-                                    WorldSettingsRuntimeOperation.RESET_EXPANSION,
-                            )
                     }
 
                     // アーカイブボタン (スロット22)
-                    inventory.setItem(
-                        22,
-                            createItem(
+                    inventory.setMenuEntry(player, criticalActionSpec(
+                            player, 22,
                             plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
                             lang.getMessage(player, "gui.critical.archive_world.display"),
-                            archiveLore,
-                            null
-                        )
-                    )
-                    if (!isOnCooldown) {
-                            inventory.bindRuntimeOperation(22, WorldSettingsRuntimeOperation.ARCHIVE)
-                    }
+                            archiveDescription, archiveWarnings, !isOnCooldown,
+                            WorldSettingsRuntimeOperation.ARCHIVE,
+                            lang.getMessage(player, "gui.critical.archive_world.action"),
+                    ))
                 } else {
                     // 拡張なし: アーカイブは slot 24
-                    inventory.setItem(
-                        24,
-                            createItem(
+                    inventory.setMenuEntry(player, criticalActionSpec(
+                            player, 24,
                             plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
                             lang.getMessage(player, "gui.critical.archive_world.display"),
-                            archiveLore,
-                            null
-                        )
-                    )
-                    if (!isOnCooldown) {
-                            inventory.bindRuntimeOperation(24, WorldSettingsRuntimeOperation.ARCHIVE)
-                    }
+                            archiveDescription, archiveWarnings, !isOnCooldown,
+                            WorldSettingsRuntimeOperation.ARCHIVE,
+                            lang.getMessage(player, "gui.critical.archive_world.action"),
+                    ))
                 }
 
                 // 削除ボタン
                 val ownerStats = plugin.playerStatsRepository.findByUuid(worldData.owner)
                 val canDeleteWorld = !MyWorldManagerApi.isWorldSlotSystemEnabled() ||
                         ownerStats.unlockedWorldSlot > 0
-                val deletePlaceholders = mapOf(
-                        "points" to refund,
-                        "percent" to percent,
-                        "slots" to ownerStats.unlockedWorldSlot
-                    )
-                val deleteLore = if (canDeleteWorld) {
-                    GuiLoreBuilder(lang, player)
-                        .block(listOf(
-                            GuiLoreLine.Text(lang.getMessage(player, "gui.critical.delete_world.description")),
-                            GuiLoreLine.Data(lang.getMessage(player, "gui.critical.delete_world.refund_label"), refund.toString(), "§e"),
-                            GuiLoreLine.StyledText(lang.getMessage(player, "gui.critical.delete_world.refund_note", mapOf("percent" to percent)), "§8", false)
-                        ))
-                        .warning(lang.getMessage(player, "gui.critical.delete_world.warning"))
-                        .actions(lang.getMessage(player, "gui.critical.delete_world.action"))
-                        .buildSpec()
-                } else {
-                    GuiLoreBuilder(lang, player)
-                        .block(listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.critical.delete_world.description"))))
-                        .warning(lang.getMessage(player, "gui.critical.delete_world.unavailable_slot"))
-                        .block(listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.critical.delete_world.owner_slots_label"), ownerStats.unlockedWorldSlot.toString(), "§e")))
-                        .buildSpec()
-                }
                 val deleteDisplayName = if (canDeleteWorld) {
                         lang.getMessage(player, "gui.critical.delete_world.display")
                 } else {
@@ -3070,21 +3022,29 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 val deleteSlot = if (isExpansionEnabled || hasSpecialExpansion) 24 else 20
-                inventory.setItem(
-                        deleteSlot,
-                        createItem(
-                                Material.LAVA_BUCKET,
-                                deleteDisplayName,
-                                deleteLore,
-                                null
-                        )
+                inventory.setMenuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = deleteSlot,
+                                material = Material.LAVA_BUCKET,
+                                name = GuiNameSpec.Text(deleteDisplayName, GuiNameStyle.DEFAULT),
+                                role = if (canDeleteWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                                description = listOf(lang.getMessage(player, "gui.critical.delete_world.description")) +
+                                        if (canDeleteWorld) listOf(lang.getMessage(player, "gui.critical.delete_world.refund_note", mapOf("percent" to percent))) else emptyList(),
+                                data = if (canDeleteWorld) {
+                                        listOf(GuiMenuEntryData(lang.getMessage(player, "gui.critical.delete_world.refund_label"), refund, GuiValueTone.PRIMARY))
+                                } else {
+                                        listOf(GuiMenuEntryData(lang.getMessage(player, "gui.critical.delete_world.owner_slots_label"), ownerStats.unlockedWorldSlot, GuiValueTone.PRIMARY))
+                                },
+                                warnings = listOf(lang.getMessage(player, if (canDeleteWorld) "gui.critical.delete_world.warning" else "gui.critical.delete_world.unavailable_slot")),
+                                actions = if (canDeleteWorld) listOf(GuiMenuEntryAction(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, "gui.critical.delete_world.action"),
+                                        mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.DELETE_WORLD.name),
+                                )) else emptyList(),
+                        ),
                 )
-                if (canDeleteWorld) {
-                        inventory.bindRuntimeOperation(
-                                deleteSlot,
-                                WorldSettingsRuntimeOperation.DELETE_WORLD,
-                        )
-                }
 
                 // 戻るボタン (スロット36から40へ移動)
                 inventory.setItem(
@@ -3104,6 +3064,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         private fun calculateTotalExpansionCost(level: Int): Int {
                 return WorldRuntimePolicies.totalExpansionCost(plugin.config, level)
         }
+
+        private fun criticalActionSpec(
+                player: Player,
+                slot: Int,
+                material: Material,
+                name: String,
+                description: List<String>,
+                warnings: List<String>,
+                enabled: Boolean,
+                operation: WorldSettingsRuntimeOperation,
+                actionText: String,
+        ): GuiMenuEntrySpec = GuiMenuEntrySpec(
+                slot = slot,
+                material = material,
+                name = GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
+                role = if (enabled) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                description = description,
+                warnings = warnings,
+                actions = if (enabled) listOf(GuiMenuEntryAction(
+                        ACTION_RUNTIME_DISPATCH,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        actionText,
+                        mapOf(ROUTE_OPERATION to operation.name),
+                )) else emptyList(),
+        )
 
         fun openResetExpansionConfirmation(player: Player, worldData: WorldData) {
                 plugin.settingsSessionManager.updateSessionAction(
