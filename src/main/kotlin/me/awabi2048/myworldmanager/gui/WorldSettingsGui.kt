@@ -220,6 +220,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 open(player, worldData, replaceCurrent = true)
         }
 
+        internal fun route(worldUuid: UUID): MenuRoute =
+                MenuRoute(
+                        RUNTIME_OWNER,
+                        RUNTIME_ROUTE,
+                        mapOf(
+                                ROUTE_SCREEN to WorldSettingsRuntimeScreen.WORLD_SETTINGS.name,
+                                ROUTE_WORLD_UUID to worldUuid.toString(),
+                        ),
+                )
+
         private class RuntimeItemBuffer(val size: Int) {
                 private val items = arrayOfNulls<ItemStack>(size)
                 private val semantics = mutableMapOf<Int, RuntimeItemSemantics>()

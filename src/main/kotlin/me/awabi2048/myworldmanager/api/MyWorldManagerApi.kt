@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.api
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
@@ -122,13 +123,13 @@ object MyWorldManagerApi {
         worldSettingsPresentationPolicies.toList()
 
     @JvmStatic
-    fun openWorldSettings(
+    fun prepareWorldSettingsRoute(
         player: Player,
         worldUuid: UUID,
         request: WorldSettingsNavigationRequest = WorldSettingsNavigationRequest(),
-    ): Boolean {
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute? {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
+        plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
         plugin.settingsSessionManager.updateSessionAction(
             player,
             worldUuid,
@@ -138,14 +139,18 @@ object MyWorldManagerApi {
             isPlayerWorldFlow = request.isPlayerWorldFlow,
             parentShowBackButton = request.parentShowBackButton,
         )
-        plugin.worldSettingsGui.open(
-            player,
-            worldData,
-            request.showBackButton,
-            request.isPlayerWorldFlow,
-            request.parentShowBackButton,
-        )
-        return true
+        plugin.settingsSessionManager.getSession(player)?.showBackButton = request.showBackButton
+        return plugin.worldSettingsGui.route(worldUuid)
+    }
+
+    @JvmStatic
+    fun openWorldSettings(
+        player: Player,
+        worldUuid: UUID,
+        request: WorldSettingsNavigationRequest = WorldSettingsNavigationRequest(),
+    ): Boolean {
+        val route = prepareWorldSettingsRoute(player, worldUuid, request) ?: return false
+        return CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
     }
 
     @JvmStatic
