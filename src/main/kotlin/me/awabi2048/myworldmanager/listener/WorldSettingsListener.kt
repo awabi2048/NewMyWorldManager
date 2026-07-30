@@ -78,6 +78,7 @@ import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeContext
+import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation
 import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeScreen
 
 class WorldSettingsListener : Listener {
@@ -127,9 +128,9 @@ class WorldSettingsListener : Listener {
                 val worldData = runtimeContext.worldUuid?.let(plugin.worldConfigRepository::findByUuid)
                         ?: plugin.worldConfigRepository.findByUuid(session.worldUuid)
                         ?: return MenuActionResult.Ignored
-                val itemTag = ItemTag.getType(item) ?: return MenuActionResult.Ignored
+                val operation = runtimeContext.operation ?: return MenuActionResult.Ignored
 
-                if (itemTag == ItemTag.TYPE_GUI_WORLD_SETTINGS_INFO_WARP && ItemTag.getWorldUuid(item) == worldData.uuid) {
+                if (operation == WorldSettingsRuntimeOperation.WARP) {
                         if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid) {
                                 return MenuActionResult.Ignored
                         }
@@ -149,24 +150,23 @@ class WorldSettingsListener : Listener {
                         return MenuActionResult.Success(MenuUpdate.None)
                 }
 
-                val restrictedTags = setOf(
-                        ItemTag.TYPE_GUI_SETTING_SPAWN,
-                        ItemTag.TYPE_GUI_SETTING_EXPAND_DIRECTION,
-                        ItemTag.TYPE_GUI_SETTING_EXPAND,
-                        ItemTag.TYPE_GUI_SETTING_ENVIRONMENT,
-                        ItemTag.TYPE_GUI_SETTING_CRITICAL,
+                val restrictedOperations = setOf(
+                        WorldSettingsRuntimeOperation.SET_SPAWN,
+                        WorldSettingsRuntimeOperation.EXPAND,
+                        WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT,
+                        WorldSettingsRuntimeOperation.OPEN_CRITICAL,
                 )
-                if (itemTag in restrictedTags) {
+                if (operation in restrictedOperations) {
                         val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                         if (player.world.name != targetWorldName) {
-                                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                                return MenuActionResult.Ignored
+                                return MenuActionResult.Rejected()
                         }
                 }
 
-                when (itemTag) {
-                        ItemTag.TYPE_GUI_RETURN -> return MenuActionResult.Success(MenuUpdate.Back)
-                        ItemTag.TYPE_GUI_SETTING_INFO -> {
+                when (operation) {
+                        WorldSettingsRuntimeOperation.BACK ->
+                                return MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.EDIT_INFO -> {
                                 if (openBedrockWorldInfoInputForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                         plugin.floodgateFormBridge.notifyFallbackCancelled(player)
@@ -176,7 +176,7 @@ class WorldSettingsListener : Listener {
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
                                 showWorldInfoDialog(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_SPAWN -> {
+                        WorldSettingsRuntimeOperation.SET_SPAWN -> {
                                 val isGuest = click.isLeftClick
                                 val action = if (isGuest) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
                                 val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
@@ -194,8 +194,8 @@ class WorldSettingsListener : Listener {
                                 startSpawnPreview(player)
                                 CCSystem.getAPI().getMenuRuntimeService().close(player)
                         }
-                        ItemTag.TYPE_GUI_SETTING_ICON -> startIconSelection(player, worldData)
-                        ItemTag.TYPE_GUI_SETTING_EXPAND -> {
+                        WorldSettingsRuntimeOperation.SELECT_ICON -> startIconSelection(player, worldData)
+                        WorldSettingsRuntimeOperation.EXPAND -> {
                                 if (MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) != true) {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "gui.settings.common.must_be_in_world"))
                                         return MenuActionResult.Ignored
@@ -214,7 +214,7 @@ class WorldSettingsListener : Listener {
                                 }
                                 plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_PUBLISH -> {
+                        WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> {
                                 if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
                                         return reopenWorldSettingsLatest(player, worldData)
                                 }
@@ -228,26 +228,13 @@ class WorldSettingsListener : Listener {
                                 plugin.worldConfigRepository.save(worldData)
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_MEMBER -> plugin.worldSettingsGui.openMemberManagement(player, worldData)
-                        ItemTag.TYPE_GUI_SETTING_ARCHIVE -> {
-                                val title = LegacyComponentSerializer.legacySection().deserialize(plugin.languageManager.getMessage(player, "gui.archive.confirm_title"))
-                                val bodyLines = listOf(LegacyComponentSerializer.legacySection().deserialize(
-                                        plugin.languageManager.getMessage(player, "gui.common.confirm_warning")
-                                ))
-                                plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.ARCHIVE_WORLD, isGui = true)
-                                DialogConfirmManager.showConfirmationByPreference(
-                                        player, plugin, title, bodyLines, "mwm:confirm/archive_world", "mwm:confirm/cancel",
-                                        plugin.languageManager.getMessage(player, "gui.archive.confirm"),
-                                        plugin.languageManager.getMessage(player, "gui.common.cancel"),
-                                        onBedrockConfirm = { handleBedrockDialogAction(player, worldData, "mwm:confirm/archive_world") },
-                                        onBedrockCancel = { handleBedrockDialogCancel(player, worldData) },
-                                ) { plugin.worldSettingsGui.openArchiveConfirmation(player, worldData) }
-                        }
-                        ItemTag.TYPE_GUI_SETTING_TAGS -> {
+                        WorldSettingsRuntimeOperation.MANAGE_MEMBERS ->
+                                plugin.worldSettingsGui.openMemberManagement(player, worldData)
+                        WorldSettingsRuntimeOperation.EDIT_TAGS -> {
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
                                 showTagEditorDialog(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_VISITOR -> {
+                        WorldSettingsRuntimeOperation.MANAGE_VISITORS -> {
                                 val world = Bukkit.getWorld(worldData.customWorldName ?: "my_world.${worldData.uuid}")
                                 val visitorCount = world?.players?.count {
                                         it.uniqueId != worldData.owner && it.uniqueId !in worldData.moderators && it.uniqueId !in worldData.members
@@ -258,14 +245,15 @@ class WorldSettingsListener : Listener {
                                 }
                                 plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_NOTIFICATION -> {
+                        WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> {
                                 worldData.notificationEnabled = !worldData.notificationEnabled
                                 plugin.worldConfigRepository.save(worldData)
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_TOUR -> plugin.tourGui.openEditMenu(player, worldData)
-                        ItemTag.TYPE_GUI_SETTING_CRITICAL -> plugin.worldSettingsGui.openCriticalSettings(player, worldData)
-                        ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT -> {
+                        WorldSettingsRuntimeOperation.TOUR -> plugin.tourGui.openEditMenu(player, worldData)
+                        WorldSettingsRuntimeOperation.OPEN_CRITICAL ->
+                                plugin.worldSettingsGui.openCriticalSettings(player, worldData)
+                        WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> {
                                 if (openBedrockAnnouncementActionForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                         plugin.floodgateFormBridge.notifyFallbackCancelled(player)
@@ -281,7 +269,7 @@ class WorldSettingsListener : Listener {
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
                                 me.awabi2048.myworldmanager.gui.AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_PORTALS -> {
+                        WorldSettingsRuntimeOperation.MANAGE_PORTALS -> {
                                 val isOwner = worldData.owner == player.uniqueId || session.isAdminFlow
                                 if (!isOwner) {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "general.no_permission"))
@@ -293,7 +281,7 @@ class WorldSettingsListener : Listener {
                                 }
                                 plugin.worldSettingsGui.openPortalManagement(player, worldData)
                         }
-                        ItemTag.TYPE_GUI_SETTING_ENVIRONMENT -> {
+                        WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> {
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
                                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_option_unavailable"))
                                         return MenuActionResult.Ignored
@@ -301,7 +289,6 @@ class WorldSettingsListener : Listener {
                                 if (!player.hasPermission("myworldmanager.admin")) return MenuActionResult.Ignored
                                 plugin.environmentGui.open(player, worldData)
                         }
-                        else -> return MenuActionResult.Ignored
                 }
                 return MenuActionResult.Success(MenuUpdate.None)
         }

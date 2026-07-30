@@ -92,6 +92,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                         page = runtimePage(context.route),
                                                                         targetUuid = runtimeTargetUuid(context.route),
                                                                         decisionId = runtimeDecisionId(context.route),
+                                                                        operation = runtimeOperation(context.payload),
                                                                 ),
                                                         )
                                                 },
@@ -130,6 +131,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                         page = runtimePage(context.route),
                                                                         targetUuid = runtimeTargetUuid(context.route),
                                                                         decisionId = runtimeDecisionId(context.route),
+                                                                        operation = runtimeOperation(context.payload),
                                                                 ),
                                                         )
                                                 },
@@ -188,6 +190,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                                 ?.toIntOrNull()
                                                                                 ?.coerceAtLeast(0)
                                                                                 ?: 0,
+                                                                        operation = runtimeOperation(context.payload),
                                                                 ),
                                                         )
                                                 },
@@ -231,6 +234,39 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         require(slot in items.indices) { "slot is outside Runtime buffer: $slot/$size" }
                         items[slot] = item
                         semanticInteractions[slot] = interaction
+                }
+
+                fun setRuntimeOperation(
+                        slot: Int,
+                        item: ItemStack,
+                        operation: WorldSettingsRuntimeOperation,
+                        acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
+                                MenuAcceptedClicks.LEFT_RIGHT,
+                ) {
+                        setSemanticItem(
+                                slot,
+                                item,
+                                MenuInteraction.Action(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        acceptedClicks,
+                                        mapOf(
+                                                "slot" to slot.toString(),
+                                                ROUTE_OPERATION to operation.name,
+                                        ),
+                                ),
+                        )
+                }
+
+                fun bindRuntimeOperation(
+                        slot: Int,
+                        operation: WorldSettingsRuntimeOperation,
+                        acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
+                                MenuAcceptedClicks.LEFT_RIGHT,
+                ) {
+                        val item = requireNotNull(getItem(slot)) {
+                                "Runtime operation item is missing: $slot/$operation"
+                        }
+                        setRuntimeOperation(slot, item, operation, acceptedClicks)
                 }
 
                 fun getItem(slot: Int): ItemStack? = items.getOrNull(slot)
@@ -411,7 +447,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (GuiHelper.canGoBack(player)) {
                         inventory.setItem(
                                 backButtonSlot,
-                                createItem(Material.REDSTONE, "§7戻る", GuiLoreSpec.None, ItemTag.TYPE_GUI_RETURN)
+                                createItem(Material.REDSTONE, "§7戻る", GuiLoreSpec.None, null)
+                        )
+                        inventory.bindRuntimeOperation(
+                                backButtonSlot,
+                                WorldSettingsRuntimeOperation.BACK,
                         )
                 }
 
@@ -425,8 +465,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 GuiLoreBlock(lang.getMessageList(player, "gui.tour.worldmenu.blocks.description").map(GuiLoreLine::Text)),
                                                 GuiLoreBlock(listOf(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.tour.worldmenu.action.open"))))
                                         )),
-                                        ItemTag.TYPE_GUI_SETTING_TOUR
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                tourSettingSlot,
+                                WorldSettingsRuntimeOperation.TOUR,
                         )
                 }
 
@@ -447,8 +491,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.info.display"),
                                         infoLoreBuilder.buildSpec(),
-                                        ItemTag.TYPE_GUI_SETTING_INFO
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                infoSettingSlot,
+                                WorldSettingsRuntimeOperation.EDIT_INFO,
                         )
                 }
 
@@ -484,8 +532,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.icon.display"),
                                         iconLore,
-                                        ItemTag.TYPE_GUI_SETTING_ICON
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                iconSettingSlot,
+                                WorldSettingsRuntimeOperation.SELECT_ICON,
                         )
                 }
 
@@ -539,8 +591,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.spawn.display"),
                                         spawnLoreBuilder.buildSpec(),
-                                        ItemTag.TYPE_GUI_SETTING_SPAWN
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                spawnSettingSlot,
+                                WorldSettingsRuntimeOperation.SET_SPAWN,
                         )
                 }
 
@@ -647,9 +703,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.expand.display"),
                                         expansionLoreBuilder.buildSpec(),
-                                        ItemTag.TYPE_GUI_SETTING_EXPAND
+                                        null
                                 )
                         )
+                        inventory.bindRuntimeOperation(23, WorldSettingsRuntimeOperation.EXPAND)
                 }
 
                 // スロット24: 公開レベル変更 (オーナーのみ)
@@ -722,9 +779,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.publish.display"),
                                         publishLore,
-                                        ItemTag.TYPE_GUI_SETTING_PUBLISH
+                                        null
                                 )
                         )
+                        inventory.bindRuntimeOperation(24, WorldSettingsRuntimeOperation.CYCLE_PUBLISH)
                 }
 
                 // スロット25: メンバー管理 (オーナーのみ)
@@ -837,9 +895,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.member.display"),
                                         memberLore,
-                                        ItemTag.TYPE_GUI_SETTING_MEMBER
+                                        null
                                 )
                         )
+                        inventory.bindRuntimeOperation(25, WorldSettingsRuntimeOperation.MANAGE_MEMBERS)
                 }
 
                 // タグ設定
@@ -879,8 +938,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.tags.display"),
                                         tagLore,
-                                        ItemTag.TYPE_GUI_SETTING_TAGS
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                tagsSettingSlot,
+                                WorldSettingsRuntimeOperation.EDIT_TAGS,
                         )
                 }
 
@@ -932,8 +995,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "gui.settings.announcement.display"
                                         ),
                                         announcementLoreBuilder.buildSpec(),
-                                        ItemTag.TYPE_GUI_SETTING_ANNOUNCEMENT
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                announcementSettingSlot,
+                                WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
                         )
                 }
 
@@ -990,9 +1057,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 ),
                                                 glint = worldData.notificationEnabled
                                         ),
-                                        ItemTag.TYPE_GUI_SETTING_NOTIFICATION
+                                        null
                                 )
                         inventory.setItem(notificationSettingSlot, notificationItem)
+                        inventory.bindRuntimeOperation(
+                                notificationSettingSlot,
+                                WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION,
+                        )
                 }
 
                 // スロット32: 環境設定 (オーナーのみ)
@@ -1021,8 +1092,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.environment.display"),
                                         environmentLoreBuilder.buildSpec(),
-                                        ItemTag.TYPE_GUI_SETTING_ENVIRONMENT
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                32,
+                                WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT,
                         )
                 }
 
@@ -1054,8 +1129,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.critical.display"),
                                         criticalLoreBuilder.buildSpec(),
-                                        ItemTag.TYPE_GUI_SETTING_CRITICAL
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                33,
+                                WorldSettingsRuntimeOperation.OPEN_CRITICAL,
                         )
                 }
 
@@ -1180,10 +1259,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         mapOf("world" to worldData.name)
                                 ),
                                 GuiLoreSpec.Rich(infoLines, GuiLoreFrame.BOTH),
-                                ItemTag.TYPE_GUI_WORLD_SETTINGS_INFO_WARP
+                                null
                         )
-                ItemTag.setWorldUuid(infoItem, worldData.uuid)
                 inventory.setItem(worldInfoSlot, infoItem)
+                if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid != worldData.uuid) {
+                        inventory.bindRuntimeOperation(
+                                worldInfoSlot,
+                                WorldSettingsRuntimeOperation.WARP,
+                        )
+                }
 
                 // スロット51: 訪問中のプレイヤー管理
                 val visitors =
@@ -1216,8 +1300,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.visitors.display"),
                                         visitorLore,
-                                        ItemTag.TYPE_GUI_SETTING_VISITOR
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                51,
+                                WorldSettingsRuntimeOperation.MANAGE_VISITORS,
                         )
                 }
 
@@ -1251,8 +1339,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         lang.getMessage(player, "gui.settings.portals.display"),
                                         portalLore,
-                                        ItemTag.TYPE_GUI_SETTING_PORTALS
+                                        null
                                 )
+                        )
+                        inventory.bindRuntimeOperation(
+                                52,
+                                WorldSettingsRuntimeOperation.MANAGE_PORTALS,
                         )
                 }
 
@@ -2720,7 +2812,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 material: Material,
                 name: String,
                 lore: GuiLoreSpec,
-                tag: String
+                tag: String?
         ): ItemStack {
                 return GuiItemFactory.item(material, name, lore, tag)
         }
@@ -2770,7 +2862,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 material: Material,
                 name: String,
                 lore: GuiLoreSpec,
-                tag: String
+                tag: String?
         ): ItemStack {
                 return GuiItemFactory.item(material, name, lore, tag)
         }
@@ -3472,6 +3564,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         private fun runtimeDecisionId(route: MenuRoute): UUID? =
                 runtimeUuid(route, ROUTE_DECISION_ID)
 
+        private fun runtimeOperation(payload: Map<String, String>): WorldSettingsRuntimeOperation? =
+                payload[ROUTE_OPERATION]
+                        ?.let { runCatching { WorldSettingsRuntimeOperation.valueOf(it) }.getOrNull() }
+
         private fun runtimeUuid(route: MenuRoute, key: String): UUID? =
                 route.payload[key]
                         ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
@@ -3615,6 +3711,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val ROUTE_PAGE = "page"
                 private const val ROUTE_TARGET_UUID = "target_uuid"
                 private const val ROUTE_DECISION_ID = "decision_id"
+                private const val ROUTE_OPERATION = "operation"
                 private const val ROUTE_EXPANSION_COST = "expansion_cost"
                 private const val ROUTE_EXPANSION_DIRECTION = "expansion_direction"
                 private const val ROUTE_NULL_VALUE = "none"

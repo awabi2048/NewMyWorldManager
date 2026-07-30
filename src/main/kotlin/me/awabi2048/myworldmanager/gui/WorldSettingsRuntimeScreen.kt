@@ -31,10 +31,30 @@ enum class WorldSettingsRuntimeScreen {
     ARCHIVE_FROM_CRITICAL_CONFIRM,
 }
 
+enum class WorldSettingsRuntimeOperation {
+    BACK,
+    TOUR,
+    EDIT_INFO,
+    SELECT_ICON,
+    SET_SPAWN,
+    EXPAND,
+    CYCLE_PUBLISH,
+    MANAGE_MEMBERS,
+    EDIT_TAGS,
+    EDIT_ANNOUNCEMENT,
+    TOGGLE_NOTIFICATION,
+    OPEN_ENVIRONMENT,
+    OPEN_CRITICAL,
+    WARP,
+    MANAGE_VISITORS,
+    MANAGE_PORTALS,
+}
+
 data class WorldSettingsRuntimeContext(
     val screen: WorldSettingsRuntimeScreen,
     val worldUuid: UUID? = null,
     val page: Int? = null,
     val targetUuid: UUID? = null,
     val decisionId: UUID? = null,
+    val operation: WorldSettingsRuntimeOperation? = null,
 )
