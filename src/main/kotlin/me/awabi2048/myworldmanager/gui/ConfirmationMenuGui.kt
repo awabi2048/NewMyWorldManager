@@ -48,10 +48,9 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         centerItem: ItemStack,
         confirmItem: ItemStack,
         cancelItem: ItemStack,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit = {},
+        onConfirm: () -> MenuActionResult,
+        onCancel: () -> MenuActionResult = { MenuActionResult.Success(MenuUpdate.Back) },
         onAbandon: () -> Unit = {},
-        returnOnConfirm: Boolean = false,
         confirmSound: MenuSoundPolicy = MenuSoundPolicy.Default,
         cancelSound: MenuSoundPolicy = MenuSoundPolicy.Default,
     ) {
@@ -65,7 +64,6 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
             onConfirm,
             onCancel,
             onAbandon,
-            returnOnConfirm,
             confirmSound,
             cancelSound,
         )
@@ -81,10 +79,9 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         centerItem: ItemStack,
         confirmItem: ItemStack,
         cancelItem: ItemStack,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit = {},
+        onConfirm: () -> MenuActionResult,
+        onCancel: () -> MenuActionResult = { MenuActionResult.Success(MenuUpdate.Back) },
         onAbandon: () -> Unit = {},
-        returnOnConfirm: Boolean = false,
         confirmSound: MenuSoundPolicy = MenuSoundPolicy.Default,
         cancelSound: MenuSoundPolicy = MenuSoundPolicy.Default,
     ): MenuRoute {
@@ -98,7 +95,6 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
             onConfirm,
             onCancel,
             onAbandon,
-            returnOnConfirm,
             confirmSound,
             cancelSound,
         )
@@ -112,10 +108,9 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         bodyLines: List<Component>,
         confirmLabel: Component,
         cancelLabel: Component,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit = {},
+        onConfirm: () -> MenuActionResult,
+        onCancel: () -> MenuActionResult = { MenuActionResult.Success(MenuUpdate.Back) },
         onAbandon: () -> Unit = {},
-        returnOnConfirm: Boolean = false,
     ) {
         val centerItem = ItemStack(Material.PAPER).apply {
             editMeta {
@@ -139,7 +134,6 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
             onConfirm = onConfirm,
             onCancel = onCancel,
             onAbandon = onAbandon,
-            returnOnConfirm = returnOnConfirm,
         )
     }
 
@@ -171,14 +165,12 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
 
     private fun confirm(context: MenuActionContext): MenuActionResult {
         val session = removeOwned(context.player, context.route) ?: return MenuActionResult.Rejected()
-        session.onConfirm()
-        return MenuActionResult.Success(if (session.returnOnConfirm) MenuUpdate.Back else MenuUpdate.Close)
+        return session.onConfirm()
     }
 
     private fun cancel(context: MenuActionContext): MenuActionResult {
         val session = removeOwned(context.player, context.route) ?: return MenuActionResult.Rejected()
-        session.onCancel()
-        return MenuActionResult.Success(MenuUpdate.Back)
+        return session.onCancel()
     }
 
     private fun closed(context: MenuCloseContext) {
@@ -205,10 +197,9 @@ class ConfirmationMenuGui(private val plugin: MyWorldManager) {
         val centerItem: ItemStack,
         val confirmItem: ItemStack,
         val cancelItem: ItemStack,
-        val onConfirm: () -> Unit,
-        val onCancel: () -> Unit,
+        val onConfirm: () -> MenuActionResult,
+        val onCancel: () -> MenuActionResult,
         val onAbandon: () -> Unit,
-        val returnOnConfirm: Boolean,
         val confirmSound: MenuSoundPolicy,
         val cancelSound: MenuSoundPolicy,
     )

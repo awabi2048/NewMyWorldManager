@@ -3509,8 +3509,11 @@ player.sendMessage(
                                         centerItem = center,
                                         confirmItem = confirmItem,
                                         cancelItem = cancelItem,
-                                        onConfirm = { plugin.memberInviteManager.handleMemberInviteAccept(player, invite.id) },
-                                        onCancel = { }
+                                        onConfirm = {
+                                                plugin.memberInviteManager.handleMemberInviteAccept(player, invite.id)
+                                                MenuActionResult.Success(MenuUpdate.Close)
+                                        },
+                                        onCancel = { MenuActionResult.Success(MenuUpdate.Back) }
                                 )
                         }
                         "memberrequest" -> {
@@ -3794,19 +3797,22 @@ player.sendMessage(
                 confirmItem = confirmItem,
                 cancelItem = cancelItem,
                 onConfirm = {
-                    val session = plugin.settingsSessionManager.getSession(player) ?: return@open
+                    val session = plugin.settingsSessionManager.getSession(player)
+                        ?: return@open MenuActionResult.Rejected()
                     when (type) {
                         "gravity" -> handleEnvGravityConfirm(player, worldData)
                         "weather" -> handleWeatherConfirm(player, worldData)
                         "biome" -> {
-                            val biomeId = session.tempBiomeId ?: return@open
+                            val biomeId = session.tempBiomeId
+                                ?: return@open MenuActionResult.Rejected()
                             handleEnvBiomeConfirm(player, worldData, biomeId)
                         }
                     }
+                    MenuActionResult.Success(
+                        MenuUpdate.Navigate(plugin.environmentGui.prepareOpen(player, worldData)),
+                    )
                 },
-                onCancel = {
-                    plugin.environmentGui.open(player, worldData)
-                }
+                onCancel = { MenuActionResult.Success(MenuUpdate.Back) }
             )
         }
 
@@ -3848,7 +3854,6 @@ player.sendMessage(
                 sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                 plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                 plugin.worldEnvironmentService.applyAttributes(worldData.uuid)
-                plugin.environmentGui.open(player, worldData)
         }
 
         private fun handleWeatherConfirm(player: Player, worldData: WorldData) {
@@ -3879,7 +3884,6 @@ player.sendMessage(
                 sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                 plugin.worldEnvironmentService.applyWeather(worldData.uuid)
                 plugin.soundManager.playActionSound(player, "environment", "weather_change")
-                plugin.environmentGui.open(player, worldData)
         }
 
         private fun handleEnvBiomeConfirm(player: Player, worldData: WorldData, biomeId: String) {
@@ -3913,7 +3917,6 @@ player.sendMessage(
                         sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                         plugin.soundManager.playActionSound(player, "environment", "biome_change")
                         applyBiomeToWorld(worldData)
-                        plugin.environmentGui.open(player, worldData)
 
                 } catch (e: Exception) {
                         player.sendMessage("§cInvalid Biome: $biomeId")
@@ -4162,10 +4165,9 @@ player.sendMessage(
                                 onConfirm = {
                                         executeExpansionReset(player, worldData, closeInventory = false)
                                         plugin.soundManager.playActionSound(player, "environment", "gravity_change")
+                                        MenuActionResult.Success(MenuUpdate.Close)
                                 },
-                                onCancel = {
-                                        handleBedrockDialogCancel(player, worldData)
-                                }
+                                onCancel = { MenuActionResult.Success(MenuUpdate.Back) }
                         )
                         return
                 }
@@ -4512,6 +4514,7 @@ player.sendMessage(
                                         handleEnvBiomeConfirm(player, worldData, biomeId)
                                 }
                         }
+                        plugin.environmentGui.open(player, worldData)
                         return
                 }
 

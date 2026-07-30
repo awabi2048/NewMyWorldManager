@@ -3,6 +3,8 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
@@ -54,9 +56,14 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
             centerItem = infoItem,
             confirmItem = approveItem,
             cancelItem = rejectItem,
-            onConfirm = { resolve(player, decisionId, true) },
-            onCancel = { resolve(player, decisionId, false) },
-            returnOnConfirm = true,
+            onConfirm = {
+                resolve(player, decisionId, true)
+                MenuActionResult.Success(MenuUpdate.Back)
+            },
+            onCancel = {
+                resolve(player, decisionId, false)
+                MenuActionResult.Success(MenuUpdate.Back)
+            },
             cancelSound = MenuSoundPolicy.Silent,
         )
     }

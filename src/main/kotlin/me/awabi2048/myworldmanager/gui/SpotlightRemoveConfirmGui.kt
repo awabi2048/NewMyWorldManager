@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -36,8 +38,8 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
             onConfirm = {
                 plugin.spotlightRepository.remove(worldData.uuid)
                 player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
+                MenuActionResult.Success(MenuUpdate.Back)
             },
-            returnOnConfirm = true,
         )
     }
 

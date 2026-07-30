@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Player
@@ -28,8 +29,8 @@ object DialogConfirmManager {
         bodyLines: List<Component>,
         confirmText: String? = null,
         cancelText: String? = null,
-        onConfirm: () -> Unit,
-        onCancel: () -> Unit,
+        onConfirm: () -> MenuActionResult,
+        onCancel: () -> MenuActionResult,
     ) {
         val lang = plugin.languageManager
         val confirmLabel = confirmText ?: lang.getMessage(player, "gui.common.confirm")

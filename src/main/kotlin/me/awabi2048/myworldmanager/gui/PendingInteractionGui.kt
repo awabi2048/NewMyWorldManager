@@ -222,11 +222,18 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             centerItem = center,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
-            onConfirm = { plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction) },
+            onConfirm = {
+                if (plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction)) {
+                    MenuActionResult.Success(MenuUpdate.Back)
+                } else {
+                    MenuActionResult.Rejected()
+                }
+            },
             onCancel = {
                 if (intendedAction == null) {
                     plugin.pendingDecisionManager.resolveById(player, decisionId, false)
                 }
+                MenuActionResult.Success(MenuUpdate.Back)
             },
             onAbandon = { player.sendMessage(PENDING_MESSAGE) },
         )
@@ -291,11 +298,18 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             centerItem = center,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
-            onConfirm = { plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction) },
+            onConfirm = {
+                if (plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction)) {
+                    MenuActionResult.Success(MenuUpdate.Back)
+                } else {
+                    MenuActionResult.Rejected()
+                }
+            },
             onCancel = {
                 if (intendedAction == null) {
                     plugin.pendingDecisionManager.resolveById(player, decisionId, false)
                 }
+                MenuActionResult.Success(MenuUpdate.Back)
             },
             onAbandon = { player.sendMessage(PENDING_MESSAGE) },
         )

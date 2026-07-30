@@ -375,9 +375,11 @@ class LikeSignDialogManager {
                 confirmItem = confirmItem,
                 cancelItem = cancelItem,
                 onConfirm = {
-                    val session = unlikeSessions.remove(player.uniqueId) ?: return@open
-                    val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return@open
-                    val sign = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid) ?: return@open
+                    val session = unlikeSessions.remove(player.uniqueId) ?: return@open MenuActionResult.Rejected()
+                    val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+                        ?: return@open MenuActionResult.Rejected()
+                    val sign = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid)
+                        ?: return@open MenuActionResult.Rejected()
                     if (sign.hasLiked(player.uniqueId)) {
                         sign.removeLike(player.uniqueId)
                         plugin.worldConfigRepository.save(worldData)
@@ -385,9 +387,11 @@ class LikeSignDialogManager {
                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.unliked"))
                         player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
                     }
+                    MenuActionResult.Success(MenuUpdate.Close)
                 },
                 onCancel = {
                     unlikeSessions.remove(player.uniqueId)
+                    MenuActionResult.Success(MenuUpdate.Back)
                 }
             )
         }

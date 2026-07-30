@@ -4,6 +4,8 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -41,8 +43,14 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
             centerItem = worldItem,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
-            onConfirm = { plugin.memberRequestManager.sendRequest(player, worldData.uuid) },
-            onCancel = { plugin.soundManager.playActionSound(player, "member_request", "cancel") },
+            onConfirm = {
+                plugin.memberRequestManager.sendRequest(player, worldData.uuid)
+                MenuActionResult.Success(MenuUpdate.Close)
+            },
+            onCancel = {
+                plugin.soundManager.playActionSound(player, "member_request", "cancel")
+                MenuActionResult.Success(MenuUpdate.Back)
+            },
             cancelSound = MenuSoundPolicy.Silent,
         )
     }
