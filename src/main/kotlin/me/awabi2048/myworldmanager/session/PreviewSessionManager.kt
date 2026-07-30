@@ -256,7 +256,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         Bukkit.getScheduler().runTaskLater(plugin, Runnable {
             if (!player.isOnline) return@Runnable
             if (session.runtimeSuspended &&
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             ) {
                 return@Runnable
             }

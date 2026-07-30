@@ -65,7 +65,7 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
                 ),
             ),
             onSubmit = { values -> plugin.worldConfigRepository.findByUuid(uuid)?.let { applyInfo(player, it, values.getOrNull(0).orEmpty().trim(), values.getOrNull(1).orEmpty().trim()) } },
-            onClosed = { if (player.isOnline && plugin.worldConfigRepository.findByUuid(uuid) != null) CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player) },
+            onClosed = { if (player.isOnline && plugin.worldConfigRepository.findByUuid(uuid) != null) CCSystem.getAPI().getMenuRuntimeService().finishExternal(player) },
         )
     }
 
@@ -84,15 +84,15 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
                 if (index == 1) {
                     latest.announcementMessages.clear(); plugin.worldConfigRepository.save(latest)
                     player.sendMessage(lang.getMessage(player, "messages.announcement_reset"))
-                    CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                    CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                     return@sendSimpleForm
                 }
                 if (!openBedrockAnnouncementEditForm(player, latest)) {
                     player.sendMessage(lang.getMessage(player, "messages.operation_cancelled"))
-                    CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                    CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                 }
             },
-            onClosed = { if (player.isOnline && plugin.worldConfigRepository.findByUuid(worldUuid) != null) CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player) },
+            onClosed = { if (player.isOnline && plugin.worldConfigRepository.findByUuid(worldUuid) != null) CCSystem.getAPI().getMenuRuntimeService().finishExternal(player) },
         )
     }
 
@@ -116,7 +116,7 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
             title = lang.getMessage(player, "gui.bedrock.input.announcement_edit.title", mapOf("max_lines" to maxLines, "max_length" to maxLength)),
             inputs = inputs,
             onSubmit = { values -> plugin.worldConfigRepository.findByUuid(worldUuid)?.let { applyAnnouncementUpdateFromForm(player, it, values) } },
-            onClosed = { if (player.isOnline && plugin.worldConfigRepository.findByUuid(worldUuid) != null) CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player) },
+            onClosed = { if (player.isOnline && plugin.worldConfigRepository.findByUuid(worldUuid) != null) CCSystem.getAPI().getMenuRuntimeService().finishExternal(player) },
         )
     }
 
@@ -167,6 +167,6 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         }
         if (worldData.description != description) { worldData.description = description; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_desc_change")) }
         if (updated) plugin.worldConfigRepository.save(worldData)
-        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+        CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
     }
 }

@@ -44,7 +44,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             editSession.awaitingWaypointPick = false
             plugin.soundManager.playGlobalClickSound(player)
             plugin.tourManager.addWaypoint(editSession, targetBlock.location)
-            CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+            CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             return
         }
 

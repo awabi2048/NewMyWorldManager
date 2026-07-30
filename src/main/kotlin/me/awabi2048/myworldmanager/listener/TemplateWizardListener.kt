@@ -50,14 +50,14 @@ class TemplateWizardListener {
                     onClosed = {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (player.isOnline) {
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                             }
                         })
                     }
                 )
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
             return
         }
@@ -106,14 +106,14 @@ class TemplateWizardListener {
                     onClosed = {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             if (player.isOnline) {
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                             }
                         })
                     }
                 )
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
             return
         }
@@ -194,7 +194,7 @@ class TemplateWizardListener {
                 mapOf("name" to session.name, "id" to session.id)
             )
         )
-        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+        CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
     }
 
     private fun applyTemplateDescription(
@@ -205,6 +205,6 @@ class TemplateWizardListener {
     ) {
         session.description = if (input.isEmpty()) emptyList() else listOf(input)
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.template_wizard_description_set"))
-        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+        CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
     }
 }

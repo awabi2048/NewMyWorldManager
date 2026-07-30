@@ -31,6 +31,7 @@ import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsRestriction
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsStateContext
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
@@ -296,6 +297,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
                                 MenuAcceptedClicks.LEFT_RIGHT,
                         payload: Map<String, String> = emptyMap(),
+                        sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
                 ) {
                         setSemanticItem(
                                 slot,
@@ -307,6 +309,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "slot" to slot.toString(),
                                                 ROUTE_OPERATION to operation.name,
                                         ) + payload,
+                                        sounds,
                                 ),
                                 role = when (operation) {
                                         WorldSettingsRuntimeOperation.BACK -> GuiElementRole.BACK
@@ -324,11 +327,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
                                 MenuAcceptedClicks.LEFT_RIGHT,
                         payload: Map<String, String> = emptyMap(),
+                        sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
                 ) {
                         val item = requireNotNull(getItem(slot)) {
                                 "Runtime operation item is missing: $slot/$operation"
                         }
-                        setRuntimeOperation(slot, item, operation, acceptedClicks, payload)
+                        setRuntimeOperation(slot, item, operation, acceptedClicks, payload, sounds)
                 }
 
                 fun bindConfirmation(
@@ -444,6 +448,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
         }
 
+        private fun contractGuiActions(
+                player: Player,
+                worldData: WorldData,
+                action: WorldSettingsAction,
+                actionTexts: List<String>,
+        ): List<GuiLoreAction> {
+                val contract = plugin.worldSettingsActionService.contract(player, worldData, action)
+                require(contract.options.size == actionTexts.size) {
+                        "World settings action presentation mismatch: $action options=${contract.options.size} texts=${actionTexts.size}"
+                }
+                val actionService = CCSystem.getAPI().getGuiActionService()
+                return contract.options.zip(actionTexts).map { (option, actionText) ->
+                        GuiLoreAction(
+                                actionService.clickLabel(player, option.displayClick),
+                                actionText,
+                        )
+                }
+        }
+
         private fun renderWorldSettings(
                 player: Player,
                 worldData: WorldData,
@@ -537,6 +560,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 if (hasManagePermission && !isMemberLayout) {
+                        val tourAction = contractGuiActions(
+                                player,
+                                worldData,
+                                WorldSettingsAction.MANAGE_TOUR,
+                                listOf(lang.getMessage(player, "gui.tour.worldmenu.action.open")),
+                        ).single()
                         inventory.setItem(
                                 tourSettingSlot,
                                 createItemComponent(
@@ -544,7 +573,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         lang.getMessage(player, "gui.tour.worldmenu.display"),
                                         GuiLoreSpec.Blocks(listOf(
                                                 GuiLoreBlock(lang.getMessageList(player, "gui.tour.worldmenu.blocks.description").map(GuiLoreLine::Text)),
-                                                GuiLoreBlock(listOf(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.tour.worldmenu.action.open"))))
+                                                GuiLoreBlock(listOf(GuiLoreActions.single(lang, player, tourAction.operation, tourAction.action)))
                                         )),
                                         null
                                 )
@@ -552,6 +581,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.bindRuntimeOperation(
                                 tourSettingSlot,
                                 WorldSettingsRuntimeOperation.TOUR,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_TOUR).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_TOUR).sounds,
                         )
                 }
 
@@ -560,7 +591,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val infoLoreBuilder =
                                 GuiLoreBuilder(lang, player)
                                         .block(lang.getMessageList(player, "gui.settings.info.blocks.summary").map(GuiLoreLine::Text))
-                                        .actions(lang.getMessage(player, "gui.settings.info.action.open_editor"))
+                                        .actions(contractGuiActions(
+                                                player,
+                                                worldData,
+                                                WorldSettingsAction.EDIT_INFO,
+                                                listOf(lang.getMessage(player, "gui.settings.info.action.open_editor")),
+                                        ))
 
                         inventory.setItem(
                                 infoSettingSlot,
@@ -578,6 +614,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.bindRuntimeOperation(
                                 infoSettingSlot,
                                 WorldSettingsRuntimeOperation.EDIT_INFO,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_INFO).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_INFO).sounds,
                         )
                 }
 
@@ -595,12 +633,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val iconLore =
                                 GuiLoreBuilder(lang, player)
                                         .block(lang.getMessageList(player, "gui.settings.icon.blocks.description").map(GuiLoreLine::Text))
-                                        .actions(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.icon.action.start_selection"
-                                                )
-                                        )
+                                        .actions(contractGuiActions(
+                                                player,
+                                                worldData,
+                                                WorldSettingsAction.SELECT_ICON,
+                                                listOf(lang.getMessage(player, "gui.settings.icon.action.start_selection")),
+                                        ))
                                         .buildSpec()
 
                         inventory.setItem(
@@ -619,6 +657,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.bindRuntimeOperation(
                                 iconSettingSlot,
                                 WorldSettingsRuntimeOperation.SELECT_ICON,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SELECT_ICON).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SELECT_ICON).sounds,
                         )
                 }
 
@@ -637,30 +677,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 spawnLoreBuilder.warning(warningLore)
                         }
 
-                        if (isBedrock) {
-                                spawnLoreBuilder.actions(
-                                        lang.getMessage(player, "gui.settings.spawn.action.set_both")
-                                )
-                        } else {
-                                spawnLoreBuilder.actions(
+                        spawnLoreBuilder.actions(contractGuiActions(
+                                player,
+                                worldData,
+                                WorldSettingsAction.SET_SPAWN,
+                                if (isBedrock) {
+                                        listOf(lang.getMessage(player, "gui.settings.spawn.action.set_both"))
+                                } else {
                                         listOf(
-                                                GuiLoreAction(
-                                                        lang.getMessage(player, "gui.settings.click.left"),
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.settings.spawn.action.set_guest"
-                                                        )
-                                                ),
-                                                GuiLoreAction(
-                                                        lang.getMessage(player, "gui.settings.click.right"),
-                                                        lang.getMessage(
-                                                                player,
-                                                                "gui.settings.spawn.action.set_member"
-                                                        )
-                                                )
+                                                lang.getMessage(player, "gui.settings.spawn.action.set_guest"),
+                                                lang.getMessage(player, "gui.settings.spawn.action.set_member"),
                                         )
-                                )
-                        }
+                                },
+                        ))
 
                         inventory.setItem(
                                 spawnSettingSlot,
@@ -678,6 +707,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.bindRuntimeOperation(
                                 spawnSettingSlot,
                                 WorldSettingsRuntimeOperation.SET_SPAWN,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SET_SPAWN).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SET_SPAWN).sounds,
                         )
                 }
 
@@ -958,12 +989,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 add(GuiLoreLine.Text(lang.getMessage(player, "gui.settings.member.blocks.list_header")))
                                                 memberListString.lines().filter(String::isNotBlank).forEach { add(GuiLoreLine.Text(it.trim())) }
                                         })
-                                        .actions(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.member.action.open_list"
-                                                )
-                                        )
+                                        .actions(contractGuiActions(
+                                                player,
+                                                worldData,
+                                                WorldSettingsAction.MANAGE_MEMBERS,
+                                                listOf(lang.getMessage(player, "gui.settings.member.action.open_list")),
+                                        ))
                                         .buildSpec()
 
                         inventory.setItem(
@@ -979,7 +1010,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         null
                                 )
                         )
-                        inventory.bindRuntimeOperation(25, WorldSettingsRuntimeOperation.MANAGE_MEMBERS)
+                        inventory.bindRuntimeOperation(
+                                25,
+                                WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS).sounds,
+                        )
                 }
 
                 // タグ設定
@@ -1050,18 +1086,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         })
                         }
 
-                        announcementLoreBuilder.actions(
+                        announcementLoreBuilder.actions(contractGuiActions(
+                                player,
+                                worldData,
+                                WorldSettingsAction.EDIT_ANNOUNCEMENT,
                                 listOf(
-                                        GuiLoreAction(
-                                                lang.getMessage(player, "gui.settings.click.left"),
-                                                lang.getMessage(player, "gui.settings.announcement.action.set_message")
-                                        ),
-                                        GuiLoreAction(
-                                                lang.getMessage(player, "gui.settings.click.right"),
-                                                lang.getMessage(player, "gui.settings.announcement.action.reset_message")
-                                        )
-                                )
-                        )
+                                        lang.getMessage(player, "gui.settings.announcement.action.set_message"),
+                                        lang.getMessage(player, "gui.settings.announcement.action.reset_message"),
+                                ),
+                        ))
 
                         inventory.setItem(
                                 announcementSettingSlot,
@@ -1082,6 +1115,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.bindRuntimeOperation(
                                 announcementSettingSlot,
                                 WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).sounds,
                         )
                 }
 
@@ -1327,7 +1362,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.main_info.visitors_label"), worldData.recentVisitors.sum(), "§b"))
                         add(GuiLoreLine.Metadata("UUID", worldData.uuid))
                         if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid != worldData.uuid) {
-                                add(GuiLoreActions.singleClick(lang, player, lang.getMessage(player, "gui.player_world.world_item.warp")))
+                                val warpAction = contractGuiActions(
+                                        player,
+                                        worldData,
+                                        WorldSettingsAction.WARP,
+                                        listOf(lang.getMessage(player, "gui.player_world.world_item.warp")),
+                                ).single()
+                                add(GuiLoreActions.single(lang, player, warpAction.operation, warpAction.action))
                         }
                 }
 
@@ -1347,6 +1388,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.bindRuntimeOperation(
                                 worldInfoSlot,
                                 WorldSettingsRuntimeOperation.WARP,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.WARP).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.WARP).sounds,
                         )
                 }
 
@@ -1406,9 +1449,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         "gui.settings.portals.blocks.summary"
                                                 ).map(GuiLoreLine::Text)
                                         )
-                                        .actions(
-                                                lang.getMessage(player, "gui.settings.portals.action.open")
-                                        )
+                                        .actions(contractGuiActions(
+                                                player,
+                                                worldData,
+                                                WorldSettingsAction.MANAGE_PORTALS,
+                                                listOf(lang.getMessage(player, "gui.settings.portals.action.open")),
+                                        ))
                                         .buildSpec()
                         inventory.setItem(
                                 52,
@@ -1426,6 +1472,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.bindRuntimeOperation(
                                 52,
                                 WorldSettingsRuntimeOperation.MANAGE_PORTALS,
+                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS).acceptedClicks,
+                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS).sounds,
                         )
                 }
 

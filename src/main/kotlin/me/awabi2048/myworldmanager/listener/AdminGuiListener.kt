@@ -54,7 +54,7 @@ class AdminGuiListener {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             plugin.settingsSessionManager.endSession(player)
                             if (player.isOnline) {
-                                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                             }
                         })
                     }
@@ -62,7 +62,7 @@ class AdminGuiListener {
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
             return
         }
@@ -108,7 +108,7 @@ class AdminGuiListener {
         if (offlinePlayer == null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "general.player_not_found"))
             plugin.settingsSessionManager.endSession(player)
-            CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+            CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             return
         }
 
@@ -126,7 +126,7 @@ class AdminGuiListener {
             )
         )
         plugin.settingsSessionManager.endSession(player)
-        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+        CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
     }
 
     fun sendWorldDirectoryCopyMessage(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {

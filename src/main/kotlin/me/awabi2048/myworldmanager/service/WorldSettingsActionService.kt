@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.service
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.GuiClickLabel
 import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -9,6 +10,7 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionContract
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionOption
 import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation
 import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeScreen
 import me.awabi2048.myworldmanager.model.WorldData
@@ -20,8 +22,32 @@ import org.bukkit.event.inventory.ClickType
  */
 class WorldSettingsActionService(private val plugin: MyWorldManager) {
     fun contract(player: org.bukkit.entity.Player, worldData: WorldData, action: WorldSettingsAction): WorldSettingsActionContract {
-        val acceptedClicks = MenuAcceptedClicks.LEFT_RIGHT
-        return WorldSettingsActionContract(action, acceptedClicks, isActionable(player, worldData, action))
+        val options = when (action) {
+            WorldSettingsAction.SET_SPAWN -> if (plugin.playerPlatformResolver.isBedrock(player)) {
+                listOf(
+                    WorldSettingsActionOption(
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        GuiClickLabel.ANY,
+                    ),
+                )
+            } else {
+                listOf(
+                    WorldSettingsActionOption(MenuAcceptedClicks.LEFT, GuiClickLabel.LEFT),
+                    WorldSettingsActionOption(MenuAcceptedClicks.RIGHT, GuiClickLabel.RIGHT),
+                )
+            }
+            WorldSettingsAction.EDIT_ANNOUNCEMENT -> listOf(
+                WorldSettingsActionOption(MenuAcceptedClicks.LEFT, GuiClickLabel.LEFT),
+                WorldSettingsActionOption(MenuAcceptedClicks.RIGHT, GuiClickLabel.RIGHT),
+            )
+            else -> listOf(
+                WorldSettingsActionOption(
+                    MenuAcceptedClicks.LEFT_RIGHT,
+                    GuiClickLabel.ANY,
+                ),
+            )
+        }
+        return WorldSettingsActionContract(action, options, isActionable(player, worldData, action))
     }
 
     fun execute(request: WorldSettingsActionRequest): MenuActionResult {
@@ -34,7 +60,7 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
             WorldSettingsAction.WARP -> warp(request.player, worldData)
             WorldSettingsAction.EDIT_INFO -> editInfo(request.player, worldData)
             WorldSettingsAction.SELECT_ICON -> plugin.worldSettingsIconSelectionService.start(request.player, worldData)
-            WorldSettingsAction.SET_SPAWN -> setSpawn(request.player, worldData, request.click)
+            WorldSettingsAction.SET_SPAWN -> selectSpawnType(request.player, worldData, request.click)
             WorldSettingsAction.MANAGE_MEMBERS -> MenuActionResult.Success(
                 MenuUpdate.Navigate(plugin.worldSettingsGui.memberManagementRoute(worldData.uuid)),
             )
@@ -84,7 +110,7 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         plugin.worldService.teleportToWorld(player, worldData.uuid, closeInventoryOnLoad = false) {
             if (!player.isOnline) return@teleportToWorld
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
-            CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+            CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
         }
         return MenuActionResult.Success(MenuUpdate.None)
     }
@@ -93,13 +119,55 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         return plugin.worldSettingsInputService.editInfo(player, worldData)
     }
 
-    private fun setSpawn(player: org.bukkit.entity.Player, worldData: WorldData, click: ClickType): MenuActionResult {
+    private fun selectSpawnType(
+        player: org.bukkit.entity.Player,
+        worldData: WorldData,
+        click: ClickType,
+    ): MenuActionResult {
+        if (!plugin.playerPlatformResolver.isBedrock(player)) {
+            return beginSpawnSetting(player, worldData, click)
+        }
+        val runtime = CCSystem.getAPI().getMenuRuntimeService()
+        runtime.suspendForExternal(player)
+        val sent = plugin.floodgateFormBridge.sendSimpleForm(
+            player,
+            plugin.languageManager.getMessage(player, "gui.settings.spawn.display"),
+            plugin.languageManager.getMessage(player, "gui.settings.spawn.form.content"),
+            listOf(
+                plugin.languageManager.getMessage(player, "gui.settings.spawn.type.guest"),
+                plugin.languageManager.getMessage(player, "gui.settings.spawn.type.member"),
+                plugin.languageManager.getMessage(player, "gui.common.back"),
+            ),
+            { index ->
+                when (index) {
+                    0 -> beginSpawnSetting(player, worldData, ClickType.LEFT, suspendRuntime = false)
+                    1 -> beginSpawnSetting(player, worldData, ClickType.RIGHT, suspendRuntime = false)
+                    else -> runtime.finishExternal(player)
+                }
+            },
+            { runtime.finishExternal(player) },
+        )
+        if (!sent) {
+            runtime.finishExternal(player)
+            return MenuActionResult.Rejected()
+        }
+        return MenuActionResult.Success(MenuUpdate.None)
+    }
+
+    private fun beginSpawnSetting(
+        player: org.bukkit.entity.Player,
+        worldData: WorldData,
+        click: ClickType,
+        suspendRuntime: Boolean = true,
+    ): MenuActionResult {
         val action = if (click.isLeftClick) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
         val typeKey = if (click.isLeftClick) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
         val typeName = plugin.languageManager.getMessage(player, typeKey)
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", mapOf("type" to typeName)))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
-        CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
+        if (suspendRuntime) {
+            CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
+        }
         plugin.worldSettingsSpawnPreviewService.start(player)
         return MenuActionResult.Success(MenuUpdate.None)
     }

@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.api.extension
 
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.GuiClickLabel
+import com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy
 import java.util.UUID
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.entity.Player
@@ -59,8 +61,17 @@ data class WorldSettingsActionRequest(
  */
 data class WorldSettingsActionContract(
     val action: WorldSettingsAction,
-    val acceptedClicks: Set<ClickType>,
+    val options: List<WorldSettingsActionOption>,
     val actionable: Boolean,
+    val sounds: MenuActionSoundPolicy = MenuActionSoundPolicy(),
+) {
+    val acceptedClicks: Set<ClickType>
+        get() = options.flatMapTo(linkedSetOf()) { it.acceptedClicks }
+}
+
+data class WorldSettingsActionOption(
+    val acceptedClicks: Set<ClickType>,
+    val displayClick: GuiClickLabel,
 )
 
 data class PendingInteractionSummary(

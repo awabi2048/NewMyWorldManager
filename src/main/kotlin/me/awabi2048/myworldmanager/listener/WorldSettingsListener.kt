@@ -1468,7 +1468,7 @@ class WorldSettingsListener : Listener {
                                         if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) {
                                                 return@sendCustomInputForm
                                         }
-                                        CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                                        CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                                 }
                         )
                 return opened
@@ -1528,7 +1528,7 @@ class WorldSettingsListener : Listener {
         ) {
                 if (!player.isOnline) return
                 val runtime = CCSystem.getAPI().getMenuRuntimeService()
-                if (!runtime.resumeFromExternal(player)) {
+                if (!runtime.finishExternal(player)) {
                         runtime.refresh(player)
                 }
         }
@@ -1836,7 +1836,7 @@ class WorldSettingsListener : Listener {
                 }
 
                 plugin.settingsSessionManager.endSession(player)
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
         }
 
         private fun applyWorldDescriptionUpdate(
@@ -1850,7 +1850,7 @@ class WorldSettingsListener : Listener {
                 player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
 
                 plugin.settingsSessionManager.endSession(player)
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
         }
 
         fun onRuntimeInventoryClose(player: Player, reason: MenuCloseReason) {
@@ -2073,7 +2073,7 @@ player.sendMessage(
                 }
                 clearBorderPreview(player)
                 plugin.settingsSessionManager.endSession(player)
-                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
         }
 
         private fun expansionExecutionMode(
@@ -2227,13 +2227,7 @@ player.sendMessage(
                                 )
                                 plugin.worldSettingsSpawnPreviewService.stop(player)
                                 plugin.worldSettingsSpawnPreviewService.showSpawnConfirmEffect(player, loc, currentAction == SettingsAction.SET_SPAWN_GUEST)
-                                Bukkit.getScheduler().runTask(plugin, Runnable {
-                                        if (!player.isOnline) return@Runnable
-                                        val runtime = CCSystem.getAPI().getMenuRuntimeService()
-                                        if (!runtime.resumeFromExternal(player)) {
-                                                runtime.reopenCurrent(player)
-                                        }
-                                })
+                                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                         }
                         return
                 }
@@ -3196,7 +3190,7 @@ player.sendMessage(
                 } else {
                         player.sendMessage(plugin.languageManager.getMessage("error.expand_failed"))
                 }
-                if (!CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)) {
+                if (!CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)) {
                         plugin.worldSettingsGui.open(player, worldData)
                 }
         }
