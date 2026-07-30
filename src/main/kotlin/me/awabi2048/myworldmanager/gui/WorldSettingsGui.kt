@@ -3026,20 +3026,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 if (!plugin.playerStatsRepository.findByUuid(player.uniqueId).criticalSettingsEnabled) {
                         return
                 }
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.critical.title")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
-
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.CRITICAL_SETTINGS,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(WorldSettingsRuntimeScreen.CRITICAL_SETTINGS, worldData.uuid),
+                )
+        }
 
+        private fun renderCriticalSettings(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.critical.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 inventory.applyStandardFrame()
@@ -3221,7 +3225,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
                 inventory.bindRuntimeOperation(40, WorldSettingsRuntimeOperation.BACK)
 
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.CRITICAL_SETTINGS, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         private fun calculateTotalExpansionCost(level: Int): Int {
@@ -3229,18 +3233,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun openResetExpansionConfirmation(player: Player, worldData: WorldData) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.reset_expansion.title")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.RESET_EXPANSION_CONFIRM,
                         isGui = true
                 )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
+                runtime.navigate(
+                        player,
+                        runtimeRoute(WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM, worldData.uuid),
+                )
+        }
+
+        private fun renderResetExpansionConfirmation(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.confirm.reset_expansion.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -3281,22 +3291,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         fun openResetExpansionSpawnUnsafeConfirmation(player: Player, worldData: WorldData) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.title")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.RESET_EXPANSION_CONFIRM_SPAWN_UNSAFE,
                         isGui = true
                 )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM,
+                                worldData.uuid,
+                        ),
+                )
+        }
+
+        private fun renderResetExpansionSpawnUnsafeConfirmation(
+                player: Player,
+                worldData: WorldData,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -3337,7 +3356,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         private fun borderResetTargetForReset(worldData: WorldData): Pair<Location, Double>? {
@@ -3376,18 +3395,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         fun openDeleteWorldConfirmation1(player: Player, worldData: WorldData) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.delete_1.title")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.DELETE_WORLD_CONFIRM,
                         isGui = true
                 )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
+                runtime.navigate(
+                        player,
+                        runtimeRoute(WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM, worldData.uuid),
+                )
+        }
+
+        private fun renderDeleteWorldConfirmation1(
+                player: Player,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.confirm.delete_1.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -3432,22 +3456,30 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         confirmSlot = 24,
                         cancelSlot = 20,
                 )
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         fun openDeleteWorldConfirmation2(player: Player, worldData: WorldData) {
-                val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.delete_2.title")
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.DELETE_WORLD_CONFIRM_FINAL,
                         isGui = true
                 )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM,
+                                worldData.uuid,
+                        ),
+                )
+        }
+
+        private fun renderDeleteWorldConfirmation2(
+                player: Player,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, "gui.confirm.delete_2.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -3491,7 +3523,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(player, title, inventory, WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM, worldData.uuid)
+                return runtimeView(title, inventory)
         }
 
         fun openPortalManagement(
@@ -3720,15 +3752,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 renderExpansionStepBackConfirmation(player, worldData),
                                         )
                                 WorldSettingsRuntimeScreen.CRITICAL_SETTINGS ->
-                                        openCriticalSettings(player, worldData)
+                                        runtimeRenderCapture.set(
+                                                renderCriticalSettings(player, worldData),
+                                        )
                                 WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM ->
-                                        openResetExpansionConfirmation(player, worldData)
+                                        runtimeRenderCapture.set(
+                                                renderResetExpansionConfirmation(player, worldData),
+                                        )
                                 WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM ->
-                                        openResetExpansionSpawnUnsafeConfirmation(player, worldData)
+                                        runtimeRenderCapture.set(
+                                                renderResetExpansionSpawnUnsafeConfirmation(
+                                                        player,
+                                                        worldData,
+                                                ),
+                                        )
                                 WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM ->
-                                        openDeleteWorldConfirmation1(player, worldData)
+                                        runtimeRenderCapture.set(
+                                                renderDeleteWorldConfirmation1(player),
+                                        )
                                 WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM ->
-                                        openDeleteWorldConfirmation2(player, worldData)
+                                        runtimeRenderCapture.set(
+                                                renderDeleteWorldConfirmation2(player),
+                                        )
                                 WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM ->
                                         runtimeRenderCapture.set(renderArchiveConfirmation(player, worldData))
                                 WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM ->
