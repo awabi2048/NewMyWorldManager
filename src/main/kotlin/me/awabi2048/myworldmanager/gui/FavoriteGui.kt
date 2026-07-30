@@ -3,10 +3,12 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
@@ -30,16 +32,12 @@ import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreBuilder
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class FavoriteGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
@@ -103,45 +101,34 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             elements += createWorldEntry(player, data, layout.itemSlots[index])
         }
         if (worlds.isEmpty()) {
-            val empty = ItemStack(Material.QUARTZ)
-            empty.itemMeta = empty.itemMeta?.also {
-                val key = if (resolved.isEmpty()) {
-                    "gui.favorite.empty_message_no_favorites"
-                } else {
-                    "gui.favorite.empty_message"
-                }
-                it.displayName(lang.getComponent(player, key).decoration(TextDecoration.ITALIC, false))
+            val key = if (resolved.isEmpty()) {
+                "gui.favorite.empty_message_no_favorites"
+            } else {
+                "gui.favorite.empty_message"
             }
-            ItemTag.tagItem(empty, ItemTag.TYPE_GUI_INFO)
-            elements += MenuElement(22, empty, GuiElementRole.CONTENT)
+            elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
+                GuiMenuDisplaySpec(
+                    22,
+                    GuiItemSpec(
+                        Material.QUARTZ,
+                        GuiNameSpec.Component(lang.getComponent(player, key).decoration(TextDecoration.ITALIC, false)),
+                        GuiLoreSpec.None,
+                        GuiElementRole.CONTENT,
+                        1,
+                    ),
+                ),
+            )
         }
         if (currentPage > 0) {
-            elements += MenuElement(
-                layout.previousPageSlot,
-                GuiHelper.createPrevPageItem(plugin, player, "favorite", currentPage - 1),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (currentPage - 1).toString()),
-            )
+            elements += navigationEntry(player, layout.previousPageSlot, false, currentPage - 1)
         }
         elements += createPlayerHeadEntry(player, worlds.size, layout.actionSlot)
         if (currentPage < pageLayout.totalPages - 1) {
-            elements += MenuElement(
-                layout.nextPageSlot,
-                GuiHelper.createNextPageItem(plugin, player, "favorite", currentPage + 1),
-                GuiElementRole.NAVIGATION,
-                ACTION_PAGE,
-                mapOf(PAGE to (currentPage + 1).toString()),
-            )
+            elements += navigationEntry(player, layout.nextPageSlot, true, currentPage + 1)
         }
         elements += createTagFilterEntry(player, session.selectedTag, layout.size - 2)
         if (GuiHelper.canGoBack(player)) {
-            elements += MenuElement(
-                layout.backSlot,
-                GuiHelper.createReturnItem(plugin, player, "favorite"),
-                GuiElementRole.BACK,
-                ACTION_BACK,
-            )
+            elements += backEntry(player, layout.backSlot)
         }
         return InventoryMenuView(
             size = layout.size,
@@ -328,6 +315,46 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             ),
         )
     }
+
+    private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val iconId = if (next) "next_page" else "prev_page"
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("favorite", iconId, Material.ARROW),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                role = GuiElementRole.NAVIGATION,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_PAGE,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, key),
+                        mapOf(PAGE to targetPage.toString()),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    private fun backEntry(player: Player, slot: Int): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("favorite", "back", Material.REDSTONE),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
+                role = GuiElementRole.BACK,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BACK,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, "gui.common.return"),
+                    ),
+                ),
+            ),
+        )
 
     private fun route(page: Int, returnWorld: UUID?, returnToFavoriteMenu: Boolean): MenuRoute =
         MenuRoute(
