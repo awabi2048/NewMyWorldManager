@@ -363,7 +363,7 @@ class WorldSettingsListener : Listener {
                         }
                         WorldSettingsRuntimeOperation.EXPAND_DIRECTION -> {
                                 startExpansionDirectionSelection(player, session)
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
                                 val promptKey =
                                         if (plugin.playerPlatformResolver.isBedrock(player)) {
                                                 "messages.expand_direction_prompt"
@@ -381,7 +381,7 @@ class WorldSettingsListener : Listener {
                                                 )
                                                 .build()
                                 )
-                                return MenuActionResult.Success(MenuUpdate.Close)
+                                return MenuActionResult.Success(MenuUpdate.None)
                         }
                         WorldSettingsRuntimeOperation.EXPANSION_STEP_BACK -> {
                                 if (worldData.latestBorderExpansionRecord() == null) {
@@ -1375,7 +1375,7 @@ class WorldSettingsListener : Listener {
                         }
                         ExpansionSequencePhase.DIRECTION_SELECT -> {
                                 startExpansionDirectionSelection(player, session)
-                                CCSystem.getAPI().getMenuRuntimeService().close(player)
+                                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
                                 true
                         }
                         ExpansionSequencePhase.PREVIEW,
@@ -2806,7 +2806,7 @@ player.sendMessage(
                 }
                 clearBorderPreview(player)
                 plugin.settingsSessionManager.endSession(player)
-                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
+                CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)
         }
 
         private fun expansionExecutionMode(
@@ -3964,7 +3964,9 @@ player.sendMessage(
                 } else {
                         player.sendMessage(plugin.languageManager.getMessage("error.expand_failed"))
                 }
-                plugin.worldSettingsGui.open(player, worldData)
+                if (!CCSystem.getAPI().getMenuRuntimeService().resumeFromExternal(player)) {
+                        plugin.worldSettingsGui.open(player, worldData)
+                }
         }
 
         private fun resolveWorld(worldData: WorldData): World? {
