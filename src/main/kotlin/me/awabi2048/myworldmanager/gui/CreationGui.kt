@@ -21,6 +21,7 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContext
 import me.awabi2048.myworldmanager.api.extension.WorldCreationDraft
 import me.awabi2048.myworldmanager.model.*
+import me.awabi2048.myworldmanager.listener.CreationConfirmationAction
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiLoreActions
@@ -67,14 +68,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 id = CONFIRM_ROUTE,
                 renderer = { context -> renderConfirmation(context.player) },
                 actions = mapOf(
-                    ACTION_CONFIRM_INTERACTION to MenuActionHandler { context ->
-                        plugin.creationGuiListener.handleConfirmationClick(
-                            context.player,
-                            context.click,
-                            context.item,
-                        )
-                        MenuActionResult.Ignored
-                    },
+                    ACTION_CONFIRM_INTERACTION to MenuActionHandler(::confirmationAction),
                     ACTION_CONFIRM_CAPABILITY to MenuActionHandler(::useConfirmationCapability),
                 ),
                 onClose = MenuCloseHandler(::closed),
@@ -655,6 +649,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             ),
             GuiElementRole.ACTION,
             ACTION_CONFIRM_INTERACTION,
+            mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.CONFIRM.name),
         )
         elements += MenuElement(
             layout.cancelSlot,
@@ -666,6 +661,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             ),
             GuiElementRole.NAVIGATION,
             ACTION_CONFIRM_INTERACTION,
+            mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.CANCEL.name),
         )
 
         if (session.creationType == WorldCreationType.SEED) {
@@ -679,6 +675,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ),
                 GuiElementRole.ACTION,
                 ACTION_CONFIRM_INTERACTION,
+                mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.DIMENSION.name),
             )
 
             val coordinates = session.spawnCoordinates?.let {
@@ -715,6 +712,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ),
                 GuiElementRole.ACTION,
                 ACTION_CONFIRM_INTERACTION,
+                mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.SPAWN_LOCATION.name),
             )
             confirmationCapability?.let { (capability, view) ->
                 elements += confirmationCapabilityElement(capability.getId(), view.presentation)
@@ -730,6 +728,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ),
                 GuiElementRole.ACTION,
                 ACTION_CONFIRM_INTERACTION,
+                mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.TEMPLATE_PREVIEW.name),
             )
             elements += MenuElement(
                 39,
@@ -741,6 +740,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ),
                 GuiElementRole.NAVIGATION,
                 ACTION_CONFIRM_INTERACTION,
+                mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.BACK.name),
             )
             confirmationCapability?.let { (capability, view) ->
                 elements += confirmationCapabilityElement(capability.getId(), view.presentation)
@@ -755,6 +755,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ),
                 GuiElementRole.NAVIGATION,
                 ACTION_CONFIRM_INTERACTION,
+                mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.TEMPLATE_CHANGE.name),
             )
         } else {
             confirmationCapability?.let { (capability, view) ->
@@ -780,6 +781,17 @@ class CreationGui(private val plugin: MyWorldManager) {
         ACTION_CONFIRM_CAPABILITY,
         mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
     )
+
+    private fun confirmationAction(context: MenuActionContext): MenuActionResult {
+        val action = context.payload[CONFIRMATION_ACTION]
+            ?.let { runCatching { CreationConfirmationAction.valueOf(it) }.getOrNull() }
+            ?: return MenuActionResult.Ignored
+        return plugin.creationGuiListener.handleConfirmationAction(
+            context.player,
+            context.click,
+            action,
+        )
+    }
 
     private fun useConfirmationCapability(context: MenuActionContext): MenuActionResult {
         val capabilityId = context.payload[CONFIRM_CAPABILITY_ARGUMENT]
@@ -905,6 +917,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val ACTION_PREVIEW_TEMPLATE = "preview_template"
         private const val ACTION_TEMPLATE_DETAIL_BACK = "template_detail_back"
         private const val ACTION_CONFIRM_INTERACTION = "confirm_interaction"
+        private const val CONFIRMATION_ACTION = "confirmation_action"
         private const val ACTION_CONFIRM_CAPABILITY = "confirm_capability"
         private const val CONFIRM_CAPABILITY_ARGUMENT = "capability_id"
         private const val CONFIRM_CAPABILITY_SLOT = 40

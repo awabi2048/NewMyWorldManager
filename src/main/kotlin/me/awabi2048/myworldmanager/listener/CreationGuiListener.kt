@@ -3,6 +3,8 @@ package me.awabi2048.myworldmanager.listener
 import com.awabi2048.ccsystem.CCSystem
 
 import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
@@ -10,7 +12,6 @@ import me.awabi2048.myworldmanager.gui.CreationGui
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
@@ -19,23 +20,26 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.inventory.ItemStack
 
 class CreationGuiListener(private val plugin: MyWorldManager) {
 
-    fun handleConfirmationClick(player: Player, click: ClickType, item: ItemStack): Boolean {
-        val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return false
-        if (session.phase != WorldCreationPhase.CONFIRM) return false
-        val tag = ItemTag.getType(item)
+    fun handleConfirmationAction(
+        player: Player,
+        click: ClickType,
+        action: CreationConfirmationAction,
+    ): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(player.uniqueId)
+            ?: return MenuActionResult.Ignored
+        if (session.phase != WorldCreationPhase.CONFIRM) return MenuActionResult.Ignored
         val lang = plugin.languageManager
 
-        if (tag == ItemTag.TYPE_GUI_BACK) {
+        if (action == CreationConfirmationAction.BACK) {
             session.phase = WorldCreationPhase.NAME_INPUT
             CCSystem.getAPI().getMenuRuntimeService().close(player)
             openNameInputByPlatform(player, session)
-            return true
+            return MenuActionResult.Success(MenuUpdate.None)
         }
-        if (tag == ItemTag.TYPE_GUI_CREATION_DIMENSION &&
+        if (action == CreationConfirmationAction.DIMENSION &&
             session.creationType == WorldCreationType.SEED
         ) {
             session.seedEnvironment = GuiCycle.select(
@@ -45,44 +49,43 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                     org.bukkit.World.Environment.NETHER,
                     org.bukkit.World.Environment.THE_END
                 ),
-                GuiCycle.direction(click) ?: return false
+                GuiCycle.direction(click) ?: return MenuActionResult.Ignored
             )
-            plugin.creationGui.openConfirmation(player, session)
-            return true
+            return MenuActionResult.Success(MenuUpdate.Refresh)
         }
-        if (tag == ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION &&
+        if (action == CreationConfirmationAction.SPAWN_LOCATION &&
             session.creationType == WorldCreationType.SEED
         ) {
             session.phase = WorldCreationPhase.SPAWN_INPUT
             CCSystem.getAPI().getMenuRuntimeService().close(player)
             openSpawnInputByPlatform(player, session)
-            return true
+            return MenuActionResult.Success(MenuUpdate.None)
         }
-        if (tag == ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW &&
+        if (action == CreationConfirmationAction.TEMPLATE_PREVIEW &&
             session.creationType == WorldCreationType.TEMPLATE
         ) {
-            val templateId = session.templateId ?: return false
+            val templateId = session.templateId ?: return MenuActionResult.Ignored
             CCSystem.getAPI().getMenuRuntimeService().close(player)
             plugin.previewSessionManager.startPreview(
                 player,
                 PreviewSessionManager.PreviewTarget.Template(templateId),
                 PreviewSource.CREATION_CONFIRM
             )
-            return true
+            return MenuActionResult.Success(MenuUpdate.None)
         }
-        if (tag == ItemTag.TYPE_GUI_CREATION_TEMPLATE_CHANGE &&
+        if (action == CreationConfirmationAction.TEMPLATE_CHANGE &&
             session.creationType == WorldCreationType.TEMPLATE
         ) {
             session.phase = WorldCreationPhase.TEMPLATE_SELECT
             plugin.creationGui.openTemplateSelection(player)
-            return true
+            return MenuActionResult.Success(MenuUpdate.None)
         }
-        if (tag == ItemTag.TYPE_GUI_CANCEL) {
+        if (action == CreationConfirmationAction.CANCEL) {
             CCSystem.getAPI().getMenuRuntimeService().close(player)
             cancelAndReturnToMyWorld(player)
-            return true
+            return MenuActionResult.Success(MenuUpdate.None)
         }
-        if (tag != ItemTag.TYPE_GUI_CONFIRM) return false
+        if (action != CreationConfirmationAction.CONFIRM) return MenuActionResult.Ignored
 
         CCSystem.getAPI().getMenuRuntimeService().close(player)
         val adminCommandSession =
@@ -93,11 +96,11 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
             )
         ) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            return true
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
         if (!WorldCreationChecks.check(player, type = session.creationType)) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            return true
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
 
         val cost = session.creationType?.let {
@@ -110,7 +113,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
         ) {
             player.sendMessage(lang.getMessage(player, "messages.creation_insufficient_points"))
             plugin.creationSessionManager.endSession(player.uniqueId)
-            return true
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
 
         player.sendMessage(lang.getMessage(player, "messages.world_creation_processing"))
@@ -165,7 +168,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
             null -> {}
         }
         plugin.creationSessionManager.endSession(player.uniqueId)
-        return true
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
     fun openSeedInputByPlatform(
@@ -392,4 +395,14 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
             if (player.isOnline) plugin.menuEntryRouter.openPlayerWorld(player, 0, false)
         })
     }
+}
+
+enum class CreationConfirmationAction {
+    BACK,
+    DIMENSION,
+    SPAWN_LOCATION,
+    TEMPLATE_PREVIEW,
+    TEMPLATE_CHANGE,
+    CANCEL,
+    CONFIRM,
 }
