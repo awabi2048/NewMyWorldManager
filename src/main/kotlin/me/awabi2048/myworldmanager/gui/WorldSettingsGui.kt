@@ -2268,25 +2268,36 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: UUID,
                 decisionId: UUID
         ) {
-                val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
-                val title = lang.getMessage(player, "gui.member_management.pending_cancel_confirm.title")
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
+                                worldData.uuid,
+                                targetUuid = targetUuid,
+                                decisionId = decisionId,
+                        ),
+                )
+        }
 
+        private fun renderMemberPendingInviteCancelConfirmation(
+                player: Player,
+                targetUuid: UUID,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val title = lang.getMessage(player, "gui.member_management.pending_cancel_confirm.title")
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
                 val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta as? SkullMeta ?: return
+                val meta = item.itemMeta as? SkullMeta
+                        ?: error("メンバー招待取消確認のプレイヤーヘッドを生成できません")
                 meta.owningPlayer = Bukkit.getOfflinePlayer(targetUuid)
                 meta.displayName(
                         LegacyComponentSerializer.legacySection()
@@ -2329,15 +2340,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(
-                        player,
-                        title,
-                        inventory,
-                        WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
-                        worldData.uuid,
-                        targetUuid = targetUuid,
-                        decisionId = decisionId,
-                )
+                return runtimeView(title, inventory)
         }
 
         fun openMemberRemoveConfirmation(
@@ -2345,25 +2348,35 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
                 targetUuid: java.util.UUID
         ) {
-                val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
-
-                val title =
-                        lang.getMessage(
-                                player,
-                                "gui.member_management.remove_confirm.title",
-                                mapOf("player" to targetName)
-                        )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.MEMBER_REMOVE_CONFIRM,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM,
+                                worldData.uuid,
+                                targetUuid = targetUuid,
+                        ),
+                )
+        }
+
+        private fun renderMemberRemoveConfirmation(
+                player: Player,
+                worldData: WorldData,
+                targetUuid: UUID,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val title =
+                        lang.getMessage(
+                                player,
+                                "gui.member_management.remove_confirm.title",
+                                mapOf("player" to targetName)
+                        )
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -2427,14 +2440,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(
-                        player,
-                        title,
-                        inventory,
-                        WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM,
-                        worldData.uuid,
-                        targetUuid = targetUuid,
-                )
+                return runtimeView(title, inventory)
         }
 
         fun openMemberTransferConfirmation(
@@ -2442,25 +2448,35 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
                 targetUuid: java.util.UUID
         ) {
-                val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
-
-                val title =
-                        lang.getMessage(
-                                player,
-                                "gui.member_management.transfer_confirm.title",
-                                mapOf("player" to targetName)
-                        )
-                val currentTitle =
-                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                                .plainText()
-                                .serialize(player.openInventory.title())
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         worldData.uuid,
                         SettingsAction.MEMBER_TRANSFER_CONFIRM,
                         isGui = true
                 )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM,
+                                worldData.uuid,
+                                targetUuid = targetUuid,
+                        ),
+                )
+        }
+
+        private fun renderMemberTransferConfirmation(
+                player: Player,
+                worldData: WorldData,
+                targetUuid: UUID,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val title =
+                        lang.getMessage(
+                                player,
+                                "gui.member_management.transfer_confirm.title",
+                                mapOf("player" to targetName)
+                        )
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
                 inventory.applyStandardFrame()
 
@@ -2520,14 +2536,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
-                presentRuntime(
-                        player,
-                        title,
-                        inventory,
-                        WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM,
-                        worldData.uuid,
-                        targetUuid = targetUuid,
-                )
+                return runtimeView(title, inventory)
         }
 
         private fun createMemberItem(
@@ -3702,23 +3711,27 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 ),
                                         )
                                 WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
-                                        openMemberPendingInviteCancelConfirmation(
-                                                player,
-                                                worldData,
-                                                requireNotNull(runtimeTargetUuid(route)),
-                                                requireNotNull(runtimeDecisionId(route)),
+                                        runtimeRenderCapture.set(
+                                                renderMemberPendingInviteCancelConfirmation(
+                                                        player,
+                                                        requireNotNull(runtimeTargetUuid(route)),
+                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM ->
-                                        openMemberRemoveConfirmation(
-                                                player,
-                                                worldData,
-                                                requireNotNull(runtimeTargetUuid(route)),
+                                        runtimeRenderCapture.set(
+                                                renderMemberRemoveConfirmation(
+                                                        player,
+                                                        worldData,
+                                                        requireNotNull(runtimeTargetUuid(route)),
+                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM ->
-                                        openMemberTransferConfirmation(
-                                                player,
-                                                worldData,
-                                                requireNotNull(runtimeTargetUuid(route)),
+                                        runtimeRenderCapture.set(
+                                                renderMemberTransferConfirmation(
+                                                        player,
+                                                        worldData,
+                                                        requireNotNull(runtimeTargetUuid(route)),
+                                                ),
                                         )
                                 WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT ->
                                         openVisitorManagement(
