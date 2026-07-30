@@ -17,7 +17,7 @@ import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
+import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContext
 import me.awabi2048.myworldmanager.model.PlayerStats
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -139,19 +139,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 // 現在のページ番号を保存
                 session.currentPage = page
 
-                if (
-                        MyWorldManagerApi.openPlayerWorldMenuOverride(
-                                player,
-                                PlayerWorldMenuRequest(
-                                        page = page,
-                                        showBackButton = session.showBackButton,
-                                        targetPlayerUuid = targetPlayerUuid,
-                                        targetPlayerName = targetPlayerName
-                                )
-                        )
-                ) {
-                        return
-                }
                 plugin.settingsSessionManager.updateSessionAction(
                         player,
                         player.uniqueId,
@@ -174,11 +161,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val layout = pageLayout.layout
                 val stats = plugin.playerStatsRepository.findByUuid(targetUuid)
                 val isOwnMenu = targetUuid == player.uniqueId
+                val capabilityContext =
+                        PlayerWorldCapabilityContext(player, targetUuid, targetName)
+                val capability = MyWorldManagerApi.getPlayerWorldCapabilities().firstOrNull()
                 val elements = mutableListOf<MenuElement>()
                 worlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, world ->
                         elements += MenuElement(
                                 layout.itemSlots[index],
-                                createWorldItem(player, world, targetUuid),
+                                capability?.renderWorldItem(capabilityContext, world)
+                                        ?: createWorldItem(player, world, targetUuid),
                                 GuiElementRole.ACTION,
                                 ACTION_WORLD,
                                 mapOf(WORLD_UUID to world.uuid.toString()),
@@ -187,30 +178,45 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val createCount = worlds.count { it.owner == targetUuid }
                 val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
                 if (isOwnMenu) {
-                        val reason = creationBlockReason(
-                                player,
-                                createCount,
-                                maxSlot,
-                                PermissionManager.canBypassWorldLimits(player),
-                        )
-                        elements += if (reason == null) {
-                                MenuElement(
+                        val capabilityView = capability?.renderCreationItem(capabilityContext)
+                        if (capabilityView != null) {
+                                elements += MenuElement(
                                         layout.actionSlot - 2,
-                                        createCreationButton(player),
-                                        GuiElementRole.ACTION,
-                                        ACTION_CREATE,
+                                        capabilityView.item,
+                                        if (capabilityView.actionable) {
+                                                GuiElementRole.ACTION
+                                        } else {
+                                                GuiElementRole.CONTENT
+                                        },
+                                        if (capabilityView.actionable) ACTION_CREATE else null,
                                 )
                         } else {
-                                MenuElement(
-                                        layout.actionSlot - 2,
-                                        createCreationUnavailableButton(player, reason),
-                                        GuiElementRole.CONTENT,
+                                val reason = creationBlockReason(
+                                        player,
+                                        createCount,
+                                        maxSlot,
+                                        PermissionManager.canBypassWorldLimits(player),
                                 )
+                                elements += if (reason == null) {
+                                        MenuElement(
+                                                layout.actionSlot - 2,
+                                                createCreationButton(player),
+                                                GuiElementRole.ACTION,
+                                                ACTION_CREATE,
+                                        )
+                                } else {
+                                        MenuElement(
+                                                layout.actionSlot - 2,
+                                                createCreationUnavailableButton(player, reason),
+                                                GuiElementRole.CONTENT,
+                                        )
+                                }
                         }
                 }
                 elements += MenuElement(
                         layout.actionSlot,
-                        createStatsButton(player, targetUuid, targetName, createCount, maxSlot, stats),
+                        capability?.renderSummaryItem(capabilityContext)
+                                ?: createStatsButton(player, targetUuid, targetName, createCount, maxSlot, stats),
                         GuiElementRole.CONTENT,
                 )
                 if (isOwnMenu) {
@@ -287,6 +293,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun create(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
+                val capabilityContext = playerWorldCapabilityContext(context.player, context.route)
+                MyWorldManagerApi.getPlayerWorldCapabilities().firstNotNullOfOrNull { capability ->
+                        capability.handleCreate(capabilityContext, context.click, context.route)
+                }?.let { return it }
                 if (!WorldCreationChecks.checkSelfCreatePermission(context.player)) {
                         return MenuActionResult.Rejected()
                 }
@@ -322,6 +332,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         ?: return MenuActionResult.Rejected()
                 val worldData = plugin.worldConfigRepository.findByUuid(uuid)
                         ?: return MenuActionResult.Rejected()
+                val capabilityContext = playerWorldCapabilityContext(context.player, context.route)
+                MyWorldManagerApi.getPlayerWorldCapabilities().firstNotNullOfOrNull { capability ->
+                        capability.handleWorld(capabilityContext, context.click, worldData)
+                }?.let { return it }
                 val ownMenu = targetUuid(context.route) == context.player.uniqueId
                 return when {
                         ownMenu && context.click.isShiftClick && context.click.isLeftClick ->
@@ -437,6 +451,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         private fun targetUuid(route: MenuRoute): UUID =
                 route.payload[TARGET_UUID]?.let(UUID::fromString)
                         ?: error("プレイヤーワールド一覧の対象UUIDがありません")
+
+        private fun playerWorldCapabilityContext(
+                player: Player,
+                route: MenuRoute,
+        ): PlayerWorldCapabilityContext = PlayerWorldCapabilityContext(
+                player,
+                targetUuid(route),
+                route.payload[TARGET_NAME],
+        )
 
         private fun createWorldItem(
                 player: Player,
