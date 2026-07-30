@@ -239,20 +239,28 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         slot: Int,
         capability: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
         role: GuiElementRole = GuiElementRole.ACTION,
-    ) = MenuElement(
-        slot = slot,
-        item = capability.item,
-        role = role,
-        interaction = if (capability.actionable) {
-            MenuInteraction.Action(
-                actionId = ACTION_CAPABILITY,
-                acceptedClicks = capability.acceptedClicks,
-                payload = mapOf(CAPABILITY_ID to capability.capabilityId),
-            )
-        } else {
-            MenuInteraction.DisplayOnly
-        },
-    )
+    ): MenuElement {
+        val presentation = capability.presentation
+        val item = CCSystem.getAPI().getGuiElementService()
+            .item(presentation.item.copy(role = role))
+        presentation.glint?.let { enabled ->
+            item.editMeta { meta -> meta.setEnchantmentGlintOverride(enabled) }
+        }
+        return MenuElement(
+            slot = slot,
+            item = item,
+            role = role,
+            interaction = if (capability.actionable) {
+                MenuInteraction.Action(
+                    actionId = ACTION_CAPABILITY,
+                    acceptedClicks = capability.acceptedClicks,
+                    payload = mapOf(CAPABILITY_ID to capability.capabilityId),
+                )
+            } else {
+                MenuInteraction.DisplayOnly
+            },
+        )
+    }
 
     private fun createTemplate(context: MenuActionContext): MenuActionResult {
         plugin.templateWizardGui.open(context.player)

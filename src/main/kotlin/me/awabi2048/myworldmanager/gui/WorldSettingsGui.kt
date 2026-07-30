@@ -1359,6 +1359,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                         .zip(validSlots)
                         .forEach { (resolved, slot) ->
+                                val presentation = resolved.presentation
+                                val item = CCSystem.getAPI().getGuiElementService()
+                                        .item(presentation.item)
+                                presentation.glint?.let { enabled ->
+                                        item.editMeta { meta ->
+                                                meta.setEnchantmentGlintOverride(enabled)
+                                        }
+                                }
                                 val interaction = if (resolved.actionable) {
                                         MenuInteraction.Action(
                                                 actionId = ACTION_CAPABILITY,
@@ -1369,7 +1377,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 } else {
                                         MenuInteraction.DisplayOnly
                                 }
-                                inventory.setSemanticItem(slot, resolved.item, interaction)
+                                inventory.setSemanticItem(slot, item, interaction)
                         }
         }
 
