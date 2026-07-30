@@ -739,90 +739,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                         val currentLevel = worldData.borderExpansionLevel
                         val cost = WorldRuntimePolicies.expansionCost(config, currentLevel + 1)
-                        val expansionLoreBuilder = GuiLoreBuilder(lang, player)
-                                .block(
-                                        lang.getMessageList(
-                                                player,
-                                                "gui.settings.expand.blocks.description"
-                                        ).map(GuiLoreLine::Text)
-                                )
-                                .spacer()
-
-                        if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
-                                expansionLoreBuilder.block(listOf(
-                                        GuiLoreLine.StyledText(
-                                                lang.getMessage(player, "gui.settings.expand.blocks.no_border"),
-                                                "§a",
-                                                false
-                                        )
-                                ))
-                        } else {
-                                val targetLevel = currentLevel + 1
-                                if (currentLevel < maxLevel) {
-                                        if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                                                expansionLoreBuilder.block(listOf(
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.current_level"), "$currentLevel/$maxLevel", "§e"),
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.next_level"), targetLevel, "§e")
-                                                ))
-                                        } else if (stats.worldPoint < cost) {
-                                                // Insufficient points
-                                                val insufficient = cost - stats.worldPoint
-                                                expansionLoreBuilder.block(listOf(
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.current_level"), "$currentLevel/$maxLevel", "§e"),
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.cost"), cost, "§c"),
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.owned_points"), stats.worldPoint, "§e"),
-                                                        GuiLoreLine.Warning(lang.getMessage(player, "gui.settings.expand.blocks.shortage", mapOf("shortage" to insufficient)))
-                                                ))
-                                        } else {
-                                                // Able to upgrade
-                                                expansionLoreBuilder.block(listOf(
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.current_level"), "$currentLevel/$maxLevel", "§e"),
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.next_level"), targetLevel, "§e"),
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.cost"), cost, "§e"),
-                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.owned_points"), stats.worldPoint, "§e")
-                                                ))
-                                        }
-                                } else {
-                                        // Max level
-                                        expansionLoreBuilder.block(listOf(
-                                                GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.current_level"), "$currentLevel/$maxLevel", "§e"),
-                                                GuiLoreLine.Warning(lang.getMessage(player, "gui.settings.expand.blocks.max_reached"))
-                                        ))
-                                }
-
-                                val showOpenMenuHint = isInWorld && currentLevel < maxLevel
-                                if (showOpenMenuHint) {
-                                        expansionLoreBuilder.actions(
-                                                lang.getMessage(
-                                                        player,
-                                                        "gui.settings.expand.action.open_menu"
-                                                )
-                                        )
-                                }
-
-                                val borderInfo = buildCurrentBorderInfo(worldData, currentLevel)
-                                expansionLoreBuilder.block(listOf(
-                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.border_center"), "X: ${formatDecimal(borderInfo.centerX)} / Z: ${formatDecimal(borderInfo.centerZ)}", "§e"),
-                                        GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.border_size"), formatDecimal(borderInfo.size), "§e")
-                                ))
-                                if (!isBedrock && isInWorld) {
-                                        expansionLoreBuilder.actions(
-                                                listOf(
-                                                        GuiLoreAction(
-                                                                lang.getMessage(player, "gui.settings.click.right"),
-                                                                lang.getMessage(
-                                                                        player,
-                                                                        "gui.settings.expand.action.teleport_center"
-                                                                )
-                                                        )
-                                                )
-                                        )
-                                }
-                                if (!isInWorld && warningLore != null) {
-                                        expansionLoreBuilder.warning(warningLore)
-                                }
-                        }
-
                         val borderInfo = buildCurrentBorderInfo(worldData, currentLevel)
                         val expansionData = buildList {
                                 if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL) {
@@ -1116,41 +1032,36 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
                         }
 
-                        val tagLore =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.tags.blocks.description"
-                                                ).map(GuiLoreLine::Text)
-                                        )
-                                        .spacer()
-                                        .block(listOf(GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.settings.tags.blocks.current_label"),
-                                                tagsList,
-                                                "§6"
-                                        )))
-                                        .actions(
-                                                lang.getMessage(player, "gui.settings.tags.action.edit")
-                                        )
-                                        .buildSpec()
-
-                        inventory.setItem(
-                                tagsSettingSlot,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = tagsSettingSlot,
+                                        material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "tags",
-                                                Material.BOOK
+                                                Material.BOOK,
                                         ),
-                                        lang.getMessage(player, "gui.settings.tags.display"),
-                                        tagLore,
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                tagsSettingSlot,
-                                WorldSettingsRuntimeOperation.EDIT_TAGS,
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.tags.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = GuiElementRole.ACTION,
+                                        description = lang.getMessageList(
+                                                player,
+                                                "gui.settings.tags.blocks.description",
+                                        ),
+                                        data = listOf(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.tags.blocks.current_label"),
+                                                tagsList,
+                                                GuiValueTone.WARNING,
+                                        )),
+                                        actions = listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.settings.tags.action.edit"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EDIT_TAGS.name),
+                                        )),
+                                ),
                         )
                 }
 
@@ -1253,36 +1164,32 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // スロット32: 環境設定 (オーナーのみ)
                 if (ownerActionsAllowed && !isBedrock) {
-                        val environmentLoreBuilder =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.environment.blocks.summary"
-                                                ).map(GuiLoreLine::Text)
-                                        )
-                        if (!isInWorld && warningLore != null) {
-                                environmentLoreBuilder.warning(warningLore)
-                        }
-                        environmentLoreBuilder.actions(
-                                lang.getMessage(player, "gui.settings.environment.action.open")
-                        )
-                        inventory.setItem(
-                                32,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 32,
+                                        material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "environment",
-                                                Material.GRASS_BLOCK
+                                                Material.GRASS_BLOCK,
                                         ),
-                                        lang.getMessage(player, "gui.settings.environment.display"),
-                                        environmentLoreBuilder.buildSpec(),
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                32,
-                                WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT,
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.environment.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                                        description = lang.getMessageList(
+                                                player,
+                                                "gui.settings.environment.blocks.summary",
+                                        ),
+                                        warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
+                                        actions = if (isInWorld) listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.settings.environment.action.open"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT.name),
+                                        )) else emptyList(),
+                                ),
                         )
                 }
 
@@ -1290,36 +1197,32 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // スロット33: 重大な設定 (オーナーのみ)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 if (ownerActionsAllowed && stats.criticalSettingsEnabled) {
-                        val criticalLoreBuilder =
-                                GuiLoreBuilder(lang, player)
-                                        .block(
-                                                lang.getMessageList(
-                                                        player,
-                                                        "gui.settings.critical.blocks.summary"
-                                                ).map(GuiLoreLine::Text)
-                                        )
-                        if (!isInWorld && warningLore != null) {
-                                criticalLoreBuilder.warning(warningLore)
-                        }
-                        criticalLoreBuilder.actions(
-                                lang.getMessage(player, "gui.settings.critical.action.open")
-                        )
-                        inventory.setItem(
-                                33,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 33,
+                                        material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "critical",
-                                                Material.TNT
+                                                Material.TNT,
                                         ),
-                                        lang.getMessage(player, "gui.settings.critical.display"),
-                                        criticalLoreBuilder.buildSpec(),
-                                        null
-                                )
-                        )
-                        inventory.bindRuntimeOperation(
-                                33,
-                                WorldSettingsRuntimeOperation.OPEN_CRITICAL,
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.critical.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                                        description = lang.getMessageList(
+                                                player,
+                                                "gui.settings.critical.blocks.summary",
+                                        ),
+                                        warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
+                                        actions = if (isInWorld) listOf(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                lang.getMessage(player, "gui.settings.critical.action.open"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_CRITICAL.name),
+                                        )) else emptyList(),
+                                ),
                         )
                 }
 
@@ -1396,71 +1299,67 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
 
                 val isSpecialExpansion = currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL
-                val infoLines = buildList<GuiLoreLine> {
-                        if (worldData.description.isNotEmpty()) {
-                                add(GuiLoreLine.UserText(worldData.description))
-                                add(GuiLoreLine.Spacer)
-                        }
-                        add(GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.settings.main_info.owner_label"),
-                                PlayerNameUtil.getNameOrDefault(worldData.owner, lang.getMessage(player, "general.unknown")),
-                                "§b"
-                        ))
-                        if (!isSpecialExpansion) {
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.main_info.expansion_label"), "$currentLevel/$maxLevel", "§e"))
-                        }
-                        add(GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.settings.main_info.created_label"),
-                                "${displayFormatter.format(createdAtDate)} ($createdInfo)",
-                                "§e"
-                        ))
-                        if (!isSpecialExpansion) {
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.settings.main_info.archive_label"),
-                                        lang.getMessage(player, "gui.settings.main_info.archive_value", mapOf("days" to daysRemaining, "date" to dateStr)),
-                                        "§6"
-                                ))
-                        }
-                        add(GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.settings.main_info.members_label"),
-                                lang.getMessage(player, "gui.settings.main_info.members_value", mapOf("members" to totalCount, "online" to onlineCount)),
-                                "§f"
-                        ))
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.main_info.publish_label"), publishLevelName, publishLevelColor))
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.main_info.favorites_label"), worldData.favorite, "§c"))
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.main_info.visitors_label"), worldData.recentVisitors.sum(), "§b"))
-                        add(GuiLoreLine.Metadata("UUID", worldData.uuid))
-                        if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid != worldData.uuid) {
-                                val warpAction = contractGuiActions(
+                val warpContract = plugin.worldSettingsActionService
+                        .contract(player, worldData, WorldSettingsAction.WARP)
+                inventory.setMenuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = worldInfoSlot,
+                                material = worldData.icon,
+                                name = GuiNameSpec.Text(
+                                        lang.getMessage(
+                                                player,
+                                                "gui.settings.main_info.name",
+                                                mapOf("world" to worldData.name),
+                                        ),
+                                        GuiNameStyle.DEFAULT,
+                                ),
+                                role = if (warpContract.actionable) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                                description = if (worldData.description.isEmpty()) emptyList() else listOf(worldData.description),
+                                data = buildList {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.main_info.owner_label"),
+                                                PlayerNameUtil.getNameOrDefault(worldData.owner, lang.getMessage(player, "general.unknown")),
+                                                GuiValueTone.INFO,
+                                        ))
+                                        if (!isSpecialExpansion) {
+                                                add(GuiMenuEntryData(
+                                                        lang.getMessage(player, "gui.settings.main_info.expansion_label"),
+                                                        "$currentLevel/$maxLevel",
+                                                        GuiValueTone.PRIMARY,
+                                                ))
+                                        }
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.main_info.created_label"),
+                                                "${displayFormatter.format(createdAtDate)} ($createdInfo)",
+                                                GuiValueTone.PRIMARY,
+                                        ))
+                                        if (!isSpecialExpansion) {
+                                                add(GuiMenuEntryData(
+                                                        lang.getMessage(player, "gui.settings.main_info.archive_label"),
+                                                        lang.getMessage(player, "gui.settings.main_info.archive_value", mapOf("days" to daysRemaining, "date" to dateStr)),
+                                                        GuiValueTone.WARNING,
+                                                ))
+                                        }
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.main_info.members_label"),
+                                                lang.getMessage(player, "gui.settings.main_info.members_value", mapOf("members" to totalCount, "online" to onlineCount)),
+                                        ))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.settings.main_info.publish_label"), publishLevelName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.settings.main_info.favorites_label"), worldData.favorite, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.settings.main_info.visitors_label"), worldData.recentVisitors.sum(), GuiValueTone.INFO))
+                                        add(GuiMenuEntryData("UUID", worldData.uuid, GuiValueTone.MUTED))
+                                },
+                                actions = contractMenuActions(
                                         player,
                                         worldData,
                                         WorldSettingsAction.WARP,
+                                        WorldSettingsRuntimeOperation.WARP,
                                         listOf(lang.getMessage(player, "gui.player_world.world_item.warp")),
-                                ).single()
-                                add(GuiLoreActions.single(lang, player, warpAction.operation, warpAction.action))
-                        }
-                }
-
-                val infoItem =
-                        createItemComponent(
-                                worldData.icon,
-                                lang.getMessage(
-                                        player,
-                                        "gui.settings.main_info.name",
-                                        mapOf("world" to worldData.name)
                                 ),
-                                GuiLoreSpec.Rich(infoLines, GuiLoreFrame.BOTH),
-                                null
-                        )
-                inventory.setItem(worldInfoSlot, infoItem)
-                if (plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid != worldData.uuid) {
-                        inventory.bindRuntimeOperation(
-                                worldInfoSlot,
-                                WorldSettingsRuntimeOperation.WARP,
-                                plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.WARP).acceptedClicks,
-                                sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.WARP).sounds,
-                        )
-                }
+                                sounds = warpContract.sounds,
+                        ),
+                )
 
                 // スロット51: 訪問中のプレイヤー管理
                 val visitors =
