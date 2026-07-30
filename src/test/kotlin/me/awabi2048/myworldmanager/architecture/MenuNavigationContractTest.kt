@@ -128,15 +128,28 @@ class MenuNavigationContractTest {
         val listener = Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
         ).readText()
+        val inputService = Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/service/WorldSettingsInputService.kt",
+        ).readText()
         listOf(
-            "showWorldInfoDialog(player, worldData)",
             "showMemberInviteDialog(player, forceAddMode)",
             "showTagEditorDialog(player, worldData)",
-            "AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)",
         ).forEach { dialogCall ->
             val callIndex = listener.indexOf(dialogCall)
             assertTrue(callIndex >= 0, "Dialog call was not found: $dialogCall")
             val precedingTransition = listener.substring(maxOf(0, callIndex - 300), callIndex)
+            assertFalse(
+                "getMenuRuntimeService().close(player)" in precedingTransition,
+                "Runtime history is cleared immediately before $dialogCall",
+            )
+        }
+        listOf(
+            "showInfoDialog(player, worldData)",
+            "AnnouncementDialogManager.showAnnouncementEditDialog(player, worldData)",
+        ).forEach { dialogCall ->
+            val callIndex = inputService.indexOf(dialogCall)
+            assertTrue(callIndex >= 0, "Dialog call was not found: $dialogCall")
+            val precedingTransition = inputService.substring(maxOf(0, callIndex - 300), callIndex)
             assertFalse(
                 "getMenuRuntimeService().close(player)" in precedingTransition,
                 "Runtime history is cleared immediately before $dialogCall",
