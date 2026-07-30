@@ -823,20 +823,99 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 }
                         }
 
-                        inventory.setItem(
-                                23,
-                                createItemComponent(
-                                        plugin.menuConfigManager.getIconMaterial(
+                        val borderInfo = buildCurrentBorderInfo(worldData, currentLevel)
+                        val expansionData = buildList {
+                                if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL) {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.expand.blocks.current_level"),
+                                                "$currentLevel/$maxLevel",
+                                                GuiValueTone.PRIMARY,
+                                        ))
+                                        if (currentLevel < maxLevel) {
+                                                add(GuiMenuEntryData(
+                                                        lang.getMessage(player, "gui.settings.expand.blocks.next_level"),
+                                                        currentLevel + 1,
+                                                        GuiValueTone.PRIMARY,
+                                                ))
+                                                if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                                                        add(GuiMenuEntryData(
+                                                                lang.getMessage(player, "gui.settings.expand.blocks.cost"),
+                                                                cost,
+                                                                if (stats.worldPoint < cost) GuiValueTone.DANGER else GuiValueTone.PRIMARY,
+                                                        ))
+                                                        add(GuiMenuEntryData(
+                                                                lang.getMessage(player, "gui.settings.expand.blocks.owned_points"),
+                                                                stats.worldPoint,
+                                                                GuiValueTone.PRIMARY,
+                                                        ))
+                                                }
+                                        }
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.expand.blocks.border_center"),
+                                                "X: ${formatDecimal(borderInfo.centerX)} / Z: ${formatDecimal(borderInfo.centerZ)}",
+                                                GuiValueTone.PRIMARY,
+                                        ))
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.settings.expand.blocks.border_size"),
+                                                formatDecimal(borderInfo.size),
+                                                GuiValueTone.PRIMARY,
+                                        ))
+                                }
+                        }
+                        val expansionWarnings = buildList {
+                                if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
+                                        add(lang.getMessage(player, "gui.settings.expand.blocks.no_border"))
+                                } else {
+                                        if (currentLevel >= maxLevel) {
+                                                add(lang.getMessage(player, "gui.settings.expand.blocks.max_reached"))
+                                        } else if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
+                                                add(lang.getMessage(
+                                                        player,
+                                                        "gui.settings.expand.blocks.shortage",
+                                                        mapOf("shortage" to cost - stats.worldPoint),
+                                                ))
+                                        }
+                                        if (!isInWorld && warningLore != null) add(warningLore)
+                                }
+                        }
+                        val expansionActions = buildList {
+                                if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL && isInWorld && currentLevel < maxLevel) {
+                                        add(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.LEFT,
+                                                lang.getMessage(player, "gui.settings.expand.action.open_menu"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
+                                        ))
+                                }
+                                if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL && !isBedrock && isInWorld) {
+                                        add(GuiMenuEntryAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuAcceptedClicks.RIGHT,
+                                                lang.getMessage(player, "gui.settings.expand.action.teleport_center"),
+                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
+                                        ))
+                                }
+                        }
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 23,
+                                        material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "expand",
-                                                Material.FILLED_MAP
+                                                Material.FILLED_MAP,
                                         ),
-                                        lang.getMessage(player, "gui.settings.expand.display"),
-                                        expansionLoreBuilder.buildSpec(),
-                                        null
-                                )
+                                        name = GuiNameSpec.Text(
+                                                lang.getMessage(player, "gui.settings.expand.display"),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = if (expansionActions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                                        description = lang.getMessageList(player, "gui.settings.expand.blocks.description"),
+                                        data = expansionData,
+                                        warnings = expansionWarnings,
+                                        actions = expansionActions,
+                                ),
                         )
-                        inventory.bindRuntimeOperation(23, WorldSettingsRuntimeOperation.EXPAND)
                 }
 
                 // スロット24: 公開レベル変更 (オーナーのみ)
