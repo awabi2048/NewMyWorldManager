@@ -5,11 +5,17 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -18,7 +24,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.InviteTargetResolver
 import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
 import net.kyori.adventure.text.format.TextDecoration
@@ -26,7 +31,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class InviteGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
@@ -93,16 +97,7 @@ class InviteGui(private val plugin: MyWorldManager) {
         val pageTargets = targets.drop(pageLayout.startIndex).take(pageLayout.itemCount)
         val elements = mutableListOf<MenuElement>()
         pageTargets.forEachIndexed { index, target ->
-            elements += MenuElement(
-                layout.itemSlots[index],
-                createTargetHead(target, player),
-                GuiElementRole.ACTION,
-                ACTION_INVITE,
-                mapOf(
-                    TARGET_UUID to target.uniqueId.toString(),
-                    TARGET_NAME to target.name,
-                ),
-            )
+            elements += createTargetEntry(target, player, layout.itemSlots[index])
         }
 
         val statusLore = GuiLoreSpec.Blocks(
@@ -190,39 +185,43 @@ class InviteGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.Close)
     }
 
-    private fun createTargetHead(target: Player, viewer: Player): ItemStack {
+    private fun createTargetEntry(target: Player, viewer: Player, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.PLAYER_HEAD)
-        val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-
-        meta.owningPlayer = target
         val colorCode = lang.getMessage(viewer, "publish_level.color.online")
-        meta.displayName(
-            LegacyComponentSerializer.legacySection().deserialize("$colorCode${target.name}")
-                .decoration(TextDecoration.ITALIC, false)
-        )
-
         val status = plugin.playerStatsRepository.findByUuid(target.uniqueId).meetStatus
         val statusKey = "general.status.${status.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else status
-        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-            GuiLoreBlock(listOf(GuiLoreLine.Data(
-                lang.getMessage(viewer, "gui.meet.world_item.status"),
-                statusName,
-                "§e"
-            ))),
-            GuiLoreBlock(listOf(GuiLoreLine.Action(
-                lang.getMessage(viewer, "lore.click.any"),
-                lang.getMessage(viewer, "gui.invite.target_head.click_invite")
-            )))
-        )))
-
-        meta.lore(lore)
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INVITE_TARGET_HEAD)
-        ItemTag.setString(item, "invite_target_uuid", target.uniqueId.toString())
-        ItemTag.setString(item, "invite_target_name", target.name)
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            viewer,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.PLAYER_HEAD,
+                name = GuiNameSpec.Component(
+                    LegacyComponentSerializer.legacySection().deserialize("$colorCode${target.name}")
+                        .decoration(TextDecoration.ITALIC, false),
+                ),
+                role = GuiElementRole.ACTION,
+                data = listOf(
+                    GuiMenuEntryData(
+                        lang.getMessage(viewer, "gui.meet.world_item.status"),
+                        statusName,
+                        GuiValueTone.PRIMARY,
+                    ),
+                ),
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_INVITE,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(viewer, "gui.invite.target_head.click_invite"),
+                        mapOf(
+                            TARGET_UUID to target.uniqueId.toString(),
+                            TARGET_NAME to target.name,
+                        ),
+                    ),
+                ),
+                playerHeadOwner = target.uniqueId,
+            ),
+        )
     }
 
     private fun MenuRoute.uuid(key: String): UUID? =
