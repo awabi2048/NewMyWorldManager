@@ -2,12 +2,17 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -19,7 +24,6 @@ import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
@@ -71,9 +75,9 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                 plugin.languageManager.getMessage(player, "gui.environment.title"),
             ),
             elements = listOf(
-                MenuElement(layout.leftSlot, createGravityItem(player, worldData), GuiElementRole.ACTION, ACTION_GRAVITY),
-                MenuElement(layout.centerSlot, createWeatherItem(player, worldData), GuiElementRole.ACTION, ACTION_WEATHER),
-                MenuElement(layout.rightSlot, createBiomeItem(player, worldData), GuiElementRole.ACTION, ACTION_BIOME),
+                createGravityEntry(player, worldData, layout.leftSlot),
+                createWeatherEntry(player, worldData, layout.centerSlot),
+                createBiomeEntry(player, worldData, layout.rightSlot),
                 MenuElement(layout.backSlot, createBackItem(player), GuiElementRole.BACK, ACTION_BACK),
             ),
             playerInventoryInteraction = PlayerInventoryInteraction.SELECTION,
@@ -175,10 +179,8 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         return null
     }
 
-    private fun createGravityItem(player: Player, worldData: WorldData): ItemStack {
+    private fun createGravityEntry(player: Player, worldData: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.FEATHER)
-        val meta = item.itemMeta ?: return item
         val gravityKey = when (worldData.gravityValue ?: 0.08) {
             0.01 -> "moon"
             0.02 -> "mars"
@@ -186,72 +188,100 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         }
         val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-        meta.displayName(lang.getComponent(player, "gui.environment.gravity.display"))
-        meta.lore(GuiItemFactory.menuLore(buildList {
-            add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.current"), currentName, "§6"))
-            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.gravity.cost"), cost, "§e"))
-            }
-            add(GuiLoreLine.Spacer)
-            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.gravity.requirement")))
-            add(
-                CCSystem.getAPI().getGuiActionService().singleClick(
-                    player,
-                    lang.getMessage(player, "gui.environment.gravity.action"),
+        return menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.FEATHER,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.gravity.display")),
+                role = GuiElementRole.ACTION,
+                description = listOf(lang.getMessage(player, "gui.environment.gravity.requirement")),
+                data = buildList {
+                    add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.gravity.current"), currentName, GuiValueTone.WARNING))
+                    if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.gravity.cost"), cost, GuiValueTone.WARNING))
+                    }
+                },
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_GRAVITY,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.environment.gravity.action"),
+                    ),
                 ),
-            )
-        }))
-        item.itemMeta = meta
-        return item
+            ),
+        )
     }
 
-    private fun createWeatherItem(player: Player, worldData: WorldData): ItemStack {
+    private fun createWeatherEntry(player: Player, worldData: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.WHITE_WOOL)
-        val meta = item.itemMeta ?: return item
         val session = plugin.settingsSessionManager.getSession(player)
         val currentWeather = session?.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
-        meta.displayName(lang.getComponent(player, "gui.environment.weather.display"))
-        meta.lore(GuiItemFactory.menuLore(buildList {
-            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.weather.desc")))
-            add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, "§b"))
-            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.weather.cost"), cost, "§e"))
-            }
-            add(GuiLoreLine.Spacer)
-            add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.left"), lang.getMessage(player, "gui.environment.weather.action.cycle")))
-            add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.environment.weather.action.confirm")))
-        }))
-        item.itemMeta = meta
-        return item
+        return menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.WHITE_WOOL,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.weather.display")),
+                role = GuiElementRole.ACTION,
+                description = listOf(lang.getMessage(player, "gui.environment.weather.desc")),
+                data = buildList {
+                    add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, GuiValueTone.INFO))
+                    if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.weather.cost"), cost, GuiValueTone.WARNING))
+                    }
+                },
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_WEATHER,
+                        MenuAcceptedClicks.LEFT,
+                        lang.getMessage(player, "gui.environment.weather.action.cycle"),
+                    ),
+                    GuiMenuEntryAction(
+                        ACTION_WEATHER,
+                        MenuAcceptedClicks.RIGHT,
+                        lang.getMessage(player, "gui.environment.weather.action.confirm"),
+                    ),
+                ),
+            ),
+        )
     }
 
-    private fun createBiomeItem(player: Player, worldData: WorldData): ItemStack {
+    private fun createBiomeEntry(player: Player, worldData: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.GRASS_BLOCK)
-        val meta = item.itemMeta ?: return item
         val currentBiome = worldData.fixedBiome ?: "DEFAULT"
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
-        meta.displayName(lang.getComponent(player, "gui.environment.biome.display"))
-        meta.lore(GuiItemFactory.menuLore(buildList {
-            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.desc")))
-            add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, "§a"))
-            if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.environment.biome.cost"), cost, "§e"))
-            }
-            add(GuiLoreLine.Spacer)
-            add(GuiLoreLine.Text(lang.getMessage(player, "gui.environment.biome.requirement")))
-            add(
-                CCSystem.getAPI().getGuiActionService().singleClick(
-                    player,
-                    lang.getMessage(player, "gui.environment.biome.action"),
+        return menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.GRASS_BLOCK,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.biome.display")),
+                role = GuiElementRole.ACTION,
+                description = listOf(
+                    lang.getMessage(player, "gui.environment.biome.desc"),
+                    lang.getMessage(player, "gui.environment.biome.requirement"),
                 ),
-            )
-        }))
-        item.itemMeta = meta
-        return item
+                data = buildList {
+                    add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, GuiValueTone.SUCCESS))
+                    if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
+                        add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.biome.cost"), cost, GuiValueTone.WARNING))
+                    }
+                },
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BIOME,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.environment.biome.action"),
+                    ),
+                ),
+            ),
+        )
     }
+
+    private fun menuEntry(player: Player, spec: GuiMenuEntrySpec): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
 
     private fun createBackItem(player: Player): ItemStack {
         val item = ItemStack(Material.REDSTONE)
