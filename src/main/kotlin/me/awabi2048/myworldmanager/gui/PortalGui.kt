@@ -3,21 +3,22 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
-import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PortalData
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
 import org.bukkit.Bukkit
@@ -78,66 +79,40 @@ class PortalGui(private val plugin: MyWorldManager) {
                 lang.getMessage(player, "gui.portal.title"),
             ),
             elements = listOf(
-                MenuElement(
-                    slot = 11,
-                    item = structuredItem(
-                        player,
-                        Material.OAK_SIGN,
-                        "gui.portal.toggle_text",
-                        listOf(
-                            GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.portal.toggle_text.current_label"),
-                                textStatus,
-                                "§e",
-                            ),
-                        ),
-                        ItemTag.TYPE_GUI_PORTAL_TOGGLE_TEXT,
-                    ),
-                    role = GuiElementRole.ACTION,
+                menuEntry(
+                    player,
+                    11,
+                    Material.OAK_SIGN,
+                    "gui.portal.toggle_text",
+                    data = listOf(GuiMenuEntryData(
+                        lang.getMessage(player, "gui.portal.toggle_text.current_label"),
+                        textStatus,
+                        GuiValueTone.PRIMARY,
+                    )),
                     actionId = ACTION_TOGGLE_TEXT,
                 ),
-                MenuElement(
-                    slot = 13,
-                    item = structuredItem(
-                        player,
-                        getWoolColor(portal.particleColor),
-                        "gui.portal.color",
-                        listOf(
-                            GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.portal.color.current_label"),
-                                lang.getMessage(player, "colors.${getColorKey(portal.particleColor)}"),
-                                "§e",
-                            ),
-                            GuiLoreLine.Text(
-                                lang.getMessage(
-                                    player,
-                                    "gui.portal.color.previous",
-                                    mapOf("color" to lang.getMessage(player, "colors.${getColorKey(previousColor)}")),
-                                ),
-                            ),
-                            GuiLoreLine.Text(
-                                lang.getMessage(
-                                    player,
-                                    "gui.portal.color.next",
-                                    mapOf("color" to lang.getMessage(player, "colors.${getColorKey(nextColor)}")),
-                                ),
-                            ),
-                        ),
-                        ItemTag.TYPE_GUI_PORTAL_CYCLE_COLOR,
+                menuEntry(
+                    player,
+                    13,
+                    getWoolColor(portal.particleColor),
+                    "gui.portal.color",
+                    description = listOf(
+                        lang.getMessage(player, "gui.portal.color.previous", mapOf("color" to lang.getMessage(player, "colors.${getColorKey(previousColor)}"))),
+                        lang.getMessage(player, "gui.portal.color.next", mapOf("color" to lang.getMessage(player, "colors.${getColorKey(nextColor)}"))),
                     ),
-                    role = GuiElementRole.ACTION,
+                    data = listOf(GuiMenuEntryData(
+                        lang.getMessage(player, "gui.portal.color.current_label"),
+                        lang.getMessage(player, "colors.${getColorKey(portal.particleColor)}"),
+                        GuiValueTone.PRIMARY,
+                    )),
                     actionId = ACTION_CYCLE_COLOR,
                 ),
-                MenuElement(
-                    slot = 15,
-                    item = structuredItem(
-                        player,
-                        Material.LAVA_BUCKET,
-                        "gui.portal.remove",
-                        listOf(GuiLoreLine.Danger(lang.getMessage(player, "gui.portal.remove.description"))),
-                        ItemTag.TYPE_GUI_PORTAL_REMOVE,
-                    ),
-                    role = GuiElementRole.ACTION,
+                menuEntry(
+                    player,
+                    15,
+                    Material.LAVA_BUCKET,
+                    "gui.portal.remove",
+                    dangers = listOf(lang.getMessage(player, "gui.portal.remove.description")),
                     actionId = ACTION_REMOVE,
                 ),
             ),
@@ -221,32 +196,35 @@ class PortalGui(private val plugin: MyWorldManager) {
         }
     }
 
-    private fun structuredItem(
+    private fun menuEntry(
         player: Player,
+        slot: Int,
         material: Material,
         key: String,
-        information: List<GuiLoreLine>,
-        tag: String,
-    ): ItemStack {
+        description: List<String> = emptyList(),
+        data: List<GuiMenuEntryData> = emptyList(),
+        dangers: List<String> = emptyList(),
+        actionId: String,
+    ): MenuElement {
         val lang = plugin.languageManager
-        return GuiItemFactory.item(
-            material,
-            lang.getMessage(player, "$key.name"),
-            GuiLoreSpec.Blocks(
-                listOf(
-                    GuiLoreBlock(information),
-                    GuiLoreBlock(
-                        listOf(
-                            me.awabi2048.myworldmanager.util.GuiLoreActions.singleClick(
-                                lang,
-                                player,
-                                lang.getMessage(player, "$key.action"),
-                            ),
-                        ),
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = material,
+                name = GuiNameSpec.Component(lang.getComponent(player, "$key.name")),
+                role = GuiElementRole.ACTION,
+                description = description,
+                data = data,
+                dangers = dangers,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        actionId,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(player, "$key.action"),
                     ),
                 ),
             ),
-            tag,
         )
     }
 
