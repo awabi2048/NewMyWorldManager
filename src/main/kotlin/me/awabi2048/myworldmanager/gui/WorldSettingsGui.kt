@@ -2092,7 +2092,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 slot,
                                 operation,
                                 acceptedClicks = if (entry.pendingDecisionId == null) {
-                                        MenuAcceptedClicks.LEFT_RIGHT
+                                        setOf(
+                                                org.bukkit.event.inventory.ClickType.LEFT,
+                                                org.bukkit.event.inventory.ClickType.SHIFT_LEFT,
+                                                org.bukkit.event.inventory.ClickType.SHIFT_RIGHT,
+                                        )
                                 } else {
                                         MenuAcceptedClicks.LEFT
                                 },
