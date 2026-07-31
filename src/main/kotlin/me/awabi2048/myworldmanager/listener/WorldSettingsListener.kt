@@ -199,8 +199,11 @@ class WorldSettingsListener : Listener {
                                 if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
                                         return reopenWorldSettingsLatest(player, worldData)
                                 }
-                                val nextLevel = GuiCycle.select(worldData.publishLevel, PublishLevel.values(), GuiCycle.direction(click)
-                                        ?: return MenuActionResult.Ignored)
+                                val nextLevel = GuiCycle.select(
+                                        worldData.publishLevel,
+                                        PublishLevel.values(),
+                                        com.awabi2048.ccsystem.api.gui.GuiCycleDirection.NEXT,
+                                )
                                 worldData.publishLevel = nextLevel
                                 if (nextLevel == PublishLevel.PUBLIC) {
                                         worldData.publicAt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

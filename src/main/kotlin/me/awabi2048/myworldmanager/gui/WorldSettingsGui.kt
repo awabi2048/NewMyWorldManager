@@ -897,7 +897,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         },
                                         actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuGesture.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.common.action.cycle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
                                         )),
