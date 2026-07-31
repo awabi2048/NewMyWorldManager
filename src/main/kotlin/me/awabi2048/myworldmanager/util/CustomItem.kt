@@ -160,14 +160,18 @@ enum class CustomItem(val id: String) {
         fun fromId(id: String): CustomItem? = values().find { it.id.equals(id, ignoreCase = true) }
 
         private fun actionLore(lang: LanguageManager, player: Player?, key: String) =
-            CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                GuiLoreBlock(lang.getMessageList(player, "$key.description").map(GuiLoreLine::Text)),
-                GuiLoreBlock(listOf(GuiLoreLine.Interaction(
+            CCSystem.getAPI().getLoreService().render(
+                CCSystem.getAPI().getLoreService().compose(
+                    GuiLoreSpec.Blocks(listOf(
+                        GuiLoreBlock(lang.getMessageList(player, "$key.description").map(GuiLoreLine::Text))
+                    )),
+                    listOf(GuiLoreLine.Interaction(
                     player,
                     MenuGesture.RIGHT,
                     lang.getMessage(player, "$key.action")
-                )))
-            )))
+                    ))
+                )
+            )
     }
 }
 
