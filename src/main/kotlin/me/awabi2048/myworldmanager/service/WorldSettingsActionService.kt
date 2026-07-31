@@ -36,9 +36,7 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
                 WorldSettingsActionOption(MenuGesture.LEFT),
                 WorldSettingsActionOption(MenuGesture.RIGHT),
             )
-            else -> listOf(
-                WorldSettingsActionOption(MenuGesture.LEFT_RIGHT),
-            )
+            else -> listOf(WorldSettingsActionOption(MenuGesture.ANY))
         }
         return WorldSettingsActionContract(action, options, isActionable(player, worldData, action))
     }

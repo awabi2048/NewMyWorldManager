@@ -259,7 +259,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 ),
         )
 
-        private class RuntimeItemBuffer(val size: Int) {
+        private inner class RuntimeItemBuffer(
+                val size: Int,
+                private val viewer: Player,
+        ) {
                 private val items = arrayOfNulls<GuiItemSpec>(size)
                 private val elements = mutableMapOf<Int, MenuElement>()
 
@@ -297,11 +300,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 MenuGesture.ANY,
                         payload: Map<String, String> = emptyMap(),
                         sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
-                        actionLabel: String = itemName(item),
+                         actionLabel: String = runtimeActionLabel(operation),
                 ) {
                         setElement(
                                 CCSystem.getAPI().getGuiElementService().menuStructuredEntry(
-                                        null,
+                                         viewer,
                                         GuiStructuredMenuEntrySpec(
                                                 slot = slot,
                                                 item = item.copy(role = when (operation) {
@@ -313,7 +316,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 }),
                                                 actions = listOf(
                                                         GuiMenuActionIntent.GestureAction(
-                                                                actionId = ACTION_RUNTIME_DISPATCH,
+                                                                actionId = "dispatch",
                                                                 gesture = gesture,
                                                                 label = actionLabel,
                                                                 payload = mapOf(
@@ -334,7 +337,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 MenuGesture.ANY,
                         payload: Map<String, String> = emptyMap(),
                         sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
-                        actionLabel: String? = null,
+                         actionLabel: String = runtimeActionLabel(operation),
                 ) {
                         val item = requireNotNull(getItem(slot)) {
                                 "Runtime operation item is missing: $slot/$operation"
@@ -346,7 +349,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 gesture,
                                 payload,
                                 sounds,
-                                actionLabel ?: itemName(item),
+                                actionLabel,
                         )
                 }
 
@@ -394,8 +397,28 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         }
                         }
 
-                companion object {
-                        private const val ACTION_RUNTIME_DISPATCH = "dispatch"
+                private fun runtimeActionLabel(operation: WorldSettingsRuntimeOperation): String =
+                        when (operation) {
+                                WorldSettingsRuntimeOperation.BACK -> plugin.languageManager.getMessage(viewer, "gui.common.return")
+                                WorldSettingsRuntimeOperation.CONFIRM -> plugin.languageManager.getMessage(viewer, "gui.common.confirm")
+                                WorldSettingsRuntimeOperation.CANCEL -> plugin.languageManager.getMessage(viewer, "gui.common.cancel")
+                                WorldSettingsRuntimeOperation.PAGE -> plugin.languageManager.getMessage(viewer, "gui.common.action.page")
+                                WorldSettingsRuntimeOperation.TOUR -> plugin.languageManager.getMessage(viewer, "gui.tour.worldmenu.action.open")
+                                WorldSettingsRuntimeOperation.EDIT_INFO -> plugin.languageManager.getMessage(viewer, "gui.settings.info.action.open_editor")
+                                WorldSettingsRuntimeOperation.SELECT_ICON -> plugin.languageManager.getMessage(viewer, "gui.settings.icon.action.start_selection")
+                                WorldSettingsRuntimeOperation.SET_SPAWN -> plugin.languageManager.getMessage(viewer, "gui.settings.spawn.action.set_both")
+                                WorldSettingsRuntimeOperation.EXPAND -> plugin.languageManager.getMessage(viewer, "gui.settings.expand.action.open_menu")
+                                WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> plugin.languageManager.getMessage(viewer, "gui.common.action.cycle")
+                                WorldSettingsRuntimeOperation.MANAGE_MEMBERS -> plugin.languageManager.getMessage(viewer, "gui.settings.member.action.open_list")
+                                WorldSettingsRuntimeOperation.EDIT_TAGS -> plugin.languageManager.getMessage(viewer, "gui.settings.tags.action.edit")
+                                WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> plugin.languageManager.getMessage(viewer, "gui.settings.announcement.action.set_message")
+                                WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> plugin.languageManager.getMessage(viewer, "gui.settings.notification.action.toggle")
+                                WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> plugin.languageManager.getMessage(viewer, "gui.settings.environment.action.open")
+                                WorldSettingsRuntimeOperation.OPEN_CRITICAL -> plugin.languageManager.getMessage(viewer, "gui.settings.critical.action.open")
+                                WorldSettingsRuntimeOperation.MANAGE_VISITORS -> plugin.languageManager.getMessage(viewer, "gui.settings.visitors.action.open")
+                                WorldSettingsRuntimeOperation.MANAGE_PORTALS -> plugin.languageManager.getMessage(viewer, "gui.settings.portals.action.open")
+                                else -> plugin.languageManager.getMessage(viewer, "gui.common.action.open")
+                        }
 
                         private fun decorationSpec(material: Material): GuiItemSpec =
                                 GuiItemSpec(
@@ -406,12 +429,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         amount = 1,
                                 )
 
-                        private fun itemName(item: GuiItemSpec): String = when (val name = item.name) {
-                                is GuiNameSpec.Text -> name.text
-                                is GuiNameSpec.Component -> "操作"
-                                GuiNameSpec.Empty -> error("Action item name must not be empty")
-                        }
-                }
         }
 
         private data class MemberManagementEntry(
@@ -565,7 +582,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val announcementSettingSlot = if (useModeratorCenteredLayout) 31 else 29
                 val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else 30
 
-                val inventory = RuntimeItemBuffer(inventorySize)
+                val inventory = RuntimeItemBuffer(inventorySize, player)
 
                 // 背景 (黒の板ガラス)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -573,13 +590,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 戻るボタン
                 if (GuiHelper.canGoBack(player)) {
-                        inventory.setItem(
-                                backButtonSlot,
-                                createItem(Material.REDSTONE, "§7戻る", GuiLoreSpec.None, null)
-                        )
-                        inventory.bindRuntimeOperation(
-                                backButtonSlot,
-                                WorldSettingsRuntimeOperation.BACK,
+                        inventory.setElement(
+                                CCSystem.getAPI().getGuiElementService().backEntry(
+                                        player,
+                                        backButtonSlot,
+                                        plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
+                                )
                         )
                 }
 
@@ -881,7 +897,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         },
                                         actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuGesture.ANY,
+                                                MenuGesture.LEFT_RIGHT,
                                                 lang.getMessage(player, "gui.common.action.cycle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
                                         )),
@@ -1515,7 +1531,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.archive_confirm.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val infoItem =
@@ -1569,7 +1585,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.unarchive_confirm.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val infoItem =
@@ -1633,7 +1649,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.expansion.method_title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 inventory.applyStandardFrame()
@@ -1667,11 +1683,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 // 戻るボタン
-                inventory.setItem(
-                        40,
-                        returnItemSpec(player),
+                inventory.setElement(
+                        CCSystem.getAPI().getGuiElementService().backEntry(
+                                player,
+                                40,
+                                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
+                        )
                 )
-                inventory.bindRuntimeOperation(40, WorldSettingsRuntimeOperation.BACK)
 
                 val canStepBack = worldData.latestBorderExpansionRecord() != null
                 if (canStepBack) {
@@ -1720,7 +1738,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.step_back_expansion.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
@@ -1788,7 +1806,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.expansion.confirm_title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 inventory.applyStandardFrame()
@@ -1946,7 +1964,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val layout = pageLayout.layout
                 val footerStart = layout.size - 9
 
-                val inventory = RuntimeItemBuffer(layout.size)
+                val inventory = RuntimeItemBuffer(layout.size, player)
                 inventory.clear()
 
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -2041,9 +2059,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // 戻ると招待の位置は共通レイアウトから取得し、一覧本文の行数変更に追従させる。
-                inventory.setItem(
-                        footerStart + 4,
-                        returnItemSpec(player),
+                inventory.setElement(
+                        CCSystem.getAPI().getGuiElementService().backEntry(
+                                player,
+                                footerStart + 4,
+                                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
+                        )
                 )
 
                 // メンバー招待ボタン
@@ -2071,10 +2092,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ))
                                 },
                         ),
-                )
-                inventory.bindRuntimeOperation(
-                        footerStart + 4,
-                        WorldSettingsRuntimeOperation.BACK,
                 )
 
                 if (isAdminFlow) {
@@ -2150,7 +2167,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
                 val title = lang.getMessage(player, "gui.member_management.pending_cancel_confirm.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 inventory.setDisplay(
@@ -2242,7 +2259,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 "gui.member_management.remove_confirm.title",
                                 mapOf("player" to targetName)
                         )
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = GuiLoreSpec.Rich(listOf(
@@ -2342,7 +2359,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 "gui.member_management.transfer_confirm.title",
                                 mapOf("player" to targetName)
                         )
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = GuiLoreSpec.Rich(listOf(
@@ -2424,8 +2441,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         displayName = stats.lastName ?: lang.getMessage(viewer, "general.unknown")
                 }
 
-                val embedded = capabilityView?.presentation?.embeddedLoreBlocks
-                        ?.flatMap(GuiLoreBlock::lines).orEmpty()
+                val embeddedBlocks = capabilityView?.presentation?.embeddedLoreBlocks.orEmpty()
                 val payload = buildMap {
                         put(ROUTE_OPERATION, WorldSettingsRuntimeOperation.MEMBER.name)
                         put(ROUTE_TARGET_UUID, uuid.toString())
@@ -2458,40 +2474,37 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 add(GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_RIGHT, lang.getMessage(viewer, "gui.member_management.item.action.remove_member"), payload))
                         }
                 }
+                val targetInfoLines = buildList {
+                        if (isOnline) {
+                                add(GuiLoreLine.Text(lang.getMessage(viewer, "gui.member_management.item.online_label")))
+                        } else {
+                                add(GuiLoreLine.Data(
+                                        lang.getMessage(viewer, "gui.member_management.item.last_online_label"),
+                                        stats.lastOnline?.let { formatStoredDateTimeForPlayer(viewer, it) }
+                                                ?: lang.getMessage(viewer, "general.unknown"),
+                                        GuiValueTone.DEFAULT.colorCode,
+                                ))
+                        }
+                        add(GuiLoreLine.Data(
+                                lang.getMessage(viewer, "gui.member_management.item.role_label"),
+                                role,
+                                GuiValueTone.DEFAULT.colorCode,
+                        ))
+                }
                 return GuiMenuEntrySpec(
                         slot = slot,
                         material = Material.PLAYER_HEAD,
                         name = GuiNameSpec.Component(Component.text("$color$displayName").decoration(TextDecoration.ITALIC, false)),
                         role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
-                        description = embedded.mapNotNull {
-                                when (it) {
-                                        is GuiLoreLine.Text -> it.text
-                                        is GuiLoreLine.StyledText -> it.text
-                                        is GuiLoreLine.UserText -> it.text
-                                        else -> null
-                                }
-                        } + if (capabilityView == null && isOnline) listOf(lang.getMessage(viewer, "gui.member_management.item.online_label")) else emptyList(),
-                        data = buildList {
-                                embedded.forEach {
-                                        when (it) {
-                                                is GuiLoreLine.Data -> add(GuiMenuEntryData(it.label, it.value, toneFor(it.valueColor)))
-                                                is GuiLoreLine.Metadata -> add(GuiMenuEntryData(it.label, it.value))
-                                                else -> Unit
-                                        }
-                                }
-                                if (capabilityView == null && !isOnline) {
-                                        add(GuiMenuEntryData(
-                                                lang.getMessage(viewer, "gui.member_management.item.last_online_label"),
-                                                stats.lastOnline?.let { formatStoredDateTimeForPlayer(viewer, it) }
-                                                        ?: lang.getMessage(viewer, "general.unknown"),
-                                        ))
-                                }
-                                if (capabilityView == null) add(GuiMenuEntryData(lang.getMessage(viewer, "gui.member_management.item.role_label"), role))
-                        },
-                        options = embedded.filterIsInstance<GuiLoreLine.Option>()
-                                .map { GuiMenuEntryOption(it.label, it.selected) },
-                        warnings = embedded.filterIsInstance<GuiLoreLine.Warning>().map(GuiLoreLine.Warning::content),
-                        dangers = embedded.filterIsInstance<GuiLoreLine.Danger>().map(GuiLoreLine.Danger::content),
+                        description = if (capabilityView == null) {
+                                targetInfoLines.mapNotNull { (it as? GuiLoreLine.Text)?.text }
+                        } else emptyList(),
+                        data = if (capabilityView == null) {
+                                targetInfoLines.filterIsInstance<GuiLoreLine.Data>()
+                                        .map { GuiMenuEntryData(it.label, it.value, toneFor(it.valueColor)) }
+                        } else emptyList(),
+                        semanticLoreBlocks = if (capabilityView == null) emptyList()
+                                else listOf(GuiLoreBlock(targetInfoLines)) + embeddedBlocks,
                         actions = actions,
                         glint = capabilityView?.presentation?.glint,
                         playerHeadOwner = uuid,
@@ -2577,7 +2590,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val currentPageVisitors = visitorPlayers
                         .drop(visitorPage.startIndex)
                         .take(visitorPage.itemCount)
-                val inventory = RuntimeItemBuffer(layout.size)
+                val inventory = RuntimeItemBuffer(layout.size, player)
                 inventory.applyStandardFrame()
 
                 // プレイヤーリストの描画
@@ -2627,18 +2640,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // 戻るボタン
-                inventory.setItem(
-                        layout.actionSlot,
-                        createItem(
-                                Material.REDSTONE,
-                                lang.getMessage(player, "gui.common.back"),
-                                GuiLoreSpec.None,
-                                null
+                inventory.setElement(
+                        CCSystem.getAPI().getGuiElementService().backEntry(
+                                player,
+                                layout.actionSlot,
+                                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                         )
-                )
-                inventory.bindRuntimeOperation(
-                        layout.actionSlot,
-                        WorldSettingsRuntimeOperation.BACK,
                 )
 
                 // 背景埋め
@@ -2683,7 +2690,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 "gui.visitor_management.kick_confirm.title",
                                 mapOf("player" to targetName)
                         )
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 inventory.setItem(
@@ -2880,7 +2887,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.critical.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 inventory.applyStandardFrame()
 
@@ -3023,16 +3030,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 )
 
                 // 戻るボタン (スロット36から40へ移動)
-                inventory.setItem(
-                        40,
-                        createItem(
-                                Material.REDSTONE,
-                                lang.getMessage(player, "gui.common.back"),
-                                GuiLoreSpec.None,
-                                null
+                inventory.setElement(
+                        CCSystem.getAPI().getGuiElementService().backEntry(
+                                player,
+                                40,
+                                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                         )
                 )
-                inventory.bindRuntimeOperation(40, WorldSettingsRuntimeOperation.BACK)
 
                 return runtimeView(title, inventory)
         }
@@ -3085,7 +3089,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.reset_expansion.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
@@ -3150,7 +3154,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
@@ -3246,7 +3250,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.delete_1.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = GuiLoreSpec.Rich(
@@ -3314,7 +3318,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.confirm.delete_2.title")
-                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size)
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
@@ -3401,7 +3405,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val currentPagePortals =
                         allPortals.drop(pageLayout.startIndex).take(pageLayout.itemCount)
 
-                val inventory = RuntimeItemBuffer(layout.size)
+                val inventory = RuntimeItemBuffer(layout.size, player)
                 // 背景
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 inventory.applyStandardFrame()
@@ -3436,18 +3440,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 // 戻るボタン
-                inventory.setItem(
-                        layout.backSlot,
-                        createItem(
-                                Material.REDSTONE,
-                                lang.getMessage(player, "gui.common.back"),
-                                GuiLoreSpec.None,
-                                null
+                inventory.setElement(
+                        CCSystem.getAPI().getGuiElementService().backEntry(
+                                player,
+                                layout.backSlot,
+                                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                         )
-                )
-                inventory.bindRuntimeOperation(
-                        layout.backSlot,
-                        WorldSettingsRuntimeOperation.BACK,
                 )
 
                 return runtimeView(title, inventory)
@@ -3654,28 +3652,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         ),
                         lore = GuiLoreSpec.None,
                         role = GuiElementRole.NAVIGATION,
-                        amount = 1,
-                )
-
-        private fun normalizedBackName(value: String, style: GuiNameStyle): GuiNameSpec.Text =
-                GuiNameSpec.Text(
-                        value.replace(Regex("§[0-9A-FK-ORX]"), ""),
-                        GuiNameStyle.DEFAULT,
-                )
-
-        private fun returnItemSpec(player: Player): GuiItemSpec =
-                GuiItemSpec(
-                        material = plugin.menuConfigManager.getIconMaterial(
-                                "world_settings",
-                                "back",
-                                Material.REDSTONE,
-                        ),
-                        name = normalizedBackName(
-                                "§e§l${plugin.languageManager.getMessage(player, "gui.common.return")}",
-                                GuiNameStyle.DEFAULT,
-                        ),
-                        lore = GuiLoreSpec.None,
-                        role = GuiElementRole.BACK,
                         amount = 1,
                 )
 

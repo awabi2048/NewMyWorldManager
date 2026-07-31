@@ -283,21 +283,10 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
 
     private fun createBackEntry(player: Player, slot: Int): MenuElement =
-        menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = Material.REDSTONE,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
-                        ACTION_BACK,
-                        MenuGesture.ANY,
-                        plugin.languageManager.getMessage(player, "gui.common.back"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun worldData(route: MenuRoute): WorldData {

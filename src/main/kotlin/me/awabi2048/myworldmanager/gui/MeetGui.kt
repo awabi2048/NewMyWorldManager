@@ -295,21 +295,10 @@ class MeetGui(private val plugin: MyWorldManager) {
     }
 
     private fun backEntry(viewer: Player, slot: Int): MenuElement =
-        CCSystem.getAPI().getGuiElementService().menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             viewer,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = plugin.menuConfigManager.getIconMaterial("meet", "back", Material.REDSTONE),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.common.return")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
-                        ACTION_BACK,
-                        MenuGesture.ANY,
-                        plugin.languageManager.getMessage(viewer, "gui.common.return"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun createTargetEntry(

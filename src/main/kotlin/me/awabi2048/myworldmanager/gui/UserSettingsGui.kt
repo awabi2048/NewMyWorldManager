@@ -131,21 +131,10 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         }.toMutableList()
 
         if (GuiHelper.canGoBack(player)) {
-            elements += CCSystem.getAPI().getGuiElementService().menuEntry(
+            elements += CCSystem.getAPI().getGuiElementService().backEntry(
                 player,
-                GuiMenuEntrySpec(
-                    slot = (totalRows - 1) * 9 + 4,
-                    material = Material.REDSTONE,
-                    name = GuiNameSpec.Component(lang.getComponent(player, "gui.common.back")),
-                    role = GuiElementRole.BACK,
-                    actions = listOf(
-                        GuiMenuActionIntent.GestureAction(
-                            ACTION_BACK,
-                            MenuGesture.ANY,
-                            lang.getMessage(player, "gui.common.back"),
-                        ),
-                    ),
-                ),
+                (totalRows - 1) * 9 + 4,
+                Material.REDSTONE,
             )
         }
 

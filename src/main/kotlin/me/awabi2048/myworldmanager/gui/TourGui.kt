@@ -358,15 +358,10 @@ class TourGui(private val plugin: MyWorldManager) {
             elements += createTourEntry(layout.itemSlots[index], player, worldData, tour, true, ACTION_EDIT)
         }
         val footerStart = layout.size - 9
-        elements += actionEntry(
-            footerStart + 4,
+        elements += CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            Material.REDSTONE,
-            lang.getMessage(player, "gui.tour.menu.back"),
-            emptyList(),
-            lang.getMessage(player, "gui.tour.menu.back"),
-            ACTION_BACK,
-            GuiElementRole.BACK,
+            footerStart + 4,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
         if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
             elements += actionEntry(
@@ -437,15 +432,10 @@ class TourGui(private val plugin: MyWorldManager) {
             )
         }
         val bottom = rows * 9 - 9
-        elements += actionEntry(
-            bottom,
+        elements += CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            Material.REDSTONE,
-            lang.getMessage(player, "gui.tour.menu.back"),
-            emptyList(),
-            lang.getMessage(player, "gui.tour.menu.back"),
-            ACTION_SINGLE_BACK,
-            GuiElementRole.BACK,
+            bottom,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
         elements += CCSystem.getAPI().getGuiElementService().menuEntry(
             player,

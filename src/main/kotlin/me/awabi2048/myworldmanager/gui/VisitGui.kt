@@ -241,21 +241,10 @@ class VisitGui(private val plugin: MyWorldManager) {
         }
 
         private fun backEntry(player: Player, slot: Int): MenuElement =
-                CCSystem.getAPI().getGuiElementService().menuEntry(
+                CCSystem.getAPI().getGuiElementService().backEntry(
                         player,
-                        GuiMenuEntrySpec(
-                                slot = slot,
-                                material = plugin.menuConfigManager.getIconMaterial("visit", "back", Material.REDSTONE),
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                                role = GuiElementRole.BACK,
-                                actions = listOf(
-                                        GuiMenuActionIntent.GestureAction(
-                                                ACTION_BACK,
-                                                MenuGesture.ANY,
-                                                plugin.languageManager.getMessage(player, "gui.common.return"),
-                                        ),
-                                ),
-                        ),
+                        slot,
+                        plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                 )
 
         private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
