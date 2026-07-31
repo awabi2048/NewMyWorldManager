@@ -591,6 +591,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     if (isDanger) Material.RED_WOOL else Material.LIME_WOOL,
                     "gui.common.confirm",
                     "gui.common.confirm_desc",
+                    "gui.common.confirm_action",
                     GuiElementRole.CONFIRM,
                     ACTION_CONFIRM,
                 ),
@@ -600,6 +601,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     Material.GREEN_WOOL,
                     "gui.common.cancel",
                     "gui.common.cancel_desc",
+                    "gui.common.cancel_action",
                     GuiElementRole.CANCEL,
                     ACTION_CANCEL,
                 ),
@@ -613,6 +615,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         material: Material,
         nameKey: String,
         descriptionKey: String,
+        actionKey: String,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -630,7 +633,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                 GuiMenuActionIntent.GestureAction(
                     actionId,
                     MenuGesture.ANY,
-                    plugin.languageManager.getMessage(player, nameKey),
+                    plugin.languageManager.getMessage(player, actionKey),
                 ),
             ),
         ),

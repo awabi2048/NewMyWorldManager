@@ -87,8 +87,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.player,
                                                                 context.click,
                                                                 context.item,
-                                                                context.payload["slot"]?.toIntOrNull()
-                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                                context.slot,
                                                                 WorldSettingsRuntimeContext(
                                                                         screen = runtimeScreen(context.route)
                                                                                 ?: return@MenuActionHandler MenuActionResult.Ignored,
@@ -128,8 +127,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.player,
                                                                 context.click,
                                                                 context.item,
-                                                                context.payload["slot"]?.toIntOrNull()
-                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                                context.slot,
                                                                 WorldSettingsRuntimeContext(
                                                                         screen = WorldSettingsRuntimeScreen.ICON_SELECTION,
                                                                         worldUuid = runtimeWorldUuid(context.route),
@@ -187,8 +185,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 context.player,
                                                                 context.click,
                                                                 context.item,
-                                                                context.payload["slot"]?.toIntOrNull()
-                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored,
+                                                                context.slot,
                                                                 WorldSettingsRuntimeContext(
                                                                         screen = WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT,
                                                                         worldUuid = worldUuid,
@@ -320,7 +317,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 gesture = gesture,
                                                                 label = actionLabel,
                                                                 payload = mapOf(
-                                                                        "slot" to slot.toString(),
                                                                         ROUTE_OPERATION to operation.name,
                                                                 ) + payload,
                                                         ),
@@ -3661,6 +3657,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         amount = 1,
                 )
 
+        private fun normalizedBackName(value: String, style: GuiNameStyle): GuiNameSpec.Text =
+                GuiNameSpec.Text(
+                        value.replace(Regex("§[0-9A-FK-ORX]"), ""),
+                        GuiNameStyle.DEFAULT,
+                )
+
         private fun returnItemSpec(player: Player): GuiItemSpec =
                 GuiItemSpec(
                         material = plugin.menuConfigManager.getIconMaterial(
@@ -3668,7 +3670,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 "back",
                                 Material.REDSTONE,
                         ),
-                        name = GuiNameSpec.Text(
+                        name = normalizedBackName(
                                 "§e§l${plugin.languageManager.getMessage(player, "gui.common.return")}",
                                 GuiNameStyle.DEFAULT,
                         ),

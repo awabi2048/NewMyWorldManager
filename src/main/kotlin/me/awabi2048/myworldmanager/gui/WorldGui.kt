@@ -565,7 +565,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 actions = listOf(
                                         GuiMenuActionIntent.GestureAction(
                                                 ACTION_BACK,
-                                                MenuGesture.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 plugin.languageManager.getMessage(player, "gui.common.back"),
                                         ),
                                 ),

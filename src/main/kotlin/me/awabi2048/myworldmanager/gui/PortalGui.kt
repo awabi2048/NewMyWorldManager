@@ -106,6 +106,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                         GuiValueTone.PRIMARY,
                     )),
                     actionId = ACTION_CYCLE_COLOR,
+                    gesture = MenuGesture.LEFT_RIGHT,
                 ),
                 menuEntry(
                     player,
@@ -205,6 +206,7 @@ class PortalGui(private val plugin: MyWorldManager) {
         data: List<GuiMenuEntryData> = emptyList(),
         dangers: List<String> = emptyList(),
         actionId: String,
+        gesture: MenuGesture = MenuGesture.ANY,
     ): MenuElement {
         val lang = plugin.languageManager
         return CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -220,7 +222,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                 actions = listOf(
                     GuiMenuActionIntent.GestureAction(
                         actionId,
-                        MenuGesture.LEFT_RIGHT,
+                        gesture,
                         lang.getMessage(player, "$key.action"),
                     ),
                 ),

@@ -345,7 +345,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 actions = listOf(
                     GuiMenuActionIntent.GestureAction(
                         ACTION_SELECT_TYPE,
-                        MenuGesture.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         name,
                         mapOf("type" to creationType.name),
                     ),

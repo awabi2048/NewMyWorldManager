@@ -335,7 +335,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         role: GuiElementRole = GuiElementRole.ACTION,
     ): MenuElement = menuEntry(
         player, slot, material, name, role, description = description,
-        actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.LEFT_RIGHT, actionText)),
+        actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.ANY, actionText)),
     )
 
     fun getSession(uuid: UUID) = sessions[uuid]

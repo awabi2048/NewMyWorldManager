@@ -183,6 +183,17 @@ class MenuNavigationContractTest {
         assertTrue("currentRoute(context.player)" in wizard)
     }
 
+    @Test
+    fun `member capability route keeps slot in api context and all deep-route identifiers`() {
+        val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
+        assertTrue("context.slot" in source)
+        assertFalse("context.payload[\"slot\"]?.toIntOrNull()" in source)
+        assertTrue("ROUTE_WORLD_UUID to worldUuid.toString()" in source)
+        assertTrue("ROUTE_TARGET_UUID to uuid.toString()" in source)
+        assertTrue("ROUTE_CAPABILITY_ID" in source)
+        assertTrue("RUNTIME_MEMBER_MANAGEMENT_ROUTE" in source)
+    }
+
     private fun functionBody(source: String, name: String): String {
         val start = source.indexOf("private fun $name").takeIf { it >= 0 }
             ?: source.indexOf("fun $name")

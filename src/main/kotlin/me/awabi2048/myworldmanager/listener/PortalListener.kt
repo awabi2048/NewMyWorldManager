@@ -399,8 +399,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                         ),
                     ),
                 ),
-                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
-                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
+                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", "gui.common.confirm_action", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
+                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", "gui.common.cancel_action", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
             ),
         )
     }
@@ -410,6 +410,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         slot: Int,
         material: Material,
         nameKey: String,
+        actionKey: String,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -423,7 +424,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 GuiMenuActionIntent.GestureAction(
                     actionId,
                     MenuGesture.ANY,
-                    plugin.languageManager.getMessage(player, nameKey),
+                    plugin.languageManager.getMessage(player, actionKey),
                 ),
             ),
         ),
