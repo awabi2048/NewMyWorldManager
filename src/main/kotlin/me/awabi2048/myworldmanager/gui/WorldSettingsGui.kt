@@ -2069,10 +2069,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ))
                                         if (canForceAddMember) add(GuiMenuEntryAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                setOf(
-                                                        org.bukkit.event.inventory.ClickType.SHIFT_LEFT,
-                                                        org.bukkit.event.inventory.ClickType.SHIFT_RIGHT,
-                                                ),
+                                                MenuAcceptedClicks.SHIFT_LEFT_RIGHT,
                                                 lang.getMessage(player, "gui.member_management.invite.action.force"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
                                         ))

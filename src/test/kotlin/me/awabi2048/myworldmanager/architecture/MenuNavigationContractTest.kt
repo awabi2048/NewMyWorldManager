@@ -124,6 +124,16 @@ class MenuNavigationContractTest {
     }
 
     @Test
+    fun `member invite force action uses the shared shift left right click contract`() {
+        val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
+
+        assertTrue("MenuAcceptedClicks.SHIFT_LEFT_RIGHT" in source)
+        assertFalse(
+            "setOf(\n                                                        org.bukkit.event.inventory.ClickType.SHIFT_LEFT,\n                                                        org.bukkit.event.inventory.ClickType.SHIFT_RIGHT,\n                                                )" in source,
+        )
+    }
+
+    @Test
     fun `inventory to dialog transitions preserve runtime history and avoid synthetic open sounds`() {
         val listener = Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
