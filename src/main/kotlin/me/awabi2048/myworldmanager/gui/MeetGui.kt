@@ -7,7 +7,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -18,7 +18,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -106,7 +106,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
-                actions = listOf(GuiMenuEntryAction(ACTION_STATUS, MenuAcceptedClicks.LEFT_RIGHT, lang.getMessage(player, "gui.meet.status_button.action"))),
+                actions = listOf(GuiMenuActionIntent.GestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, "gui.meet.status_button.action"))),
                 playerHeadOwner = player.uniqueId,
             ),
         )
@@ -283,9 +283,9 @@ class MeetGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(viewer, key),
                         mapOf(PAGE to page.toString()),
                     ),
@@ -303,9 +303,9 @@ class MeetGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.common.return")),
                 role = GuiElementRole.BACK,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         plugin.languageManager.getMessage(viewer, "gui.common.return"),
                     ),
                 ),
@@ -367,9 +367,9 @@ class MeetGui(private val plugin: MyWorldManager) {
                 ),
                 actions = actionLabel?.let {
                     listOf(
-                        GuiMenuEntryAction(
+                        GuiMenuActionIntent.GestureAction(
                             ACTION_TARGET,
-                            MenuAcceptedClicks.LEFT_RIGHT,
+                            MenuGesture.ANY,
                             it,
                             mapOf(TARGET_UUID to target.uniqueId.toString()),
                         ),

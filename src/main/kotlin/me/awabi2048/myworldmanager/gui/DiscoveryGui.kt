@@ -8,7 +8,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -20,7 +20,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuElement
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.*
@@ -458,10 +458,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         if (tagNames != null) add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, GuiValueTone.PRIMARY))
                                 },
                                 actions = buildList {
-                                        if (warpHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, warpHint, payload))
-                                        if (previewHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, previewHint, payload))
-                                        if (memberRequestHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_LEFT, memberRequestHint, payload))
-                                        if (favoriteHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_RIGHT, favoriteHint, payload))
+                                        if (warpHint.isNotBlank()) add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, warpHint, payload))
+                                        if (previewHint.isNotBlank()) add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, previewHint, payload))
+                                        if (memberRequestHint.isNotBlank()) add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.SHIFT_LEFT, memberRequestHint, payload))
+                                        if (favoriteHint.isNotBlank()) add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.SHIFT_RIGHT, favoriteHint, payload))
                                 },
                         ),
                 )
@@ -483,8 +483,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.sort.label"), options.first { it.first == currentSort }.second, GuiValueTone.PRIMARY)),
                         options = options.map { GuiMenuEntryOption(it.second, it.first == currentSort) },
                         actions = buildList {
-                                add(GuiMenuEntryAction(ACTION_SORT, MenuAcceptedClicks.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle")))
-                                if (canEditSpotlight) add(GuiMenuEntryAction(ACTION_SORT, MenuAcceptedClicks.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight")))
+                                add(GuiMenuActionIntent.GestureAction(ACTION_SORT, MenuGesture.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle")))
+                                if (canEditSpotlight) add(GuiMenuActionIntent.GestureAction(ACTION_SORT, MenuGesture.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight")))
                         },
                 ))
         }
@@ -542,7 +542,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         slot, material, name, GuiElementRole.ACTION,
                         data = listOf(GuiMenuEntryData(label, currentValue, GuiValueTone.PRIMARY)),
                         options = options,
-                        actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT_RIGHT, plugin.languageManager.getMessage(player, "gui.common.action.cycle"))),
+                        actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.PLAIN_LEFT_RIGHT, plugin.languageManager.getMessage(player, "gui.common.action.cycle"))),
                 ),
         )
 
@@ -569,7 +569,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         role = if (player.hasPermission("myworldmanager.admin")) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                         description = listOf(lang.getMessage(player, "gui.discovery.spotlight_empty.description")),
                         actions = if (player.hasPermission("myworldmanager.admin")) {
-                                listOf(GuiMenuEntryAction(ACTION_SPOTLIGHT_EMPTY, MenuAcceptedClicks.LEFT_RIGHT, lang.getMessage(player, "gui.discovery.spotlight_empty.action.register")))
+                                listOf(GuiMenuActionIntent.GestureAction(ACTION_SPOTLIGHT_EMPTY, MenuGesture.ANY, lang.getMessage(player, "gui.discovery.spotlight_empty.action.register")))
                         } else emptyList(),
                 ))
         }
@@ -621,9 +621,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        GuiMenuActionIntent.GestureAction(
                                                 ACTION_PAGE,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.LEFT_RIGHT,
                                                 plugin.languageManager.getMessage(player, key),
                                                 mapOf(PAGE to targetPage.toString()),
                                         ),
@@ -641,9 +641,9 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
                                 role = GuiElementRole.BACK,
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        GuiMenuActionIntent.GestureAction(
                                                 ACTION_BACK,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.LEFT_RIGHT,
                                                 plugin.languageManager.getMessage(player, "gui.common.return"),
                                         ),
                                 ),

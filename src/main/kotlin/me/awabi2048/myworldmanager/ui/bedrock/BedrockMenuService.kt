@@ -7,7 +7,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -20,7 +20,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -120,7 +120,7 @@ class BedrockMenuService(
             actionId: String,
             payload: Map<String, String> = emptyMap(),
             role: GuiElementRole = GuiElementRole.ACTION,
-            acceptedClicks: Set<org.bukkit.event.inventory.ClickType> = MenuAcceptedClicks.LEFT_RIGHT,
+            gesture: MenuGesture = MenuGesture.ANY,
         ) {
             items.remove(slot)
             elements[slot] = CCSystem.getAPI().getGuiElementService().menuStructuredEntry(
@@ -129,9 +129,9 @@ class BedrockMenuService(
                     slot = slot,
                     item = item.copy(role = role),
                     actions = listOf(
-                        GuiMenuEntryAction(
+                        GuiMenuActionIntent.GestureAction(
                             actionId = actionId,
-                            acceptedClicks = acceptedClicks,
+                            gesture = gesture,
                             label = itemName(item),
                             payload = payload,
                         ),
@@ -526,9 +526,9 @@ class BedrockMenuService(
                 material = Material.WRITABLE_BOOK,
                 name = GuiNameSpec.Text(tr(player, "gui.user_settings.button.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
-                actions = listOf(GuiMenuEntryAction(
+                actions = listOf(GuiMenuActionIntent.GestureAction(
                     "open_settings",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     tr(player, "gui.user_settings.button.action"),
                 )),
             ),
@@ -1167,9 +1167,9 @@ class BedrockMenuService(
                     if (expiresAtValue != null) add(GuiMenuEntryData(tr(player, "gui.player_world.world_item.expires_at"), expiresAtValue))
                 },
                 warnings = if (worldData.isArchived) listOf(tr(player, "gui.player_world.world_item.expired")) else emptyList(),
-                actions = listOf(GuiMenuEntryAction(
+                actions = listOf(GuiMenuActionIntent.GestureAction(
                     "warp_world",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     warpAction,
                     mapOf("world" to worldData.uuid.toString()),
                 )),
@@ -1187,9 +1187,9 @@ class BedrockMenuService(
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display")),
                 role = GuiElementRole.ACTION,
                 description = plugin.languageManager.getMessageList(player, "gui.player_world.creation_button.description"),
-                actions = listOf(GuiMenuEntryAction(
+                actions = listOf(GuiMenuActionIntent.GestureAction(
                     "start_creation",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     tr(player, "gui.player_world.creation_button.action"),
                 )),
             ),
@@ -1270,9 +1270,9 @@ class BedrockMenuService(
                         add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO))
                     }
                 },
-                actions = if (pendingCount > 0) listOf(GuiMenuEntryAction(
+                actions = if (pendingCount > 0) listOf(GuiMenuActionIntent.GestureAction(
                     "open_pending_interactions",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     tr(player, "gui.player_world.pending_button.action"),
                 )) else emptyList(),
                 glint = pendingCount > 0,
@@ -1322,7 +1322,7 @@ class BedrockMenuService(
                     listOf(GuiMenuEntryData(tr(player, "$prefix.current_label"), it, toneFor(currentValueColor)))
                 }.orEmpty(),
                 options = options,
-                actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, tr(player, actionKey))),
+                actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.ANY, tr(player, actionKey))),
                 glint = glint,
             ),
         )

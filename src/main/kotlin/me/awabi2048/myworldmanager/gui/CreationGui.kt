@@ -9,7 +9,7 @@ import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -19,7 +19,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
@@ -343,9 +343,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                 data = data,
                 warnings = warnings,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_SELECT_TYPE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         name,
                         mapOf("type" to creationType.name),
                     ),
@@ -392,9 +392,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                         if (issue == null) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
                     )),
                     warnings = issue?.let { listOf(templateValidationMessage(player, it)) }.orEmpty(),
-                    actions = listOf(GuiMenuEntryAction(
+                    actions = listOf(GuiMenuActionIntent.GestureAction(
                         ACTION_SELECT_TEMPLATE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         lang.getMessage(player, "gui.creation.template_item.action.details"),
                         mapOf("template" to template.id),
                     )),
@@ -661,9 +661,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                         ),
                     ),
                     actions = listOf(
-                        GuiMenuEntryAction(
+                        GuiMenuActionIntent.GestureAction(
                             ACTION_CONFIRM_INTERACTION,
-                            MenuAcceptedClicks.LEFT_RIGHT,
+                            MenuGesture.ANY,
                             lang.getMessage(player, "gui.creation.confirm.spawn_location.action"),
                             mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.SPAWN_LOCATION.name),
                         ),
@@ -790,9 +790,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
                 role = GuiElementRole.BACK,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         actionId,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, "gui.common.return"),
                     ),
                 ),
@@ -810,9 +810,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_TEMPLATE_LIST_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
                     ),
@@ -881,9 +881,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                 },
                 warnings = lines.filterIsInstance<GuiLoreLine.Warning>().map(GuiLoreLine.Warning::content),
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_CONFIRM_INTERACTION,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         actionText,
                         mapOf(CONFIRMATION_ACTION to action.name),
                     ),
@@ -969,7 +969,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             material = material,
             name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
             role = GuiElementRole.ACTION,
-            actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, actionText)),
+            actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.ANY, actionText)),
         ),
     )
 

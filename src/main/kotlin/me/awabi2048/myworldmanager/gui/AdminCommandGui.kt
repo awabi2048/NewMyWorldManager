@@ -7,7 +7,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
@@ -17,7 +17,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -271,11 +271,11 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 description = item.description,
                 actions = if (item.rightAction == null) {
-                    listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, item.leftAction))
+                    listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.ANY, item.leftAction))
                 } else {
                     listOf(
-                        GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT, item.leftAction),
-                        GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_RIGHT, item.rightAction),
+                        GuiMenuActionIntent.GestureAction(actionId, MenuGesture.PLAIN_LEFT, item.leftAction),
+                        GuiMenuActionIntent.GestureAction(actionId, MenuGesture.PLAIN_RIGHT, item.rightAction),
                     )
                 },
             ),
@@ -627,9 +627,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             role = role,
             description = listOf(plugin.languageManager.getMessage(player, descriptionKey)),
             actions = listOf(
-                GuiMenuEntryAction(
+                GuiMenuActionIntent.GestureAction(
                     actionId,
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     plugin.languageManager.getMessage(player, nameKey),
                 ),
             ),

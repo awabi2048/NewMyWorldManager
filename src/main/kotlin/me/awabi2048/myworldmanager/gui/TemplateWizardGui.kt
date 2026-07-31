@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -12,7 +12,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -312,7 +312,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         description: List<String> = emptyList(),
         data: List<GuiMenuEntryData> = emptyList(),
         warnings: List<String> = emptyList(),
-        actions: List<GuiMenuEntryAction> = emptyList(),
+        actions: List<GuiMenuActionIntent> = emptyList(),
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
         player,
         GuiMenuEntrySpec(
@@ -335,7 +335,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         role: GuiElementRole = GuiElementRole.ACTION,
     ): MenuElement = menuEntry(
         player, slot, material, name, role, description = description,
-        actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, actionText)),
+        actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.LEFT_RIGHT, actionText)),
     )
 
     fun getSession(uuid: UUID) = sessions[uuid]

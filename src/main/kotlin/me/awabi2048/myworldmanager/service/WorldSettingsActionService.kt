@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.service
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -24,20 +24,20 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         val options = when (action) {
             WorldSettingsAction.SET_SPAWN -> if (plugin.playerPlatformResolver.isBedrock(player)) {
                 listOf(
-                    WorldSettingsActionOption(MenuAcceptedClicks.LEFT_RIGHT),
+                    WorldSettingsActionOption(MenuGesture.LEFT_RIGHT),
                 )
             } else {
                 listOf(
-                    WorldSettingsActionOption(MenuAcceptedClicks.LEFT),
-                    WorldSettingsActionOption(MenuAcceptedClicks.RIGHT),
+                    WorldSettingsActionOption(MenuGesture.LEFT),
+                    WorldSettingsActionOption(MenuGesture.RIGHT),
                 )
             }
             WorldSettingsAction.EDIT_ANNOUNCEMENT -> listOf(
-                WorldSettingsActionOption(MenuAcceptedClicks.LEFT),
-                WorldSettingsActionOption(MenuAcceptedClicks.RIGHT),
+                WorldSettingsActionOption(MenuGesture.LEFT),
+                WorldSettingsActionOption(MenuGesture.RIGHT),
             )
             else -> listOf(
-                WorldSettingsActionOption(MenuAcceptedClicks.LEFT_RIGHT),
+                WorldSettingsActionOption(MenuGesture.LEFT_RIGHT),
             )
         }
         return WorldSettingsActionContract(action, options, isActionable(player, worldData, action))

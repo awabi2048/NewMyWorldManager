@@ -9,7 +9,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -20,7 +20,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -233,11 +233,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         } else {
             buildList {
                 if (canWarp) {
-                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.favorite.world_item.warp"), payload))
-                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.favorite.world_item.preview"), payload))
+                    add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.favorite.world_item.warp"), payload))
+                    add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.favorite.world_item.preview"), payload))
                 }
                 if (canUnfavorite) {
-                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_RIGHT, lang.getMessage(player, "gui.favorite.world_item.unfavorite"), payload))
+                    add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.SHIFT_RIGHT, lang.getMessage(player, "gui.favorite.world_item.unfavorite"), payload))
                 }
             }
         }
@@ -306,9 +306,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.tag_filter.label"), selected.second, GuiValueTone.PRIMARY)),
                 options = options.map { (id, displayName) -> GuiMenuEntryOption(displayName, id == selected.first) },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_TAG,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.common.action.cycle"),
                     ),
                 ),
@@ -327,9 +327,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
                     ),
@@ -347,9 +347,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
                 role = GuiElementRole.BACK,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, "gui.common.return"),
                     ),
                 ),

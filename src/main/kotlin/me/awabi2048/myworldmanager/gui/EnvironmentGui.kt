@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -12,7 +12,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -202,9 +202,9 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_GRAVITY,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.environment.gravity.action"),
                     ),
                 ),
@@ -232,14 +232,14 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_WEATHER,
-                        MenuAcceptedClicks.LEFT,
+                        MenuGesture.LEFT,
                         lang.getMessage(player, "gui.environment.weather.action.cycle"),
                     ),
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_WEATHER,
-                        MenuAcceptedClicks.RIGHT,
+                        MenuGesture.RIGHT,
                         lang.getMessage(player, "gui.environment.weather.action.confirm"),
                     ),
                 ),
@@ -269,9 +269,9 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_BIOME,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.environment.biome.action"),
                     ),
                 ),
@@ -291,9 +291,9 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
                 role = GuiElementRole.BACK,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    GuiMenuActionIntent.GestureAction(
                         ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, "gui.common.back"),
                     ),
                 ),

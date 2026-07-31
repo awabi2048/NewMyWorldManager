@@ -5,7 +5,7 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -15,7 +15,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -231,9 +231,9 @@ class VisitGui(private val plugin: MyWorldManager) {
                                         tagNames?.let { add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
                                 },
                                 actions = buildList {
-                                        add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                        add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString())))
                                         if (favoriteAction.isNotBlank()) {
-                                                add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                                add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString())))
                                         }
                                 },
                         ),
@@ -249,9 +249,9 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
                                 role = GuiElementRole.BACK,
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        GuiMenuActionIntent.GestureAction(
                                                 ACTION_BACK,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.LEFT_RIGHT,
                                                 plugin.languageManager.getMessage(player, "gui.common.return"),
                                         ),
                                 ),
@@ -269,9 +269,9 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        GuiMenuActionIntent.GestureAction(
                                                 ACTION_PAGE,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.LEFT_RIGHT,
                                                 plugin.languageManager.getMessage(player, key),
                                                 mapOf(PAGE to targetPage.toString()),
                                         ),

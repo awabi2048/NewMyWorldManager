@@ -1,4 +1,4 @@
-﻿package me.awabi2048.myworldmanager.gui
+package me.awabi2048.myworldmanager.gui
 
 
 import com.awabi2048.ccsystem.CCSystem
@@ -8,7 +8,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -22,7 +22,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -296,8 +296,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         slot: Int,
                         item: GuiItemSpec,
                         operation: WorldSettingsRuntimeOperation,
-                        acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
-                                MenuAcceptedClicks.LEFT_RIGHT,
+                        gesture: MenuGesture =
+                                MenuGesture.ANY,
                         payload: Map<String, String> = emptyMap(),
                         sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
                         actionLabel: String = itemName(item),
@@ -315,9 +315,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         else -> GuiElementRole.ACTION
                                                 }),
                                                 actions = listOf(
-                                                        GuiMenuEntryAction(
+                                                        GuiMenuActionIntent.GestureAction(
                                                                 actionId = ACTION_RUNTIME_DISPATCH,
-                                                                acceptedClicks = acceptedClicks,
+                                                                gesture = gesture,
                                                                 label = actionLabel,
                                                                 payload = mapOf(
                                                                         "slot" to slot.toString(),
@@ -334,8 +334,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 fun bindRuntimeOperation(
                         slot: Int,
                         operation: WorldSettingsRuntimeOperation,
-                        acceptedClicks: Set<org.bukkit.event.inventory.ClickType> =
-                                MenuAcceptedClicks.LEFT_RIGHT,
+                        gesture: MenuGesture =
+                                MenuGesture.ANY,
                         payload: Map<String, String> = emptyMap(),
                         sounds: com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy? = null,
                         actionLabel: String? = null,
@@ -347,7 +347,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 slot,
                                 item,
                                 operation,
-                                acceptedClicks,
+                                gesture,
                                 payload,
                                 sounds,
                                 actionLabel ?: itemName(item),
@@ -479,15 +479,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 action: WorldSettingsAction,
                 operation: WorldSettingsRuntimeOperation,
                 actionTexts: List<String>,
-        ): List<GuiMenuEntryAction> {
+        ): List<GuiMenuActionIntent> {
                 val contract = plugin.worldSettingsActionService.contract(player, worldData, action)
                 require(contract.options.size == actionTexts.size) {
                         "World settings action presentation mismatch: $action options=${contract.options.size} texts=${actionTexts.size}"
                 }
                 return contract.options.zip(actionTexts).map { (option, actionText) ->
-                        GuiMenuEntryAction(
+                        GuiMenuActionIntent.GestureAction(
                                 ACTION_RUNTIME_DISPATCH,
-                                option.acceptedClicks,
+                                option.gesture,
                                 actionText,
                                 mapOf(ROUTE_OPERATION to operation.name),
                                 enabled = contract.actionable,
@@ -786,17 +786,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                         val expansionActions = buildList {
                                 if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL && isInWorld && currentLevel < maxLevel) {
-                                        add(GuiMenuEntryAction(
+                                        add(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT,
+                                                MenuGesture.LEFT,
                                                 lang.getMessage(player, "gui.settings.expand.action.open_menu"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
                                         ))
                                 }
                                 if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL && !isBedrock && isInWorld) {
-                                        add(GuiMenuEntryAction(
+                                        add(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.RIGHT,
+                                                MenuGesture.RIGHT,
                                                 lang.getMessage(player, "gui.settings.expand.action.teleport_center"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
                                         ))
@@ -883,9 +883,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         options = levels.map { (level, name, _) ->
                                                 GuiMenuEntryOption(name, level == worldData.publishLevel)
                                         },
-                                        actions = listOf(GuiMenuEntryAction(
+                                        actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.common.action.cycle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
                                         )),
@@ -1025,9 +1025,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 tagsList,
                                                 GuiValueTone.WARNING,
                                         )),
-                                        actions = listOf(GuiMenuEntryAction(
+                                        actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.tags.action.edit"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EDIT_TAGS.name),
                                         )),
@@ -1092,9 +1092,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 statusText,
                                                 if (worldData.notificationEnabled) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
                                         )),
-                                        actions = listOf(GuiMenuEntryAction(
+                                        actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.notification.action.toggle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION.name),
                                         )),
@@ -1124,9 +1124,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "gui.settings.environment.blocks.summary",
                                         ),
                                         warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
-                                        actions = if (isInWorld) listOf(GuiMenuEntryAction(
+                                        actions = if (isInWorld) listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.environment.action.open"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT.name),
                                         )) else emptyList(),
@@ -1157,9 +1157,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "gui.settings.critical.blocks.summary",
                                         ),
                                         warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
-                                        actions = if (isInWorld) listOf(GuiMenuEntryAction(
+                                        actions = if (isInWorld) listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.critical.action.open"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_CRITICAL.name),
                                         )) else emptyList(),
@@ -1319,9 +1319,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         name = GuiNameSpec.Text(lang.getMessage(player, "gui.settings.visitors.display"), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
                                         data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.settings.visitors.blocks.count_label"), visitors.size, GuiValueTone.PRIMARY)),
-                                        actions = listOf(GuiMenuEntryAction(
+                                        actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.visitors.action.open"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MANAGE_VISITORS.name),
                                         )),
@@ -2061,15 +2061,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 role = GuiElementRole.ACTION,
                                 description = listOf(lang.getMessage(player, "gui.member_management.invite.desc")),
                                 actions = buildList {
-                                        add(GuiMenuEntryAction(
+                                        add(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.PLAIN_LEFT_RIGHT,
+                                                MenuGesture.PLAIN_LEFT_RIGHT,
                                                 lang.getMessage(player, "gui.member_management.invite.action.normal"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
                                         ))
-                                        if (canForceAddMember) add(GuiMenuEntryAction(
+                                        if (canForceAddMember) add(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.SHIFT_LEFT_RIGHT,
+                                                MenuGesture.SHIFT_LEFT_RIGHT,
                                                 lang.getMessage(player, "gui.member_management.invite.action.force"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
                                         ))
@@ -2099,9 +2099,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 ownerName,
                                                 GuiValueTone.PRIMARY,
                                         )),
-                                        actions = listOf(GuiMenuEntryAction(
+                                        actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.member_management.admin_owner_reset.action"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET.name),
                                         )),
@@ -2437,9 +2437,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
                 val actions = buildList {
                         capabilityView?.actions?.forEach { action ->
-                                add(GuiMenuEntryAction(
+                                add(GuiMenuActionIntent.GestureAction(
                                         ACTION_RUNTIME_DISPATCH,
-                                        action.trigger.clicks,
+                                        MenuGesture.fromClicks(action.trigger.clicks),
                                         action.text,
                                         payload,
                                 ))
@@ -2450,16 +2450,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 } else {
                                         lang.getMessage(null as Player?, "role.member")
                                 }
-                                add(GuiMenuEntryAction(
+                                add(GuiMenuActionIntent.GestureAction(
                                         ACTION_RUNTIME_DISPATCH,
-                                        MenuAcceptedClicks.LEFT,
+                                        MenuGesture.LEFT,
                                         lang.getMessage(viewer, "gui.member_management.item.action.change_role", mapOf("next_role" to nextRole)),
                                         payload,
                                 ))
                         }
                         if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
-                                add(GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.SHIFT_LEFT, lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"), payload))
-                                add(GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.SHIFT_RIGHT, lang.getMessage(viewer, "gui.member_management.item.action.remove_member"), payload))
+                                add(GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_LEFT, lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"), payload))
+                                add(GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_RIGHT, lang.getMessage(viewer, "gui.member_management.item.action.remove_member"), payload))
                         }
                 }
                 return GuiMenuEntrySpec(
@@ -2780,9 +2780,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 statusText,
                                 if (isOnline) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
                         )),
-                        actions = if (canKick) listOf(GuiMenuEntryAction(
+                        actions = if (canKick) listOf(GuiMenuActionIntent.GestureAction(
                                 ACTION_RUNTIME_DISPATCH,
-                                MenuAcceptedClicks.LEFT_RIGHT,
+                                MenuGesture.ANY,
                                 lang.getMessage(viewer, "gui.visitor_management.item.kick"),
                                 mapOf(
                                         ROUTE_OPERATION to WorldSettingsRuntimeOperation.VISITOR.name,
@@ -2949,9 +2949,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 GuiMenuEntryData(lang.getMessage(player, "gui.critical.reset_expansion.refund_label"), resetRefund, GuiValueTone.PRIMARY),
                                         ),
                                         warnings = listOf(lang.getMessage(player, "gui.critical.reset_expansion.warning")),
-                                        actions = listOf(GuiMenuEntryAction(
+                                        actions = listOf(GuiMenuActionIntent.GestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.critical.reset_expansion.action"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.RESET_EXPANSION.name),
                                         )),
@@ -3017,9 +3017,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         listOf(GuiMenuEntryData(lang.getMessage(player, "gui.critical.delete_world.owner_slots_label"), ownerStats.unlockedWorldSlot, GuiValueTone.PRIMARY))
                                 },
                                 warnings = listOf(lang.getMessage(player, if (canDeleteWorld) "gui.critical.delete_world.warning" else "gui.critical.delete_world.unavailable_slot")),
-                                actions = if (canDeleteWorld) listOf(GuiMenuEntryAction(
+                                actions = if (canDeleteWorld) listOf(GuiMenuActionIntent.GestureAction(
                                         ACTION_RUNTIME_DISPATCH,
-                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        MenuGesture.ANY,
                                         lang.getMessage(player, "gui.critical.delete_world.action"),
                                         mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.DELETE_WORLD.name),
                                 )) else emptyList(),
@@ -3062,9 +3062,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 role = if (enabled) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                 description = description,
                 warnings = warnings,
-                actions = if (enabled) listOf(GuiMenuEntryAction(
+                actions = if (enabled) listOf(GuiMenuActionIntent.GestureAction(
                         ACTION_RUNTIME_DISPATCH,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         actionText,
                         mapOf(ROUTE_OPERATION to operation.name),
                 )) else emptyList(),
@@ -3498,8 +3498,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ),
                         ),
                         actions = listOf(
-                                GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload),
-                                GuiMenuEntryAction(ACTION_RUNTIME_DISPATCH, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload),
+                                GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload),
+                                GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload),
                         ),
                 )
         }
