@@ -79,6 +79,14 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         return plugin.worldService.getWorldFolderName(worldData)
     }
 
+    override fun isPlayerInWorld(player: Player, worldData: WorldData): Boolean {
+        val targetWorld = Bukkit.getWorld(getWorldFolderName(worldData))
+        if (targetWorld != null) {
+            return player.world.uid == targetWorld.uid
+        }
+        return plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid
+    }
+
     override fun getWorldDirectory(worldData: WorldData): File {
         return plugin.worldService.getWorldDirectory(worldData)
     }

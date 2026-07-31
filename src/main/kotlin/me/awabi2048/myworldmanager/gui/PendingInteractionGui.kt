@@ -1,22 +1,34 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
-import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiSpecFactory
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
-import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import java.time.Instant
 import java.time.ZoneId
@@ -25,7 +37,23 @@ import java.util.UUID
 
 class PendingInteractionGui(private val plugin: MyWorldManager) {
 
-    private val itemsPerPage = 28
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+    private val guiElements = CCSystem.getAPI().getGuiElementService()
+
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_PAGE to MenuActionHandler(::changePage),
+                    ACTION_BACK to MenuActionHandler(::back),
+                    ACTION_OPEN to MenuActionHandler(::openEntry),
+                ),
+            ),
+        )
+    }
 
     fun open(
         player: Player,
@@ -34,117 +62,73 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         showBackButton: Boolean = false,
         fromBedrockMenu: Boolean = false
     ) {
-        val entries = plugin.pendingDecisionManager.getPendingEntries(player.uniqueId)
-        val maxPage = if (entries.isEmpty()) 1 else ((entries.size - 1) / itemsPerPage) + 1
-        val currentPage = page.coerceIn(0, maxPage - 1)
-        val start = currentPage * itemsPerPage
-        val pageEntries = entries.drop(start).take(itemsPerPage)
-
-        val contentRows = if (pageEntries.isEmpty()) 1 else ((pageEntries.size - 1) / 7) + 1
-        val rowCount = (contentRows + 2).coerceIn(3, 6)
-        val holder = PendingInteractionHolder(currentPage, returnPage, showBackButton, fromBedrockMenu)
-        val inventory = Bukkit.createInventory(holder, rowCount * 9, me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(plugin.languageManager.getComponent(player, "gui.pending_list.title")))
-        holder.inv = inventory
-
-        val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
-        val footerStart = (rowCount - 1) * 9
-
-        GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
-        for (row in 1 until rowCount - 1) {
-            val rowStart = row * 9
-            inventory.setItem(rowStart, grayPane)
-            inventory.setItem(rowStart + 8, grayPane)
-            for (col in 1..7) {
-                inventory.setItem(rowStart + col, grayPane)
-            }
-        }
-
-        pageEntries.forEachIndexed { index, entry ->
-            val row = index / 7
-            val col = index % 7
-            val slot = (row + 1) * 9 + 1 + col
-            inventory.setItem(slot, createEntryItem(player, entry))
-        }
-
-        if (pageEntries.isEmpty()) {
-            inventory.setItem(22, createEmptyItem(player))
-        }
-
-        if (currentPage > 0) {
-            inventory.setItem(
-                footerStart + 1,
-                me.awabi2048.myworldmanager.util.GuiHelper.createPrevPageItem(
-                    plugin,
-                    player,
-                    "pending_list",
-                    currentPage - 1
-                )
-            )
-        }
-
-        if (start + pageEntries.size < entries.size) {
-            inventory.setItem(
-                footerStart + 8,
-                me.awabi2048.myworldmanager.util.GuiHelper.createNextPageItem(
-                    plugin,
-                    player,
-                    "pending_list",
-                    currentPage + 1
-                )
-            )
-        }
-
-        inventory.setItem(
-            footerStart,
-            me.awabi2048.myworldmanager.util.GuiHelper.createReturnItem(plugin, player, "pending_list")
+        runtime.navigate(
+            player,
+            prepareOpen(page, returnPage, showBackButton, fromBedrockMenu),
         )
-
-        ManagedMenuPresenter.open(player, inventory)
     }
 
-    fun handleInventoryClick(player: Player, event: InventoryClickEvent): Boolean {
-        val holder = event.view.topInventory.holder as? PendingInteractionHolder ?: return false
-        event.cancelWithDebug("PendingInteractionGui.handleInventoryClick: plugin GUI click")
+    fun prepareOpen(
+        page: Int = 0,
+        returnPage: Int = 0,
+        showBackButton: Boolean = false,
+        fromBedrockMenu: Boolean = false,
+    ): MenuRoute = route(page, returnPage, showBackButton, fromBedrockMenu)
 
-        if (event.clickedInventory != event.view.topInventory) {
-            return true
+    private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+        val entries = plugin.pendingDecisionManager.getPendingEntries(player.uniqueId)
+        val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(entries.size, page(route))
+        val layout = page.layout
+        val pageEntries = entries.drop(page.startIndex).take(page.itemCount)
+        val elements = mutableListOf<MenuElement>()
+        elements += createInfoEntry(player, entries.size, page.page + 1, page.totalPages)
+        pageEntries.forEachIndexed { index, entry ->
+            elements += createEntry(player, entry, layout.itemSlots[index])
         }
-
-        val item = event.currentItem ?: return true
-        val type = ItemTag.getType(item) ?: return true
-
-        if (type == ItemTag.TYPE_GUI_NAV_PREV || type == ItemTag.TYPE_GUI_NAV_NEXT) {
-            val targetPage = ItemTag.getTargetPage(item) ?: return true
-            open(player, targetPage, holder.returnPage, holder.showBackButton, holder.fromBedrockMenu)
-            return true
+        if (pageEntries.isEmpty()) {
+            elements += createEmptyEntry(player, layout.itemSlots[layout.itemSlots.size / 2])
         }
-
-        if (type == ItemTag.TYPE_GUI_RETURN) {
-            if (holder.fromBedrockMenu) {
-                plugin.menuEntryRouter.openPlayerWorld(player, holder.returnPage, holder.showBackButton)
-            } else {
-                plugin.playerWorldGui.open(player, holder.returnPage, holder.showBackButton)
-            }
-            return true
+        if (page.page > 0) {
+            elements += navigationEntry(player, layout.previousPageSlot, false, page.page - 1)
         }
-
-        if (type != ItemTag.TYPE_GUI_PENDING_ENTRY) {
-            return true
+        if (page.page < page.totalPages - 1) {
+            elements += navigationEntry(player, layout.nextPageSlot, true, page.page + 1)
         }
+        if (me.awabi2048.myworldmanager.util.GuiHelper.canGoBack(player)) {
+            elements += backEntry(player, layout.actionSlot)
+        }
+        return InventoryMenuView(
+            layout.size,
+            me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
+                plugin.languageManager.getComponent(player, "gui.pending_list.title"),
+            ),
+            elements,
+        )
+    }
 
-        val idStr = ItemTag.getString(item, "pending_decision_id") ?: return true
-        val decisionId = runCatching { UUID.fromString(idStr) }.getOrNull() ?: return true
+    private fun changePage(context: MenuActionContext): MenuActionResult {
+        val target = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(
+                route(target, returnPage(context.route), showBack(context.route), fromBedrock(context.route)),
+            ),
+        )
+    }
 
-        if (plugin.playerPlatformResolver.isBedrock(player)) {
-            openBedrockDecisionForm(player, decisionId)
+    private fun back(context: MenuActionContext): MenuActionResult {
+        return MenuActionResult.Success(MenuUpdate.Back)
+    }
+
+    private fun openEntry(context: MenuActionContext): MenuActionResult {
+        val decisionId = context.payload[DECISION_ID]
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            ?: return MenuActionResult.Rejected()
+        if (plugin.playerPlatformResolver.isBedrock(context.player)) {
+            openBedrockDecisionForm(context.player, decisionId)
         } else {
-            openJavaDecisionDialog(player, decisionId, holder.page)
+            openJavaDecisionDialog(context.player, decisionId, page(context.route))
         }
-        return true
-    }
-
-    fun handleDialogResponse(player: Player, identifier: Key): Boolean {
-        return false
+        return MenuActionResult.Success(MenuUpdate.None)
     }
 
     fun openDecision(player: Player, decisionId: UUID, page: Int = 0, intendedAction: Boolean? = null) {
@@ -168,16 +152,14 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val typeLabel = typeLabel(player, entry.type)
 
         val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
-        val center = PendingInteractionItemFactory.createItem(
+        val center = PendingInteractionItemFactory.createDisplay(
             plugin = plugin,
             viewer = player,
             subjectUuid = entry.actorUuid,
             type = entry.type,
             worldName = worldName,
             createdAt = entry.createdAt,
-            decisionId = decisionId,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_INFO
         )
 
         val confirmLabel = plugin.languageManager.getMessage(
@@ -190,32 +172,43 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         )
         val confirmAction = intendedAction ?: true
 
-        val confirmItem = GuiItemFactory.item(
+        val confirmItem = GuiSpecFactory.spec(
             org.bukkit.Material.LIME_CONCRETE,
             confirmLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CONFIRM
+            GuiElementRole.CONFIRM,
         )
-        val cancelItem = GuiItemFactory.item(
+        val cancelItem = GuiSpecFactory.spec(
             org.bukkit.Material.RED_CONCRETE,
             cancelLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CANCEL
+            GuiElementRole.CANCEL,
         )
 
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "pending_list",
             title = title,
-            centerItem = center,
+            centerItem = center.item,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
-            onConfirm = { plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction) },
+            confirmActionText = confirmLabel,
+            cancelActionText = cancelLabel,
+            previewPlayerHeadOwner = center.playerHeadOwner,
+            onConfirm = {
+                if (plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction)) {
+                    MenuActionResult.Success(MenuUpdate.Back)
+                } else {
+                    MenuActionResult.Rejected()
+                }
+            },
             onCancel = {
                 if (intendedAction == null) {
                     plugin.pendingDecisionManager.resolveById(player, decisionId, false)
                 }
-            }
+                MenuActionResult.Success(MenuUpdate.Back)
+            },
+            onAbandon = { player.sendMessage(PENDING_MESSAGE) },
         )
     }
 
@@ -236,16 +229,14 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         val typeLabel = typeLabel(player, entry.type)
 
         val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
-        val center = PendingInteractionItemFactory.createItem(
+        val center = PendingInteractionItemFactory.createDisplay(
             plugin = plugin,
             viewer = player,
             subjectUuid = entry.actorUuid,
             type = entry.type,
             worldName = worldName,
             createdAt = entry.createdAt,
-            decisionId = decisionId,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_INFO
         )
 
         val confirmLabel = plugin.languageManager.getMessage(
@@ -258,62 +249,161 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         )
         val confirmAction = intendedAction ?: true
 
-        val confirmItem = GuiItemFactory.item(
+        val confirmItem = GuiSpecFactory.spec(
             org.bukkit.Material.LIME_CONCRETE,
             confirmLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CONFIRM
+            GuiElementRole.CONFIRM,
         )
-        val cancelItem = GuiItemFactory.item(
+        val cancelItem = GuiSpecFactory.spec(
             org.bukkit.Material.RED_CONCRETE,
             cancelLabel,
             GuiLoreSpec.None,
-            ItemTag.TYPE_GUI_CANCEL
+            GuiElementRole.CANCEL,
         )
 
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "pending_list",
             title = title,
-            centerItem = center,
+            centerItem = center.item,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
-            onConfirm = { plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction) },
+            confirmActionText = confirmLabel,
+            cancelActionText = cancelLabel,
+            previewPlayerHeadOwner = center.playerHeadOwner,
+            onConfirm = {
+                if (plugin.pendingDecisionManager.resolveById(player, decisionId, confirmAction)) {
+                    MenuActionResult.Success(MenuUpdate.Back)
+                } else {
+                    MenuActionResult.Rejected()
+                }
+            },
             onCancel = {
                 if (intendedAction == null) {
                     plugin.pendingDecisionManager.resolveById(player, decisionId, false)
                 }
-            }
+                MenuActionResult.Success(MenuUpdate.Back)
+            },
+            onAbandon = { player.sendMessage(PENDING_MESSAGE) },
         )
     }
 
-    private fun createEntryItem(player: Player, entry: PendingDecisionManager.PendingEntryView): ItemStack {
+    private fun createEntry(
+        player: Player,
+        entry: PendingDecisionManager.PendingEntryView,
+        slot: Int,
+    ): MenuElement {
         val worldName = entry.worldUuid?.let { plugin.worldConfigRepository.findByUuid(it)?.name }
             ?: plugin.languageManager.getMessage(player, "general.unknown")
-        return PendingInteractionItemFactory.createItem(
+        return PendingInteractionItemFactory.createElement(
             plugin = plugin,
             viewer = player,
+            slot = slot,
             subjectUuid = entry.actorUuid,
             type = entry.type,
             worldName = worldName,
             createdAt = entry.createdAt,
-            decisionId = entry.id,
             actionMode = PendingInteractionActionMode.REVIEW,
-            itemTagType = ItemTag.TYPE_GUI_PENDING_ENTRY
+            actionId = ACTION_OPEN,
+            actionPayload = mapOf(DECISION_ID to entry.id.toString()),
         )
     }
 
-    private fun createEmptyItem(player: Player): ItemStack {
-        val item = ItemStack(Material.BARRIER)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name"))
-        meta.lore(GuiItemFactory.menuLore(
-            plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
-        ))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        return item
+    private fun createEmptyEntry(player: Player, slot: Int): MenuElement =
+        guiElements.menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = slot,
+                item = GuiItemSpec(
+                    material = Material.BARRIER,
+                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name")),
+                    lore = GuiLoreSpec.Blocks(
+                        listOf(
+                            GuiLoreBlock(
+                                plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore")
+                                    .map(GuiLoreLine::Text),
+                            ),
+                        ),
+                    ),
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
+        )
+
+    private fun createInfoEntry(player: Player, count: Int, page: Int, pages: Int): MenuElement =
+        guiElements.menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = 4,
+                item = GuiItemSpec(
+                    material = Material.BOOK,
+                    name = GuiNameSpec.Text(
+                        plugin.languageManager.getMessage(player, "gui.pending_list.info.name"),
+                        GuiNameStyle.DEFAULT,
+                    ),
+                    lore = GuiLoreSpec.Blocks(
+                        listOf(
+                            GuiLoreBlock(
+                                listOf(
+                                    GuiLoreLine.Data(
+                                        plugin.languageManager.getMessage(player, "gui.pending_list.info.count_label"),
+                                        count,
+                                        "§e",
+                                    ),
+                                    GuiLoreLine.Data(
+                                        plugin.languageManager.getMessage(player, "gui.pending_list.info.page_label"),
+                                        "$page/$pages",
+                                        "§e",
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
+        )
+
+    private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val iconId = if (next) "next_page" else "prev_page"
+        return guiElements.menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("pending_list", iconId, Material.ARROW),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                role = GuiElementRole.NAVIGATION,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        actionId = ACTION_PAGE,
+                        acceptedClicks = MenuAcceptedClicks.LEFT_RIGHT,
+                        label = plugin.languageManager.getMessage(player, key),
+                        payload = mapOf(PAGE to targetPage.toString()),
+                    ),
+                ),
+            ),
+        )
     }
+
+    private fun backEntry(player: Player, slot: Int): MenuElement =
+        guiElements.menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("pending_list", "back", Material.REDSTONE),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
+                role = GuiElementRole.BACK,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BACK,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(player, "gui.common.return"),
+                    ),
+                ),
+            ),
+        )
 
     private fun typeLabel(player: Player, type: PendingDecisionManager.PendingType): String {
         return when (type) {
@@ -331,17 +421,34 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             .format(Instant.ofEpochMilli(timestamp))
     }
 
-    private fun createDecorationItem(material: Material): ItemStack {
-        return GuiItemFactory.decoration(material)
-    }
+    private fun route(page: Int, returnPage: Int, showBack: Boolean, fromBedrock: Boolean) =
+        MenuRoute(
+            OWNER,
+            ROUTE_ID,
+            mapOf(
+                PAGE to page.toString(),
+                RETURN_PAGE to returnPage.toString(),
+                SHOW_BACK to showBack.toString(),
+                FROM_BEDROCK to fromBedrock.toString(),
+            ),
+        )
 
-    class PendingInteractionHolder(
-        val page: Int,
-        val returnPage: Int,
-        val showBackButton: Boolean,
-        val fromBedrockMenu: Boolean
-    ) : InventoryHolder {
-        lateinit var inv: Inventory
-        override fun getInventory(): Inventory = inv
+    private fun page(route: MenuRoute) = route.payload[PAGE]?.toIntOrNull() ?: 0
+    private fun returnPage(route: MenuRoute) = route.payload[RETURN_PAGE]?.toIntOrNull() ?: 0
+    private fun showBack(route: MenuRoute) = route.payload[SHOW_BACK].toBoolean()
+    private fun fromBedrock(route: MenuRoute) = route.payload[FROM_BEDROCK].toBoolean()
+
+    private companion object {
+        const val OWNER = "mwm"
+        const val ROUTE_ID = "pending_interactions"
+        const val PAGE = "page"
+        const val RETURN_PAGE = "return_page"
+        const val SHOW_BACK = "show_back"
+        const val FROM_BEDROCK = "from_bedrock"
+        const val DECISION_ID = "decision_id"
+        const val ACTION_PAGE = "page"
+        const val ACTION_BACK = "back"
+        const val ACTION_OPEN = "open"
+        const val PENDING_MESSAGE = "§7保留しました。/myworld メニューから、保留中の申請などを確認できます。"
     }
 }

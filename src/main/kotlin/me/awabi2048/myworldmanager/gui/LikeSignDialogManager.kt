@@ -2,41 +2,34 @@
 
 package me.awabi2048.myworldmanager.gui
 
-import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuDialogResponse
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.LikeSignData
 import me.awabi2048.myworldmanager.model.LikeSignDisplayType
 import me.awabi2048.myworldmanager.service.LikeSignManager
-import me.awabi2048.myworldmanager.util.GuiItemFactory
+import me.awabi2048.myworldmanager.util.GuiSpecFactory
 import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.inventory.EquipmentSlot
-import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-class LikeSignDialogManager : Listener {
+class LikeSignDialogManager {
 
     data class PlacementSession(
         val playerUuid: UUID,
@@ -127,66 +120,75 @@ class LikeSignDialogManager : Listener {
 
         private fun showPlacementDialog(player: Player, plugin: MyWorldManager, session: PlacementSession) {
             val lang = plugin.languageManager
-
-            val displayTypeOptions = listOf(
-                SingleOptionDialogInput.OptionEntry.create(
-                    "sign",
-                    Component.text(lang.getMessage(player, "gui.like_sign.display_type.sign"), NamedTextColor.YELLOW),
-                    session.displayType == LikeSignDisplayType.SIGN
-                ),
-                SingleOptionDialogInput.OptionEntry.create(
-                    "hologram",
-                    Component.text(lang.getMessage(player, "gui.like_sign.display_type.hologram"), NamedTextColor.AQUA),
-                    session.displayType == LikeSignDisplayType.HOLOGRAM
-                )
-            )
-
-            val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(Component.text(lang.getMessage(player, "gui.like_sign.placement.title"), NamedTextColor.GOLD))
-                            .body(
-                                listOf(
-                                    DialogBody.plainMessage(Component.text(lang.getMessage(player, "gui.like_sign.placement.description")))
-                                )
-                            )
-                            .inputs(
-                                listOf(
-                                    DialogInput.text("title", Component.text(lang.getMessage(player, "gui.like_sign.input.title")))
-                                        .maxLength(LikeSignManager.MAX_TITLE_LENGTH)
-                                        .initial(session.title)
-                                        .build(),
-                                    DialogInput.text("description", Component.text(lang.getMessage(player, "gui.like_sign.input.description")))
-                                        .maxLength(LikeSignManager.MAX_DESCRIPTION_LENGTH)
-                                        .initial(session.description)
-                                        .build(),
-                                    DialogInput.singleOption(
-                                        "display_type",
-                                        Component.text(lang.getMessage(player, "gui.like_sign.input.display_type")),
-                                        displayTypeOptions
-                                    ).build()
-                                )
-                            )
-                            .build()
-                    )
-                    .type(
-                        DialogType.confirmation(
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.like_sign.button.place"), NamedTextColor.GREEN),
-                                null,
-                                100,
-                                DialogAction.customClick(Key.key("mwm:like_sign/place"), null)
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "like-sign-placement",
+                    title = Component.text(
+                        lang.getMessage(player, "gui.like_sign.placement.title"),
+                        NamedTextColor.GOLD,
+                    ),
+                    body = listOf(
+                        Component.text(lang.getMessage(player, "gui.like_sign.placement.description")),
+                    ),
+                    inputs = listOf(
+                        MenuDialogInput.Text(
+                            "title",
+                            Component.text(lang.getMessage(player, "gui.like_sign.input.title")),
+                            session.title,
+                            maxLength = LikeSignManager.MAX_TITLE_LENGTH,
+                        ),
+                        MenuDialogInput.Text(
+                            "description",
+                            Component.text(lang.getMessage(player, "gui.like_sign.input.description")),
+                            session.description,
+                            maxLength = LikeSignManager.MAX_DESCRIPTION_LENGTH,
+                        ),
+                        MenuDialogInput.SingleOption(
+                            "display_type",
+                            Component.text(lang.getMessage(player, "gui.like_sign.input.display_type")),
+                            listOf(
+                                MenuDialogInput.SingleOption.Option(
+                                    "sign",
+                                    Component.text(
+                                        lang.getMessage(player, "gui.like_sign.display_type.sign"),
+                                        NamedTextColor.YELLOW,
+                                    ),
+                                    session.displayType == LikeSignDisplayType.SIGN,
+                                ),
+                                MenuDialogInput.SingleOption.Option(
+                                    "hologram",
+                                    Component.text(
+                                        lang.getMessage(player, "gui.like_sign.display_type.hologram"),
+                                        NamedTextColor.AQUA,
+                                    ),
+                                    session.displayType == LikeSignDisplayType.HOLOGRAM,
+                                ),
                             ),
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.like_sign.button.cancel"), NamedTextColor.RED),
-                                null,
-                                200,
-                                DialogAction.customClick(Key.key("mwm:like_sign/cancel"), null)
-                            )
-                        )
-                    )
-            }
-            player.showDialog(dialog)
+                        ),
+                    ),
+                    confirm = MenuDialogButton(
+                        Component.text(
+                            lang.getMessage(player, "gui.like_sign.button.place"),
+                            NamedTextColor.GREEN,
+                        ),
+                        MenuDialogHandler { target, response ->
+                            placeSign(target, plugin, response)
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        Component.text(
+                            lang.getMessage(player, "gui.like_sign.button.cancel"),
+                            NamedTextColor.RED,
+                        ),
+                        MenuDialogHandler { target, _ ->
+                            placementSessions.remove(target.uniqueId)
+                            MenuActionResult.Success(MenuUpdate.Close)
+                        },
+                    ),
+                ),
+            )
         }
 
         private fun showEditDialog(player: Player, plugin: MyWorldManager, signData: LikeSignData) {
@@ -205,43 +207,131 @@ class LikeSignDialogManager : Listener {
                 )
             )
 
-            val dialog = Dialog.create { builder ->
-                builder.empty()
-                    .base(
-                        DialogBase.builder(Component.text(lang.getMessage(player, "gui.like_sign.edit.title"), NamedTextColor.GOLD))
-                            .body(bodyLines.map { DialogBody.plainMessage(it) })
-                            .inputs(
-                                listOf(
-                                    DialogInput.text("title", Component.text(lang.getMessage(player, "gui.like_sign.input.title")))
-                                        .maxLength(LikeSignManager.MAX_TITLE_LENGTH)
-                                        .initial(signData.title)
-                                        .build(),
-                                    DialogInput.text("description", Component.text(lang.getMessage(player, "gui.like_sign.input.description")))
-                                        .maxLength(LikeSignManager.MAX_DESCRIPTION_LENGTH)
-                                        .initial(signData.description)
-                                        .build()
-                                )
-                            )
-                            .build()
-                    )
-                    .type(
-                        DialogType.confirmation(
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.like_sign.button.save"), NamedTextColor.GREEN),
-                                null,
-                                100,
-                                DialogAction.customClick(Key.key("mwm:like_sign/save"), null)
-                            ),
-                            ActionButton.create(
-                                Component.text(lang.getMessage(player, "gui.like_sign.button.delete"), NamedTextColor.RED),
-                                null,
-                                150,
-                                DialogAction.customClick(Key.key("mwm:like_sign/delete"), null)
-                            )
-                        )
-                    )
+            CCSystem.getAPI().getMenuDialogService().show(
+                player,
+                MenuDialogRequest(
+                    owner = "myworldmanager",
+                    id = "like-sign-edit",
+                    title = Component.text(
+                        lang.getMessage(player, "gui.like_sign.edit.title"),
+                        NamedTextColor.GOLD,
+                    ),
+                    body = bodyLines,
+                    inputs = listOf(
+                        MenuDialogInput.Text(
+                            "title",
+                            Component.text(lang.getMessage(player, "gui.like_sign.input.title")),
+                            signData.title,
+                            maxLength = LikeSignManager.MAX_TITLE_LENGTH,
+                        ),
+                        MenuDialogInput.Text(
+                            "description",
+                            Component.text(lang.getMessage(player, "gui.like_sign.input.description")),
+                            signData.description,
+                            maxLength = LikeSignManager.MAX_DESCRIPTION_LENGTH,
+                        ),
+                    ),
+                    confirm = MenuDialogButton(
+                        Component.text(
+                            lang.getMessage(player, "gui.like_sign.button.save"),
+                            NamedTextColor.GREEN,
+                        ),
+                        MenuDialogHandler { target, response ->
+                            saveSign(target, plugin, response)
+                        },
+                    ),
+                    cancel = MenuDialogButton(
+                        Component.text(
+                            lang.getMessage(player, "gui.like_sign.button.delete"),
+                            NamedTextColor.RED,
+                        ),
+                        MenuDialogHandler { target, _ ->
+                            deleteSign(target, plugin)
+                        },
+                    ),
+                ),
+            )
+        }
+
+        private fun placeSign(
+            player: Player,
+            plugin: MyWorldManager,
+            response: MenuDialogResponse,
+        ): MenuActionResult {
+            val session = placementSessions.remove(player.uniqueId)
+                ?: return MenuActionResult.Rejected()
+            val title = response.textValue("title")
+            if (title.isBlank()) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.title_required"))
+                placementSessions[player.uniqueId] = session
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    showPlacementDialog(player, plugin, session)
+                })
+                return MenuActionResult.Rejected()
             }
-            player.showDialog(dialog)
+
+            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+                ?: return MenuActionResult.Rejected()
+            val block = player.world.getBlockAt(session.blockX, session.blockY, session.blockZ)
+            val blockFace = runCatching { BlockFace.valueOf(session.blockFace) }.getOrDefault(BlockFace.NORTH)
+            val displayType = when (response.selectedValue("display_type")) {
+                "sign" -> LikeSignDisplayType.SIGN
+                else -> LikeSignDisplayType.HOLOGRAM
+            }
+            val signData = plugin.likeSignManager.createSign(
+                worldData,
+                player,
+                block,
+                blockFace,
+                title,
+                response.textValue("description"),
+                displayType,
+            )
+            if (signData != null) {
+                val item = if (session.hand == EquipmentSlot.HAND) {
+                    player.inventory.itemInMainHand
+                } else {
+                    player.inventory.itemInOffHand
+                }
+                item.amount -= 1
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.placed"))
+                player.playSound(player.location, org.bukkit.Sound.BLOCK_WOOD_PLACE, 1.0f, 1.0f)
+            }
+            return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun saveSign(
+            player: Player,
+            plugin: MyWorldManager,
+            response: MenuDialogResponse,
+        ): MenuActionResult {
+            val session = editSessions.remove(player.uniqueId)
+                ?: return MenuActionResult.Rejected()
+            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+                ?: return MenuActionResult.Rejected()
+            val signData = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid)
+                ?: return MenuActionResult.Rejected()
+            signData.title = response.textValue("title").take(LikeSignManager.MAX_TITLE_LENGTH)
+            signData.description = response.textValue("description")
+                .take(LikeSignManager.MAX_DESCRIPTION_LENGTH)
+            plugin.worldConfigRepository.save(worldData)
+            plugin.likeSignManager.refreshSignDisplay(signData, worldData)
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.saved"))
+            player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f)
+            return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun deleteSign(player: Player, plugin: MyWorldManager): MenuActionResult {
+            val session = editSessions.remove(player.uniqueId)
+                ?: return MenuActionResult.Rejected()
+            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+                ?: return MenuActionResult.Rejected()
+            val signData = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid)
+                ?: return MenuActionResult.Rejected()
+            plugin.likeSignManager.removeSign(signData, worldData, player)
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.deleted"))
+            player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
 
         fun showLikeConfirmDialog(player: Player, plugin: MyWorldManager, signData: LikeSignData, worldUuid: UUID) {
@@ -255,26 +345,27 @@ class LikeSignDialogManager : Listener {
             unlikeSessions[player.uniqueId] = session
 
             val title = Component.text(lang.getMessage(player, "gui.like_sign.unlike_confirm.title"), NamedTextColor.RED)
-            val center = GuiItemFactory.item(
+            val confirmLabel = lang.getMessage(player, "gui.common.confirm")
+            val cancelLabel = lang.getMessage(player, "gui.common.cancel")
+            val center = GuiSpecFactory.spec(
                 org.bukkit.Material.RED_DYE,
                 lang.getMessage(player, "gui.like_sign.unlike_confirm.title"),
                 GuiLoreSpec.Rich(
                     listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.like_sign.unlike_confirm.description"))),
                     GuiLoreFrame.BOTH
                 ),
-                ItemTag.TYPE_GUI_INFO
             )
-            val confirmItem = GuiItemFactory.item(
+            val confirmItem = GuiSpecFactory.spec(
                 org.bukkit.Material.LIME_CONCRETE,
-                lang.getMessage(player, "gui.common.confirm"),
+                confirmLabel,
                 GuiLoreSpec.None,
-                ItemTag.TYPE_GUI_CONFIRM
+                com.awabi2048.ccsystem.api.gui.GuiElementRole.CONFIRM,
             )
-            val cancelItem = GuiItemFactory.item(
+            val cancelItem = GuiSpecFactory.spec(
                 org.bukkit.Material.RED_CONCRETE,
-                lang.getMessage(player, "gui.common.cancel"),
+                cancelLabel,
                 GuiLoreSpec.None,
-                ItemTag.TYPE_GUI_CANCEL
+                com.awabi2048.ccsystem.api.gui.GuiElementRole.CANCEL,
             )
 
             plugin.confirmationMenuGui.open(
@@ -284,10 +375,14 @@ class LikeSignDialogManager : Listener {
                 centerItem = center,
                 confirmItem = confirmItem,
                 cancelItem = cancelItem,
+                confirmActionText = confirmLabel,
+                cancelActionText = cancelLabel,
                 onConfirm = {
-                    val session = unlikeSessions.remove(player.uniqueId) ?: return@open
-                    val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return@open
-                    val sign = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid) ?: return@open
+                    val session = unlikeSessions.remove(player.uniqueId) ?: return@open MenuActionResult.Rejected()
+                    val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
+                        ?: return@open MenuActionResult.Rejected()
+                    val sign = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid)
+                        ?: return@open MenuActionResult.Rejected()
                     if (sign.hasLiked(player.uniqueId)) {
                         sign.removeLike(player.uniqueId)
                         plugin.worldConfigRepository.save(worldData)
@@ -295,135 +390,14 @@ class LikeSignDialogManager : Listener {
                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.unliked"))
                         player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
                     }
+                    MenuActionResult.Success(MenuUpdate.Close)
                 },
                 onCancel = {
                     unlikeSessions.remove(player.uniqueId)
+                    MenuActionResult.Success(MenuUpdate.Back)
                 }
             )
         }
     }
 
-    @EventHandler
-    fun handleLikeSignDialog(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-
-        if (identifier == Key.key("mwm:like_sign/cancel")) {
-            placementSessions.remove(player.uniqueId)
-            DialogConfirmManager.safeCloseDialog(player)
-            return
-        }
-
-        if (identifier == Key.key("mwm:like_sign/place")) {
-            val session = placementSessions.remove(player.uniqueId) ?: return
-            val view = event.getDialogResponseView() ?: return
-
-            val titleInput = view.getText("title")?.toString() ?: ""
-            val descriptionInput = view.getText("description")?.toString() ?: ""
-            val displayTypeInput = view.getText("display_type")?.toString() ?: "hologram"
-
-            val displayType = when (displayTypeInput) {
-                "sign" -> LikeSignDisplayType.SIGN
-                else -> LikeSignDisplayType.HOLOGRAM
-            }
-
-            if (titleInput.isBlank()) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.title_required"))
-                return
-            }
-
-            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-            val world = player.world
-            val block = world.getBlockAt(session.blockX, session.blockY, session.blockZ)
-            val blockFace = try { BlockFace.valueOf(session.blockFace) } catch (e: Exception) { BlockFace.NORTH }
-
-            val signData = plugin.likeSignManager.createSign(
-                worldData,
-                player,
-                block,
-                blockFace,
-                titleInput,
-                descriptionInput,
-                displayType
-            )
-
-            if (signData != null) {
-                val item = if (session.hand == EquipmentSlot.HAND) {
-                    player.inventory.itemInMainHand
-                } else {
-                    player.inventory.itemInOffHand
-                }
-                item.amount -= 1
-
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.placed"))
-                player.playSound(player.location, org.bukkit.Sound.BLOCK_WOOD_PLACE, 1.0f, 1.0f)
-            }
-
-            DialogConfirmManager.safeCloseDialog(player)
-            return
-        }
-
-        if (identifier == Key.key("mwm:like_sign/save")) {
-            val session = editSessions.remove(player.uniqueId) ?: return
-            val view = event.getDialogResponseView() ?: return
-
-            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-            val signData = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid) ?: return
-
-            val titleInput = view.getText("title")?.toString() ?: signData.title
-            val descriptionInput = view.getText("description")?.toString() ?: signData.description
-
-            signData.title = titleInput.take(LikeSignManager.MAX_TITLE_LENGTH)
-            signData.description = descriptionInput.take(LikeSignManager.MAX_DESCRIPTION_LENGTH)
-
-            plugin.worldConfigRepository.save(worldData)
-            plugin.likeSignManager.refreshSignDisplay(signData, worldData)
-
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.saved"))
-            player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f)
-
-            DialogConfirmManager.safeCloseDialog(player)
-            return
-        }
-
-        if (identifier == Key.key("mwm:like_sign/delete")) {
-            val session = editSessions.remove(player.uniqueId) ?: return
-            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-            val signData = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid) ?: return
-
-            plugin.likeSignManager.removeSign(signData, worldData, player)
-
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.deleted"))
-            player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
-
-            DialogConfirmManager.safeCloseDialog(player)
-            return
-        }
-
-        if (identifier == Key.key("mwm:like_sign/unlike")) {
-            val session = unlikeSessions.remove(player.uniqueId) ?: return
-            val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-            val signData = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid) ?: return
-
-            if (signData.hasLiked(player.uniqueId)) {
-                signData.removeLike(player.uniqueId)
-                plugin.worldConfigRepository.save(worldData)
-                plugin.likeSignManager.refreshSignDisplay(signData, worldData)
-
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.unliked"))
-                player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
-            }
-
-            DialogConfirmManager.safeCloseDialog(player)
-            return
-        }
-
-        if (identifier == Key.key("mwm:like_sign/unlike_cancel")) {
-            DialogConfirmManager.safeCloseDialog(player)
-            return
-        }
-    }
 }

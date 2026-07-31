@@ -4,6 +4,7 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.CustomModelData
 import org.bukkit.Material
@@ -92,11 +93,12 @@ object WorldGateItemUtil {
                 ))))
             }
             add(GuiLoreBlock(buildList {
-                add(GuiLoreLine.Action(
-                    lang.getMessage(player, "lore.click.shift_right"),
+                add(GuiLoreLine.Interaction(
+                    player,
+                    MenuAcceptedClicks.SHIFT_RIGHT,
                     lang.getMessage(player, if (destination == null) "gui.world_gate_item.action.link" else "gui.world_gate_item.action.relink")
                 ))
-                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.right"), lang.getMessage(player, "gui.world_gate_item.action.select_area")))
+                add(GuiLoreLine.Interaction(player, MenuAcceptedClicks.RIGHT, lang.getMessage(player, "gui.world_gate_item.action.select_area")))
             }))
         }))
 }

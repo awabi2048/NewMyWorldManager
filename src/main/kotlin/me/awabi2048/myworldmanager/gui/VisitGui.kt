@@ -1,41 +1,77 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
-import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.model.WorldData
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.StructuredLore
-import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
-import org.bukkit.Bukkit
-import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import org.bukkit.Material
-import org.bukkit.OfflinePlayer
-import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import java.time.LocalDate
+import java.util.UUID
+import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.GuiHelper
+import me.awabi2048.myworldmanager.util.PlayerNameUtil
+import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
+import org.bukkit.Bukkit
+import org.bukkit.Material
+import org.bukkit.OfflinePlayer
+import org.bukkit.entity.Player
 
 class VisitGui(private val plugin: MyWorldManager) {
+        private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
-        private val repository = plugin.worldConfigRepository
+        init {
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = OWNER,
+                                id = ROUTE_ID,
+                                renderer = { context -> render(context.player, context.route) },
+                                actions = mapOf(
+                                        ACTION_BACK to MenuActionHandler(::back),
+                                        ACTION_PAGE to MenuActionHandler(::page),
+                                        ACTION_WORLD to MenuActionHandler(::world),
+                                ),
+                        ),
+                )
+        }
+
         fun open(
                 player: Player,
                 targetPlayer: OfflinePlayer,
                 page: Int = 0,
                 returnToWorld: WorldData? = null
         ) {
+                val targetRoute = route(targetPlayer.uniqueId, page, returnToWorld?.uuid)
+                if (returnToWorld != null) {
+                        runtime.navigate(player, targetRoute)
+                } else {
+                        runtime.open(player, targetRoute)
+                }
+        }
 
-                val allWorlds = repository.findAll()
+        private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+                val targetPlayerUuid = route.uuid(TARGET_PLAYER_UUID) ?: player.uniqueId
+                val targetPlayer = Bukkit.getOfflinePlayer(targetPlayerUuid)
+                val requestedPage = route.payload[PAGE]?.toIntOrNull() ?: 0
+                val allWorlds = plugin.worldConfigRepository.findAll()
                 val targetWorlds =
                         allWorlds.filter { world ->
-                                if (world.owner != targetPlayer.uniqueId || world.isArchived)
+                                if (world.owner != targetPlayerUuid || world.isArchived)
                                         return@filter false
 
                                 val isMember =
@@ -49,68 +85,108 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val worldCount = targetWorlds.size
                 val lang = plugin.languageManager
                 val titleKey = "gui.visit.title"
-                if (!lang.hasKey(player, titleKey)) {
-                        player.sendMessage(
-                                "§c[MyWorldManager] Error: Missing translation key: $titleKey"
-                        )
-                        return
-                }
+                check(lang.hasKey(player, titleKey)) { "Missing translation key: $titleKey" }
 
-                val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(worldCount, page)
+                val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(worldCount, requestedPage)
                 val currentPage = pageLayout.page
                 val layout = pageLayout.layout
-                val targetName = PlayerNameUtil.getNameOrDefault(targetPlayer.uniqueId, "Unknown")
+                val targetName = PlayerNameUtil.getNameOrDefault(targetPlayerUuid, "Unknown")
                 val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey, mapOf("player" to targetName)))
-
-                me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "visit")
-
-                val holder = VisitGuiHolder()
-                val inventory = Bukkit.createInventory(holder, layout.size, titleComp)
-                holder.inv = inventory
-
-                val blackPane = GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
-                if (returnToWorld != null) ItemTag.setWorldUuid(blackPane, returnToWorld.uuid)
-                val greyPane = GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-                if (returnToWorld != null) ItemTag.setWorldUuid(greyPane, returnToWorld.uuid)
-
-                GuiItemFactory.applyStandardFrame(inventory, emptyMaterial = null)
-                layout.itemSlots.forEachIndexed { index, slot ->
-                        inventory.setItem(
-                                slot,
-                                targetWorlds.drop(pageLayout.startIndex).getOrNull(index)?.let {
-                                        createWorldItem(player, it)
-                                } ?: greyPane
-                        )
+                val elements = mutableListOf<MenuElement>()
+                targetWorlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, worldData ->
+                        elements += createWorldEntry(player, worldData, layout.itemSlots[index])
                 }
 
-                // 戻るボタン
-                if (returnToWorld != null) {
-                        inventory.setItem(layout.backSlot, createBackButton(player, returnToWorld))
+                if (GuiHelper.canGoBack(player)) {
+                        elements += backEntry(player, layout.backSlot)
                 }
                 if (currentPage > 0) {
-                        inventory.setItem(layout.previousPageSlot, GuiHelper.createPrevPageItem(plugin, player, "visit", currentPage - 1))
+                        elements += navigationEntry(player, layout.previousPageSlot, false, currentPage - 1)
                 }
                 if (currentPage < pageLayout.totalPages - 1) {
-                        inventory.setItem(layout.nextPageSlot, GuiHelper.createNextPageItem(plugin, player, "visit", currentPage + 1))
+                        elements += navigationEntry(player, layout.nextPageSlot, true, currentPage + 1)
                 }
 
-                GuiItemFactory.fillEmpty(inventory)
-                ManagedMenuPresenter.open(player, inventory)
+                return InventoryMenuView(layout.size, titleComp, elements)
         }
 
-        private fun createWorldItem(viewer: Player, world: WorldData): ItemStack {
-                val item = ItemStack(world.icon)
-                val meta = item.itemMeta ?: return item
-                val lang = plugin.languageManager
+        private fun back(context: MenuActionContext): MenuActionResult {
+                return MenuActionResult.Success(MenuUpdate.Back)
+        }
 
-                meta.displayName(
-                        lang.getComponent(
-                                viewer,
-                                "gui.common.world_item_name",
-                                mapOf("world" to world.name)
-                        )
+        private fun page(context: MenuActionContext): MenuActionResult {
+                val target = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+                val targetPlayerUuid = context.route.uuid(TARGET_PLAYER_UUID)
+                        ?: return MenuActionResult.Rejected()
+                return MenuActionResult.Success(
+                        MenuUpdate.Replace(route(targetPlayerUuid, target, context.route.uuid(RETURN_WORLD_UUID))),
                 )
+        }
 
+        private fun world(context: MenuActionContext): MenuActionResult {
+                val player = context.player
+                val worldUuid = context.payload[WORLD_UUID]
+                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return MenuActionResult.Rejected()
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                val isMember = worldData != null && (
+                        worldData.owner == player.uniqueId ||
+                                worldData.moderators.contains(player.uniqueId) ||
+                                worldData.members.contains(player.uniqueId)
+                        )
+                if (worldData == null || !MyWorldManagerApi.getWorldAccessPolicy().canUseVisitEntry(player, worldData, isMember)) {
+                        player.sendMessage(
+                                WorldAccessMessageResolver.visit(
+                                        plugin.languageManager,
+                                        player,
+                                        worldData,
+                                        isMember,
+                                ),
+                        )
+                        return MenuActionResult.Rejected()
+                }
+                if (context.click.isLeftClick) {
+                        plugin.worldService.teleportToWorld(player, worldUuid) {
+                                player.sendMessage(
+                                        plugin.languageManager.getMessage(
+                                                player,
+                                                "messages.warp_success",
+                                                mapOf("world" to worldData.name),
+                                        ),
+                                )
+                        }
+                        return MenuActionResult.Success(MenuUpdate.Close)
+                }
+                if (!context.click.isRightClick || isMember) return MenuActionResult.Ignored
+
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                if (stats.favoriteWorlds.containsKey(worldUuid)) {
+                        stats.favoriteWorlds.remove(worldUuid)
+                        worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
+                } else {
+                        val maxFavoriteCount = plugin.config.getInt("favorite.max_count", 1000)
+                        if (stats.favoriteWorlds.size >= maxFavoriteCount) {
+                                player.sendMessage(
+                                        plugin.languageManager.getMessage(
+                                                player,
+                                                "error.favorite_limit_reached",
+                                                mapOf("limit" to maxFavoriteCount),
+                                        ),
+                                )
+                                return MenuActionResult.Rejected()
+                        }
+                        stats.favoriteWorlds[worldUuid] = LocalDate.now().toString()
+                        worldData.favorite++
+                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
+                }
+                plugin.playerStatsRepository.save(stats)
+                plugin.worldConfigRepository.save(worldData)
+                return MenuActionResult.Success(MenuUpdate.Refresh)
+        }
+
+        private fun createWorldEntry(viewer: Player, world: WorldData, slot: Int): MenuElement {
+                val lang = plugin.languageManager
                 val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(viewer, "general.unknown"))
                 val tagNames = if (world.tags.isNotEmpty()) {
                         world.tags.joinToString(", ") {
@@ -134,46 +210,99 @@ class VisitGui(private val plugin: MyWorldManager) {
                         }
                 } else ""
 
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-                        if (world.description.isNotBlank()) add(GuiLoreBlock(listOf(GuiLoreLine.UserText(world.description))))
-                        add(GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.owner"), ownerName, "§b"))
-                                add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.favorite"), world.favorite, "§c"))
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(viewer, "gui.common.world_item.recent_visitors"),
-                                        lang.getMessage(viewer, "gui.common.world_item.recent_visitors_value", mapOf("count" to world.recentVisitors.sum())),
-                                        "§a"
-                                ))
-                                if (tagNames != null) add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.common.world_item.tags"), tagNames, "§e"))
-                        }))
-                        add(GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.left"), warpAction))
-                                if (favoriteAction.isNotBlank()) {
-                                        add(GuiLoreLine.Action(lang.getMessage(viewer, "gui.settings.click.right"), favoriteAction))
-                                }
-                        }))
-                })))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
-                ItemTag.setWorldUuid(item, world.uuid)
-                return item
-        }
-
-        private fun createBackButton(player: Player, returnToWorld: WorldData): ItemStack {
-                val lang = plugin.languageManager
-                val item = GuiItemFactory.item(
-                        Material.REDSTONE,
-                        lang.getComponent(player, "gui.common.return"),
-                        GuiLoreSpec.None,
-                        ItemTag.TYPE_GUI_RETURN
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        viewer,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = world.icon,
+                                name = GuiNameSpec.Component(
+                                        lang.getComponent(viewer, "gui.common.world_item_name", mapOf("world" to world.name)),
+                                ),
+                                role = GuiElementRole.ACTION,
+                                description = listOfNotNull(world.description.takeIf(String::isNotBlank)),
+                                data = buildList {
+                                        add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.owner"), ownerName, GuiValueTone.INFO))
+                                        add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.favorite"), world.favorite, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(viewer, "gui.common.world_item.recent_visitors"),
+                                                lang.getMessage(viewer, "gui.common.world_item.recent_visitors_value", mapOf("count" to world.recentVisitors.sum())),
+                                                GuiValueTone.SUCCESS,
+                                        ))
+                                        tagNames?.let { add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
+                                },
+                                actions = buildList {
+                                        add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                        if (favoriteAction.isNotBlank()) {
+                                                add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                        }
+                                },
+                        ),
                 )
-                ItemTag.setWorldUuid(item, returnToWorld.uuid)
-                return item
         }
 
-        class VisitGuiHolder : org.bukkit.inventory.InventoryHolder {
-                lateinit var inv: org.bukkit.inventory.Inventory
-                override fun getInventory(): org.bukkit.inventory.Inventory = inv
+        private fun backEntry(player: Player, slot: Int): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("visit", "back", Material.REDSTONE),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
+                                role = GuiElementRole.BACK,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_BACK,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, "gui.common.return"),
+                                        ),
+                                ),
+                        ),
+                )
+
+        private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
+                val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+                val iconId = if (next) "next_page" else "prev_page"
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = plugin.menuConfigManager.getIconMaterial("visit", iconId, Material.ARROW),
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                role = GuiElementRole.NAVIGATION,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_PAGE,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, key),
+                                                mapOf(PAGE to targetPage.toString()),
+                                        ),
+                                ),
+                        ),
+                )
+        }
+
+        private fun route(targetPlayerUuid: UUID, page: Int, returnWorldUuid: UUID?) =
+                MenuRoute(
+                        OWNER,
+                        ROUTE_ID,
+                        buildMap {
+                                put(TARGET_PLAYER_UUID, targetPlayerUuid.toString())
+                                put(PAGE, page.toString())
+                                returnWorldUuid?.let { put(RETURN_WORLD_UUID, it.toString()) }
+                        },
+                )
+
+        private fun MenuRoute.uuid(key: String): UUID? =
+                payload[key]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
+        companion object {
+                private const val OWNER = "myworldmanager"
+                private const val ROUTE_ID = "visit"
+                private const val TARGET_PLAYER_UUID = "target_player_uuid"
+                private const val RETURN_WORLD_UUID = "return_world_uuid"
+                private const val WORLD_UUID = "world_uuid"
+                private const val PAGE = "page"
+                private const val ACTION_BACK = "back"
+                private const val ACTION_PAGE = "page"
+                private const val ACTION_WORLD = "world"
         }
 }

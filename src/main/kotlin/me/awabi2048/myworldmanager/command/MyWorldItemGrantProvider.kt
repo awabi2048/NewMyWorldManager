@@ -5,6 +5,7 @@ import com.awabi2048.ccsystem.api.item.ItemGrantProvider
 import com.awabi2048.ccsystem.api.item.ItemGrantRequest
 import com.awabi2048.ccsystem.api.item.ItemGrantResult
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.CustomItem
 
 class MyWorldItemGrantProvider(
@@ -14,7 +15,8 @@ class MyWorldItemGrantProvider(
 
     override fun definitions(): Collection<ItemGrantDefinition> =
         CustomItem.entries
-            .filterNot { it.id == "like_sign" }
+            .filterNot { it.id == "like_sign" || it.id == "tour_sign" }
+            .filterNot { it == CustomItem.WORLD_SEED && !MyWorldManagerApi.isWorldSlotSystemEnabled() }
             .map { item ->
                 ItemGrantDefinition(
                     id = "myworld.${item.id}",
@@ -31,6 +33,9 @@ class MyWorldItemGrantProvider(
     override fun grant(request: ItemGrantRequest): ItemGrantResult {
         val customItem = CustomItem.fromId(request.definition.id.removePrefix("myworld."))
             ?: return ItemGrantResult(false, 0, 0, "unknown item id")
+        if (customItem == CustomItem.WORLD_SEED && !MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+            return ItemGrantResult(false, 0, 0, "world seed is unavailable while the world slot system is disabled")
+        }
         val item = if (customItem == CustomItem.BOTTLED_BIOME_AIR) {
             customItem.createWithBiome(
                 plugin.languageManager,

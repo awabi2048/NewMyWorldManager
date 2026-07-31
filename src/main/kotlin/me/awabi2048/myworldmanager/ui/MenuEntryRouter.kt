@@ -1,9 +1,7 @@
 package me.awabi2048.myworldmanager.ui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuRequest
-import me.awabi2048.myworldmanager.api.extension.VisitMenuRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
@@ -35,7 +33,16 @@ class MenuEntryRouter(
             return
         }
 
-        plugin.playerWorldGui.open(player, page, showBackButton, targetPlayerUuid, targetPlayerName)
+        val route = me.awabi2048.myworldmanager.api.MyWorldManagerApi.preparePlayerWorldRoute(
+            player,
+            me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteRequest(
+                page,
+                showBackButton,
+                targetPlayerUuid,
+                targetPlayerName,
+            ),
+        )
+        CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
     }
 
     fun openUserSettings(player: Player, showBackButton: Boolean = false) {
@@ -55,7 +62,13 @@ class MenuEntryRouter(
             return
         }
 
-        plugin.worldSettingsGui.open(player, worldData, showBackButton)
+        me.awabi2048.myworldmanager.api.MyWorldManagerApi.openWorldSettings(
+            player,
+            worldData.uuid,
+            me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest(
+                showBackButton = showBackButton,
+            ),
+        )
     }
 
     fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
@@ -81,24 +94,12 @@ class MenuEntryRouter(
             return
         }
 
-        if (MyWorldManagerApi.openFavoriteListMenuOverride(
-                player,
-                FavoriteListMenuRequest(page, worldData, returnToFavoriteMenu, showBackButton)
-            )
-        ) {
-            return
-        }
-
         plugin.favoriteGui.open(player, page, worldData, returnToFavoriteMenu, showBackButton)
     }
 
     fun openFavoriteMenu(player: Player, worldData: WorldData?) {
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openFavoriteMenu(player, worldData)
-            return
-        }
-
-        if (MyWorldManagerApi.openFavoriteMenuOverride(player, worldData)) {
             return
         }
 
@@ -113,10 +114,6 @@ class MenuEntryRouter(
     ) {
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openVisitMenu(player, owner, page, worldData)
-            return
-        }
-
-        if (MyWorldManagerApi.openVisitMenuOverride(player, owner, VisitMenuRequest(page, worldData))) {
             return
         }
 
@@ -136,60 +133,28 @@ class MenuEntryRouter(
     fun openFavoriteRemoveConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openFavoriteRemoveConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.favoriteConfirmGui.open(player, worldData)
     }
 
     fun openSpotlightConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openSpotlightConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.spotlightConfirmGui.open(player, worldData)
     }
 
     fun openSpotlightRemoveConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openSpotlightRemoveConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.spotlightRemoveConfirmGui.open(player, worldData)
     }
 
     fun openMemberRequestConfirm(
         player: Player,
         worldData: WorldData,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openMemberRequestConfirm(player, worldData, onBedrockConfirm, onBedrockCancel)
-        ) {
-            return
-        }
-
         plugin.memberRequestConfirmGui.open(player, worldData)
     }
 
@@ -202,26 +167,12 @@ class MenuEntryRouter(
         player: Player,
         currentSlots: Int,
         nextSlots: Int,
-        onBedrockConfirm: () -> Unit,
-        onBedrockCancel: () -> Unit = {}
     ) {
-        if (platformResolver.isBedrock(player) &&
-            bedrockMenuService.openWorldSeedConfirm(
-                player,
-                currentSlots,
-                nextSlots,
-                onBedrockConfirm,
-                onBedrockCancel
-            )
-        ) {
-            return
-        }
-
         plugin.worldSeedConfirmGui.open(player, currentSlots, nextSlots)
     }
 
     private fun resetTopLevelMenuState(player: Player) {
-        plugin.menuRouteHistory.clear(player)
+        CCSystem.getAPI().getMenuRuntimeService().clear(player)
         plugin.settingsSessionManager.endSession(player)
     }
 }

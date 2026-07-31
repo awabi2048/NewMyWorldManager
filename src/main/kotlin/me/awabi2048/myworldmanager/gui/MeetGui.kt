@@ -1,35 +1,56 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreBuilder
-import me.awabi2048.myworldmanager.util.ItemTag
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import me.awabi2048.myworldmanager.util.WorldAccessMessageResolver
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class MeetGui(private val plugin: MyWorldManager) {
+    private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
     // 1行7アイコン中央寄せのレイアウト (スロット 10~16, 19~25, ...)
-    private val playerSlots = listOf(
-        10, 11, 12, 13, 14, 15, 16,
-        19, 20, 21, 22, 23, 24, 25,
-        28, 29, 30, 31, 32, 33, 34,
-    )
-    private val itemsPerPage = playerSlots.size
+    init {
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = ROUTE_ID,
+                renderer = { context -> render(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_PAGE to MenuActionHandler(::page),
+                    ACTION_STATUS to MenuActionHandler(::cycleStatus),
+                    ACTION_BACK to MenuActionHandler(::back),
+                    ACTION_TARGET to MenuActionHandler(::target),
+                ),
+            ),
+        )
+    }
 
     fun open(player: Player, showBackButton: Boolean? = null) {
         val lang = plugin.languageManager
@@ -44,9 +65,66 @@ class MeetGui(private val plugin: MyWorldManager) {
             player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
             return
         }
+        val route = MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to session.currentPage.toString()))
+        if (GuiHelper.canGoBack(player)) {
+            runtime.navigate(player, route)
+        } else {
+            runtime.open(player, route)
+        }
+    }
 
-        // マイワールドに滞在中で、且つ meetStatus が BUSY でないプレイヤーを抽出（自分以外）
-        val targets = Bukkit.getOnlinePlayers().filter { target ->
+    private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+        val lang = plugin.languageManager
+        val session = plugin.meetSessionManager.getSession(player.uniqueId)
+        val targets = collectTargets(player)
+        val pageLayout = CCSystem.getAPI().getGuiLayoutService()
+            .sevenColumnPage(targets.size, route.payload[PAGE]?.toIntOrNull() ?: session.currentPage)
+        val currentPage = pageLayout.page
+        val layout = pageLayout.layout
+        session.currentPage = currentPage
+        val title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
+        val elements = mutableListOf<MenuElement>()
+        val pageTargets = targets.drop(pageLayout.startIndex).take(pageLayout.itemCount)
+        pageTargets.forEachIndexed { index, target ->
+            val action = resolveTargetAction(player, target)
+            elements += createTargetEntry(target, player, layout.itemSlots[index], action)
+        }
+        if (pageTargets.isEmpty()) {
+            elements += createEmptyEntry(player)
+        }
+
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val currentStatus = stats.meetStatus
+        val statusNameKey = "general.status.${currentStatus.lowercase()}"
+        val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
+        elements += CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = layout.actionSlot,
+                material = Material.PLAYER_HEAD,
+                name = GuiNameSpec.Component(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name))),
+                role = GuiElementRole.ACTION,
+                description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
+                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
+                actions = listOf(GuiMenuEntryAction(ACTION_STATUS, MenuAcceptedClicks.LEFT_RIGHT, lang.getMessage(player, "gui.meet.status_button.action"))),
+                playerHeadOwner = player.uniqueId,
+            ),
+        )
+
+        if (currentPage > 0) {
+            elements += navigationEntry(player, layout.previousPageSlot, false, currentPage - 1)
+        }
+        if (currentPage < pageLayout.totalPages - 1) {
+            elements += navigationEntry(player, layout.nextPageSlot, true, currentPage + 1)
+        }
+        if (GuiHelper.canGoBack(player)) {
+            elements += backEntry(player, layout.backSlot)
+        }
+        return InventoryMenuView(layout.size, title, elements)
+    }
+
+    private fun collectTargets(player: Player): List<Player> =
+        Bukkit.getOnlinePlayers().filter { target ->
             if (target.uniqueId == player.uniqueId) return@filter false
             if (!plugin.playerVisibilityService.isVisibleTo(player, target)) return@filter false
 
@@ -70,118 +148,180 @@ class MeetGui(private val plugin: MyWorldManager) {
             stats.meetStatus != "BUSY"
         }.sortedBy { it.name }
 
-        // 対象プレイヤーがいない場合でも、設定ボタンを表示するためにメニューは開く
-        val totalPages = if (targets.isEmpty()) 1 else (targets.size + itemsPerPage - 1) / itemsPerPage
-        val currentPage = session.currentPage.coerceIn(0, totalPages - 1)
-        session.currentPage = currentPage
-        val title = GuiHelper.inventoryTitle(lang.getMessage(player, titleKey))
-        GuiHelper.playMenuOpen(player, "meet")
+    private fun page(context: MenuActionContext): MenuActionResult {
+        val targetPage = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+        plugin.meetSessionManager.getSession(context.player.uniqueId).currentPage = targetPage
+        return MenuActionResult.Success(MenuUpdate.Replace(MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to targetPage.toString()))))
+    }
 
-        val holder = MeetGuiHolder()
-        val inventory = Bukkit.createInventory(holder, GuiHelper.confirmationLayout().size, title)
-        holder.inv = inventory
-
-        GuiItemFactory.applyStandardFrame(inventory)
-
-        // プレイヤーの配置
-        val pageTargets = targets.drop(currentPage * itemsPerPage).take(itemsPerPage)
-        pageTargets.forEachIndexed { index, target ->
-            inventory.setItem(playerSlots[index], createTargetHead(target, player, plugin))
+    private fun cycleStatus(context: MenuActionContext): MenuActionResult {
+        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+        stats.meetStatus = when (stats.meetStatus) {
+            "JOIN_ME" -> "ASK_ME"
+            "ASK_ME" -> "BUSY"
+            else -> "JOIN_ME"
         }
+        plugin.playerStatsRepository.save(stats)
+        plugin.meetSessionManager.getSession(context.player.uniqueId).currentPage = 0
+        return MenuActionResult.Success(MenuUpdate.Replace(MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to "0"))))
+    }
 
-        if (pageTargets.isEmpty()) {
-            inventory.setItem(22, createEmptyItem(player))
+    private fun back(context: MenuActionContext): MenuActionResult {
+        return MenuActionResult.Success(MenuUpdate.Back)
+    }
+
+    private fun target(context: MenuActionContext): MenuActionResult {
+        val player = context.player
+        val target = context.payload[TARGET_UUID]
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            ?.let(Bukkit::getPlayer)
+            ?.takeIf { it.isOnline && plugin.playerVisibilityService.isVisibleTo(player, it) }
+            ?: run {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.target_offline"))
+                return MenuActionResult.Rejected()
+            }
+        return when (val action = resolveTargetAction(player, target)) {
+            TargetAction.REQUEST -> {
+                sendMeetRequest(player, target)
+                MenuActionResult.Success(MenuUpdate.Close)
+            }
+            TargetAction.DIRECT -> {
+                val worldData = plugin.worldConfigRepository.findByWorldName(target.world.name)
+                    ?: return MenuActionResult.Rejected()
+                plugin.worldService.teleportToWorld(player, worldData.uuid) {
+                    player.sendMessage(
+                        plugin.languageManager.getMessage(
+                            player,
+                            "messages.warp_success",
+                            mapOf("world" to worldData.name),
+                        ),
+                    )
+                    if (worldData.notificationEnabled && plugin.playerVisibilityService.isVisibleTo(target, player)) {
+                        target.sendMessage(
+                            plugin.languageManager.getMessage(
+                                target,
+                                "messages.visitor_notified",
+                                mapOf("player" to player.name, "world" to worldData.name),
+                            ),
+                        )
+                    }
+                }
+                MenuActionResult.Success(MenuUpdate.Close)
+            }
+            TargetAction.DENY, null -> {
+                val worldData = plugin.worldConfigRepository.findByWorldName(target.world.name)
+                if (worldData == null) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, "error.target_not_in_myworld"))
+                    return MenuActionResult.Rejected()
+                }
+                val isMember = (
+                    worldData.owner == player.uniqueId ||
+                        worldData.moderators.contains(player.uniqueId) ||
+                        worldData.members.contains(player.uniqueId)
+                    )
+                player.sendMessage(WorldAccessMessageResolver.meet(plugin.languageManager, player, target, worldData, isMember))
+                MenuActionResult.Rejected()
+            }
         }
+    }
 
-        val statusSlot = 40
+    private fun resolveTargetAction(viewer: Player, target: Player): TargetAction? {
+        val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
+        if (stats.meetStatus == "BUSY" || target.world.uid == viewer.world.uid) return null
+        if (stats.meetStatus == "ASK_ME") return TargetAction.REQUEST
+        val worldData = plugin.worldConfigRepository.findByWorldName(target.world.name) ?: return TargetAction.DENY
+        val isMember = worldData.owner == viewer.uniqueId ||
+            worldData.moderators.contains(viewer.uniqueId) ||
+            worldData.members.contains(viewer.uniqueId)
+        return when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(viewer, target, worldData, isMember)) {
+            MeetTargetAction.DIRECT -> TargetAction.DIRECT
+            MeetTargetAction.REQUEST -> TargetAction.REQUEST
+            MeetTargetAction.DENY -> TargetAction.DENY
+        }
+    }
 
-        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val currentStatus = stats.meetStatus
-        val statusNameKey = "general.status.${currentStatus.lowercase()}"
-        val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
-        val statusDescription = lang.getMessage(
-            player,
-            "general.status.description.${currentStatus.lowercase()}"
+    private fun sendMeetRequest(player: Player, target: Player) {
+        val result = plugin.pendingDecisionManager.enqueueMeetRequest(target, player.uniqueId, target.world.uid, 60)
+        player.sendMessage(
+            plugin.languageManager.getMessage(
+                player,
+                "general.meet_request.sent",
+                mapOf("player" to target.name),
+            ),
+        )
+        plugin.pendingNotificationService.send(
+            target,
+            me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEET_REQUEST,
+            result.actionCode,
+            player.uniqueId,
+            null,
+        )
+    }
+
+    private fun createEmptyEntry(viewer: Player): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuDisplay(
+            GuiMenuDisplaySpec(
+                slot = 22,
+                item = GuiItemSpec(
+                    material = Material.QUARTZ,
+                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")),
+                    lore = GuiLoreSpec.None,
+                    role = GuiElementRole.CONTENT,
+                    amount = 1,
+                ),
+            ),
         )
 
-        val statusLore = GuiLoreBuilder(lang, player)
-            .block(listOf(
-                GuiLoreLine.Data(lang.getMessage(player, "gui.meet.status_button.current"), statusName, "§e"),
-                GuiLoreLine.Text(statusDescription)
-            ))
-            .actions(lang.getMessage(player, "gui.meet.status_button.action"))
-            .build()
-
-        val statusItem = ItemStack(Material.PLAYER_HEAD)
-        val statusMeta = statusItem.itemMeta as? org.bukkit.inventory.meta.SkullMeta
-        if (statusMeta != null) {
-            statusMeta.owningPlayer = player
-            statusMeta.displayName(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name)))
-            statusMeta.lore(statusLore)
-            statusItem.itemMeta = statusMeta
-        }
-        ItemTag.tagItem(statusItem, ItemTag.TYPE_GUI_MEET_STATUS_TOGGLE)
-
-        inventory.setItem(statusSlot, statusItem)
-
-        if (currentPage > 0) {
-            inventory.setItem(37, GuiHelper.createPrevPageItem(plugin, player, "meet", currentPage - 1))
-        }
-        if (currentPage < totalPages - 1) {
-            inventory.setItem(43, GuiHelper.createNextPageItem(plugin, player, "meet", currentPage + 1))
-        }
-
-        // 戻るボタン
-        if (session.showBackButton) {
-            inventory.setItem(36, GuiHelper.createReturnItem(plugin, player, "meet"))
-        }
-
-        ManagedMenuPresenter.open(player, inventory)
-    }
-
-    private fun createReturnButton(player: Player): ItemStack {
-        val lang = plugin.languageManager
-        val item = ItemStack(Material.REDSTONE)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.common.return").decorate(TextDecoration.BOLD))
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_RETURN)
-        return item
-    }
-
-    private fun createEmptyItem(viewer: Player): ItemStack {
-        val item = ItemStack(Material.QUARTZ)
-        val meta = item.itemMeta ?: return item
-        meta.displayName(
-            plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")
+    private fun navigationEntry(viewer: Player, slot: Int, next: Boolean, page: Int): MenuElement {
+        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val iconId = if (next) "next_page" else "prev_page"
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            viewer,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("meet", iconId, Material.ARROW),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, key)),
+                role = GuiElementRole.NAVIGATION,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_PAGE,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(viewer, key),
+                        mapOf(PAGE to page.toString()),
+                    ),
+                ),
+            ),
         )
-        item.itemMeta = meta
-        ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-        return item
     }
 
-    private fun createTargetHead(target: Player, viewer: Player, plugin: MyWorldManager): ItemStack {
+    private fun backEntry(viewer: Player, slot: Int): MenuElement =
+        CCSystem.getAPI().getGuiElementService().menuEntry(
+            viewer,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = plugin.menuConfigManager.getIconMaterial("meet", "back", Material.REDSTONE),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.common.return")),
+                role = GuiElementRole.BACK,
+                actions = listOf(
+                    GuiMenuEntryAction(
+                        ACTION_BACK,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        plugin.languageManager.getMessage(viewer, "gui.common.return"),
+                    ),
+                ),
+            ),
+        )
+
+    private fun createTargetEntry(
+        target: Player,
+        viewer: Player,
+        slot: Int,
+        targetAction: TargetAction?,
+    ): MenuElement {
         val lang = plugin.languageManager
-        val item = ItemStack(Material.PLAYER_HEAD)
-        val meta = item.itemMeta as? org.bukkit.inventory.meta.SkullMeta ?: return item
-        meta.owningPlayer = target
-
-        meta.displayName(GuiItemFactory.legacy("§f${target.name}"))
-
-        val information = mutableListOf<GuiLoreLine>()
-
-        // Status
         val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
         val statusKey = "general.status.${stats.meetStatus.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else stats.meetStatus
-        information.add(GuiLoreLine.Data(lang.getMessage(viewer, "gui.meet.world_item.status"), statusName, "§e"))
-        information.add(GuiLoreLine.Data(
-            lang.getMessage(viewer, "gui.meet.world_item.online_state"),
-            lang.getMessage(viewer, if (target.isOnline) "gui.meet.world_item.online" else "gui.meet.world_item.offline"),
-            if (target.isOnline) "§a" else "§8"
-        ))
-
-        // 現在のワールド名取得
         val world = target.world
         val worldName = world.name
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
@@ -196,48 +336,64 @@ class MeetGui(private val plugin: MyWorldManager) {
         } else {
             displayWorldName
         }
-        information.add(GuiLoreLine.Data(
-            lang.getMessage(viewer, "gui.meet.world_item.current_world"),
-            worldValue,
-            if (isSameWorld) "§6" else "§f"
-        ))
-
-        // クリックしてワールドを訪れる/申請の表示判定
-        var action: String? = null
-        if (worldData != null && !isSameWorld) {
-            val isMember = worldData.owner == viewer.uniqueId ||
-                           worldData.moderators.contains(viewer.uniqueId) ||
-                           worldData.members.contains(viewer.uniqueId)
-
-            // Logic based on status
-            if (stats.meetStatus == "JOIN_ME") {
-                when (MyWorldManagerApi.getWorldAccessPolicy().getMeetTargetAction(viewer, target, worldData, isMember)) {
-                    MeetTargetAction.DIRECT -> action = lang.getMessage(viewer, "gui.meet.world_item.click_visit")
-                    MeetTargetAction.REQUEST -> action = lang.getMessage(viewer, "gui.meet.world_item.click_request")
-                    MeetTargetAction.DENY -> Unit
-                }
-            } else if (stats.meetStatus == "ASK_ME") {
-                // Request needed
-                action = lang.getMessage(viewer, "gui.meet.world_item.click_request")
-            }
+        val actionLabel = when (targetAction) {
+            TargetAction.DIRECT -> lang.getMessage(viewer, "gui.meet.world_item.click_visit")
+            TargetAction.REQUEST -> lang.getMessage(viewer, "gui.meet.world_item.click_request")
+            TargetAction.DENY, null -> null
         }
-
-        val lore = CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
-            add(GuiLoreBlock(information))
-            action?.let {
-                add(GuiLoreBlock(listOf(GuiLoreLine.Action(lang.getMessage(viewer, "lore.click.any"), it))))
-            }
-        }))
-        meta.lore(lore)
-        item.itemMeta = meta
-
-        // タグ付け
-        ItemTag.tagItem(item, "gui_meet_target_head")
-        return item
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            viewer,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.PLAYER_HEAD,
+                name = GuiNameSpec.Text(target.name, GuiNameStyle.DEFAULT),
+                role = if (actionLabel == null) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                data = listOf(
+                    GuiMenuEntryData(
+                        lang.getMessage(viewer, "gui.meet.world_item.status"),
+                        statusName,
+                        GuiValueTone.PRIMARY,
+                    ),
+                    GuiMenuEntryData(
+                        lang.getMessage(viewer, "gui.meet.world_item.online_state"),
+                        lang.getMessage(viewer, if (target.isOnline) "gui.meet.world_item.online" else "gui.meet.world_item.offline"),
+                        if (target.isOnline) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
+                    ),
+                    GuiMenuEntryData(
+                        lang.getMessage(viewer, "gui.meet.world_item.current_world"),
+                        worldValue,
+                        if (isSameWorld) GuiValueTone.WARNING else GuiValueTone.DEFAULT,
+                    ),
+                ),
+                actions = actionLabel?.let {
+                    listOf(
+                        GuiMenuEntryAction(
+                            ACTION_TARGET,
+                            MenuAcceptedClicks.LEFT_RIGHT,
+                            it,
+                            mapOf(TARGET_UUID to target.uniqueId.toString()),
+                        ),
+                    )
+                }.orEmpty(),
+                playerHeadOwner = target.uniqueId,
+            ),
+        )
     }
 
-    class MeetGuiHolder : org.bukkit.inventory.InventoryHolder {
-        lateinit var inv: org.bukkit.inventory.Inventory
-        override fun getInventory(): org.bukkit.inventory.Inventory = inv
+    private enum class TargetAction {
+        DIRECT,
+        REQUEST,
+        DENY,
+    }
+
+    companion object {
+        private const val OWNER = "myworldmanager"
+        private const val ROUTE_ID = "meet"
+        private const val PAGE = "page"
+        private const val TARGET_UUID = "target_uuid"
+        private const val ACTION_PAGE = "page"
+        private const val ACTION_STATUS = "status"
+        private const val ACTION_BACK = "back"
+        private const val ACTION_TARGET = "target"
     }
 }

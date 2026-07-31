@@ -24,7 +24,6 @@ import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.service.*
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.ui.MenuEntryRouter
-import me.awabi2048.myworldmanager.ui.MenuRouteHistory
 import me.awabi2048.myworldmanager.ui.PlayerPlatformResolver
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockUiRoutingService
@@ -53,6 +52,8 @@ class MyWorldManager : JavaPlugin() {
     lateinit var creationSessionManager: CreationSessionManager
     lateinit var templateRepository: TemplateRepository
     lateinit var playerStatsRepository: PlayerStatsRepository
+    lateinit var playerLocationSnapshotRepository: PlayerLocationSnapshotRepository
+    lateinit var playerLocationRestoreListener: PlayerLocationRestoreListener
     private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
     lateinit var spotlightRepository: SpotlightRepository
@@ -89,12 +90,12 @@ class MyWorldManager : JavaPlugin() {
     lateinit var pendingInteractionGui: PendingInteractionGui
     lateinit var userSettingsGui: UserSettingsGui
     lateinit var adminPortalGui: AdminPortalGui
+    lateinit var portalGui: PortalGui
     lateinit var templateWizardGui: TemplateWizardGui
     lateinit var adminCommandGui: AdminCommandGui
     lateinit var spotlightConfirmGui: SpotlightConfirmGui
     lateinit var spotlightRemoveConfirmGui: SpotlightRemoveConfirmGui
     lateinit var environmentGui: EnvironmentGui
-    lateinit var environmentConfirmGui: EnvironmentConfirmGui
     lateinit var memberRequestConfirmGui: MemberRequestConfirmGui
     lateinit var memberRequestOwnerConfirmGui: MemberRequestOwnerConfirmGui
     lateinit var worldSeedConfirmGui: WorldSeedConfirmGui
@@ -119,10 +120,19 @@ class MyWorldManager : JavaPlugin() {
     lateinit var bedrockUiRoutingService: BedrockUiRoutingService
     lateinit var bedrockMenuService: BedrockMenuService
     lateinit var menuEntryRouter: MenuEntryRouter
-    lateinit var menuRouteHistory: MenuRouteHistory
     lateinit var internalCommandTokenManager: InternalCommandTokenManager
     lateinit var tourGui: TourGui
     lateinit var worldSettingsListener: WorldSettingsListener
+    lateinit var worldSettingsActionService: me.awabi2048.myworldmanager.service.WorldSettingsActionService
+    internal lateinit var worldSettingsIconSelectionService: me.awabi2048.myworldmanager.service.WorldSettingsIconSelectionService
+    internal lateinit var worldSettingsSpawnPreviewService: me.awabi2048.myworldmanager.service.WorldSettingsSpawnPreviewService
+    internal lateinit var worldSettingsInputService: me.awabi2048.myworldmanager.service.WorldSettingsInputService
+    lateinit var templateWizardListener: TemplateWizardListener
+    lateinit var discoveryListener: DiscoveryListener
+    lateinit var adminGuiListener: AdminGuiListener
+    lateinit var adminCommandListener: AdminCommandListener
+    lateinit var creationGuiListener: CreationGuiListener
+    lateinit var tourListener: TourListener
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
     override fun onEnable() {
@@ -173,6 +183,7 @@ class MyWorldManager : JavaPlugin() {
         directoryManager.checkDirectories()
 
         playerStatsRepository = PlayerStatsRepository(this)
+        playerLocationSnapshotRepository = PlayerLocationSnapshotRepository(dataFolder)
         worldPointApiService = MyWorldManagerApi.WorldPointService { playerUuid, amount ->
             require(amount >= 0) { "amount must be non-negative" }
             val stats = playerStatsRepository.findByUuid(playerUuid)
@@ -217,12 +228,12 @@ class MyWorldManager : JavaPlugin() {
         worldSettingsGui = WorldSettingsGui(this)
         userSettingsGui = UserSettingsGui(this)
         adminPortalGui = AdminPortalGui(this)
+        portalGui = PortalGui(this)
         adminCommandGui = AdminCommandGui(this)
         templateWizardGui = TemplateWizardGui(this)
         spotlightConfirmGui = SpotlightConfirmGui(this)
         spotlightRemoveConfirmGui = SpotlightRemoveConfirmGui(this)
         environmentGui = EnvironmentGui(this)
-        environmentConfirmGui = EnvironmentConfirmGui(this)
         memberRequestConfirmGui = MemberRequestConfirmGui(this)
         memberRequestOwnerConfirmGui = MemberRequestOwnerConfirmGui(this)
         worldSeedConfirmGui = WorldSeedConfirmGui(this)
@@ -247,7 +258,7 @@ class MyWorldManager : JavaPlugin() {
         pendingNotificationService = PendingNotificationService(this)
 
         // 設定機能の初期化
-        settingsSessionManager = SettingsSessionManager(::logWorldSettingsDebug)
+        settingsSessionManager = SettingsSessionManager()
         discoverySessionManager = DiscoverySessionManager()
         meetSessionManager = MeetSessionManager()
         favoriteSessionManager = FavoriteSessionManager()
@@ -272,7 +283,6 @@ class MyWorldManager : JavaPlugin() {
                 BedrockUiRoutingService(this, playerPlatformResolver, floodgateFormBridge)
         bedrockMenuService =
                 BedrockMenuService(this, bedrockUiRoutingService, floodgateFormBridge)
-        menuRouteHistory = MenuRouteHistory(this)
         menuEntryRouter = MenuEntryRouter(this, playerPlatformResolver, bedrockMenuService)
         val worldMenuCommand = WorldMenuCommand(this)
         CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld")
@@ -326,7 +336,6 @@ class MyWorldManager : JavaPlugin() {
 
         // リスナーの登録
         server.pluginManager.registerEvents(WorldStatusListener(this), this)
-        server.pluginManager.registerEvents(worldMigrationService, this)
         MultiverseWorldExclusionService(this, worldConfigRepository).start()
         server.pluginManager.registerEvents(
                 WorldPermissionPolicyListener(worldConfigRepository, worldPermissionPolicyService),
@@ -342,44 +351,34 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(BorderExpansionChangeListener(this), this)
         server.pluginManager.registerEvents(SpawnListener(worldConfigRepository), this)
         // 旧 GuiListener を分割して登録
-        server.pluginManager.registerEvents(PlayerWorldListener(this), this)
-        server.pluginManager.registerEvents(VisitListener(this), this)
-        server.pluginManager.registerEvents(VisitWorldListener(this), this)
-        server.pluginManager.registerEvents(FavoriteListener(this), this)
-        server.pluginManager.registerEvents(MeetListener(this), this)
-        server.pluginManager.registerEvents(InviteListener(this), this)
 
-        server.pluginManager.registerEvents(AdminGuiListener(), this)
-        server.pluginManager.registerEvents(AdminCommandListener(), this)
-        server.pluginManager.registerEvents(CreationGuiListener(this), this)
+        adminGuiListener = AdminGuiListener()
+        adminCommandListener = AdminCommandListener()
+        creationGuiListener = CreationGuiListener(this)
         server.pluginManager.registerEvents(PlayerDataListener(), this)
+        playerLocationRestoreListener = PlayerLocationRestoreListener(this, playerLocationSnapshotRepository)
+        server.pluginManager.registerEvents(playerLocationRestoreListener, this)
         worldSettingsListener = WorldSettingsListener()
+        worldSettingsIconSelectionService = me.awabi2048.myworldmanager.service.WorldSettingsIconSelectionService(this)
+        worldSettingsSpawnPreviewService = me.awabi2048.myworldmanager.service.WorldSettingsSpawnPreviewService(this)
+        worldSettingsInputService = me.awabi2048.myworldmanager.service.WorldSettingsInputService(this)
+        worldSettingsActionService = me.awabi2048.myworldmanager.service.WorldSettingsActionService(this)
         server.pluginManager.registerEvents(worldSettingsListener, this)
         server.pluginManager.registerEvents(WorldExpirationListener(worldConfigRepository), this)
         server.pluginManager.registerEvents(PortalListener(this), this)
         server.pluginManager.registerEvents(PortalDisplayLifecycleListener(this), this)
-        server.pluginManager.registerEvents(PortalGui(this), this)
         if (server.pluginManager.isPluginEnabled("WorldEdit") || server.pluginManager.isPluginEnabled("FastAsyncWorldEdit")) {
             // WorldEditのcut/copy/pasteはBukkitの通常ブロックイベントを通らないため、ポータルメタデータを別途同期する。
             server.pluginManager.registerEvents(WorldEditPortalSyncListener(this), this)
         }
-        server.pluginManager.registerEvents(DiscoveryListener(this), this)
-        server.pluginManager.registerEvents(SpotlightListener(this), this)
+        discoveryListener = DiscoveryListener(this)
         server.pluginManager.registerEvents(TemplatePreviewListener(), this)
         server.pluginManager.registerEvents(EnvironmentLogicListener(this), this)
         server.pluginManager.registerEvents(CustomItemListener(this), this)
-        server.pluginManager.registerEvents(MemberRequestConfirmListener(this), this)
-        server.pluginManager.registerEvents(MemberRequestOwnerConfirmListener(this), this)
-        server.pluginManager.registerEvents(ConfirmationMenuListener(), this)
-        server.pluginManager.registerEvents(WorldSeedListener(this), this)
-        server.pluginManager.registerEvents(TemplateWizardListener(), this)
+        templateWizardListener = TemplateWizardListener()
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
-        server.pluginManager.registerEvents(GlobalMenuListener(this), this)
-        server.pluginManager.registerEvents(CreationDialogManager(), this)
-        server.pluginManager.registerEvents(AnnouncementDialogManager(), this)
-        server.pluginManager.registerEvents(TourListener(this), this)
-        server.pluginManager.registerEvents(TourDialogManager(), this)
-        server.pluginManager.registerEvents(BedrockInventoryListener(this), this)
+        tourListener = TourListener(this)
+        server.pluginManager.registerEvents(tourListener, this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)
@@ -398,14 +397,12 @@ class MyWorldManager : JavaPlugin() {
             val visitCmd = VisitCommand(this)
             it.setExecutor(visitCmd)
             it.setTabCompleter(visitCmd)
-            server.pluginManager.registerEvents(visitCmd, this)
         }
 
         getCommand("findworld")?.let {
             val visitWorldCmd = VisitWorldCommand(this)
             it.setExecutor(visitWorldCmd)
             it.setTabCompleter(visitWorldCmd)
-            server.pluginManager.registerEvents(visitWorldCmd, this)
         }
 
         getCommand("invite")?.setExecutor(inviteCommand)
@@ -473,8 +470,10 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        if (::playerLocationRestoreListener.isInitialized) {
+            server.onlinePlayers.forEach(playerLocationRestoreListener::saveCurrentLocation)
+        }
         MyWorldManagerApi.clearWorldOperationLocks()
-        if (::menuRouteHistory.isInitialized) menuRouteHistory.closeOwnedMenus()
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
         worldPointApiService = null
@@ -490,6 +489,9 @@ class MyWorldManager : JavaPlugin() {
         runCatching { CCSystem.getAPI().getItemGrantService().unregister("myworld") }
         runCatching { CCSystem.getAPI().getConfigSchemaService().unregister("myworld") }
         runCatching { CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld") }
+        runCatching { CCSystem.getAPI().getMenuConfirmationService().clearOwner("mwm") }
+        runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("mwm") }
+        runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("myworldmanager") }
         runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
@@ -511,7 +513,7 @@ class MyWorldManager : JavaPlugin() {
 
     fun clearTransientPlayerMenuState(playerUuid: UUID) {
         Bukkit.getPlayer(playerUuid)?.let { player ->
-            if (::menuRouteHistory.isInitialized) menuRouteHistory.clear(player)
+            CCSystem.getAPI().getMenuRuntimeService().clear(player)
         }
         if (::settingsSessionManager.isInitialized) settingsSessionManager.endSession(playerUuid)
         if (::creationSessionManager.isInitialized) creationSessionManager.endSession(playerUuid)
@@ -521,12 +523,15 @@ class MyWorldManager : JavaPlugin() {
         if (::favoriteSessionManager.isInitialized) favoriteSessionManager.clearSession(playerUuid)
         if (::playerWorldSessionManager.isInitialized) playerWorldSessionManager.clearSession(playerUuid)
         if (::adminGuiSessionManager.isInitialized) adminGuiSessionManager.clearSession(playerUuid)
+        if (::tourManager.isInitialized) {
+            Bukkit.getPlayer(playerUuid)?.let { tourManager.stopTour(it, silent = true) }
+        }
         if (::tourSessionManager.isInitialized) tourSessionManager.clearPlayer(playerUuid)
+        me.awabi2048.myworldmanager.gui.TourDialogManager.clear(playerUuid)
         if (::templateWizardGui.isInitialized) templateWizardGui.removeSession(playerUuid)
     }
 
     private fun clearAllTransientMenuState() {
-        if (::menuRouteHistory.isInitialized) menuRouteHistory.unregister()
         if (::settingsSessionManager.isInitialized) settingsSessionManager.clearAll()
         if (::creationSessionManager.isInitialized) {
             creationSessionManager.clearAll()
@@ -539,27 +544,44 @@ class MyWorldManager : JavaPlugin() {
         if (::playerWorldSessionManager.isInitialized) playerWorldSessionManager.clearAll()
         if (::adminGuiSessionManager.isInitialized) adminGuiSessionManager.clearAll()
         if (::tourSessionManager.isInitialized) tourSessionManager.clearAll()
+        me.awabi2048.myworldmanager.gui.TourDialogManager.clearAll()
         if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
     }
 
     @Suppress("UNUSED_PARAMETER")
-    fun logWorldSettingsDebug(message: String) = Unit
-
     private fun loadWorldsFromPreviousShutdown() {
         val file = File(dataFolder, "data/loaded_worlds_at_shutdown.yml")
         if (!file.exists()) return
 
         val yaml = YamlConfiguration.loadConfiguration(file)
-        val uuids = yaml.getStringList("uuids").mapNotNull {
-            runCatching { UUID.fromString(it) }.getOrNull()
+        val invalidValues = mutableListOf<String>()
+        val uuids = yaml.getStringList("uuids").mapNotNull { rawUuid ->
+            runCatching { UUID.fromString(rawUuid) }.getOrElse {
+                invalidValues.add(rawUuid)
+                null
+            }
         }
 
-        uuids.forEach { uuid ->
+        val failed = uuids.filterNot { uuid ->
             runCatching { worldService.loadWorld(uuid) }
+                .onFailure {
+                    logger.log(java.util.logging.Level.SEVERE, "Failed to restore MyWorld $uuid", it)
+                }
+                .getOrDefault(false)
         }
 
-        file.delete()
-        logger.info("Loaded ${uuids.size} MyWorld(s) from previous shutdown")
+        if (failed.isEmpty() && invalidValues.isEmpty()) {
+            file.delete()
+        } else {
+            val remaining = YamlConfiguration()
+            remaining.set("uuids", failed.map(UUID::toString) + invalidValues)
+            remaining.set("timestamp", yaml.getLong("timestamp"))
+            remaining.save(file)
+        }
+        logger.info(
+            "Restored ${uuids.size - failed.size} MyWorld(s) from previous shutdown; " +
+                "${failed.size + invalidValues.size} entr${if (failed.size + invalidValues.size == 1) "y" else "ies"} remain"
+        )
     }
 
     private fun saveLoadedWorldsForShutdown() {

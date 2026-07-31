@@ -1,19 +1,17 @@
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.gui.DialogConfirmManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.TourDialogManager
 import me.awabi2048.myworldmanager.gui.TourGui
-import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.Particle
-import org.bukkit.Sound
-import org.bukkit.block.BlockFace
+import org.bukkit.Tag
 import org.bukkit.block.Sign
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -21,10 +19,8 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.inventory.ClickType
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.event.player.PlayerChangedWorldEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
@@ -48,14 +44,13 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             editSession.awaitingWaypointPick = false
             plugin.soundManager.playGlobalClickSound(player)
             plugin.tourManager.addWaypoint(editSession, targetBlock.location)
-            val worldData = plugin.worldConfigRepository.findByUuid(editSession.worldUuid) ?: return
-            plugin.tourGui.openSingleEditMenu(player, worldData, editSession.draft, editSession.isNew)
+            CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             return
         }
 
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
         val signBlock = event.clickedBlock ?: return
-        if (signBlock.type != Material.PALE_OAK_SIGN && signBlock.type != Material.PALE_OAK_WALL_SIGN) return
+        if (!Tag.ALL_SIGNS.isTagged(signBlock.type)) return
         if (signBlock.state !is Sign) return
         val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return
         val signData = plugin.tourManager.findSignFromBlock(worldData, signBlock) ?: return
@@ -89,259 +84,36 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    fun onTourSignPlace(event: BlockPlaceEvent) {
-        val item = event.itemInHand
-        if (!ItemTag.isType(item, ItemTag.TYPE_TOUR_SIGN)) return
+    fun onTourSignChange(event: SignChangeEvent) {
+        val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
         val player = event.player
-        val blockFace = event.blockAgainst.getFace(event.blockPlaced) ?: return
-        if (blockFace != BlockFace.UP && blockFace != BlockFace.NORTH && blockFace != BlockFace.SOUTH && blockFace != BlockFace.EAST && blockFace != BlockFace.WEST) {
+        val worldData = plugin.worldConfigRepository.findByWorldName(event.block.world.name) ?: return
+        val existing = plugin.tourManager.findSignFromBlock(worldData, event.block)
+        if (existing != null && !plugin.tourManager.canManage(worldData, player.uniqueId)) {
+            event.isCancelled = true
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.no_permission"))
             return
         }
-        event.isCancelled = true
-        TourDialogManager.startPlacement(player, plugin, event.blockPlaced, blockFace, event.hand)
-    }
-
-    @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        val top = event.view.topInventory.holder
-        if (event.clickedInventory != event.view.topInventory) {
-            if (plugin.tourSessionManager.getEdit(player.uniqueId)?.awaitingIconPick == true) {
-                val picked = event.currentItem?.type ?: return
-                if (picked.isAir) return
-                event.cancelWithDebug("TourListener.onInventoryClick: tour icon pick click", force = true)
-                val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-                session.draft.icon = picked
-                session.awaitingIconPick = false
-                plugin.soundManager.playGlobalClickSound(player)
-                val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return
-                plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, session.isNew)
+        val isTourMarker = plain.serialize(event.line(0) ?: Component.empty()) == "[Tour]"
+        if (!isTourMarker) {
+            if (existing != null) {
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    plugin.tourManager.unregisterTourSign(worldData, existing, event.block)
+                })
             }
             return
         }
-        if (top !is TourGui.BaseHolder) return
-        event.cancelWithDebug("TourListener.onInventoryClick: tour GUI click")
-        val item = event.currentItem ?: return
-        val type = ItemTag.getType(item) ?: return
-        if (type == ItemTag.TYPE_GUI_DECORATION) return
-        val worldUuid = when (top) {
-            is TourGui.VisitorTourHolder -> top.worldUuid
-            is TourGui.EditTourHolder -> top.worldUuid
-            is TourGui.SingleTourHolder -> top.worldUuid
-            is TourGui.DeleteTourHolder -> top.worldUuid
-            is TourGui.StartSelectionHolder -> top.worldUuid
-            is TourGui.StartConfirmHolder -> top.worldUuid
-            is TourGui.BindSignHolder -> top.worldUuid
-            else -> return
+        if (!plugin.tourManager.canManage(worldData, player.uniqueId)) return
+        if (existing != null) {
+            event.line(0, Component.text("[Tour]", NamedTextColor.DARK_AQUA))
         }
-        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
-        when (top) {
-            is TourGui.VisitorTourHolder, is TourGui.StartSelectionHolder -> handleVisitorClick(player, worldData, type, item, top)
-            is TourGui.StartConfirmHolder -> handleStartConfirmClick(player, worldData, type, item, top)
-            is TourGui.EditTourHolder -> handleEditMenuClick(player, worldData, type, item)
-            is TourGui.SingleTourHolder -> handleSingleEditClick(player, worldData, type, item, top, event.click)
-            is TourGui.DeleteTourHolder -> handleDeleteConfirmClick(player, worldData, type, item, top)
-            is TourGui.BindSignHolder -> handleBindSignClick(player, worldData, type, item, top)
-        }
-    }
-
-    private fun handleVisitorClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: Any) {
-        if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
-            plugin.soundManager.playClickSound(player, item, "tour")
-            val page = ItemTag.getTargetPage(item) ?: 0
-            if (holder is TourGui.StartSelectionHolder) plugin.tourGui.openStartSelectionMenu(player, worldData, holder.signUuid) else plugin.tourGui.openVisitorMenu(player, worldData, page)
-            return
-        }
-        if (type != ItemTag.TYPE_GUI_TOUR_ITEM) return
-        plugin.soundManager.playClickSound(player, item, "tour")
-        val tourUuid = ItemTag.getString(item, "tour_uuid")?.let(UUID::fromString) ?: return
-        plugin.tourManager.getTour(worldData, tourUuid)?.let {
-            plugin.tourGui.openStartConfirm(player, worldData, it)
-        }
-    }
-
-    private fun handleStartConfirmClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: TourGui.StartConfirmHolder) {
-        if (type != ItemTag.TYPE_GUI_CONFIRM) return
-        plugin.soundManager.playClickSound(player, item, "confirm")
-        val tour = plugin.tourManager.getTour(worldData, holder.tourUuid) ?: return
-        when (plugin.tourManager.startTour(player, worldData, tour)) {
-            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> ManagedMenuPresenter.close(player)
-            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WORLD_MEMBER ->
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.invite_already_member"))
-            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR ->
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.none_available"))
-            me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WRONG_WORLD ->
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.no_in_myworld"))
-        }
-    }
-
-    private fun handleEditMenuClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack) {
-        when (type) {
-            ItemTag.TYPE_GUI_TOUR_BACK -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (!plugin.menuRouteHistory.openPrevious(player)) {
-                    plugin.menuEntryRouter.openWorldSettings(player, worldData, false)
-                }
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (existing != null) {
+                plugin.tourManager.refreshTourSignText(worldData, existing, event.block)
+                return@Runnable
             }
-            ItemTag.TYPE_GUI_TOUR_CREATE -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1.4f)
-                TourDialogManager.startTourCreation(player, plugin, worldData.uuid)
-            }
-            ItemTag.TYPE_GUI_TOUR_ITEM -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                val tourUuid = ItemTag.getString(item, "tour_uuid")?.let(UUID::fromString) ?: return
-                plugin.tourManager.getTour(worldData, tourUuid)?.let {
-                    val session = plugin.tourManager.openEditSession(player, worldData, it)
-                    plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, false)
-                }
-            }
-        }
-    }
-
-    private fun handleSingleEditClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: TourGui.SingleTourHolder, click: ClickType) {
-        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-        when (type) {
-            ItemTag.TYPE_GUI_TOUR_BACK -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (holder.isNew) {
-                    val lang = plugin.languageManager
-                    DialogConfirmManager.showConfirmationByPreference(
-                        player = player,
-                        plugin = plugin,
-                        title = Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.title")),
-                        bodyLines = listOf(
-                            Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.body_line1")),
-                            Component.text(lang.getMessage(player, "gui.tour.menu.discard_new.body_line2"))
-                        ),
-                        confirmActionId = "mwm:tour/discard_new",
-                        cancelActionId = "mwm:tour/discard_new_cancel",
-                        onBedrockConfirm = {
-                            plugin.tourSessionManager.clearEdit(player.uniqueId)
-                            plugin.tourGui.openEditMenu(player, worldData)
-                        },
-                        onBedrockCancel = {
-                            plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, true)
-                        },
-                        onGuiFallback = {
-                            plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, true)
-                        }
-                    )
-                }
-                else {
-                    if (!canSaveTour(player, session.draft)) return
-                    plugin.tourManager.saveEditSession(player, worldData)
-                    plugin.tourGui.openEditMenu(player, worldData)
-                }
-            }
-            ItemTag.TYPE_GUI_TOUR_EDIT_TEXT -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (click.isRightClick) {
-                    session.awaitingIconPick = true
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_prompt"))
-                } else {
-                    TourDialogManager.startTourTextEdit(player, plugin, worldData.uuid, session.draft.uuid, session.draft.name, session.draft.description)
-                }
-            }
-            ItemTag.TYPE_GUI_TOUR_SAVE -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (!canSaveTour(player, session.draft)) return
-                plugin.tourManager.saveEditSession(player, worldData)
-                plugin.tourGui.openEditMenu(player, worldData)
-            }
-            ItemTag.TYPE_GUI_TOUR_DELETE -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                val lang = plugin.languageManager
-                DialogConfirmManager.showConfirmationByPreference(
-                    player = player,
-                    plugin = plugin,
-                    title = Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.title")),
-                    bodyLines = listOf(
-                        Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line1")),
-                        Component.text(lang.getMessage(player, "gui.tour.menu.delete_confirm.body_line2"))
-                    ),
-                    confirmActionId = "mwm:tour/delete_confirm",
-                    cancelActionId = "mwm:tour/delete_cancel",
-                    onBedrockConfirm = {
-                        if (!holder.isNew) {
-                            plugin.tourManager.deleteTour(worldData, session.originalTourUuid ?: return@showConfirmationByPreference)
-                        }
-                        plugin.tourSessionManager.clearEdit(player.uniqueId)
-                        plugin.tourGui.openEditMenu(player, worldData)
-                    },
-                    onBedrockCancel = {
-                        plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
-                    },
-                    onGuiFallback = {
-                        plugin.tourGui.openDeleteConfirm(player, worldData, session.draft, holder.isNew)
-                    }
-                )
-            }
-            ItemTag.TYPE_GUI_TOUR_ADD_WAYPOINT -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (session.draft.waypoints.size >= 28) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.waypoint_limit"))
-                    return
-                }
-                session.awaitingWaypointPick = true
-                ManagedMenuPresenter.close(player)
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
-                startWaypointPreview(player)
-            }
-            ItemTag.TYPE_GUI_TOUR_WAYPOINT_ITEM -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                val waypointUuid = ItemTag.getString(item, "tour_waypoint_uuid")?.let(UUID::fromString) ?: return
-                session.draft.waypoints.removeIf { it.uuid == waypointUuid }
-                plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
-            }
-        }
-    }
-
-    private fun handleDeleteConfirmClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: TourGui.DeleteTourHolder) {
-        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-        when (type) {
-            ItemTag.TYPE_GUI_CONFIRM -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                if (!holder.isNew) {
-                    val tourUuid = session.originalTourUuid ?: holder.tourUuid
-                    plugin.tourManager.deleteTour(worldData, tourUuid)
-                }
-                plugin.tourSessionManager.clearEdit(player.uniqueId)
-                plugin.tourGui.openEditMenu(player, worldData)
-            }
-            ItemTag.TYPE_GUI_CANCEL -> {
-                plugin.soundManager.playClickSound(player, item, "tour")
-                plugin.tourGui.openSingleEditMenu(player, worldData, session.draft, holder.isNew)
-            }
-        }
-    }
-
-    private fun handleBindSignClick(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData, type: String, item: org.bukkit.inventory.ItemStack, holder: TourGui.BindSignHolder) {
-        if (type != ItemTag.TYPE_GUI_TOUR_ITEM) return
-        plugin.soundManager.playClickSound(player, item, "tour")
-        val tourUuid = ItemTag.getString(item, "tour_uuid")?.let(UUID::fromString) ?: return
-        val tour = plugin.tourManager.getTour(worldData, tourUuid) ?: return
-        val placement = TourDialogManager.consumePlacement(player.uniqueId) ?: return
-        val placementItem = if (placement.hand == EquipmentSlot.HAND) player.inventory.itemInMainHand else player.inventory.itemInOffHand
-        if (!ItemTag.isType(placementItem, ItemTag.TYPE_TOUR_SIGN) || placementItem.amount <= 0) return
-        val signBlock = player.world.getBlockAt(placement.x, placement.y, placement.z)
-        val blockFace = runCatching { BlockFace.valueOf(placement.blockFace) }.getOrDefault(BlockFace.UP)
-        val signData = plugin.tourManager.createTourSignAt(worldData, player, signBlock, blockFace, "", "")
-        placementItem.amount -= 1
-        tour.startSignUuid = signData.uuid
-        plugin.worldConfigRepository.save(worldData)
-        plugin.tourManager.updateTourSign(
-            signData,
-            worldData
-        )
-        ManagedMenuPresenter.close(player)
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour_sign.bound"))
-    }
-
-    private fun canSaveTour(player: Player, tour: me.awabi2048.myworldmanager.model.TourData): Boolean {
-        if (tour.waypoints.size >= 2) return true
-        player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.not_enough_signs"))
-        return false
+            TourDialogManager.startExistingSignBinding(player, plugin, event.block)
+        })
     }
 
     private fun startWaypointPreview(player: Player) {
@@ -363,6 +135,17 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             val z = targetBlock.z
             spawnBlockOutline(player, x, y, z, frameDust)
         }, 0L, 2L)
+    }
+
+    fun beginWaypointPick(player: Player) {
+        val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
+        if (session.draft.waypoints.size >= 28) {
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.waypoint_limit"))
+            return
+        }
+        session.awaitingWaypointPick = true
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
+        startWaypointPreview(player)
     }
 
     private fun stopWaypointPreview(player: Player) {
@@ -418,6 +201,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onWorldChange(event: PlayerChangedWorldEvent) {
+        if (MyWorldManagerApi.isLogoutRelocation(event.player)) return
         val editSession = plugin.tourSessionManager.getEdit(event.player.uniqueId)
         if (editSession != null) {
             editSession.awaitingIconPick = false

@@ -1,6 +1,6 @@
 package me.awabi2048.myworldmanager.service
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+import com.awabi2048.ccsystem.CCSystem
 
 import java.io.File
 import java.nio.file.Files
@@ -120,14 +120,6 @@ class WorldService(
         }
         creatingWorlds.add(player.uniqueId.toString())
 
-        player.sendMessage(
-                plugin.languageManager.getMessage(
-                        player,
-                        "messages.world_creation_started",
-                        mapOf("world" to worldName)
-                )
-        )
-
         // 非同期でワールド作成（BukkitのWorldCreatorはメインスレッドで呼ぶ必要があるが、準備等の重い処理を分割できるか検討。
         // ただし、WorldCreator.createWorld()自体はメインスレッド必須。
         // ここでは、ラグ軽減のため、チャット送信などを先に行い、1tick後に作成開始するなどの工夫が可能だが、
@@ -238,13 +230,6 @@ class WorldService(
                 future.complete(false)
                 return future
             }
-            player.sendMessage(
-                plugin.languageManager.getMessage(
-                    player,
-                    "messages.world_creation_started",
-                    mapOf("world" to request.worldName)
-                )
-            )
             val creator = WorldCreator(NamespacedKey.minecraft(folderName))
                 .environment(request.environment)
                 .type(request.worldType)
@@ -611,14 +596,6 @@ class WorldService(
         }
         creatingWorlds.add(player.uniqueId.toString())
 
-        player.sendMessage(
-                plugin.languageManager.getMessage(
-                        player,
-                        "messages.world_creation_started",
-                        mapOf("world" to worldName)
-                )
-        )
-
         val templateFolder = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
         if (templateFolder == null || !templateFolder.exists() || !templateFolder.isDirectory) {
             player.sendMessage(plugin.languageManager.getMessage(player, "error.template_directory_missing"))
@@ -939,17 +916,10 @@ class WorldService(
         val worldData = repository.findByUuid(worldUuid) ?: return
         val folderName = getWorldFolderName(worldData)
         val needsLoad = Bukkit.getWorld(folderName) == null
-        val sessionAtStart = plugin.settingsSessionManager.getSession(player)
-        plugin.logWorldSettingsDebug(
-                "warp=start player=${player.name}/${player.uniqueId} world=$worldUuid folder=$folderName " +
-                        "needsLoad=$needsLoad closeOnLoad=$closeInventoryOnLoad reason=$reason " +
-                        "session=${sessionAtStart?.action ?: "none"}/${sessionAtStart?.worldUuid ?: "none"} " +
-                        "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-        )
 
         if (needsLoad) {
             if (closeInventoryOnLoad) {
-                ManagedMenuPresenter.close(player)
+                CCSystem.getAPI().getMenuRuntimeService().close(player)
             }
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
             if (!loadWorld(worldUuid)) {
@@ -997,14 +967,6 @@ class WorldService(
             }
 
             player.teleport(targetLoc)
-            val sessionAfterTeleport = plugin.settingsSessionManager.getSession(player)
-            plugin.logWorldSettingsDebug(
-                    "warp=teleported player=${player.name}/${player.uniqueId} world=$worldUuid " +
-                            "actualWorld=${player.world.name} success=${player.world.uid == world.uid} " +
-                            "session=${sessionAfterTeleport?.action ?: "none"}/${sessionAfterTeleport?.worldUuid ?: "none"} " +
-                            "transition=${sessionAfterTeleport?.isGuiTransition ?: false} " +
-                            "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-            )
 
             plugin.soundManager.playTeleportSound(player)
 
@@ -1027,12 +989,6 @@ class WorldService(
             }
 
             afterTeleported?.invoke()
-            val sessionAfterCallback = plugin.settingsSessionManager.getSession(player)
-            plugin.logWorldSettingsDebug(
-                    "warp=callback_complete player=${player.name}/${player.uniqueId} world=$worldUuid " +
-                            "session=${sessionAfterCallback?.action ?: "none"}/${sessionAfterCallback?.worldUuid ?: "none"} " +
-                            "holder=${player.openInventory.topInventory.holder?.javaClass?.name ?: "none"}"
-            )
         }
 
         if (needsLoad) {
@@ -1231,16 +1187,21 @@ class WorldService(
             future.complete(false)
             return future
         }
-        unloadWorldAfterEvacuation(worldUuid, false).thenAccept { unloaded ->
+        unloadWorldAfterEvacuation(worldUuid, false).whenComplete { unloaded, unloadError ->
+            if (unloadError != null) {
+                plugin.logger.log(Level.SEVERE, "Failed to unload world before deletion: $worldUuid", unloadError)
+                future.completeExceptionally(unloadError)
+                return@whenComplete
+            }
             if (!unloaded) {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
             val worldData = repository.findByUuid(worldUuid)
             if (worldData == null) {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
             val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
@@ -1258,7 +1219,7 @@ class WorldService(
                 when (val resolution = plugin.worldDirectoryResolver.inspect(folderName)) {
                     null -> {
                         future.complete(false)
-                        return@thenAccept
+                        return@whenComplete
                     }
                     else -> when (resolution.state) {
                         WorldDirectoryState.CURRENT,
@@ -1266,19 +1227,20 @@ class WorldService(
                         WorldDirectoryState.MISSING -> null
                         WorldDirectoryState.CONFLICT -> {
                             future.complete(false)
-                            return@thenAccept
+                            return@whenComplete
                         }
                     }
                 }
             }
 
-            if (folder != null && folder.exists() && !folder.deleteRecursively()) {
+            val quarantinedFolder = folder?.takeIf(File::exists)?.let { quarantineWorldDirectory(it, worldUuid) }
+            if (folder != null && folder.exists() && quarantinedFolder == null) {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
+            var refunded = false
             if (refund > 0 && !worldData.deletionRefundApplied) {
-                var refunded = false
                 try {
                     playerStatsRepository.adjustWorldPoints(worldData.owner, refund)
                     refunded = true
@@ -1297,14 +1259,32 @@ class WorldService(
                         }
                     }
                     plugin.logger.log(Level.SEVERE, "Failed to commit deletion refund for ${worldData.uuid}", error)
+                    restoreQuarantinedWorldDirectory(quarantinedFolder, folder)
                     future.complete(false)
-                    return@thenAccept
+                    return@whenComplete
                 }
             }
 
-            repository.delete(worldUuid)
-            reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
-            Bukkit.getPluginManager().callEvent(
+            try {
+                repository.delete(worldUuid)
+            } catch (error: Exception) {
+                if (refunded) {
+                    runCatching { playerStatsRepository.adjustWorldPoints(worldData.owner, -refund) }
+                        .onFailure { plugin.logger.log(Level.SEVERE, "Failed to compensate deletion refund for ${worldData.uuid}", it) }
+                    worldData.deletionRefundApplied = false
+                    runCatching { repository.save(worldData) }
+                        .onFailure { plugin.logger.log(Level.SEVERE, "Failed to restore deletion refund state for ${worldData.uuid}", it) }
+                }
+                restoreQuarantinedWorldDirectory(quarantinedFolder, folder)
+                plugin.logger.log(Level.SEVERE, "Failed to delete world metadata for ${worldData.uuid}", error)
+                future.complete(false)
+                return@whenComplete
+            }
+            removeQuarantinedWorldDirectory(quarantinedFolder)
+            runCatching { reduceOwnerSlotOnDeleteIfEnabled(worldData.owner) }
+                .onFailure { plugin.logger.log(Level.SEVERE, "Failed to reduce owner slot after deleting ${worldData.uuid}", it) }
+            runCatching {
+                Bukkit.getPluginManager().callEvent(
                     MwmWorldDeletedEvent(
                             worldUuid = worldUuid,
                             worldName = folderName,
@@ -1313,11 +1293,14 @@ class WorldService(
                             refundPoints = refund,
                             wasArchived = worldData.isArchived
                     )
-            )
-            plugin.macroManager.execute(
+                )
+            }.onFailure { plugin.logger.log(Level.SEVERE, "World deletion event failed for ${worldData.uuid}", it) }
+            runCatching {
+                plugin.macroManager.execute(
                     "on_world_delete",
                     mapOf("world_uuid" to worldUuid.toString())
-            )
+                )
+            }.onFailure { plugin.logger.log(Level.SEVERE, "World deletion macro failed for ${worldData.uuid}", it) }
             future.complete(true)
         }
         return future
@@ -1331,16 +1314,21 @@ class WorldService(
             return future
         }
         future.whenComplete { _, _ -> operationLease.close() }
-        unloadWorldAfterEvacuation(worldUuid, false).thenAccept { unloaded ->
+        unloadWorldAfterEvacuation(worldUuid, false).whenComplete { unloaded, unloadError ->
+            if (unloadError != null) {
+                plugin.logger.log(Level.SEVERE, "Failed to unload world before deletion: $worldUuid", unloadError)
+                future.completeExceptionally(unloadError)
+                return@whenComplete
+            }
             if (!unloaded) {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
             val worldData = repository.findByUuid(worldUuid)
             if (worldData == null) {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
             val folderName = getWorldFolderName(worldData)
@@ -1350,18 +1338,29 @@ class WorldService(
             } else {
                 resolveExistingWorldDirectory(folderName) ?: run {
                     future.complete(false)
-                    return@thenAccept
+                    return@whenComplete
                 }
             }
 
-            if (folder.exists() && !folder.deleteRecursively()) {
+            val quarantinedFolder = folder.takeIf(File::exists)?.let { quarantineWorldDirectory(it, worldUuid) }
+            if (folder.exists() && quarantinedFolder == null) {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
-            repository.delete(worldUuid)
-            reduceOwnerSlotOnDeleteIfEnabled(worldData.owner)
-            Bukkit.getPluginManager().callEvent(
+            try {
+                repository.delete(worldUuid)
+            } catch (error: Exception) {
+                restoreQuarantinedWorldDirectory(quarantinedFolder, folder)
+                plugin.logger.log(Level.SEVERE, "Failed to delete world metadata for maintenance deletion ${worldData.uuid}", error)
+                future.complete(false)
+                return@whenComplete
+            }
+            removeQuarantinedWorldDirectory(quarantinedFolder)
+            runCatching { reduceOwnerSlotOnDeleteIfEnabled(worldData.owner) }
+                .onFailure { plugin.logger.log(Level.SEVERE, "Failed to reduce owner slot after deleting ${worldData.uuid}", it) }
+            runCatching {
+                Bukkit.getPluginManager().callEvent(
                     MwmWorldDeletedEvent(
                             worldUuid = worldUuid,
                             worldName = folderName,
@@ -1370,14 +1369,36 @@ class WorldService(
                             refundPoints = 0,
                             wasArchived = worldData.isArchived
                     )
-            )
-            plugin.macroManager.execute(
+                )
+            }.onFailure { plugin.logger.log(Level.SEVERE, "World deletion event failed for ${worldData.uuid}", it) }
+            runCatching {
+                plugin.macroManager.execute(
                     "on_world_delete",
                     mapOf("world_uuid" to worldUuid.toString())
-            )
+                )
+            }.onFailure { plugin.logger.log(Level.SEVERE, "World deletion macro failed for ${worldData.uuid}", it) }
             future.complete(true)
         }
         return future
+    }
+
+    private fun quarantineWorldDirectory(folder: File, worldUuid: UUID): File? {
+        val parent = folder.parentFile ?: return null
+        val quarantine = File(parent, ".${folder.name}.delete-$worldUuid-${System.nanoTime()}")
+        return quarantine.takeIf { folder.renameTo(it) }
+    }
+
+    private fun restoreQuarantinedWorldDirectory(quarantined: File?, original: File?) {
+        if (quarantined == null || original == null || !quarantined.exists()) return
+        if (original.exists() || !quarantined.renameTo(original)) {
+            plugin.logger.severe("Failed to restore quarantined world directory: $quarantined -> $original")
+        }
+    }
+
+    private fun removeQuarantinedWorldDirectory(quarantined: File?) {
+        if (quarantined != null && quarantined.exists() && !quarantined.deleteRecursively()) {
+            plugin.logger.warning("Deleted world metadata but could not remove quarantined directory: $quarantined")
+        }
     }
 
     private fun reduceOwnerSlotOnDeleteIfEnabled(ownerUuid: UUID) {
@@ -1415,10 +1436,15 @@ class WorldService(
             return future
         }
 
-        unloadWorldAfterEvacuation(worldUuid, true).thenAccept { unloaded ->
+        unloadWorldAfterEvacuation(worldUuid, true).whenComplete { unloaded, unloadError ->
+            if (unloadError != null) {
+                plugin.logger.log(Level.SEVERE, "Failed to unload world before archive: $worldUuid", unloadError)
+                future.completeExceptionally(unloadError)
+                return@whenComplete
+            }
             if (!unloaded) {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
             val folderName = getWorldFolderName(worldData)
@@ -1427,20 +1453,29 @@ class WorldService(
 
             val sourceFile = resolveExistingWorldDirectory(folderName) ?: run {
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
             val targetFile = File(archiveFolder, folderName)
 
             if (sourceFile.exists() && !sourceFile.renameTo(targetFile)) {
                 plugin.logger.severe("Failed to move world directory to archive: $folderName")
                 future.complete(false)
-                return@thenAccept
+                return@whenComplete
             }
 
-            worldData.isArchived = true
-            worldData.archivedAt = java.time.LocalDate.now().toString()
-            worldData.archiveTransitionType = if (isAutomaticTransition) "AUTO" else "MANUAL"
-            repository.save(worldData)
+            try {
+                worldData.isArchived = true
+                worldData.archivedAt = java.time.LocalDate.now().toString()
+                worldData.archiveTransitionType = if (isAutomaticTransition) "AUTO" else "MANUAL"
+                repository.save(worldData)
+            } catch (error: Exception) {
+                if (targetFile.exists() && !targetFile.renameTo(sourceFile)) {
+                    plugin.logger.severe("Failed to restore world directory after archive metadata failure: $folderName")
+                }
+                plugin.logger.log(Level.SEVERE, "Failed to save archive metadata for $worldUuid", error)
+                future.complete(false)
+                return@whenComplete
+            }
             future.complete(true)
         }
         return future

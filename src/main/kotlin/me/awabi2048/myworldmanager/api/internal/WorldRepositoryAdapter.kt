@@ -15,6 +15,14 @@ internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiW
         return plugin.worldConfigRepository.findByOwner(ownerUuid)
     }
 
+    override fun findByOwnerAndDisplayName(
+        ownerUuid: UUID,
+        worldName: String,
+        excludingUuid: UUID?,
+    ): WorldData? {
+        return plugin.worldConfigRepository.findByOwnerAndDisplayName(ownerUuid, worldName, excludingUuid)
+    }
+
     override fun findByWorldName(worldName: String): WorldData? {
         return plugin.worldConfigRepository.findByWorldName(worldName)
     }
@@ -29,5 +37,9 @@ internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiW
 
     override fun save(worldData: WorldData) {
         plugin.worldConfigRepository.save(worldData)
+    }
+
+    override fun delete(uuid: UUID) {
+        plugin.worldConfigRepository.delete(uuid)
     }
 }

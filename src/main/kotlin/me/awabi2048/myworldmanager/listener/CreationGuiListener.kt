@@ -1,343 +1,175 @@
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+import com.awabi2048.ccsystem.CCSystem
 
 import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
-import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
 import me.awabi2048.myworldmanager.gui.CreationGui
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.session.*
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
-import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
-import org.bukkit.event.inventory.InventoryCloseEvent
-import org.bukkit.inventory.ItemStack
+import org.bukkit.event.inventory.ClickType
 
-class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
+class CreationGuiListener(private val plugin: MyWorldManager) {
 
-    @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        if (event.view.topInventory.holder !is CreationGui.CreationGuiHolder) return
-
-        // 作成GUIのタイトルかどうかを判定（多言語対応）
-        event.cancelWithDebug("CreationGuiListener.onInventoryClick: creation GUI click")
-        if (event.clickedInventory != event.view.topInventory) return
-
-        val player = event.whoClicked as? Player ?: return
-        val currentItem = event.currentItem ?: return
-        val tag = ItemTag.getType(currentItem)
-        if (currentItem.type == Material.AIR || tag == ItemTag.TYPE_GUI_DECORATION) return
-
-        // GUI遷移中のクリックを無視
+    fun handleConfirmationAction(
+        player: Player,
+        click: ClickType,
+        action: CreationConfirmationAction,
+    ): MenuActionResult {
+        val session = plugin.creationSessionManager.getSession(player.uniqueId)
+            ?: return MenuActionResult.Ignored
+        if (session.phase != WorldCreationPhase.CONFIRM) return MenuActionResult.Ignored
         val lang = plugin.languageManager
-        val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
 
-        if (tag == ItemTag.TYPE_GUI_EXTENSION) {
-            val extensionId = ItemTag.getExtensionId(currentItem) ?: return
-            val extension =
-                    MyWorldManagerApi.getMenuExtensions().firstOrNull { it.getId() == extensionId }
-                            ?: return
-            val context =
-                    MenuExtensionContext(
-                            "creation_confirm",
-                            mutableMapOf(
-                                    "session" to session,
-                                    "worldName" to (session.worldName ?: ""),
-                                    "creationType" to session.creationType
-                            )
-                    )
-            if (extension.onClick(event, player, context)) {
-                plugin.soundManager.playClickSound(player, currentItem)
-            }
-            return
+        if (action == CreationConfirmationAction.BACK) {
+            session.phase = WorldCreationPhase.NAME_INPUT
+            openNameInputByPlatform(player, session)
+            return MenuActionResult.Success(MenuUpdate.None)
+        }
+        if (action == CreationConfirmationAction.DIMENSION &&
+            session.creationType == WorldCreationType.SEED
+        ) {
+            session.seedEnvironment = GuiCycle.select(
+                session.seedEnvironment,
+                listOf(
+                    org.bukkit.World.Environment.NORMAL,
+                    org.bukkit.World.Environment.NETHER,
+                    org.bukkit.World.Environment.THE_END
+                ),
+                GuiCycle.direction(click) ?: return MenuActionResult.Ignored
+            )
+            return MenuActionResult.Success(MenuUpdate.Refresh)
+        }
+        if (action == CreationConfirmationAction.SPAWN_LOCATION &&
+            session.creationType == WorldCreationType.SEED
+        ) {
+            session.phase = WorldCreationPhase.SPAWN_INPUT
+            openSpawnInputByPlatform(player, session)
+            return MenuActionResult.Success(MenuUpdate.None)
+        }
+        if (action == CreationConfirmationAction.TEMPLATE_PREVIEW &&
+            session.creationType == WorldCreationType.TEMPLATE
+        ) {
+            val templateId = session.templateId ?: return MenuActionResult.Ignored
+            plugin.previewSessionManager.startPreview(
+                player,
+                PreviewSessionManager.PreviewTarget.Template(templateId),
+                PreviewSource.CREATION_CONFIRM
+            )
+            return MenuActionResult.Success(MenuUpdate.None)
+        }
+        if (action == CreationConfirmationAction.TEMPLATE_CHANGE &&
+            session.creationType == WorldCreationType.TEMPLATE
+        ) {
+            session.phase = WorldCreationPhase.TEMPLATE_SELECT
+            return MenuActionResult.Success(
+                MenuUpdate.Navigate(plugin.creationGui.templateSelectionRoute()),
+            )
+        }
+        if (action == CreationConfirmationAction.CANCEL) {
+            CCSystem.getAPI().getMenuRuntimeService().close(player)
+            cancelAndReturnToMyWorld(player)
+            return MenuActionResult.Success(MenuUpdate.None)
+        }
+        if (action != CreationConfirmationAction.CONFIRM) return MenuActionResult.Ignored
+
+        CCSystem.getAPI().getMenuRuntimeService().close(player)
+        val adminCommandSession =
+            session.extras[CreationGui.ADMIN_COMMAND_SESSION_KEY] == true
+        if (!WorldCreationChecks.checkSelfCreatePermission(
+                player,
+                allowAdminCommandSession = adminCommandSession
+            )
+        ) {
+            plugin.creationSessionManager.endSession(player.uniqueId)
+            return MenuActionResult.Success(MenuUpdate.Close)
+        }
+        if (!WorldCreationChecks.check(player, type = session.creationType)) {
+            plugin.creationSessionManager.endSession(player.uniqueId)
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
 
-        if (tag == ItemTag.TYPE_GUI_BACK) {
-            plugin.soundManager.playClickSound(player, currentItem)
-            when (session.phase) {
-                WorldCreationPhase.TYPE_SELECT -> {
-                    ManagedMenuPresenter.close(player)
-                    cancelAndReturnToMyWorld(player)
-                }
-                WorldCreationPhase.TEMPLATE_SELECT -> {
-                    session.phase = WorldCreationPhase.TYPE_SELECT
-                    plugin.creationGui.openTypeSelection(player)
-                }
-                WorldCreationPhase.TEMPLATE_DETAIL -> {
-                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                    plugin.creationGui.openTemplateSelection(player)
-                }
-                WorldCreationPhase.CONFIRM -> {
-                    session.phase = WorldCreationPhase.NAME_INPUT
-                    ManagedMenuPresenter.close(player)
-                    openNameInputByPlatform(player, session)
-                }
-                else -> {}
-            }
-            return
+        val cost = session.creationType?.let {
+            WorldRuntimePolicies.creationCost(plugin.config, it)
+        } ?: 0
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        if (session.billingMode == WorldPointBillingMode.STANDARD &&
+            MyWorldManagerApi.isWorldPointEconomyEnabled() &&
+            stats.worldPoint < cost
+        ) {
+            player.sendMessage(lang.getMessage(player, "messages.creation_insufficient_points"))
+            plugin.creationSessionManager.endSession(player.uniqueId)
+            return MenuActionResult.Success(MenuUpdate.Close)
         }
 
-        when (session.phase) {
-            WorldCreationPhase.TYPE_SELECT -> {
-                val config = plugin.config
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                // 上限チェック (WorldCommandへ移動済み)
-
-                // コスト判定
-                val cost =
-                        when (tag) {
-                            ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE ->
-                                    WorldRuntimePolicies.creationCost(config, WorldCreationType.TEMPLATE)
-                            ItemTag.TYPE_GUI_CREATION_TYPE_SEED ->
-                                    WorldRuntimePolicies.creationCost(config, WorldCreationType.SEED)
-                            ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM ->
-                                    WorldRuntimePolicies.creationCost(config, WorldCreationType.RANDOM)
-                            else -> 0
-                        }
-
-                if (session.billingMode == WorldPointBillingMode.STANDARD &&
-                    MyWorldManagerApi.isWorldPointEconomyEnabled() &&
-                    stats.worldPoint < cost
-                ) {
+        player.sendMessage(lang.getMessage(player, "messages.world_creation_processing"))
+        when (session.creationType) {
+            WorldCreationType.TEMPLATE -> {
+                plugin.worldService.createWorld(
+                    session.templateId!!,
+                    player.uniqueId,
+                    session.worldName!!,
+                    cost,
+                    session.billingMode
+                ).thenAccept { success ->
+                    if (!success) {
+                        player.sendMessage(lang.getMessage(player, "messages.creation_failed"))
+                    }
+                }
+            }
+            WorldCreationType.SEED -> {
+                plugin.worldService.generateWorld(
+                    player.uniqueId,
+                    session.worldName!!,
+                    session.inputSeedString,
+                    cost,
+                    session.spawnCoordinates,
+                    session.seedEnvironment,
+                    session.billingMode
+                ).thenAccept { success ->
                     player.sendMessage(
-                            lang.getMessage(player, "messages.creation_insufficient_points")
-                    )
-                    plugin.soundManager.playActionSound(player, "creation", "insufficient_points")
-                    return
-                }
-
-                when (tag) {
-                    ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE -> {
-                        plugin.soundManager.playClickSound(player, currentItem)
-                        if (plugin.templateRepository.findAll().none(plugin.templateRepository::isUsable)) {
-                            player.sendMessage(lang.getMessage(player, "error.preview_template_not_found"))
-                            plugin.soundManager.playClickSound(player, ItemStack(Material.BARRIER))
-                            return
-                        }
-                        session.creationType = WorldCreationType.TEMPLATE
-                        session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                        plugin.creationGui.openTemplateSelection(player)
-                    }
-                    ItemTag.TYPE_GUI_CREATION_TYPE_SEED -> {
-                        plugin.soundManager.playClickSound(player, currentItem)
-                        session.creationType = WorldCreationType.SEED
-                        session.phase = WorldCreationPhase.SEED_INPUT
-                        
-                        if (session.isDialogMode) {
-                            ManagedMenuPresenter.close(player)
-                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showSeedInputDialog(player, session)
-                            return
-                        }
-
-                        ManagedMenuPresenter.close(player)
-                        openSeedInputByPlatform(player, session)
-                    }
-                    ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> {
-                        plugin.soundManager.playClickSound(player, currentItem)
-                        session.creationType = WorldCreationType.RANDOM
-                        
-                        if (session.isDialogMode) {
-                            session.phase = WorldCreationPhase.NAME_INPUT
-                            ManagedMenuPresenter.close(player)
-                            me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session)
-                            return
-                        }
-                        
-                        session.phase = WorldCreationPhase.NAME_INPUT
-                        ManagedMenuPresenter.close(player)
-                        openNameInputByPlatform(player, session)
-                    }
-                    else -> {}
-                }
-            }
-            WorldCreationPhase.TEMPLATE_SELECT -> {
-                if (tag != ItemTag.TYPE_GUI_CREATION_TEMPLATE_ITEM) return
-                val templateId = ItemTag.getTemplateId(currentItem) ?: return
-                val template = plugin.templateRepository.findById(templateId) ?: return
-                if (!plugin.templateRepository.isUsable(template)) return
-                plugin.soundManager.playClickSound(player, currentItem)
-                session.templateId = template.id
-                session.phase = WorldCreationPhase.TEMPLATE_DETAIL
-                plugin.creationGui.openTemplateDetail(player, session)
-            }
-            WorldCreationPhase.TEMPLATE_DETAIL -> {
-                when (tag) {
-                    ItemTag.TYPE_GUI_CREATION_TEMPLATE_USE -> {
-                        val template = session.templateId?.let(plugin.templateRepository::findById) ?: return
-                        if (!plugin.templateRepository.isUsable(template)) return
-                        plugin.soundManager.playClickSound(player, currentItem)
-                        session.phase = WorldCreationPhase.NAME_INPUT
-                        ManagedMenuPresenter.close(player)
-                        openNameInputByPlatform(player, session)
-                    }
-                    ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW -> {
-                        val templateId = session.templateId ?: return
-                        ManagedMenuPresenter.close(player)
-                        plugin.previewSessionManager.startPreview(
+                        lang.getMessage(
                             player,
-                            PreviewSessionManager.PreviewTarget.Template(templateId),
-                            PreviewSource.TEMPLATE_DETAIL
+                            if (success) "messages.creation_success" else "messages.creation_failed"
                         )
-                    }
+                    )
                 }
             }
-            WorldCreationPhase.CONFIRM -> {
-                if (tag == ItemTag.TYPE_GUI_CREATION_DIMENSION &&
-                    session.creationType == WorldCreationType.SEED
-                ) {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    session.seedEnvironment = GuiCycle.select(
-                        session.seedEnvironment,
-                        listOf(
-                            org.bukkit.World.Environment.NORMAL,
-                            org.bukkit.World.Environment.NETHER,
-                            org.bukkit.World.Environment.THE_END
-                        ),
-                        GuiCycle.direction(event.click) ?: return
-                    )
-                    plugin.creationGui.openConfirmation(player, session)
-                } else if (tag == ItemTag.TYPE_GUI_CREATION_SPAWN_LOCATION &&
-                    session.creationType == WorldCreationType.SEED
-                ) {
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    session.phase = WorldCreationPhase.SPAWN_INPUT
-                    ManagedMenuPresenter.close(player)
-                    openSpawnInputByPlatform(player, session)
-                } else if (tag == ItemTag.TYPE_GUI_CREATION_TEMPLATE_PREVIEW &&
-                    session.creationType == WorldCreationType.TEMPLATE
-                ) {
-                    val templateId = session.templateId ?: return
-                    ManagedMenuPresenter.close(player)
-                    plugin.previewSessionManager.startPreview(
-                        player,
-                        PreviewSessionManager.PreviewTarget.Template(templateId),
-                        PreviewSource.CREATION_CONFIRM
-                    )
-                } else if (tag == ItemTag.TYPE_GUI_CREATION_TEMPLATE_CHANGE &&
-                    session.creationType == WorldCreationType.TEMPLATE
-                ) {
-                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                    plugin.creationGui.openTemplateSelection(player)
-                } else if (tag == ItemTag.TYPE_GUI_CONFIRM) {
-                    ManagedMenuPresenter.close(player)
-
-                    val adminCommandSession =
-                        session.extras[CreationGui.ADMIN_COMMAND_SESSION_KEY] == true
-                    if (!WorldCreationChecks.checkSelfCreatePermission(
+            WorldCreationType.RANDOM -> {
+                plugin.worldService.generateWorld(
+                    player.uniqueId,
+                    session.worldName!!,
+                    null,
+                    cost,
+                    billingMode = session.billingMode
+                ).thenAccept { success ->
+                    player.sendMessage(
+                        lang.getMessage(
                             player,
-                            allowAdminCommandSession = adminCommandSession
+                            if (success) "messages.creation_success" else "messages.creation_failed"
                         )
-                    ) {
-                        plugin.creationSessionManager.endSession(player.uniqueId)
-                        return
-                    }
-                    if (!WorldCreationChecks.check(player, type = session.creationType)) {
-                        plugin.creationSessionManager.endSession(player.uniqueId)
-                        return
-                    }
-
-                    val cost =
-                            session.creationType?.let {
-                                WorldRuntimePolicies.creationCost(plugin.config, it)
-                            } ?: 0
-                    val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                    if (session.billingMode == WorldPointBillingMode.STANDARD &&
-                        MyWorldManagerApi.isWorldPointEconomyEnabled() &&
-                        stats.worldPoint < cost
-                    ) {
-                        player.sendMessage(
-                                lang.getMessage(player, "messages.creation_insufficient_points")
-                        )
-                        plugin.creationSessionManager.endSession(player.uniqueId)
-                        return
-                    }
-
-                    player.sendMessage(lang.getMessage(player, "messages.world_creation_processing"))
-
-                    when (session.creationType) {
-                        WorldCreationType.TEMPLATE -> {
-                            plugin.worldService.createWorld(
-                                            session.templateId!!,
-                                            player.uniqueId,
-                                             session.worldName!!,
-                                             cost,
-                                             session.billingMode
-                                    )
-                                    .thenAccept { success: Boolean ->
-                                        if (!success) {
-                                            player.sendMessage(lang.getMessage(player, "messages.creation_failed"))
-                                        }
-                                    }
-                        }
-                        WorldCreationType.SEED -> {
-                            plugin.worldService.generateWorld(
-                                            player.uniqueId,
-                                            session.worldName!!,
-                                            session.inputSeedString,
-                                             cost,
-                                             session.spawnCoordinates,
-                                             session.seedEnvironment,
-                                             session.billingMode
-                                    )
-                                    .thenAccept { success: Boolean ->
-                                        player.sendMessage(
-                                            lang.getMessage(
-                                                player,
-                                                if (success) "messages.creation_success"
-                                                else "messages.creation_failed"
-                                            )
-                                        )
-                                    }
-                        }
-                        WorldCreationType.RANDOM -> {
-                            plugin.worldService.generateWorld(
-                                            player.uniqueId,
-                                             session.worldName!!,
-                                             null,
-                                             cost,
-                                             billingMode = session.billingMode
-                                    )
-                                    .thenAccept { success: Boolean ->
-                                        player.sendMessage(
-                                            lang.getMessage(
-                                                player,
-                                                if (success) "messages.creation_success"
-                                                else "messages.creation_failed"
-                                            )
-                                        )
-                                    }
-                        }
-                        null -> {}
-                    }
-                    plugin.soundManager.playClickSound(player, currentItem)
-                    plugin.creationSessionManager.endSession(player.uniqueId)
-                } else if (tag == ItemTag.TYPE_GUI_CANCEL) {
-                    plugin.soundManager.playActionSound(player, "creation", "cancel")
-                    ManagedMenuPresenter.close(player)
-                    cancelAndReturnToMyWorld(player)
+                    )
                 }
             }
-            else -> {}
+            null -> {}
         }
+        plugin.creationSessionManager.endSession(player.uniqueId)
+        return MenuActionResult.Success(MenuUpdate.Close)
     }
 
-    private fun openSeedInputByPlatform(
+    fun openSeedInputByPlatform(
         player: Player,
         session: WorldCreationSession,
         errorMessage: String? = null
@@ -483,7 +315,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    private fun openNameInputByPlatform(player: Player, session: WorldCreationSession, errorMessage: Component? = null) {
+    fun openNameInputByPlatform(player: Player, session: WorldCreationSession, errorMessage: Component? = null) {
         if (!plugin.playerPlatformResolver.isBedrock(player)) {
             me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, session, errorMessage)
             return
@@ -555,56 +387,18 @@ class CreationGuiListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
-    @EventHandler
-    fun onInventoryClose(event: InventoryCloseEvent) {
-        if (event.view.topInventory.holder !is CreationGui.CreationGuiHolder) return
-
-        // 作成GUIのタイトルかどうかを判定（多言語対応）
-        val player = event.player as? Player ?: return
-
-        val session = plugin.creationSessionManager.getSession(player.uniqueId) ?: return
-
-        if (session.phase == WorldCreationPhase.SEED_INPUT ||
-                        session.phase == WorldCreationPhase.NAME_INPUT ||
-                        session.phase == WorldCreationPhase.SPAWN_INPUT
-        ) {
-            return
-        }
-
-        // 遅延を2tickに増やしてGUI遷移の時間を確保
-        Bukkit.getScheduler()
-                .runTaskLater(
-                        plugin,
-                        Runnable {
-                            if (!player.isOnline) return@Runnable
-
-                            // プレビュー中はセッションをキャンセルしない
-                            if (plugin.previewSessionManager.isInPreview(player)) {
-                                return@Runnable
-                            }
-
-                            if (player.openInventory.topInventory.holder is CreationGui.CreationGuiHolder) {
-                                return@Runnable
-                            }
-
-                            val currentSession =
-                                    plugin.creationSessionManager.getSession(player.uniqueId)
-                            if (currentSession != null &&
-                                            currentSession.phase != WorldCreationPhase.SEED_INPUT &&
-                                            currentSession.phase != WorldCreationPhase.NAME_INPUT
-                            ) {
-                                // セッションがまだ残っている（＝他で終了されていない）場合のみ処理
-                                cancelAndReturnToMyWorld(player)
-                            }
-                        },
-                        2L
-                )
-    }
-
-    private fun cancelAndReturnToMyWorld(player: Player) {
+    fun cancelAndReturnToMyWorld(player: Player) {
         plugin.creationSessionManager.endSession(player.uniqueId)
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (player.isOnline) plugin.menuEntryRouter.openPlayerWorld(player, 0, false)
-        })
+        if (player.isOnline) plugin.menuEntryRouter.openPlayerWorld(player, 0, false)
     }
+}
+
+enum class CreationConfirmationAction {
+    BACK,
+    DIMENSION,
+    SPAWN_LOCATION,
+    TEMPLATE_PREVIEW,
+    TEMPLATE_CHANGE,
+    CANCEL,
+    CONFIRM,
 }

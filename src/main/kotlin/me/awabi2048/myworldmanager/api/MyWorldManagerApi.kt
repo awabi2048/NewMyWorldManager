@@ -1,34 +1,24 @@
 package me.awabi2048.myworldmanager.api
 
-import me.awabi2048.myworldmanager.api.extension.AdminWorldListProvider
-import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
-import me.awabi2048.myworldmanager.api.extension.AdminMenuProvider
-import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuProvider
-import me.awabi2048.myworldmanager.api.extension.DiscoveryMenuRequest
-import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuProvider
-import me.awabi2048.myworldmanager.api.extension.FavoriteListMenuRequest
-import me.awabi2048.myworldmanager.api.extension.FavoriteMenuProvider
-import me.awabi2048.myworldmanager.api.extension.MenuExtension
+import com.awabi2048.ccsystem.CCSystem
+import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.extension.CommandPolicy
 import me.awabi2048.myworldmanager.api.extension.CreateCommandHandler
-import me.awabi2048.myworldmanager.api.extension.CreationConfirmationMenuProvider
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.DefaultWorldRuntimePolicy
-import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuProvider
-import me.awabi2048.myworldmanager.api.extension.PlayerWorldMenuRequest
-import me.awabi2048.myworldmanager.api.extension.VisitMenuProvider
-import me.awabi2048.myworldmanager.api.extension.VisitMenuRequest
 import me.awabi2048.myworldmanager.api.extension.WorldAccessPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldCreationDecision
 import me.awabi2048.myworldmanager.api.extension.WorldCreationGuard
 import me.awabi2048.myworldmanager.api.extension.WorldCreationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldDeleteGuard
 import me.awabi2048.myworldmanager.api.extension.WorldEvacuationProvider
-import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessProvider
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuProvider
-import me.awabi2048.myworldmanager.api.extension.WorldSettingsMenuRequest
+import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessContext
+import me.awabi2048.myworldmanager.api.extension.WorldMenuAccessChallenge
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsStatePolicy
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
@@ -46,14 +36,35 @@ import me.awabi2048.myworldmanager.api.service.ApiWorldTagService
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.api.service.WorldOperationLocks
+import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import org.bukkit.Location
+import org.bukkit.Material
 import org.bukkit.OfflinePlayer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.java.JavaPlugin
+import me.awabi2048.myworldmanager.session.SettingsAction
 
 object MyWorldManagerApi {
+    private val logoutRelocations = java.util.concurrent.ConcurrentHashMap<UUID, String>()
+
+    fun isLogoutRelocation(player: Player): Boolean =
+        logoutRelocations.containsKey(player.uniqueId)
+
+    fun getLogoutRelocationOrigin(player: Player): String? =
+        logoutRelocations[player.uniqueId]
+
+    internal fun beginLogoutRelocation(player: Player, plugin: Plugin, originWorldName: String) {
+        val playerUuid = player.uniqueId
+        logoutRelocations[playerUuid] = originWorldName
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            logoutRelocations.remove(playerUuid)
+        })
+    }
+
 
     @JvmStatic
     fun tryAcquireWorldOperation(worldUuid: UUID, operation: WorldOperation): WorldOperationLease? =
@@ -79,7 +90,12 @@ object MyWorldManagerApi {
     private var worldTagService: ApiWorldTagService? = null
     private val worldCreationGuards = CopyOnWriteArrayList<WorldCreationGuard>()
     private val worldPlayerStatePolicies = CopyOnWriteArrayList<WorldPlayerStatePolicy>()
-    private val menuExtensions = CopyOnWriteArrayList<MenuExtension>()
+    private val worldSettingsStatePolicies =
+        CopyOnWriteArrayList<WorldSettingsStatePolicy>()
+    private val worldSettingsRouteCapabilities =
+        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteCapability>()
+    private val playerWorldRouteCapabilities =
+        CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteCapability>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -87,20 +103,256 @@ object MyWorldManagerApi {
     private val worldRuntimePolicies = CopyOnWriteArrayList<WorldRuntimePolicy>()
     private val worldPublishPolicies = CopyOnWriteArrayList<WorldPublishPolicy>()
     private val worldPortalPolicies = CopyOnWriteArrayList<WorldPortalPolicy>()
-    private val worldSettingsMenuProviders = CopyOnWriteArrayList<WorldSettingsMenuProvider>()
-    private val adminWorldListProviders = CopyOnWriteArrayList<AdminWorldListProvider>()
-    private val adminMenuProviders = CopyOnWriteArrayList<AdminMenuProvider>()
-    private val playerWorldMenuProviders = CopyOnWriteArrayList<PlayerWorldMenuProvider>()
-    private val creationConfirmationMenuProviders = CopyOnWriteArrayList<CreationConfirmationMenuProvider>()
-    private val discoveryMenuProviders = CopyOnWriteArrayList<DiscoveryMenuProvider>()
-    private val favoriteListMenuProviders = CopyOnWriteArrayList<FavoriteListMenuProvider>()
-    private val favoriteMenuProviders = CopyOnWriteArrayList<FavoriteMenuProvider>()
-    private val visitMenuProviders = CopyOnWriteArrayList<VisitMenuProvider>()
     private val worldEvacuationProviders = CopyOnWriteArrayList<WorldEvacuationProvider>()
-    private val worldMenuAccessProviders = CopyOnWriteArrayList<WorldMenuAccessProvider>()
+    private val worldMenuAccessPolicies = CopyOnWriteArrayList<WorldMenuAccessPolicy>()
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
     private var bedrockFormService: ApiBedrockFormService? = null
+
+    @JvmStatic
+    fun registerWorldSettingsStatePolicy(policy: WorldSettingsStatePolicy) {
+        worldSettingsStatePolicies.removeIf { it.getId() == policy.getId() }
+        worldSettingsStatePolicies.add(policy)
+    }
+
+    @JvmStatic
+    fun unregisterWorldSettingsStatePolicy(policy: WorldSettingsStatePolicy) {
+        worldSettingsStatePolicies.removeIf {
+            it === policy || it.getId() == policy.getId()
+        }
+    }
+
+    @JvmStatic
+    fun getWorldSettingsStatePolicies(): List<WorldSettingsStatePolicy> =
+        worldSettingsStatePolicies.toList()
+
+    @JvmStatic
+    fun registerWorldSettingsRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteCapability,
+    ) {
+        worldSettingsRouteCapabilities.remove(capability)
+        worldSettingsRouteCapabilities.add(capability)
+    }
+
+    @JvmStatic
+    fun unregisterWorldSettingsRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteCapability,
+    ) {
+        worldSettingsRouteCapabilities.remove(capability)
+    }
+
+    @JvmStatic
+    fun registerPlayerWorldRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteCapability,
+    ) {
+        playerWorldRouteCapabilities.remove(capability)
+        playerWorldRouteCapabilities.add(capability)
+    }
+
+    @JvmStatic
+    fun unregisterPlayerWorldRouteCapability(
+        capability: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteCapability,
+    ) {
+        playerWorldRouteCapabilities.remove(capability)
+    }
+
+    @JvmStatic
+    fun prepareWorldSettingsRoute(
+        player: Player,
+        worldUuid: UUID,
+        request: WorldSettingsNavigationRequest = WorldSettingsNavigationRequest(),
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute? {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
+        worldSettingsRouteCapabilities.asReversed().forEach { capability ->
+            capability.prepare(player, worldData, request)?.let { return it }
+        }
+        plugin.settingsSessionManager.updateSessionAction(
+            player,
+            worldUuid,
+            SettingsAction.VIEW_SETTINGS,
+            isGui = true,
+            isAdminFlow = request.isAdminFlow,
+            isPlayerWorldFlow = request.isPlayerWorldFlow,
+            parentShowBackButton = request.parentShowBackButton,
+        )
+        plugin.settingsSessionManager.getSession(player)?.showBackButton = request.showBackButton
+        return plugin.worldSettingsGui.route(worldUuid)
+    }
+
+    @JvmStatic
+    fun preparePlayerWorldRoute(
+        player: Player,
+        request: me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteRequest,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute {
+        playerWorldRouteCapabilities.asReversed().forEach { capability ->
+            capability.prepare(player, request)?.let { return it }
+        }
+        return JavaPlugin.getPlugin(MyWorldManager::class.java).playerWorldGui.route(
+            request.page,
+            request.targetPlayerUuid,
+            request.targetPlayerName,
+            request.showBackButton,
+        )
+    }
+
+    @JvmStatic
+    fun getPlayerWorlds(playerUuid: UUID): List<WorldData> =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).playerWorldGui
+            .getPlayerWorlds(playerUuid)
+
+    @JvmStatic
+    fun prepareUserSettingsRoute(
+        player: Player,
+        showBackButton: Boolean = true,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute? =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).userSettingsGui
+            .prepareOpen(player, showBackButton)
+
+    @JvmStatic
+    fun preparePendingInteractionRoute(
+        page: Int,
+        returnPage: Int,
+        showBackButton: Boolean,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).pendingInteractionGui
+            .prepareOpen(page, returnPage, showBackButton, fromBedrockMenu = false)
+
+    @JvmStatic
+    fun getPendingInteractionSummary(
+        playerUuid: UUID,
+    ): me.awabi2048.myworldmanager.api.extension.PendingInteractionSummary {
+        val manager = JavaPlugin.getPlugin(MyWorldManager::class.java).pendingDecisionManager
+        return me.awabi2048.myworldmanager.api.extension.PendingInteractionSummary(
+            manager.getPendingCount(playerUuid),
+            manager.getLatestPendingCreatedAt(playerUuid),
+        )
+    }
+
+    @JvmStatic
+    fun executeWorldSettingsAction(
+        request: me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest,
+    ): com.awabi2048.ccsystem.api.gui.MenuActionResult {
+        return JavaPlugin.getPlugin(MyWorldManager::class.java).worldSettingsActionService.execute(request)
+    }
+
+    @JvmStatic
+    fun getWorldSettingsActionContract(
+        player: Player,
+        worldUuid: UUID,
+        action: me.awabi2048.myworldmanager.api.extension.WorldSettingsAction,
+    ): me.awabi2048.myworldmanager.api.extension.WorldSettingsActionContract? {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return null
+        return plugin.worldSettingsActionService.contract(player, worldData, action)
+    }
+
+    @JvmStatic
+    fun openWorldSettings(
+        player: Player,
+        worldUuid: UUID,
+        request: WorldSettingsNavigationRequest = WorldSettingsNavigationRequest(),
+    ): Boolean {
+        val route = prepareWorldSettingsRoute(player, worldUuid, request) ?: return false
+        return CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
+    }
+
+    @JvmStatic
+    fun prepareAdminMenuRoute(player: Player): com.awabi2048.ccsystem.api.gui.MenuRoute? {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        if (!player.hasPermission("myworldmanager.admin")) return null
+        plugin.settingsSessionManager.updateSessionAction(
+            player,
+            player.uniqueId,
+            SettingsAction.ADMIN_MENU,
+            isGui = true,
+        )
+        return plugin.adminCommandGui.route()
+    }
+
+    @JvmStatic
+    fun openAdminMenu(player: Player): Boolean {
+        val route = prepareAdminMenuRoute(player) ?: return false
+        return CCSystem.getAPI().getMenuRuntimeService().open(player, route)
+    }
+
+    @JvmStatic
+    fun closeWorldSettingsContext(player: Player) {
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .settingsSessionManager
+            .endSession(player)
+    }
+
+    @JvmStatic
+    fun toggleWorldVisitNotification(player: Player, worldUuid: UUID): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
+        plugin.worldSettingsGui.toggleNotification(player, worldData)
+        return true
+    }
+
+    @JvmStatic
+    fun hasWorldPortals(worldUuid: UUID): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
+        return plugin.portalRepository.findAll().any { it.worldKey == worldData.worldKey }
+    }
+
+    @JvmStatic
+    fun isCriticalSettingsEnabled(playerUuid: UUID): Boolean =
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .playerStatsRepository
+            .findByUuid(playerUuid)
+            .criticalSettingsEnabled
+
+    @JvmStatic
+    fun getConfiguredMenuIcon(
+        menuId: String,
+        iconId: String,
+        fallback: Material,
+    ): Material =
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .menuConfigManager
+            .getIconMaterial(menuId, iconId, fallback)
+
+    @JvmStatic
+    fun prioritizePlayerWorld(playerUuid: UUID, worldUuid: UUID) {
+        val repository = JavaPlugin.getPlugin(MyWorldManager::class.java).playerStatsRepository
+        val stats = repository.findByUuid(playerUuid)
+        stats.worldDisplayOrder.remove(worldUuid)
+        stats.worldDisplayOrder.add(0, worldUuid)
+        repository.save(stats)
+    }
+
+    @JvmStatic
+    fun prepareStandardWorldCreationRoute(
+        player: Player,
+        billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        val session = plugin.creationSessionManager.startSession(player.uniqueId)
+        session.isDialogMode = true
+        session.billingMode = billingMode
+        player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_start"))
+        return plugin.creationGui.typeSelectionRoute()
+    }
+
+    @JvmStatic
+    fun openStandardWorldCreation(
+        player: Player,
+        billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
+    ): Boolean {
+        val route = prepareStandardWorldCreationRoute(player, billingMode)
+        return CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
+    }
+
+    @JvmStatic
+    fun hasWorldSettingsAdminAccess(player: Player): Boolean =
+        player.hasPermission("myworldmanager.admin") ||
+            JavaPlugin.getPlugin(MyWorldManager::class.java)
+                .settingsSessionManager
+                .getSession(player)
+                ?.isAdminFlow == true
 
     @JvmStatic
     fun registerBedrockFormService(service: ApiBedrockFormService) {
@@ -298,22 +550,6 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
-    fun registerMenuExtension(extension: MenuExtension) {
-        menuExtensions.removeIf { it.getId() == extension.getId() }
-        menuExtensions.add(extension)
-    }
-
-    @JvmStatic
-    fun unregisterMenuExtension(extension: MenuExtension) {
-        menuExtensions.removeIf { it === extension || it.getId() == extension.getId() }
-    }
-
-    @JvmStatic
-    fun getMenuExtensions(): List<MenuExtension> {
-        return menuExtensions.toList()
-    }
-
-    @JvmStatic
     fun registerWorldDeleteGuard(guard: WorldDeleteGuard) {
         worldDeleteGuards.removeIf { it.getId() == guard.getId() }
         worldDeleteGuards.add(guard)
@@ -426,195 +662,25 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
-    fun registerWorldSettingsMenuProvider(provider: WorldSettingsMenuProvider) {
-        worldSettingsMenuProviders.removeIf { it.getId() == provider.getId() }
-        worldSettingsMenuProviders.add(provider)
+    fun registerWorldMenuAccessPolicy(policy: WorldMenuAccessPolicy) {
+        worldMenuAccessPolicies.removeIf { it.getId() == policy.getId() }
+        worldMenuAccessPolicies.add(policy)
     }
 
     @JvmStatic
-    fun unregisterWorldSettingsMenuProvider(provider: WorldSettingsMenuProvider) {
-        worldSettingsMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
+    fun unregisterWorldMenuAccessPolicy(policy: WorldMenuAccessPolicy) {
+        worldMenuAccessPolicies.removeIf { it === policy || it.getId() == policy.getId() }
     }
 
     @JvmStatic
-    fun openWorldSettingsMenuOverride(
+    fun getWorldMenuAccessChallenge(
         player: Player,
         worldData: WorldData,
-        request: WorldSettingsMenuRequest
-    ): Boolean {
-        return worldSettingsMenuProviders.asReversed().any { it.open(player, worldData, request) }
-    }
-
-    @JvmStatic
-    fun registerAdminWorldListProvider(provider: AdminWorldListProvider) {
-        adminWorldListProviders.removeIf { it.getId() == provider.getId() }
-        adminWorldListProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterAdminWorldListProvider(provider: AdminWorldListProvider) {
-        adminWorldListProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openAdminWorldListOverride(player: Player, request: AdminWorldListRequest): Boolean {
-        return adminWorldListProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerAdminMenuProvider(provider: AdminMenuProvider) {
-        adminMenuProviders.removeIf { it.getId() == provider.getId() }
-        adminMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterAdminMenuProvider(provider: AdminMenuProvider) {
-        adminMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun getAdminMenuProviders(): List<AdminMenuProvider> {
-        return adminMenuProviders.toList()
-    }
-
-    @JvmStatic
-    fun openNextAdminMenu(player: Player, currentProviderId: String? = null): Boolean {
-        val providers = adminMenuProviders.toList()
-        if (providers.isEmpty()) return false
-        val currentIndex = currentProviderId?.let { id -> providers.indexOfFirst { it.getId() == id } } ?: -1
-        val nextIndex = if (currentIndex < 0 || currentIndex + 1 >= providers.size) 0 else currentIndex + 1
-        providers[nextIndex].open(player)
-        return true
-    }
-
-    @JvmStatic
-    fun registerPlayerWorldMenuProvider(provider: PlayerWorldMenuProvider) {
-        playerWorldMenuProviders.removeIf { it.getId() == provider.getId() }
-        playerWorldMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterPlayerWorldMenuProvider(provider: PlayerWorldMenuProvider) {
-        playerWorldMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openPlayerWorldMenuOverride(player: Player, request: PlayerWorldMenuRequest): Boolean {
-        return playerWorldMenuProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
-        creationConfirmationMenuProviders.removeIf { it.getId() == provider.getId() }
-        creationConfirmationMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterCreationConfirmationMenuProvider(provider: CreationConfirmationMenuProvider) {
-        creationConfirmationMenuProviders.removeIf {
-            it === provider || it.getId() == provider.getId()
-        }
-    }
-
-    @JvmStatic
-    fun openCreationConfirmationMenuOverride(
-        player: Player,
-        session: me.awabi2048.myworldmanager.session.WorldCreationSession
-    ): Boolean {
-        for (provider in creationConfirmationMenuProviders.asReversed()) {
-            val handled = runCatching { provider.open(player, session) }
-                .onFailure { error ->
-                    Bukkit.getLogger().log(
-                        java.util.logging.Level.SEVERE,
-                        "Creation confirmation provider '${provider.getId()}' failed; using the next provider or MWM fallback.",
-                        error
-                    )
-                }
-                .getOrDefault(false)
-            if (handled) return true
-        }
-        return false
-    }
-
-    @JvmStatic
-    fun registerDiscoveryMenuProvider(provider: DiscoveryMenuProvider) {
-        discoveryMenuProviders.removeIf { it.getId() == provider.getId() }
-        discoveryMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterDiscoveryMenuProvider(provider: DiscoveryMenuProvider) {
-        discoveryMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openDiscoveryMenuOverride(player: Player, request: DiscoveryMenuRequest): Boolean {
-        return discoveryMenuProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerFavoriteListMenuProvider(provider: FavoriteListMenuProvider) {
-        favoriteListMenuProviders.removeIf { it.getId() == provider.getId() }
-        favoriteListMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterFavoriteListMenuProvider(provider: FavoriteListMenuProvider) {
-        favoriteListMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openFavoriteListMenuOverride(player: Player, request: FavoriteListMenuRequest): Boolean {
-        return favoriteListMenuProviders.asReversed().any { it.open(player, request) }
-    }
-
-    @JvmStatic
-    fun registerFavoriteMenuProvider(provider: FavoriteMenuProvider) {
-        favoriteMenuProviders.removeIf { it.getId() == provider.getId() }
-        favoriteMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterFavoriteMenuProvider(provider: FavoriteMenuProvider) {
-        favoriteMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openFavoriteMenuOverride(player: Player, worldData: WorldData?): Boolean {
-        return favoriteMenuProviders.asReversed().any { it.open(player, worldData) }
-    }
-
-    @JvmStatic
-    fun registerVisitMenuProvider(provider: VisitMenuProvider) {
-        visitMenuProviders.removeIf { it.getId() == provider.getId() }
-        visitMenuProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterVisitMenuProvider(provider: VisitMenuProvider) {
-        visitMenuProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openVisitMenuOverride(player: Player, owner: OfflinePlayer, request: VisitMenuRequest): Boolean {
-        return visitMenuProviders.asReversed().any { it.open(player, owner, request) }
-    }
-
-    @JvmStatic
-    fun registerWorldMenuAccessProvider(provider: WorldMenuAccessProvider) {
-        worldMenuAccessProviders.removeIf { it.getId() == provider.getId() }
-        worldMenuAccessProviders.add(provider)
-    }
-
-    @JvmStatic
-    fun unregisterWorldMenuAccessProvider(provider: WorldMenuAccessProvider) {
-        worldMenuAccessProviders.removeIf { it === provider || it.getId() == provider.getId() }
-    }
-
-    @JvmStatic
-    fun openWorldMenuAccessOverride(player: Player, worldData: WorldData, showBackButton: Boolean): Boolean {
-        return worldMenuAccessProviders.asReversed().any { it.open(player, worldData, showBackButton) }
-    }
+    ): WorldMenuAccessChallenge? =
+        worldMenuAccessPolicies.asReversed()
+            .firstNotNullOfOrNull {
+                it.challenge(WorldMenuAccessContext(player, worldData))
+            }
 
     @JvmStatic
     fun registerWorldEvacuationProvider(provider: WorldEvacuationProvider) {

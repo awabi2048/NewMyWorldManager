@@ -1,66 +1,75 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
+import com.awabi2048.ccsystem.api.gui.GuiLoreLine
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.ItemTag
+import me.awabi2048.myworldmanager.util.GuiSpecFactory
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 
 class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
-
     fun open(player: Player, info: MemberRequestInfo, key: String) {
-        val lang = plugin.languageManager
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
-        me.awabi2048.myworldmanager.util.GuiHelper.playMenuOpen(player, "member_request_owner_confirm")
-
-        val holder = MemberRequestOwnerConfirmHolder()
-        val inventory = GuiHelper.createConfirmationInventory(holder, title)
-        holder.inv = inventory
-
-        me.awabi2048.myworldmanager.util.GuiHelper.applyConfirmationFrame(inventory)
-
-        // 情報
-        val requestorName = PlayerNameUtil.getNameOrDefault(info.requestorUuid, lang.getMessage(player, "general.unknown"))
-        val infoItem = ItemStack(Material.PAPER)
-        val infoMeta = infoItem.itemMeta
-        infoMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.title"))
-        infoMeta.lore(me.awabi2048.myworldmanager.util.GuiItemFactory.menuLore(
-            lang.getMessageList(player, "gui.member_request_owner_confirm.lore", mapOf("player" to requestorName)).map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
-        ))
-        infoItem.itemMeta = infoMeta
-
-        // 承認
-        val yesItem = ItemStack(Material.LIME_CONCRETE)
-        val yesMeta = yesItem.itemMeta
-        yesMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.confirm"))
-        yesItem.itemMeta = yesMeta
-        ItemTag.tagItem(yesItem, "member_request_owner_yes")
-        ItemTag.setString(yesItem, "key", key)
-
-        // 却下
-        val noItem = ItemStack(Material.RED_CONCRETE)
-        val noMeta = noItem.itemMeta
-        noMeta.displayName(lang.getComponent(player, "gui.member_request_owner_confirm.reject"))
-        noItem.itemMeta = noMeta
-        ItemTag.tagItem(noItem, "member_request_owner_no")
-        ItemTag.setString(noItem, "key", key)
-        GuiHelper.setConfirmationItems(inventory, infoItem, yesItem, noItem)
-
-        ManagedMenuPresenter.open(player, inventory)
+        val route = prepareOpen(player, info, key) ?: return
+        CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
     }
 
-    class MemberRequestOwnerConfirmHolder : InventoryHolder {
-        lateinit var inv: Inventory
-        override fun getInventory(): Inventory = inv
+    fun prepareOpen(player: Player, info: MemberRequestInfo, key: String): MenuRoute? {
+        val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return null
+        val lang = plugin.languageManager
+        val approveLabel = lang.getMessage(player, "gui.member_request_owner_confirm.confirm")
+        val rejectLabel = lang.getMessage(player, "gui.member_request_owner_confirm.reject")
+        val infoItem = GuiSpecFactory.spec(
+            Material.PAPER,
+            lang.getComponent(player, "gui.member_request_owner_confirm.title"),
+            GuiLoreSpec.Rich(
+                lang.getMessageList(
+                    player,
+                    "gui.member_request_owner_confirm.lore",
+                    mapOf(
+                        "player" to PlayerNameUtil.getNameOrDefault(
+                            info.requestorUuid,
+                            lang.getMessage(player, "general.unknown"),
+                        ),
+                    ),
+                ).map(GuiLoreLine::Text),
+                GuiLoreFrame.BOTH,
+            ),
+        )
+        val approveItem = GuiSpecFactory.spec(Material.LIME_CONCRETE, approveLabel, GuiLoreSpec.None, GuiElementRole.CONFIRM)
+        val rejectItem = GuiSpecFactory.spec(Material.RED_CONCRETE, rejectLabel, GuiLoreSpec.None, GuiElementRole.CANCEL)
+        return plugin.confirmationMenuGui.prepareOpen(
+            player = player,
+            menuId = "member_request_owner_confirm",
+            title = GuiHelper.inventoryTitle(lang.getComponent(player, "gui.member_request_owner_confirm.title")),
+            centerItem = infoItem,
+            confirmItem = approveItem,
+            cancelItem = rejectItem,
+            confirmActionText = approveLabel,
+            cancelActionText = rejectLabel,
+            onConfirm = {
+                resolve(player, decisionId, true)
+                MenuActionResult.Success(MenuUpdate.Back)
+            },
+            onCancel = {
+                resolve(player, decisionId, false)
+                MenuActionResult.Success(MenuUpdate.Back)
+            },
+            cancelSound = MenuSoundPolicy.Silent,
+        )
+    }
+
+    private fun resolve(player: Player, decisionId: java.util.UUID, accepted: Boolean) {
+        plugin.pendingDecisionManager.resolvePersistentById(player, decisionId, accepted)
+        if (!accepted) plugin.soundManager.playActionSound(player, "member_request", "rejected")
     }
 }

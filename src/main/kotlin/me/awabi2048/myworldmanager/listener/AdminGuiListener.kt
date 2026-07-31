@@ -2,337 +2,41 @@
 
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
-import com.awabi2048.ccsystem.api.gui.GuiCycle
-import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.PlayerFilterType
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
 
-class AdminGuiListener : Listener {
+class AdminGuiListener {
 
-    @EventHandler(ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        // Debug: リスナー呼び出し確認
-
-        // GUI遷移中のクリックを無視
-        val session = plugin.settingsSessionManager.getSession(player)
-        if (session != null && session.isGuiTransition) {
-            if (GuiHelper.isPluginGuiInventory(event.view.topInventory)) {
-                session.isGuiTransition = false
-            } else {
-                session.isGuiTransition = false
-                return
-            }
-        }
-
-        val view = event.view
-        val title = PlainTextComponentSerializer.plainText().serialize(view.title())
-        val lang = plugin.languageManager
-
-        // ポータル管理GUIの判定
-        if (lang.isKeyMatch(title, "gui.admin_portals.title")) {
-            event.cancelWithDebug("AdminGuiListener.onInventoryClick: admin portals GUI click")
-            if (event.clickedInventory != view.topInventory) return
-            val currentItem = event.currentItem ?: return
-            val type = ItemTag.getType(currentItem) ?: return
-
-            when (type) {
-                ItemTag.TYPE_GUI_RETURN -> {
-                    plugin.soundManager.playAdminClickSound(player)
-                    plugin.adminCommandGui.open(player)
-                }
-                ItemTag.TYPE_GUI_NAV_PREV, ItemTag.TYPE_GUI_NAV_NEXT -> {
-                    val page = ItemTag.getTargetPage(currentItem) ?: 0
-                    plugin.soundManager.playAdminClickSound(player)
-                    plugin.adminPortalGui.open(player, page)
-                }
-                ItemTag.TYPE_GUI_ADMIN_PORTAL_SORT -> {
-                    plugin.soundManager.playAdminClickSound(player)
-                    plugin.adminGuiSessionManager.cyclePortalSortType(
-                        player.uniqueId,
-                        GuiCycle.direction(event.click) ?: return
-                    )
-                    plugin.adminPortalGui.open(player)
-                }
-                ItemTag.TYPE_PORTAL -> {
-                    val portalUuid = ItemTag.getPortalUuid(currentItem) ?: return
-                    val portal = plugin.portalRepository.findAll().find { it.id == portalUuid } ?: return
-
-                    if (event.isLeftClick) {
-                        // テレポート
-                        plugin.soundManager.playClickSound(player, currentItem)
-                        ManagedMenuPresenter.close(player)
-                        if (portal.worldUuid != null) {
-                            plugin.portalManager.addIgnorePlayer(player)
-                            plugin.portalManager.addPortalGrace(player, portalUuid, 15)
-                            val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
-                            if (destData != null && Bukkit.getWorld(plugin.worldService.getWorldFolderName(destData)) == null) {
-                                player.sendMessage(lang.getMessage(player, "messages.world_loading"))
-                            }
-                            plugin.worldService.teleportToWorld(player, portal.worldUuid!!, portal.getCenterLocation(), runMacro = false) {
-                                player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
-                            }
-                        } else if (portal.targetWorldKey != null) {
-                            plugin.portalManager.addIgnorePlayer(player)
-                            plugin.portalManager.addPortalGrace(player, portalUuid, 15)
-                            val teleported = plugin.portalManager.teleportPlayerToWorldSpawn(
-                                player,
-                                portal.targetRuntimeName!!
-                            ) {
-                                player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
-                            }
-                            if (!teleported) {
-                                player.sendMessage(lang.getMessage(player, "general.world_not_found"))
-                                return
-                            }
-                        }
-                    } else if (event.isRightClick) {
-                        // 撤去
-                        val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
-                        plugin.portalManager.removePortalVisuals(portalUuid)
-                        plugin.portalRepository.removePortal(portalUuid)
-
-                        if (!portal.isGate()) {
-                            val world = portal.loadedWorld()
-                            val block = world?.getBlockAt(portal.x, portal.y, portal.z)
-                            if (block != null && block.type == org.bukkit.Material.END_PORTAL_FRAME) {
-                                block.type = org.bukkit.Material.AIR
-                            }
-                        }
-
-                        plugin.soundManager.playAdminClickSound(player)
-                        if (portal.isGate()) {
-                            val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: portal.ownerUuid.toString()
-                            player.sendMessage(
-                                lang.getMessage(
-                                    player,
-                                    "messages.world_gate_removed_refund",
-                                    mapOf(
-                                        "points" to (refundResult?.points ?: 0),
-                                        "percent" to (refundResult?.percent ?: 0),
-                                        "owner" to ownerName
-                                    )
-                                )
-                            )
-                        }
-                        player.sendMessage(lang.getMessage(player, "messages.admin_portal_removed"))
-                        plugin.adminPortalGui.open(player)
-                    }
-                }
-            }
-            return
-        }
-
-        // 管理者用ワールド管理
-        if (lang.isKeyMatch(title, "gui.admin.title")) {
-            event.cancelWithDebug("AdminGuiListener.onInventoryClick: admin world list GUI click")
-            if (event.clickedInventory != view.topInventory) return
-            val currentItem = event.currentItem ?: return
-            if (currentItem.type == Material.AIR) return
-
-            val type = ItemTag.getType(currentItem)
-            val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
-
-            // ページナビゲーション
-            if (type == ItemTag.TYPE_GUI_NAV_NEXT || type == ItemTag.TYPE_GUI_NAV_PREV) {
-                val direction = if (type == ItemTag.TYPE_GUI_NAV_NEXT) 1 else -1
-                val step = if (event.isShiftClick) 5 else 1
-                val targetPage = (session.currentPage + (direction * step)).coerceAtLeast(0)
-                plugin.soundManager.playClickSound(player, currentItem)
-                plugin.worldGui.open(player, targetPage)
-                return
-            }
-
-            // アーカイブフィルターボタン
-            if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE) {
-                plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cycleArchiveFilter(
-                    player.uniqueId,
-                    GuiCycle.direction(event.click) ?: return
-                )
-                plugin.worldGui.open(player)
-                return
-            }
-
-            // 公開レベルフィルターボタン
-            if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH) {
-                plugin.soundManager.playClickSound(player, currentItem)
-                plugin.adminGuiSessionManager.cyclePublishFilter(
-                    player.uniqueId,
-                    GuiCycle.direction(event.click) ?: return
-                )
-                plugin.worldGui.open(player)
-                return
-            }
-
-            // プレイヤーフィルターボタン
-            if (type == ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER) {
-                plugin.soundManager.playClickSound(player, currentItem)
-                if (event.isLeftClick) {
-                    plugin.adminGuiSessionManager.cyclePlayerFilterType(
-                        player.uniqueId,
-                        GuiCycle.direction(event.click) ?: return
-                    )
-                    plugin.worldGui.open(player)
-                } else if (event.isRightClick) {
-                    if (session.playerFilterType != me.awabi2048.myworldmanager.session.PlayerFilterType.NONE) {
-                        plugin.settingsSessionManager.startSession(player, java.util.UUID(0, 0), me.awabi2048.myworldmanager.session.SettingsAction.ADMIN_PLAYER_FILTER)
-                        plugin.settingsSessionManager.getSession(player)?.beginExternalInput(MenuExternalInput.ADMIN_PLAYER_FILTER)
-                        ManagedMenuPresenter.close(player)
-                        openAdminPlayerFilterInput(plugin, player)
-                    }
-                }
-                return
-            }
-
-            // ソートボタン
-            if (type == ItemTag.TYPE_GUI_ADMIN_SORT) {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminGuiSessionManager.cycleSortType(
-                    player.uniqueId,
-                    GuiCycle.direction(event.click) ?: return
-                )
-                plugin.worldGui.open(player)
-                return
-            }
-
-            if (type == ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO) {
-                val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-                val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-
-                if (event.click == org.bukkit.event.inventory.ClickType.MIDDLE) {
-                    sendWorldDirectoryCopyMessage(player, worldData)
-                    return
-                }
-
-                if (!event.isRightClick) {
-                    return
-                }
-
-                plugin.soundManager.playClickSound(player, currentItem)
-                if (event.isRightClick && event.isShiftClick) {
-                    if (worldData.isArchived) {
-                        plugin.adminCommandGui.openUnarchiveWorldConfirmation(player, worldData.name, uuid)
-                    } else {
-                        plugin.adminCommandGui.openArchiveWorldConfirmation(player, worldData.name, uuid)
-                    }
-                    return
-                }
-
-                plugin.settingsSessionManager.updateSessionAction(
-                    player,
-                    uuid,
-                    SettingsAction.VIEW_SETTINGS,
-                    isGui = true,
-                    isAdminFlow = true
-                )
-                openWorldSettingsFromAdmin(plugin, player, worldData)
-                return
-            }
-
-            if (type == ItemTag.TYPE_GUI_DECORATION || type == ItemTag.TYPE_GUI_INFO) return
-
-            // ワールドアイコンの処理
-            val uuid = ItemTag.getWorldUuid(currentItem) ?: return
-            val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
-
-            if (event.isLeftClick) {
-                if (worldData.isArchived) {
-                    player.sendMessage(lang.getMessage(player, "messages.admin_warp_archived_error"))
-                    return
-                }
-                plugin.soundManager.playClickSound(player, currentItem)
-                warpFromAdminList(plugin, player, worldData)
-            } else if (event.isRightClick) {
-                plugin.soundManager.playClickSound(player, currentItem)
-                if (event.isShiftClick) {
-                    // Shift + 右クリック: アーカイブ操作
-                    if (worldData.isArchived) {
-                        plugin.adminCommandGui.openUnarchiveWorldConfirmation(player, worldData.name, uuid)
-                    } else {
-                        plugin.adminCommandGui.openArchiveWorldConfirmation(player, worldData.name, uuid)
-                    }
-                } else {
-                    // 右クリック: ワールド設定メニューを開く
-                    plugin.settingsSessionManager.updateSessionAction(player, uuid, SettingsAction.VIEW_SETTINGS, isGui = true, isAdminFlow = true)
-                    openWorldSettingsFromAdmin(plugin, player, worldData)
-                }
-            } else if (event.click == org.bukkit.event.inventory.ClickType.MIDDLE) {
-                // ホイールクリック：UUIDコピーメッセージを送信（クリエイティブモードのみ）
-                if (player.gameMode == org.bukkit.GameMode.CREATIVE) {
-                    sendWorldDirectoryCopyMessage(player, worldData)
-                }
-            }
-            return
-        }
-    }
-
-    @EventHandler
-    fun onAdminFilterDialog(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        if (
-            identifier != Key.key("mwm:admin/player_filter_submit") &&
-                identifier != Key.key("mwm:admin/player_filter_cancel")
-        ) {
-            return
-        }
-
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-
-        if (identifier == Key.key("mwm:admin/player_filter_cancel")) {
-            plugin.settingsSessionManager.endSession(player)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
-            plugin.worldGui.open(player)
-            return
-        }
-
-        val view = event.getDialogResponseView() ?: return
-        val input = view.getText("admin_player_name")?.toString().orEmpty()
-        applyAdminPlayerFilter(plugin, player, input)
-    }
-
-    private fun openAdminPlayerFilterInput(plugin: MyWorldManager, player: Player) {
+    fun openAdminPlayerFilterInput(plugin: MyWorldManager, player: Player) {
         val lang = plugin.languageManager
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 return
             }
 
+        CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
@@ -350,7 +54,7 @@ class AdminGuiListener : Listener {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             plugin.settingsSessionManager.endSession(player)
                             if (player.isOnline) {
-                                plugin.worldGui.open(player)
+                                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                             }
                         })
                     }
@@ -358,45 +62,44 @@ class AdminGuiListener : Listener {
             if (!opened) {
                 plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
-                plugin.worldGui.open(player)
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
             return
         }
 
         val prompt = lang.getMessage(player, "messages.admin_player_filter_prompt")
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(Component.text(prompt, NamedTextColor.YELLOW))
-                        .body(listOf(DialogBody.plainMessage(Component.text(prompt))))
-                        .inputs(
-                            listOf(
-                                DialogInput.text(
-                                    "admin_player_name",
-                                    Component.text(lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label"))
-                                ).build()
-                            )
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = "admin-player-filter",
+                title = Component.text(prompt, NamedTextColor.YELLOW),
+                body = listOf(Component.text(prompt)),
+                inputs = listOf(
+                    MenuDialogInput.Text(
+                        "admin_player_name",
+                        Component.text(lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label")),
+                    ),
+                ),
+                confirm = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    MenuDialogHandler { target, response ->
+                        applyAdminPlayerFilter(plugin, target, response.textValue("admin_player_name"))
+                        MenuActionResult.Success(MenuUpdate.None)
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    MenuDialogHandler { target, _ ->
+                        plugin.settingsSessionManager.endSession(target)
+                        target.sendMessage(
+                            plugin.languageManager.getMessage(target, "messages.operation_cancelled"),
                         )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key("mwm:admin/player_filter_submit"), null)
-                        ),
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key("mwm:admin/player_filter_cancel"), null)
-                        )
-                    )
-                )
-        }
-        player.showDialog(dialog)
+                        MenuActionResult.Success(MenuUpdate.Resume)
+                    },
+                ),
+            ),
+        )
     }
 
     private fun applyAdminPlayerFilter(plugin: MyWorldManager, player: Player, targetNameRaw: String) {
@@ -405,7 +108,7 @@ class AdminGuiListener : Listener {
         if (offlinePlayer == null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "general.player_not_found"))
             plugin.settingsSessionManager.endSession(player)
-            plugin.worldGui.open(player)
+            CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             return
         }
 
@@ -423,10 +126,10 @@ class AdminGuiListener : Listener {
             )
         )
         plugin.settingsSessionManager.endSession(player)
-        plugin.worldGui.open(player)
+        CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
     }
 
-    private fun sendWorldDirectoryCopyMessage(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
+    fun sendWorldDirectoryCopyMessage(player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
         if (player.gameMode != org.bukkit.GameMode.CREATIVE) {
             return
         }
@@ -465,43 +168,4 @@ class AdminGuiListener : Listener {
         plugin.soundManager.playCopySound(player)
     }
 
-    private fun warpFromAdminList(plugin: MyWorldManager, player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
-        val lang = plugin.languageManager
-        val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-        if (Bukkit.getWorld(folderName) == null) {
-            ManagedMenuPresenter.close(player)
-            player.sendMessage(lang.getMessage(player, "messages.world_loading"))
-            plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
-                player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
-            }
-            return
-        }
-
-        ManagedMenuPresenter.close(player)
-        plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
-            player.sendMessage(lang.getMessage(player, "messages.admin_warp_success", mapOf("world" to worldData.name)))
-        }
-    }
-
-    private fun openWorldSettingsFromAdmin(plugin: MyWorldManager, player: Player, worldData: me.awabi2048.myworldmanager.model.WorldData) {
-        val lang = plugin.languageManager
-        val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-        if (!worldData.isArchived && Bukkit.getWorld(folderName) == null) {
-            ManagedMenuPresenter.close(player)
-            player.sendMessage(lang.getMessage(player, "messages.world_loading"))
-            Bukkit.getScheduler().runTask(plugin, Runnable {
-                if (!player.isOnline) {
-                    return@Runnable
-                }
-                if (!plugin.worldService.loadWorld(worldData.uuid)) {
-                    player.sendMessage(lang.getMessage(player, "error.load_failed"))
-                    return@Runnable
-                }
-                plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
-            })
-            return
-        }
-
-        plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
-    }
 }

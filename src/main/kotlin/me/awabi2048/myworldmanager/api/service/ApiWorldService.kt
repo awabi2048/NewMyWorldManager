@@ -71,6 +71,8 @@ interface ApiWorldService {
 
     fun getWorldFolderName(worldData: WorldData): String
 
+    fun isPlayerInWorld(player: Player, worldData: WorldData): Boolean
+
     fun getWorldDirectory(worldData: WorldData): File
 
     fun getWorldCreationDirectory(worldData: WorldData): File

@@ -1,12 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
 import com.awabi2048.ccsystem.CCSystem
-import com.awabi2048.ccsystem.api.gui.MenuClickType
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
 import org.bukkit.Sound
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 
 class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     private val menuSoundService
@@ -22,33 +19,20 @@ class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     /**
      * 既存の ItemTag -> アイコンID対応を保ったまま、メニュークリック音を共通サービスへ委譲する。
      */
-    fun playClickSound(player: Player, item: ItemStack?, menuId: String? = null) {
-        val type = item?.let(ItemTag::getType)
-        if (menuId == null) {
-            ManagedMenuPresenter.success(player)
-            return
-        }
-
-        val iconId = iconIdFor(type)
-        if (iconId != null) {
-            menuSoundService.onMenuIconClick(player, menuId, iconId, clickTypeFor(type))
-            return
-        }
-
-        menuSoundService.onMenuClick(player, menuId, clickTypeFor(type))
-    }
-
     fun playActionSound(player: Player, menuId: String, actionId: String) {
+        // Runtime管理中の画面では、Action結果に基づく効果音をRuntimeだけが再生する。
+        // 移行前の呼び出しが残っていても、同一クリックで二重再生させない。
+        if (CCSystem.getAPI().getMenuNavigationService().currentRoute(player) != null) {
+            return
+        }
         menuSoundService.onMenuIconClick(player, menuId, actionId)
     }
 
     fun playCopySound(player: Player) {
-        menuSoundService.onGenericClick(player)
+        if (!hasManagedMenuRoute(player)) {
+            menuSoundService.onGenericClick(player)
+        }
         player.playSound(player.location, Sound.ENTITY_VILLAGER_WORK_CARTOGRAPHER, 1.0f, 1.0f)
-    }
-
-    fun playAdminClickSound(player: Player) {
-        ManagedMenuPresenter.success(player)
     }
 
     fun playTeleportSound(player: Player) {
@@ -56,40 +40,16 @@ class SoundManager(@Suppress("UNUSED_PARAMETER") plugin: MyWorldManager) {
     }
 
     fun playGlobalClickSound(player: Player) {
-        ManagedMenuPresenter.success(player)
+        if (!hasManagedMenuRoute(player)) {
+            CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
+        }
     }
 
     fun playChatClickSound(player: Player) {
-        ManagedMenuPresenter.success(player)
+        CCSystem.getAPI().getMenuSoundService().onGenericClick(player)
     }
 
-    private fun iconIdFor(type: String?): String? {
-        return when (type) {
-            ItemTag.TYPE_GUI_NAV_NEXT -> "next_page"
-            ItemTag.TYPE_GUI_NAV_PREV -> "prev_page"
-            ItemTag.TYPE_GUI_RETURN, ItemTag.TYPE_GUI_BACK -> "back"
-            ItemTag.TYPE_GUI_CONFIRM -> "confirm"
-            ItemTag.TYPE_GUI_CANCEL -> "cancel"
-            ItemTag.TYPE_GUI_WORLD_ITEM -> "world_item"
-            ItemTag.TYPE_GUI_CREATION_TYPE_TEMPLATE -> "template"
-            ItemTag.TYPE_GUI_CREATION_TYPE_SEED -> "seed"
-            ItemTag.TYPE_GUI_CREATION_TYPE_RANDOM -> "random"
-            ItemTag.TYPE_GUI_DISCOVERY_SORT -> "sort"
-            ItemTag.TYPE_GUI_DISCOVERY_TAG -> "tag_filter"
-            else -> null
-        }
-    }
+    private fun hasManagedMenuRoute(player: Player): Boolean =
+        CCSystem.getAPI().getMenuNavigationService().currentRoute(player) != null
 
-    private fun clickTypeFor(type: String?): MenuClickType {
-        return when (type) {
-            ItemTag.TYPE_GUI_CONFIRM -> MenuClickType.CONFIRM
-            ItemTag.TYPE_GUI_CANCEL,
-            ItemTag.TYPE_GUI_RETURN,
-            ItemTag.TYPE_GUI_BACK -> MenuClickType.CANCEL
-            ItemTag.TYPE_GUI_NAV_NEXT,
-            ItemTag.TYPE_GUI_NAV_PREV -> MenuClickType.NAVIGATION
-            ItemTag.TYPE_GUI_INFO -> MenuClickType.INFO
-            else -> MenuClickType.DEFAULT
-        }
-    }
 }

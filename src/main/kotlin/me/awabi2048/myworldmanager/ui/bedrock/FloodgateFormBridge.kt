@@ -64,7 +64,7 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
             },
             handler = MenuFormHandler { _, response ->
                 response.textValue("button").toIntOrNull()?.let(onSelect)
-                MenuActionResult.Success()
+                MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
             },
             onClosed = onClosed?.let { callback ->
                 MenuFormHandler { _, _ -> callback(); MenuActionResult.Ignored }
@@ -72,6 +72,50 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
         )
         return forms.show(player, request)
     }
+
+    fun sendSimpleFormWithImagesResult(
+        player: Player,
+        title: String,
+        content: String,
+        buttons: List<SimpleFormButton>,
+        onSelect: (Int) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null,
+    ): Boolean {
+        val request = MenuSimpleFormRequest(
+            owner = "my-world-manager",
+            id = "simple-form",
+            title = title,
+            content = content,
+            buttons = buttons.mapIndexed { index, button ->
+                MenuFormButton(index.toString(), button.label, button.imagePath)
+            },
+            handler = MenuFormHandler { _, response ->
+                response.textValue("button").toIntOrNull()
+                    ?.let(onSelect)
+                    ?: MenuActionResult.Ignored
+            },
+            onClosed = onClosed?.let { handler ->
+                MenuFormHandler { _, _ -> handler() }
+            },
+        )
+        return forms.show(player, request)
+    }
+
+    fun sendSimpleFormResult(
+        player: Player,
+        title: String,
+        content: String,
+        buttons: List<String>,
+        onSelect: (Int) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null,
+    ): Boolean = sendSimpleFormWithImagesResult(
+        player,
+        title,
+        content,
+        buttons.map(::SimpleFormButton),
+        onSelect,
+        onClosed,
+    )
 
     fun sendCustomInputForm(
         player: Player,
@@ -89,6 +133,28 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
         onClosed
     )
 
+    fun sendCustomInputFormResult(
+        player: Player,
+        title: String,
+        label: String,
+        placeholder: String,
+        defaultValue: String,
+        onSubmit: (String) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null,
+    ): Boolean {
+        val request = MenuCustomFormRequest(
+            owner = "my-world-manager",
+            id = "custom-input-form",
+            title = title,
+            inputs = listOf(MenuFormInput.Text("value", label, placeholder, defaultValue)),
+            handler = MenuFormHandler { _, response -> onSubmit(response.textValue("value")) },
+            onClosed = onClosed?.let { handler ->
+                MenuFormHandler { _, _ -> handler() }
+            },
+        )
+        return forms.show(player, request)
+    }
+
     fun sendCustomForm(
         player: Player,
         title: String,
@@ -105,7 +171,7 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
             },
             handler = MenuFormHandler { _, response ->
                 onSubmit(inputs.indices.map { response.textValue(it.toString()) })
-                MenuActionResult.Success()
+                MenuActionResult.Success(com.awabi2048.ccsystem.api.gui.MenuUpdate.None)
             },
             onClosed = onClosed?.let { callback ->
                 MenuFormHandler { _, _ -> callback(); MenuActionResult.Ignored }

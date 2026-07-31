@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
@@ -51,6 +52,7 @@ class WorldPermissionPolicyListener(
 
     @EventHandler
     fun onPlayerChangedWorld(event: PlayerChangedWorldEvent) {
+        if (MyWorldManagerApi.isLogoutRelocation(event.player)) return
         repository.findByWorldName(event.player.world.name)?.let { policy.handlePlayerEnteredWorld(event.player, it) }
     }
 }

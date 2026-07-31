@@ -188,36 +188,11 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                      return
                  }
 
-                 // Open Confirmation
-                 val title = net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.title"))
-                 val bodyLines = buildList {
-                     add(net.kyori.adventure.text.Component.text(plugin.languageManager.getMessage(player, "gui.world_seed_confirm.question")))
-                     add(net.kyori.adventure.text.Component.text("${plugin.languageManager.getMessage(player, "gui.world_seed_confirm.current_label")}: $currentSlots"))
-                     add(net.kyori.adventure.text.Component.text("${plugin.languageManager.getMessage(player, "gui.world_seed_confirm.next_label")}: ${currentSlots + 1}"))
-                     plugin.languageManager.getMessageList(player, "gui.world_seed_confirm.description")
-                         .forEach { add(net.kyori.adventure.text.Component.text(it)) }
-                 }
-
-                 me.awabi2048.myworldmanager.gui.DialogConfirmManager.showConfirmationByPreference(
-                      player,
-                      plugin,
-                      title,
-                      bodyLines,
-                      "mwm:confirm/world_seed",
-                      "mwm:confirm/cancel"
-                  ) {
-                      plugin.menuEntryRouter.openWorldSeedConfirm(
+                 plugin.menuEntryRouter.openWorldSeedConfirm(
                           player,
                           currentSlots,
                           currentSlots + 1,
-                          onBedrockConfirm = {
-                              WorldSeedListener.expandWorldSlot(plugin, player)
-                          },
-                          onBedrockCancel = {
-                              plugin.soundManager.playClickSound(player, null)
-                          }
-                      )
-                  }
+                 )
                }
         }
     }

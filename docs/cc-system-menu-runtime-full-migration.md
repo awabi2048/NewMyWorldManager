@@ -8,7 +8,46 @@
 - 再開時は、最初に本書、ワークスペースの `AGENTS.md`、`.docs/specs/ui/cross-system-ui-design.md` を読む。
 - 実装中に判明した追加対象は、コード変更より先に「対象台帳」へ追加する。
 
-最終更新日: 2026-07-25
+最終更新日: 2026-07-30
+
+## 第2段階: 画面所有権とプラグイン境界の分離
+
+第1段階で完了した「CC-System Runtimeへの接続」は、画面所有権の分離完了を意味しない。
+以後は次を正規境界とする。
+
+- CC-Systemは全プロジェクト共通のUI Runtimeだけを所有する。
+- MWMとMWM-Chanponは、それぞれ自分のRuntime Route、Presenter、Draftだけを所有する。
+- 他プラグイン画面のProvider置換、スロット差し込み、ItemStack/Loreの後付け変更、相手の画面セッション直接操作を禁止する。
+- 連携は公開Capability、Command、Eventを使用し、画面間は`MenuRoute`で遷移する。
+- 他プラグイン機能の発見にはCC-Systemの一般Capability Registryを使用する。外部機能はスロットを指定せず、ホスト画面が自身のレイアウト規則で配置する。
+- 画面はInventoryスナップショットではなく、Route payload、ページ、フィルタ、対象ID、最新のドメイン状態から再生成する。
+- 一時編集状態だけを画面所有者の専用Draftとして保持する。
+- Java Inventory、Java Dialog、Bedrock Formは同じユースケースとAction Handlerを異なるPresenterで表示する。
+
+依存方向:
+
+- 各UIからCC-System Runtime
+- 各UIから自ドメイン
+- 各UIから公開Capability
+
+禁止する依存:
+
+- Chanpon UIからMWM GUIまたはMWM画面セッション
+- ChanponからMWM画面のスロット変更
+- MWMからChanpon具体クラス
+- CC-SystemからMWMまたはChanponのドメイン型
+
+現在のProvider/Extension移行済み判定は、第1段階のRuntime接続完了として保持する。
+第2段階ではProvider置換と`MenuExtension`が残る限り未完了とする。
+
+最初の縦断移行対象は「ワールド提出」とする。
+
+1. CC-Systemへ一般Capability Registryを追加する。
+2. MWMはCapabilityを発見し、自身のレイアウト規則で入口を配置する。
+3. Chanponは提出専用Routeを所有し、未提出だけを左クリック限定Actionとして公開する。
+4. 提出済み、完了済み、状態エラーは描画時点でDisplayOnlyとする。
+5. `ProductionToggleExtension`のワールド設定差し込みとBooleanクリック処理を削除する。
+6. 以後、バックアップ、ツール権限、ポータル連携、本番用設定を同じ境界へ移行する。
 
 ## 現在の基準コミット
 
@@ -129,78 +168,78 @@ MWM / Chanpon関連のInventory GUI、Paper Dialog、Bedrock Formについて、
 
 ### MyWorldManager Inventory
 
-- [ ] `AdminCommandGui`
-- [ ] `AdminPortalGui`
-- [ ] `CreationGui`
-- [ ] `DiscoveryGui`
-- [ ] `EnvironmentGui`
-- [ ] `FavoriteGui`
-- [ ] `FavoriteMenuGui`
-- [ ] `InviteGui`
-- [ ] `MeetGui`
-- [ ] `PendingInteractionGui`
-- [ ] `PlayerWorldGui`
-- [ ] `PortalGui`
-- [ ] `TemplateWizardGui`
-- [ ] `TourGui`
-- [ ] `UserSettingsGui`
-- [ ] `VisitGui`
-- [ ] `VisitWorldGui`
-- [ ] `WorldGui`
-- [ ] `WorldSettingsGui`
-- [ ] `BedrockMenuService`のInventory代替画面
-- [ ] `GuiHelper`内の旧Inventory生成経路
-- [ ] 各種Confirmation Inventory
-- [ ] `WorldMigrationService`の確認画面
+- [x] `AdminCommandGui`
+- [x] `AdminPortalGui`
+- [x] `CreationGui`
+- [x] `DiscoveryGui`
+- [x] `EnvironmentGui`
+- [x] `FavoriteGui`
+- [x] `FavoriteMenuGui`
+- [x] `InviteGui`
+- [x] `MeetGui`
+- [x] `PendingInteractionGui`
+- [x] `PlayerWorldGui`
+- [x] `PortalGui`
+- [x] `TemplateWizardGui`
+- [x] `TourGui`
+- [x] `UserSettingsGui`
+- [x] `VisitGui`
+- [x] `VisitWorldGui`
+- [x] `WorldGui`
+- [x] `WorldSettingsGui`
+- [x] `BedrockMenuService`のInventory代替画面
+- [x] `GuiHelper`内の旧Inventory生成経路
+- [x] 各種Confirmation Inventory
+- [x] `WorldMigrationService`の確認画面
 
 ### MyWorldManager Dialog
 
-- [ ] `AnnouncementDialogManager`
-- [ ] `CreationDialogManager`
-- [ ] `DialogConfirmManager`
-- [ ] `LikeSignDialogManager`
-- [ ] `TourDialogManager`
-- [ ] `AdminGuiListener`
-- [ ] `DiscoveryListener`
-- [ ] `PlayerWorldListener`
-- [ ] `TemplateWizardListener`
-- [ ] `WorldSettingsListener`
-- [ ] `VisitCommand`
-- [ ] `VisitWorldCommand`
+- [x] `AnnouncementDialogManager`
+- [x] `CreationDialogManager`
+- [x] `DialogConfirmManager`
+- [x] `LikeSignDialogManager`
+- [x] `TourDialogManager`
+- [x] `AdminGuiListener`
+- [x] `DiscoveryListener`
+- [x] `PlayerWorldListener`
+- [x] `TemplateWizardListener`
+- [x] `WorldSettingsListener`
+- [x] `VisitCommand`
+- [x] `VisitWorldCommand`
 
 ### MWM-Chanpon Inventory
 
-- [ ] `AnnualArchiveFlow`
-- [ ] `AutomationSettingsMenu`
-- [ ] `BackupListMenu`
-- [ ] `ChanponAdminMenu`
-- [ ] `ChanponAdminWorldListMenu`
-- [ ] `ChanponDiscoveryMenuProvider`
-- [ ] `ChanponEnvironmentGui`
-- [ ] `ChanponFavoriteVisitMenuProvider`
-- [ ] `ChanponPlayerWorldMenuProvider`
-- [ ] `ChanponWorldSettingsMenuProvider`
-- [ ] `SubmissionAdminMenu`
-- [ ] `SubmittedWorldMenuProvider`
-- [ ] `ToolPermissionMenu`
-- [ ] `WorldDataExportMenu`
-- [ ] `WorldDataManagementMenu`
-- [ ] `ProductionToggleExtension`
-- [ ] `WorldBackupMenuExtension`
+- [x] `AnnualArchiveFlow`
+- [x] `AutomationSettingsMenu`
+- [x] `BackupListMenu`
+- [x] `ChanponAdminMenu`
+- [x] `ChanponAdminWorldListMenu`
+- [x] `ChanponDiscoveryMenuProvider`（未登録の旧実装を削除）
+- [x] `ChanponEnvironmentGui`
+- [x] `ChanponFavoriteVisitMenuProvider`（未登録の旧実装を削除）
+- [x] `ChanponPlayerWorldMenuProvider`
+- [x] `ChanponWorldSettingsMenuProvider`
+- [x] `SubmissionAdminMenu`
+- [x] `SubmittedWorldMenuProvider`
+- [x] `ToolPermissionMenu`
+- [x] `WorldDataExportMenu`
+- [x] `WorldDataManagementMenu`
+- [x] `ProductionToggleExtension`
+- [x] `WorldBackupMenuExtension`
 
 ### MWM-Chanpon Dialog
 
-- [ ] `ChanponWorldMenuAccessProvider`
-- [ ] `EasyVoidWorldCreationService`
-- [ ] `WorldBackupMenuExtension`
-- [ ] `ChanponEnvironmentGui`
+- [x] `ChanponWorldMenuAccessProvider`
+- [x] `EasyVoidWorldCreationService`
+- [x] `WorldBackupMenuExtension`
+- [x] `ChanponEnvironmentGui`
 
 ### Chanpon-Utilities
 
 - [x] 独自Inventory GUIなし
 - [x] 直接Dialogなし
 - [x] 直接Formなし
-- [ ] 今後GUIを追加する場合にCC-System Runtimeを必須とする構造テストを追加
+- [x] 今後GUIを追加する場合にCC-System Runtimeを必須とする構造テストを追加
 
 ## ワールド出力の確定仕様
 
@@ -239,7 +278,7 @@ standalone_export:
 
 ### level.dat
 
-別ワールドの`level.dat`をそのまま流用しない。出力時にNBTを再構成する。
+`server.properties`の`level-name`で指定された、サーバーディレクトリ直下のメインワールドディレクトリを共有データの正本とする。そこから`level.dat`、`level.dat_old`、`data/`をコピーし、`level.dat`は出力時に必要な項目だけを書き換える。最初に選択したワールドはオーバーワールドの地形と出力名を決めるためだけに使用し、そのワールド内の同名共有データは使用しない。
 
 - `LastPlayed`: 出力時刻
 - `Version` / `DataVersion`: 稼働中サーバーのMinecraftバージョン
@@ -248,7 +287,7 @@ standalone_export:
 - `allowCommands = 1b`: チートあり
 - `SpawnX/Y/Z`と`SpawnAngle`: 代表ワールドの保存済みスポーン
 - プレイヤー情報を含める場合はプレイヤーのゲームモードもクリエイティブ
-- シードと新規チャンク生成設定を代表ワールドに合わせる
+- シード、新規チャンク生成設定、ゲームルール、時刻、天候、ワールド境界など上記以外の共有値: 稼働サーバーのメインワールド
 
 ### 追加ワールド
 
@@ -262,7 +301,7 @@ standalone_export:
 - scheduled events
 - Paper固有データ
 
-各項目について「代表へ統合」「ディメンション側へ変換」「意図的に除外」を実装前に決め、manifestへ記録する。
+各項目について「サーバーのメインワールドを使用」「ディメンション側へ変換」「意図的に除外」を分類し、manifestへ記録する。
 
 ### ポータル
 
@@ -280,14 +319,14 @@ standalone_export:
 
 対象: CC-System、MyWorldManager、MWM-Chanpon、Chanpon-Utilities
 
-- [ ] Runtime契約のアーキテクチャテストを作る。
-- [ ] 許可された基盤コード以外の`Bukkit.createInventory`を禁止する。
-- [ ] GUI Action用`InventoryClickEvent`を禁止する。
-- [ ] 直接`Dialog.create`を禁止する。
-- [ ] 直接Cumulus Form生成を禁止する。
-- [ ] 個別クリック音を禁止する。
-- [ ] 旧`ManagedMenuPresenter`を非推奨化し、最終フェーズで削除する。
-- [ ] 例外が必要なInteractiveStationは、入力スロット契約としてRuntimeへ実装する。
+- [x] Runtime契約のアーキテクチャテストを作る。
+- [x] 許可された基盤コード以外の`Bukkit.createInventory`を禁止する。
+- [x] GUI Action用`InventoryClickEvent`を禁止する。
+- [x] 直接`Dialog.create`を禁止する。
+- [x] 直接Cumulus Form生成を禁止する。
+- [x] 個別クリック音を禁止する。
+- [x] 旧`ManagedMenuPresenter`を削除する。
+- [x] 例外が必要なInteractiveStationは、入力スロット契約としてRuntimeへ実装する。
 
 完了条件:
 
@@ -298,14 +337,14 @@ standalone_export:
 
 対象: MyWorldManager、MWM-Chanpon
 
-- [ ] `AdminCommandGui`
-- [ ] `AdminPortalGui`
-- [ ] `PortalGui`
-- [ ] `ChanponAdminMenu`
-- [ ] `ChanponAdminWorldListMenu`
-- [ ] `WorldDataManagementMenu`
-- [ ] `WorldDataExportMenu`
-- [ ] `AutomationSettingsMenu`
+- [x] `AdminCommandGui`
+- [x] `AdminPortalGui`
+- [x] `PortalGui`
+- [x] `ChanponAdminMenu`
+- [x] `ChanponAdminWorldListMenu`
+- [x] `WorldDataManagementMenu`
+- [x] `WorldDataExportMenu`
+- [x] `AutomationSettingsMenu`
 
 完了条件:
 
@@ -318,17 +357,17 @@ standalone_export:
 
 対象: MWM-Chanpon、MyWorldManager
 
-- [ ] 年度config
-- [ ] 不正ワールド名の入口拒否
-- [ ] 順序付き選択と代表ワールド
-- [ ] Runtime確認画面
-- [ ] 出力名
-- [ ] `level.dat`再構成
-- [ ] クリエイティブ・チートあり
-- [ ] スポーン保存
-- [ ] 追加ワールドデータ分類
-- [ ] コマンドブロック・感圧板ポータル
-- [ ] manifest拡張
+- [x] 年度config
+- [x] 不正ワールド名の入口拒否
+- [x] 順序付き選択と代表ワールド
+- [x] Runtime確認画面
+- [x] 出力名
+- [x] `level.dat`再構成
+- [x] クリエイティブ・チートあり
+- [x] スポーン保存
+- [x] 追加ワールドデータ分類
+- [x] コマンドブロック・感圧板ポータル
+- [x] manifest拡張
 
 完了条件:
 
@@ -341,11 +380,11 @@ standalone_export:
 
 対象: MyWorldManager、MWM-Chanpon
 
-- [ ] ワールド一覧、設定、訪問、発見、お気に入り
-- [ ] 招待、メンバー、Meet、Tour
-- [ ] 作成、テンプレート、環境設定
-- [ ] 確認画面
-- [ ] Provider・Extension画面
+- [x] ワールド一覧、設定、訪問、発見、お気に入り
+- [x] 招待、メンバー、Meet、Tour
+- [x] 作成、テンプレート、環境設定
+- [x] 確認画面
+- [x] Provider・Extension画面
 
 完了条件:
 
@@ -357,9 +396,9 @@ standalone_export:
 
 対象: MyWorldManager、MWM-Chanpon
 
-- [ ] 対象台帳の27個の直接Dialog生成を移行する。
-- [ ] 入力、確認、取消、閉じる処理を`MenuDialogService`へ統一する。
-- [ ] Dialog固有の手動音と手動履歴を削除する。
+- [x] 対象台帳の27個の直接Dialog生成を移行する。
+- [x] 入力、確認、取消、閉じる処理を`MenuDialogService`へ統一する。
+- [x] Dialog固有の手動音と手動履歴を削除する。
 
 完了条件:
 
@@ -368,12 +407,12 @@ standalone_export:
 
 ### Phase 5: 旧経路削除
 
-- [ ] `ManagedMenuPresenter`互換ラッパーを削除する。
-- [ ] 旧`GuiHelper`生成経路を削除する。
-- [ ] GUI用の個別Listenerを削除する。
-- [ ] `SoundManager`のメニュークリック用途を削除する。
-- [ ] 手動Route履歴を削除する。
-- [ ] 一時許可リストを空にする。
+- [x] `ManagedMenuPresenter`互換ラッパーを削除する。
+- [x] 旧`GuiHelper`生成経路を削除する。
+- [x] GUI用の個別Listenerを削除する。
+- [x] `SoundManager`のメニュークリック用途を削除する。
+- [x] 手動Route履歴を削除する。
+- [x] 一時許可リストを空にする。
 
 完了条件:
 
@@ -383,16 +422,29 @@ standalone_export:
 
 ### Phase 6: デプロイ・実機検証
 
-- [ ] 稼働サーバーをプロセスとログから特定。
-- [ ] 対象JARをビルド・配置。
-- [ ] RCONで保存して正常停止。
-- [ ] 規定ショートカットから再起動。
-- [ ] PID、ポート、バージョン、JAR SHA-256、言語リソースを確認。
+- [x] 稼働サーバーをプロセスとログから特定。
+- [x] 対象JARをビルド・配置。
+- [x] RCONで保存して正常停止。
+- [x] 規定ショートカットから再起動。
+- [x] PID、ポート、バージョン、JAR SHA-256、言語リソースを確認。
 - [ ] Java版Inventory GUIを実機確認。
 - [ ] Paper Dialogを実機確認。
 - [ ] Bedrock Formを実機確認。
 - [ ] 単一・複数ZIPを完全バニラで読み込み。
 - [ ] ポータル、スポーン、クリエイティブ、チートを確認。
+
+上記5項目は、2026-07-26のユーザー指示により自動操作の対象外とし、ユーザーが手動で確認する。
+未確認項目を実装完了の根拠には使用しない。
+
+自動操作停止前に得られた実行時証拠:
+
+- MWM-Chanpon 1.24.1の実サービス出力で、`adventure-nbt`が実行時に存在せず
+  `StandaloneLevelDatRewriter`が停止する問題を検出した。
+- 1.24.2で`level.dat`変換をJAR同梱済みのQuerz NBTへ統一し、
+  単体・統合テスト37件を通過した。
+- 1.24.2の実サービスで単一出力
+  `［さばちゃんぽん2026］【waru】.zip`が生成されるところまで確認した。
+- 以後の複数出力・完全バニラ読み込み・画面操作はユーザー手動確認へ切り替えた。
 
 ## 実装単位とコミット境界
 
@@ -432,5 +484,127 @@ standalone_export:
 - Runtime横断監査を実施。
 - Inventoryの完全Runtime定義がMWM / MWM-Chanponとも0件であることを確認。
 - 直接Dialog、個別音、手動履歴を移行対象として確定。
-- 完全移行は未着手。
+- 4モジュールで、禁止APIのファイル別件数を完全一致で検査するRuntimeアーキテクチャテストを追加。
+- 既存違反はテストリソースの一時許可リストへ固定し、新規追加と無断の件数変化を失敗させる構造にした。
+- Chanpon-Utilitiesの`InventoryClickEvent`はGUI Actionではなく、安全制御とFreeCam保護の2 Listenerだけを明示許可した。
+- CC-System、MyWorldManager、MWM-Chanponの`ManagedMenuPresenter`を非推奨化した。
+- InteractiveStation用の`InventoryMenuView.inputSlots`、表示要素との排他検証、再描画時の入力保持が既にRuntimeへ実装済みであることを確認した。
+- Phase 0の4モジュールで`mvn clean package`成功。Runtimeアーキテクチャテストは各モジュールで実行成功。
+- Chanpon-Utilitiesへ未許可の`Bukkit.createInventory`参照を一時追加する負例試験を行い、契約テストが`CREATE_INVENTORY`の新規レコードを検出して失敗することを確認後、試験差分を除去して再ビルドした。
+- Phase 0完了。次はPhase 1の管理画面・ポータル移行から開始する。
+- CC-System 2.12.0へ画面終了ハンドラを追加し、個別`InventoryCloseEvent`なしで確認画面の未決定終了を扱えるようにした。
+- `AdminPortalGui`をRuntime Route、Action、Role、既定音へ移行し、`AdminGuiListener`内のタイトル判定、ポータル操作、個別クリック音を削除した。
+- `PendingInteractionGui`と共通`ConfirmationMenuGui`をRuntimeへ移行し、確認画面のコールバックと未決定終了をRouteセッションで管理するようにした。
+- 単一ワールド出力では、overworld地形を選択した代表ワールドから取得し、`level.dat`と共有`data/`を稼働サーバーのメインワールドディレクトリから取得するようにした。
+- 共有データのコピー前に稼働サーバーのメインワールドを保存し、メモリ上の最新状態を`level.dat`と`data/`へ反映してから出力するようにした。
+- 追加ワールドの`data/`をディメンション固有、サーバーメインワールド使用、除外へ分類し、方針をmanifestへ記録するようにした。
+- `ChanponAdminMenu`とスポーンワールド確認画面をRuntime Route、Action、Roleへ移行し、個別Inventory生成と個別クリックListenerを削除した。
+- `AutomationSettingsMenu`の本体、設定切替確認、復元点作成確認をRuntimeへ移行し、3個の直接Inventory生成と4個の個別クリックイベント分岐を削除した。
+- `WorldDataManagementMenu`の一覧、単体・一括バックアップ確認、一括ロールバック確認をRuntimeへ移行した。バックアップ一覧から戻るページは旧手動Route履歴ではなく明示状態で維持するようにした。
+- `BackupListMenu`の一覧、復元確認、二段階削除確認をRuntimeへ移行し、バックアップID・一覧モード・対象ワールド・ページをRoute payloadへ統一した。
+- `AnnualArchiveFlow`を単一インスタンス化し、名前確認と最終実行確認をRuntimeへ移行した。チャット入力Listenerだけを入力受付として残し、InventoryクリックListenerを削除した。
+- `SubmissionAdminMenu`の一覧、ページ、進捗フィルタ、並び替え、提出停止、本番用切替、未提出完了確認をRuntimeへ移行し、画面状態と対象UUIDをRoute payloadへ統一した。
+- `ChanponAdminWorldListMenu`の現在ワールド表示、一覧、公開状態フィルタ、並び替え、ページ移動、ワープ、設定遷移、情報コピーをRuntimeへ移行した。
+- CC-System 2.11.0へ、登録済み画面を親Routeと履歴を変更せず開く`MenuRuntimeService.openEphemeral`を追加した。
+- EPHEMERAL画面を閉じた場合に親ナビゲーションを消去しないセッション寿命テストを追加し、CC-Systemの全90テストに成功した。
+- `PortalGui`を`InventoryMenuDefinition`、Route payload、Runtime Actionへ完全移行した。直接Inventory生成、個別`InventoryClickEvent`、個別クリック音、ItemTagによるAction判定を撤去した。
+- `PortalListener`は単一登録済み`PortalGui`を使用し、ポータル設定を`openEphemeral`で開く。閉じた後も親メニューのRoute追跡を維持する。
+- CC-System 2.11.0（SHA-256 `60B41956A3A97053104BC84ABCB49BB0662CB780D204C704DE7B30D5CA63E9AE`）とMyWorldManager 1.10.1（SHA-256 `95620A70220323D59A72CCCE623C2CC289B82275C437A7A1FC52C17824E62AB8`）を`D:\Minecraft\Chiyogami-26.1.2`へ配置した。
+- RCON保存後に正常停止し、規定ショートカットからPID 5256で再起動した。RCONで両バージョン、起動完了、対象プラグインの起動例外なしを確認した。
+- 資源収集側commit `6090a30`の実質差分から、ProgressPath線長、Loreテスト、日英`tutorial_rank.unit`キーだけをCC-System 2.11.0へ統合した。`pom.xml`は取り込まず、commit `f7ffa32`として保存した。
+- JAR内の日英`content/tutorial_rank.yml`に`unit`、`minute`、`experience`が存在することを確認した。
+- Minecraft画面取得は`インターフェイスがサポートされていません (0x80004002)`で失敗した。推測座標による入力は行わず、ポータル設定を閉じた後の親Route保持と実際の可聴音は未検証として残す。
 
+### 2026-07-26
+
+- 手動確認で、`/myworld`の開始音、個人設定・ワールド設定の戻る、アイコン選択、プレイヤーインベントリ操作、ポータル管理導線、`/worldmenu`のポータル取得位置に回帰を確認した。
+- CC-System Runtimeのプレイヤーインベントリ方針を`BLOCKED`、`INTERACTIVE`、`SELECTION`へ分離した。通常操作は許可しつつ、上側GUIへのシフト移動を拒否し、選択画面だけが下側クリックをActionとして消費する。
+- 履歴がない`navigate`は無音の`replace`ではなく、開始音を伴うROOTとして開くようにした。
+- `PlayerWorldGui`、`UserSettingsGui`、Chanponのプレイヤーワールド・設定画面で、手動履歴、次tickの直接open、現在画面Closeの混在を除去し、Runtimeの`Navigate`、`Back`、履歴保持へ統一した。
+- MWM-Chanponに残っていた削除済み`menuRouteHistory`参照を、CC-System Runtimeを使用する現行`mwmMenuRoutes`または`MenuUpdate.Back`へ置換した。
+- Chanpon設定画面へポータル管理導線を復元した。ポータル取得Extensionは、既存アイテムの最大スロットではなく実際の画面サイズからフッターを算出する。
+- ポータル管理スロットと、54/45スロット画面におけるポータル取得位置を固定テストへ追加した。
+- FreeCam開始案内を2行へ分割し、`/fcam`のコマンド定義、登録、既定設定、既存設定移行から削除した。
+- 実機操作はユーザーが手動で行う方針を維持する。自動検証はビルド、単体・構造テスト、JAR・設定・ログ確認までとする。
+- CC-System 2.19.0、MyWorldManager 2.0.1、MWM-Chanpon 1.24.3、Chanpon-Utilities 0.3.1をビルドし、それぞれ98件、36件、39件、14件のテストに成功した。
+- 稼働中PID 8776をRCON保存後に正常停止し、4対象JARを配置して規定ショートカットからPID 20680で再起動した。
+- 通常インベントリ操作を維持しながらシフト移動、全回収、未知のGUI横断操作を拒否する共通ガードを追加し、CC-Systemだけを再配置してPID 4644で再起動した。
+- 配置済みSHA-256はCC-System `B23E85BEF5A316A3BB367083B4E8365F9E4C5B6DD5A961C130CB2DD5EA6BF49E`、MyWorldManager `3ECAFCA2F2054397539E59CA2AD61D0D00CF96A722C8A4C2414FEFD6A36624A8`、MWM-Chanpon `E3A2BD896BF69613F4CC8C6AA3AE9AE7E7CBE7EE53A2E171CB3CC05FF60D0821`、Chanpon-Utilities `166E118CD0D2FBBF8EF6B1AA5B45BCCE75733C5C03A09983A05803F210B52C89`。
+- RCONで4対象のバージョンと全対象の有効化を確認した。起動ログに対象由来の`NoSuchMethodError`または有効化例外はない。
+- 実行時Chanpon-Utilities設定の許可コマンドから`fcam`が削除され、配置済みCC-System JAR内のFreeCam開始案内が2行であることを確認した。
+- 起動ログには今回の対象外であるGeyser UDPポート競合と、既存の無効な資源ワールドフォルダーのエラーが残る。
+
+### 2026-07-26
+
+- `ChanponPlayerWorldMenuProvider`を`InventoryMenuDefinition`へ移行し、旧Holder、直接クリックListener、個別クリック音、手動履歴操作を削除した。
+- CC-System 2.15.0で`MenuActionContext`へクリック対象の`ItemStack`を追加し、Runtime Actionから拡張アイテムの識別情報を安全に参照できるようにした。全90テストに成功した。
+- MyWorldManagerの`MenuExtension`公開APIを2.0.0として更新し、`InventoryClickEvent`と可変`Inventory`を公開境界から除去した。
+- 拡張描画はスロットとアイテムの不変Mapを受け取り、新しいMapを返す。拡張クリックは`ClickType`と対象アイテムだけを受け取る。
+- MWM-Chanpon 1.24.0の`LinkedPortalMenuExtension`、`ToolPermissionMenuExtension`、`WorldBackupMenuExtension`、`ProductionToggleExtension`を新APIへ移行した。
+- MyWorldManagerとMWM-Chanponはいずれも全36テストに成功した。旧APIシグネチャは残していない。
+- 作成確認操作をMWM本体のイベント非依存ハンドラへ集約し、従来InventoryとRuntimeのどちらからも同一の権限・課金・生成処理を呼べるようにした。
+- `ChanponCreationConfirmationMenuProvider`を`InventoryMenuDefinition`へ移行し、直接Inventory生成、専用クリックListener、専用開閉音を削除した。
+- `ChanponWorldSettingsMenuProvider`のメイン設定、拡張、変更済み警告、実行確認、危険設定、二段階削除を単一Runtime Routeへ移行した。
+- 画面種別、ワールドUUID、呼出元設定、確認操作、方向、削除段階をRoute payloadへ統一し、6個の直接Inventory生成、専用クリックListener、旧Holder、個別クリック音を削除した。
+- MWM-Chanpon内の旧`ManagedMenuPresenter`と未使用のクリックキャンセル補助を削除し、Runtimeアーキテクチャ許可リストを空にした。
+- `EnvironmentGui`の重力、天候、バイオーム案内、戻る操作をRuntime RouteとActionへ移行し、直接Inventory生成と`WorldSettingsListener`内の旧上段クリック分岐を削除した。
+- 月の石とバイオーム瓶は画面ActionではなくプレイヤーInventoryからの外部入力であるため、専用の下段入力Listenerとして境界を明示した。旧共通下段ガードにより到達不能だった確認導線も復旧した。
+- 環境変更確認は重力・天候・バイオームを共通確認画面から各実行処理へ接続し、MyWorldManagerの全36テストと`mvn clean package`に成功した。
+- `FavoriteGui`の一覧、ページ移動、タグ絞り込み、戻り先、ワープ、プレビュー、お気に入り解除確認をRuntime RouteとActionへ移行した。
+- `FavoriteListener`から専用Inventoryクリック処理を削除し、Java/Bedrock共通のDialog応答だけを残した。直接Inventory生成1件、Inventoryクリックイベント2参照、個別クリック音6参照を削減した。
+- CC-System 2.16.0で`MenuActionContext.cursor`を追加し、カーソルで保持中のアイテムをRuntime Actionへ安全な複製として渡すようにした。全90テストに成功した。
+- `TemplateWizardGui`の名前・説明入力、カーソルからのアイコン選択、原点設定、検証、保存、取消をRuntime RouteとActionへ移行した。
+- `TemplateWizardListener`はプレイヤーInventoryからアイコンを選ぶ外部入力とDialog/Form入力だけに縮小し、上段Inventoryクリック分岐と個別クリック音6参照を削除した。
+- `DiscoveryGui`のワールド一覧、ページ移動、タグ・未訪問フィルタ、並び替え、ワープ、プレビュー、メンバー申請、お気に入り、スポットライト登録・解除をRuntime RouteとActionへ移行した。
+- 旧画面で生成済みなのに配置されていなかったタグフィルターを共通フッターへ配置し、常に先頭10件を表示していたページ計算をRouteの現在ページへ接続した。
+- `DiscoveryListener`からInventoryクリック処理と個別クリック音15参照を削除し、スポットライト説明の共通Dialog入力だけを残した。
+- `PlayerWorldGui`の対象プレイヤー、ページ、戻り導線、作成、個人設定、保留操作、並び順変更、ワープ、設定遷移、アーカイブ解除確認をRuntime RouteとActionへ移行した。
+- `WorldGui`のページ、各種フィルタ、並び替え、ワールド操作、ワープ、設定遷移、戻り導線、自動更新をRuntime RouteとActionへ移行した。`AdminGuiListener`から一覧画面のクリック分岐と個別クリック音を除去し、チャット入力とディレクトリ案内だけを補助処理として残した。
+- `AdminCommandGui`に残っていた管理操作の確認Inventory 8経路を単一のRuntime Routeへ統合した。確認とキャンセルをRuntime Actionへ移し、`AdminCommandListener`からInventoryClickEvent、CustomClick、個別クリック音を除去して実行処理だけを残した。
+- `WorldMigrationService`の実行確認をRuntime Routeへ移し、専用InventoryHolderとInventoryClickEventを削除した。
+- Runtime Actionから利用する`GuiHelper.handleReturnClick`の重複クリック音を削除し、共通補助層の手動クリック音経路を廃止した。
+- `DialogConfirmManager.showConfirmationByPreference`がRuntime Inventoryへ統一済みで到達不能だったFavorite・参加申請・申請承認のCustomClick Listener 3個を削除した。確認処理は各Runtime確認画面のコールバックを正本とする。
+- `TourGui`の開始確認と削除確認をRuntime Routeへ移し、開始・削除・キャンセルをRuntime Action化した。対応する旧Holder、Listener分岐、個別クリック音を削除した。
+- `TourGui`の訪問者向け一覧と看板開始候補一覧を共通ページRendererへ統合し、ページ移動とツアー選択をRuntime Action化した。ワールド、ページ、看板をRoute payloadへ移し、対応する旧HolderとListener分岐を削除した。
+- `TourGui`の編集一覧をRuntime Routeへ移し、戻る、新規作成、既存ツアー選択、ページ移動をRuntime Action化した。対応する旧Holder、Listener分岐、個別クリック音を削除した。
+- `TourGui`の単体編集と新規破棄確認をRuntime Routeへ移した。保存、テキスト・アイコン編集、削除確認、ウェイポイント追加・削除、戻る、破棄をRuntime Action化し、ワールド内ウェイポイント選択の開始だけを物理操作Listenerへ明示委譲した。
+- `TourGui`の看板紐付け画面をRuntime Routeへ移し、紐付け処理をRuntime Action化した。これにより`TourGui`から直接Inventory生成、旧Holder、ManagedMenuPresenterをすべて削除した。`TourListener`には物理的な看板・ブロック操作と、明示的なアイコン選択入力だけを残した。
+- `CreationGui`の作成種別選択をRuntime Routeへ移し、テンプレート・シード・ランダムの選択とキャンセルをRuntime Action化した。権限、作成上限、ポイント残高、利用可能テンプレートの検査を既存フローと同じ順序で維持した。
+- `CreationGui`のテンプレート一覧と詳細をRuntime Routeへ移し、テンプレート選択、使用、プレビュー、各戻り操作をRuntime Action化した。テンプレートIDをAction payloadと作成セッションで一意に管理し、検証エラー表示を維持した。
+- `CreationGui`の最終確認をRuntime Routeへ移し、確認情報、シードのディメンション・スポーン設定、テンプレートのプレビュー・変更、確定・キャンセルをRuntime要素として描画するようにした。確認処理の業務ロジックは既存Listenerから呼び出し、画面生成とクリック管理だけをRuntimeへ移した。
+- `CreationGui`の全画面移行後、到達不能になった旧`InventoryClickEvent`・`InventoryCloseEvent`・Holder・個別クリック音を削除した。`CreationGuiListener`はRuntime Actionから呼ばれる確定処理とJava版Dialog／Bedrock版Form入力の制御だけを担当する。
+- CC-System Runtimeへプレイヤーインベントリ側のクリックを予約Actionとして受け取る経路を追加した。`EnvironmentGui`の月の石・バイオーム瓶選択は個別Listenerを廃止し、Runtime Actionで入力を確定して確認Dialogへ遷移する。
+- `TemplateWizardGui`のプレイヤーインベントリからのアイコン選択も予約Actionへ移し、`TemplateWizardListener`からInventoryイベントと個別クリック音を削除した。
+- ツアー編集のアイコン選択も`TourGui`の予約Actionへ移し、ツアー固有Listenerはブロック・プレイヤー操作だけを担当するようにした。
+- ワールドゲート設置確認をRuntimeの一時Routeへ移し、専用Holder・Inventory生成・InventoryクリックListenerを削除した。
+- Runtimeが画面遷移とクリックを管理するため不要になった、全メニュー共通の旧遷移フラグ解除Listenerを削除した。
+- `BedrockMenuService`のプレイヤーワールド一覧・ワールド操作・ユーザー設定Inventory代替画面をRuntime Routeへ移し、専用Holderと全体クリックListenerを削除した。Formを利用できない場合もRuntimeが履歴・保護・クリック音を管理する。
+- 全Creation Routeへ共通Close Handlerを追加した。Dialog・Form入力中とテンプレートプレビュー中は作成セッションを維持し、Route遷移ではなくユーザーが画面を閉じた場合だけセッションを終了してマイワールド画面へ戻す。
+- `PlayerWorldListener`からInventoryクリック処理と個別クリック音10参照を削除し、保留操作のDialog応答イベントだけを残した。
+- `CreationDialogManager`と`GuiHelper`の終了操作をCC-System `MenuRuntimeService.close`へ置換し、`SoundManager`の汎用音を`MenuSoundService`へ直接接続した。
+
+### 2026-07-30
+
+- 第1段階のRuntime接続完了と、第2段階の画面所有権分離を別の完了条件として再定義した。
+- CC-System 26.730.1へ一般的な`MenuCapabilityService`を追加した。RegistryはMWM/Chanponのドメイン型、画面、スロットを所有しない。
+- MWM 26.730.24のワールド設定画面は、Capabilityを解決して自身のスロット規則で配置し、遷移時に最新状態からCapabilityを再解決する。
+- MWM-Chanpon 26.730.2は「本番用設定・ワールド提出」を`mwm-chanpon:world-production-submission`として登録した。
+- 未提出だけを左クリック限定Actionとし、提出済み、完了済み、状態不正、提出停止中は遷移先なしのDisplayOnlyとした。
+- 提出確認画面をChanpon所有Route `mwm-chanpon:world-production-submission-confirmation`へ移した。
+- `ProductionToggleExtension`をMWM `MenuExtension`から外し、ワールド設定へのスロット差し込み、Booleanクリック結果、手動成功・拒否音を削除した。
+- Chanpon側に残っていた`logWorldSettingsDebug`呼び出し6件を削除した。
+- CC-System、MWM、MWM-Chanponのビルドで、それぞれ既存テスト、53件、55件が成功した。
+- 3成果物を規定手順で配置し、PID 31740で起動した。RCONで各版、25566/25576、起動完了、Capability APIクラスのJAR同梱、API不整合例外がないことを確認した。
+
+### 2026-07-31 完了監査
+
+- `ChanponWorldSettingsMenuProvider`、`SubmittedWorldMenuProvider`、`ChanponPlayerWorldMenuProvider`、`ChanponCreationConfirmationMenuProvider`を削除した。Chanponのワールド設定とプレイヤーワールド画面は、Chanpon所有のRuntime Routeとして独立している。
+- MWMとChanponの画面間連携は、画面実装を置換するProviderではなく、遷移先だけを公開する`WorldSettingsRouteCapability`と`PlayerWorldRouteCapability`へ限定した。外部Capabilityが選択された場合、MWMの設定セッションは生成しない。
+- `WorldBackupMenuExtension`、`ToolPermissionMenuExtension`、`LinkedPortalMenuExtension`を廃止し、CC-Systemの一般`MenuCapabilityService`とChanpon所有Routeへ移した。
+- ChanponからMWMのGUI具体クラス、`settingsSessionManager`、`worldSettingsGui`への直接参照は0件である。
+- MWMの旧画面置換Provider API、旧`MenuExtension`、完成済みItemStack/Loreを渡す旧メニューAPIを削除した。
+- MWM/Chanponの画面コードは`GuiMenuEntrySpec`、`GuiStructuredMenuEntrySpec`、`GuiMenuDisplaySpec`による意味データだけを渡す。操作案内、受付クリック、Role、効果音、実行結果はCC-Systemが同じAction定義から生成する。
+- CC-Systemの旧`menuCapability(...): ItemStack`公開APIを削除し、CC-System自身のお知らせ画面も意味データ経路へ移した。
+- 日英言語正本から、Runtime移行前にLore組み立てへ使用していた未参照のクリック種別キーを削除した。
+- 自動検証はCC-System 97件、MWM 52件、MWM-Chanpon 52件、CC-Content 192件に成功した。
+- 実機GUI、Dialog、Form、完全バニラZIP読込は、ユーザー指示により自動操作を行わず、手動受入確認へ引き渡す。これはコード移行の残件ではなく運用上の受入確認として扱う。

@@ -1,6 +1,6 @@
 package me.awabi2048.myworldmanager.session
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
+import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Bukkit
@@ -77,7 +77,6 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
 
                 // テンプレートワールドのロード確認
                 if (Bukkit.getWorld(template.path) == null) {
-                    ManagedMenuPresenter.close(player) // ロード前に閉じる
                     val creator = org.bukkit.WorldCreator(template.path)
                     Bukkit.createWorld(creator) ?: run {
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
@@ -108,7 +107,6 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 // ワールドがロードされていない場合はロード
                 folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (Bukkit.getWorld(folderName) == null) {
-                    ManagedMenuPresenter.close(player) // ロード前に閉じる
                     if (!plugin.worldService.loadWorld(worldData.uuid)) {
                         player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
                         return false
@@ -122,6 +120,9 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         }
 
         if (originLoc.world == null) originLoc.world = world
+        val runtimeSuspended =
+            source != PreviewSource.EXTERNAL &&
+                CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
 
         // 既存セッションの保存
         val session = PreviewSession(
@@ -130,7 +131,8 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             originalGameMode = player.gameMode,
             templatePath = folderName,
             source = source,
-            onReturn = onReturn
+            onReturn = onReturn,
+            runtimeSuspended = runtimeSuspended,
         )
         sessions[player.uniqueId] = session
 
@@ -253,6 +255,11 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         // テンプレート選択画面を再表示（少し遅延させる）
         Bukkit.getScheduler().runTaskLater(plugin, Runnable {
             if (!player.isOnline) return@Runnable
+            if (session.runtimeSuspended &&
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
+            ) {
+                return@Runnable
+            }
 
             when (session.source) {
                 PreviewSource.TEMPLATE_SELECTION -> {

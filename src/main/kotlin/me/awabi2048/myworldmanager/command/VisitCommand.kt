@@ -1,21 +1,18 @@
 package me.awabi2048.myworldmanager.command
 
-import io.papermc.paper.connection.PlayerGameConnection
-import io.papermc.paper.dialog.Dialog
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import io.papermc.paper.registry.data.dialog.ActionButton
-import io.papermc.paper.registry.data.dialog.DialogBase
-import io.papermc.paper.registry.data.dialog.action.DialogAction
-import io.papermc.paper.registry.data.dialog.body.DialogBody
-import io.papermc.paper.registry.data.dialog.input.DialogInput
-import io.papermc.paper.registry.data.dialog.type.DialogType
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuDialogButton
+import com.awabi2048.ccsystem.api.gui.MenuDialogHandler
+import com.awabi2048.ccsystem.api.gui.MenuDialogInput
+import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.repository.*
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
@@ -24,11 +21,9 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import java.util.UUID
 
-class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCompleter, Listener {
+class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCompleter {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         val lang = plugin.languageManager
@@ -48,26 +43,6 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
 
         processVisitTargetInput(sender, args[0], args.getOrNull(1))
         return true
-    }
-
-    @EventHandler
-    fun onVisitDialogResponse(event: PlayerCustomClickEvent) {
-        val identifier = event.identifier
-        if (identifier != Key.key("mwm:visit/input_submit") && identifier != Key.key("mwm:visit/input_cancel")) {
-            return
-        }
-
-        val conn = event.commonConnection as? PlayerGameConnection ?: return
-        val player = conn.player
-
-        if (identifier == Key.key("mwm:visit/input_cancel")) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
-            return
-        }
-
-        val view = event.getDialogResponseView() ?: return
-        val input = view.getText("visit_player").orEmpty()
-        processVisitTargetInput(player, input)
     }
 
     private fun openVisitInputByPlatform(player: Player) {
@@ -109,42 +84,36 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
 
     private fun showVisitInputDialog(player: Player) {
         val lang = plugin.languageManager
-        val dialog = Dialog.create { builder ->
-            builder.empty()
-                .base(
-                    DialogBase.builder(Component.text(lang.getMessage(player, "gui.visit.input.title"), NamedTextColor.YELLOW))
-                        .body(
-                            listOf(
-                                DialogBody.plainMessage(Component.text(lang.getMessage(player, "messages.visit_target_input")))
-                            )
-                        )
-                        .inputs(
-                            listOf(
-                                DialogInput.text("visit_player", Component.text(lang.getMessage(player, "gui.visit.input.label")))
-                                    .maxLength(16)
-                                    .build()
-                            )
-                        )
-                        .build()
-                )
-                .type(
-                    DialogType.confirmation(
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
-                            null,
-                            100,
-                            DialogAction.customClick(Key.key("mwm:visit/input_submit"), null)
-                        ),
-                        ActionButton.create(
-                            Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
-                            null,
-                            200,
-                            DialogAction.customClick(Key.key("mwm:visit/input_cancel"), null)
-                        )
-                    )
-                )
-        }
-        player.showDialog(dialog)
+        CCSystem.getAPI().getMenuDialogService().show(
+            player,
+            MenuDialogRequest(
+                owner = "myworldmanager",
+                id = "visit-input",
+                title = Component.text(lang.getMessage(player, "gui.visit.input.title"), NamedTextColor.YELLOW),
+                body = listOf(Component.text(lang.getMessage(player, "messages.visit_target_input"))),
+                inputs = listOf(
+                    MenuDialogInput.Text(
+                        "visit_player",
+                        Component.text(lang.getMessage(player, "gui.visit.input.label")),
+                        maxLength = 16,
+                    ),
+                ),
+                confirm = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    MenuDialogHandler { actor, response ->
+                        processVisitTargetInput(actor, response.textValue("visit_player"))
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+                cancel = MenuDialogButton(
+                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    MenuDialogHandler { actor, _ ->
+                        actor.sendMessage(lang.getMessage(actor, "messages.operation_cancelled"))
+                        MenuActionResult.Success(MenuUpdate.Close)
+                    },
+                ),
+            ),
+        )
     }
 
     private fun processVisitTargetInput(player: Player, rawInput: String, rawWorldInput: String? = null) {

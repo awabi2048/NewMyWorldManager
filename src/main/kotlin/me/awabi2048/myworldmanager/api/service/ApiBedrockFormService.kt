@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.api.service
 
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import org.bukkit.entity.Player
 
 /** Floodgate/Cumulusの実装詳細を外部拡張へ漏らさないフォーム境界。 */
@@ -11,8 +12,8 @@ interface ApiBedrockFormService {
         title: String,
         content: String,
         buttons: List<String>,
-        onSelect: (Int) -> Unit,
-        onClosed: (() -> Unit)? = null
+        onSelect: (Int) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null
     ): Boolean
 
     fun sendCustomInputForm(
@@ -21,7 +22,7 @@ interface ApiBedrockFormService {
         label: String,
         placeholder: String,
         defaultValue: String,
-        onSubmit: (String) -> Unit,
-        onClosed: (() -> Unit)? = null
+        onSubmit: (String) -> MenuActionResult,
+        onClosed: (() -> MenuActionResult)? = null
     ): Boolean
 }

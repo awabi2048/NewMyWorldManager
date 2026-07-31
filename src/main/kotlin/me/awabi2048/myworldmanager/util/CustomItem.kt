@@ -4,6 +4,7 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import org.bukkit.entity.Player
@@ -29,8 +30,12 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.empty_biome_bottle.name"))
-            meta.lore(GuiItemFactory.menuLore(
-                lang.getMessageList(player, "custom_item.empty_biome_bottle.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+            meta.lore(com.awabi2048.ccsystem.CCSystem.getAPI().getLoreService().render(
+                com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
+                    lang.getMessageList(player, "custom_item.empty_biome_bottle.lore")
+                        .map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text),
+                    com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH,
+                ),
             ))
 
             meta.setMaxStackSize(4)
@@ -58,8 +63,12 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, "custom_item.moon_stone.name"))
-            meta.lore(GuiItemFactory.menuLore(
-                lang.getMessageList(player, "custom_item.moon_stone.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+            meta.lore(com.awabi2048.ccsystem.CCSystem.getAPI().getLoreService().render(
+                com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
+                    lang.getMessageList(player, "custom_item.moon_stone.lore")
+                        .map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text),
+                    com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH,
+                ),
             ))
 
             meta.setMaxStackSize(1)
@@ -127,8 +136,12 @@ enum class CustomItem(val id: String) {
 
         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
         meta.displayName(lang.getComponent(player, "custom_item.bottled_biome_air.name", mapOf("biome" to biomeName)))
-        meta.lore(GuiItemFactory.menuLore(
-            lang.getMessageList(player, "custom_item.bottled_biome_air.lore").map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text)
+        meta.lore(com.awabi2048.ccsystem.CCSystem.getAPI().getLoreService().render(
+            com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
+                lang.getMessageList(player, "custom_item.bottled_biome_air.lore")
+                    .map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text),
+                com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH,
+            ),
         ))
 
         meta.setMaxStackSize(1)
@@ -149,8 +162,9 @@ enum class CustomItem(val id: String) {
         private fun actionLore(lang: LanguageManager, player: Player?, key: String) =
             CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
                 GuiLoreBlock(lang.getMessageList(player, "$key.description").map(GuiLoreLine::Text)),
-                GuiLoreBlock(listOf(GuiLoreLine.Action(
-                    lang.getMessage(player, "lore.click.right"),
+                GuiLoreBlock(listOf(GuiLoreLine.Interaction(
+                    player,
+                    MenuAcceptedClicks.RIGHT,
                     lang.getMessage(player, "$key.action")
                 )))
             )))

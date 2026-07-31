@@ -1,269 +1,34 @@
 package me.awabi2048.myworldmanager.listener
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.MenuExtensionContext
-import me.awabi2048.myworldmanager.gui.DialogConfirmManager
 import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.session.WorldCreationType
-import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
-import org.bukkit.event.inventory.InventoryClickEvent
-import me.awabi2048.myworldmanager.util.cancelWithDebug
-import io.papermc.paper.event.player.PlayerCustomClickEvent
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import org.bukkit.plugin.java.JavaPlugin
 
-class AdminCommandListener : Listener {
+class AdminCommandListener {
 
-    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
-    fun onInventoryClick(event: InventoryClickEvent) {
-        val player = event.whoClicked as? Player ?: return
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-
-        // セッションチェック
-        if (!plugin.settingsSessionManager.hasSession(player)) return
-        val session = plugin.settingsSessionManager.getSession(player) ?: return
-        val title = PlainTextComponentSerializer.plainText().serialize(event.view.title())
-        val isAdminInventory =
-                GuiHelper.isPluginGuiInventory(event.view.topInventory) ||
-                        isAdminSessionTitle(plugin, player, title, session.action)
-        if (!isAdminInventory) {
-            session.isGuiTransition = false
-            return
-        }
-
-        // GUI遷移中のクリックを無視
-        if (session.isGuiTransition) {
-            session.isGuiTransition = false
-        }
-
-        // アクションに応じた処理
-        if (session.action == SettingsAction.ADMIN_MENU) {
-            handleAdminMenuClick(event, player, plugin, session.action)
-        } else if (isAdminConfirmAction(session.action)) {
-            handleAdminConfirmClick(event, player, plugin, session.action)
-        }
-    }
-
-    @EventHandler
-    fun onCustomClick(event: PlayerCustomClickEvent) {
-        val conn = event.commonConnection as? io.papermc.paper.connection.PlayerGameConnection ?: return
-        val player = conn.player
-        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
-        val session = plugin.settingsSessionManager.getSession(player) ?: return
-        val identifier = event.identifier.asString()
-
-        if (identifier == "mwm:confirm/cancel") {
-            if (!isAdminConfirmAction(session.action)) return
-            DialogConfirmManager.safeCloseDialog(player)
-            plugin.soundManager.playAdminClickSound(player)
-            plugin.adminCommandGui.open(player)
-            return
-        }
-
-        if (!identifier.startsWith("mwm:confirm/admin/")) return
-        if (!isAdminConfirmAction(session.action)) return
-
-        DialogConfirmManager.safeCloseDialog(player)
-        plugin.soundManager.playAdminClickSound(player)
-
-        when (session.action) {
+    fun executeCurrentConfirmation(player: Player, plugin: MyWorldManager) {
+        val action = plugin.settingsSessionManager.getSession(player)?.action ?: return
+        when (action) {
             SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> performUpdateData(player, plugin)
             SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> performRepairTemplates(player, plugin)
             SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> performArchiveAll(player, plugin)
-            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
-            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
+            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM ->
+                performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
+            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM ->
+                performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
             SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
             SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin)
             SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> performArchiveWorld(player, plugin)
             SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> performUnarchiveWorld(player, plugin)
             else -> return
         }
-
         plugin.settingsSessionManager.endSession(player)
-    }
-
-    private fun isAdminConfirmAction(action: SettingsAction): Boolean {
-        return when (action) {
-            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM,
-            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM,
-            SettingsAction.ADMIN_EXPORT_CONFIRM,
-            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM,
-            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM,
-            SettingsAction.ADMIN_UNLINK_CONFIRM,
-            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM,
-            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM,
-            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> true
-            else -> false
-        }
-    }
-
-    private fun isAdminSessionTitle(
-            plugin: MyWorldManager,
-            player: Player,
-            title: String,
-            action: SettingsAction
-    ): Boolean {
-        val lang = plugin.languageManager
-        val key = when (action) {
-            SettingsAction.ADMIN_MENU -> "gui.admin_menu.title"
-            SettingsAction.ADMIN_PORTAL_GUI -> "gui.admin_portals.title"
-            SettingsAction.ADMIN_WORLD_GUI -> "gui.admin.title"
-            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> "gui.admin_menu.convert.confirm_normal"
-            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> "gui.admin_menu.convert.confirm_admin"
-            SettingsAction.ADMIN_EXPORT_CONFIRM -> "gui.admin_menu.export.confirm_title"
-            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> "gui.admin_menu.archive.confirm_title"
-            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> "gui.admin_menu.update_data.confirm_title"
-            SettingsAction.ADMIN_UNLINK_CONFIRM -> "gui.admin_menu.unlink.confirm_title"
-            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> "gui.admin_menu.repair_templates.confirm_title"
-            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.archive_world.confirm_title"
-            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.unarchive_world.confirm_title"
-            else -> return false
-        }
-        return lang.isKeyMatch(title, key)
-    }
-
-    private fun handleAdminMenuClick(
-            event: InventoryClickEvent,
-            player: Player,
-            plugin: MyWorldManager,
-            action: SettingsAction
-    ) {
-        event.cancelWithDebug("AdminCommandListener.handleAdminMenuClick: admin menu click")
-        if (event.clickedInventory != event.view.topInventory) return
-        val item = event.currentItem ?: return
-
-        val tagType = ItemTag.getType(item) ?: return
-
-        when (tagType) {
-            ItemTag.TYPE_GUI_ADMIN_UPDATE_DATA -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openUpdateDataConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_REPAIR_TEMPLATES -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openRepairTemplatesConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_CREATE_TEMPLATE -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.templateWizardGui.open(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_ARCHIVE_ALL -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openArchiveAllConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_CONVERT -> {
-                plugin.soundManager.playAdminClickSound(player)
-                if (event.isLeftClick) {
-                    plugin.adminCommandGui.openConvertConfirmation(
-                            player,
-                            WorldService.ConversionMode.NORMAL
-                    )
-                } else if (event.isRightClick) {
-                    plugin.adminCommandGui.openConvertConfirmation(
-                            player,
-                            WorldService.ConversionMode.ADMIN
-                    )
-                }
-            }
-            ItemTag.TYPE_GUI_ADMIN_UNLINK -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openUnlinkConfirmation(player)
-            }
-            ItemTag.TYPE_GUI_ADMIN_EXPORT -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminCommandGui.openExportConfirmation(player, player.world.name)
-            }
-            ItemTag.TYPE_GUI_ADMIN_INFO -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.worldGui.open(player, fromAdminMenu = true)
-            }
-            ItemTag.TYPE_GUI_ADMIN_PORTALS -> {
-                plugin.soundManager.playAdminClickSound(player)
-                plugin.adminPortalGui.open(player, fromAdminMenu = true)
-            }
-            ItemTag.TYPE_GUI_ADMIN_MENU_SWITCH -> {
-                plugin.soundManager.playAdminClickSound(player)
-                MyWorldManagerApi.openNextAdminMenu(player)
-            }
-            ItemTag.TYPE_GUI_EXTENSION -> {
-                val extensionId = ItemTag.getExtensionId(item) ?: return
-                val handled = MyWorldManagerApi.getMenuExtensions()
-                    .firstOrNull { it.getId() == extensionId }
-                    ?.onClick(
-                        event,
-                        player,
-                        MenuExtensionContext("admin_menu", mutableMapOf("action" to action))
-                    )
-                    ?: false
-                if (handled) {
-                    plugin.soundManager.playAdminClickSound(player)
-                }
-            }
-            ItemTag.TYPE_GUI_RETURN -> {
-                plugin.soundManager.playAdminClickSound(player)
-                // Return from sub-menus to the main admin menu
-                if (action == SettingsAction.ADMIN_PORTAL_GUI ||
-                                action == SettingsAction.ADMIN_WORLD_GUI
-                ) {
-                    plugin.adminCommandGui.open(player)
-                }
-            }
-        }
-    }
-
-    private fun handleAdminConfirmClick(
-            event: InventoryClickEvent,
-            player: Player,
-            plugin: MyWorldManager,
-            action: SettingsAction
-    ) {
-        event.cancelWithDebug("AdminCommandListener.handleAdminConfirmClick: admin confirm click")
-        if (event.clickedInventory != event.view.topInventory) return
-        val item = event.currentItem ?: return
-        val tagType = ItemTag.getType(item) ?: return
-
-        if (tagType == ItemTag.TYPE_GUI_CANCEL) {
-            plugin.soundManager.playAdminClickSound(player)
-            plugin.adminCommandGui.open(player)
-            return
-        }
-
-        if (tagType == ItemTag.TYPE_GUI_CONFIRM) {
-            plugin.soundManager.playAdminClickSound(player)
-            ManagedMenuPresenter.close(player)
-
-            // アクション実行
-            when (action) {
-                SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> performUpdateData(player, plugin)
-                SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM ->
-                        performRepairTemplates(player, plugin)
-                SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> performArchiveAll(player, plugin)
-                SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM ->
-                        performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
-                SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM ->
-                        performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
-                SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
-                SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin)
-                SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> performArchiveWorld(player, plugin)
-                SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM ->
-                        performUnarchiveWorld(player, plugin)
-                else -> {}
-            }
-            // セッション終了（必要なら）またはメニューに戻る?
-            // 処理完了後にどうするかは各メソッド次第だが、基本はチャット通知して終了
-            plugin.settingsSessionManager.endSession(player)
-        }
     }
 
     private fun performUnlink(player: Player, plugin: MyWorldManager) {

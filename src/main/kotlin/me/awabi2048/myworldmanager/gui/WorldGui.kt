@@ -1,23 +1,37 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.ui.ManagedMenuPresenter
-
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
+import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
+import com.awabi2048.ccsystem.api.gui.InventoryMenuView
+import com.awabi2048.ccsystem.api.gui.MenuActionContext
+import com.awabi2048.ccsystem.api.gui.MenuActionHandler
+import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuCloseContext
+import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
+import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.MenuInteraction
+import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.AdminWorldListRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.GuiItemFactory
-import me.awabi2048.myworldmanager.util.GuiLoreActions
-import me.awabi2048.myworldmanager.util.StructuredLore
-import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -29,19 +43,58 @@ import org.bukkit.inventory.ItemStack
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import org.bukkit.scheduler.BukkitTask
 
 /** 管理者用ワールド一覧GUI（ページネーション対応） フィルター、ソート、プレイヤーフィルター機能付き */
 class WorldGui(private val plugin: MyWorldManager) {
 
         private val repository = plugin.worldConfigRepository
+        private val runtime = CCSystem.getAPI().getMenuRuntimeService()
         private val worldSizeCache = ConcurrentHashMap<String, WorldSizeCacheEntry>()
         private val worldSizeInFlight = ConcurrentHashMap.newKeySet<String>()
+        private val refreshTasks = ConcurrentHashMap<java.util.UUID, BukkitTask>()
+
+        init {
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = OWNER,
+                                id = ROUTE_ID,
+                                renderer = { context -> render(context.player, context.route) },
+                                actions = mapOf(
+                                        ACTION_PAGE to MenuActionHandler(::page),
+                                        ACTION_ARCHIVE_FILTER to MenuActionHandler(::archiveFilter),
+                                        ACTION_PUBLISH_FILTER to MenuActionHandler(::publishFilter),
+                                        ACTION_PLAYER_FILTER to MenuActionHandler(::playerFilter),
+                                        ACTION_SORT to MenuActionHandler(::sort),
+                                        ACTION_CURRENT_WORLD to MenuActionHandler(::currentWorld),
+                                        ACTION_WORLD to MenuActionHandler(::world),
+                                        ACTION_BACK to MenuActionHandler(::back),
+                                ),
+                                onClose = MenuCloseHandler(::closed),
+                        ),
+                )
+        }
 
         private data class WorldSizeCacheEntry(
                 val sizeBytes: Long?,
                 val updatedAtMillis: Long,
                 val failed: Boolean
         )
+
+        companion object {
+                private const val OWNER = "myworldmanager"
+                private const val ROUTE_ID = "admin-world-list"
+                private const val PAGE = "page"
+                private const val WORLD_UUID = "worldUuid"
+                private const val ACTION_PAGE = "page"
+                private const val ACTION_ARCHIVE_FILTER = "archiveFilter"
+                private const val ACTION_PUBLISH_FILTER = "publishFilter"
+                private const val ACTION_PLAYER_FILTER = "playerFilter"
+                private const val ACTION_SORT = "sort"
+                private const val ACTION_CURRENT_WORLD = "currentWorld"
+                private const val ACTION_WORLD = "world"
+                private const val ACTION_BACK = "back"
+        }
 
         /**
          * 指定されたページのGUIを開く
@@ -56,6 +109,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                 fromAdminMenu: Boolean? = null,
                 suppressSound: Boolean = false
         ) {
+                runtime.navigate(player, prepareOpen(player, page, fromAdminMenu))
+        }
+
+        fun prepareOpen(
+                player: Player,
+                page: Int? = null,
+                fromAdminMenu: Boolean? = null,
+        ): MenuRoute {
                 val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
                 if (fromAdminMenu != null) {
                         session.fromAdminMenu = fromAdminMenu
@@ -69,21 +130,15 @@ class WorldGui(private val plugin: MyWorldManager) {
                         isGui = true
                 )
 
-                if (
-                        MyWorldManagerApi.openAdminWorldListOverride(
-                                player,
-                                AdminWorldListRequest(
-                                        page = page,
-                                        fromAdminMenu = fromAdminMenu,
-                                        suppressSound = suppressSound
-                                )
-                        )
-                ) {
-                        return
-                }
-
                 repository.loadAll()
+                startAutoRefresh(player)
+                return route(currentPage)
+        }
 
+        private fun render(player: Player, route: MenuRoute): InventoryMenuView {
+                val session = plugin.adminGuiSessionManager.getSession(player.uniqueId)
+                val currentPage = route.payload[PAGE]?.toIntOrNull() ?: session.currentPage
+                repository.loadAll()
                 val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
 
                 // フィルターとソートを適用してワールドリストを取得（現在地ワールドは一覧から除外）
@@ -99,27 +154,23 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 val lang = plugin.languageManager
                 val titleKey = "gui.admin.title"
-                if (!lang.hasKey(player, titleKey)) {
-                        player.sendMessage(
-                                "§c[MyWorldManager] Error: Missing translation key: $titleKey"
-                        )
-                        return
-                }
                 val title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
 
-                if (!suppressSound) {
-                        GuiHelper.playMenuOpen(player, "admin_world")
-                }
-                val inventory = Bukkit.createInventory(null, layout.size, title)
+                val inventory = MenuViewBuilder(layout.size, title)
 
                 // 1行目を黒の板ガラスで敷き詰める
-                val blackPane = createBlackPaneItem()
                 for (i in 0..8) {
-                        inventory.setItem(i, blackPane)
+                        inventory.setEntry(decorationEntry(i, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 if (currentWorldData != null) {
-                        inventory.setItem(4, createCurrentWorldInfoItem(player, currentWorldData))
+                        inventory.setEntry(createAdminWorldEntry(
+                                player, currentWorldData, 4,
+                                lang.getMessage(player, "gui.admin_menu.current_world.display"),
+                                ACTION_CURRENT_WORLD,
+                                includeWarpAction = false,
+                                includeWorldName = true,
+                        ))
                 }
 
                 // ワールドアイテムの配置 (スロット9から44まで)
@@ -127,7 +178,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val pageWorlds = filteredWorlds.drop(startIndex).take(itemsPerPage)
 
                 pageWorlds.forEachIndexed { index, worldData ->
-                        inventory.setItem(layout.itemSlots[index], createWorldItem(player, worldData))
+                        inventory.setEntry(createAdminWorldEntry(
+                                player, worldData, layout.itemSlots[index],
+                                lang.getMessage(player, "gui.common.world_item_name_simple", mapOf("world" to worldData.name)),
+                                ACTION_WORLD,
+                                includeWarpAction = true,
+                                includeWorldName = false,
+                        ))
                 }
 
                 // 6行目のレイアウト:
@@ -137,154 +194,254 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                 // ページ移動ボタン（最終行の右端2つ）
                 if (safePage > 0) {
-                        inventory.setItem(
-                                52,
-                                createNavButton(
-                                        player,
-                                        lang.getMessage("gui.common.prev_page"),
-                                        Material.ARROW,
-                                        safePage - 1,
-                                        safePage + 1,
-                                        totalPages,
-                                        isNext = false
-                                )
-                        )
+                        inventory.setEntry(createPageEntry(player, 52, safePage + 1, totalPages, false, safePage - 1))
                 } else {
-                        inventory.setItem(52, blackPane)
+                        inventory.setEntry(decorationEntry(52, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 if (safePage < totalPages - 1) {
-                        inventory.setItem(
-                                53,
-                                createNavButton(
-                                        player,
-                                        lang.getMessage("gui.common.next_page"),
-                                        Material.ARROW,
-                                        safePage + 1,
-                                        safePage + 1,
-                                        totalPages,
-                                        isNext = true
-                                )
-                        )
+                        inventory.setEntry(createPageEntry(player, 53, safePage + 1, totalPages, true, safePage + 1))
                 } else {
-                        inventory.setItem(53, blackPane)
+                        inventory.setEntry(decorationEntry(53, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 // フィルターボタン
-                inventory.setItem(46, createArchiveFilterButton(player, session))
-                inventory.setItem(47, createPublishFilterButton(player, session))
-                inventory.setItem(48, createPlayerFilterButton(player, session))
+                inventory.setEntry(createArchiveFilterButton(player, session, 46))
+                inventory.setEntry(createPublishFilterButton(player, session, 47))
+                inventory.setEntry(createPlayerFilterButton(player, session, 48))
 
                 // 統計情報ボタン
-                inventory.setItem(
-                        layout.infoSlot,
-                        createInfoButton(filteredWorlds.size, safePage + 1, totalPages)
-                )
+                inventory.setEntry(createInfoEntry(player, layout.infoSlot, filteredWorlds.size, safePage + 1, totalPages))
 
                 // 装飾
-                inventory.setItem(50, blackPane)
+                inventory.setEntry(decorationEntry(50, Material.BLACK_STAINED_GLASS_PANE))
 
                 // ソートボタン
-                inventory.setItem(51, createSortButton(player, session))
+                inventory.setEntry(createSortButton(player, session, 51))
 
                 // 装飾
-                if (session.fromAdminMenu) {
-                        inventory.setItem(
-                                layout.backSlot,
-                                createNavButton(
-                                        player,
-                                        lang.getMessage("gui.common.back"),
-                                        Material.REDSTONE,
-                                        0,
-                                        safePage + 1,
-                                        totalPages,
-                                        isNext = false
-                                )
-                        )
-                        val backItem = inventory.getItem(layout.backSlot)!!
-                        ItemTag.tagItem(backItem, ItemTag.TYPE_GUI_RETURN)
+                if (GuiHelper.canGoBack(player)) {
+                        inventory.setEntry(createBackEntry(player, layout.backSlot))
                 } else {
-                        inventory.setItem(layout.backSlot, blackPane)
+                        inventory.setEntry(decorationEntry(layout.backSlot, Material.BLACK_STAINED_GLASS_PANE))
                 }
 
                 // 余ったスロットは灰色の板ガラスで埋める (背景)
-                val background = createBackgroundItem()
                 for (slot in 0 until inventory.size) {
-                        if (inventory.getItem(slot) == null) {
-                                inventory.setItem(slot, background)
+                        if (!inventory.hasElement(slot)) {
+                                inventory.setEntry(decorationEntry(slot, Material.GRAY_STAINED_GLASS_PANE))
                         }
                 }
 
-                if (player.openInventory.topInventory != inventory) {
-                        ManagedMenuPresenter.open(player, inventory)
+                return inventory.build()
+        }
+
+        private fun page(context: MenuActionContext): MenuActionResult {
+                val selected = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
+                val current = context.route.payload[PAGE]?.toIntOrNull() ?: 0
+                val direction = if (selected >= current) 1 else -1
+                val target = if (context.click.isShiftClick) {
+                        (current + direction * 5).coerceAtLeast(0)
+                } else {
+                        selected
                 }
-                GuiHelper.scheduleGuiTransitionReset(plugin, player)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(target)))
+        }
 
-                // 自動更新タスク
-                object : org.bukkit.scheduler.BukkitRunnable() {
-                                override fun run() {
-                                        if (player.openInventory.topInventory != inventory) {
-                                                this.cancel()
-                                                return
-                                        }
+        private fun archiveFilter(context: MenuActionContext): MenuActionResult {
+                val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                plugin.adminGuiSessionManager.cycleArchiveFilter(context.player.uniqueId, direction)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
 
-                                        // MSPTソート時は更新しない（順序がちらつくため）
-                                        if (session.sortBy == AdminSortType.MSPT_DESC) {
-                                                return
-                                        }
+        private fun publishFilter(context: MenuActionContext): MenuActionResult {
+                val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                plugin.adminGuiSessionManager.cyclePublishFilter(context.player.uniqueId, direction)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
 
-                                        // セッションから最新情報を再取得して更新
-                                        val currentFilteredWorlds =
-                                                getFilteredAndSortedWorlds(
-                                                        session,
-                                                        plugin.worldConfigRepository
-                                                                .findByWorldName(player.world.name)
-                                                                ?.uuid
-                                                )
+        private fun playerFilter(context: MenuActionContext): MenuActionResult {
+                val session = plugin.adminGuiSessionManager.getSession(context.player.uniqueId)
+                if (context.click.isLeftClick) {
+                        val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                        plugin.adminGuiSessionManager.cyclePlayerFilterType(
+                                context.player.uniqueId,
+                                direction,
+                        )
+                        return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+                }
+                if (context.click.isRightClick && session.playerFilterType != PlayerFilterType.NONE) {
+                        plugin.settingsSessionManager.startSession(
+                                context.player,
+                                java.util.UUID(0, 0),
+                                SettingsAction.ADMIN_PLAYER_FILTER,
+                        )
+                        plugin.settingsSessionManager.getSession(context.player)
+                                ?.beginExternalInput(MenuExternalInput.ADMIN_PLAYER_FILTER)
+                        plugin.adminGuiListener.openAdminPlayerFilterInput(
+                                plugin,
+                                context.player,
+                        )
+                        return MenuActionResult.Success(MenuUpdate.None)
+                }
+                return MenuActionResult.Ignored
+        }
 
-                                        val currentTotalPages =
-                                                if (currentFilteredWorlds.isEmpty()) 1
-                                                else
-                                                        (currentFilteredWorlds.size + itemsPerPage -
-                                                                1) / itemsPerPage
+        private fun sort(context: MenuActionContext): MenuActionResult {
+                val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
+                plugin.adminGuiSessionManager.cycleSortType(context.player.uniqueId, direction)
+                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+        }
 
-                                        // 現在のページが範囲外にならないように調整（念のため）
-                                        val currentSafePage =
-                                                safePage.coerceIn(
-                                                        0,
-                                                        maxOf(0, currentTotalPages - 1)
-                                                )
+        private fun currentWorld(context: MenuActionContext): MenuActionResult =
+                worldAction(context, current = true)
 
-                                        val currentStartIndex = safePage * itemsPerPage
-                                        val currentPageWorlds =
-                                                currentFilteredWorlds
-                                                        .drop(currentStartIndex)
-                                                        .take(itemsPerPage)
+        private fun world(context: MenuActionContext): MenuActionResult =
+                worldAction(context, current = false)
 
-                                        currentPageWorlds.forEachIndexed { index, worldData ->
-                                                inventory.setItem(
-                                                        layout.itemSlots[index],
-                                                        createWorldItem(player, worldData)
-                                                )
-                                        }
+        private fun worldAction(context: MenuActionContext, current: Boolean): MenuActionResult {
+                val uuid = context.payload[WORLD_UUID]
+                        ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+                        ?: return MenuActionResult.Rejected()
+                val worldData = plugin.worldConfigRepository.findByUuid(uuid)
+                        ?: return MenuActionResult.Rejected()
+                return when {
+                        context.click == org.bukkit.event.inventory.ClickType.MIDDLE -> {
+                                plugin.adminGuiListener.sendWorldDirectoryCopyMessage(
+                                        context.player,
+                                        worldData,
+                                )
+                                MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        current && !context.click.isRightClick -> MenuActionResult.Ignored
+                        context.click.isShiftClick && context.click.isRightClick -> {
+                                Bukkit.getScheduler().runTask(
+                                        plugin,
+                                        Runnable {
+                                                if (worldData.isArchived) {
+                                                        plugin.adminCommandGui.openUnarchiveWorldConfirmation(
+                                                                context.player,
+                                                                worldData.name,
+                                                                uuid,
+                                                        )
+                                                } else {
+                                                        plugin.adminCommandGui.openArchiveWorldConfirmation(
+                                                                context.player,
+                                                                worldData.name,
+                                                                uuid,
+                                                        )
+                                                }
+                                        },
+                                )
+                                MenuActionResult.Success(MenuUpdate.Close)
+                        }
+                        context.click.isRightClick -> openWorldSettings(context.player, worldData)
+                        context.click.isLeftClick && worldData.isArchived -> {
+                                context.player.sendMessage(
+                                        plugin.languageManager.getMessage(
+                                                context.player,
+                                                "messages.admin_warp_archived_error",
+                                        ),
+                                )
+                                MenuActionResult.Rejected()
+                        }
+                        context.click.isLeftClick -> warp(context.player, worldData)
+                        else -> MenuActionResult.Ignored
+                }
+        }
 
-                                        // アイテム数が減った場合、残りのスロットを背景にする
-                                        for (i in currentPageWorlds.size until itemsPerPage) {
-                                                inventory.setItem(layout.itemSlots[i], createBackgroundItem())
-                                        }
-
-                                        // 統計情報ボタンも更新
-                                        inventory.setItem(
-                                                layout.infoSlot,
-                                                createInfoButton(
-                                                        currentFilteredWorlds.size,
-                                                        safePage + 1,
-                                                        currentTotalPages
-                                                )
+        private fun openWorldSettings(player: Player, worldData: WorldData): MenuActionResult {
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.VIEW_SETTINGS,
+                        isGui = true,
+                        isAdminFlow = true,
+                )
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        Runnable {
+                                val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                                if (!worldData.isArchived && Bukkit.getWorld(folderName) == null) {
+                                        player.sendMessage(
+                                                plugin.languageManager.getMessage(player, "messages.world_loading"),
                                         )
+                                        if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                                                player.sendMessage(
+                                                        plugin.languageManager.getMessage(player, "error.load_failed"),
+                                                )
+                                                return@Runnable
+                                        }
                                 }
-                        }
-                        .runTaskTimer(plugin, 20L, 20L)
+                                plugin.worldSettingsGui.open(player, worldData, showBackButton = true)
+                        },
+                )
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun warp(player: Player, worldData: WorldData): MenuActionResult {
+                val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                if (Bukkit.getWorld(folderName) == null) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(player, "messages.world_loading"),
+                        )
+                }
+                plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
+                        player.sendMessage(
+                                plugin.languageManager.getMessage(
+                                        player,
+                                        "messages.admin_warp_success",
+                                        mapOf("world" to worldData.name),
+                                ),
+                        )
+                }
+                return MenuActionResult.Success(MenuUpdate.Close)
+        }
+
+        private fun startAutoRefresh(player: Player) {
+                refreshTasks.remove(player.uniqueId)?.cancel()
+                refreshTasks[player.uniqueId] = Bukkit.getScheduler().runTaskTimer(
+                        plugin,
+                        Runnable {
+                                if (
+                                        plugin.adminGuiSessionManager
+                                                .getSession(player.uniqueId)
+                                                .sortBy != AdminSortType.MSPT_DESC
+                                ) {
+                                        runtime.refresh(player)
+                                }
+                        },
+                        20L,
+                        20L,
+                )
+        }
+
+        private fun closed(context: MenuCloseContext) {
+                refreshTasks.remove(context.player.uniqueId)?.cancel()
+        }
+
+        private fun route(page: Int): MenuRoute =
+                MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to page.toString()))
+
+        private inner class MenuViewBuilder(
+                val size: Int,
+                private val title: Component,
+        ) {
+                private val elements = mutableMapOf<Int, MenuElement>()
+
+                fun setEntry(element: MenuElement) {
+                        elements[element.slot] = element
+                }
+
+                fun hasElement(slot: Int): Boolean = slot in elements
+
+                fun build(): InventoryMenuView =
+                        InventoryMenuView(
+                                size,
+                                title,
+                                elements.values.sortedBy(MenuElement::slot),
+                                standardFrame = false,
+                        )
         }
 
         /** セッションのフィルター・ソート条件を適用してワールドリストを取得 */
@@ -383,91 +540,89 @@ class WorldGui(private val plugin: MyWorldManager) {
         }
 
         /** 黒の板ガラスを作成 (1行目・6行目用) */
-        private fun createBlackPaneItem(): ItemStack {
-                return GuiItemFactory.decoration(Material.BLACK_STAINED_GLASS_PANE)
+        private fun decorationEntry(slot: Int, material: Material): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuDisplay(
+                        GuiMenuDisplaySpec(
+                                slot,
+                                GuiItemSpec(
+                                        material,
+                                        GuiNameSpec.Empty,
+                                        GuiLoreSpec.None,
+                                        GuiElementRole.DECORATION,
+                                        1,
+                                ),
+                        ),
+                )
+
+        private fun createBackEntry(player: Player, slot: Int): MenuElement =
+                CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.REDSTONE,
+                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
+                                role = GuiElementRole.BACK,
+                                actions = listOf(
+                                        GuiMenuEntryAction(
+                                                ACTION_BACK,
+                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                plugin.languageManager.getMessage(player, "gui.common.back"),
+                                        ),
+                                ),
+                        ),
+                )
+
+        private fun back(context: MenuActionContext): MenuActionResult {
+                return MenuActionResult.Success(MenuUpdate.Back)
         }
 
-        /** 背景用の灰色の板ガラスを作成 */
-        private fun createBackgroundItem(): ItemStack {
-                return GuiItemFactory.decoration(Material.GRAY_STAINED_GLASS_PANE)
-        }
-
-        private fun createCurrentWorldInfoItem(player: Player, worldData: WorldData): ItemStack {
+        private fun createInfoEntry(
+                player: Player,
+                slot: Int,
+                totalCount: Int,
+                current: Int,
+                total: Int,
+        ): MenuElement {
                 val lang = plugin.languageManager
-                val worldDirectory = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                val item = ItemStack(worldData.icon)
-                val meta = item.itemMeta ?: return item
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(lang.getMessage(player, "gui.admin_menu.current_world.display"))
-                                .decoration(TextDecoration.ITALIC, false)
-                )
-                meta.lore(
-                        createAdminWorldLore(
-                                player,
-                                worldData,
-                                worldDirectory,
-                                includeWarpAction = false,
-                                includeWorldName = true
-                        )
-                )
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_CURRENT_WORLD_INFO)
-                ItemTag.setWorldUuid(item, worldData.uuid)
-                return item
-        }
-
-        /** ワールド情報の表示用アイテム */
-        private fun createWorldItem(player: Player, data: WorldData): ItemStack {
-                val item = ItemStack(data.icon)
-                val meta = item.itemMeta ?: return item
-                val lang = plugin.languageManager
-
-                meta.displayName(
-                        lang.getComponent(
-                                player,
-                                "gui.common.world_item_name_simple",
-                                mapOf("world" to data.name)
-                        )
-                )
-
-                // Owner Line
-                val worldDirectory = data.customWorldName ?: "my_world.${data.uuid}"
-                meta.lore(
-                        createAdminWorldLore(
-                                player,
-                                data,
-                                worldDirectory,
-                                includeWarpAction = true,
-                                includeWorldName = false
-                        )
-                )
-                if (data.sourceWorld != "CONVERT") {
-                        try {
-                                val formatter =
-                                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                                val expireDate = java.time.LocalDate.parse(data.expireDate, formatter)
-                                if (java.time.LocalDate.now().isAfter(expireDate)) {
-                                        meta.setEnchantmentGlintOverride(true)
-                                }
-                        } catch (_: Exception) {
+                val lore = buildList {
+                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.info.total_count_label"), totalCount, "§b"))
+                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.info.page_label"), "$current/$total", "§a"))
+                        if (me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
+                                val mspt = plugin.msptMonitorTask.currentServerMspt
+                                add(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, "gui.admin.info.mspt_label"),
+                                                "${me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColoredString(mspt)} ms",
+                                                "",
+                                        ),
+                                )
                         }
                 }
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_WORLD_ITEM)
-                ItemTag.setWorldUuid(item, data.uuid)
-                return item
+                return CCSystem.getAPI().getGuiElementService().menuDisplay(
+                        GuiMenuDisplaySpec(
+                                slot,
+                                GuiItemSpec(
+                                        Material.PAPER,
+                                        GuiNameSpec.Component(lang.getComponent(player, "gui.admin.info.display")),
+                                        GuiLoreSpec.Blocks(listOf(GuiLoreBlock(lore))),
+                                        GuiElementRole.CONTENT,
+                                        1,
+                                ),
+                        ),
+                )
         }
 
-        private fun createAdminWorldLore(
+        private fun createAdminWorldEntry(
                 player: Player,
                 data: WorldData,
-                worldDirectory: String,
+                slot: Int,
+                name: String,
+                actionId: String,
                 includeWarpAction: Boolean,
                 includeWorldName: Boolean
-        ): List<Component> {
+        ): MenuElement {
                 val lang = plugin.languageManager
+                val worldDirectory = data.customWorldName ?: "my_world.${data.uuid}"
                 val ownerName =
                         PlayerNameUtil.getNameOrDefault(
                                 data.owner,
@@ -599,37 +754,47 @@ class WorldGui(private val plugin: MyWorldManager) {
                         else ""
                 val worldSizeValue = buildWorldSizeValue(player, data)
 
-                return CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                        GuiLoreBlock(buildList {
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.uuid"), worldDirectory, "§8"))
-                                if (includeWorldName) add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.world_name_line"), data.name, "§a"))
-                                add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.owner"), ownerName, "§f"))
-                                add(GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.admin.world_item.status"),
-                                        statusVal,
-                                        if (data.isArchived) "§c" else "§b"
-                                ))
-                        }),
-                        GuiLoreBlock(listOf(
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.publish"), publishName, publishColor),
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.generation"), generationMethod, "§e")
-                        )),
-                        GuiLoreBlock(buildList {
-                                if (createdValue != null) add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.created_at"), createdValue, "§e"))
-                                if (expireValue != null) add(GuiLoreLine.Data(lang.getMessage(player, expireLabelKey), expireValue, "§e"))
-                        }),
-                        GuiLoreBlock(listOf(
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.mspt"), msptValue.value, msptValue.color),
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.admin.world_item.world_size_line"), worldSizeValue.value, worldSizeValue.color)
-                        )),
-                        GuiLoreBlock(buildList {
-                                if (actionWarp.isNotBlank()) add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.left"), actionWarp))
-                                add(GuiLoreLine.Action(lang.getMessage(player, "gui.settings.click.right"), actionSettings))
-                                add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.shift_right"), actionArchive))
-                                if (uuidCopyHint.isNotBlank()) add(GuiLoreLine.Action(lang.getMessage(player, "lore.click.middle"), uuidCopyHint))
-                        })
-                )))
+                val payload = mapOf(WORLD_UUID to data.uuid.toString())
+                val glint = if (data.sourceWorld == "CONVERT") {
+                        false
+                } else {
+                        runCatching {
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                java.time.LocalDate.now().isAfter(java.time.LocalDate.parse(data.expireDate, formatter))
+                        }.getOrDefault(false)
+                }
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = data.icon,
+                                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                                role = GuiElementRole.ACTION,
+                                data = buildList {
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.uuid"), worldDirectory))
+                                        if (includeWorldName) add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_name_line"), data.name, GuiValueTone.SUCCESS))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.owner"), ownerName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.status"), statusVal, if (data.isArchived) GuiValueTone.DANGER else GuiValueTone.INFO))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.publish"), publishName, toneFor(publishColor)))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.generation"), generationMethod, GuiValueTone.PRIMARY))
+                                        if (createdValue != null) add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.created_at"), createdValue, GuiValueTone.PRIMARY))
+                                        if (expireValue != null) add(GuiMenuEntryData(lang.getMessage(player, expireLabelKey), expireValue, GuiValueTone.PRIMARY))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.mspt"), msptValue.value, toneFor(msptValue.color)))
+                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_size_line"), worldSizeValue.value, toneFor(worldSizeValue.color)))
+                                },
+                                actions = buildList {
+                                        if (actionWarp.isNotBlank()) add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT, actionWarp, payload))
+                                        add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_RIGHT, actionSettings, payload))
+                                        add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.SHIFT_RIGHT, actionArchive, payload))
+                                        if (uuidCopyHint.isNotBlank()) add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.MIDDLE, uuidCopyHint, payload))
+                                },
+                                glint = glint,
+                        ),
+                )
         }
+
+        private fun toneFor(colorCode: String): GuiValueTone =
+                GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT
 
         private fun getGenerationMethodLabel(player: Player, sourceWorld: String): String {
                 val lang = plugin.languageManager
@@ -867,44 +1032,34 @@ class WorldGui(private val plugin: MyWorldManager) {
                 return lang.getMessage(player, "gui.admin.world_item.archive_mode_manual")
         }
 
-        private fun createNavButton(
+        private fun createPageEntry(
                 player: Player,
-                label: String,
-                material: Material,
-                targetPage: Int,
+                slot: Int,
                 currentPage: Int,
                 totalPages: Int,
-                isNext: Boolean
-        ): ItemStack {
-                val item = ItemStack(material)
-                val meta = item.itemMeta ?: return item
+                isNext: Boolean,
+                targetPage: Int,
+        ): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(
-                        LegacyComponentSerializer.legacySection()
-                                .deserialize(label)
-                                .decoration(TextDecoration.ITALIC, false)
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.ARROW,
+                                name = GuiNameSpec.Text(
+                                        lang.getMessage(player, if (isNext) "gui.common.next_page" else "gui.common.prev_page"),
+                                        com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
+                                ),
+                                role = GuiElementRole.NAVIGATION,
+                                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.common.page_info_label"), "$currentPage/$totalPages", GuiValueTone.SUCCESS)),
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_PAGE,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev"),
+                                        mapOf(PAGE to targetPage.toString()),
+                                )),
+                        ),
                 )
-
-                if (material == Material.ARROW) {
-                        val lore = listOf(
-                                GuiLoreLine.Data(lang.getMessage(player, "gui.common.page_info_label"), "$currentPage/$totalPages", "§a"),
-                                GuiLoreLine.Action(
-                                        lang.getMessage(player, "lore.click.shift_any"),
-                                        lang.getMessage(player, if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev")
-                                )
-                        )
-                        meta.lore(GuiItemFactory.menuLore(lore))
-                }
-
-                item.itemMeta = meta
-                ItemTag.setTargetPage(item, targetPage)
-                val type =
-                        if (label == lang.getMessage("gui.common.next_page"))
-                                ItemTag.TYPE_GUI_NAV_NEXT
-                        else ItemTag.TYPE_GUI_NAV_PREV
-                ItemTag.tagItem(item, type)
-                return item
         }
 
         private fun buildMsptValue(player: Player, data: WorldData): DisplayValue {
@@ -982,151 +1137,114 @@ class WorldGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        private fun createInfoButton(totalCount: Int, current: Int, total: Int): ItemStack {
-                val item = ItemStack(Material.PAPER)
-                val meta = item.itemMeta ?: return item
-                val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(null, "gui.admin.info.display"))
-                val lore = mutableListOf<GuiLoreLine>(
-                        GuiLoreLine.Data(lang.getMessage(null, "gui.admin.info.total_count_label"), totalCount, "§b"),
-                        GuiLoreLine.Data(lang.getMessage(null, "gui.admin.info.page_label"), "$current/$total", "§a")
-                )
-                if (me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
-                    val mspt = plugin.msptMonitorTask.currentServerMspt
-                    lore.add(GuiLoreLine.Data(
-                            lang.getMessage(null, "gui.admin.info.mspt_label"),
-                            "${me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColoredString(mspt)} ms",
-                            ""
-                    ))
-                }
-                meta.lore(GuiItemFactory.menuLore(lore))
-
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_INFO)
-                return item
-        }
-
         /** アーカイブフィルターボタン */
-        private fun createArchiveFilterButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.CHEST)
-                val meta = item.itemMeta ?: return item
+        private fun createArchiveFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.filter.archive.display"))
-
                 val options = ArchiveFilter.values().map { filter ->
                         filter to lang.getMessage(player, filter.displayKey)
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.CHEST,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.archive.display")),
+                                GuiElementRole.ACTION,
+                                data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.archive.label"),
                                         options.first { it.first == session.archiveFilter }.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (filter, displayName) ->
-                                        val selected = filter == session.archiveFilter
-                                        add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_ARCHIVE)
-                return item
+                                        GuiValueTone.PRIMARY,
+                                )),
+                                options = options.map { (filter, name) ->
+                                        GuiMenuEntryOption(name, filter == session.archiveFilter)
+                                },
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_ARCHIVE_FILTER,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                )),
+                        ),
+                )
         }
 
         /** 公開レベルフィルターボタン */
-        private fun createPublishFilterButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.ENDER_EYE)
-                val meta = item.itemMeta ?: return item
+        private fun createPublishFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.filter.publish.display"))
-
                 val options = PublishFilter.values().map { filter ->
                         filter to lang.getMessage(player, filter.displayKey)
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.ENDER_EYE,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.publish.display")),
+                                GuiElementRole.ACTION,
+                                data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.publish.label"),
                                         options.first { it.first == session.publishFilter }.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (filter, displayName) ->
-                                        val selected = filter == session.publishFilter
-                                        add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_PUBLISH)
-                return item
+                                        GuiValueTone.PRIMARY,
+                                )),
+                                options = options.map { (filter, name) ->
+                                        GuiMenuEntryOption(name, filter == session.publishFilter)
+                                },
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_PUBLISH_FILTER,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                )),
+                        ),
+                )
         }
 
         /** プレイヤーフィルターボタン */
-        private fun createPlayerFilterButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.PLAYER_HEAD)
-                val meta = item.itemMeta ?: return item
+        private fun createPlayerFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.filter.player.display"))
-
-                val information = mutableListOf<GuiLoreLine>()
-
-                // 現在の設定
-                val filterTypeName = lang.getMessage(player, session.playerFilterType.displayKey)
-                information.add(GuiLoreLine.Data(
-                        lang.getMessage(player, "gui.admin.filter.player.current_type"),
-                        filterTypeName,
-                        "§f"
-                ))
-
-                if (session.playerFilter != null) {
-                        val targetName = PlayerNameUtil.getNameOrDefault(session.playerFilter!!, "Unknown")
-
-                        information.add(GuiLoreLine.Data(
-                                lang.getMessage(player, "gui.admin.filter.player.current_player"),
-                                targetName,
-                                "§b"
-                        ))
-                }
-
                 val actions = buildList {
-                        add(GuiLoreLine.Action(
-                                lang.getMessage(player, "gui.settings.click.left"),
-                                lang.getMessage(player, "gui.admin.filter.player.click_left")
+                        add(GuiMenuEntryAction(
+                                ACTION_PLAYER_FILTER,
+                                MenuAcceptedClicks.LEFT,
+                                lang.getMessage(player, "gui.admin.filter.player.click_left"),
                         ))
                         if (session.playerFilterType != PlayerFilterType.NONE) {
-                                add(GuiLoreLine.Action(
-                                        lang.getMessage(player, "gui.settings.click.right"),
-                                        lang.getMessage(player, "gui.admin.filter.player.click_right")
+                                add(GuiMenuEntryAction(
+                                        ACTION_PLAYER_FILTER,
+                                        MenuAcceptedClicks.RIGHT,
+                                        lang.getMessage(player, "gui.admin.filter.player.click_right"),
                                 ))
                         }
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(listOf(
-                        GuiLoreBlock(information),
-                        GuiLoreBlock(actions)
-                ))))
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_FILTER_PLAYER)
-                return item
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.PLAYER_HEAD,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.player.display")),
+                                GuiElementRole.ACTION,
+                                data = buildList {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(player, "gui.admin.filter.player.current_type"),
+                                                lang.getMessage(player, session.playerFilterType.displayKey),
+                                        ))
+                                        session.playerFilter?.let {
+                                                add(GuiMenuEntryData(
+                                                        lang.getMessage(player, "gui.admin.filter.player.current_player"),
+                                                        PlayerNameUtil.getNameOrDefault(it, "Unknown"),
+                                                        GuiValueTone.INFO,
+                                                ))
+                                        }
+                                },
+                                options = PlayerFilterType.values().map {
+                                        GuiMenuEntryOption(
+                                                lang.getMessage(player, it.displayKey),
+                                                it == session.playerFilterType,
+                                        )
+                                },
+                                actions = actions,
+                        ),
+                )
         }
 
         /** ソートボタン */
-        private fun createSortButton(player: Player, session: AdminGuiSession): ItemStack {
-                val item = ItemStack(Material.HOPPER)
-                val meta = item.itemMeta ?: return item
+        private fun createSortButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-
-                meta.displayName(lang.getComponent(player, "gui.admin.sort.display"))
 
                 var sortTypes = AdminSortType.values()
                 if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
@@ -1137,25 +1255,27 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val options = sortTypes.map { sortType ->
                         sortType to lang.getMessage(player, sortType.displayKey)
                 }
-                meta.lore(CCSystem.getAPI().getLoreService().render(
-                        GuiLoreSpec.Rich(buildList {
-                                add(GuiLoreLine.Data(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot, Material.HOPPER,
+                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.sort.display")),
+                                GuiElementRole.ACTION,
+                                data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.sort.label"),
                                         options.first { it.first == session.sortBy }.second,
-                                        "\u00A7e"
-                                ))
-                                add(GuiLoreLine.Spacer)
-                                options.forEach { (sortType, displayName) ->
-                                        val selected = sortType == session.sortBy
-                                        add(GuiLoreLine.Option(displayName, selected, "§e", "§7"))
-                                }
-                                add(GuiLoreLine.Spacer)
-                                addAll(GuiLoreActions.cyclePreviousNext(lang, player))
-                        }, GuiLoreFrame.BOTH)
-                ))
-                item.itemMeta = meta
-                ItemTag.tagItem(item, ItemTag.TYPE_GUI_ADMIN_SORT)
-                return item
+                                        GuiValueTone.PRIMARY,
+                                )),
+                                options = options.map { (type, name) ->
+                                        GuiMenuEntryOption(name, type == session.sortBy)
+                                },
+                                actions = listOf(GuiMenuEntryAction(
+                                        ACTION_SORT,
+                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                )),
+                        ),
+                )
         }
 
 }

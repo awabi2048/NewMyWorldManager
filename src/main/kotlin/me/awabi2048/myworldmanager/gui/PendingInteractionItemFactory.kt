@@ -2,15 +2,24 @@ package me.awabi2048.myworldmanager.gui
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
-import me.awabi2048.myworldmanager.util.GuiLoreBuilder
+import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
-import me.awabi2048.myworldmanager.util.ItemTag
+import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
+import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.GuiValueTone
+import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuElement
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.meta.SkullMeta
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -23,55 +32,124 @@ enum class PendingInteractionActionMode {
 }
 
 object PendingInteractionItemFactory {
-    fun createItem(
+    fun createElement(
+        plugin: MyWorldManager,
+        viewer: Player,
+        slot: Int,
+        subjectUuid: UUID,
+        type: PendingDecisionManager.PendingType,
+        worldName: String,
+        createdAt: Long,
+        actionMode: PendingInteractionActionMode,
+        actionId: String,
+        actionPayload: Map<String, String>,
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
+        viewer,
+        createSpec(
+            plugin = plugin,
+            viewer = viewer,
+            slot = slot,
+            subjectUuid = subjectUuid,
+            type = type,
+            worldName = worldName,
+            createdAt = createdAt,
+            actionMode = actionMode,
+            actionId = actionId,
+            actionPayload = actionPayload,
+            showAction = true,
+        ),
+    )
+
+    fun createDisplay(
         plugin: MyWorldManager,
         viewer: Player,
         subjectUuid: UUID,
         type: PendingDecisionManager.PendingType,
         worldName: String,
         createdAt: Long,
-        decisionId: UUID,
         actionMode: PendingInteractionActionMode,
-        itemTagType: String
-    ): ItemStack {
+    ): GuiMenuDisplaySpec {
+        val entry = createSpec(
+                plugin = plugin,
+                viewer = viewer,
+                slot = 0,
+                subjectUuid = subjectUuid,
+                type = type,
+                worldName = worldName,
+                createdAt = createdAt,
+                actionMode = actionMode,
+                actionId = "pending_interaction",
+                showAction = false,
+            )
+        return GuiMenuDisplaySpec(
+            slot = 0,
+            item = GuiItemSpec(
+                entry.material,
+                entry.name,
+                GuiLoreSpec.Blocks(
+                    listOf(GuiLoreBlock(
+                        entry.data.map { GuiLoreLine.Data(it.label, it.value, it.tone.colorCode) },
+                    )),
+                ),
+                GuiElementRole.CONTENT,
+                entry.amount,
+            ),
+            glint = entry.glint,
+            playerHeadOwner = entry.playerHeadOwner,
+        )
+    }
+
+    private fun createSpec(
+        plugin: MyWorldManager,
+        viewer: Player,
+        slot: Int,
+        subjectUuid: UUID,
+        type: PendingDecisionManager.PendingType,
+        worldName: String,
+        createdAt: Long,
+        actionMode: PendingInteractionActionMode,
+        actionId: String,
+        actionPayload: Map<String, String> = emptyMap(),
+        showAction: Boolean,
+    ): GuiMenuEntrySpec {
         val lang = plugin.languageManager
         val subject = Bukkit.getOfflinePlayer(subjectUuid)
-        val isOnline = subject.isOnline
         val subjectName = PlayerNameUtil.getNameOrDefault(subjectUuid, lang.getMessage(viewer, "general.unknown"))
-        val item = ItemStack(org.bukkit.Material.PLAYER_HEAD)
-        val meta = item.itemMeta as? SkullMeta ?: return item
-        meta.owningPlayer = subject
-        meta.displayName(
-            lang.getComponent(
-                viewer,
-                "gui.pending_list.item.name",
-                mapOf(
-                    "player" to subjectName,
-                    "type" to typeLabel(plugin, viewer, type)
-                )
-            ).decoration(TextDecoration.ITALIC, false)
-        )
-
-        val lore = GuiLoreBuilder(lang, viewer)
-            .block(listOf(
-                GuiLoreLine.Data(lang.getMessage(viewer, "gui.pending_list.item.type_label"), typeLabel(plugin, viewer, type), "§e"),
-                GuiLoreLine.Data(lang.getMessage(viewer, "gui.pending_list.item.world_label"), worldName, "§a"),
-                GuiLoreLine.Data(
-                    lang.getMessage(viewer, "gui.pending_list.item.status_label"),
-                    lang.getMessage(viewer, if (isOnline) "gui.pending_list.item.status_online" else "gui.pending_list.item.status_offline"),
-                    ""
+        return GuiMenuEntrySpec(
+            slot = slot,
+            material = org.bukkit.Material.PLAYER_HEAD,
+            name = GuiNameSpec.Component(
+                lang.getComponent(
+                    viewer,
+                    "gui.pending_list.item.name",
+                    mapOf("player" to subjectName, "type" to typeLabel(plugin, viewer, type)),
                 ),
-                GuiLoreLine.Data(lang.getMessage(viewer, "gui.pending_list.item.received_label"), formatDateTime(plugin, viewer, createdAt), "§f")
-            ))
-            .actions(lang.getMessage(viewer, actionLineKey(actionMode, type), mapOf("type" to typeLabel(plugin, viewer, type))))
-            .build()
-        meta.lore(lore)
-        meta.setEnchantmentGlintOverride(true)
-
-        item.itemMeta = meta
-        ItemTag.tagItem(item, itemTagType)
-        ItemTag.setString(item, "pending_decision_id", decisionId.toString())
-        return item
+            ),
+            role = if (showAction) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+            data = listOf(
+                GuiMenuEntryData(lang.getMessage(viewer, "gui.pending_list.item.type_label"), typeLabel(plugin, viewer, type), GuiValueTone.PRIMARY),
+                GuiMenuEntryData(lang.getMessage(viewer, "gui.pending_list.item.world_label"), worldName, GuiValueTone.SUCCESS),
+                GuiMenuEntryData(
+                    lang.getMessage(viewer, "gui.pending_list.item.status_label"),
+                    lang.getMessage(viewer, if (subject.isOnline) "gui.pending_list.item.status_online" else "gui.pending_list.item.status_offline"),
+                ),
+                GuiMenuEntryData(lang.getMessage(viewer, "gui.pending_list.item.received_label"), formatDateTime(plugin, viewer, createdAt)),
+            ),
+            actions = if (showAction) {
+                listOf(
+                    GuiMenuEntryAction(
+                        actionId,
+                        MenuAcceptedClicks.LEFT_RIGHT,
+                        lang.getMessage(viewer, actionLineKey(actionMode, type), mapOf("type" to typeLabel(plugin, viewer, type))),
+                        actionPayload,
+                    ),
+                )
+            } else {
+                emptyList()
+            },
+            glint = true,
+            playerHeadOwner = subjectUuid,
+        )
     }
 
     private fun actionLineKey(

@@ -18,7 +18,8 @@ data class PreviewSession(
     var rotationTask: BukkitTask? = null,
     var currentYaw: Float = 0f,
     val source: PreviewSource = PreviewSource.TEMPLATE_SELECTION,
-    val onReturn: (() -> Unit)? = null
+    val onReturn: (() -> Unit)? = null,
+    val runtimeSuspended: Boolean = false,
 )
 
 enum class PreviewSource {
