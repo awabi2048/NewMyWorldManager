@@ -23,12 +23,19 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 class LanguageResourceValidationTest {
     private static final String BASE_LOCALE = "ja_jp";
-    private static final Path LANG_ROOT = Path.of("../cc-system/src/main/resources/lang");
+    private static final Path LANG_ROOT = resolveLanguageRoot();
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z0-9_]+}");
     private static final Pattern KEY_CALL = Pattern.compile(
         "(?:languageManager|lang)\\.(?:getMessage(?:List)?(?:Strict)?|getComponent(?:List)?|hasKey)\\("
             + "[^\"]*?\"([a-z0-9_]+(?:\\.[a-z0-9_]+)+)\""
     );
+
+    private static Path resolveLanguageRoot() {
+        Path current = Path.of("../postprocess-cc-system/src/main/resources/lang");
+        return Files.isDirectory(current)
+            ? current
+            : Path.of("../cc-system/src/main/resources/lang");
+    }
 
     @Test
     void languageResourcesStayComplete() throws IOException {
