@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
@@ -162,12 +163,11 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     private fun cycleTourNavigation(context: MenuActionContext): MenuActionResult {
-        val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
         val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
         stats.tourNavigationMode = GuiCycle.select(
             stats.tourNavigationMode,
             TourNavigationMode.entries,
-            direction,
+            GuiCycleDirection.NEXT,
         )
         plugin.playerStatsRepository.save(stats)
         plugin.tourManager.refreshNavigation(context.player)
