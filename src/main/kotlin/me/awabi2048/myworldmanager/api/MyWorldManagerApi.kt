@@ -484,6 +484,7 @@ object MyWorldManagerApi {
     fun getWorldCreationGuards(): List<WorldCreationGuard> = worldCreationGuards.toList()
 
     @JvmStatic
+    /** 登録済みの純粋な作成可否Guardだけを照会します。GUI描画・Runtime inspectからも呼ばれます。 */
     fun checkWorldCreation(request: WorldCreationRequest): WorldCreationDecision {
         return worldCreationGuards
             .asReversed()
