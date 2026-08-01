@@ -22,6 +22,7 @@ import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.TemplateData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.Bukkit
@@ -336,13 +337,76 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         role: GuiElementRole = GuiElementRole.ACTION,
     ): MenuElement = menuEntry(
         player, slot, material, name, role, description = description,
-        actions = listOf(menuGestureAction(actionId, MenuGesture.ANY, actionText, safety = wizardActionSafety(actionId))),
+        actions = listOf(menuGestureAction(
+            actionId, MenuGesture.ANY, actionText,
+            safety = wizardActionSafety(actionId),
+            reversibleContract = when (actionId) {
+                ACTION_CANCEL -> MwmReversibleContracts.draft("template_cancel")
+                ACTION_ORIGIN -> MwmReversibleContracts.draft("template_origin")
+                else -> null
+            },
+        )),
     )
+
+    data class WizardLocationSnapshot(
+        val worldUuid: UUID,
+        val worldName: String,
+        val x: Double,
+        val y: Double,
+        val z: Double,
+        val yaw: Float,
+        val pitch: Float,
+    )
+
+    data class WizardSessionSnapshot(
+        val sourceWorldName: String,
+        val sourceWorldKey: String,
+        val id: String,
+        val name: String,
+        val description: List<String>,
+        val icon: Material,
+        val origin: WizardLocationSnapshot?,
+        val inputState: InputState,
+    )
+
+    fun snapshot(playerId: UUID): WizardSessionSnapshot? = sessions[playerId]?.let { session ->
+        WizardSessionSnapshot(
+            session.sourceWorldName,
+            session.sourceWorldKey,
+            session.id,
+            session.name,
+            session.description.toList(),
+            session.icon,
+            session.originLocation?.let { location ->
+                WizardLocationSnapshot(
+                    requireNotNull(location.world).uid,
+                    requireNotNull(location.world).name,
+                    location.x, location.y, location.z, location.yaw, location.pitch,
+                )
+            },
+            session.inputState,
+        )
+    }
+
+    fun restore(playerId: UUID, snapshot: WizardSessionSnapshot?): Boolean {
+        if (snapshot == null) sessions.remove(playerId)
+        else {
+            val origin = snapshot.origin?.let { saved ->
+                val world = Bukkit.getWorld(saved.worldUuid) ?: Bukkit.getWorld(saved.worldName) ?: return false
+                org.bukkit.Location(world, saved.x, saved.y, saved.z, saved.yaw, saved.pitch)
+            }
+            sessions[playerId] = WizardSession(
+                snapshot.sourceWorldName, snapshot.sourceWorldKey, snapshot.id, snapshot.name,
+                snapshot.description.toList(), snapshot.icon, origin, snapshot.inputState,
+            )
+        }
+        return true
+    }
 
     private fun wizardActionSafety(actionId: String): MenuActionSafety = when (actionId) {
         ACTION_NAME,
         ACTION_DESCRIPTION -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
-        ACTION_ICON,
+        ACTION_ICON -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
         ACTION_ORIGIN,
         ACTION_CANCEL -> MenuActionSafety.REVERSIBLE
         ACTION_SAVE -> MenuActionSafety.IRREVERSIBLE

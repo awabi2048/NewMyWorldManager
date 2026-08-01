@@ -112,6 +112,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var inviteCommand: me.awabi2048.myworldmanager.command.InviteCommand
     lateinit var likeSignManager: me.awabi2048.myworldmanager.service.LikeSignManager
     lateinit var tourManager: me.awabi2048.myworldmanager.service.TourManager
+    lateinit var userSettingsService: UserSettingsService
     lateinit var tourSessionManager: TourSessionManager
     lateinit var playerPlatformResolver: PlayerPlatformResolver
     lateinit var playerVisibilityService: PlayerVisibilityService
@@ -203,6 +204,7 @@ class MyWorldManager : JavaPlugin() {
         worldUnloadService.start()
         likeSignManager = LikeSignManager(this)
         tourManager = TourManager(this)
+        userSettingsService = UserSettingsService(playerStatsRepository, tourManager)
 
         loadWorldsFromPreviousShutdown()
         worldMigrationService.reportPending()
@@ -241,6 +243,7 @@ class MyWorldManager : JavaPlugin() {
         tourGui = TourGui(this)
 
         creationSessionManager = CreationSessionManager(this)
+        MwmReversibleStateProviders(this).register(CCSystem.getAPI().getMenuReversibleStateProviderRegistry())
         inviteSessionManager = InviteSessionManager()
         macroManager = MacroManager(this)
         worldPermissionPolicyService = WorldPermissionPolicyService(
@@ -492,6 +495,7 @@ class MyWorldManager : JavaPlugin() {
         runCatching { CCSystem.getAPI().getMenuConfirmationService().clearOwner("mwm") }
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("mwm") }
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("myworldmanager") }
+        runCatching { CCSystem.getAPI().getMenuReversibleStateProviderRegistry().unregisterOwner("myworldmanager") }
         runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()

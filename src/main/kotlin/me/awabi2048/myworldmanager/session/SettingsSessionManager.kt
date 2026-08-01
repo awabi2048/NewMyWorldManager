@@ -78,6 +78,13 @@ class SettingsSessionManager {
         sessions.remove(player.uniqueId)
     }
 
+    fun restoreTempWeather(playerId: UUID, worldId: UUID, expected: String?, restored: String?): Boolean {
+        val session = sessions[playerId] ?: return false
+        if (session.worldUuid != worldId || session.tempWeather != expected) return false
+        session.tempWeather = restored
+        return true
+    }
+
     fun endSession(playerId: UUID) {
         sessions.remove(playerId)
     }

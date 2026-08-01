@@ -429,7 +429,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     plugin.languageManager.getMessage(player, actionKey),
                     safety = when (actionId) {
                         ACTION_CONFIRM_GATE -> MenuActionSafety.IRREVERSIBLE
-                        ACTION_CANCEL_GATE -> MenuActionSafety.REVERSIBLE
+                        ACTION_CANCEL_GATE -> MenuActionSafety.NAVIGATION_ONLY
                         else -> error("Unknown world gate confirmation action safety: $actionId")
                     },
                 ),

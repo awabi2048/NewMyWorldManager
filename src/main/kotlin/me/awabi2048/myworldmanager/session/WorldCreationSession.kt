@@ -34,10 +34,43 @@ data class WorldCreationSession(
     val extras: MutableMap<String, Any?> = mutableMapOf(),
     var lastActivity: Long = System.currentTimeMillis()
 ) {
+    fun immutableSnapshot(): WorldCreationSessionSnapshot {
+        val copiedExtras = extras.mapValues { (key, value) ->
+            when (value) {
+                null, is String, is Boolean, is Int, is Long, is Double, is Float, is UUID -> value
+                else -> throw IllegalArgumentException("unsupported creation session extra '$key': ${value.javaClass.name}")
+            }
+        }
+        return WorldCreationSessionSnapshot(
+            playerId, phase, worldName, creationType, templateId, inputSeedString, seedEnvironment,
+            spawnCoordinates?.copy(), isDialogMode, billingMode, copiedExtras, lastActivity,
+        )
+    }
+
     /**
      * 最終操作時間を更新する
      */
     fun touch() {
         lastActivity = System.currentTimeMillis()
     }
+}
+
+data class WorldCreationSessionSnapshot(
+    val playerId: UUID,
+    val phase: WorldCreationPhase,
+    val worldName: String?,
+    val creationType: WorldCreationType?,
+    val templateId: String?,
+    val inputSeedString: String?,
+    val seedEnvironment: World.Environment,
+    val spawnCoordinates: WorldSpawnCoordinates?,
+    val isDialogMode: Boolean,
+    val billingMode: WorldPointBillingMode,
+    val extras: Map<String, Any?>,
+    val lastActivity: Long,
+) {
+    fun restore(): WorldCreationSession = WorldCreationSession(
+        playerId, phase, worldName, creationType, templateId, inputSeedString, seedEnvironment,
+        spawnCoordinates?.copy(), isDialogMode, billingMode, extras.toMutableMap(), lastActivity,
+    )
 }

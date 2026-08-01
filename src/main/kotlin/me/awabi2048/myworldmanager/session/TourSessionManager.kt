@@ -45,6 +45,13 @@ class TourSessionManager {
 
     fun getEdit(playerUuid: UUID): TourEditSession? = editSessions[playerUuid]
 
+    fun snapshotEdit(playerUuid: UUID): TourEditSessionSnapshot? = editSessions[playerUuid]?.immutableSnapshot()
+
+    fun restoreEdit(playerUuid: UUID, snapshot: TourEditSessionSnapshot?) {
+        require(snapshot == null || snapshot.playerUuid == playerUuid) { "tour edit session player mismatch" }
+        if (snapshot == null) editSessions.remove(playerUuid) else editSessions[playerUuid] = snapshot.restore()
+    }
+
     fun openNewEdit(playerUuid: UUID, worldUuid: UUID, name: String, description: String): TourEditSession {
         val session = TourEditSession(
             playerUuid = playerUuid,
@@ -92,3 +99,34 @@ class TourSessionManager {
         editSessions.clear()
     }
 }
+
+data class TourWaypointSnapshot(val uuid: UUID, val name: String, val x: Int, val y: Int, val z: Int, val createdAt: String)
+data class TourDraftSnapshot(
+    val uuid: UUID, val name: String, val description: String, val icon: Material, val createdBy: UUID?,
+    val startSignUuid: UUID?, val waypoints: List<TourWaypointSnapshot>, val completedCount: Int,
+    val startedPlayers: Set<UUID>, val activeProgress: Map<UUID, Int>, val createdAt: String,
+)
+data class TourEditSessionSnapshot(
+    val playerUuid: UUID, val worldUuid: UUID, val draft: TourDraftSnapshot, val originalTourUuid: UUID?,
+    val awaitingIconPick: Boolean, val awaitingWaypointPick: Boolean,
+) {
+    fun restore(): TourEditSession = TourEditSession(
+        playerUuid, worldUuid,
+        TourData(
+            draft.uuid, draft.name, draft.description, draft.icon, draft.createdBy, draft.startSignUuid,
+            draft.waypoints.map { TourWaypointData(it.uuid, it.name, it.x, it.y, it.z, it.createdAt) }.toMutableList(),
+            draft.completedCount, draft.startedPlayers.toMutableSet(), draft.activeProgress.toMutableMap(), draft.createdAt,
+        ),
+        originalTourUuid, awaitingIconPick, awaitingWaypointPick,
+    )
+}
+
+private fun TourEditSession.immutableSnapshot(): TourEditSessionSnapshot = TourEditSessionSnapshot(
+    playerUuid, worldUuid,
+    TourDraftSnapshot(
+        draft.uuid, draft.name, draft.description, draft.icon, draft.createdBy, draft.startSignUuid,
+        draft.waypoints.map { TourWaypointSnapshot(it.uuid, it.name, it.blockX, it.blockY, it.blockZ, it.createdAt) },
+        draft.completedCount, draft.startedPlayerUuids.toSet(), draft.activePlayerProgress.toMap(), draft.createdAt,
+    ),
+    originalTourUuid, awaitingIconPick, awaitingWaypointPick,
+)

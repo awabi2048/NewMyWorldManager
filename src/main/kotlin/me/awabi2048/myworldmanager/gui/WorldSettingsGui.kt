@@ -50,6 +50,7 @@ import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.BorderResetSpawnService
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -324,6 +325,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                         ROUTE_OPERATION to operation.name,
                                                                 ) + payload,
                                                                 safety = runtimeOperationSafety(operation),
+                                                                reversibleContract = when (operation) {
+                                                                        WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> MwmReversibleContracts.worldState("publish")
+                                                                        WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> MwmReversibleContracts.worldState("notification")
+                                                                        else -> null
+                                                                },
                                                         ),
                                                 ),
                                                 sounds = sounds,
@@ -953,6 +959,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 lang.getMessage(player, "gui.common.action.cycle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
                                                 safety = MenuActionSafety.REVERSIBLE,
+                                                reversibleContract = MwmReversibleContracts.worldState("publish"),
                                         )),
                                 ),
                         )
@@ -1164,6 +1171,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 lang.getMessage(player, "gui.settings.notification.action.toggle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION.name),
                                                 safety = MenuActionSafety.REVERSIBLE,
+                                                reversibleContract = MwmReversibleContracts.worldState("notification"),
                                         )),
                                         glint = worldData.notificationEnabled,
                                 ),
@@ -2509,12 +2517,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         label: String,
                         safety: MenuActionSafety,
                 ) {
+                        val reversibleContract = if (safety == MenuActionSafety.REVERSIBLE) {
+                                MwmReversibleContracts.worldState("member_role")
+                        } else null
                         actions += menuGestureAction(
                                 ACTION_RUNTIME_DISPATCH,
                                 gesture,
                                 label,
                                 payload,
                                 safety = safety,
+                                reversibleContract = reversibleContract,
                         )
                         hostActions += MenuInteraction.Action(
                                 actionId = ACTION_RUNTIME_DISPATCH,
@@ -2522,6 +2534,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 payload = payload,
                                 safety = safety,
                                 safetyByClick = gesture.clicks.associateWith { safety },
+                                reversibleContract = reversibleContract,
                         )
                 }
                 capabilityView?.actions?.forEach { action ->
@@ -2531,6 +2544,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 action.text,
                                 payload,
                                 safety = action.safety,
+                                reversibleContract = action.reversibleContract,
                         )
                 }
                 if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {

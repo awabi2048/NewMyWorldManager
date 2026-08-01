@@ -8,6 +8,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuRenderer
 import com.awabi2048.ccsystem.api.gui.MenuActionObservation
 import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuReversibleContract
 import com.awabi2048.ccsystem.api.gui.MenuCapabilityPresentation
 import com.awabi2048.ccsystem.api.gui.MenuCapabilityTrigger
 import com.awabi2048.ccsystem.api.gui.MenuContractValidator
@@ -46,6 +47,7 @@ class WorldSettingsCapabilityInvocationTest {
                     acceptedClicks = invocation.capability.acceptedClicks,
                     safety = invocation.capability.safety,
                     safetyByClick = invocation.capability.safetyByClick,
+                    reversibleContractByClick = invocation.capability.reversibleContractByClick,
                 ),
             )
         }
@@ -56,7 +58,9 @@ class WorldSettingsCapabilityInvocationTest {
             actions = emptyMap(),
         )
 
-        assertTrue(MenuContractValidator.validate(completedDefinition, observations).isEmpty())
+        val providerOnlyViolations = MenuContractValidator.validate(completedDefinition, observations)
+        assertEquals(4, providerOnlyViolations.size)
+        assertTrue(providerOnlyViolations.all { it.message == "reversible provider is not registered: test:state" })
         assertEquals(expectedCapabilities.map { it.first }, observations.map {
             assertInstanceOf(MenuInteraction.Capability::class.java, it.interaction).capabilityId
         })
@@ -82,6 +86,7 @@ class WorldSettingsCapabilityInvocationTest {
                 trigger = MenuCapabilityTrigger.LEFT_RIGHT,
                 text = "クリック",
                 safety = safety,
+                reversibleContract = if (safety == MenuActionSafety.REVERSIBLE) MenuReversibleContract("test:state") else null,
             ),
         ),
     )

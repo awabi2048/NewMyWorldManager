@@ -21,6 +21,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -239,6 +240,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                         MenuGesture.LEFT,
                         lang.getMessage(player, "gui.environment.weather.action.cycle"),
                         safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmReversibleContracts.settingsSession("weather"),
                     ),
                     menuGestureAction(
                         ACTION_WEATHER,

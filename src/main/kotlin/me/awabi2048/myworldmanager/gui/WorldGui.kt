@@ -29,6 +29,7 @@ import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
@@ -1153,6 +1154,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
                                         safety = MenuActionSafety.REVERSIBLE,
+                                        reversibleContract = MwmReversibleContracts.menuSession("admin_archive_filter"),
                                 )),
                         ),
                 )
@@ -1183,6 +1185,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
                                         safety = MenuActionSafety.REVERSIBLE,
+                                        reversibleContract = MwmReversibleContracts.menuSession("admin_publish_filter"),
                                 )),
                         ),
                 )
@@ -1197,13 +1200,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 MenuGesture.LEFT,
                                 lang.getMessage(player, "gui.admin.filter.player.click_left"),
                                 safety = MenuActionSafety.REVERSIBLE,
+                                reversibleContract = MwmReversibleContracts.menuSession("admin_player_filter"),
                         ))
                         if (session.playerFilterType != PlayerFilterType.NONE) {
                                 add(menuGestureAction(
                                         ACTION_PLAYER_FILTER,
                                         MenuGesture.RIGHT,
                                         lang.getMessage(player, "gui.admin.filter.player.click_right"),
-                                        safety = MenuActionSafety.REVERSIBLE,
+                                        safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                 ))
                         }
                 }
@@ -1269,6 +1273,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
                                         safety = MenuActionSafety.REVERSIBLE,
+                                        reversibleContract = MwmReversibleContracts.menuSession("admin_sort"),
                                 )),
                         ),
                 )

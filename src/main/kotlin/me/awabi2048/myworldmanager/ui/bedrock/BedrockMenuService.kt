@@ -26,6 +26,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
@@ -125,6 +126,7 @@ class BedrockMenuService(
             role: GuiElementRole = GuiElementRole.ACTION,
             gesture: MenuGesture = MenuGesture.ANY,
             safety: MenuActionSafety,
+            reversibleContract: com.awabi2048.ccsystem.api.gui.MenuReversibleContract? = null,
         ) {
             items.remove(slot)
             elements[slot] = CCSystem.getAPI().getGuiElementService().menuStructuredEntry(
@@ -139,6 +141,7 @@ class BedrockMenuService(
                             label = itemName(item),
                             payload = payload,
                             safety = safety,
+                            reversibleContract = reversibleContract,
                         ),
                     ),
                 ),
@@ -595,6 +598,7 @@ class BedrockMenuService(
                 ),
                 "cycle_publish",
                 safety = MenuActionSafety.REVERSIBLE,
+                reversibleContract = MwmReversibleContracts.worldState("publish"),
             )
         }
 
@@ -1181,6 +1185,7 @@ class BedrockMenuService(
                     MenuGesture.ANY,
                     tr(player, "gui.player_world.creation_button.action"),
                     safety = MenuActionSafety.REVERSIBLE,
+                    reversibleContract = MwmReversibleContracts.creationSession(),
                 )),
             ),
         )
@@ -1318,6 +1323,13 @@ class BedrockMenuService(
                     MenuGesture.ANY,
                     tr(player, actionKey),
                     safety = settingActionSafety(actionId),
+                    reversibleContract = if (settingActionSafety(actionId) == MenuActionSafety.REVERSIBLE) MwmReversibleContracts.userSetting(
+                        when (actionId) {
+                            "toggle_notification" -> "notification"
+                            "toggle_critical" -> "critical_visibility"
+                            else -> "tour_navigation"
+                        },
+                    ) else null,
                 )),
                 glint = glint,
             ),

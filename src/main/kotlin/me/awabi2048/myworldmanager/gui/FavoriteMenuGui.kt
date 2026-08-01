@@ -21,6 +21,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.model.WorldData
@@ -207,6 +208,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.favorite.favorite_menu.toggle.action"),
                         safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmReversibleContracts.playerState("favorite_toggle"),
                     ),
                 ),
             ),

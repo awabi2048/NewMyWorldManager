@@ -23,6 +23,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.time.LocalDate
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -234,7 +235,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 actions = buildList {
                                         add(menuGestureAction(ACTION_WORLD, MenuGesture.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                                         if (favoriteAction.isNotBlank()) {
-                                                add(menuGestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.REVERSIBLE))
+                                                add(menuGestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmReversibleContracts.playerState("favorite_toggle")))
                                         }
                                 },
                         ),

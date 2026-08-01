@@ -93,6 +93,12 @@ class AdminGuiSessionManager {
         session.currentPage = 0 // フィルター変更時はページをリセット
     }
 
+    fun snapshot(playerUuid: UUID): AdminGuiSession = getSession(playerUuid).copy()
+
+    fun restore(playerUuid: UUID, snapshot: AdminGuiSession) {
+        sessions[playerUuid] = snapshot.copy()
+    }
+
     fun cyclePublishFilter(playerUuid: UUID, direction: GuiCycleDirection) {
         val session = getSession(playerUuid)
         session.publishFilter = GuiCycle.select(session.publishFilter, PublishFilter.values(), direction)

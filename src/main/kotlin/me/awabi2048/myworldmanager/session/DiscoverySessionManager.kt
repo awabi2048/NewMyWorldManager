@@ -25,6 +25,13 @@ class DiscoverySessionManager {
         return sessions.getOrPut(playerUuid) { DiscoverySession(playerUuid) }
     }
 
+    fun snapshot(playerUuid: UUID): DiscoverySession = getSession(playerUuid).copy()
+
+    fun restore(playerUuid: UUID, snapshot: DiscoverySession) {
+        require(snapshot.playerUuid == playerUuid) { "discovery session player mismatch" }
+        sessions[playerUuid] = snapshot.copy()
+    }
+
     fun clearSession(playerUuid: UUID) {
         sessions.remove(playerUuid)
     }

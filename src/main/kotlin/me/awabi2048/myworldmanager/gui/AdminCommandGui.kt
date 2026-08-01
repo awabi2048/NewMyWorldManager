@@ -641,7 +641,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         ACTION_INFO,
         ACTION_PORTALS -> MenuActionSafety.NAVIGATION_ONLY
         ACTION_CONFIRM -> MenuActionSafety.IRREVERSIBLE
-        ACTION_CANCEL -> MenuActionSafety.REVERSIBLE
+        ACTION_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
         else -> error("Unknown admin GUI action safety: $actionId")
     }
 

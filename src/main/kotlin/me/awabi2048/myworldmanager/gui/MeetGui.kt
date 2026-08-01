@@ -25,6 +25,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.MeetTargetAction
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -107,7 +108,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
-                actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, "gui.meet.status_button.action"), safety = MenuActionSafety.REVERSIBLE)),
+                actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, "gui.meet.status_button.action"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmReversibleContracts.playerState("meet_status"))),
                 playerHeadOwner = player.uniqueId,
             ),
         )

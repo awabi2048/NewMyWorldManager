@@ -15,6 +15,13 @@ class MeetSessionManager {
         return sessions.getOrPut(playerUuid) { MeetSession(playerUuid) }
     }
 
+    fun snapshot(playerUuid: UUID): MeetSession = getSession(playerUuid).copy()
+
+    fun restore(playerUuid: UUID, snapshot: MeetSession) {
+        require(snapshot.playerUuid == playerUuid) { "meet session player mismatch" }
+        sessions[playerUuid] = snapshot.copy()
+    }
+
     fun clearSession(playerUuid: UUID) {
         sessions.remove(playerUuid)
     }

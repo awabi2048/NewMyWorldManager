@@ -27,6 +27,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.WorldCreationDraft
@@ -863,7 +864,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                         MenuGesture.ANY,
                         actionText,
                         mapOf(CONFIRMATION_ACTION to action.name),
-                        safety = confirmationActionSafety(action),
+                            safety = confirmationActionSafety(action),
+                            reversibleContract = when (action) {
+                                CreationConfirmationAction.CANCEL -> MwmReversibleContracts.creationSession("cancel")
+                                CreationConfirmationAction.DIMENSION -> MwmReversibleContracts.creationSession("dimension")
+                                else -> null
+                            },
                     ),
                 ),
             ),

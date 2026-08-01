@@ -27,6 +27,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourWaypointData
 import me.awabi2048.myworldmanager.model.WorldData
@@ -447,7 +448,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 actions = listOf(
                     menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE),
-                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"), safety = MenuActionSafety.REVERSIBLE),
+                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmReversibleContracts.draft("tour_icon_pick")),
                 ),
             ),
         )
@@ -931,7 +932,11 @@ class TourGui(private val plugin: MyWorldManager) {
                     else -> null
                 }
             },
-            actions = listOf(menuGestureAction(actionId, MenuGesture.LEFT_RIGHT, action, payload, safety = tourActionSafety(actionId))),
+            actions = listOf(menuGestureAction(
+                actionId, MenuGesture.LEFT_RIGHT, action, payload,
+                safety = tourActionSafety(actionId),
+                reversibleContract = if (actionId == ACTION_DISCARD_CONFIRM) MwmReversibleContracts.draft("tour_discard") else null,
+            )),
         ),
     )
 

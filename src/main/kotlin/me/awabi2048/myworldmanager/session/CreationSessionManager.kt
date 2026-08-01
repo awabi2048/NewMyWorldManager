@@ -31,6 +31,13 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
         sessions.remove(playerId)
     }
 
+    fun snapshot(playerId: UUID): WorldCreationSessionSnapshot? = sessions[playerId]?.immutableSnapshot()
+
+    fun restore(playerId: UUID, snapshot: WorldCreationSessionSnapshot?) {
+        require(snapshot == null || snapshot.playerId == playerId) { "creation session player mismatch" }
+        if (snapshot == null) sessions.remove(playerId) else sessions[playerId] = snapshot.restore()
+    }
+
     fun clearAll() {
         sessions.clear()
     }

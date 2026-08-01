@@ -24,6 +24,7 @@ import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.*
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -220,6 +221,9 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                         MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, actionKey),
                         safety = settingActionSafety(actionId),
+                        reversibleContract = if (settingActionSafety(actionId) == MenuActionSafety.REVERSIBLE) {
+                            MwmReversibleContracts.userSetting(actionId)
+                        } else null,
                     ),
                 ),
                 glint = glint,
@@ -264,6 +268,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.user_settings.cycle_action.toggle"),
                         safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmReversibleContracts.userSetting(ACTION_TOUR_NAVIGATION),
                     ),
                 ),
                 glint = null

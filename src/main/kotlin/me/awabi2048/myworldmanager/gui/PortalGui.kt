@@ -19,6 +19,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
@@ -226,6 +227,11 @@ class PortalGui(private val plugin: MyWorldManager) {
                         gesture,
                         lang.getMessage(player, "$key.action"),
                         safety = portalActionSafety(actionId),
+                        reversibleContract = when (actionId) {
+                            ACTION_TOGGLE_TEXT -> MwmReversibleContracts.portalState("text")
+                            ACTION_CYCLE_COLOR -> MwmReversibleContracts.portalState("color")
+                            else -> null
+                        },
                     ),
                 ),
             ),

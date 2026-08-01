@@ -1,0 +1,39 @@
+id,file,action,classification,provider,reason
+admin-command-cancel,AdminCommandGui.kt,cancel,NAVIGATION_ONLY,,navigation bookkeeping and route replacement only
+admin-portal-sort,AdminPortalGui.kt,sort,REVERSIBLE,myworldmanager:menu-session,portal sort session mutation
+creation-dimension,CreationGui.kt,DIMENSION,REVERSIBLE,myworldmanager:creation-session,creation draft dimension mutation
+creation-cancel,CreationGui.kt,CANCEL,REVERSIBLE,myworldmanager:creation-session,creation draft removal
+discovery-sort,DiscoveryGui.kt,sort,REVERSIBLE,myworldmanager:menu-session,discovery session sort mutation
+discovery-tag,DiscoveryGui.kt,tag,REVERSIBLE,myworldmanager:menu-session,discovery session tag mutation
+discovery-special,DiscoveryGui.kt,special_filter,REVERSIBLE,myworldmanager:menu-session,discovery session filter mutation
+environment-weather,EnvironmentGui.kt,weather,REVERSIBLE,myworldmanager:settings-session,temporary weather mutation
+favorite-tag,FavoriteGui.kt,tag,REVERSIBLE,myworldmanager:menu-session,favorite session tag mutation
+favorite-toggle,FavoriteMenuGui.kt,toggle,REVERSIBLE,myworldmanager:player-state,favorite repository mutation
+gate-cancel,PortalListener.kt,cancel_gate,NAVIGATION_ONLY,,message and close only
+bedrock-publish,BedrockMenuService.kt,cycle_publish,REVERSIBLE,myworldmanager:world-state,world publish metadata mutation
+bedrock-create,BedrockMenuService.kt,start_creation,REVERSIBLE,myworldmanager:creation-session,creation draft replacement
+bedrock-notification,BedrockMenuService.kt,toggle_notification,REVERSIBLE,myworldmanager:user-settings,user notification mutation
+bedrock-critical,BedrockMenuService.kt,toggle_critical,REVERSIBLE,myworldmanager:user-settings,user visibility mutation
+bedrock-tour,BedrockMenuService.kt,cycle_tour_navigation,REVERSIBLE,myworldmanager:user-settings,user navigation mode mutation
+meet-status,MeetGui.kt,status,REVERSIBLE,myworldmanager:player-state,meet status and page mutation
+player-world-priority,PlayerWorldGui.kt,world,REVERSIBLE,myworldmanager:world-display-order,display order mutation
+portal-text,PortalGui.kt,toggle_text,REVERSIBLE,myworldmanager:portal-state,portal text mutation
+portal-color,PortalGui.kt,cycle_color,REVERSIBLE,myworldmanager:portal-state,portal color mutation
+template-icon,TemplateWizardGui.kt,icon,INPUT_OR_EXTERNAL_SURFACE,,cursor item is operation input
+template-origin,TemplateWizardGui.kt,origin,REVERSIBLE,myworldmanager:draft,template origin draft mutation
+template-cancel,TemplateWizardGui.kt,cancel,REVERSIBLE,myworldmanager:draft,template draft removal
+tour-icon,TourGui.kt,edit_text_right,REVERSIBLE,myworldmanager:draft,tour icon-pick draft mutation
+tour-discard,TourGui.kt,discard_confirm,REVERSIBLE,myworldmanager:draft,tour draft removal
+user-notification,UserSettingsGui.kt,notification,REVERSIBLE,myworldmanager:user-settings,user notification mutation
+user-critical,UserSettingsGui.kt,critical_visibility,REVERSIBLE,myworldmanager:user-settings,user visibility mutation
+user-tour,UserSettingsGui.kt,tour_navigation,REVERSIBLE,myworldmanager:user-settings,user navigation mode mutation
+visit-favorite,VisitGui.kt,world_right,REVERSIBLE,myworldmanager:player-state,favorite repository mutation
+visit-world-favorite,VisitWorldGui.kt,world_right,REVERSIBLE,myworldmanager:player-state,favorite repository mutation
+admin-archive-filter,WorldGui.kt,archiveFilter,REVERSIBLE,myworldmanager:menu-session,admin session filter mutation
+admin-publish-filter,WorldGui.kt,publishFilter,REVERSIBLE,myworldmanager:menu-session,admin session filter mutation
+admin-player-filter-left,WorldGui.kt,playerFilter_left,REVERSIBLE,myworldmanager:menu-session,admin session filter mutation
+admin-player-filter-right,WorldGui.kt,playerFilter_right,INPUT_OR_EXTERNAL_SURFACE,,opens player-name input
+admin-sort,WorldGui.kt,sort,REVERSIBLE,myworldmanager:menu-session,admin session sort mutation
+world-publish,WorldSettingsGui.kt,CYCLE_PUBLISH,REVERSIBLE,myworldmanager:world-state,world publish metadata mutation
+world-notification,WorldSettingsGui.kt,TOGGLE_NOTIFICATION,REVERSIBLE,myworldmanager:world-state,world notification mutation
+member-role,WorldSettingsGui.kt,MEMBER_left,REVERSIBLE,myworldmanager:world-state,member role mutation

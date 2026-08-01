@@ -26,6 +26,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.session.AdminGuiSession
 import me.awabi2048.myworldmanager.session.PortalSortType
@@ -303,6 +304,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.common.action.cycle"),
                         safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmReversibleContracts.menuSession("admin_portal_sort"),
                     ),
                 ),
             ),
