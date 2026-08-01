@@ -25,6 +25,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
+import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -1932,6 +1933,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 playSound: Boolean = true,
                 replaceCurrent: Boolean = false
         ) {
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.MANAGE_MEMBERS,
+                        isGui = true,
+                )
                 val route = memberManagementRoute(worldData.uuid, page)
                 if (replaceCurrent) {
                         runtime.replace(player, route)
@@ -1947,12 +1954,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): InventoryMenuView {
                 val lang = plugin.languageManager
                 val title = lang.getMessage(player, "gui.member_management.title")
-                plugin.settingsSessionManager.updateSessionAction(
-                        player,
-                        worldData.uuid,
-                        SettingsAction.MANAGE_MEMBERS,
-                        isGui = true
-                )
 
                 val allEntries = mutableListOf<MemberManagementEntry>()
                 allEntries.add(
@@ -2062,6 +2063,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 worldData,
                                                 entry.playerUuid,
                                 )
+                                val capabilityAttributes: Map<String, Any> = mapOf(
+                                        MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject,
+                                )
                                 val service = CCSystem.getAPI().getMenuCapabilityService()
                                 val capabilityView = service
                                         .definitions(MemberManagementCapabilityContract.PLACEMENT)
@@ -2069,15 +2073,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 service.resolve(
                                                         definition.capabilityId,
                                                         player,
-                                                        attributes = mapOf(MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject),
+                                                        attributes = capabilityAttributes,
                                                 )
                                         }?.requireExplicitActionSafety()
-                                inventory.setMenuEntry(
-                                        player,
+                                inventory.setElement(
                                         createMemberEntrySpec(
                                                 player, slot, entry.playerUuid,
                                                 entry.role ?: lang.getMessage(player, "role.member"),
-                                                canManageRoles, capabilityView,
+                                                canManageRoles, capabilityView, capabilityAttributes,
                                         ),
                                 )
                         }
@@ -2480,7 +2483,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 role: String,
                 isOwner: Boolean,
                 capabilityView: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability? = null,
-        ): GuiMenuEntrySpec {
+                capabilityAttributes: Map<String, Any> = emptyMap(),
+        ): MenuElement {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
                 val stats = plugin.playerStatsRepository.findByUuid(uuid)
@@ -2494,39 +2498,64 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 val embeddedBlocks = capabilityView?.presentation?.embeddedLoreBlocks.orEmpty()
-                val payload = buildMap {
-                        put(ROUTE_OPERATION, WorldSettingsRuntimeOperation.MEMBER.name)
-                        put(ROUTE_TARGET_UUID, uuid.toString())
-                        capabilityView?.capabilityId?.let { put(ROUTE_CAPABILITY_ID, it) }
+                val payload = mapOf(
+                        ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER.name,
+                        ROUTE_TARGET_UUID to uuid.toString(),
+                )
+                val actions = mutableListOf<GuiMenuActionIntent>()
+                val hostActions = mutableListOf<MenuInteraction.Action>()
+                fun addHostAction(
+                        gesture: MenuGesture,
+                        label: String,
+                        safety: MenuActionSafety,
+                ) {
+                        actions += menuGestureAction(
+                                ACTION_RUNTIME_DISPATCH,
+                                gesture,
+                                label,
+                                payload,
+                                safety = safety,
+                        )
+                        hostActions += MenuInteraction.Action(
+                                actionId = ACTION_RUNTIME_DISPATCH,
+                                acceptedClicks = gesture.clicks,
+                                payload = payload,
+                                safety = safety,
+                                safetyByClick = gesture.clicks.associateWith { safety },
+                        )
                 }
-                val actions = buildList {
-                        capabilityView?.actions?.forEach { action ->
-                                add(menuGestureAction(
-                                        ACTION_RUNTIME_DISPATCH,
-                                        MenuGesture.fromClicks(action.trigger.clicks),
-                                        action.text,
-                                        payload,
-                                        safety = action.safety,
-                                ))
+                capabilityView?.actions?.forEach { action ->
+                        actions += menuGestureAction(
+                                ACTION_RUNTIME_DISPATCH,
+                                MenuGesture.fromClicks(action.trigger.clicks),
+                                action.text,
+                                payload,
+                                safety = action.safety,
+                        )
+                }
+                if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
+                        val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
+                                lang.getMessage(null as Player?, "role.moderator")
+                        } else {
+                                lang.getMessage(null as Player?, "role.member")
                         }
-                        if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
-                                val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
-                                        lang.getMessage(null as Player?, "role.moderator")
-                                } else {
-                                        lang.getMessage(null as Player?, "role.member")
-                                }
-                                add(menuGestureAction(
-                                        ACTION_RUNTIME_DISPATCH,
-                                        MenuGesture.LEFT,
-                                        lang.getMessage(viewer, "gui.member_management.item.action.change_role", mapOf("next_role" to nextRole)),
-                                        payload,
-                                        safety = MenuActionSafety.REVERSIBLE,
-                                ))
-                        }
-                        if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
-                                add(menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_LEFT, lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"), payload, safety = MenuActionSafety.CONFIRM_ENTRY))
-                                add(menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_RIGHT, lang.getMessage(viewer, "gui.member_management.item.action.remove_member"), payload, safety = MenuActionSafety.CONFIRM_ENTRY))
-                        }
+                        addHostAction(
+                                MenuGesture.PLAIN_LEFT,
+                                lang.getMessage(viewer, "gui.member_management.item.action.change_role", mapOf("next_role" to nextRole)),
+                                MenuActionSafety.REVERSIBLE,
+                        )
+                }
+                if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
+                        addHostAction(
+                                MenuGesture.SHIFT_LEFT,
+                                lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"),
+                                MenuActionSafety.CONFIRM_ENTRY,
+                        )
+                        addHostAction(
+                                MenuGesture.SHIFT_RIGHT,
+                                lang.getMessage(viewer, "gui.member_management.item.action.remove_member"),
+                                MenuActionSafety.CONFIRM_ENTRY,
+                        )
                 }
                 val targetInfoLines = buildList {
                         if (isOnline) {
@@ -2545,7 +2574,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiValueTone.DEFAULT.colorCode,
                         ))
                 }
-                return GuiMenuEntrySpec(
+                val spec = GuiMenuEntrySpec(
                         slot = slot,
                         material = Material.PLAYER_HEAD,
                         name = GuiNameSpec.Component(Component.text("$color$displayName").decoration(TextDecoration.ITALIC, false)),
@@ -2562,6 +2591,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         actions = actions,
                         glint = capabilityView?.presentation?.glint,
                         playerHeadOwner = uuid,
+                )
+                return CCSystem.getAPI().getGuiElementService().menuEntry(viewer, spec).copy(
+                        interaction = memberManagementEntryInteraction(
+                                capabilityView,
+                                capabilityAttributes,
+                                hostActions,
+                        ),
                 )
         }
 
@@ -3781,7 +3817,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val ROUTE_PAGE = "page"
                 const val ROUTE_TARGET_UUID = "target_uuid"
                 const val ROUTE_DECISION_ID = "decision_id"
-                const val ROUTE_CAPABILITY_ID = "capability_id"
                 private const val ROUTE_OPERATION = "operation"
                 private const val ROUTE_EXPANSION_COST = "expansion_cost"
                 private const val ROUTE_EXPANSION_DIRECTION = "expansion_direction"

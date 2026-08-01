@@ -20,8 +20,6 @@ import java.util.UUID
 import java.util.Locale
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
-import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
-import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilitySubject
 import me.awabi2048.myworldmanager.api.service.ExpansionExecutionMode
 import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
 import me.awabi2048.myworldmanager.api.service.ExpansionSequencePhase
@@ -1014,30 +1012,6 @@ class WorldSettingsListener : Listener {
                         WorldSettingsRuntimeOperation.MEMBER -> {
                                 val memberId = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_TARGET_UUID]
                                         ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                                if (
-                                        memberId != null &&
-                                        !click.isShiftClick &&
-                                        click.isLeftClick
-                                ) {
-                                        val capabilityId = runtimeContext.actionPayload[
-                                                WorldSettingsGui.ROUTE_CAPABILITY_ID
-                                        ]
-                                        if (capabilityId != null) {
-                                                return CCSystem.getAPI().getMenuCapabilityService().execute(
-                                                        capabilityId,
-                                                        player,
-                                                        click,
-                                                        attributes = mapOf(
-                                                                MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to
-                                                                        MemberManagementCapabilitySubject(
-                                                                                player,
-                                                                                worldData,
-                                                                                memberId,
-                                                                        ),
-                                                        ),
-                                                )
-                                        }
-                                }
                                 return handleMemberManagementMemberItemClick(
                                         player,
                                         memberId,

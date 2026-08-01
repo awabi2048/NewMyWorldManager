@@ -52,9 +52,17 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
             WorldSettingsAction.EDIT_INFO -> editInfo(request.player, worldData)
             WorldSettingsAction.SELECT_ICON -> plugin.worldSettingsIconSelectionService.start(request.player, worldData)
             WorldSettingsAction.SET_SPAWN -> selectSpawnType(request.player, worldData, request.click)
-            WorldSettingsAction.MANAGE_MEMBERS -> MenuActionResult.Success(
-                MenuUpdate.Navigate(plugin.worldSettingsGui.memberManagementRoute(worldData.uuid)),
-            )
+            WorldSettingsAction.MANAGE_MEMBERS -> {
+                plugin.settingsSessionManager.updateSessionAction(
+                    request.player,
+                    worldData.uuid,
+                    SettingsAction.MANAGE_MEMBERS,
+                    isGui = true,
+                )
+                MenuActionResult.Success(
+                    MenuUpdate.Navigate(plugin.worldSettingsGui.memberManagementRoute(worldData.uuid)),
+                )
+            }
             WorldSettingsAction.EDIT_ANNOUNCEMENT -> editAnnouncement(request.player, worldData, request.click)
             WorldSettingsAction.MANAGE_TOUR -> MenuActionResult.Success(
                 MenuUpdate.Navigate(plugin.tourGui.editRoute(worldData.uuid)),
