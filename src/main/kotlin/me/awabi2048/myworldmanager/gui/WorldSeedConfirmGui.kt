@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -63,7 +67,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
                 slot = 13,
                 item = GuiItemSpec(
                     material = Material.PAPER,
-                    name = GuiNameSpec.Component(lang.getComponent(player, "gui.world_seed_confirm.title")),
+                    name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.world_seed_confirm.title")),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
@@ -80,7 +84,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
                                         "§a",
                                     ),
                                 ) + lang.getMessageList(player, "gui.world_seed_confirm.description")
-                                    .map(GuiLoreLine::Text),
+                                    .map(::descriptionLine),
                             ),
                         ),
                     ),
@@ -120,7 +124,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+            name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
             role = role,
             actions = listOf(
                 menuGestureAction(

@@ -103,7 +103,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = layout.actionSlot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name))),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name))),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
@@ -265,7 +265,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 slot = 22,
                 item = GuiItemSpec(
                     material = Material.QUARTZ,
-                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")),
                     lore = GuiLoreSpec.None,
                     role = GuiElementRole.CONTENT,
                     amount = 1,
@@ -281,7 +281,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("meet", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(viewer, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
                     menuGestureAction(
@@ -337,7 +337,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Text(target.name, GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.targetIdentityName(target.name, GuiNameStyle.DEFAULT),
                 role = if (actionLabel == null) GuiElementRole.CONTENT else GuiElementRole.ACTION,
                 data = listOf(
                     GuiMenuEntryData(

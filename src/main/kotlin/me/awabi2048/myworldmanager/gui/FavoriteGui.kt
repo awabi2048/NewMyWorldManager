@@ -112,7 +112,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                     22,
                     GuiItemSpec(
                         Material.QUARTZ,
-                        GuiNameSpec.Component(lang.getComponent(player, key).decoration(TextDecoration.ITALIC, false)),
+                        GuiNameSpec.FixedLabel(lang.getComponent(player, key).decoration(TextDecoration.ITALIC, false)),
                         GuiLoreSpec.None,
                         GuiElementRole.CONTENT,
                         1,
@@ -247,7 +247,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = data.icon,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))),
+                name = GuiNameSpec.TargetIdentity(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))),
                 role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
                 description = listOfNotNull(data.description.takeIf(String::isNotBlank)),
                 data = buildList {
@@ -273,7 +273,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Component(lang.getComponent(
+                name = GuiNameSpec.FixedLabel(lang.getComponent(
                 player,
                 "gui.favorite.player_icon.name",
                 mapOf(
@@ -302,7 +302,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG),
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.tag_filter.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.tag_filter.name")),
                 role = GuiElementRole.ACTION,
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.tag_filter.label"), selected.second, GuiValueTone.PRIMARY)),
                 options = options.map { (id, displayName) -> GuiMenuEntryOption(displayName, id == selected.first) },
@@ -327,7 +327,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("favorite", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
                     menuGestureAction(

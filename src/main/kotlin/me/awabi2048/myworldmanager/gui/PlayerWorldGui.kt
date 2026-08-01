@@ -48,6 +48,7 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
+import com.awabi2048.ccsystem.api.gui.menuUnavailable
 
 class PlayerWorldGui(private val plugin: MyWorldManager) {
 
@@ -555,7 +556,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = world.icon,
-                                name = GuiNameSpec.Component(
+                                name = GuiNameSpec.TargetIdentity(
                                         lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to world.name)),
                                 ),
                                 role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
@@ -604,7 +605,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.WRITABLE_BOOK,
-                                name = GuiNameSpec.Text(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
+                                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
                                 role = GuiElementRole.ACTION,
                                 actions = listOf(
                                         menuGestureAction(
@@ -625,7 +626,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.NETHER_STAR,
-                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.player_world.creation_button.display")),
+                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.player_world.creation_button.display")),
                                 role = GuiElementRole.ACTION,
                                 description = lang.getMessageList(player, "gui.player_world.creation_button.description"),
                                 actions = listOf(
@@ -644,25 +645,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 player: Player,
                 slot: Int,
                 reason: CreationBlockReason,
-        ): MenuElement = CCSystem.getAPI().getGuiElementService().menuDisplay(
-                GuiMenuDisplaySpec(
-                        slot,
-                        GuiItemSpec(
-                                Material.BARRIER,
-                                GuiNameSpec.Component(plugin.languageManager.getComponent(player, reason.displayKey)),
-                                GuiLoreSpec.Blocks(
-                                        listOf(
-                                                GuiLoreBlock(
-                                                        plugin.languageManager.getMessageList(player, reason.loreKey)
-                                                                .map(GuiLoreLine::Text),
-                                                ),
-                                        ),
-                                ),
-                                GuiElementRole.CONTENT,
-                                1,
+        ): MenuElement {
+                val unavailableReason = plugin.languageManager.getComponent(player, reason.displayKey)
+                return CCSystem.getAPI().getGuiElementService().menuUnavailable(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.BARRIER,
+                                name = GuiNameSpec.FixedLabel(unavailableReason),
+                                role = GuiElementRole.CONTENT,
+                                warnings = plugin.languageManager.getMessageList(player, reason.loreKey),
                         ),
-                ),
-        )
+                        unavailableReason,
+                )
+        }
 
         private fun creationBlockReason(
                 player: Player,
@@ -750,7 +746,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 slot,
                                 GuiItemSpec(
                                         Material.PLAYER_HEAD,
-                                        GuiNameSpec.Component(
+                                        GuiNameSpec.FixedLabel(
                                                 lang.getComponent(
                                                         player,
                                                         "gui.player_world.stats_button.display",
@@ -782,7 +778,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = plugin.menuConfigManager.getIconMaterial("player_world", iconId, Material.ARROW),
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
                                         menuGestureAction(
@@ -820,7 +816,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.WRITABLE_BOOK,
-                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.player_world.pending_button.display")),
+                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.player_world.pending_button.display")),
                                 role = GuiElementRole.ACTION,
                                 description = lang.getMessageList(player, "gui.player_world.pending_button.description"),
                                 data = listOf(

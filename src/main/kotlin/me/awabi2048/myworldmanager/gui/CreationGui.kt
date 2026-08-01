@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -349,7 +353,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                 role = if (availability.enabled) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                 description = lang.getMessageList(player, baseLoreKey),
                 data = data,
@@ -410,7 +414,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiMenuEntrySpec(
                     slot = layout.itemSlots[index],
                     material = template.icon,
-                    name = GuiNameSpec.Text(template.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                    name = me.awabi2048.myworldmanager.util.targetIdentityName(template.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                     role = GuiElementRole.ACTION,
                     description = template.description,
                     data = listOf(GuiMenuEntryData(
@@ -469,7 +473,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val origin = template.originLocation
         val cost = WorldRuntimePolicies.creationCost(plugin.config, WorldCreationType.TEMPLATE)
         val detailLines = buildList {
-            addAll(template.description.map(GuiLoreLine::Text))
+            addAll(template.description.map(::descriptionLine))
             add(GuiLoreLine.Spacer)
             add(GuiLoreLine.Data(
                 lang.getMessage(player, "gui.creation.template_detail.spawn_label"),
@@ -501,7 +505,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             layout.leftSlot,
             template.icon,
             template.name,
-            GuiLoreSpec.Rich(detailLines, GuiLoreFrame.BOTH),
+            me.awabi2048.myworldmanager.util.semanticLore(detailLines, GuiLoreFrame.BOTH),
         )
         if (issue == null) {
             elements += actionEntry(
@@ -575,7 +579,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         }
 
-        val infoLore = GuiLoreSpec.Rich(
+        val infoLore = me.awabi2048.myworldmanager.util.semanticLore(
                 buildList {
                     add(GuiLoreLine.Data(
                         lang.getMessage(player, "gui.creation.confirm.world_name_label"),
@@ -672,7 +676,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiMenuEntrySpec(
                     slot = spawnSlot,
                     material = Material.COMPASS,
-                    name = GuiNameSpec.Text(
+                    name = me.awabi2048.myworldmanager.util.fixedLabelName(
                         lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
                         com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                     ),
@@ -786,7 +790,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             slot,
             GuiItemSpec(
                 material,
-                GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                 lore,
                 GuiElementRole.CONTENT,
                 1,
@@ -809,7 +813,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("creation_template", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
                     menuGestureAction(
@@ -853,7 +857,8 @@ class CreationGui(private val plugin: MyWorldManager) {
         actionText: String,
     ): MenuElement {
         val lines = when (lore) {
-            is GuiLoreSpec.Rich -> lore.lines
+            is GuiLoreSpec.FramedBlocks -> lore.blocks.flatMap { it.lines }
+            is GuiLoreSpec.Blocks -> lore.blocks.flatMap { it.lines }
             else -> emptyList()
         }
         return CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -861,7 +866,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                 role = role,
                 description = lines.mapNotNull {
                     when (it) {
@@ -924,7 +929,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             World.Environment.NETHER to "\u00A7c",
             World.Environment.THE_END to "\u00A75"
         )
-        return GuiLoreSpec.Rich(buildList {
+        return me.awabi2048.myworldmanager.util.semanticLore(buildList {
             add(GuiLoreLine.Data(
                 lang.getMessage(player, "gui.creation.confirm.dimension.current_label"),
                 seedEnvironmentDisplay(player, current),
@@ -976,7 +981,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+            name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
             role = GuiElementRole.ACTION,
             actions = listOf(menuGestureAction(actionId, MenuGesture.ANY, actionText, safety = templateActionSafety(actionId))),
         ),

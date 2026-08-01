@@ -120,7 +120,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                 slot = 4,
                 item = GuiItemSpec(
                     material = currentWorldData.icon,
-                    name = GuiNameSpec.Component(
+                    name = GuiNameSpec.TargetIdentity(
                         lang.getComponent(
                             player,
                             "gui.common.world_item_name",
@@ -192,7 +192,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Component(
+                name = GuiNameSpec.TargetIdentity(
                     LegacyComponentSerializer.legacySection().deserialize("$colorCode${target.name}")
                         .decoration(TextDecoration.ITALIC, false),
                 ),
@@ -229,7 +229,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("meet", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
                     menuGestureAction(

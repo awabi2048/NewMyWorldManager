@@ -329,7 +329,7 @@ class WorldMigrationService(
                         layout.previewSlot,
                         GuiItemSpec(
                             Material.COMPASS,
-                            GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
+                            GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
                             GuiLoreSpec.None,
                             GuiElementRole.CONTENT,
                             1,
@@ -406,7 +406,7 @@ class WorldMigrationService(
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+            name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
             role = role,
             actions = listOf(
                 menuGestureAction(

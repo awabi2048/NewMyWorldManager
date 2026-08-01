@@ -593,7 +593,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 slot,
                                 GuiItemSpec(
                                         Material.PAPER,
-                                        GuiNameSpec.Component(lang.getComponent(player, "gui.admin.info.display")),
+                                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.info.display")),
                                         GuiLoreSpec.Blocks(listOf(GuiLoreBlock(lore))),
                                         GuiElementRole.CONTENT,
                                         1,
@@ -758,7 +758,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = data.icon,
-                                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                                name = me.awabi2048.myworldmanager.util.targetIdentityName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                                 role = GuiElementRole.ACTION,
                                 data = buildList {
                                         add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.uuid"), worldDirectory))
@@ -1036,7 +1036,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.ARROW,
-                                name = GuiNameSpec.Text(
+                                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                                         lang.getMessage(player, if (isNext) "gui.common.next_page" else "gui.common.prev_page"),
                                         com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                                 ),
@@ -1138,7 +1138,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.CHEST,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.archive.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.archive.display")),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.archive.label"),
@@ -1169,7 +1169,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.ENDER_EYE,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.publish.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.publish.display")),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.publish.label"),
@@ -1214,7 +1214,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.PLAYER_HEAD,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.player.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.player.display")),
                                 GuiElementRole.ACTION,
                                 data = buildList {
                                         add(GuiMenuEntryData(
@@ -1253,7 +1253,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.HOPPER,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.sort.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.sort.display")),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.sort.label"),

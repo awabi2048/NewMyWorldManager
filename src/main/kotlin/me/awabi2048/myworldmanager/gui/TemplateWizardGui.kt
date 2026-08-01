@@ -317,7 +317,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
         player,
         GuiMenuEntrySpec(
-            slot, material, GuiNameSpec.Text(name, GuiNameStyle.DEFAULT), role,
+            slot, material, me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT), role,
             description = description,
             data = data,
             warnings = warnings,

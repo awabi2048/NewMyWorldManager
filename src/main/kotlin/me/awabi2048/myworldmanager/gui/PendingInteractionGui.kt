@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -317,12 +321,12 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 slot = slot,
                 item = GuiItemSpec(
                     material = Material.BARRIER,
-                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name")),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
                                 plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore")
-                                    .map(GuiLoreLine::Text),
+                                    .map(::descriptionLine),
                             ),
                         ),
                     ),
@@ -338,7 +342,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 slot = 4,
                 item = GuiItemSpec(
                     material = Material.BOOK,
-                    name = GuiNameSpec.Text(
+                    name = me.awabi2048.myworldmanager.util.fixedLabelName(
                         plugin.languageManager.getMessage(player, "gui.pending_list.info.name"),
                         GuiNameStyle.DEFAULT,
                     ),
@@ -374,7 +378,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("pending_list", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
                     menuGestureAction(

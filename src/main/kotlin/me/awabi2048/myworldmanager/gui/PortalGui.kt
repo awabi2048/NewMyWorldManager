@@ -218,7 +218,7 @@ class PortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Component(lang.getComponent(player, "$key.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "$key.name")),
                 role = GuiElementRole.ACTION,
                 description = description,
                 data = data,

@@ -162,6 +162,9 @@ class BedrockMenuService(
         private fun itemName(item: GuiItemSpec): String = when (val name = item.name) {
             is GuiNameSpec.Text -> name.text
             is GuiNameSpec.Component -> "操作"
+            is GuiNameSpec.FixedLabel -> "操作"
+            is GuiNameSpec.TargetIdentity -> "操作"
+            is GuiNameSpec.Opaque -> "操作"
             GuiNameSpec.Empty -> error("Action item name must not be empty")
         }
     }

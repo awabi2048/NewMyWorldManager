@@ -146,7 +146,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Component(lang.getComponent(player, "$key.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "$key.name")),
                 role = GuiElementRole.ACTION,
                 description = lang.getMessageList(player, "$key.lore"),
                 actions = listOf(
@@ -183,7 +183,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Component(lang.getComponent(player, nameKey)),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, nameKey)),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, loreKey)),
                 actions = listOf(
@@ -212,7 +212,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.BARRIER,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted")),
                 role = GuiElementRole.CONTENT,
                 warnings = listOf(lang.getMessage(player, warningKey)),
             ),
@@ -249,7 +249,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                 slot = slot,
                 item = GuiItemSpec(
                     material = worldData.icon,
-                    name = GuiNameSpec.Component(lang.getComponent(player, "gui.favorite.current_world.name")),
+                    name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.current_world.name")),
                     lore = lore,
                     role = GuiElementRole.CONTENT,
                     amount = 1,

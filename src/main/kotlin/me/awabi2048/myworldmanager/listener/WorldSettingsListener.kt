@@ -2,6 +2,10 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
@@ -2711,12 +2715,12 @@ player.sendMessage(
                                 val center = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                                         Material.PLAYER_HEAD,
                                         Component.text(senderName),
-                                        GuiLoreSpec.Rich(
+                                        me.awabi2048.myworldmanager.util.semanticLore(
                                                 lang.getMessageList(
                                                         player,
                                                         "gui.member_invite_accept_confirm.lore",
                                                         mapOf("world" to worldData.name, "player" to senderName)
-                                                ).map(GuiLoreLine::Text),
+                                                ).map(::descriptionLine),
                                                 GuiLoreFrame.BOTH
                                         ),
                                 )
@@ -2953,7 +2957,7 @@ player.sendMessage(
             val centerItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                 centerMaterial,
                 title,
-                GuiLoreSpec.Rich(
+                me.awabi2048.myworldmanager.util.semanticLore(
                     buildList {
                         add(GuiLoreLine.Text(lang.getMessage(player, "gui.common.confirm_action")))
                         if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {

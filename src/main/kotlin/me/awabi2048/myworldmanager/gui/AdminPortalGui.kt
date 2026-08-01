@@ -209,7 +209,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.END_PORTAL_FRAME,
-                name = GuiNameSpec.Text(
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                     lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destination)),
                     com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                 ),
@@ -234,7 +234,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.ARROW,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
                     menuGestureAction(
@@ -262,7 +262,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 slot = 49,
                 item = GuiItemSpec(
                     material = Material.PAPER,
-                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.admin.info.display")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.admin.info.display")),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
@@ -287,7 +287,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.HOPPER,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.admin_portals.sort.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin_portals.sort.display")),
                 role = GuiElementRole.ACTION,
                 data = listOf(
                     GuiMenuEntryData(

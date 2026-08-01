@@ -119,7 +119,7 @@ object PendingInteractionItemFactory {
         return GuiMenuEntrySpec(
             slot = slot,
             material = org.bukkit.Material.PLAYER_HEAD,
-            name = GuiNameSpec.Component(
+            name = GuiNameSpec.TargetIdentity(
                 lang.getComponent(
                     viewer,
                     "gui.pending_list.item.name",

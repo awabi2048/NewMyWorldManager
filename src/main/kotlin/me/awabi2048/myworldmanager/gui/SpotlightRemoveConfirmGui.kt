@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -19,9 +23,9 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         val info = GuiSpecFactory.spec(
             Material.PAPER,
             lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"),
-            GuiLoreSpec.Rich(
+            me.awabi2048.myworldmanager.util.semanticLore(
                 lang.getMessageList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name))
-                    .map(GuiLoreLine::Text),
+                    .map(::dangerLine),
                 GuiLoreFrame.BOTH,
             ),
         )

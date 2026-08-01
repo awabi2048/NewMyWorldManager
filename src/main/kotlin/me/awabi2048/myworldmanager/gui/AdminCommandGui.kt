@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -178,7 +182,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     25,
                     GuiItemSpec(
                         Material.BARRIER,
-                        GuiNameSpec.Text(
+                        me.awabi2048.myworldmanager.util.fixedLabelName(
                             lang.getMessage(player, "gui.admin_menu.export.display"),
                             com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                         ),
@@ -223,7 +227,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     40,
                     GuiItemSpec(
                         Material.NETHER_STAR,
-                        GuiNameSpec.Text(
+                        me.awabi2048.myworldmanager.util.fixedLabelName(
                             lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
                             com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                         ),
@@ -266,7 +270,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = item.material,
-                name = GuiNameSpec.Text(item.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(item.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
                 description = item.description,
                 actions = if (item.rightAction == null) {
@@ -557,7 +561,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                         layout.previewSlot,
                         GuiItemSpec(
                             Material.PAPER,
-                            GuiNameSpec.Text(
+                            me.awabi2048.myworldmanager.util.fixedLabelName(
                                 lang.getMessage(player, "gui.common.confirmation"),
                                 com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                             ),
@@ -613,7 +617,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Text(
+            name = me.awabi2048.myworldmanager.util.fixedLabelName(
                 plugin.languageManager.getMessage(player, nameKey),
                 com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
             ),
@@ -691,7 +695,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
     )
 
     private fun textLore(player: Player, key: String, placeholders: Map<String, Any> = emptyMap()): List<GuiLoreLine> {
-        return plugin.languageManager.getMessageList(player, key, placeholders).map(GuiLoreLine::Text)
+        return plugin.languageManager.getMessageList(player, key, placeholders).map(::descriptionLine)
     }
 
     companion object {

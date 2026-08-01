@@ -212,7 +212,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = world.icon,
-                                name = GuiNameSpec.Component(
+                                name = GuiNameSpec.TargetIdentity(
                                         lang.getComponent(viewer, "gui.common.world_item_name", mapOf("world" to world.name)),
                                 ),
                                 role = GuiElementRole.ACTION,
@@ -252,7 +252,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = plugin.menuConfigManager.getIconMaterial("visit", iconId, Material.ARROW),
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
                                         menuGestureAction(

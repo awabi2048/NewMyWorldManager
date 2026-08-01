@@ -197,7 +197,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Text(
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                     plugin.languageManager.getMessage(player, displayKey),
                     GuiNameStyle.DEFAULT
                 ),
@@ -252,7 +252,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.COMPASS,
-                name = GuiNameSpec.Text(
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                     lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
                     GuiNameStyle.DEFAULT
                 ),

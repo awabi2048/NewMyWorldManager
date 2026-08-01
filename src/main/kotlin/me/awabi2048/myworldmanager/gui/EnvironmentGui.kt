@@ -193,7 +193,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.FEATHER,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.gravity.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.gravity.display")),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "gui.environment.gravity.requirement")),
                 data = buildList {
@@ -224,7 +224,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.WHITE_WOOL,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.weather.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.weather.display")),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "gui.environment.weather.desc")),
                 data = buildList {
@@ -261,7 +261,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.GRASS_BLOCK,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.biome.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.biome.display")),
                 role = GuiElementRole.ACTION,
                 description = listOf(
                     lang.getMessage(player, "gui.environment.biome.desc"),

@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -381,7 +385,7 @@ class TourGui(private val plugin: MyWorldManager) {
             footerStart + 6,
             Material.REDSTONE_TORCH,
             lang.getMessage(player, "gui.tour.menu.info.display"),
-            infoLines.map(GuiLoreLine::Text),
+            infoLines.map(::descriptionLine),
             frame = GuiLoreFrame.BOTH,
         )
         if (safePage > 0) {
@@ -443,7 +447,7 @@ class TourGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = bottom + 2,
                 material = Material.NAME_TAG,
-                name = GuiNameSpec.Text(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
                 actions = listOf(
                     menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE),
@@ -807,8 +811,8 @@ class TourGui(private val plugin: MyWorldManager) {
             slot,
             GuiItemSpec(
                 material,
-                GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
-                if (lore.isEmpty()) GuiLoreSpec.None else GuiLoreSpec.Rich(lore, frame),
+                me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT),
+                if (lore.isEmpty()) GuiLoreSpec.None else me.awabi2048.myworldmanager.util.semanticLore(lore, frame),
                 role,
                 1,
             ),
@@ -841,7 +845,7 @@ class TourGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("tour", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
                     menuGestureAction(
@@ -872,7 +876,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 slot,
                 GuiItemSpec(
                     worldData.icon,
-                    GuiNameSpec.Component(lang.getComponent(player, "gui.favorite.current_world.name")),
+                    GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.current_world.name")),
                     lore,
                     GuiElementRole.CONTENT,
                     1,
@@ -915,7 +919,7 @@ class TourGui(private val plugin: MyWorldManager) {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
+            name = me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT),
             role = role,
             description = information.mapNotNull {
                 when (it) {
@@ -971,7 +975,7 @@ class TourGui(private val plugin: MyWorldManager) {
 
     private fun framedLore(lines: List<GuiLoreLine>): GuiLoreSpec {
         if (lines.isEmpty()) return GuiLoreSpec.None
-        return GuiLoreSpec.Rich(lines, GuiLoreFrame.BOTH)
+        return me.awabi2048.myworldmanager.util.semanticLore(lines, GuiLoreFrame.BOTH)
     }
 
     fun openBindSignToTourMenu(player: Player, worldData: WorldData) {

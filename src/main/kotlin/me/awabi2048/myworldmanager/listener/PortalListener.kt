@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -381,7 +385,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 "current" to currentPoints,
                 "remaining" to remainingPoints,
             ),
-        ).map(GuiLoreLine::Text)
+        ).map(::descriptionLine)
         val guiElements = CCSystem.getAPI().getGuiElementService()
         return InventoryMenuView(
             size = layout.size,
@@ -394,7 +398,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                         layout.previewSlot,
                         GuiItemSpec(
                             Material.BOOK,
-                            GuiNameSpec.Component(lang.getComponent(player, "messages.world_gate_confirm_title")),
+                            GuiNameSpec.FixedLabel(lang.getComponent(player, "messages.world_gate_confirm_title")),
                             GuiLoreSpec.Blocks(listOf(GuiLoreBlock(infoLines))),
                             GuiElementRole.CONTENT,
                             1,
@@ -420,7 +424,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, nameKey)),
+            name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, nameKey)),
             role = role,
             actions = listOf(
                 menuGestureAction(
