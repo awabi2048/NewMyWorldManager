@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
+import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.Particle
@@ -183,6 +184,43 @@ class PortalManager(private val plugin: MyWorldManager) {
         val playerGrace = portalGracePeriods.computeIfAbsent(player.uniqueId) { ConcurrentHashMap() }
         playerGrace[portalUuid] = System.currentTimeMillis() + (seconds * 1000)
     }
+
+    /** ポータル外観の通常更新と、表示・キャッシュ同期を一つの経路にします。 */
+    fun updateAppearance(
+        portalId: UUID,
+        showText: Boolean,
+        particleColor: Color,
+    ): AppearanceUpdateResult {
+        val portal = plugin.portalRepository.findById(portalId) ?: return AppearanceUpdateResult.TARGET_MISSING
+        portal.showText = showText
+        portal.particleColor = particleColor
+        plugin.portalRepository.saveAll()
+        updatePortalVisualsAndCache()
+        return AppearanceUpdateResult.UPDATED
+    }
+
+    /** 通常のポータル表示同期経路を通して、可逆監査の外観状態を復元します。 */
+    fun restoreAppearance(
+        portalId: UUID,
+        beforeText: Boolean,
+        beforeColor: Color,
+        expectedText: Boolean,
+        expectedColor: Color,
+    ): RestoreAppearanceResult {
+        val portal = plugin.portalRepository.findById(portalId) ?: return RestoreAppearanceResult.TARGET_MISSING
+        if (portal.showText != expectedText || portal.particleColor != expectedColor) {
+            return RestoreAppearanceResult.CONCURRENT_CHANGE
+        }
+        portal.showText = beforeText
+        portal.particleColor = beforeColor
+        plugin.portalRepository.saveAll()
+        updatePortalVisualsAndCache()
+        return RestoreAppearanceResult.RESTORED
+    }
+
+    enum class RestoreAppearanceResult { RESTORED, TARGET_MISSING, CONCURRENT_CHANGE }
+
+    enum class AppearanceUpdateResult { UPDATED, TARGET_MISSING }
 
     private fun updatePortalVisualsAndCache() {
         val portals = plugin.portalRepository.findAll()

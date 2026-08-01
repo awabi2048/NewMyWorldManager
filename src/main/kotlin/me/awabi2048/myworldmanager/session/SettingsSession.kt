@@ -34,6 +34,23 @@ data class SettingsSession(
     var expansionCost: Int = 0,
     var expansionExecutionMode: ExpansionExecutionMode = ExpansionExecutionMode.STANDARD,
 ) {
+    fun immutableSnapshot(): SettingsSessionSnapshot = SettingsSessionSnapshot(
+        playerUuid,
+        worldUuid,
+        action,
+        expansionDirection,
+        tempWeather,
+        confirmItem?.clone(),
+        showBackButton,
+        isAdminFlow,
+        isPlayerWorldFlow,
+        parentShowBackButton,
+        externalInput,
+        externalInputExpiresAt,
+        tempBiomeId,
+        expansionCost,
+        expansionExecutionMode,
+    )
     fun beginExternalInput(input: MenuExternalInput, timeoutMillis: Long = 120_000L) {
         externalInput = input
         externalInputExpiresAt = System.currentTimeMillis() + timeoutMillis
@@ -54,4 +71,40 @@ data class SettingsSession(
             externalInputExpiresAt > 0L &&
             System.currentTimeMillis() > externalInputExpiresAt
     }
+}
+
+data class SettingsSessionSnapshot(
+    val playerUuid: UUID,
+    val worldUuid: UUID,
+    val action: SettingsAction,
+    val expansionDirection: org.bukkit.block.BlockFace?,
+    val tempWeather: String?,
+    val confirmItem: org.bukkit.inventory.ItemStack?,
+    val showBackButton: Boolean,
+    val isAdminFlow: Boolean,
+    val isPlayerWorldFlow: Boolean,
+    val parentShowBackButton: Boolean,
+    val externalInput: MenuExternalInput,
+    val externalInputExpiresAt: Long,
+    val tempBiomeId: String?,
+    val expansionCost: Int,
+    val expansionExecutionMode: ExpansionExecutionMode,
+) {
+    fun restore(): SettingsSession = SettingsSession(
+        playerUuid,
+        worldUuid,
+        action,
+        expansionDirection,
+        tempWeather,
+        confirmItem?.clone(),
+        showBackButton,
+        isAdminFlow,
+        isPlayerWorldFlow,
+        parentShowBackButton,
+        externalInput,
+        externalInputExpiresAt,
+        tempBiomeId,
+        expansionCost,
+        expansionExecutionMode,
+    )
 }

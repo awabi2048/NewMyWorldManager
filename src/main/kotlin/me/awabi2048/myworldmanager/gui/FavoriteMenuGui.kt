@@ -21,15 +21,11 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
-import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
-import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import java.time.LocalDate
 import java.util.UUID
 
 class FavoriteMenuGui(private val plugin: MyWorldManager) {
@@ -104,15 +100,21 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         val worldData = context.route.worldUuid()?.let(plugin.worldConfigRepository::findByUuid)
             ?: return MenuActionResult.Rejected()
         if (worldData.owner == player.uniqueId) return MenuActionResult.Rejected()
-        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val favoriteAdded = if (stats.favoriteWorlds.containsKey(worldData.uuid)) {
-            stats.favoriteWorlds.remove(worldData.uuid)
-            worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
-            false
-        } else {
-            val maxFavoriteCount = plugin.config.getInt("favorite.max_count", 1000)
-            if (stats.favoriteWorlds.size >= maxFavoriteCount) {
+        return when (plugin.favoriteStateService.toggle(
+            player,
+            worldData,
+            me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource.FAVORITE_MENU,
+        )) {
+            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Removed -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
+                MenuActionResult.Success(MenuUpdate.Refresh)
+            }
+            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Added -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
+                MenuActionResult.Success(MenuUpdate.Refresh)
+            }
+            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.LimitReached -> {
+                val maxFavoriteCount = plugin.config.getInt("favorite.max_count", 1000)
                 player.sendMessage(
                     plugin.languageManager.getMessage(
                         player,
@@ -120,27 +122,9 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                         mapOf("limit" to maxFavoriteCount),
                     ),
                 )
-                return MenuActionResult.Rejected()
+                MenuActionResult.Rejected()
             }
-            stats.favoriteWorlds[worldData.uuid] = LocalDate.now().toString()
-            worldData.favorite++
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
-            true
         }
-        plugin.playerStatsRepository.save(stats)
-        plugin.worldConfigRepository.save(worldData)
-        if (favoriteAdded) {
-            Bukkit.getPluginManager().callEvent(
-                MwmWorldFavoritedEvent(
-                    worldUuid = worldData.uuid,
-                    worldName = worldData.name,
-                    playerUuid = player.uniqueId,
-                    playerName = player.name,
-                    source = MwmFavoriteAddSource.FAVORITE_MENU,
-                ),
-            )
-        }
-        return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun openFavoriteList(context: MenuActionContext): MenuActionResult {
@@ -208,7 +192,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.favorite.favorite_menu.toggle.action"),
                         safety = MenuActionSafety.REVERSIBLE,
-                        reversibleContract = MwmReversibleContracts.playerState("favorite_toggle"),
+                        reversibleContract = MwmMenuActionSemantics.contract("favorite-toggle"),
                     ),
                 ),
             ),

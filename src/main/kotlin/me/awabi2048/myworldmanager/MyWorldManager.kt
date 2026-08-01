@@ -47,6 +47,9 @@ class MyWorldManager : JavaPlugin() {
 
     lateinit var worldConfigRepository: WorldConfigRepository
     lateinit var worldService: WorldService
+    lateinit var worldPublishService: WorldPublishService
+    lateinit var worldSettingsStateService: WorldSettingsStateService
+    lateinit var favoriteStateService: FavoriteStateService
     lateinit var worldEnvironmentService: WorldEnvironmentService
     lateinit var worldGui: WorldGui
     lateinit var creationSessionManager: CreationSessionManager
@@ -197,6 +200,9 @@ class MyWorldManager : JavaPlugin() {
         pendingInteractionRepository = PendingInteractionRepository(this)
         // サービスの初期化
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
+        worldPublishService = WorldPublishService(this)
+        worldSettingsStateService = WorldSettingsStateService(this)
+        favoriteStateService = FavoriteStateService(this)
         worldEnvironmentService = WorldEnvironmentService(this)
         portalManager = PortalManager(this)
         portalManager.startTasks()

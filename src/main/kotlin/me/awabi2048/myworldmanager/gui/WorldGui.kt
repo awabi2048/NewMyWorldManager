@@ -29,7 +29,6 @@ import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.session.*
@@ -1154,7 +1153,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
                                         safety = MenuActionSafety.REVERSIBLE,
-                                        reversibleContract = MwmReversibleContracts.menuSession("admin_archive_filter"),
+                                        reversibleContract = MwmMenuActionSemantics.contract("admin-archive-filter"),
                                 )),
                         ),
                 )
@@ -1185,7 +1184,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
                                         safety = MenuActionSafety.REVERSIBLE,
-                                        reversibleContract = MwmReversibleContracts.menuSession("admin_publish_filter"),
+                                        reversibleContract = MwmMenuActionSemantics.contract("admin-publish-filter"),
                                 )),
                         ),
                 )
@@ -1200,7 +1199,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 MenuGesture.LEFT,
                                 lang.getMessage(player, "gui.admin.filter.player.click_left"),
                                 safety = MenuActionSafety.REVERSIBLE,
-                                reversibleContract = MwmReversibleContracts.menuSession("admin_player_filter"),
+                                reversibleContract = MwmMenuActionSemantics.contract("admin-player-filter-left"),
                         ))
                         if (session.playerFilterType != PlayerFilterType.NONE) {
                                 add(menuGestureAction(
@@ -1245,11 +1244,7 @@ class WorldGui(private val plugin: MyWorldManager) {
         private fun createSortButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
 
-                var sortTypes = AdminSortType.values()
-                if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
-                        sortTypes =
-                                sortTypes.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()
-                }
+                val sortTypes = plugin.adminGuiSessionManager.availableSortTypes()
 
                 val options = sortTypes.map { sortType ->
                         sortType to lang.getMessage(player, sortType.displayKey)
@@ -1273,7 +1268,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
                                         safety = MenuActionSafety.REVERSIBLE,
-                                        reversibleContract = MwmReversibleContracts.menuSession("admin_sort"),
+                                        reversibleContract = MwmMenuActionSemantics.contract("admin-sort"),
                                 )),
                         ),
                 )

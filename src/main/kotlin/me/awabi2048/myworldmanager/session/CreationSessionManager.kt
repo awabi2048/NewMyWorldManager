@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class CreationSessionManager(private val plugin: MyWorldManager) {
     private val sessions = ConcurrentHashMap<UUID, WorldCreationSession>()
+    private val reversibleStartPlans = ConcurrentHashMap<UUID, WorldCreationStartPlan>()
     private var timeoutTask: BukkitTask? = null
 
     init {
@@ -31,6 +32,20 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
         sessions.remove(playerId)
     }
 
+    /** Bedrock作成開始の実更新と同じ経路で、capture済みafter snapshotを確定します。 */
+    fun startBedrockSession(playerId: UUID): WorldCreationSession {
+        val session = startSession(playerId)
+        session.isDialogMode = false
+        reversibleStartPlans.remove(playerId)?.complete(session.immutableSnapshot())
+        return session
+    }
+
+    fun captureBedrockStart(playerId: UUID): WorldCreationStartPlan {
+        val plan = WorldCreationStartPlan(snapshot(playerId))
+        reversibleStartPlans[playerId] = plan
+        return plan
+    }
+
     fun snapshot(playerId: UUID): WorldCreationSessionSnapshot? = sessions[playerId]?.immutableSnapshot()
 
     fun restore(playerId: UUID, snapshot: WorldCreationSessionSnapshot?) {
@@ -40,6 +55,7 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
 
     fun clearAll() {
         sessions.clear()
+        reversibleStartPlans.clear()
     }
 
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
@@ -87,5 +103,17 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     fun stopTimeoutChecker() {
         timeoutTask?.cancel()
         timeoutTask = null
+    }
+}
+
+class WorldCreationStartPlan internal constructor(
+    val before: WorldCreationSessionSnapshot?,
+) {
+    var expectedAfter: WorldCreationSessionSnapshot? = null
+        private set
+
+    internal fun complete(after: WorldCreationSessionSnapshot) {
+        check(expectedAfter == null) { "creation start plan is already complete" }
+        expectedAfter = after
     }
 }

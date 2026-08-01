@@ -24,6 +24,7 @@ template-origin,TemplateWizardGui.kt,origin,REVERSIBLE,myworldmanager:draft,temp
 template-cancel,TemplateWizardGui.kt,cancel,REVERSIBLE,myworldmanager:draft,template draft removal
 tour-icon,TourGui.kt,edit_text_right,REVERSIBLE,myworldmanager:draft,tour icon-pick draft mutation
 tour-discard,TourGui.kt,discard_confirm,REVERSIBLE,myworldmanager:draft,tour draft removal
+tour-remove-waypoint,TourGui.kt,remove_waypoint,REVERSIBLE,myworldmanager:draft,tour waypoint draft mutation
 user-notification,UserSettingsGui.kt,notification,REVERSIBLE,myworldmanager:user-settings,user notification mutation
 user-critical,UserSettingsGui.kt,critical_visibility,REVERSIBLE,myworldmanager:user-settings,user visibility mutation
 user-tour,UserSettingsGui.kt,tour_navigation,REVERSIBLE,myworldmanager:user-settings,user navigation mode mutation

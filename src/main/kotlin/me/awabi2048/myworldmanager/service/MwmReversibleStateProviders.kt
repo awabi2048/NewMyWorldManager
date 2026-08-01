@@ -3,6 +3,9 @@ package me.awabi2048.myworldmanager.service
 import com.awabi2048.ccsystem.api.gui.*
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.ReversibleWorldPublishPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldPublishReversibleRestoreResult
+import me.awabi2048.myworldmanager.api.extension.WorldPublishReversibleState
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.WorldCreationSessionSnapshot
 import java.util.UUID
@@ -86,47 +89,58 @@ private class PortalStateProvider(private val plugin: MyWorldManager) : MenuReve
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
         val state = context.state as? PortalState ?: return MenuReversibleProviderRestoreResult.Rejected("invalid portal state type")
-        val portal = plugin.portalRepository.findAll().find { it.id == state.portalId }
-            ?: return MenuReversibleProviderRestoreResult.Rejected("portal no longer exists: ${state.portalId}")
-        if (portal.showText != state.expectedText || portal.particleColor != state.expectedColor) {
-            return MenuReversibleProviderRestoreResult.Rejected("portal state changed concurrently: ${state.portalId}")
+        return when (plugin.portalManager.restoreAppearance(
+            state.portalId,
+            state.beforeText,
+            state.beforeColor,
+            state.expectedText,
+            state.expectedColor,
+        )) {
+            PortalManager.RestoreAppearanceResult.RESTORED -> MenuReversibleProviderRestoreResult.Restored
+            PortalManager.RestoreAppearanceResult.TARGET_MISSING ->
+                MenuReversibleProviderRestoreResult.Rejected("portal no longer exists: ${state.portalId}")
+            PortalManager.RestoreAppearanceResult.CONCURRENT_CHANGE ->
+                MenuReversibleProviderRestoreResult.Rejected("portal state changed concurrently: ${state.portalId}")
         }
-        portal.showText = state.beforeText
-        portal.particleColor = state.beforeColor
-        plugin.portalRepository.saveAll()
-        return MenuReversibleProviderRestoreResult.Restored
     }
 }
 
 private data class SettingsSessionState(
-    val worldUuid: UUID,
-    val beforeWeather: String?,
-    val expectedWeather: String?,
+    val before: SettingsSessionSnapshot,
+    val expectedAfter: SettingsSessionSnapshot,
 ) : MenuReversibleProviderState
 private class SettingsSessionProvider(private val plugin: MyWorldManager) : MenuReversibleStateProvider {
     override fun capture(context: MenuReversibleStateCaptureContext): MenuReversibleProviderCaptureResult {
         val operation = context.interaction.contract.arguments[MwmReversibleContracts.OPERATION]
             ?: return MenuReversibleProviderCaptureResult.Rejected("settings session operation is missing")
-        val before = plugin.settingsSessionManager.getSession(context.player)
+        val before = plugin.settingsSessionManager.snapshot(context.player.uniqueId)
             ?: return MenuReversibleProviderCaptureResult.Rejected("settings session is missing")
+        val world = plugin.worldConfigRepository.findByUuid(before.worldUuid)
+            ?: return MenuReversibleProviderCaptureResult.Rejected("settings target world no longer exists: ${before.worldUuid}")
         val expected = when (operation) {
             "weather" -> {
                 val options = plugin.config.getStringList("environment.weather.options")
                 if (options.isEmpty()) return MenuReversibleProviderCaptureResult.Rejected("weather options are empty")
-                GuiCycle.select(before.tempWeather ?: "DEFAULT", options, GuiCycleDirection.NEXT)
+                before.copy(tempWeather = GuiCycle.select(
+                    before.tempWeather ?: world.fixedWeather ?: "DEFAULT",
+                    options,
+                    GuiCycleDirection.NEXT,
+                ))
             }
             else -> return MenuReversibleProviderCaptureResult.Rejected("unsupported settings session operation: $operation")
         }
-        return MenuReversibleProviderCaptureResult.Captured(SettingsSessionState(before.worldUuid, before.tempWeather, expected))
+        return MenuReversibleProviderCaptureResult.Captured(SettingsSessionState(before, expected))
     }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
         val state = context.state as? SettingsSessionState
             ?: return MenuReversibleProviderRestoreResult.Rejected("invalid settings session state type")
-        if (!plugin.settingsSessionManager.restoreTempWeather(
-                context.player.uniqueId, state.worldUuid, state.expectedWeather, state.beforeWeather,
-            )
-        ) {
+        if (plugin.worldConfigRepository.findByUuid(state.before.worldUuid) == null) {
+            return MenuReversibleProviderRestoreResult.Rejected("settings target world no longer exists: ${state.before.worldUuid}")
+        }
+        if (!plugin.settingsSessionManager.restoreIfCurrent(
+                context.player.uniqueId, state.expectedAfter, state.before,
+            )) {
             return MenuReversibleProviderRestoreResult.Rejected("settings session changed concurrently")
         }
         return MenuReversibleProviderRestoreResult.Restored
@@ -150,21 +164,53 @@ private class DraftProvider(private val plugin: MyWorldManager) : MenuReversible
             "tour_icon_pick" -> {
                 val before = plugin.tourSessionManager.snapshotEdit(playerId)
                     ?: return MenuReversibleProviderCaptureResult.Rejected("tour edit session is missing")
+                if (plugin.worldConfigRepository.findByUuid(before.worldUuid) == null) {
+                    return MenuReversibleProviderCaptureResult.Rejected("tour target world no longer exists: ${before.worldUuid}")
+                }
                 DraftSnapshot.Tour(before, before.copy(awaitingIconPick = true))
             }
             "tour_discard" -> {
                 val before = plugin.tourSessionManager.snapshotEdit(playerId)
                     ?: return MenuReversibleProviderCaptureResult.Rejected("tour edit session is missing")
+                if (plugin.worldConfigRepository.findByUuid(before.worldUuid) == null) {
+                    return MenuReversibleProviderCaptureResult.Rejected("tour target world no longer exists: ${before.worldUuid}")
+                }
                 DraftSnapshot.Tour(before, null)
+            }
+            "tour_remove_waypoint" -> {
+                val before = plugin.tourSessionManager.snapshotEdit(playerId)
+                    ?: return MenuReversibleProviderCaptureResult.Rejected("tour edit session is missing")
+                if (plugin.worldConfigRepository.findByUuid(before.worldUuid) == null) {
+                    return MenuReversibleProviderCaptureResult.Rejected("tour target world no longer exists: ${before.worldUuid}")
+                }
+                val waypointRaw = context.interaction.arguments["waypoint"]
+                    ?: return MenuReversibleProviderCaptureResult.Rejected("tour waypoint is missing")
+                val waypoint = runCatching { UUID.fromString(waypointRaw) }.getOrNull()
+                    ?: return MenuReversibleProviderCaptureResult.Rejected("tour waypoint is invalid: $waypointRaw")
+                if (before.draft.waypoints.none { it.uuid == waypoint }) {
+                    return MenuReversibleProviderCaptureResult.Rejected("tour waypoint no longer exists: $waypoint")
+                }
+                DraftSnapshot.Tour(
+                    before,
+                    before.copy(draft = before.draft.copy(
+                        waypoints = before.draft.waypoints.filterNot { it.uuid == waypoint },
+                    )),
+                )
             }
             "template_cancel" -> {
                 val before = plugin.templateWizardGui.snapshot(playerId)
                     ?: return MenuReversibleProviderCaptureResult.Rejected("template wizard session is missing")
+                if (org.bukkit.Bukkit.getWorld(before.sourceWorldName) == null) {
+                    return MenuReversibleProviderCaptureResult.Rejected("template source world no longer exists: ${before.sourceWorldName}")
+                }
                 DraftSnapshot.Template(before, null)
             }
             "template_origin" -> {
                 val before = plugin.templateWizardGui.snapshot(playerId)
                     ?: return MenuReversibleProviderCaptureResult.Rejected("template wizard session is missing")
+                if (org.bukkit.Bukkit.getWorld(before.sourceWorldName) == null) {
+                    return MenuReversibleProviderCaptureResult.Rejected("template source world no longer exists: ${before.sourceWorldName}")
+                }
                 if (context.player.world.name != before.sourceWorldName) {
                     return MenuReversibleProviderCaptureResult.Rejected("template source world changed")
                 }
@@ -183,6 +229,9 @@ private class DraftProvider(private val plugin: MyWorldManager) : MenuReversible
         val playerId = context.player.uniqueId
         return when (val state = context.state) {
             is DraftSnapshot.Tour -> {
+                if (plugin.worldConfigRepository.findByUuid(state.before.worldUuid) == null) {
+                    return MenuReversibleProviderRestoreResult.Rejected("tour target world no longer exists: ${state.before.worldUuid}")
+                }
                 if (plugin.tourSessionManager.snapshotEdit(playerId) != state.expectedAfter) {
                     return MenuReversibleProviderRestoreResult.Rejected("tour draft changed concurrently")
                 }
@@ -190,6 +239,9 @@ private class DraftProvider(private val plugin: MyWorldManager) : MenuReversible
                 MenuReversibleProviderRestoreResult.Restored
             }
             is DraftSnapshot.Template -> {
+                if (org.bukkit.Bukkit.getWorld(state.before.sourceWorldName) == null) {
+                    return MenuReversibleProviderRestoreResult.Rejected("template source world no longer exists: ${state.before.sourceWorldName}")
+                }
                 if (plugin.templateWizardGui.snapshot(playerId) != state.expectedAfter) {
                     return MenuReversibleProviderRestoreResult.Rejected("template draft changed concurrently")
                 }
@@ -204,7 +256,16 @@ private class DraftProvider(private val plugin: MyWorldManager) : MenuReversible
 }
 
 private sealed interface WorldStateSnapshot : MenuReversibleProviderState {
-    data class Publish(val worldUuid: UUID, val before: me.awabi2048.myworldmanager.model.PublishLevel, val expectedAfter: me.awabi2048.myworldmanager.model.PublishLevel, val beforePublicAt: String?) : WorldStateSnapshot
+    data class StandardPublish(
+        val worldUuid: UUID,
+        val plan: StandardWorldPublishCyclePlan,
+    ) : WorldStateSnapshot
+    data class PolicyPublish(
+        val worldUuid: UUID,
+        val policyId: String,
+        val before: WorldPublishReversibleState,
+        val expectedAfter: WorldPublishReversibleState,
+    ) : WorldStateSnapshot
     data class Notification(val worldUuid: UUID, val before: Boolean, val expectedAfter: Boolean) : WorldStateSnapshot
     data class MemberRole(
         val worldUuid: UUID,
@@ -228,11 +289,27 @@ private class WorldStateProvider(private val plugin: MyWorldManager) : MenuRever
         val world = plugin.worldConfigRepository.findByUuid(worldUuid)
             ?: return MenuReversibleProviderCaptureResult.Rejected("target world no longer exists: $worldUuid")
         val state = when (operation) {
-            "publish" -> WorldStateSnapshot.Publish(
-                worldUuid, world.publishLevel,
-                GuiCycle.select(world.publishLevel, me.awabi2048.myworldmanager.model.PublishLevel.entries, GuiCycleDirection.NEXT),
-                world.publicAt,
-            )
+            "publish" -> {
+                val policy = MyWorldManagerApi.getWorldPublishPolicy()
+                if (policy.handlesPublishCycle(world)) {
+                    val reversiblePolicy = policy as? ReversibleWorldPublishPolicy
+                        ?: return MenuReversibleProviderCaptureResult.Rejected(
+                            "publish policy '${policy.getId()}' owns the operation but is not reversible",
+                        )
+                    val before = reversiblePolicy.capturePublishCycleState(context.player, world)
+                    WorldStateSnapshot.PolicyPublish(
+                        worldUuid,
+                        reversiblePolicy.getId(),
+                        before,
+                        reversiblePolicy.expectedPublishCycleState(context.player, world, before),
+                    )
+                } else {
+                    WorldStateSnapshot.StandardPublish(
+                        worldUuid,
+                        plugin.worldPublishService.captureStandardCycle(context.player, world),
+                    )
+                }
+            }
             "notification" -> WorldStateSnapshot.Notification(worldUuid, world.notificationEnabled, !world.notificationEnabled)
             "member_role" -> {
                 val memberRaw = context.interaction.arguments["target_uuid"]
@@ -253,33 +330,70 @@ private class WorldStateProvider(private val plugin: MyWorldManager) : MenuRever
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
         return when (val state = context.state) {
-            is WorldStateSnapshot.Publish -> {
+            is WorldStateSnapshot.StandardPublish -> {
+                if (!plugin.worldPublishService.isWorldPresent(state.worldUuid)) {
+                    return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
+                }
+                val expectedAfter = state.plan.expectedAfter
+                    ?: return MenuReversibleProviderRestoreResult.Rejected("standard publish action did not complete")
+                if (!plugin.worldPublishService.restoreStandardCycle(
+                        context.player,
+                        state.worldUuid,
+                        state.plan.before,
+                        expectedAfter,
+                    )
+                ) {
+                    return MenuReversibleProviderRestoreResult.Rejected("publish state changed concurrently: ${state.worldUuid}")
+                }
+                MenuReversibleProviderRestoreResult.Restored
+            }
+            is WorldStateSnapshot.PolicyPublish -> {
                 val world = plugin.worldConfigRepository.findByUuid(state.worldUuid)
                     ?: return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
-                if (world.publishLevel != state.expectedAfter) return MenuReversibleProviderRestoreResult.Rejected("publish state changed concurrently: ${state.worldUuid}")
-                world.publishLevel = state.before
-                world.publicAt = state.beforePublicAt
-                plugin.worldConfigRepository.save(world)
-                MenuReversibleProviderRestoreResult.Restored
+                val policy = MyWorldManagerApi.getWorldPublishPolicy() as? ReversibleWorldPublishPolicy
+                    ?: return MenuReversibleProviderRestoreResult.Rejected("publish policy is no longer reversible")
+                if (policy.getId() != state.policyId || !policy.handlesPublishCycle(world)) {
+                    return MenuReversibleProviderRestoreResult.Rejected("publish policy changed concurrently: ${state.policyId}")
+                }
+                when (val restored = policy.restorePublishCycleState(
+                    context.player,
+                    world,
+                    state.before,
+                    state.expectedAfter,
+                )) {
+                    WorldPublishReversibleRestoreResult.Restored -> MenuReversibleProviderRestoreResult.Restored
+                    is WorldPublishReversibleRestoreResult.Rejected ->
+                        MenuReversibleProviderRestoreResult.Rejected(restored.reason)
+                }
             }
             is WorldStateSnapshot.Notification -> {
-                val world = plugin.worldConfigRepository.findByUuid(state.worldUuid)
-                    ?: return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
-                if (world.notificationEnabled != state.expectedAfter) return MenuReversibleProviderRestoreResult.Rejected("notification state changed concurrently: ${state.worldUuid}")
-                world.notificationEnabled = state.before
-                plugin.worldConfigRepository.save(world)
-                MenuReversibleProviderRestoreResult.Restored
+                when (plugin.worldSettingsStateService.restoreNotification(
+                    state.worldUuid,
+                    state.before,
+                    state.expectedAfter,
+                )) {
+                    WorldSettingsStateService.RestoreResult.RESTORED -> MenuReversibleProviderRestoreResult.Restored
+                    WorldSettingsStateService.RestoreResult.TARGET_MISSING ->
+                        MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
+                    WorldSettingsStateService.RestoreResult.CONCURRENT_CHANGE ->
+                        MenuReversibleProviderRestoreResult.Rejected("notification state changed concurrently: ${state.worldUuid}")
+                }
             }
             is WorldStateSnapshot.MemberRole -> {
-                val world = plugin.worldConfigRepository.findByUuid(state.worldUuid)
-                    ?: return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
-                if ((state.memberUuid in world.members) != state.expectedMember || (state.memberUuid in world.moderators) != state.expectedModerator) {
-                    return MenuReversibleProviderRestoreResult.Rejected("member role changed concurrently: ${state.memberUuid}")
+                when (plugin.worldSettingsStateService.restoreMemberRole(
+                    state.worldUuid,
+                    state.memberUuid,
+                    state.beforeMember,
+                    state.beforeModerator,
+                    state.expectedMember,
+                    state.expectedModerator,
+                )) {
+                    WorldSettingsStateService.RestoreResult.RESTORED -> MenuReversibleProviderRestoreResult.Restored
+                    WorldSettingsStateService.RestoreResult.TARGET_MISSING ->
+                        MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
+                    WorldSettingsStateService.RestoreResult.CONCURRENT_CHANGE ->
+                        MenuReversibleProviderRestoreResult.Rejected("member role changed concurrently: ${state.memberUuid}")
                 }
-                if (state.beforeMember) world.members.add(state.memberUuid) else world.members.remove(state.memberUuid)
-                if (state.beforeModerator) world.moderators.add(state.memberUuid) else world.moderators.remove(state.memberUuid)
-                plugin.worldConfigRepository.save(world)
-                MenuReversibleProviderRestoreResult.Restored
             }
             else -> MenuReversibleProviderRestoreResult.Rejected("invalid world state type")
         }
@@ -336,18 +450,20 @@ private class PlayerStateProvider(private val plugin: MyWorldManager) : MenuReve
         val playerId = context.player.uniqueId
         return when (val state = context.state) {
             is PlayerStateSnapshot.Favorite -> {
-                val world = plugin.worldConfigRepository.findByUuid(state.worldUuid)
-                    ?: return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
-                val stats = plugin.playerStatsRepository.findByUuid(playerId)
-                if (stats.favoriteWorlds[state.worldUuid] != state.expectedDate || world.favorite != state.expectedCount) {
-                    return MenuReversibleProviderRestoreResult.Rejected("favorite state changed concurrently: ${state.worldUuid}")
+                when (plugin.favoriteStateService.restore(
+                    playerId,
+                    state.worldUuid,
+                    state.beforeDate,
+                    state.expectedDate,
+                    state.beforeCount,
+                    state.expectedCount,
+                )) {
+                    FavoriteStateService.RestoreResult.RESTORED -> MenuReversibleProviderRestoreResult.Restored
+                    FavoriteStateService.RestoreResult.TARGET_MISSING ->
+                        MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
+                    FavoriteStateService.RestoreResult.CONCURRENT_CHANGE ->
+                        MenuReversibleProviderRestoreResult.Rejected("favorite state changed concurrently: ${state.worldUuid}")
                 }
-                if (state.beforeDate == null) stats.favoriteWorlds.remove(state.worldUuid)
-                else stats.favoriteWorlds[state.worldUuid] = state.beforeDate
-                world.favorite = state.beforeCount
-                plugin.playerStatsRepository.save(stats)
-                plugin.worldConfigRepository.save(world)
-                MenuReversibleProviderRestoreResult.Restored
             }
             is PlayerStateSnapshot.Meet -> {
                 val stats = plugin.playerStatsRepository.findByUuid(playerId)
@@ -388,7 +504,11 @@ private class MenuSessionProvider(private val plugin: MyWorldManager) : MenuReve
                     "admin_archive_filter" -> after.archiveFilter = GuiCycle.select(after.archiveFilter, ArchiveFilter.entries, direction)
                     "admin_publish_filter" -> after.publishFilter = GuiCycle.select(after.publishFilter, PublishFilter.entries, direction)
                     "admin_player_filter" -> after.playerFilterType = GuiCycle.select(after.playerFilterType, PlayerFilterType.entries, direction)
-                    "admin_sort" -> after.sortBy = GuiCycle.select(after.sortBy, AdminSortType.entries, direction)
+                    "admin_sort" -> after.sortBy = GuiCycle.select(
+                        after.sortBy,
+                        plugin.adminGuiSessionManager.availableSortTypes(),
+                        direction,
+                    )
                     "admin_portal_sort" -> after.portalSortBy = GuiCycle.select(after.portalSortBy, PortalSortType.entries, direction)
                 }
                 if (operation == "admin_portal_sort") after.portalPage = 0 else after.currentPage = 0
@@ -535,7 +655,7 @@ private class DisplayOrderProvider(private val plugin: MyWorldManager) : MenuRev
 private data class CreationSessionState(
     val before: WorldCreationSessionSnapshot?,
     val expectedAfter: WorldCreationSessionSnapshot?,
-    val expectStartedDialog: Boolean,
+    val startPlan: WorldCreationStartPlan? = null,
 ) : MenuReversibleProviderState
 private class CreationSessionProvider(private val plugin: MyWorldManager) : MenuReversibleStateProvider {
     override fun capture(context: MenuReversibleStateCaptureContext): MenuReversibleProviderCaptureResult =
@@ -549,10 +669,13 @@ private class CreationSessionProvider(private val plugin: MyWorldManager) : Menu
                     listOf(org.bukkit.World.Environment.NORMAL, org.bukkit.World.Environment.NETHER, org.bukkit.World.Environment.THE_END),
                     GuiCycleDirection.NEXT,
                 )) ?: return MenuReversibleProviderCaptureResult.Rejected("creation session is missing")
-                "start" -> null
+                "bedrock_start" -> null
                 else -> return MenuReversibleProviderCaptureResult.Rejected("unsupported creation session operation: $operation")
             }
-            MenuReversibleProviderCaptureResult.Captured(CreationSessionState(before, expected, operation == "start"))
+            val startPlan = if (operation == "bedrock_start") {
+                plugin.creationSessionManager.captureBedrockStart(context.player.uniqueId)
+            } else null
+            MenuReversibleProviderCaptureResult.Captured(CreationSessionState(before, expected, startPlan))
         }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
@@ -562,7 +685,11 @@ private class CreationSessionProvider(private val plugin: MyWorldManager) : Menu
             return MenuReversibleProviderRestoreResult.Rejected("creation session belongs to another player")
         }
         val current = plugin.creationSessionManager.snapshot(context.player.uniqueId)
-        if ((state.expectStartedDialog && (current == null || !current.isDialogMode)) || (!state.expectStartedDialog && current != state.expectedAfter)) {
+        val expectedAfter = state.startPlan?.expectedAfter ?: state.expectedAfter
+        if (expectedAfter == null && state.startPlan != null) {
+            return MenuReversibleProviderRestoreResult.Rejected("creation start action did not complete")
+        }
+        if (current != expectedAfter) {
             return MenuReversibleProviderRestoreResult.Rejected("creation session changed or disappeared before restore")
         }
         plugin.creationSessionManager.restore(context.player.uniqueId, state.before)

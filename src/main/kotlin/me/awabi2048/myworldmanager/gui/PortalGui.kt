@@ -19,7 +19,6 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
@@ -124,16 +123,19 @@ class PortalGui(private val plugin: MyWorldManager) {
 
     private fun toggleText(context: MenuActionContext): MenuActionResult {
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
-        portal.showText = !portal.showText
-        plugin.portalRepository.saveAll()
+        if (plugin.portalManager.updateAppearance(portal.id, !portal.showText, portal.particleColor) !=
+            me.awabi2048.myworldmanager.service.PortalManager.AppearanceUpdateResult.UPDATED
+        ) return MenuActionResult.Rejected()
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun cycleColor(context: MenuActionContext): MenuActionResult {
         val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
-        portal.particleColor = GuiCycle.select(portal.particleColor, colors, direction)
-        plugin.portalRepository.saveAll()
+        val color = GuiCycle.select(portal.particleColor, colors, direction)
+        if (plugin.portalManager.updateAppearance(portal.id, portal.showText, color) !=
+            me.awabi2048.myworldmanager.service.PortalManager.AppearanceUpdateResult.UPDATED
+        ) return MenuActionResult.Rejected()
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
@@ -228,8 +230,8 @@ class PortalGui(private val plugin: MyWorldManager) {
                         lang.getMessage(player, "$key.action"),
                         safety = portalActionSafety(actionId),
                         reversibleContract = when (actionId) {
-                            ACTION_TOGGLE_TEXT -> MwmReversibleContracts.portalState("text")
-                            ACTION_CYCLE_COLOR -> MwmReversibleContracts.portalState("color")
+                            ACTION_TOGGLE_TEXT -> MwmMenuActionSemantics.contract("portal-text")
+                            ACTION_CYCLE_COLOR -> MwmMenuActionSemantics.contract("portal-color")
                             else -> null
                         },
                     ),

@@ -50,7 +50,6 @@ import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.BorderResetSpawnService
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -326,8 +325,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 ) + payload,
                                                                 safety = runtimeOperationSafety(operation),
                                                                 reversibleContract = when (operation) {
-                                                                        WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> MwmReversibleContracts.worldState("publish")
-                                                                        WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> MwmReversibleContracts.worldState("notification")
+                                                                        WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> MwmMenuActionSemantics.contract("world-publish")
+                                                                        WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> MwmMenuActionSemantics.contract("world-notification")
                                                                         else -> null
                                                                 },
                                                         ),
@@ -568,6 +567,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 player: Player,
                 worldData: WorldData,
         ): InventoryMenuView {
+                // inspectionを含む描画時点で、公開操作を横取りするpolicyの可逆契約不足を検出します。
+                plugin.worldPublishService.requireReversibleCycleContract(worldData)
                 val lang = plugin.languageManager
                 val title =
                         GuiHelper.inventoryTitle(
@@ -959,7 +960,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 lang.getMessage(player, "gui.common.action.cycle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
                                                 safety = MenuActionSafety.REVERSIBLE,
-                                                reversibleContract = MwmReversibleContracts.worldState("publish"),
+                                                reversibleContract = MwmMenuActionSemantics.contract("world-publish"),
                                         )),
                                 ),
                         )
@@ -1171,7 +1172,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 lang.getMessage(player, "gui.settings.notification.action.toggle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION.name),
                                                 safety = MenuActionSafety.REVERSIBLE,
-                                                reversibleContract = MwmReversibleContracts.worldState("notification"),
+                                                reversibleContract = MwmMenuActionSemantics.contract("world-notification"),
                                         )),
                                         glint = worldData.notificationEnabled,
                                 ),
@@ -2518,7 +2519,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         safety: MenuActionSafety,
                 ) {
                         val reversibleContract = if (safety == MenuActionSafety.REVERSIBLE) {
-                                MwmReversibleContracts.worldState("member_role")
+                                MwmMenuActionSemantics.contract("member-role")
                         } else null
                         actions += menuGestureAction(
                                 ACTION_RUNTIME_DISPATCH,

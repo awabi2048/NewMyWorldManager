@@ -78,10 +78,16 @@ class SettingsSessionManager {
         sessions.remove(player.uniqueId)
     }
 
-    fun restoreTempWeather(playerId: UUID, worldId: UUID, expected: String?, restored: String?): Boolean {
-        val session = sessions[playerId] ?: return false
-        if (session.worldUuid != worldId || session.tempWeather != expected) return false
-        session.tempWeather = restored
+    fun snapshot(playerId: UUID): SettingsSessionSnapshot? = sessions[playerId]?.immutableSnapshot()
+
+    fun restoreIfCurrent(
+        playerId: UUID,
+        expectedAfter: SettingsSessionSnapshot,
+        before: SettingsSessionSnapshot,
+    ): Boolean {
+        if (expectedAfter.playerUuid != playerId || before.playerUuid != playerId) return false
+        if (sessions[playerId]?.immutableSnapshot() != expectedAfter) return false
+        sessions[playerId] = before.restore()
         return true
     }
 

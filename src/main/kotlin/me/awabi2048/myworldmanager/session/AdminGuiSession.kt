@@ -107,16 +107,15 @@ class AdminGuiSessionManager {
 
     fun cycleSortType(playerUuid: UUID, direction: GuiCycleDirection) {
         val session = getSession(playerUuid)
-        var values = AdminSortType.values()
-        
-        // Chiyogamiが有効でない場合はMSPTソートを除外
-        if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
-            values = values.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()
-        }
-        
-        session.sortBy = GuiCycle.select(session.sortBy, values, direction)
+        session.sortBy = GuiCycle.select(session.sortBy, availableSortTypes(), direction)
         session.currentPage = 0
     }
+
+    /** 描画・実Action・可逆providerで共有する、実行可能なソート候補です。 */
+    fun availableSortTypes(): List<AdminSortType> =
+        AdminSortType.entries.filter {
+            it != AdminSortType.MSPT_DESC || me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()
+        }
 
     fun cyclePortalSortType(playerUuid: UUID, direction: GuiCycleDirection) {
         val session = getSession(playerUuid)

@@ -18,7 +18,6 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
@@ -525,7 +524,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         lang.getMessage(player, "gui.player_world.world_item.move_to_top"),
                                         payload,
                                         safety = MenuActionSafety.REVERSIBLE,
-                                        reversibleContract = MwmReversibleContracts.displayOrder(),
+                                        reversibleContract = MwmMenuActionSemantics.contract("player-world-priority"),
                                 ))
                         }
                         when {

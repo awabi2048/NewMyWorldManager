@@ -26,7 +26,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
+import me.awabi2048.myworldmanager.service.WorldPublishCycleSource
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
@@ -566,6 +566,8 @@ class BedrockMenuService(
         returnPage: Int,
         showBackButton: Boolean
     ): InventoryMenuView {
+        // Runtime inspectと実メニューの両方で、policy横取り時の可逆契約を先に検証します。
+        plugin.worldPublishService.requireReversibleCycleContract(worldData)
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
             tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)),
         )
@@ -598,7 +600,7 @@ class BedrockMenuService(
                 ),
                 "cycle_publish",
                 safety = MenuActionSafety.REVERSIBLE,
-                reversibleContract = MwmReversibleContracts.worldState("publish"),
+                reversibleContract = me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-publish"),
             )
         }
 
@@ -802,8 +804,7 @@ class BedrockMenuService(
                     if (!WorldCreationChecks.checkSelfCreatePermission(player)) {
                         return MenuActionResult.Rejected()
                     }
-                    val session = plugin.creationSessionManager.startSession(player.uniqueId)
-                    session.isDialogMode = false
+                    plugin.creationSessionManager.startBedrockSession(player.uniqueId)
                     MenuActionResult.Success(
                         MenuUpdate.Navigate(plugin.creationGui.typeSelectionRoute()),
                     )
@@ -981,16 +982,9 @@ class BedrockMenuService(
     }
 
     private fun cyclePublishLevel(player: Player, worldData: WorldData) {
-        if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
+        if (plugin.worldPublishService.cycle(player, worldData) == WorldPublishCycleSource.POLICY) {
             return
         }
-        val levels = PublishLevel.values()
-        val currentIndex = levels.indexOf(worldData.publishLevel).let { if (it < 0) 0 else it }
-        worldData.publishLevel = levels[(currentIndex + 1) % levels.size]
-        if (worldData.publishLevel == PublishLevel.PUBLIC) {
-            worldData.publicAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-        }
-        plugin.worldConfigRepository.save(worldData)
         player.sendMessage(
             tr(
                 player,
@@ -1185,7 +1179,7 @@ class BedrockMenuService(
                     MenuGesture.ANY,
                     tr(player, "gui.player_world.creation_button.action"),
                     safety = MenuActionSafety.REVERSIBLE,
-                    reversibleContract = MwmReversibleContracts.creationSession(),
+                    reversibleContract = me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-create"),
                 )),
             ),
         )
@@ -1323,13 +1317,12 @@ class BedrockMenuService(
                     MenuGesture.ANY,
                     tr(player, actionKey),
                     safety = settingActionSafety(actionId),
-                    reversibleContract = if (settingActionSafety(actionId) == MenuActionSafety.REVERSIBLE) MwmReversibleContracts.userSetting(
-                        when (actionId) {
-                            "toggle_notification" -> "notification"
-                            "toggle_critical" -> "critical_visibility"
-                            else -> "tour_navigation"
-                        },
-                    ) else null,
+                    reversibleContract = when (actionId) {
+                        "toggle_notification" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-notification")
+                        "toggle_critical" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-critical")
+                        "cycle_tour_navigation" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-tour")
+                        else -> null
+                    },
                 )),
                 glint = glint,
             ),

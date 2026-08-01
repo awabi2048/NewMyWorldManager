@@ -20,10 +20,8 @@ import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
-import java.time.LocalDate
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -161,14 +159,17 @@ class VisitGui(private val plugin: MyWorldManager) {
                 }
                 if (!context.click.isRightClick || isMember) return MenuActionResult.Ignored
 
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-                if (stats.favoriteWorlds.containsKey(worldUuid)) {
-                        stats.favoriteWorlds.remove(worldUuid)
-                        worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
+                return when (plugin.favoriteStateService.toggle(player, worldData)) {
+                        me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Removed -> {
                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
-                } else {
+                                MenuActionResult.Success(MenuUpdate.Refresh)
+                        }
+                        me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Added -> {
+                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
+                                MenuActionResult.Success(MenuUpdate.Refresh)
+                        }
+                        me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.LimitReached -> {
                         val maxFavoriteCount = plugin.config.getInt("favorite.max_count", 1000)
-                        if (stats.favoriteWorlds.size >= maxFavoriteCount) {
                                 player.sendMessage(
                                         plugin.languageManager.getMessage(
                                                 player,
@@ -176,15 +177,9 @@ class VisitGui(private val plugin: MyWorldManager) {
                                                 mapOf("limit" to maxFavoriteCount),
                                         ),
                                 )
-                                return MenuActionResult.Rejected()
+                                MenuActionResult.Rejected()
                         }
-                        stats.favoriteWorlds[worldUuid] = LocalDate.now().toString()
-                        worldData.favorite++
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
                 }
-                plugin.playerStatsRepository.save(stats)
-                plugin.worldConfigRepository.save(worldData)
-                return MenuActionResult.Success(MenuUpdate.Refresh)
         }
 
         private fun createWorldEntry(viewer: Player, world: WorldData, slot: Int): MenuElement {
@@ -235,7 +230,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 actions = buildList {
                                         add(menuGestureAction(ACTION_WORLD, MenuGesture.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                                         if (favoriteAction.isNotBlank()) {
-                                                add(menuGestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmReversibleContracts.playerState("favorite_toggle")))
+                                                add(menuGestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("visit-favorite")))
                                         }
                                 },
                         ),

@@ -22,7 +22,6 @@ import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.model.TemplateData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.Bukkit
@@ -341,8 +340,8 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             actionId, MenuGesture.ANY, actionText,
             safety = wizardActionSafety(actionId),
             reversibleContract = when (actionId) {
-                ACTION_CANCEL -> MwmReversibleContracts.draft("template_cancel")
-                ACTION_ORIGIN -> MwmReversibleContracts.draft("template_origin")
+                ACTION_CANCEL -> MwmMenuActionSemantics.contract("template-cancel")
+                ACTION_ORIGIN -> MwmMenuActionSemantics.contract("template-origin")
                 else -> null
             },
         )),

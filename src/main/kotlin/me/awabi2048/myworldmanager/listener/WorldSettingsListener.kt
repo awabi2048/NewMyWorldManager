@@ -194,20 +194,7 @@ class WorldSettingsListener : Listener {
                                 )
                         }
                         WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> {
-                                if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
-                                        return reopenWorldSettingsLatest(player, worldData)
-                                }
-                                val nextLevel = GuiCycle.select(
-                                        worldData.publishLevel,
-                                        PublishLevel.values(),
-                                        com.awabi2048.ccsystem.api.gui.GuiCycleDirection.NEXT,
-                                )
-                                worldData.publishLevel = nextLevel
-                                if (nextLevel == PublishLevel.PUBLIC) {
-                                        worldData.publicAt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                                .format(java.time.LocalDateTime.now())
-                                }
-                                plugin.worldConfigRepository.save(worldData)
+                                plugin.worldPublishService.cycle(player, worldData)
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
                         WorldSettingsRuntimeOperation.EDIT_TAGS -> {
@@ -233,8 +220,9 @@ class WorldSettingsListener : Listener {
                                 )
                         }
                         WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> {
-                                worldData.notificationEnabled = !worldData.notificationEnabled
-                                plugin.worldConfigRepository.save(worldData)
+                                if (!plugin.worldSettingsStateService.toggleNotification(worldData.uuid)) {
+                                        return MenuActionResult.Rejected()
+                                }
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
                         WorldSettingsRuntimeOperation.OPEN_CRITICAL ->
@@ -1554,19 +1542,7 @@ class WorldSettingsListener : Listener {
         }
 
         private fun toggleMemberRole(player: Player, worldData: WorldData, memberId: UUID) {
-                val isModerator = worldData.moderators.contains(memberId)
-                if (isModerator) {
-                        worldData.moderators.remove(memberId)
-                        if (!worldData.members.contains(memberId)) {
-                                worldData.members.add(memberId)
-                        }
-                } else {
-                        worldData.members.remove(memberId)
-                        if (!worldData.moderators.contains(memberId)) {
-                                worldData.moderators.add(memberId)
-                        }
-                }
-                plugin.worldConfigRepository.save(worldData)
+                if (!plugin.worldSettingsStateService.toggleMemberRole(worldData.uuid, memberId)) return
                 reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
         }
 

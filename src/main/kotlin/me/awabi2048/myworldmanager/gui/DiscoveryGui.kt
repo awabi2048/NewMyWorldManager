@@ -26,7 +26,6 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.*
 import me.awabi2048.myworldmanager.MyWorldManager
-import me.awabi2048.myworldmanager.service.MwmReversibleContracts
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource
 import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
@@ -485,7 +484,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.sort.label"), options.first { it.first == currentSort }.second, GuiValueTone.PRIMARY)),
                         options = options.map { GuiMenuEntryOption(it.second, it.first == currentSort) },
                         actions = buildList {
-                                add(menuGestureAction(ACTION_SORT, MenuGesture.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmReversibleContracts.menuSession("discovery_sort")))
+                                add(menuGestureAction(ACTION_SORT, MenuGesture.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("discovery-sort")))
                                 if (canEditSpotlight) add(menuGestureAction(ACTION_SORT, MenuGesture.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE))
                         },
                 ))
@@ -544,7 +543,17 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         slot, material, name, GuiElementRole.ACTION,
                         data = listOf(GuiMenuEntryData(label, currentValue, GuiValueTone.PRIMARY)),
                         options = options,
-                        actions = listOf(menuGestureAction(actionId, MenuGesture.PLAIN_LEFT_RIGHT, plugin.languageManager.getMessage(player, "gui.common.action.cycle"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmReversibleContracts.menuSession(if (actionId == ACTION_TAG) "discovery_tag" else "discovery_special_filter"))),
+                        actions = listOf(menuGestureAction(
+                            actionId,
+                            MenuGesture.PLAIN_LEFT_RIGHT,
+                            plugin.languageManager.getMessage(player, "gui.common.action.cycle"),
+                            safety = MenuActionSafety.REVERSIBLE,
+                            reversibleContract = when (actionId) {
+                                ACTION_TAG -> MwmMenuActionSemantics.contract("discovery-tag")
+                                ACTION_SPECIAL_FILTER -> MwmMenuActionSemantics.contract("discovery-special")
+                                else -> error("Unknown discovery reversible action: $actionId")
+                            },
+                        )),
                 ),
         )
 

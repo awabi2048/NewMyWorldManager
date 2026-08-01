@@ -14,9 +14,8 @@ import java.nio.file.Path
 class MenuReversibleClassificationTest {
     @Test
     fun `classification declares a provider for every reversible semantic action`() {
-        val rows = javaClass.getResourceAsStream("/menu-reversible-classification.csv")!!
-            .bufferedReader().useLines { lines -> lines.drop(1).filter(String::isNotBlank).map { it.split(',') }.toList() }
-        assertEquals(38, rows.size)
+        val rows = classificationRows()
+        assertEquals(39, rows.size)
         assertEquals(rows.size, rows.map { it[0] }.toSet().size)
         rows.forEach { row ->
             val classification = row[3]
@@ -24,6 +23,33 @@ class MenuReversibleClassificationTest {
             val reason = row[5]
             assertTrue(reason.isNotBlank(), "classification reason is missing: ${row[0]}")
             assertEquals(classification == "REVERSIBLE", provider.isNotBlank(), "provider mismatch: ${row[0]}")
+        }
+    }
+
+    @Test
+    fun `classification CSV and runtime semantic definitions are bidirectional`() {
+        val csvById = classificationRows().associateBy { it[0] }
+        val semanticById = MwmMenuActionSemantics.all().associateBy { it.id }
+        assertEquals(csvById.keys, semanticById.keys)
+        semanticById.forEach { (id, semantic) ->
+            val row = requireNotNull(csvById[id])
+            assertEquals(
+                listOf(
+                    semantic.id,
+                    semantic.file,
+                    semantic.action,
+                    semantic.safety.name,
+                    semantic.providerId.orEmpty(),
+                    semantic.reason,
+                ),
+                row,
+                "semantic definition differs from CSV: $id",
+            )
+            if (semantic.safety == MenuActionSafety.REVERSIBLE) {
+                val contract = MwmMenuActionSemantics.contract(semantic.id)
+                assertEquals(semantic.providerId, contract.providerId)
+                assertEquals(semantic.operation, contract.arguments[MwmReversibleContracts.OPERATION])
+            }
         }
     }
 
@@ -72,6 +98,40 @@ class MenuReversibleClassificationTest {
     }
 
     @Test
+    fun `every reversible semantic is used by a real MWM action definition`() {
+        val referencedIds = mutableSetOf<String>()
+        Files.walk(Path.of("src", "main", "kotlin")).use { paths ->
+            paths.filter { Files.isRegularFile(it) && it.toString().endsWith(".kt") }
+                .filter { it.fileName.toString() != "MwmMenuActionSemantics.kt" }
+                .forEach { path ->
+                    Regex("MwmMenuActionSemantics\\.contract\\(\\\"([^\\\"]+)\\\"\\)")
+                        .findAll(Files.readString(path))
+                        .forEach { referencedIds += it.groupValues[1] }
+                }
+        }
+        val expectedIds = MwmMenuActionSemantics.all()
+            .filter { it.safety == MenuActionSafety.REVERSIBLE }
+            .map { it.id }
+            .toSet()
+        assertEquals(expectedIds, referencedIds)
+    }
+
+    @Test
+    fun `MWM action definitions cannot bypass the semantic contract catalog`() {
+        val directContractReferences = mutableListOf<String>()
+        Files.walk(Path.of("src", "main", "kotlin")).use { paths ->
+            paths.filter { Files.isRegularFile(it) && it.toString().endsWith(".kt") }
+                .filter { it.fileName.toString() !in setOf("MwmReversibleStateProviders.kt", "MwmMenuActionSemantics.kt") }
+                .forEach { path ->
+                    if (Files.readString(path).contains("MwmReversibleContracts.")) {
+                        directContractReferences += path.toString()
+                    }
+                }
+        }
+        assertTrue(directContractReferences.isEmpty(), "semantic catalog bypass: $directContractReferences")
+    }
+
+    @Test
     fun `all aggregate providers are registered and owner lifecycle is closed`() {
         val providers = Files.readString(Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/service/MwmReversibleStateProviders.kt",
@@ -103,4 +163,10 @@ class MenuReversibleClassificationTest {
             cursor = index
         }
     }
+
+    private fun classificationRows(): List<List<String>> =
+        javaClass.getResourceAsStream("/menu-reversible-classification.csv")!!
+            .bufferedReader().useLines { lines ->
+                lines.drop(1).filter(String::isNotBlank).map { it.split(',') }.toList()
+            }
 }
