@@ -32,6 +32,7 @@ import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.copyWithPresentationSemantics
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -2611,7 +2612,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         glint = capabilityView?.presentation?.glint,
                         playerHeadOwner = uuid,
                 )
-                return CCSystem.getAPI().getGuiElementService().menuEntry(viewer, spec).copy(
+                return CCSystem.getAPI().getGuiElementService().menuEntry(viewer, spec).copyWithPresentationSemantics(
                         interaction = memberManagementEntryInteraction(
                                 capabilityView,
                                 capabilityAttributes,

@@ -28,6 +28,7 @@ import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.copyWithPresentationSemantics
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -369,7 +370,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 ) else emptyList(),
             ),
         )
-        return if (availability.enabled) element else element.copy(enabled = false)
+        return if (availability.enabled) element else element.copyWithPresentationSemantics(enabled = false)
     }
 
     private fun creationTypeAvailability(

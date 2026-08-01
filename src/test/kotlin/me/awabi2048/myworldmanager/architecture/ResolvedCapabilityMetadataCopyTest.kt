@@ -16,4 +16,17 @@ class ResolvedCapabilityMetadataCopyTest {
         assertTrue(source.contains("copyPreservingResolutionMetadata("))
         assertFalse(source.contains("requireExplicitActionSafety().copy("))
     }
+
+    @Test
+    fun `menu element changes preserve presentation semantics`() {
+        val creation = Files.readString(
+            Path.of("src/main/kotlin/me/awabi2048/myworldmanager/gui/CreationGui.kt"),
+        )
+        val settings = Files.readString(
+            Path.of("src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt"),
+        )
+
+        assertTrue(creation.contains("element.copyWithPresentationSemantics(enabled = false)"))
+        assertTrue(settings.contains("menuEntry(viewer, spec).copyWithPresentationSemantics("))
+    }
 }
