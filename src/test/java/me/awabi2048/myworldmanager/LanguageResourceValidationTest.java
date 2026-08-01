@@ -6,6 +6,9 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -17,33 +20,37 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class LanguageResourceValidationTest {
     private static final String BASE_LOCALE = "ja_jp";
-    private static final Path LANG_ROOT = resolveLanguageRoot();
+    private static final String LANG_ROOT_PROPERTY = "cc.system.lang.root";
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z0-9_]+}");
     private static final Pattern KEY_CALL = Pattern.compile(
         "(?:languageManager|lang)\\.(?:getMessage(?:List)?(?:Strict)?|getComponent(?:List)?|hasKey)\\("
             + "[^\"]*?\"([a-z0-9_]+(?:\\.[a-z0-9_]+)+)\""
     );
 
-    private static Path resolveLanguageRoot() {
-        Path current = Path.of("../postprocess-cc-system/src/main/resources/lang");
-        return Files.isDirectory(current)
-            ? current
-            : Path.of("../cc-system/src/main/resources/lang");
-    }
-
     @Test
     void languageResourcesStayComplete() throws IOException {
-        Map<String, Map<String, Map<String, Object>>> locales = loadLocales();
+        LanguageSource source = resolveLanguageSource();
+        if (System.getProperty(LANG_ROOT_PROPERTY) == null) {
+            assertInstanceOf(JarLanguageSource.class, source,
+                "default validation must ignore sibling and dirty worktrees");
+            assertFalse(source.description().contains("src" + java.io.File.separator + "main"),
+                "default validation must use the loaded CC-System artifact");
+        }
+        Map<String, Map<String, Map<String, Object>>> locales = loadLocales(source);
         List<String> errors = new ArrayList<>();
 
         if (locales.isEmpty()) {
-            errors.add("[lang validation] no locale directories found: " + LANG_ROOT);
+            errors.add("[lang validation] no locale resources found: " + source.description());
         }
         if (!locales.containsKey(BASE_LOCALE)) {
             errors.add("[lang validation] missing base locale: " + BASE_LOCALE);
@@ -96,12 +103,47 @@ class LanguageResourceValidationTest {
         return keys;
     }
 
-    private static Map<String, Map<String, Map<String, Object>>> loadLocales() throws IOException {
+    private static LanguageSource resolveLanguageSource() throws IOException {
+        String explicit = System.getProperty(LANG_ROOT_PROPERTY);
+        if (explicit != null && !explicit.isBlank()) {
+            Path root = Path.of(explicit).toAbsolutePath().normalize();
+            if (!Files.isDirectory(root)) {
+                throw new IOException("Explicit CC-System language root is not a directory: " + root);
+            }
+            return new DirectoryLanguageSource(root);
+        }
+
+        try {
+            Class<?> ccSystem = Class.forName("com.awabi2048.ccsystem.CCSystem");
+            Path codeSource = Path.of(
+                ccSystem.getProtectionDomain().getCodeSource().getLocation().toURI()
+            ).toAbsolutePath().normalize();
+            if (Files.isDirectory(codeSource)) {
+                Path root = codeSource.resolve("lang");
+                if (!Files.isDirectory(root)) {
+                    throw new IOException("CC-System classes directory does not contain lang resources: " + root);
+                }
+                return new DirectoryLanguageSource(root);
+            }
+            if (!Files.isRegularFile(codeSource)) {
+                throw new IOException("CC-System code source is neither a directory nor a JAR: " + codeSource);
+            }
+            return new JarLanguageSource(codeSource);
+        } catch (ClassNotFoundException | URISyntaxException exception) {
+            throw new IOException("Unable to resolve the loaded CC-System code source", exception);
+        }
+    }
+
+    private static Map<String, Map<String, Map<String, Object>>> loadLocales(LanguageSource source) throws IOException {
+        return source.loadLocales();
+    }
+
+    private static Map<String, Map<String, Map<String, Object>>> loadDirectoryLocales(Path root) throws IOException {
         Map<String, Map<String, Map<String, Object>>> locales = new LinkedHashMap<>();
-        if (!Files.isDirectory(LANG_ROOT)) {
+        if (!Files.isDirectory(root)) {
             return locales;
         }
-        try (Stream<Path> localeDirs = Files.list(LANG_ROOT)) {
+        try (Stream<Path> localeDirs = Files.list(root)) {
             for (Path localeDir : localeDirs.filter(Files::isDirectory).sorted().toList()) {
                 Map<String, Map<String, Object>> files = new LinkedHashMap<>();
                 try (Stream<Path> ymlFiles = Files.walk(localeDir)) {
@@ -116,16 +158,79 @@ class LanguageResourceValidationTest {
         return locales;
     }
 
+    private static Map<String, Map<String, Map<String, Object>>> loadJarLocales(Path jarPath) throws IOException {
+        Map<String, Map<String, Map<String, Object>>> locales = new LinkedHashMap<>();
+        Set<String> seenEntries = new LinkedHashSet<>();
+        try (JarFile jar = new JarFile(jarPath.toFile())) {
+            for (JarEntry entry : jar.stream().filter(e -> !e.isDirectory()).toList()) {
+                String name = entry.getName();
+                if (!name.startsWith("lang/") || !isYaml(Path.of(name))) continue;
+                if (!seenEntries.add(name)) {
+                    throw new IOException("Duplicate language resource in CC-System JAR: " + name);
+                }
+                String[] parts = name.split("/", 3);
+                if (parts.length != 3) continue;
+                String locale = parts[1].toLowerCase();
+                try (InputStreamReader reader = new InputStreamReader(jar.getInputStream(entry), StandardCharsets.UTF_8)) {
+                    Object loaded = new Yaml(new SafeConstructor(loaderOptions())).load(reader);
+                    if (!(loaded instanceof Map<?, ?> map)) {
+                        throw new IOException("Language YAML root must be a map: " + jarPath + "!/" + name);
+                    }
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> values = (Map<String, Object>) map;
+                    Map<String, Map<String, Object>> files = locales.computeIfAbsent(locale, ignored -> new LinkedHashMap<>());
+                    if (files.putIfAbsent(parts[2], values) != null) {
+                        throw new IOException("Duplicate language path in CC-System JAR: " + parts[2]);
+                    }
+                }
+            }
+        }
+        return locales;
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> readYaml(Path file) throws IOException {
-        LoaderOptions options = new LoaderOptions();
-        options.setAllowDuplicateKeys(false);
-        options.setMaxAliasesForCollections(50);
-        Object loaded = new Yaml(new SafeConstructor(options)).load(Files.readString(file));
+        Object loaded = new Yaml(new SafeConstructor(loaderOptions())).load(Files.readString(file));
         if (!(loaded instanceof Map<?, ?> map)) {
             throw new IllegalStateException("[lang validation] YAML root must be a map: " + file);
         }
         return (Map<String, Object>) map;
+    }
+
+    private static LoaderOptions loaderOptions() {
+        LoaderOptions options = new LoaderOptions();
+        options.setAllowDuplicateKeys(false);
+        options.setMaxAliasesForCollections(50);
+        return options;
+    }
+
+    private sealed interface LanguageSource permits DirectoryLanguageSource, JarLanguageSource {
+        Map<String, Map<String, Map<String, Object>>> loadLocales() throws IOException;
+        String description();
+    }
+
+    private record DirectoryLanguageSource(Path root) implements LanguageSource {
+        @Override
+        public Map<String, Map<String, Map<String, Object>>> loadLocales() throws IOException {
+            return loadDirectoryLocales(root);
+        }
+
+        @Override
+        public String description() {
+            return root.toString();
+        }
+    }
+
+    private record JarLanguageSource(Path jar) implements LanguageSource {
+        @Override
+        public Map<String, Map<String, Map<String, Object>>> loadLocales() throws IOException {
+            return loadJarLocales(jar);
+        }
+
+        @Override
+        public String description() {
+            return jar.toString();
+        }
     }
 
     private static boolean isYaml(Path path) {
