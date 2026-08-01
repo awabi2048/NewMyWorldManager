@@ -52,6 +52,21 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.util.UUID
 
+internal data class CreationTypeAvailability(val enabled: Boolean, val reasonKey: String? = null)
+
+internal fun resolveCreationTypeAvailability(
+    creationType: WorldCreationType,
+    usableTemplateExists: Boolean,
+    canAfford: Boolean,
+): CreationTypeAvailability = when {
+    !canAfford -> CreationTypeAvailability(false, "messages.creation_insufficient_points")
+    creationType == WorldCreationType.TEMPLATE && !usableTemplateExists ->
+        CreationTypeAvailability(false, "error.preview_template_not_found")
+    else -> CreationTypeAvailability(true)
+}
+
+internal fun templateCreationTypeUpdate(route: MenuRoute): MenuUpdate = MenuUpdate.Navigate(route)
+
 class CreationGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
@@ -128,18 +143,22 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     internal fun templateSelectionRoute(): MenuRoute = MenuRoute(OWNER, TEMPLATE_LIST_ROUTE)
 
+    internal fun templateCreationTypeUpdate(): MenuUpdate = templateCreationTypeUpdate(templateSelectionRoute())
+
     private fun renderTypeSelection(player: Player): InventoryMenuView {
         val lang = plugin.languageManager
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.threeChoiceLayout()
+        val session = plugin.creationSessionManager.getSession(player.uniqueId)
+        val usableTemplateExists = plugin.templateRepository.findAll().any(plugin.templateRepository::isUsable)
         return InventoryMenuView(
             size = layout.size,
             title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
                 lang.getMessage(player, "gui.creation.title_type"),
             ),
             elements = listOf(
-                createCreationTypeEntry(player, layout.leftSlot, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE),
-                createCreationTypeEntry(player, layout.centerSlot, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED),
-                createCreationTypeEntry(player, layout.rightSlot, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM),
+                createCreationTypeEntry(player, layout.leftSlot, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE, creationTypeAvailability(player, session, WorldCreationType.TEMPLATE, usableTemplateExists)),
+                createCreationTypeEntry(player, layout.centerSlot, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, creationTypeAvailability(player, session, WorldCreationType.SEED, usableTemplateExists)),
+                createCreationTypeEntry(player, layout.rightSlot, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM, creationTypeAvailability(player, session, WorldCreationType.RANDOM, usableTemplateExists)),
                 backEntry(player, layout.backSlot, ACTION_BACK),
             ),
         )
@@ -151,31 +170,22 @@ class CreationGui(private val plugin: MyWorldManager) {
         val creationType = context.payload["type"]?.let {
             runCatching { WorldCreationType.valueOf(it) }.getOrNull()
         } ?: return MenuActionResult.Rejected()
-        val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
-        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
-        if (
-            session.billingMode == me.awabi2048.myworldmanager.api.service.WorldPointBillingMode.STANDARD &&
-            MyWorldManagerApi.isWorldPointEconomyEnabled() &&
-            stats.worldPoint < cost
-        ) {
-            context.player.sendMessage(
-                plugin.languageManager.getMessage(context.player, "messages.creation_insufficient_points"),
-            )
+        val availability = creationTypeAvailability(
+            context.player,
+            session,
+            creationType,
+            plugin.templateRepository.findAll().any(plugin.templateRepository::isUsable),
+        )
+        if (!availability.enabled) {
+            context.player.sendMessage(plugin.languageManager.getMessage(context.player, availability.reasonKey!!))
             return MenuActionResult.Rejected()
         }
 
         session.creationType = creationType
         return when (creationType) {
             WorldCreationType.TEMPLATE -> {
-                if (plugin.templateRepository.findAll().none(plugin.templateRepository::isUsable)) {
-                    context.player.sendMessage(
-                        plugin.languageManager.getMessage(context.player, "error.preview_template_not_found"),
-                    )
-                    MenuActionResult.Rejected()
-                } else {
-                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                    MenuActionResult.Success(MenuUpdate.Navigate(templateSelectionRoute()))
-                }
+                session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                MenuActionResult.Success(templateCreationTypeUpdate())
             }
             WorldCreationType.SEED -> {
                 session.phase = WorldCreationPhase.SEED_INPUT
@@ -285,11 +295,13 @@ class CreationGui(private val plugin: MyWorldManager) {
         name: String,
         baseLoreKey: String,
         creationType: WorldCreationType,
+        availability: CreationTypeAvailability,
     ): MenuElement {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val data = mutableListOf<GuiMenuEntryData>()
         val warnings = mutableListOf<String>()
+        availability.reasonKey?.let { warnings += lang.getMessage(player, it).removePrefix("ﾂｧc") }
         if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
             val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
             data += GuiMenuEntryData(
@@ -332,17 +344,17 @@ class CreationGui(private val plugin: MyWorldManager) {
             ).removePrefix("§c")
         }
 
-        return CCSystem.getAPI().getGuiElementService().menuEntry(
+        val element = CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
                 name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
-                role = GuiElementRole.ACTION,
+                role = if (availability.enabled) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                 description = lang.getMessageList(player, baseLoreKey),
                 data = data,
                 warnings = warnings,
-                actions = listOf(
+                actions = if (availability.enabled) listOf(
                     menuGestureAction(
                         ACTION_SELECT_TYPE,
                         MenuGesture.ANY,
@@ -350,9 +362,23 @@ class CreationGui(private val plugin: MyWorldManager) {
                         mapOf("type" to creationType.name),
                         safety = creationTypeSafety(creationType),
                     ),
-                ),
+                ) else emptyList(),
             ),
         )
+        return if (availability.enabled) element else element.copy(enabled = false)
+    }
+
+    private fun creationTypeAvailability(
+        player: Player,
+        session: WorldCreationSession?,
+        creationType: WorldCreationType,
+        usableTemplateExists: Boolean,
+    ): CreationTypeAvailability {
+        val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
+        val canAfford = session?.billingMode != me.awabi2048.myworldmanager.api.service.WorldPointBillingMode.STANDARD ||
+            !MyWorldManagerApi.isWorldPointEconomyEnabled() ||
+            plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint >= cost
+        return resolveCreationTypeAvailability(creationType, usableTemplateExists, canAfford)
     }
 
     fun openTemplateSelection(player: Player) {
