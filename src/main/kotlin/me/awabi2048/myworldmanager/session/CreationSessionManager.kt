@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.session
 import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.BoundedReversiblePlanRegistry
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
@@ -11,8 +12,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 class CreationSessionManager(private val plugin: MyWorldManager) {
     private val sessions = ConcurrentHashMap<UUID, WorldCreationSession>()
-    private val reversibleStartPlans = ConcurrentHashMap<UUID, WorldCreationStartPlan>()
-    private val reversibleStartPlansById = ConcurrentHashMap<UUID, WorldCreationStartPlan>()
+    private val reversibleStartPlans = BoundedReversiblePlanRegistry<UUID, WorldCreationStartPlan>(
+        idOf = WorldCreationStartPlan::id,
+    )
     private var timeoutTask: BukkitTask? = null
 
     init {
@@ -37,21 +39,18 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     fun startBedrockSession(playerId: UUID): WorldCreationSession {
         val session = startSession(playerId)
         session.isDialogMode = false
-        reversibleStartPlans.remove(playerId)?.complete(session.immutableSnapshot())
+        reversibleStartPlans.detachKey(playerId)?.complete(session.immutableSnapshot())
         return session
     }
 
     fun captureBedrockStart(playerId: UUID): WorldCreationStartPlan {
         val plan = WorldCreationStartPlan(snapshot(playerId), playerId)
-        reversibleStartPlans.put(playerId, plan)?.let { reversibleStartPlansById.remove(it.id) }
-        reversibleStartPlansById[plan.id] = plan
+        reversibleStartPlans.register(playerId, plan)
         return plan
     }
 
     internal fun consumeBedrockStartPlan(id: UUID): WorldCreationStartPlan? {
-        val plan = reversibleStartPlansById.remove(id) ?: return null
-        plan.playerId?.let { reversibleStartPlans.remove(it, plan) }
-        return plan
+        return reversibleStartPlans.consume(id)
     }
 
     fun snapshot(playerId: UUID): WorldCreationSessionSnapshot? = sessions[playerId]?.immutableSnapshot()
@@ -63,9 +62,10 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
 
     fun clearAll() {
         sessions.clear()
-        reversibleStartPlans.clear()
-        reversibleStartPlansById.clear()
+        clearReversiblePlans()
     }
+
+    fun clearReversiblePlans() = reversibleStartPlans.clear()
 
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
         sessions[playerId]?.let { 

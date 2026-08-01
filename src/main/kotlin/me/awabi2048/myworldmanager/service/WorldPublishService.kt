@@ -10,7 +10,6 @@ import org.bukkit.entity.Player
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 data class WorldPublishMetadataSnapshot(
     val publishLevel: PublishLevel,
@@ -78,10 +77,13 @@ enum class WorldPublishCycleSource {
  * 通常クリックはplanを持たず、従来どおりクリック時刻で publicAt を更新します。
  */
 class WorldPublishService(private val plugin: MyWorldManager) {
-    private val standardPlans = ConcurrentHashMap<Pair<UUID, UUID>, StandardWorldPublishCyclePlan>()
-    private val policyPlans = ConcurrentHashMap<Pair<UUID, UUID>, PolicyWorldPublishCyclePlan>()
-    private val standardPlansById = ConcurrentHashMap<UUID, StandardWorldPublishCyclePlan>()
-    private val policyPlansById = ConcurrentHashMap<UUID, PolicyWorldPublishCyclePlan>()
+    private val standardPlans = BoundedReversiblePlanRegistry<Pair<UUID, UUID>, StandardWorldPublishCyclePlan>(
+        idOf = StandardWorldPublishCyclePlan::id,
+    )
+    private val policyPlans = BoundedReversiblePlanRegistry<Pair<UUID, UUID>, PolicyWorldPublishCyclePlan>(
+        idOf = PolicyWorldPublishCyclePlan::id,
+        onDiscard = PolicyWorldPublishCyclePlan::discard,
+    )
 
     fun requireReversibleCycleContract(worldData: WorldData) {
         val policy = MyWorldManagerApi.getWorldPublishPolicy()
@@ -99,11 +101,10 @@ class WorldPublishService(private val plugin: MyWorldManager) {
         }
         val plan = StandardWorldPublishCyclePlan(player.uniqueId, worldData.uuid, worldData.publishSnapshot())
         val key = player.uniqueId to worldData.uuid
-        policyPlans.remove(key)?.let { discardPolicyPlan(it) }
+        policyPlans.removeKey(key)
         // captureに続くclickが拒否された場合でもRuntimeからproviderへ破棄通知は来ないため、
         // 同じ操作を再captureした時点で古い監査計画を安全に置き換えます。
-        standardPlans.put(key, plan)?.let { standardPlansById.remove(it.id) }
-        standardPlansById[plan.id] = plan
+        standardPlans.register(key, plan)
         return plan
     }
 
@@ -116,8 +117,8 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             "capturePolicyCycle requires a policy-owned publish state"
         }
         val key = player.uniqueId to worldData.uuid
-        standardPlans.remove(key)?.let { standardPlansById.remove(it.id) }
-        policyPlans.remove(key)?.let { discardPolicyPlan(it) }
+        standardPlans.removeKey(key)
+        policyPlans.removeKey(key)
         val plan = PolicyWorldPublishCyclePlan(
             player.uniqueId,
             worldData.uuid,
@@ -125,8 +126,7 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             policy.getId(),
             policy.capturePublishCycleState(player, worldData),
         )
-        policyPlans.put(key, plan)?.let { discardPolicyPlan(it) }
-        policyPlansById[plan.id] = plan
+        policyPlans.register(key, plan)
         return plan
     }
 
@@ -139,7 +139,7 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             completePolicyCycle(player, worldData, policy)
             return WorldPublishCycleSource.POLICY
         }
-        policyPlans.remove(player.uniqueId to worldData.uuid)?.let { discardPolicyPlan(it) }
+        policyPlans.removeKey(player.uniqueId to worldData.uuid)
         check(!policy.cyclePublishLevel(player, worldData)) {
             "WorldPublishPolicy '${policy.getId()}' handled a publish cycle without declaring ownership"
         }
@@ -151,7 +151,7 @@ class WorldPublishService(private val plugin: MyWorldManager) {
         }
         plugin.worldConfigRepository.save(worldData)
         val after = worldData.publishSnapshot()
-        standardPlans.remove(player.uniqueId to worldData.uuid)?.let { plan ->
+        standardPlans.detachKey(player.uniqueId to worldData.uuid)?.let { plan ->
             if (plan.before == before) {
                 plan.complete(after)
             }
@@ -176,20 +176,15 @@ class WorldPublishService(private val plugin: MyWorldManager) {
     fun isWorldPresent(worldUuid: UUID): Boolean = plugin.worldConfigRepository.findByUuid(worldUuid) != null
 
     internal fun consumeStandardPlan(id: UUID): StandardWorldPublishCyclePlan? {
-        val plan = standardPlansById.remove(id) ?: return null
-        standardPlans.remove(plan.playerId to plan.worldUuid, plan)
-        return plan
+        return standardPlans.consume(id)
     }
 
     internal fun consumePolicyPlan(id: UUID): PolicyWorldPublishCyclePlan? {
-        val plan = policyPlansById.remove(id) ?: return null
-        policyPlans.remove(plan.playerId to plan.worldUuid, plan)
-        return plan
+        return policyPlans.consume(id)
     }
 
     private fun discardPolicyPlan(plan: PolicyWorldPublishCyclePlan) {
-        plan.discard()
-        policyPlansById.remove(plan.id, plan)
+        policyPlans.removeById(plan.id)
     }
 
     private fun completePolicyCycle(
@@ -197,8 +192,8 @@ class WorldPublishService(private val plugin: MyWorldManager) {
         worldData: WorldData,
         policy: ReversibleWorldPublishPolicy,
     ) {
-        val capturedPlan = policyPlans.remove(player.uniqueId to worldData.uuid)
-        standardPlans.remove(player.uniqueId to worldData.uuid)?.let { standardPlansById.remove(it.id) }
+        val capturedPlan = policyPlans.detachKey(player.uniqueId to worldData.uuid)
+        standardPlans.removeKey(player.uniqueId to worldData.uuid)
         try {
             val plan = capturedPlan?.takeIf {
                 it.policy === policy &&
@@ -226,6 +221,11 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             capturedPlan?.let { discardPolicyPlan(it) }
             throw exception
         }
+    }
+
+    fun clearReversiblePlans() {
+        standardPlans.clear()
+        policyPlans.clear()
     }
 
     private fun WorldData.publishSnapshot() = WorldPublishMetadataSnapshot(publishLevel, publicAt)

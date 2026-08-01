@@ -50,7 +50,11 @@ class MwmReversibleStateProviders(private val plugin: MyWorldManager) {
         registry.register(MenuReversibleStateProviderDefinition(MwmReversibleContracts.OWNER, "portal-state", PortalStateProvider(plugin)))
     }
 
-    fun unregister(registry: MenuReversibleStateProviderRegistry) = registry.unregisterOwner(MwmReversibleContracts.OWNER)
+    fun unregister(registry: MenuReversibleStateProviderRegistry) {
+        plugin.worldPublishService.clearReversiblePlans()
+        plugin.creationSessionManager.clearReversiblePlans()
+        registry.unregisterOwner(MwmReversibleContracts.OWNER)
+    }
 }
 
 internal data class PortalState(

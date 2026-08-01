@@ -542,6 +542,7 @@ class MyWorldManager : JavaPlugin() {
     }
 
     private fun clearAllTransientMenuState() {
+        if (::worldPublishService.isInitialized) worldPublishService.clearReversiblePlans()
         if (::settingsSessionManager.isInitialized) settingsSessionManager.clearAll()
         if (::creationSessionManager.isInitialized) {
             creationSessionManager.clearAll()
