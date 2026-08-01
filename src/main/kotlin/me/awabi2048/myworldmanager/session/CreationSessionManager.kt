@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
 class CreationSessionManager(private val plugin: MyWorldManager) {
     private val sessions = ConcurrentHashMap<UUID, WorldCreationSession>()
     private val reversibleStartPlans = ConcurrentHashMap<UUID, WorldCreationStartPlan>()
+    private val reversibleStartPlansById = ConcurrentHashMap<UUID, WorldCreationStartPlan>()
     private var timeoutTask: BukkitTask? = null
 
     init {
@@ -41,8 +42,15 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     }
 
     fun captureBedrockStart(playerId: UUID): WorldCreationStartPlan {
-        val plan = WorldCreationStartPlan(snapshot(playerId))
-        reversibleStartPlans[playerId] = plan
+        val plan = WorldCreationStartPlan(snapshot(playerId), playerId)
+        reversibleStartPlans.put(playerId, plan)?.let { reversibleStartPlansById.remove(it.id) }
+        reversibleStartPlansById[plan.id] = plan
+        return plan
+    }
+
+    internal fun consumeBedrockStartPlan(id: UUID): WorldCreationStartPlan? {
+        val plan = reversibleStartPlansById.remove(id) ?: return null
+        plan.playerId?.let { reversibleStartPlans.remove(it, plan) }
         return plan
     }
 
@@ -56,6 +64,7 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     fun clearAll() {
         sessions.clear()
         reversibleStartPlans.clear()
+        reversibleStartPlansById.clear()
     }
 
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
@@ -108,6 +117,8 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
 
 class WorldCreationStartPlan internal constructor(
     val before: WorldCreationSessionSnapshot?,
+    val playerId: UUID? = before?.playerId,
+    val id: UUID = UUID.randomUUID(),
 ) {
     var expectedAfter: WorldCreationSessionSnapshot? = null
         private set

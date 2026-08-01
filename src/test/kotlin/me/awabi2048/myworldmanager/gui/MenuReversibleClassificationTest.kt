@@ -121,7 +121,11 @@ class MenuReversibleClassificationTest {
         val directContractReferences = mutableListOf<String>()
         Files.walk(Path.of("src", "main", "kotlin")).use { paths ->
             paths.filter { Files.isRegularFile(it) && it.toString().endsWith(".kt") }
-                .filter { it.fileName.toString() !in setOf("MwmReversibleStateProviders.kt", "MwmMenuActionSemantics.kt") }
+                .filter { it.fileName.toString() !in setOf(
+                    "MwmReversibleStateProviders.kt",
+                    "MwmReversibleStateCodec.kt",
+                    "MwmMenuActionSemantics.kt",
+                ) }
                 .forEach { path ->
                     if (Files.readString(path).contains("MwmReversibleContracts.")) {
                         directContractReferences += path.toString()

@@ -37,6 +37,8 @@ import org.bukkit.event.inventory.ClickType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -129,7 +131,8 @@ class MemberManagementClickBranchesTest {
         assertEquals(MenuRuntimeInteractionKind.CAPABILITY, capabilityBranch.kind)
         assertEquals(capability.capabilityId, capabilityBranch.capabilityId)
         assertEquals(emptyMap<String, String>(), capabilityBranch.arguments)
-        assertSame(subject, capabilityBranch.attributes["member-subject"])
+        assertNotSame(subject, capabilityBranch.attributes["member-subject"])
+        assertNotNull(capabilityBranch.attributes["member-subject"])
         assertEquals(MenuActionSafety.NAVIGATION_ONLY, capabilityBranch.safetyByClick[ClickType.LEFT])
         assertEquals(MenuActionSafety.NAVIGATION_ONLY, capabilityBranch.safetyByClick[ClickType.RIGHT])
         val transferBranch = inspection.branches[1].interaction

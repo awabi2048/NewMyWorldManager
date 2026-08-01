@@ -53,13 +53,13 @@ class MwmReversibleStateProviders(private val plugin: MyWorldManager) {
     fun unregister(registry: MenuReversibleStateProviderRegistry) = registry.unregisterOwner(MwmReversibleContracts.OWNER)
 }
 
-private data class PortalState(
+internal data class PortalState(
     val portalId: UUID,
     val beforeText: Boolean,
     val expectedText: Boolean,
     val beforeColor: org.bukkit.Color,
     val expectedColor: org.bukkit.Color,
-) : MenuReversibleProviderState
+) : MwmOpaqueProviderState
 
 private class PortalStateProvider(private val plugin: MyWorldManager) : MenuReversibleStateProvider {
     private val colors = listOf(
@@ -87,7 +87,8 @@ private class PortalStateProvider(private val plugin: MyWorldManager) : MenuReve
     }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
-        val state = context.state as? PortalState ?: return MenuReversibleProviderRestoreResult.Rejected("invalid portal state type")
+        val state = decodeState(plugin, context, MwmReversibleContracts.PORTAL_STATE_PROVIDER) as? PortalState
+            ?: return MenuReversibleProviderRestoreResult.Rejected("invalid portal state type")
         return when (plugin.portalManager.restoreAppearance(
             state.portalId,
             state.beforeText,
@@ -104,10 +105,10 @@ private class PortalStateProvider(private val plugin: MyWorldManager) : MenuReve
     }
 }
 
-private data class SettingsSessionState(
+internal data class SettingsSessionState(
     val before: SettingsSessionSnapshot,
     val expectedAfter: SettingsSessionSnapshot,
-) : MenuReversibleProviderState
+) : MwmOpaqueProviderState
 private class SettingsSessionProvider(private val plugin: MyWorldManager) : MenuReversibleStateProvider {
     override fun capture(context: MenuReversibleStateCaptureContext): MenuReversibleProviderCaptureResult {
         val operation = context.interaction.contract.arguments[MwmReversibleContracts.OPERATION]
@@ -132,7 +133,7 @@ private class SettingsSessionProvider(private val plugin: MyWorldManager) : Menu
     }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
-        val state = context.state as? SettingsSessionState
+        val state = decodeState(plugin, context, MwmReversibleContracts.SETTINGS_SESSION_PROVIDER) as? SettingsSessionState
             ?: return MenuReversibleProviderRestoreResult.Rejected("invalid settings session state type")
         if (plugin.worldConfigRepository.findByUuid(state.before.worldUuid) == null) {
             return MenuReversibleProviderRestoreResult.Rejected("settings target world no longer exists: ${state.before.worldUuid}")
@@ -146,7 +147,7 @@ private class SettingsSessionProvider(private val plugin: MyWorldManager) : Menu
     }
 }
 
-private sealed interface DraftSnapshot : MenuReversibleProviderState {
+internal sealed interface DraftSnapshot : MwmOpaqueProviderState {
     data class Tour(val before: TourEditSessionSnapshot, val expectedAfter: TourEditSessionSnapshot?) : DraftSnapshot
     data class Template(
         val before: me.awabi2048.myworldmanager.gui.TemplateWizardGui.WizardSessionSnapshot,
@@ -226,7 +227,7 @@ private class DraftProvider(private val plugin: MyWorldManager) : MenuReversible
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
         val playerId = context.player.uniqueId
-        return when (val state = context.state) {
+        return when (val state = decodeState(plugin, context, MwmReversibleContracts.DRAFT_PROVIDER)) {
             is DraftSnapshot.Tour -> {
                 if (plugin.worldConfigRepository.findByUuid(state.before.worldUuid) == null) {
                     return MenuReversibleProviderRestoreResult.Rejected("tour target world no longer exists: ${state.before.worldUuid}")
@@ -254,7 +255,7 @@ private class DraftProvider(private val plugin: MyWorldManager) : MenuReversible
     }
 }
 
-private sealed interface WorldStateSnapshot : MenuReversibleProviderState {
+internal sealed interface WorldStateSnapshot : MwmOpaqueProviderState {
     data class StandardPublish(
         val worldUuid: UUID,
         val plan: StandardWorldPublishCyclePlan,
@@ -323,7 +324,7 @@ private class WorldStateProvider(private val plugin: MyWorldManager) : MenuRever
     }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
-        return when (val state = context.state) {
+        return when (val state = decodeState(plugin, context, MwmReversibleContracts.WORLD_STATE_PROVIDER)) {
             is WorldStateSnapshot.StandardPublish -> {
                 if (!plugin.worldPublishService.isWorldPresent(state.worldUuid)) {
                     return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
@@ -396,7 +397,7 @@ private class WorldStateProvider(private val plugin: MyWorldManager) : MenuRever
     }
 }
 
-private sealed interface PlayerStateSnapshot : MenuReversibleProviderState {
+internal sealed interface PlayerStateSnapshot : MwmOpaqueProviderState {
     data class Favorite(
         val worldUuid: UUID,
         val beforeDate: String?,
@@ -444,7 +445,7 @@ private class PlayerStateProvider(private val plugin: MyWorldManager) : MenuReve
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
         val playerId = context.player.uniqueId
-        return when (val state = context.state) {
+        return when (val state = decodeState(plugin, context, MwmReversibleContracts.PLAYER_STATE_PROVIDER)) {
             is PlayerStateSnapshot.Favorite -> {
                 when (plugin.favoriteStateService.restore(
                     playerId,
@@ -476,7 +477,7 @@ private class PlayerStateProvider(private val plugin: MyWorldManager) : MenuReve
     }
 }
 
-private sealed interface MenuSessionSnapshot : MenuReversibleProviderState {
+internal sealed interface MenuSessionSnapshot : MwmOpaqueProviderState {
     data class Admin(val before: AdminGuiSession, val expectedAfter: AdminGuiSession) : MenuSessionSnapshot
     data class Discovery(val before: DiscoverySession, val expectedAfter: DiscoverySession) : MenuSessionSnapshot
     data class Favorite(val before: FavoriteSession, val expectedAfter: FavoriteSession) : MenuSessionSnapshot
@@ -536,7 +537,7 @@ private class MenuSessionProvider(private val plugin: MyWorldManager) : MenuReve
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
         val playerId = context.player.uniqueId
-        return when (val state = context.state) {
+        return when (val state = decodeState(plugin, context, MwmReversibleContracts.MENU_SESSION_PROVIDER)) {
             is MenuSessionSnapshot.Admin -> {
                 if (plugin.adminGuiSessionManager.snapshot(playerId) != state.expectedAfter) rejectConcurrent("admin")
                 else { plugin.adminGuiSessionManager.restore(playerId, state.before); MenuReversibleProviderRestoreResult.Restored }
@@ -557,7 +558,7 @@ private class MenuSessionProvider(private val plugin: MyWorldManager) : MenuReve
         MenuReversibleProviderRestoreResult.Rejected("$kind menu session changed concurrently")
 }
 
-private data class UserSettingState(val operation: String, val before: String, val expectedAfter: String) : MenuReversibleProviderState
+internal data class UserSettingState(val operation: String, val before: String, val expectedAfter: String) : MwmOpaqueProviderState
 private class UserSettingsProvider(private val plugin: MyWorldManager) : MenuReversibleStateProvider {
     override fun capture(context: MenuReversibleStateCaptureContext): MenuReversibleProviderCaptureResult {
         val operation = context.interaction.contract.arguments[MwmReversibleContracts.OPERATION]
@@ -581,7 +582,7 @@ private class UserSettingsProvider(private val plugin: MyWorldManager) : MenuRev
     }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
-        val state = context.state as? UserSettingState
+        val state = decodeState(plugin, context, MwmReversibleContracts.USER_SETTINGS_PROVIDER) as? UserSettingState
             ?: return MenuReversibleProviderRestoreResult.Rejected("invalid user settings state type")
         return try {
             val current = when (state.operation) {
@@ -608,7 +609,7 @@ private class UserSettingsProvider(private val plugin: MyWorldManager) : MenuRev
     }
 }
 
-private data class DisplayOrderState(val targetWorld: UUID, val before: List<UUID>, val expectedAfter: List<UUID>) : MenuReversibleProviderState
+internal data class DisplayOrderState(val targetWorld: UUID, val before: List<UUID>, val expectedAfter: List<UUID>) : MwmOpaqueProviderState
 private class DisplayOrderProvider(private val plugin: MyWorldManager) : MenuReversibleStateProvider {
     override fun capture(context: MenuReversibleStateCaptureContext): MenuReversibleProviderCaptureResult {
         val raw = context.interaction.arguments["capability_world_uuid"]
@@ -625,7 +626,7 @@ private class DisplayOrderProvider(private val plugin: MyWorldManager) : MenuRev
     }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
-        val state = context.state as? DisplayOrderState
+        val state = decodeState(plugin, context, MwmReversibleContracts.DISPLAY_ORDER_PROVIDER) as? DisplayOrderState
             ?: return MenuReversibleProviderRestoreResult.Rejected("invalid display order state type")
         if (plugin.worldConfigRepository.findByUuid(state.targetWorld) == null) {
             return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.targetWorld}")
@@ -648,11 +649,11 @@ private class DisplayOrderProvider(private val plugin: MyWorldManager) : MenuRev
     }
 }
 
-private data class CreationSessionState(
+internal data class CreationSessionState(
     val before: WorldCreationSessionSnapshot?,
     val expectedAfter: WorldCreationSessionSnapshot?,
     val startPlan: WorldCreationStartPlan? = null,
-) : MenuReversibleProviderState
+) : MwmOpaqueProviderState
 private class CreationSessionProvider(private val plugin: MyWorldManager) : MenuReversibleStateProvider {
     override fun capture(context: MenuReversibleStateCaptureContext): MenuReversibleProviderCaptureResult =
         run {
@@ -675,7 +676,7 @@ private class CreationSessionProvider(private val plugin: MyWorldManager) : Menu
         }
 
     override fun restore(context: MenuReversibleStateRestoreContext): MenuReversibleProviderRestoreResult {
-        val state = context.state as? CreationSessionState
+        val state = decodeState(plugin, context, MwmReversibleContracts.CREATION_SESSION_PROVIDER) as? CreationSessionState
             ?: return MenuReversibleProviderRestoreResult.Rejected("invalid creation session state type")
         if (state.before != null && state.before.playerId != context.player.uniqueId) {
             return MenuReversibleProviderRestoreResult.Rejected("creation session belongs to another player")
@@ -692,3 +693,11 @@ private class CreationSessionProvider(private val plugin: MyWorldManager) : Menu
         return MenuReversibleProviderRestoreResult.Restored
     }
 }
+
+private fun decodeState(
+    plugin: MyWorldManager,
+    context: MenuReversibleStateRestoreContext,
+    providerId: String,
+): MwmOpaqueProviderState? = runCatching {
+    MwmReversibleStateCodec.decode(context.state.value, providerId, plugin)
+}.getOrNull()

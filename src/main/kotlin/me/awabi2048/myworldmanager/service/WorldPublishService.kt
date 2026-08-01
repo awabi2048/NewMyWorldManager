@@ -22,6 +22,7 @@ class StandardWorldPublishCyclePlan internal constructor(
     val playerId: UUID,
     val worldUuid: UUID,
     val before: WorldPublishMetadataSnapshot,
+    val id: UUID = UUID.randomUUID(),
 ) {
     internal var expectedAfter: WorldPublishMetadataSnapshot? = null
         private set
@@ -39,6 +40,7 @@ class PolicyWorldPublishCyclePlan internal constructor(
     val policy: ReversibleWorldPublishPolicy,
     val policyId: String,
     val before: WorldPublishReversibleState,
+    val id: UUID = UUID.randomUUID(),
 ) {
     private var actualAfter: WorldPublishReversibleState? = null
     private var discarded = false
@@ -78,6 +80,8 @@ enum class WorldPublishCycleSource {
 class WorldPublishService(private val plugin: MyWorldManager) {
     private val standardPlans = ConcurrentHashMap<Pair<UUID, UUID>, StandardWorldPublishCyclePlan>()
     private val policyPlans = ConcurrentHashMap<Pair<UUID, UUID>, PolicyWorldPublishCyclePlan>()
+    private val standardPlansById = ConcurrentHashMap<UUID, StandardWorldPublishCyclePlan>()
+    private val policyPlansById = ConcurrentHashMap<UUID, PolicyWorldPublishCyclePlan>()
 
     fun requireReversibleCycleContract(worldData: WorldData) {
         val policy = MyWorldManagerApi.getWorldPublishPolicy()
@@ -95,10 +99,11 @@ class WorldPublishService(private val plugin: MyWorldManager) {
         }
         val plan = StandardWorldPublishCyclePlan(player.uniqueId, worldData.uuid, worldData.publishSnapshot())
         val key = player.uniqueId to worldData.uuid
-        policyPlans.remove(key)?.discard()
+        policyPlans.remove(key)?.let { discardPolicyPlan(it) }
         // captureに続くclickが拒否された場合でもRuntimeからproviderへ破棄通知は来ないため、
         // 同じ操作を再captureした時点で古い監査計画を安全に置き換えます。
-        standardPlans[key] = plan
+        standardPlans.put(key, plan)?.let { standardPlansById.remove(it.id) }
+        standardPlansById[plan.id] = plan
         return plan
     }
 
@@ -111,8 +116,8 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             "capturePolicyCycle requires a policy-owned publish state"
         }
         val key = player.uniqueId to worldData.uuid
-        standardPlans.remove(key)
-        policyPlans.remove(key)?.discard()
+        standardPlans.remove(key)?.let { standardPlansById.remove(it.id) }
+        policyPlans.remove(key)?.let { discardPolicyPlan(it) }
         val plan = PolicyWorldPublishCyclePlan(
             player.uniqueId,
             worldData.uuid,
@@ -120,7 +125,8 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             policy.getId(),
             policy.capturePublishCycleState(player, worldData),
         )
-        policyPlans.put(key, plan)?.discard()
+        policyPlans.put(key, plan)?.let { discardPolicyPlan(it) }
+        policyPlansById[plan.id] = plan
         return plan
     }
 
@@ -133,7 +139,7 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             completePolicyCycle(player, worldData, policy)
             return WorldPublishCycleSource.POLICY
         }
-        policyPlans.remove(player.uniqueId to worldData.uuid)?.discard()
+        policyPlans.remove(player.uniqueId to worldData.uuid)?.let { discardPolicyPlan(it) }
         check(!policy.cyclePublishLevel(player, worldData)) {
             "WorldPublishPolicy '${policy.getId()}' handled a publish cycle without declaring ownership"
         }
@@ -169,20 +175,37 @@ class WorldPublishService(private val plugin: MyWorldManager) {
 
     fun isWorldPresent(worldUuid: UUID): Boolean = plugin.worldConfigRepository.findByUuid(worldUuid) != null
 
+    internal fun consumeStandardPlan(id: UUID): StandardWorldPublishCyclePlan? {
+        val plan = standardPlansById.remove(id) ?: return null
+        standardPlans.remove(plan.playerId to plan.worldUuid, plan)
+        return plan
+    }
+
+    internal fun consumePolicyPlan(id: UUID): PolicyWorldPublishCyclePlan? {
+        val plan = policyPlansById.remove(id) ?: return null
+        policyPlans.remove(plan.playerId to plan.worldUuid, plan)
+        return plan
+    }
+
+    private fun discardPolicyPlan(plan: PolicyWorldPublishCyclePlan) {
+        plan.discard()
+        policyPlansById.remove(plan.id, plan)
+    }
+
     private fun completePolicyCycle(
         player: Player,
         worldData: WorldData,
         policy: ReversibleWorldPublishPolicy,
     ) {
         val capturedPlan = policyPlans.remove(player.uniqueId to worldData.uuid)
-        standardPlans.remove(player.uniqueId to worldData.uuid)
+        standardPlans.remove(player.uniqueId to worldData.uuid)?.let { standardPlansById.remove(it.id) }
         try {
             val plan = capturedPlan?.takeIf {
                 it.policy === policy &&
                     it.policyId == policy.getId() &&
                     policy.capturePublishCycleState(player, worldData) == it.before
             }
-            if (plan == null) capturedPlan?.discard()
+            if (plan == null) capturedPlan?.let { discardPolicyPlan(it) }
             check(policy.cyclePublishLevel(player, worldData)) {
                 "WorldPublishPolicy '${policy.getId()}' declared publish-cycle ownership but did not handle it"
             }
@@ -190,17 +213,17 @@ class WorldPublishService(private val plugin: MyWorldManager) {
 
             val latestWorld = plugin.worldConfigRepository.findByUuid(worldData.uuid)
                 ?: run {
-                    plan.discard()
+                    discardPolicyPlan(plan)
                     return
                 }
             val latestPolicy = MyWorldManagerApi.getWorldPublishPolicy() as? ReversibleWorldPublishPolicy
             if (latestPolicy !== plan.policy || latestPolicy.getId() != plan.policyId || !latestPolicy.handlesPublishCycle(latestWorld)) {
-                plan.discard()
+                discardPolicyPlan(plan)
                 return
             }
             plan.complete(latestPolicy.capturePublishCycleState(player, latestWorld))
         } catch (exception: RuntimeException) {
-            capturedPlan?.discard()
+            capturedPlan?.let { discardPolicyPlan(it) }
             throw exception
         }
     }
