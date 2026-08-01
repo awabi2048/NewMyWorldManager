@@ -5,6 +5,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -203,7 +204,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         player,
                                         GuiMenuCapabilitySpec(
                                                 slot = layout.itemSlots[index],
-                                                capability = it,
+                                                capability = it.requireExplicitActionSafety(),
                                                 actionId = ACTION_WORLD,
                                                 actionPayload = mapOf(
                                                         WORLD_UUID to world.uuid.toString(),
@@ -230,7 +231,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         player,
                                         GuiMenuCapabilitySpec(
                                                 slot = layout.actionSlot - 2,
-                                                capability = capabilityView,
+                                                capability = capabilityView.requireExplicitActionSafety(),
                                                 actionId = ACTION_CREATE,
                                                 actionPayload = mapOf(CAPABILITY_ID to capabilityView.capabilityId),
                                         ),
@@ -263,7 +264,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 player,
                                 GuiMenuCapabilitySpec(
                                         slot = layout.actionSlot,
-                                        capability = summaryCapability,
+                                        capability = summaryCapability.requireExplicitActionSafety(),
                                         actionId = ACTION_WORLD,
                                 ),
                         )
@@ -541,30 +542,33 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val canOpenSettings = canOpenWorldSettings(player, world)
                 val actions = buildList {
                         if (ownMenu) {
-                                add(GuiMenuActionIntent.GestureAction(
+                                add(menuGestureAction(
                                         ACTION_WORLD,
                                         MenuGesture.SHIFT_LEFT,
                                         lang.getMessage(player, "gui.player_world.world_item.move_to_top"),
                                         payload,
+                                        safety = MenuActionSafety.REVERSIBLE,
                                 ))
                         }
                         when {
-                                isArchived -> add(GuiMenuActionIntent.GestureAction(
+                                isArchived -> add(menuGestureAction(
                                         ACTION_WORLD,
                                         MenuGesture.PLAIN_LEFT,
                                         lang.getMessage(player, "gui.unarchive_confirm.action"),
                                         payload,
+                                        safety = MenuActionSafety.CONFIRM_ENTRY,
                                 ))
-                                isCurrentWorld && canOpenSettings -> add(GuiMenuActionIntent.GestureAction(
+                                isCurrentWorld && canOpenSettings -> add(menuGestureAction(
                                         ACTION_WORLD,
                                         MenuGesture.PLAIN_LEFT_RIGHT,
                                         settingsAction,
                                         payload,
+                                        safety = MenuActionSafety.NAVIGATION_ONLY,
                                 ))
                                 !isCurrentWorld -> {
-                                        add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, warpAction, payload))
+                                        add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, warpAction, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                                         if (canOpenSettings) {
-                                                add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, settingsAction, payload))
+                                                add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, settingsAction, payload, safety = MenuActionSafety.NAVIGATION_ONLY))
                                         }
                                 }
                         }
@@ -626,10 +630,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 name = GuiNameSpec.Text(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
                                 role = GuiElementRole.ACTION,
                                 actions = listOf(
-                                        GuiMenuActionIntent.GestureAction(
+                                        menuGestureAction(
                                                 ACTION_SETTINGS,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.user_settings.button.action"),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),
@@ -647,10 +652,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 role = GuiElementRole.ACTION,
                                 description = lang.getMessageList(player, "gui.player_world.creation_button.description"),
                                 actions = listOf(
-                                        GuiMenuActionIntent.GestureAction(
+                                        menuGestureAction(
                                                 ACTION_CREATE,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.player_world.creation_button.action"),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),
@@ -802,11 +808,12 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
-                                        GuiMenuActionIntent.GestureAction(
+                                        menuGestureAction(
                                                 ACTION_PAGE,
                                                 MenuGesture.ANY,
                                                 plugin.languageManager.getMessage(player, key),
                                                 mapOf(PAGE to targetPage.toString()),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),
@@ -852,10 +859,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         ),
                                 ),
                                 actions = listOf(
-                                        GuiMenuActionIntent.GestureAction(
+                                        menuGestureAction(
                                                 ACTION_PENDING,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.player_world.pending_button.action"),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                                 glint = pendingCount > 0,

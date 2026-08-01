@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -214,15 +215,23 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 warnings = emptyList(),
                 dangers = emptyList(),
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         actionId,
                         MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, actionKey),
+                        safety = settingActionSafety(actionId),
                     ),
                 ),
                 glint = glint,
             ),
         )
+    }
+
+    private fun settingActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_NOTIFICATION,
+        ACTION_CRITICAL_VISIBILITY -> MenuActionSafety.REVERSIBLE
+        ACTION_LANGUAGE -> MenuActionSafety.NAVIGATION_ONLY
+        else -> error("Unknown user setting action safety: $actionId")
     }
 
     private fun tourNavigationEntry(player: Player, currentMode: TourNavigationMode, slot: Int): MenuElement {
@@ -250,10 +259,11 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 warnings = emptyList(),
                 dangers = emptyList(),
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_TOUR_NAVIGATION,
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.user_settings.cycle_action.toggle"),
+                        safety = MenuActionSafety.REVERSIBLE,
                     ),
                 ),
                 glint = null

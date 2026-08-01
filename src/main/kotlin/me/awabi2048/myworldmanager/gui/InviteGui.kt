@@ -17,6 +17,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -204,7 +205,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                     ),
                 ),
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_INVITE,
                         MenuGesture.ANY,
                         lang.getMessage(viewer, "gui.invite.target_head.click_invite"),
@@ -212,6 +213,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                             TARGET_UUID to target.uniqueId.toString(),
                             TARGET_NAME to target.name,
                         ),
+                        safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                     ),
                 ),
                 playerHeadOwner = target.uniqueId,
@@ -230,11 +232,12 @@ class InviteGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_PAGE,
                         MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),

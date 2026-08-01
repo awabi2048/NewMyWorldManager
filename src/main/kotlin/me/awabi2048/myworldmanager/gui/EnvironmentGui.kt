@@ -12,6 +12,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -202,10 +203,11 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_GRAVITY,
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.environment.gravity.action"),
+                        safety = MenuActionSafety.CONFIRM_ENTRY,
                     ),
                 ),
             ),
@@ -232,15 +234,17 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_WEATHER,
                         MenuGesture.LEFT,
                         lang.getMessage(player, "gui.environment.weather.action.cycle"),
+                        safety = MenuActionSafety.REVERSIBLE,
                     ),
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_WEATHER,
                         MenuGesture.RIGHT,
                         lang.getMessage(player, "gui.environment.weather.action.confirm"),
+                        safety = MenuActionSafety.CONFIRM_ENTRY,
                     ),
                 ),
             ),
@@ -269,10 +273,11 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_BIOME,
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.environment.biome.action"),
+                        safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                     ),
                 ),
             ),

@@ -20,6 +20,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -233,11 +234,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         } else {
             buildList {
                 if (canWarp) {
-                    add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.favorite.world_item.warp"), payload))
-                    add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.favorite.world_item.preview"), payload))
+                    add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.favorite.world_item.warp"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                    add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.favorite.world_item.preview"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                 }
                 if (canUnfavorite) {
-                    add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.SHIFT_RIGHT, lang.getMessage(player, "gui.favorite.world_item.unfavorite"), payload))
+                    add(menuGestureAction(ACTION_WORLD, MenuGesture.SHIFT_RIGHT, lang.getMessage(player, "gui.favorite.world_item.unfavorite"), payload, safety = MenuActionSafety.CONFIRM_ENTRY))
                 }
             }
         }
@@ -306,10 +307,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.tag_filter.label"), selected.second, GuiValueTone.PRIMARY)),
                 options = options.map { (id, displayName) -> GuiMenuEntryOption(displayName, id == selected.first) },
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_TAG,
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.common.action.cycle"),
+                        safety = MenuActionSafety.REVERSIBLE,
                     ),
                 ),
             ),
@@ -327,11 +329,12 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_PAGE,
                         MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),

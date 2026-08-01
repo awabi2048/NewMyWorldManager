@@ -19,6 +19,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -445,8 +446,8 @@ class TourGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Text(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text")),
-                    GuiMenuActionIntent.GestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon")),
+                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE),
+                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"), safety = MenuActionSafety.REVERSIBLE),
                 ),
             ),
         )
@@ -843,11 +844,12 @@ class TourGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_PAGE,
                         MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf("page" to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -929,9 +931,32 @@ class TourGui(private val plugin: MyWorldManager) {
                     else -> null
                 }
             },
-            actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.LEFT_RIGHT, action, payload)),
+            actions = listOf(menuGestureAction(actionId, MenuGesture.LEFT_RIGHT, action, payload, safety = tourActionSafety(actionId))),
         ),
     )
+
+    private fun tourActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_START,
+        ACTION_STOP_CONFIRM -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        ACTION_START_CANCEL,
+        ACTION_STOP_CANCEL,
+        ACTION_PAGE,
+        ACTION_EDIT,
+        ACTION_DISCARD_CANCEL,
+        ACTION_BIND_CANCEL,
+        ACTION_DELETE_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
+        ACTION_STOP,
+        ACTION_SELECT,
+        ACTION_DELETE -> MenuActionSafety.CONFIRM_ENTRY
+        ACTION_CREATE,
+        ACTION_ADD_WAYPOINT -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        ACTION_SAVE,
+        ACTION_BIND_SIGN,
+        ACTION_DELETE_CONFIRM -> MenuActionSafety.IRREVERSIBLE
+        ACTION_REMOVE_WAYPOINT,
+        ACTION_DISCARD_CONFIRM -> MenuActionSafety.REVERSIBLE
+        else -> error("Unknown tour action safety: $actionId")
+    }
 
     private fun toneFor(colorCode: String): GuiValueTone =
         GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT

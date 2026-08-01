@@ -12,6 +12,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -335,8 +336,19 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         role: GuiElementRole = GuiElementRole.ACTION,
     ): MenuElement = menuEntry(
         player, slot, material, name, role, description = description,
-        actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.ANY, actionText)),
+        actions = listOf(menuGestureAction(actionId, MenuGesture.ANY, actionText, safety = wizardActionSafety(actionId))),
     )
+
+    private fun wizardActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_NAME,
+        ACTION_DESCRIPTION -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        ACTION_ICON,
+        ACTION_ORIGIN,
+        ACTION_CANCEL -> MenuActionSafety.REVERSIBLE
+        ACTION_SAVE -> MenuActionSafety.IRREVERSIBLE
+        ACTION_VALIDATE -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        else -> error("Unknown template wizard action safety: $actionId")
+    }
 
     fun getSession(uuid: UUID) = sessions[uuid]
     fun removeSession(uuid: UUID) = sessions.remove(uuid)

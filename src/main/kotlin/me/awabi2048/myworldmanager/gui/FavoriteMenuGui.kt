@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -164,10 +165,11 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 description = lang.getMessageList(player, "$key.lore"),
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         actionId,
                         MenuGesture.ANY,
                         lang.getMessage(player, "$key.action"),
+                        safety = favoriteMenuActionSafety(actionId),
                     ),
                 ),
             ),
@@ -200,14 +202,21 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, loreKey)),
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_TOGGLE,
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.favorite.favorite_menu.toggle.action"),
+                        safety = MenuActionSafety.REVERSIBLE,
                     ),
                 ),
             ),
         )
+    }
+
+    private fun favoriteMenuActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_OTHER_WORLDS,
+        ACTION_LIST -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        else -> error("Unknown favorite menu action safety: $actionId")
     }
 
     private fun restrictedToggleEntry(player: Player, slot: Int, warningKey: String): MenuElement {

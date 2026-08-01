@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.MenuGesture
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
@@ -137,11 +138,12 @@ object PendingInteractionItemFactory {
             ),
             actions = if (showAction) {
                 listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         actionId,
                         MenuGesture.LEFT,
                         lang.getMessage(viewer, actionLineKey(actionMode, type), mapOf("type" to typeLabel(plugin, viewer, type))),
                         actionPayload,
+                        safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                     ),
                 )
             } else {

@@ -22,6 +22,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
@@ -315,13 +316,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         else -> GuiElementRole.ACTION
                                                 }),
                                                 actions = listOf(
-                                                        GuiMenuActionIntent.GestureAction(
+                                                        menuGestureAction(
                                                                 actionId = "dispatch",
                                                                 gesture = gesture,
                                                                 label = actionLabel,
                                                                 payload = mapOf(
                                                                         ROUTE_OPERATION to operation.name,
                                                                 ) + payload,
+                                                                safety = runtimeOperationSafety(operation),
                                                         ),
                                                 ),
                                                 sounds = sounds,
@@ -396,6 +398,41 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 )
                                         }
                         }
+
+                private fun runtimeOperationSafety(operation: WorldSettingsRuntimeOperation): MenuActionSafety = when (operation) {
+                        WorldSettingsRuntimeOperation.BACK,
+                        WorldSettingsRuntimeOperation.TOUR,
+                        WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
+                        WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT,
+                        WorldSettingsRuntimeOperation.OPEN_CRITICAL,
+                        WorldSettingsRuntimeOperation.MANAGE_VISITORS,
+                        WorldSettingsRuntimeOperation.MANAGE_PORTALS,
+                        WorldSettingsRuntimeOperation.CANCEL,
+                        WorldSettingsRuntimeOperation.PAGE -> MenuActionSafety.NAVIGATION_ONLY
+                        WorldSettingsRuntimeOperation.EDIT_INFO,
+                        WorldSettingsRuntimeOperation.SELECT_ICON,
+                        WorldSettingsRuntimeOperation.EDIT_TAGS,
+                        WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
+                        WorldSettingsRuntimeOperation.EXPAND_DIRECTION,
+                        WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET,
+                        WorldSettingsRuntimeOperation.INVITE_MEMBER -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+                        WorldSettingsRuntimeOperation.CYCLE_PUBLISH,
+                        WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> MenuActionSafety.REVERSIBLE
+                        WorldSettingsRuntimeOperation.WARP -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+                        WorldSettingsRuntimeOperation.EXPAND_AUTOMATIC,
+                        WorldSettingsRuntimeOperation.EXPANSION_STEP_BACK,
+                        WorldSettingsRuntimeOperation.RESET_EXPANSION,
+                        WorldSettingsRuntimeOperation.ARCHIVE,
+                        WorldSettingsRuntimeOperation.DELETE_WORLD,
+                        WorldSettingsRuntimeOperation.VISITOR,
+                        WorldSettingsRuntimeOperation.MEMBER,
+                        WorldSettingsRuntimeOperation.PENDING_INVITE,
+                        WorldSettingsRuntimeOperation.PENDING_REQUEST -> MenuActionSafety.CONFIRM_ENTRY
+                        WorldSettingsRuntimeOperation.CONFIRM,
+                        WorldSettingsRuntimeOperation.SET_SPAWN,
+                        WorldSettingsRuntimeOperation.PORTAL -> MenuActionSafety.IRREVERSIBLE
+                        WorldSettingsRuntimeOperation.EXPAND -> error("EXPAND requires click-specific safety")
+                }
 
                 private fun runtimeActionLabel(operation: WorldSettingsRuntimeOperation): String =
                         when (operation) {
@@ -498,14 +535,27 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         "World settings action presentation mismatch: $action options=${contract.options.size} texts=${actionTexts.size}"
                 }
                 return contract.options.zip(actionTexts).map { (option, actionText) ->
-                        GuiMenuActionIntent.GestureAction(
+                        menuGestureAction(
                                 ACTION_RUNTIME_DISPATCH,
                                 option.gesture,
                                 actionText,
                                 mapOf(ROUTE_OPERATION to operation.name),
                                 enabled = contract.actionable,
+                                safety = contractActionSafety(operation),
                         )
                 }
+        }
+
+        private fun contractActionSafety(operation: WorldSettingsRuntimeOperation): MenuActionSafety = when (operation) {
+                WorldSettingsRuntimeOperation.TOUR,
+                WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
+                WorldSettingsRuntimeOperation.MANAGE_PORTALS -> MenuActionSafety.NAVIGATION_ONLY
+                WorldSettingsRuntimeOperation.EDIT_INFO,
+                WorldSettingsRuntimeOperation.SELECT_ICON,
+                WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+                WorldSettingsRuntimeOperation.SET_SPAWN -> MenuActionSafety.IRREVERSIBLE
+                WorldSettingsRuntimeOperation.WARP -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+                else -> error("Unsupported world settings action contract safety: $operation")
         }
 
         private fun renderWorldSettings(
@@ -798,19 +848,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                         val expansionActions = buildList {
                                 if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL && isInWorld && currentLevel < maxLevel) {
-                                        add(GuiMenuActionIntent.GestureAction(
+                                        add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.LEFT,
                                                 lang.getMessage(player, "gui.settings.expand.action.open_menu"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ))
                                 }
                                 if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL && !isBedrock && isInWorld) {
-                                        add(GuiMenuActionIntent.GestureAction(
+                                        add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.RIGHT,
                                                 lang.getMessage(player, "gui.settings.expand.action.teleport_center"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
+                                                safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                                         ))
                                 }
                         }
@@ -895,11 +947,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         options = levels.map { (level, name, _) ->
                                                 GuiMenuEntryOption(name, level == worldData.publishLevel)
                                         },
-                                        actions = listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.common.action.cycle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
+                                                safety = MenuActionSafety.REVERSIBLE,
                                         )),
                                 ),
                         )
@@ -1037,11 +1090,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 tagsList,
                                                 GuiValueTone.WARNING,
                                         )),
-                                        actions = listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.tags.action.edit"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EDIT_TAGS.name),
+                                                safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         )),
                                 ),
                         )
@@ -1104,11 +1158,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 statusText,
                                                 if (worldData.notificationEnabled) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
                                         )),
-                                        actions = listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.notification.action.toggle"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION.name),
+                                                safety = MenuActionSafety.REVERSIBLE,
                                         )),
                                         glint = worldData.notificationEnabled,
                                 ),
@@ -1136,11 +1191,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "gui.settings.environment.blocks.summary",
                                         ),
                                         warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
-                                        actions = if (isInWorld) listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = if (isInWorld) listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.environment.action.open"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT.name),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         )) else emptyList(),
                                 ),
                         )
@@ -1169,11 +1225,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 "gui.settings.critical.blocks.summary",
                                         ),
                                         warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
-                                        actions = if (isInWorld) listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = if (isInWorld) listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.critical.action.open"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_CRITICAL.name),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         )) else emptyList(),
                                 ),
                         )
@@ -1331,11 +1388,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         name = GuiNameSpec.Text(lang.getMessage(player, "gui.settings.visitors.display"), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
                                         data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.settings.visitors.blocks.count_label"), visitors.size, GuiValueTone.PRIMARY)),
-                                        actions = listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.settings.visitors.action.open"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MANAGE_VISITORS.name),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         )),
                                 ),
                         )
@@ -1472,6 +1530,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         .asSequence()
                         .mapNotNull { definition ->
                                 service.resolve(definition.capabilityId, player, arguments)
+                                        ?.requireExplicitActionSafety()
                         }
                         .zip(validSlots)
                         .forEach { (resolved, slot) ->
@@ -1480,7 +1539,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 player,
                                                 com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec(
                                                         slot = slot,
-                                                        capability = resolved,
+                                                        capability = resolved.requireExplicitActionSafety(),
                                                         actionId = ACTION_CAPABILITY,
                                                         actionPayload = arguments,
                                                 ),
@@ -2022,7 +2081,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         player,
                                                         attributes = mapOf(MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject),
                                                 )
-                                        }
+                                        }?.requireExplicitActionSafety()
                                 inventory.setMenuEntry(
                                         player,
                                         createMemberEntrySpec(
@@ -2078,17 +2137,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 role = GuiElementRole.ACTION,
                                 description = listOf(lang.getMessage(player, "gui.member_management.invite.desc")),
                                 actions = buildList {
-                                        add(GuiMenuActionIntent.GestureAction(
+                                        add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.PLAIN_LEFT_RIGHT,
                                                 lang.getMessage(player, "gui.member_management.invite.action.normal"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
+                                                safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         ))
-                                        if (canForceAddMember) add(GuiMenuActionIntent.GestureAction(
+                                        if (canForceAddMember) add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.SHIFT_LEFT_RIGHT,
                                                 lang.getMessage(player, "gui.member_management.invite.action.force"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
+                                                safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         ))
                                 },
                         ),
@@ -2112,11 +2173,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 ownerName,
                                                 GuiValueTone.PRIMARY,
                                         )),
-                                        actions = listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.member_management.admin_owner_reset.action"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET.name),
+                                                safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         )),
                                 ),
                         )
@@ -2449,11 +2511,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
                 val actions = buildList {
                         capabilityView?.actions?.forEach { action ->
-                                add(GuiMenuActionIntent.GestureAction(
+                                add(menuGestureAction(
                                         ACTION_RUNTIME_DISPATCH,
                                         MenuGesture.fromClicks(action.trigger.clicks),
                                         action.text,
                                         payload,
+                                        safety = action.safety,
                                 ))
                         }
                         if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
@@ -2462,16 +2525,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 } else {
                                         lang.getMessage(null as Player?, "role.member")
                                 }
-                                add(GuiMenuActionIntent.GestureAction(
+                                add(menuGestureAction(
                                         ACTION_RUNTIME_DISPATCH,
                                         MenuGesture.LEFT,
                                         lang.getMessage(viewer, "gui.member_management.item.action.change_role", mapOf("next_role" to nextRole)),
                                         payload,
+                                        safety = MenuActionSafety.REVERSIBLE,
                                 ))
                         }
                         if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
-                                add(GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_LEFT, lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"), payload))
-                                add(GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_RIGHT, lang.getMessage(viewer, "gui.member_management.item.action.remove_member"), payload))
+                                add(menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_LEFT, lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"), payload, safety = MenuActionSafety.CONFIRM_ENTRY))
+                                add(menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.SHIFT_RIGHT, lang.getMessage(viewer, "gui.member_management.item.action.remove_member"), payload, safety = MenuActionSafety.CONFIRM_ENTRY))
                         }
                 }
                 val targetInfoLines = buildList {
@@ -2783,7 +2847,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 statusText,
                                 if (isOnline) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
                         )),
-                        actions = if (canKick) listOf(GuiMenuActionIntent.GestureAction(
+                        actions = if (canKick) listOf(menuGestureAction(
                                 ACTION_RUNTIME_DISPATCH,
                                 MenuGesture.ANY,
                                 lang.getMessage(viewer, "gui.visitor_management.item.kick"),
@@ -2791,6 +2855,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ROUTE_OPERATION to WorldSettingsRuntimeOperation.VISITOR.name,
                                         ROUTE_TARGET_UUID to uuid.toString(),
                                 ),
+                                safety = MenuActionSafety.CONFIRM_ENTRY,
                         )) else emptyList(),
                         playerHeadOwner = uuid,
                 )
@@ -2952,11 +3017,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 GuiMenuEntryData(lang.getMessage(player, "gui.critical.reset_expansion.refund_label"), resetRefund, GuiValueTone.PRIMARY),
                                         ),
                                         warnings = listOf(lang.getMessage(player, "gui.critical.reset_expansion.warning")),
-                                        actions = listOf(GuiMenuActionIntent.GestureAction(
+                                        actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.critical.reset_expansion.action"),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.RESET_EXPANSION.name),
+                                                safety = MenuActionSafety.CONFIRM_ENTRY,
                                         )),
                                 ),
                         )
@@ -3020,11 +3086,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         listOf(GuiMenuEntryData(lang.getMessage(player, "gui.critical.delete_world.owner_slots_label"), ownerStats.unlockedWorldSlot, GuiValueTone.PRIMARY))
                                 },
                                 warnings = listOf(lang.getMessage(player, if (canDeleteWorld) "gui.critical.delete_world.warning" else "gui.critical.delete_world.unavailable_slot")),
-                                actions = if (canDeleteWorld) listOf(GuiMenuActionIntent.GestureAction(
+                                actions = if (canDeleteWorld) listOf(menuGestureAction(
                                         ACTION_RUNTIME_DISPATCH,
                                         MenuGesture.ANY,
                                         lang.getMessage(player, "gui.critical.delete_world.action"),
                                         mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.DELETE_WORLD.name),
+                                        safety = MenuActionSafety.CONFIRM_ENTRY,
                                 )) else emptyList(),
                         ),
                 )
@@ -3062,13 +3129,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 role = if (enabled) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                 description = description,
                 warnings = warnings,
-                actions = if (enabled) listOf(GuiMenuActionIntent.GestureAction(
+                actions = if (enabled) listOf(menuGestureAction(
                         ACTION_RUNTIME_DISPATCH,
                         MenuGesture.ANY,
                         actionText,
                         mapOf(ROUTE_OPERATION to operation.name),
+                        safety = criticalActionSafety(operation),
                 )) else emptyList(),
         )
+
+        private fun criticalActionSafety(operation: WorldSettingsRuntimeOperation): MenuActionSafety = when (operation) {
+                WorldSettingsRuntimeOperation.ARCHIVE -> MenuActionSafety.CONFIRM_ENTRY
+                else -> error("Critical action must declare a dedicated safety mapping: $operation")
+        }
 
         fun openResetExpansionConfirmation(player: Player, worldData: WorldData) {
                 plugin.settingsSessionManager.updateSessionAction(
@@ -3492,8 +3565,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ),
                         ),
                         actions = listOf(
-                                GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload),
-                                GuiMenuActionIntent.GestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload),
+                                menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT),
+                                menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload, safety = MenuActionSafety.IRREVERSIBLE),
                         ),
                 )
         }

@@ -17,6 +17,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
@@ -271,11 +272,11 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 description = item.description,
                 actions = if (item.rightAction == null) {
-                    listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.ANY, item.leftAction))
+                    listOf(menuGestureAction(actionId, MenuGesture.ANY, item.leftAction, safety = actionSafety(actionId)))
                 } else {
                     listOf(
-                        GuiMenuActionIntent.GestureAction(actionId, MenuGesture.PLAIN_LEFT, item.leftAction),
-                        GuiMenuActionIntent.GestureAction(actionId, MenuGesture.PLAIN_RIGHT, item.rightAction),
+                        menuGestureAction(actionId, MenuGesture.PLAIN_LEFT, item.leftAction, safety = actionSafety(actionId)),
+                        menuGestureAction(actionId, MenuGesture.PLAIN_RIGHT, item.rightAction, safety = actionSafety(actionId)),
                     )
                 },
             ),
@@ -292,6 +293,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                 .resolve(definition.capabilityId, player)
         }
         .firstOrNull()
+        ?.requireExplicitActionSafety()
 
     private fun capabilityElement(
         player: Player,
@@ -304,7 +306,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             player,
             GuiMenuCapabilitySpec(
                 slot = slot,
-                capability = capability.copy(
+                capability = capability.requireExplicitActionSafety().copy(
                     presentation = presentation.copy(
                         item = presentation.item.copy(role = role),
                     ),
@@ -630,14 +632,30 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             role = role,
             description = listOf(plugin.languageManager.getMessage(player, descriptionKey)),
             actions = listOf(
-                GuiMenuActionIntent.GestureAction(
+                menuGestureAction(
                     actionId,
                     MenuGesture.ANY,
                     plugin.languageManager.getMessage(player, actionKey),
+                    safety = actionSafety(actionId),
                 ),
             ),
         ),
     )
+
+    private fun actionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_UPDATE_DATA,
+        ACTION_REPAIR_TEMPLATES,
+        ACTION_ARCHIVE_ALL,
+        ACTION_CONVERT,
+        ACTION_UNLINK,
+        ACTION_EXPORT -> MenuActionSafety.CONFIRM_ENTRY
+        ACTION_CREATE_TEMPLATE,
+        ACTION_INFO,
+        ACTION_PORTALS -> MenuActionSafety.NAVIGATION_ONLY
+        ACTION_CONFIRM -> MenuActionSafety.IRREVERSIBLE
+        ACTION_CANCEL -> MenuActionSafety.REVERSIBLE
+        else -> error("Unknown admin GUI action safety: $actionId")
+    }
 
     private fun createActionItem(
         player: Player,

@@ -12,11 +12,13 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -407,10 +409,15 @@ class WorldMigrationService(
             name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
             role = role,
             actions = listOf(
-                GuiMenuActionIntent.GestureAction(
+                menuGestureAction(
                     actionId,
                     MenuGesture.ANY,
                     plugin.languageManager.getMessage(player, key),
+                    safety = when (actionId) {
+                        ACTION_EXECUTE -> MenuActionSafety.IRREVERSIBLE
+                        ACTION_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
+                        else -> error("Unknown migration action safety: $actionId")
+                    },
                 ),
             ),
         ),

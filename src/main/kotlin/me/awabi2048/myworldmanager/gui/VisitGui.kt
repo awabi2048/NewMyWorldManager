@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -231,9 +232,9 @@ class VisitGui(private val plugin: MyWorldManager) {
                                         tagNames?.let { add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
                                 },
                                 actions = buildList {
-                                        add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                        add(menuGestureAction(ACTION_WORLD, MenuGesture.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                                         if (favoriteAction.isNotBlank()) {
-                                                add(GuiMenuActionIntent.GestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                                                add(menuGestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.REVERSIBLE))
                                         }
                                 },
                         ),
@@ -258,11 +259,12 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
-                                        GuiMenuActionIntent.GestureAction(
+                                        menuGestureAction(
                                                 ACTION_PAGE,
                                                 MenuGesture.LEFT_RIGHT,
                                                 plugin.languageManager.getMessage(player, key),
                                                 mapOf(PAGE to targetPage.toString()),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),

@@ -14,6 +14,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -21,6 +22,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.PortalGui
+import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -421,10 +423,15 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, nameKey)),
             role = role,
             actions = listOf(
-                GuiMenuActionIntent.GestureAction(
+                menuGestureAction(
                     actionId,
                     MenuGesture.ANY,
                     plugin.languageManager.getMessage(player, actionKey),
+                    safety = when (actionId) {
+                        ACTION_CONFIRM_GATE -> MenuActionSafety.IRREVERSIBLE
+                        ACTION_CANCEL_GATE -> MenuActionSafety.REVERSIBLE
+                        else -> error("Unknown world gate confirmation action safety: $actionId")
+                    },
                 ),
             ),
         ),

@@ -13,6 +13,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -220,14 +221,22 @@ class PortalGui(private val plugin: MyWorldManager) {
                 data = data,
                 dangers = dangers,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         actionId,
                         gesture,
                         lang.getMessage(player, "$key.action"),
+                        safety = portalActionSafety(actionId),
                     ),
                 ),
             ),
         )
+    }
+
+    private fun portalActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_TOGGLE_TEXT,
+        ACTION_CYCLE_COLOR -> MenuActionSafety.REVERSIBLE
+        ACTION_REMOVE -> MenuActionSafety.IRREVERSIBLE
+        else -> error("Unknown portal action safety: $actionId")
     }
 
     private fun portal(route: MenuRoute): PortalData =

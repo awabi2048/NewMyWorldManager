@@ -19,6 +19,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
@@ -343,11 +344,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                 data = data,
                 warnings = warnings,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_SELECT_TYPE,
                         MenuGesture.ANY,
                         name,
                         mapOf("type" to creationType.name),
+                        safety = creationTypeSafety(creationType),
                     ),
                 ),
             ),
@@ -392,11 +394,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                         if (issue == null) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
                     )),
                     warnings = issue?.let { listOf(templateValidationMessage(player, it)) }.orEmpty(),
-                    actions = listOf(GuiMenuActionIntent.GestureAction(
+                    actions = listOf(menuGestureAction(
                         ACTION_SELECT_TEMPLATE,
                         MenuGesture.LEFT_RIGHT,
                         lang.getMessage(player, "gui.creation.template_item.action.details"),
                         mapOf("template" to template.id),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     )),
                 ),
             )
@@ -521,7 +524,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     definition.capabilityId,
                     player,
                     attributes = capabilityAttributes,
-                )?.let { definition.capabilityId to it }
+                )?.requireExplicitActionSafety()?.let { definition.capabilityId to it }
             }
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
         val generationLine: GuiLoreLine = when (session.creationType) {
@@ -661,11 +664,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                         ),
                     ),
                     actions = listOf(
-                        GuiMenuActionIntent.GestureAction(
+                        menuGestureAction(
                             ACTION_CONFIRM_INTERACTION,
                             MenuGesture.ANY,
                             lang.getMessage(player, "gui.creation.confirm.spawn_location.action"),
                             mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.SPAWN_LOCATION.name),
+                            safety = confirmationActionSafety(CreationConfirmationAction.SPAWN_LOCATION),
                         ),
                     ),
                 ),
@@ -730,7 +734,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             player,
             GuiMenuCapabilitySpec(
                 slot = CONFIRM_CAPABILITY_SLOT,
-                capability = resolved,
+                capability = resolved.requireExplicitActionSafety(),
                 actionId = ACTION_CONFIRM_CAPABILITY,
                 actionPayload = mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
             ),
@@ -799,11 +803,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_TEMPLATE_LIST_PAGE,
                         MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -870,11 +875,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                 },
                 warnings = lines.filterIsInstance<GuiLoreLine.Warning>().map(GuiLoreLine.Warning::content),
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_CONFIRM_INTERACTION,
                         MenuGesture.ANY,
                         actionText,
                         mapOf(CONFIRMATION_ACTION to action.name),
+                        safety = confirmationActionSafety(action),
                     ),
                 ),
             ),
@@ -958,9 +964,31 @@ class CreationGui(private val plugin: MyWorldManager) {
             material = material,
             name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
             role = GuiElementRole.ACTION,
-            actions = listOf(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.ANY, actionText)),
+            actions = listOf(menuGestureAction(actionId, MenuGesture.ANY, actionText, safety = templateActionSafety(actionId))),
         ),
     )
+
+    private fun creationTypeSafety(type: WorldCreationType): MenuActionSafety = when (type) {
+        WorldCreationType.TEMPLATE -> MenuActionSafety.NAVIGATION_ONLY
+        WorldCreationType.SEED,
+        WorldCreationType.RANDOM -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+    }
+
+    private fun confirmationActionSafety(action: CreationConfirmationAction): MenuActionSafety = when (action) {
+        CreationConfirmationAction.BACK,
+        CreationConfirmationAction.SPAWN_LOCATION -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        CreationConfirmationAction.DIMENSION,
+        CreationConfirmationAction.CANCEL -> MenuActionSafety.REVERSIBLE
+        CreationConfirmationAction.TEMPLATE_PREVIEW -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        CreationConfirmationAction.TEMPLATE_CHANGE -> MenuActionSafety.NAVIGATION_ONLY
+        CreationConfirmationAction.CONFIRM -> MenuActionSafety.IRREVERSIBLE
+    }
+
+    private fun templateActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_USE_TEMPLATE -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        ACTION_PREVIEW_TEMPLATE -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        else -> error("Unknown creation template action safety: $actionId")
+    }
 
     private class SessionCreationDraft(
         private val session: WorldCreationSession,

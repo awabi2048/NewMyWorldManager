@@ -20,6 +20,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
@@ -772,10 +773,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_size_line"), worldSizeValue.value, toneFor(worldSizeValue.color)))
                                 },
                                 actions = buildList {
-                                        if (actionWarp.isNotBlank()) add(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.PLAIN_LEFT, actionWarp, payload))
-                                        add(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.PLAIN_RIGHT, actionSettings, payload))
-                                        add(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.SHIFT_RIGHT, actionArchive, payload))
-                                        if (uuidCopyHint.isNotBlank()) add(GuiMenuActionIntent.GestureAction(actionId, MenuGesture.MIDDLE, uuidCopyHint, payload))
+                                        if (actionWarp.isNotBlank()) add(menuGestureAction(actionId, MenuGesture.PLAIN_LEFT, actionWarp, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                                        add(menuGestureAction(actionId, MenuGesture.PLAIN_RIGHT, actionSettings, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                                        add(menuGestureAction(actionId, MenuGesture.SHIFT_RIGHT, actionArchive, payload, safety = MenuActionSafety.CONFIRM_ENTRY))
+                                        if (uuidCopyHint.isNotBlank()) add(menuGestureAction(actionId, MenuGesture.MIDDLE, uuidCopyHint, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                                 },
                                 glint = glint,
                         ),
@@ -1041,11 +1042,12 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 ),
                                 role = GuiElementRole.NAVIGATION,
                                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.common.page_info_label"), "$currentPage/$totalPages", GuiValueTone.SUCCESS)),
-                                actions = listOf(GuiMenuActionIntent.GestureAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_PAGE,
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev"),
                                         mapOf(PAGE to targetPage.toString()),
+                                        safety = MenuActionSafety.NAVIGATION_ONLY,
                                 )),
                         ),
                 )
@@ -1146,10 +1148,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 options = options.map { (filter, name) ->
                                         GuiMenuEntryOption(name, filter == session.archiveFilter)
                                 },
-                                actions = listOf(GuiMenuActionIntent.GestureAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_ARCHIVE_FILTER,
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
+                                        safety = MenuActionSafety.REVERSIBLE,
                                 )),
                         ),
                 )
@@ -1175,10 +1178,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 options = options.map { (filter, name) ->
                                         GuiMenuEntryOption(name, filter == session.publishFilter)
                                 },
-                                actions = listOf(GuiMenuActionIntent.GestureAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_PUBLISH_FILTER,
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
+                                        safety = MenuActionSafety.REVERSIBLE,
                                 )),
                         ),
                 )
@@ -1188,16 +1192,18 @@ class WorldGui(private val plugin: MyWorldManager) {
         private fun createPlayerFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
                 val actions = buildList {
-                        add(GuiMenuActionIntent.GestureAction(
+                        add(menuGestureAction(
                                 ACTION_PLAYER_FILTER,
                                 MenuGesture.LEFT,
                                 lang.getMessage(player, "gui.admin.filter.player.click_left"),
+                                safety = MenuActionSafety.REVERSIBLE,
                         ))
                         if (session.playerFilterType != PlayerFilterType.NONE) {
-                                add(GuiMenuActionIntent.GestureAction(
+                                add(menuGestureAction(
                                         ACTION_PLAYER_FILTER,
                                         MenuGesture.RIGHT,
                                         lang.getMessage(player, "gui.admin.filter.player.click_right"),
+                                        safety = MenuActionSafety.REVERSIBLE,
                                 ))
                         }
                 }
@@ -1258,10 +1264,11 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 options = options.map { (type, name) ->
                                         GuiMenuEntryOption(name, type == session.sortBy)
                                 },
-                                actions = listOf(GuiMenuActionIntent.GestureAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_SORT,
                                         MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
+                                        safety = MenuActionSafety.REVERSIBLE,
                                 )),
                         ),
                 )

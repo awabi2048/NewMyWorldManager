@@ -18,6 +18,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -106,7 +107,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
-                actions = listOf(GuiMenuActionIntent.GestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, "gui.meet.status_button.action"))),
+                actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, "gui.meet.status_button.action"), safety = MenuActionSafety.REVERSIBLE)),
                 playerHeadOwner = player.uniqueId,
             ),
         )
@@ -283,11 +284,12 @@ class MeetGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_PAGE,
                         MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(viewer, key),
                         mapOf(PAGE to page.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -356,11 +358,12 @@ class MeetGui(private val plugin: MyWorldManager) {
                 ),
                 actions = actionLabel?.let {
                     listOf(
-                        GuiMenuActionIntent.GestureAction(
+                        menuGestureAction(
                             ACTION_TARGET,
                             MenuGesture.ANY,
                             it,
                             mapOf(TARGET_UUID to target.uniqueId.toString()),
+                            safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                         ),
                     )
                 }.orEmpty(),

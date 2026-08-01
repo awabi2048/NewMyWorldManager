@@ -19,6 +19,7 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
@@ -219,8 +220,8 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                     GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"), "${portal.x}, ${portal.y}, ${portal.z}"),
                 ),
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(ACTION_PORTAL, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload),
-                    GuiMenuActionIntent.GestureAction(ACTION_PORTAL, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload),
+                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT),
+                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload, safety = MenuActionSafety.IRREVERSIBLE),
                 ),
             ),
         )
@@ -236,11 +237,12 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_PAGE,
                         MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -296,10 +298,11 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 ),
                 options = options.map { (type, name) -> GuiMenuEntryOption(name, type == session.portalSortBy) },
                 actions = listOf(
-                    GuiMenuActionIntent.GestureAction(
+                    menuGestureAction(
                         ACTION_SORT,
                         MenuGesture.ANY,
                         lang.getMessage(player, "gui.common.action.cycle"),
+                        safety = MenuActionSafety.REVERSIBLE,
                     ),
                 ),
             ),

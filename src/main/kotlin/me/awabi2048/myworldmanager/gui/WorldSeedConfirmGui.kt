@@ -16,6 +16,7 @@ import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -122,10 +123,15 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
             name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
             role = role,
             actions = listOf(
-                GuiMenuActionIntent.GestureAction(
+                menuGestureAction(
                     actionId,
                     MenuGesture.ANY,
                     plugin.languageManager.getMessage(player, key),
+                    safety = when (actionId) {
+                        ACTION_CONFIRM -> MenuActionSafety.IRREVERSIBLE
+                        ACTION_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
+                        else -> error("Unknown world seed confirmation action safety: $actionId")
+                    },
                 ),
             ),
         ),
