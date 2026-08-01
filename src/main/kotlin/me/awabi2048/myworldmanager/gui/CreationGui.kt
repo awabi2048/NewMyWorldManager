@@ -7,7 +7,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
@@ -75,7 +75,6 @@ class CreationGui(private val plugin: MyWorldManager) {
                 renderer = { context -> renderConfirmation(context.player) },
                 actions = mapOf(
                     ACTION_CONFIRM_INTERACTION to MenuActionHandler(::confirmationAction),
-                    ACTION_CONFIRM_CAPABILITY to MenuActionHandler(::useConfirmationCapability),
                 ),
                 onClose = MenuCloseHandler(::closed),
             ),
@@ -524,7 +523,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     definition.capabilityId,
                     player,
                     attributes = capabilityAttributes,
-                )?.requireExplicitActionSafety()?.let { definition.capabilityId to it }
+                )?.requireExplicitActionSafety()
             }
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
         val generationLine: GuiLoreLine = when (session.creationType) {
@@ -674,8 +673,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                     ),
                 ),
             )
-            confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(player, capabilityId, resolved)
+            confirmationCapability?.let { resolved ->
+                elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
             elements += interactionEntry(
@@ -698,8 +697,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                 CreationConfirmationAction.BACK,
                 lang.getMessage(player, "gui.creation.confirm.change_name"),
             )
-            confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(player, capabilityId, resolved)
+            confirmationCapability?.let { resolved ->
+                elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
             elements += interactionEntry(
                 player,
@@ -712,8 +711,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                 lang.getMessage(player, "gui.creation.confirm.change_template"),
             )
         } else {
-            confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(player, capabilityId, resolved)
+            confirmationCapability?.let { resolved ->
+                elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
         }
         return InventoryMenuView(
@@ -727,16 +726,15 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun confirmationCapabilityElement(
         player: Player,
-        capabilityId: String,
         resolved: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
+        attributes: Map<String, Any>,
     ): MenuElement {
         return CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
             player,
-            GuiMenuCapabilitySpec(
+            GuiMenuCapabilityInvocationSpec(
                 slot = CONFIRM_CAPABILITY_SLOT,
                 capability = resolved.requireExplicitActionSafety(),
-                actionId = ACTION_CONFIRM_CAPABILITY,
-                actionPayload = mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
+                attributes = attributes,
             ),
         )
     }
@@ -749,21 +747,6 @@ class CreationGui(private val plugin: MyWorldManager) {
             context.player,
             context.click,
             action,
-        )
-    }
-
-    private fun useConfirmationCapability(context: MenuActionContext): MenuActionResult {
-        val capabilityId = context.payload[CONFIRM_CAPABILITY_ARGUMENT]
-            ?: return MenuActionResult.Ignored
-        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
-            ?: return MenuActionResult.Rejected()
-        return CCSystem.getAPI().getMenuCapabilityService().execute(
-            capabilityId,
-            context.player,
-            context.click,
-            attributes = mapOf(
-                CreationConfirmationCapabilityContract.DRAFT_ATTRIBUTE to SessionCreationDraft(session),
-            ),
         )
     }
 
@@ -1024,8 +1007,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val ACTION_TEMPLATE_DETAIL_BACK = "template_detail_back"
         private const val ACTION_CONFIRM_INTERACTION = "confirm_interaction"
         private const val CONFIRMATION_ACTION = "confirmation_action"
-        private const val ACTION_CONFIRM_CAPABILITY = "confirm_capability"
-        private const val CONFIRM_CAPABILITY_ARGUMENT = "capability_id"
         private const val CONFIRM_CAPABILITY_SLOT = 40
         private const val PAGE = "page"
     }

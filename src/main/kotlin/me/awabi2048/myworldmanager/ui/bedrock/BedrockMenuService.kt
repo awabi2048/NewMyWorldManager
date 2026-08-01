@@ -6,7 +6,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
@@ -443,14 +443,10 @@ class BedrockMenuService(
                 inventory.setEntry(
                     CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                         player,
-                        GuiMenuCapabilitySpec(
+                        GuiMenuCapabilityInvocationSpec(
                             slot = slot,
                             capability = capability.requireExplicitActionSafety(),
-                            actionId = "capability_world",
-                            actionPayload = mapOf(
-                                "world" to worldData.uuid.toString(),
-                                "capability" to capability.capabilityId,
-                            ),
+                            attributes = attributes,
                         ),
                     ),
                 )
@@ -477,24 +473,24 @@ class BedrockMenuService(
         }
 
         val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
+        val creationAttributes = playerWorldCapabilityAttributes(capabilitySubject)
         val creationCapability = capabilityService
             .definitions(PlayerWorldCapabilityContract.CREATION_PLACEMENT)
             .firstNotNullOfOrNull { definition ->
                 capabilityService.resolve(
                     definition.capabilityId,
                     player,
-                    attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                    attributes = creationAttributes,
                 )
             }
         if (creationCapability != null) {
             inventory.setEntry(
                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                         player,
-                        GuiMenuCapabilitySpec(
+                        GuiMenuCapabilityInvocationSpec(
                             slot = footerStart + 2,
                             capability = creationCapability.requireExplicitActionSafety(),
-                        actionId = "capability_create",
-                        actionPayload = mapOf("capability" to creationCapability.capabilityId),
+                            attributes = creationAttributes,
                     ),
                 ),
             )
@@ -503,23 +499,24 @@ class BedrockMenuService(
         } else {
             inventory.setItem(footerStart + 2, createCreationUnavailableButtonItem(player, creationBlockReason))
         }
+        val summaryAttributes = playerWorldCapabilityAttributes(capabilitySubject)
         val summaryCapability = capabilityService
             .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
             .firstNotNullOfOrNull { definition ->
                 capabilityService.resolve(
                     definition.capabilityId,
                     player,
-                    attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                    attributes = summaryAttributes,
                 )
             }
         if (summaryCapability != null) {
             inventory.setEntry(
                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                         player,
-                        GuiMenuCapabilitySpec(
+                        GuiMenuCapabilityInvocationSpec(
                             slot = footerStart + 4,
                             capability = summaryCapability.requireExplicitActionSafety(),
-                        actionId = "open_pending_interactions",
+                            attributes = summaryAttributes,
                     ),
                 ),
             )
@@ -784,33 +781,6 @@ class BedrockMenuService(
         val showBackButton = context.route.payload["back"]?.toBooleanStrictOrNull() ?: false
         return when (context.route.id) {
             PLAYER_WORLD_ROUTE -> when (context.actionId) {
-                "capability_world" -> {
-                    val capabilityId = context.payload["capability"]
-                        ?: return MenuActionResult.Ignored
-                    val worldUuid = context.payload["world"]
-                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                        ?: return MenuActionResult.Rejected()
-                    val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-                        ?: return MenuActionResult.Rejected()
-                    val subject = playerWorldCapabilitySubject(player, page, showBackButton)
-                    CCSystem.getAPI().getMenuCapabilityService().execute(
-                        capabilityId,
-                        player,
-                        context.click,
-                        attributes = playerWorldCapabilityAttributes(subject, worldData),
-                    )
-                }
-                "capability_create" -> {
-                    val capabilityId = context.payload["capability"]
-                        ?: return MenuActionResult.Ignored
-                    val subject = playerWorldCapabilitySubject(player, page, showBackButton)
-                    CCSystem.getAPI().getMenuCapabilityService().execute(
-                        capabilityId,
-                        player,
-                        context.click,
-                        attributes = playerWorldCapabilityAttributes(subject),
-                    )
-                }
                 "warp_world" -> {
                     val worldUuid = context.payload["world"]
                         ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
@@ -1461,8 +1431,6 @@ class BedrockMenuService(
         const val WORLD_ACTION_ROUTE = "bedrock_world_action"
         const val SETTINGS_ROUTE = "bedrock_user_settings"
         val RUNTIME_ACTION_IDS = setOf(
-            "capability_world",
-            "capability_create",
             "warp_world",
             "open_prev_page",
             "open_next_page",

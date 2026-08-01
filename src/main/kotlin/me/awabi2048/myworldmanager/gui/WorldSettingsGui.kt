@@ -4,6 +4,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
@@ -199,8 +200,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                                 ),
                                                         )
                                                 },
-                                        ACTION_CAPABILITY to
-                                                MenuActionHandler(::handleCapability),
                                 ),
                                 onClose = { context ->
                                         plugin.worldSettingsListener.onRuntimeInventoryClose(
@@ -1537,23 +1536,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 inventory.setElement(
                                         CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                                 player,
-                                                com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec(
-                                                        slot = slot,
-                                                        capability = resolved.requireExplicitActionSafety(),
-                                                        actionId = ACTION_CAPABILITY,
-                                                        actionPayload = arguments,
+                                                worldSettingsCapabilityInvocation(
+                                                        slot,
+                                                        resolved,
+                                                        arguments,
                                                 ),
                                         ),
                                 )
                         }
-        }
-
-        private fun handleCapability(context: MenuActionContext): MenuActionResult {
-                val capabilityId = context.payload[CAPABILITY_ID_PAYLOAD]
-                        ?: return MenuActionResult.Ignored
-                val arguments = context.payload - CAPABILITY_ID_PAYLOAD
-                return CCSystem.getAPI().getMenuCapabilityService()
-                        .execute(capabilityId, context.player, context.click, arguments)
         }
 
         fun openArchiveConfirmation(
@@ -3784,8 +3774,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val RUNTIME_SELECTION_ROUTE = "world_settings_runtime_icon_selection"
                 const val RUNTIME_MEMBER_MANAGEMENT_ROUTE = "member_management"
                 const val ACTION_RUNTIME_DISPATCH = "dispatch"
-                const val ACTION_CAPABILITY = "capability"
-                private const val CAPABILITY_ID_PAYLOAD = "capability"
                 private const val WORLD_UUID_ARGUMENT = "world_uuid"
                 private val WORLD_SETTINGS_CAPABILITY_SLOTS = listOf(51)
                 private const val ROUTE_SCREEN = "screen"
@@ -3800,3 +3788,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 private const val ROUTE_NULL_VALUE = "none"
         }
 }
+
+internal fun worldSettingsCapabilityInvocation(
+        slot: Int,
+        capability: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
+        arguments: Map<String, String>,
+): GuiMenuCapabilityInvocationSpec = GuiMenuCapabilityInvocationSpec(
+        slot = slot,
+        capability = capability.requireExplicitActionSafety(),
+        arguments = arguments,
+)

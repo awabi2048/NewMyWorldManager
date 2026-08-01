@@ -46,7 +46,7 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 
 class PlayerWorldGui(private val plugin: MyWorldManager) {
@@ -202,14 +202,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         elements += capability?.let {
                                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                         player,
-                                        GuiMenuCapabilitySpec(
+                                        GuiMenuCapabilityInvocationSpec(
                                                 slot = layout.itemSlots[index],
                                                 capability = it.requireExplicitActionSafety(),
-                                                actionId = ACTION_WORLD,
-                                                actionPayload = mapOf(
-                                                        WORLD_UUID to world.uuid.toString(),
-                                                        CAPABILITY_ID to it.capabilityId,
-                                                ),
+                                                attributes = attributes,
                                         ),
                                 )
                         } ?: createWorldEntry(player, world, targetUuid, layout.itemSlots[index])
@@ -217,23 +213,23 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val createCount = worlds.count { it.owner == targetUuid }
                 val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
                 if (isOwnMenu) {
+                        val creationAttributes = playerWorldCapabilityAttributes(capabilitySubject)
                         val capabilityView = capabilityService
                                 .definitions(PlayerWorldCapabilityContract.CREATION_PLACEMENT)
                                 .firstNotNullOfOrNull { definition ->
                                         capabilityService.resolve(
                                                 definition.capabilityId,
                                                 player,
-                                                attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                                                attributes = creationAttributes,
                                         )
                                 }
                         if (capabilityView != null) {
                                 elements += CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                         player,
-                                        GuiMenuCapabilitySpec(
+                                        GuiMenuCapabilityInvocationSpec(
                                                 slot = layout.actionSlot - 2,
                                                 capability = capabilityView.requireExplicitActionSafety(),
-                                                actionId = ACTION_CREATE,
-                                                actionPayload = mapOf(CAPABILITY_ID to capabilityView.capabilityId),
+                                                attributes = creationAttributes,
                                         ),
                                 )
                         } else {
@@ -250,22 +246,23 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 }
                         }
                 }
+                val summaryAttributes = playerWorldCapabilityAttributes(capabilitySubject)
                 val summaryCapability = capabilityService
                         .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
                         .firstNotNullOfOrNull { definition ->
                                 capabilityService.resolve(
                                         definition.capabilityId,
                                         player,
-                                        attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                                        attributes = summaryAttributes,
                                 )
                         }
                 elements += if (summaryCapability != null) {
                         CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                 player,
-                                GuiMenuCapabilitySpec(
+                                GuiMenuCapabilityInvocationSpec(
                                         slot = layout.actionSlot,
                                         capability = summaryCapability.requireExplicitActionSafety(),
-                                        actionId = ACTION_WORLD,
+                                        attributes = summaryAttributes,
                                 ),
                         )
                 } else {
@@ -313,16 +310,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun create(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
-                context.payload[CAPABILITY_ID]?.let { capabilityId ->
-                        return CCSystem.getAPI().getMenuCapabilityService().execute(
-                                capabilityId,
-                                context.player,
-                                context.click,
-                                attributes = playerWorldCapabilityAttributes(
-                                        playerWorldCapabilitySubject(context.player, context.route),
-                                ),
-                        )
-                }
                 if (!WorldCreationChecks.checkSelfCreatePermission(context.player)) {
                         return MenuActionResult.Rejected()
                 }
@@ -361,17 +348,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         ?: return MenuActionResult.Rejected()
                 val worldData = plugin.worldConfigRepository.findByUuid(uuid)
                         ?: return MenuActionResult.Rejected()
-                context.payload[CAPABILITY_ID]?.let { capabilityId ->
-                        return CCSystem.getAPI().getMenuCapabilityService().execute(
-                                capabilityId,
-                                context.player,
-                                context.click,
-                                attributes = playerWorldCapabilityAttributes(
-                                        playerWorldCapabilitySubject(context.player, context.route),
-                                        worldData,
-                                ),
-                        )
-                }
                 val ownMenu = targetUuid(context.route) == context.player.uniqueId
                 return when {
                         ownMenu && context.click.isShiftClick && context.click.isLeftClick ->
@@ -903,7 +879,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 private const val TARGET_NAME = "targetName"
                 private const val SHOW_BACK = "showBack"
                 private const val WORLD_UUID = "worldUuid"
-                private const val CAPABILITY_ID = "capabilityId"
                 private const val ACTION_PAGE = "page"
                 private const val ACTION_BACK = "back"
                 private const val ACTION_CREATE = "create"

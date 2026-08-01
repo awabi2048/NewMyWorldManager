@@ -36,7 +36,7 @@ class MenuActionSafetyContractTest {
     @Test
     fun `capability actions are checked at each menu construction boundary`() {
         val unguardedCapabilities = kotlinSources().flatMap { source ->
-            functionInvocations(source.content, "GuiMenuCapabilitySpec")
+            functionInvocations(source.content, "GuiMenuCapabilityInvocationSpec")
                 .filterNot { invocation -> invocation.contains("requireExplicitActionSafety()") }
                 .map { source.path }
         }

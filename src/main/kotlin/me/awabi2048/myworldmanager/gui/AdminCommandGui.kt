@@ -10,7 +10,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
@@ -20,7 +20,6 @@ import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
-import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -77,7 +76,6 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                         )
                     },
                     ACTION_INFO to MenuActionHandler(::openWorldList),
-                    ACTION_CAPABILITY to MenuActionHandler(::executeCapability),
                     ACTION_PORTALS to MenuActionHandler(::openPortals),
                 ),
             ),
@@ -304,15 +302,13 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val presentation = capability.presentation
         return CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
             player,
-            GuiMenuCapabilitySpec(
+            GuiMenuCapabilityInvocationSpec(
                 slot = slot,
                 capability = capability.requireExplicitActionSafety().copy(
                     presentation = presentation.copy(
                         item = presentation.item.copy(role = role),
                     ),
                 ),
-                actionId = ACTION_CAPABILITY,
-                actionPayload = mapOf(CAPABILITY_ID to capability.capabilityId),
             ),
         )
     }
@@ -339,14 +335,6 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             MenuUpdate.Navigate(plugin.worldGui.prepareOpen(context.player, fromAdminMenu = true)),
         )
     }
-
-    private fun executeCapability(context: MenuActionContext): MenuActionResult =
-        context.payload[CAPABILITY_ID]
-            ?.let {
-                CCSystem.getAPI().getMenuCapabilityService()
-                    .execute(it, context.player, context.click)
-            }
-            ?: MenuActionResult.Ignored
 
     private fun openPortals(context: MenuActionContext): MenuActionResult {
         return MenuActionResult.Success(
@@ -720,8 +708,6 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         private const val ACTION_UNLINK = "unlink"
         private const val ACTION_EXPORT = "export"
         private const val ACTION_INFO = "info"
-        private const val ACTION_CAPABILITY = "capability"
-        private const val CAPABILITY_ID = "capability_id"
         private const val ACTION_PORTALS = "portals"
     }
 }
