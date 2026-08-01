@@ -3,10 +3,18 @@ package me.awabi2048.myworldmanager.architecture
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
+import com.awabi2048.ccsystem.api.gui.GuiNameSpec
+import com.awabi2048.ccsystem.api.gui.MenuElementPresentationSemantics
+import com.awabi2048.ccsystem.api.gui.MenuLoreSemanticSource
+import com.awabi2048.ccsystem.api.gui.MenuNameSemantic
+import com.awabi2048.ccsystem.api.gui.MenuPresentationProfile
+import com.awabi2048.ccsystem.api.gui.MenuPresentationSemanticsValidator
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.name
 import me.awabi2048.myworldmanager.util.semanticLore
+import net.kyori.adventure.text.Component
+import org.bukkit.entity.Player
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -64,6 +72,42 @@ class GuiSemanticProducerContractTest {
         assertTrue(tour.contains("MenuGesture.LEFT_RIGHT"))
     }
 
+    @Test
+    fun `member slot presentation is a covered dynamic target with one custom action`() {
+        val settings = Files.readString(sourceRoot().resolve("gui/WorldSettingsGui.kt"))
+        val memberProducer = settings.substringAfter("private fun createMemberEntrySpec")
+            .substringBefore("private fun formatPendingInviteDateTimeForPlayer")
+        assertTrue(memberProducer.contains("name = GuiNameSpec.TargetIdentity("))
+        assertFalse(memberProducer.contains("GuiNameSpec.Opaque"))
+        assertTrue(memberProducer.contains("semanticLoreBlocks"))
+        assertTrue(memberProducer.contains("copyWithPresentationSemantics("))
+
+        val lore = GuiLoreSpec.Blocks(
+            listOf(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(GuiLoreLine.Text("online")))),
+        )
+        val semantics = semantics(
+            GuiNameSpec.TargetIdentity(Component.text("player")),
+            lore,
+            MenuPresentationProfile.SINGLE_CUSTOM_ACTION,
+        )
+        assertEquals(MenuNameSemantic.TARGET_IDENTITY, semantics.name)
+        assertEquals(MenuLoreSemanticSource.STRUCTURED, semantics.lore.source)
+        assertEquals(MenuPresentationProfile.SINGLE_CUSTOM_ACTION, semantics.profile)
+        assertTrue(MenuPresentationSemanticsValidator.violations(semantics).isEmpty())
+    }
+
+    @Test
+    fun `dynamic player and world lists avoid opaque names outside generic boundaries`() {
+        val settings = Files.readString(sourceRoot().resolve("gui/WorldSettingsGui.kt"))
+        assertFalse(settings.contains("GuiNameSpec.Opaque"))
+
+        val combined = inventorySources().joinToString("\n") { Files.readString(it) }
+        assertTrue(combined.contains("GuiNameSpec.TargetIdentity"))
+        assertTrue(combined.contains("GuiNameSpec.FixedLabel"))
+        assertTrue(combined.contains("GuiNameSpec.Opaque"))
+        assertTrue(Files.readString(sourceRoot().resolve("util/GuiSpecFactory.kt")).contains("opaqueName("))
+    }
+
     private fun inventorySources(): List<Path> = Files.walk(sourceRoot()).use { paths ->
         paths.filter { Files.isRegularFile(it) && it.name.endsWith(".kt") }
             .filter { !it.toString().replace('\\', '/').contains("/ui/bedrock/") }
@@ -72,4 +116,21 @@ class GuiSemanticProducerContractTest {
     }
 
     private fun sourceRoot(): Path = Path.of("src/main/kotlin/me/awabi2048/myworldmanager")
+
+    private fun semantics(
+        name: GuiNameSpec,
+        lore: GuiLoreSpec,
+        profile: MenuPresentationProfile,
+    ): MenuElementPresentationSemantics {
+        val type = Class.forName("com.awabi2048.ccsystem.core.gui.MenuPresentationSemanticsFactory")
+        val i18n: (Player?, String, Map<String, Any>) -> String = { _, key, _ -> key }
+        val factory = type.getConstructor(Function3::class.java).newInstance(i18n)
+        return type.getMethod(
+            "create",
+            GuiNameSpec::class.java,
+            GuiLoreSpec::class.java,
+            MenuPresentationProfile::class.java,
+            Component::class.java,
+        ).invoke(factory, name, lore, profile, null) as MenuElementPresentationSemantics
+    }
 }

@@ -2597,7 +2597,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val spec = GuiMenuEntrySpec(
                         slot = slot,
                         material = Material.PLAYER_HEAD,
-                        name = GuiNameSpec.Opaque(Component.text("$color$displayName").decoration(TextDecoration.ITALIC, false)),
+                        name = GuiNameSpec.TargetIdentity(Component.text("$color$displayName").decoration(TextDecoration.ITALIC, false)),
                         role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
                         description = if (capabilityView == null) {
                                 targetInfoLines.mapNotNull { (it as? GuiLoreLine.Text)?.text }
