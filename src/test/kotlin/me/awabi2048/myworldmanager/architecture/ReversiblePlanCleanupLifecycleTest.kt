@@ -18,5 +18,12 @@ class ReversiblePlanCleanupLifecycleTest {
         assertTrue(source.contains("creationSessionManager.removeReversiblePlans(playerUuid)"))
         assertTrue(source.contains("worldPublishService.clearReversiblePlans()"))
         assertTrue(source.contains("creationSessionManager.clearAll()"))
+        val enableStart = source.indexOf("override fun onEnable()")
+        val contractCheck = source.indexOf("if (!ensureCCSystemAvailable()) return", enableStart)
+        val providerRegistration = source.indexOf("MwmReversibleStateProviders(this).register", enableStart)
+        assertTrue(contractCheck > enableStart)
+        assertTrue(providerRegistration > contractCheck)
+        assertTrue(source.contains("api.guiRuntimeContractVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION"))
+        assertTrue(source.contains("server.pluginManager.disablePlugin(this)"))
     }
 }

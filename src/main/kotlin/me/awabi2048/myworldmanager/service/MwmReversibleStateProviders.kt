@@ -703,5 +703,5 @@ private fun decodeState(
     context: MenuReversibleStateRestoreContext,
     providerId: String,
 ): MwmOpaqueProviderState? = runCatching {
-    MwmReversibleStateCodec.decode(context.state.value, providerId, plugin)
+    MwmReversibleStateCodec.decode(context.stateSnapshot.value, providerId, plugin)
 }.getOrNull()

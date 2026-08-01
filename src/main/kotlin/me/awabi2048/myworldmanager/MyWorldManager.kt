@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.CCSystemAPI
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.internal.MemberManagerAdapter
 import me.awabi2048.myworldmanager.api.internal.BedrockFormServiceAdapter
@@ -142,7 +143,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
     override fun onEnable() {
-        ensureCCSystemAvailable()
+        if (!ensureCCSystemAvailable()) return
 
         // Serializationの登録
         ConfigurationSerialization.registerClass(WorldData::class.java)
@@ -683,12 +684,23 @@ class MyWorldManager : JavaPlugin() {
         }
     }
 
-    private fun ensureCCSystemAvailable() {
+    private fun ensureCCSystemAvailable(): Boolean {
         val ccSystemPlugin = server.pluginManager.getPlugin("CC-System")
         if (ccSystemPlugin == null || !ccSystemPlugin.isEnabled) {
-            throw IllegalStateException("CC-System が有効化されていないため MyWorldManager を起動できません")
+            logger.severe("CC-System が有効化されていないため MyWorldManager を起動できません")
+            server.pluginManager.disablePlugin(this)
+            return false
         }
-        CCSystem.getAPI()
+        val api = CCSystem.getAPI()
+        if (api.guiRuntimeContractVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION) {
+            logger.severe(
+                "CC-System GUI runtime契約版が一致しません: " +
+                    "expected=${CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION}, actual=${api.guiRuntimeContractVersion}",
+            )
+            server.pluginManager.disablePlugin(this)
+            return false
+        }
+        return true
     }
 
     /**
