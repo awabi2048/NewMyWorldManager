@@ -15,6 +15,7 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
+import com.awabi2048.ccsystem.api.gui.copyPreservingResolutionMetadata
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
@@ -308,7 +309,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
             player,
             GuiMenuCapabilityInvocationSpec(
                 slot = slot,
-                capability = capability.requireExplicitActionSafety().copy(
+                capability = capability.requireExplicitActionSafety().copyPreservingResolutionMetadata(
                     presentation = presentation.copy(
                         item = presentation.item.copy(role = role),
                     ),
