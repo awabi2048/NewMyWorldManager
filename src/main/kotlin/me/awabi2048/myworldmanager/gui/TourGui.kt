@@ -864,13 +864,15 @@ class TourGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val owner = Bukkit.getOfflinePlayer(worldData.owner)
         val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
-        val lore = GuiLoreSpec.Blocks(listOf(
-            GuiLoreBlock(buildList {
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.world_name"), worldData.name, "§a"))
-                if (worldData.description.isNotBlank()) add(GuiLoreLine.UserText(worldData.description))
-            }),
-            GuiLoreBlock(listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b")))
-        ))
+        val lore = GuiLoreSpec.Blocks(buildList {
+            if (worldData.description.isNotBlank()) {
+                add(GuiLoreBlock(listOf(GuiLoreLine.UserText(worldData.description))))
+            }
+            add(GuiLoreBlock(listOf(
+                GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.world_name"), worldData.name, "§a"),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b"),
+            )))
+        })
         return CCSystem.getAPI().getGuiElementService().menuDisplay(
             GuiMenuDisplaySpec(
                 slot,

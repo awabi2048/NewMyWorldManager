@@ -7,6 +7,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.session.WorldCreationType
+import net.kyori.adventure.text.Component
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,15 +20,16 @@ import kotlin.io.path.readText
 
 class CreationTypeAvailabilityTest {
     @Test
-    fun `template with no usable entries completes as disabled display only for all clicks`() {
+    fun `template with no usable entries completes as typed unavailable for standard clicks`() {
         val availability = resolveCreationTypeAvailability(WorldCreationType.TEMPLATE, false, true)
         val element = completedElement(availability)
 
         assertFalse(element.enabled)
         assertEquals(GuiElementRole.CONTENT, element.role)
-        assertInstanceOf(MenuInteraction.DisplayOnly::class.java, element.resolvedInteraction())
+        val unavailable = assertInstanceOf(MenuInteraction.Unavailable::class.java, element.resolvedInteraction())
+        assertEquals(Component.text("テンプレートが見つかりませんでした"), unavailable.message)
         listOf(ClickType.LEFT, ClickType.RIGHT, ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT, ClickType.MIDDLE)
-            .forEach { click -> assertFalse(click in acceptedClicks(element), "$click must not be accepted") }
+            .forEach { click -> assertTrue(click in acceptedClicks(element), "$click must be rejected with the reason") }
         assertEquals("error.preview_template_not_found", availability.reasonKey)
     }
 
@@ -78,11 +80,21 @@ class CreationTypeAvailabilityTest {
             ),
         )
     } else {
-        MenuElement(20, emptyItemStack(), GuiElementRole.CONTENT, enabled = false, interaction = MenuInteraction.DisplayOnly)
+        MenuElement(
+            20,
+            emptyItemStack(),
+            GuiElementRole.CONTENT,
+            enabled = false,
+            interaction = MenuInteraction.Unavailable(
+                MenuAcceptedClicks.STANDARD,
+                Component.text("テンプレートが見つかりませんでした"),
+            ),
+        )
     }
 
     private fun acceptedClicks(element: MenuElement): Set<ClickType> = when (val interaction = element.resolvedInteraction()) {
         is MenuInteraction.Action -> interaction.acceptedClicks
+        is MenuInteraction.Unavailable -> interaction.acceptedClicks
         else -> emptySet()
     }
 
