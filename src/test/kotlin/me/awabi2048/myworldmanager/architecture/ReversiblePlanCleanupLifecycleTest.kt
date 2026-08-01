@@ -23,7 +23,8 @@ class ReversiblePlanCleanupLifecycleTest {
         val providerRegistration = source.indexOf("MwmReversibleStateProviders(this).register", enableStart)
         assertTrue(contractCheck > enableStart)
         assertTrue(providerRegistration > contractCheck)
-        assertTrue(source.contains("actualVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION"))
+        assertTrue(source.contains("actualVersion != REQUIRED_GUI_RUNTIME_CONTRACT_VERSION"))
+        assertTrue(source.contains("REQUIRED_GUI_RUNTIME_CONTRACT_VERSION = 5"))
         assertTrue(source.contains("server.pluginManager.disablePlugin(this)"))
     }
 

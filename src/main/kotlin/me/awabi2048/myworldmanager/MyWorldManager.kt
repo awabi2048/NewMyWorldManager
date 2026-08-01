@@ -1,7 +1,6 @@
 package me.awabi2048.myworldmanager
 
 import com.awabi2048.ccsystem.CCSystem
-import com.awabi2048.ccsystem.api.CCSystemAPI
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.internal.MemberManagerAdapter
 import me.awabi2048.myworldmanager.api.internal.BedrockFormServiceAdapter
@@ -575,6 +574,7 @@ class MyWorldManager : JavaPlugin() {
 
     private companion object {
         const val REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS = 20L * 60L
+        const val REQUIRED_GUI_RUNTIME_CONTRACT_VERSION = 5
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -698,10 +698,10 @@ class MyWorldManager : JavaPlugin() {
         } catch (failure: RuntimeException) {
             return disableForGuiRuntimeContractFailure(failure)
         }
-        if (actualVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION) {
+        if (actualVersion != REQUIRED_GUI_RUNTIME_CONTRACT_VERSION) {
             logger.severe(
                 "CC-System GUI runtime契約版が一致しません: " +
-                    "expected=${CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION}, actual=$actualVersion",
+                    "expected=$REQUIRED_GUI_RUNTIME_CONTRACT_VERSION, actual=$actualVersion",
             )
             server.pluginManager.disablePlugin(this)
             return false
