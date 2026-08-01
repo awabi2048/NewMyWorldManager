@@ -23,7 +23,22 @@ class ReversiblePlanCleanupLifecycleTest {
         val providerRegistration = source.indexOf("MwmReversibleStateProviders(this).register", enableStart)
         assertTrue(contractCheck > enableStart)
         assertTrue(providerRegistration > contractCheck)
-        assertTrue(source.contains("api.guiRuntimeContractVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION"))
+        assertTrue(source.contains("actualVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION"))
         assertTrue(source.contains("server.pluginManager.disablePlugin(this)"))
+    }
+
+    @Test
+    fun `missing runtime contract getter disables plugin before initialization`() {
+        val source = Files.readString(Path.of("src/main/kotlin/me/awabi2048/myworldmanager/MyWorldManager.kt"))
+
+        val enableStart = source.indexOf("override fun onEnable()")
+        val guardedCheck = source.indexOf("if (!ensureCCSystemAvailable()) return", enableStart)
+        val firstInitialization = source.indexOf("ConfigurationSerialization.registerClass", enableStart)
+        assertTrue(guardedCheck in (enableStart + 1) until firstInitialization)
+        assertTrue(source.contains("CCSystem.getAPI().guiRuntimeContractVersion"))
+        assertTrue(source.contains("catch (failure: LinkageError)"))
+        assertTrue(source.contains("catch (failure: RuntimeException)"))
+        assertTrue(source.contains("return disableForGuiRuntimeContractFailure(failure)"))
+        assertTrue(source.contains("GUI runtime契約の取得に失敗したため MyWorldManager を無効化します"))
     }
 }

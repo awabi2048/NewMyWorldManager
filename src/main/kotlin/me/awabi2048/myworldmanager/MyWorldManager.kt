@@ -691,16 +691,31 @@ class MyWorldManager : JavaPlugin() {
             server.pluginManager.disablePlugin(this)
             return false
         }
-        val api = CCSystem.getAPI()
-        if (api.guiRuntimeContractVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION) {
+        val actualVersion = try {
+            CCSystem.getAPI().guiRuntimeContractVersion
+        } catch (failure: LinkageError) {
+            return disableForGuiRuntimeContractFailure(failure)
+        } catch (failure: RuntimeException) {
+            return disableForGuiRuntimeContractFailure(failure)
+        }
+        if (actualVersion != CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION) {
             logger.severe(
                 "CC-System GUI runtime契約版が一致しません: " +
-                    "expected=${CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION}, actual=${api.guiRuntimeContractVersion}",
+                    "expected=${CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION}, actual=$actualVersion",
             )
             server.pluginManager.disablePlugin(this)
             return false
         }
         return true
+    }
+
+    private fun disableForGuiRuntimeContractFailure(failure: Throwable): Boolean {
+        logger.severe(
+            "CC-System GUI runtime契約の取得に失敗したため MyWorldManager を無効化します: " +
+                "${failure.javaClass.name}: ${failure.message}",
+        )
+        server.pluginManager.disablePlugin(this)
+        return false
     }
 
     /**
