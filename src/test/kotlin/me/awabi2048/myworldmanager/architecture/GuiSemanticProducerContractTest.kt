@@ -50,6 +50,20 @@ class GuiSemanticProducerContractTest {
         assertTrue(source.contains("warnings = plugin.languageManager.getMessageList(player, reason.loreKey)"))
     }
 
+    @Test
+    fun `creation type unavailability and tour current world preserve typed semantics`() {
+        val creation = Files.readString(sourceRoot().resolve("gui/CreationGui.kt"))
+        assertTrue(creation.contains("getGuiElementService().menuUnavailable("))
+        assertTrue(creation.contains("lang.getComponent(player, reason)"))
+        assertTrue(creation.contains("warnings = warnings"))
+
+        val tour = Files.readString(sourceRoot().resolve("gui/TourGui.kt"))
+        val currentWorld = tour.substringAfter("private fun createCurrentWorldEntry")
+            .substringBefore("private fun createTourEntry")
+        assertTrue(currentWorld.indexOf("GuiLoreLine.UserText") < currentWorld.indexOf("GuiLoreLine.Data"))
+        assertTrue(tour.contains("MenuGesture.LEFT_RIGHT"))
+    }
+
     private fun inventorySources(): List<Path> = Files.walk(sourceRoot()).use { paths ->
         paths.filter { Files.isRegularFile(it) && it.name.endsWith(".kt") }
             .filter { !it.toString().replace('\\', '/').contains("/ui/bedrock/") }

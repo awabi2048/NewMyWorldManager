@@ -28,9 +28,9 @@ import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
-import com.awabi2048.ccsystem.api.gui.copyWithPresentationSemantics
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.menuUnavailable
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContract
@@ -349,9 +349,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             ).removePrefix("§c")
         }
 
-        val element = CCSystem.getAPI().getGuiElementService().menuEntry(
-            player,
-            GuiMenuEntrySpec(
+        val spec = GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
                 name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
@@ -368,9 +366,19 @@ class CreationGui(private val plugin: MyWorldManager) {
                         safety = creationTypeSafety(creationType),
                     ),
                 ) else emptyList(),
-            ),
         )
-        return if (availability.enabled) element else element.copyWithPresentationSemantics(enabled = false)
+        return if (availability.enabled) {
+            CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
+        } else {
+            val reason = requireNotNull(availability.reasonKey) {
+                "Disabled creation type must declare a reason"
+            }
+            CCSystem.getAPI().getGuiElementService().menuUnavailable(
+                player,
+                spec,
+                lang.getComponent(player, reason),
+            )
+        }
     }
 
     private fun creationTypeAvailability(

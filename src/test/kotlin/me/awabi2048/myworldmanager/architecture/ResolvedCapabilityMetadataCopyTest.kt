@@ -26,7 +26,7 @@ class ResolvedCapabilityMetadataCopyTest {
             Path.of("src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt"),
         )
 
-        assertTrue(creation.contains("element.copyWithPresentationSemantics(enabled = false)"))
+        assertTrue(creation.contains("getGuiElementService().menuUnavailable("))
         assertTrue(settings.contains("menuEntry(viewer, spec).copyWithPresentationSemantics("))
     }
 }
