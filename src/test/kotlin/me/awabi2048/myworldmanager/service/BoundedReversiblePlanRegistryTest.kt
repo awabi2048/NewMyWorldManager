@@ -45,6 +45,37 @@ class BoundedReversiblePlanRegistryTest {
     }
 
     @Test
+    fun `explicit purge releases expired plan after the final operation`() {
+        val clock = MutableClock(Instant.parse("2026-08-01T00:00:00Z"))
+        val discarded = mutableListOf<Plan>()
+        val registry = registry(ttl = Duration.ofMinutes(6), clock = clock, onDiscard = discarded::add)
+        val plan = Plan(sequence = 1)
+        registry.register("player", plan)
+
+        clock.advance(Duration.ofMinutes(7))
+
+        assertEquals(1, registry.purgeExpired(clock.instant()))
+        assertEquals(listOf(plan), discarded)
+        assertNull(registry.consume(plan.id))
+    }
+
+    @Test
+    fun `removeWhere removes matching owner from both indexes`() {
+        val discarded = mutableListOf<Plan>()
+        val registry = registry(onDiscard = discarded::add)
+        val removed = Plan(sequence = 1)
+        val retained = Plan(sequence = 2)
+        registry.register("first", removed)
+        registry.register("second", retained)
+
+        assertEquals(1, registry.removeWhere { it.sequence == 1 })
+
+        assertNull(registry.consume(removed.id))
+        assertSame(retained, registry.get("second"))
+        assertEquals(listOf(removed), discarded)
+    }
+
+    @Test
     fun `consume removes both indexes without discarding transferred plan`() {
         val discarded = mutableListOf<Plan>()
         val registry = registry(onDiscard = discarded::add)
@@ -119,6 +150,22 @@ class BoundedReversiblePlanRegistryTest {
         registry.register("second", Plan(sequence = 2))
 
         executor.shutdownNow()
+    }
+
+    @Test
+    fun `removeWhere predicate and concurrent mutations do not corrupt indexes`() {
+        val registry = registry(capacity = 128)
+        repeat(128) { registry.register("key-$it", Plan(sequence = it)) }
+        val executor = Executors.newFixedThreadPool(4)
+        val removal = executor.submit<Int> { registry.removeWhere { it.sequence % 2 == 0 } }
+        repeat(500) { sequence ->
+            executor.submit { registry.register("key-${sequence % 64}", Plan(sequence = sequence + 1_000)) }
+        }
+        executor.shutdown()
+
+        assertEquals(true, executor.awaitTermination(10, TimeUnit.SECONDS))
+        assertEquals(true, removal.get() in 0..128)
+        assertEquals(true, registry.size() <= 128)
     }
 
     private fun registry(

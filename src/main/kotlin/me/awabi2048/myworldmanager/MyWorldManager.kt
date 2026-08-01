@@ -34,6 +34,7 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.scheduler.BukkitTask
 import com.awabi2048.ccsystem.api.config.ConfigClassification
 import com.awabi2048.ccsystem.api.config.ManagedConfigSpec
 import com.awabi2048.ccsystem.api.gui.MenuTargetPolicy
@@ -59,6 +60,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var playerLocationRestoreListener: PlayerLocationRestoreListener
     private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
+    private var reversiblePlanCleanupTask: BukkitTask? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
     lateinit var worldDirectoryResolver: WorldDirectoryResolver
@@ -249,6 +251,11 @@ class MyWorldManager : JavaPlugin() {
         tourGui = TourGui(this)
 
         creationSessionManager = CreationSessionManager(this)
+        reversiblePlanCleanupTask = server.scheduler.runTaskTimer(this, Runnable {
+            val now = java.time.Instant.now()
+            worldPublishService.purgeExpiredReversiblePlans(now)
+            creationSessionManager.purgeExpiredReversiblePlans(now)
+        }, REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS, REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS)
         MwmReversibleStateProviders(this).register(CCSystem.getAPI().getMenuReversibleStateProviderRegistry())
         inviteSessionManager = InviteSessionManager()
         macroManager = MacroManager(this)
@@ -479,6 +486,8 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        reversiblePlanCleanupTask?.cancel()
+        reversiblePlanCleanupTask = null
         if (::playerLocationRestoreListener.isInitialized) {
             server.onlinePlayers.forEach(playerLocationRestoreListener::saveCurrentLocation)
         }
@@ -526,7 +535,11 @@ class MyWorldManager : JavaPlugin() {
             CCSystem.getAPI().getMenuRuntimeService().clear(player)
         }
         if (::settingsSessionManager.isInitialized) settingsSessionManager.endSession(playerUuid)
-        if (::creationSessionManager.isInitialized) creationSessionManager.endSession(playerUuid)
+        if (::worldPublishService.isInitialized) worldPublishService.removeReversiblePlans(playerUuid)
+        if (::creationSessionManager.isInitialized) {
+            creationSessionManager.removeReversiblePlans(playerUuid)
+            creationSessionManager.endSession(playerUuid)
+        }
         if (::inviteSessionManager.isInitialized) inviteSessionManager.endSession(playerUuid)
         if (::discoverySessionManager.isInitialized) discoverySessionManager.clearSession(playerUuid)
         if (::meetSessionManager.isInitialized) meetSessionManager.clearSession(playerUuid)
@@ -557,6 +570,10 @@ class MyWorldManager : JavaPlugin() {
         if (::tourSessionManager.isInitialized) tourSessionManager.clearAll()
         me.awabi2048.myworldmanager.gui.TourDialogManager.clearAll()
         if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
+    }
+
+    private companion object {
+        const val REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS = 20L * 60L
     }
 
     @Suppress("UNUSED_PARAMETER")

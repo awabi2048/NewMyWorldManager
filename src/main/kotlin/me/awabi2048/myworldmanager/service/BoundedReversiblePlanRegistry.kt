@@ -98,6 +98,30 @@ internal class BoundedReversiblePlanRegistry<K : Any, V : Any>(
         return result.first
     }
 
+    fun purgeExpired(now: Instant = clock.instant()): Int {
+        val discarded = synchronized(lock) { purgeExpiredLocked(now) }
+        discardAll(discarded)
+        return discarded.size
+    }
+
+    fun removeWhere(predicate: (V) -> Boolean): Int {
+        val snapshot = synchronized(lock) {
+            val expired = purgeExpiredLocked(clock.instant())
+            byId.map { (id, entry) -> id to entry.value } to expired
+        }
+        discardAll(snapshot.second)
+        val matching = snapshot.first.filter { (_, value) -> predicate(value) }
+        val removed = synchronized(lock) {
+            val discarded = purgeExpiredLocked(clock.instant())
+            matching.forEach { (id, expected) ->
+                if (byId[id]?.value === expected) removeByIdLocked(id)?.let(discarded::add)
+            }
+            discarded
+        }
+        discardAll(removed)
+        return snapshot.second.size + removed.size
+    }
+
     fun clear() {
         val discarded = synchronized(lock) {
             val values = byId.values.map { it.value }

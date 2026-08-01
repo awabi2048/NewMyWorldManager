@@ -8,6 +8,7 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.util.UUID
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 class CreationSessionManager(private val plugin: MyWorldManager) {
@@ -66,6 +67,14 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     }
 
     fun clearReversiblePlans() = reversibleStartPlans.clear()
+
+    fun purgeExpiredReversiblePlans(now: Instant = Instant.now()) {
+        reversibleStartPlans.purgeExpired(now)
+    }
+
+    fun removeReversiblePlans(playerId: UUID) {
+        reversibleStartPlans.removeWhere { it.playerId == playerId }
+    }
 
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
         sessions[playerId]?.let { 

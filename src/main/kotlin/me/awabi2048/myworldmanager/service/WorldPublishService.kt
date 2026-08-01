@@ -8,6 +8,7 @@ import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.entity.Player
 import java.time.LocalDateTime
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -226,6 +227,16 @@ class WorldPublishService(private val plugin: MyWorldManager) {
     fun clearReversiblePlans() {
         standardPlans.clear()
         policyPlans.clear()
+    }
+
+    fun purgeExpiredReversiblePlans(now: Instant = Instant.now()) {
+        standardPlans.purgeExpired(now)
+        policyPlans.purgeExpired(now)
+    }
+
+    fun removeReversiblePlans(playerId: UUID) {
+        standardPlans.removeWhere { it.playerId == playerId }
+        policyPlans.removeWhere { it.playerId == playerId }
     }
 
     private fun WorldData.publishSnapshot() = WorldPublishMetadataSnapshot(publishLevel, publicAt)
