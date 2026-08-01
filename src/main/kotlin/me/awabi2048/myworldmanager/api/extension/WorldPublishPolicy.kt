@@ -46,12 +46,6 @@ sealed interface WorldPublishReversibleRestoreResult {
 interface ReversibleWorldPublishPolicy : WorldPublishPolicy {
     fun capturePublishCycleState(player: Player, worldData: WorldData): WorldPublishReversibleState
 
-    fun expectedPublishCycleState(
-        player: Player,
-        worldData: WorldData,
-        before: WorldPublishReversibleState,
-    ): WorldPublishReversibleState
-
     fun restorePublishCycleState(
         player: Player,
         worldData: WorldData,

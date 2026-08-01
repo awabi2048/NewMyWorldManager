@@ -3,12 +3,14 @@ package me.awabi2048.myworldmanager.service
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.ReversibleWorldPublishPolicy
+import me.awabi2048.myworldmanager.api.extension.WorldPublishReversibleState
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.entity.Player
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 data class WorldPublishMetadataSnapshot(
     val publishLevel: PublishLevel,
@@ -30,6 +32,38 @@ class StandardWorldPublishCyclePlan internal constructor(
     }
 }
 
+/** policy所有のcycleは、実測した操作後状態を一度だけ復元へ渡します。 */
+class PolicyWorldPublishCyclePlan internal constructor(
+    val playerId: UUID,
+    val worldUuid: UUID,
+    val policy: ReversibleWorldPublishPolicy,
+    val policyId: String,
+    val before: WorldPublishReversibleState,
+) {
+    private var actualAfter: WorldPublishReversibleState? = null
+    private var discarded = false
+    private var consumed = false
+
+    @Synchronized
+    internal fun complete(after: WorldPublishReversibleState) {
+        check(!discarded && !consumed && actualAfter == null) { "policy publish cycle plan is not pending" }
+        actualAfter = after
+    }
+
+    @Synchronized
+    internal fun discard() {
+        if (actualAfter == null && !consumed) discarded = true
+    }
+
+    @Synchronized
+    fun consumeActualAfter(): WorldPublishReversibleState? {
+        if (discarded || consumed) return null
+        val after = actualAfter ?: return null
+        consumed = true
+        return after
+    }
+}
+
 enum class WorldPublishCycleSource {
     STANDARD,
     POLICY,
@@ -42,7 +76,8 @@ enum class WorldPublishCycleSource {
  * 通常クリックはplanを持たず、従来どおりクリック時刻で publicAt を更新します。
  */
 class WorldPublishService(private val plugin: MyWorldManager) {
-    private val standardPlans = mutableMapOf<Pair<UUID, UUID>, StandardWorldPublishCyclePlan>()
+    private val standardPlans = ConcurrentHashMap<Pair<UUID, UUID>, StandardWorldPublishCyclePlan>()
+    private val policyPlans = ConcurrentHashMap<Pair<UUID, UUID>, PolicyWorldPublishCyclePlan>()
 
     fun requireReversibleCycleContract(worldData: WorldData) {
         val policy = MyWorldManagerApi.getWorldPublishPolicy()
@@ -60,9 +95,32 @@ class WorldPublishService(private val plugin: MyWorldManager) {
         }
         val plan = StandardWorldPublishCyclePlan(player.uniqueId, worldData.uuid, worldData.publishSnapshot())
         val key = player.uniqueId to worldData.uuid
+        policyPlans.remove(key)?.discard()
         // captureに続くclickが拒否された場合でもRuntimeからproviderへ破棄通知は来ないため、
         // 同じ操作を再captureした時点で古い監査計画を安全に置き換えます。
         standardPlans[key] = plan
+        return plan
+    }
+
+    fun capturePolicyCycle(
+        player: Player,
+        worldData: WorldData,
+        policy: ReversibleWorldPublishPolicy,
+    ): PolicyWorldPublishCyclePlan {
+        require(policy.handlesPublishCycle(worldData)) {
+            "capturePolicyCycle requires a policy-owned publish state"
+        }
+        val key = player.uniqueId to worldData.uuid
+        standardPlans.remove(key)
+        policyPlans.remove(key)?.discard()
+        val plan = PolicyWorldPublishCyclePlan(
+            player.uniqueId,
+            worldData.uuid,
+            policy,
+            policy.getId(),
+            policy.capturePublishCycleState(player, worldData),
+        )
+        policyPlans.put(key, plan)?.discard()
         return plan
     }
 
@@ -72,11 +130,10 @@ class WorldPublishService(private val plugin: MyWorldManager) {
             require(policy is ReversibleWorldPublishPolicy) {
                 "WorldPublishPolicy '${policy.getId()}' handled a publish cycle without ReversibleWorldPublishPolicy"
             }
-            check(policy.cyclePublishLevel(player, worldData)) {
-                "WorldPublishPolicy '${policy.getId()}' declared publish-cycle ownership but did not handle it"
-            }
+            completePolicyCycle(player, worldData, policy)
             return WorldPublishCycleSource.POLICY
         }
+        policyPlans.remove(player.uniqueId to worldData.uuid)?.discard()
         check(!policy.cyclePublishLevel(player, worldData)) {
             "WorldPublishPolicy '${policy.getId()}' handled a publish cycle without declaring ownership"
         }
@@ -111,6 +168,42 @@ class WorldPublishService(private val plugin: MyWorldManager) {
     }
 
     fun isWorldPresent(worldUuid: UUID): Boolean = plugin.worldConfigRepository.findByUuid(worldUuid) != null
+
+    private fun completePolicyCycle(
+        player: Player,
+        worldData: WorldData,
+        policy: ReversibleWorldPublishPolicy,
+    ) {
+        val capturedPlan = policyPlans.remove(player.uniqueId to worldData.uuid)
+        standardPlans.remove(player.uniqueId to worldData.uuid)
+        try {
+            val plan = capturedPlan?.takeIf {
+                it.policy === policy &&
+                    it.policyId == policy.getId() &&
+                    policy.capturePublishCycleState(player, worldData) == it.before
+            }
+            if (plan == null) capturedPlan?.discard()
+            check(policy.cyclePublishLevel(player, worldData)) {
+                "WorldPublishPolicy '${policy.getId()}' declared publish-cycle ownership but did not handle it"
+            }
+            if (plan == null) return
+
+            val latestWorld = plugin.worldConfigRepository.findByUuid(worldData.uuid)
+                ?: run {
+                    plan.discard()
+                    return
+                }
+            val latestPolicy = MyWorldManagerApi.getWorldPublishPolicy() as? ReversibleWorldPublishPolicy
+            if (latestPolicy !== plan.policy || latestPolicy.getId() != plan.policyId || !latestPolicy.handlesPublishCycle(latestWorld)) {
+                plan.discard()
+                return
+            }
+            plan.complete(latestPolicy.capturePublishCycleState(player, latestWorld))
+        } catch (exception: RuntimeException) {
+            capturedPlan?.discard()
+            throw exception
+        }
+    }
 
     private fun WorldData.publishSnapshot() = WorldPublishMetadataSnapshot(publishLevel, publicAt)
 

@@ -5,7 +5,6 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.ReversibleWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPublishReversibleRestoreResult
-import me.awabi2048.myworldmanager.api.extension.WorldPublishReversibleState
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.WorldCreationSessionSnapshot
 import java.util.UUID
@@ -262,9 +261,7 @@ private sealed interface WorldStateSnapshot : MenuReversibleProviderState {
     ) : WorldStateSnapshot
     data class PolicyPublish(
         val worldUuid: UUID,
-        val policyId: String,
-        val before: WorldPublishReversibleState,
-        val expectedAfter: WorldPublishReversibleState,
+        val plan: PolicyWorldPublishCyclePlan,
     ) : WorldStateSnapshot
     data class Notification(val worldUuid: UUID, val before: Boolean, val expectedAfter: Boolean) : WorldStateSnapshot
     data class MemberRole(
@@ -296,12 +293,9 @@ private class WorldStateProvider(private val plugin: MyWorldManager) : MenuRever
                         ?: return MenuReversibleProviderCaptureResult.Rejected(
                             "publish policy '${policy.getId()}' owns the operation but is not reversible",
                         )
-                    val before = reversiblePolicy.capturePublishCycleState(context.player, world)
                     WorldStateSnapshot.PolicyPublish(
                         worldUuid,
-                        reversiblePolicy.getId(),
-                        before,
-                        reversiblePolicy.expectedPublishCycleState(context.player, world, before),
+                        plugin.worldPublishService.capturePolicyCycle(context.player, world, reversiblePolicy),
                     )
                 } else {
                     WorldStateSnapshot.StandardPublish(
@@ -352,14 +346,16 @@ private class WorldStateProvider(private val plugin: MyWorldManager) : MenuRever
                     ?: return MenuReversibleProviderRestoreResult.Rejected("target world no longer exists: ${state.worldUuid}")
                 val policy = MyWorldManagerApi.getWorldPublishPolicy() as? ReversibleWorldPublishPolicy
                     ?: return MenuReversibleProviderRestoreResult.Rejected("publish policy is no longer reversible")
-                if (policy.getId() != state.policyId || !policy.handlesPublishCycle(world)) {
-                    return MenuReversibleProviderRestoreResult.Rejected("publish policy changed concurrently: ${state.policyId}")
+                if (policy !== state.plan.policy || policy.getId() != state.plan.policyId || !policy.handlesPublishCycle(world)) {
+                    return MenuReversibleProviderRestoreResult.Rejected("publish policy changed concurrently: ${state.plan.policyId}")
                 }
+                val actualAfter = state.plan.consumeActualAfter()
+                    ?: return MenuReversibleProviderRestoreResult.Rejected("policy publish action did not complete or was already restored")
                 when (val restored = policy.restorePublishCycleState(
                     context.player,
                     world,
-                    state.before,
-                    state.expectedAfter,
+                    state.plan.before,
+                    actualAfter,
                 )) {
                     WorldPublishReversibleRestoreResult.Restored -> MenuReversibleProviderRestoreResult.Restored
                     is WorldPublishReversibleRestoreResult.Rejected ->
