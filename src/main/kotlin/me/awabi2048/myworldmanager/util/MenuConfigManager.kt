@@ -2,7 +2,6 @@ package me.awabi2048.myworldmanager.util
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Material
-import org.bukkit.Sound
 
 /**
  * メニュー設定をコード内の固定値として管理するクラス
@@ -14,16 +13,18 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
     )
 
     private data class MenuConfig(
-            val openSound: Sound,
-            val openPitch: Float,
             val icons: Map<String, IconConfig>
     )
+
+    /**
+     * メニュー固有の効果音は保持せず、CC-Systemの共通デフォルト音へ委譲する。
+     * このクラスでは、MyWorldManager固有のアイコン素材だけを管理する。
+     */
 
     private val menuConfigs: Map<String, MenuConfig> =
             mapOf(
                     "admin_manage" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_IRON_TRAPDOOR_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -35,7 +36,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "admin_portals" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "portal_item" to icon(Material.END_PORTAL_FRAME),
@@ -47,7 +47,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "admin_world" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "world_item" to icon(Material.GRASS_BLOCK),
@@ -62,7 +61,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "creation" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_IRON_TRAPDOOR_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -77,7 +75,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "discovery" to
                             menuConfig(
-                                    openSound = Sound.UI_TOAST_IN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -93,7 +90,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "environment" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -105,7 +101,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "environment_confirm" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "confirm" to icon(Material.LIME_CONCRETE),
@@ -114,7 +109,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "favorite" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -127,7 +121,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "favorite_menu" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "other_worlds" to icon(Material.COMPASS),
@@ -138,7 +131,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "meet" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -147,7 +139,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "player_world" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -158,7 +149,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "portal" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_ENDER_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -171,7 +161,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "portal_manage" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -183,7 +172,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "spotlight_confirm" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "confirm" to icon(Material.LIME_CONCRETE),
@@ -192,7 +180,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "template_wizard" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_ENCHANTMENT_TABLE_USE,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -205,7 +192,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "user_settings" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW)
@@ -213,7 +199,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "tour" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons = mapOf(
                                             "back" to icon(Material.REDSTONE),
                                             "create" to icon(Material.NETHER_STAR),
@@ -226,7 +211,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "visit" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_CHEST_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -240,7 +224,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                             ),
                     "world_settings" to
                             menuConfig(
-                                    openSound = Sound.BLOCK_IRON_TRAPDOOR_OPEN,
                                     icons =
                                             mapOf(
                                                     "back" to icon(Material.ARROW),
@@ -261,10 +244,8 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
             )
 
     private fun menuConfig(
-            openSound: Sound,
-            openPitch: Float = 1.0f,
             icons: Map<String, IconConfig>
-    ): MenuConfig = MenuConfig(openSound, openPitch, icons)
+    ): MenuConfig = MenuConfig(icons)
 
     private fun icon(
             material: Material? = null,
@@ -286,25 +267,4 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
         return menuConfigs[menuId]?.icons?.get(iconId)?.material ?: default
     }
 
-    /**
-     * 指定メニューのアイコン用サウンドを取得
-     */
-
-    /**
-     * 指定メニューのアイコン用サウンドピッチを取得
-     */
-
-    /**
-     * メニューを開いた時のサウンドを取得
-     */
-    fun getOpenSound(menuId: String): Sound? {
-        return menuConfigs[menuId]?.openSound
-    }
-
-    /**
-     * メニューを開いた時のサウンドピッチを取得
-     */
-    fun getOpenSoundPitch(menuId: String, default: Float = 1.0f): Float {
-        return menuConfigs[menuId]?.openPitch ?: default
-    }
 }

@@ -286,7 +286,6 @@ class MyWorldManager : JavaPlugin() {
         // メニュー設定の初期化
         menuConfigManager = MenuConfigManager(this)
         menuConfigManager.initialize()
-        registerMenuSoundProvider()
 
         previewSessionManager = PreviewSessionManager(this)
         adminGuiSessionManager = AdminGuiSessionManager()
@@ -512,7 +511,6 @@ class MyWorldManager : JavaPlugin() {
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("mwm") }
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("myworldmanager") }
         runCatching { CCSystem.getAPI().getMenuReversibleStateProviderRegistry().unregisterOwner("myworldmanager") }
-        runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
         }
@@ -650,7 +648,6 @@ class MyWorldManager : JavaPlugin() {
         spotlightRepository.load()
         macroManager.loadConfig()
         menuConfigManager.initialize() // フォルダ作成・デフォルトコピー・全読み込みを一括実行
-        registerMenuSoundProvider()
         pendingInteractionRepository.load()
 
         // ディレクトリの再チェック
@@ -717,17 +714,6 @@ class MyWorldManager : JavaPlugin() {
         )
         server.pluginManager.disablePlugin(this)
         return false
-    }
-
-    /**
-     * MWM のメニュー音設定を cc-system の MenuSoundService に登録する。
-     * onEnable / reloadPlugin の両経路で呼ばれ、Provider を最新の MenuConfigManager で再登録する。
-     */
-    private fun registerMenuSoundProvider() {
-        runCatching {
-            CCSystem.getAPI().getMenuSoundService()
-                .registerProvider(MwmMenuSoundProvider(this))
-        }
     }
 
     private fun saveSplitLanguageResources() {
