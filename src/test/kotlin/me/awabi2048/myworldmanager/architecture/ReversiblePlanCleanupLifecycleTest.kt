@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.architecture
 
+import com.awabi2048.ccsystem.api.CCSystemAPI
+import me.awabi2048.myworldmanager.MyWorldManager
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
@@ -24,7 +27,10 @@ class ReversiblePlanCleanupLifecycleTest {
         assertTrue(contractCheck > enableStart)
         assertTrue(providerRegistration > contractCheck)
         assertTrue(source.contains("actualVersion != REQUIRED_GUI_RUNTIME_CONTRACT_VERSION"))
-        assertTrue(source.contains("REQUIRED_GUI_RUNTIME_CONTRACT_VERSION = 5"))
+        assertTrue(source.contains(
+            "REQUIRED_GUI_RUNTIME_CONTRACT_VERSION = CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION",
+        ))
+        assertEquals(CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION, requiredRuntimeContractFromBytecode())
         assertTrue(source.contains("server.pluginManager.disablePlugin(this)"))
     }
 
@@ -42,4 +48,9 @@ class ReversiblePlanCleanupLifecycleTest {
         assertTrue(source.contains("return disableForGuiRuntimeContractFailure(failure)"))
         assertTrue(source.contains("GUI runtime契約の取得に失敗したため MyWorldManager を無効化します"))
     }
+
+    private fun requiredRuntimeContractFromBytecode(): Int = MyWorldManager::class.java
+        .getDeclaredField("REQUIRED_GUI_RUNTIME_CONTRACT_VERSION")
+        .also { it.isAccessible = true }
+        .getInt(null)
 }

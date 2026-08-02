@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.CCSystemAPI
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.internal.MemberManagerAdapter
 import me.awabi2048.myworldmanager.api.internal.BedrockFormServiceAdapter
@@ -574,7 +575,7 @@ class MyWorldManager : JavaPlugin() {
 
     private companion object {
         const val REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS = 20L * 60L
-        const val REQUIRED_GUI_RUNTIME_CONTRACT_VERSION = 5
+        const val REQUIRED_GUI_RUNTIME_CONTRACT_VERSION = CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION
     }
 
     @Suppress("UNUSED_PARAMETER")
