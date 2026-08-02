@@ -70,6 +70,9 @@ class GuiSemanticProducerContractTest {
             .substringBefore("private fun createTourEntry")
         assertTrue(currentWorld.indexOf("GuiLoreLine.UserText") < currentWorld.indexOf("GuiLoreLine.Data"))
         assertTrue(tour.contains("MenuGesture.LEFT_RIGHT"))
+        val createEntry = tour.substringAfter("gui.tour.menu.create.action")
+            .substringBefore("elements += createCurrentWorldEntry")
+        assertTrue(createEntry.contains("gesture = MenuGesture.ANY"))
     }
 
     @Test
