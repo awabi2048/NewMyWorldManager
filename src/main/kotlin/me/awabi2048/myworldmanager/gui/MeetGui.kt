@@ -7,7 +7,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -18,7 +18,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -102,11 +103,11 @@ class MeetGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = layout.actionSlot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name))),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name))),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
-                actions = listOf(GuiMenuEntryAction(ACTION_STATUS, MenuAcceptedClicks.LEFT_RIGHT, lang.getMessage(player, "gui.meet.status_button.action"))),
+                actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, "gui.meet.status_button.action"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("meet-status"))),
                 playerHeadOwner = player.uniqueId,
             ),
         )
@@ -264,7 +265,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 slot = 22,
                 item = GuiItemSpec(
                     material = Material.QUARTZ,
-                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")),
                     lore = GuiLoreSpec.None,
                     role = GuiElementRole.CONTENT,
                     amount = 1,
@@ -280,14 +281,15 @@ class MeetGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("meet", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(viewer, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(viewer, key),
                         mapOf(PAGE to page.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -295,21 +297,10 @@ class MeetGui(private val plugin: MyWorldManager) {
     }
 
     private fun backEntry(viewer: Player, slot: Int): MenuElement =
-        CCSystem.getAPI().getGuiElementService().menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             viewer,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = plugin.menuConfigManager.getIconMaterial("meet", "back", Material.REDSTONE),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(viewer, "gui.common.return")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(viewer, "gui.common.return"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun createTargetEntry(
@@ -346,7 +337,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Text(target.name, GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.targetIdentityName(target.name, GuiNameStyle.DEFAULT),
                 role = if (actionLabel == null) GuiElementRole.CONTENT else GuiElementRole.ACTION,
                 data = listOf(
                     GuiMenuEntryData(
@@ -367,11 +358,12 @@ class MeetGui(private val plugin: MyWorldManager) {
                 ),
                 actions = actionLabel?.let {
                     listOf(
-                        GuiMenuEntryAction(
+                        menuGestureAction(
                             ACTION_TARGET,
-                            MenuAcceptedClicks.LEFT_RIGHT,
+                            MenuGesture.ANY,
                             it,
                             mapOf(TARGET_UUID to target.uniqueId.toString()),
+                            safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                         ),
                     )
                 }.orEmpty(),

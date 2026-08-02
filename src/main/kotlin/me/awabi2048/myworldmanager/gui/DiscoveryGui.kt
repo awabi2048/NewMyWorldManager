@@ -8,7 +8,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -19,8 +19,9 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuElement
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import java.util.*
@@ -143,7 +144,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 layout.itemSlots[layout.itemSlots.size / 2],
                                                 GuiItemSpec(
                                                         Material.GRAY_DYE,
-                                                        GuiNameSpec.Component(
+                                                        GuiNameSpec.FixedLabel(
                                                                 lang.getComponent(player, "gui.discovery.no_result")
                                                                         .decoration(TextDecoration.ITALIC, false),
                                                         ),
@@ -444,7 +445,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = data.icon,
-                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name))),
+                                name = GuiNameSpec.TargetIdentity(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name))),
                                 role = GuiElementRole.ACTION,
                                 description = if (data.description.isBlank()) emptyList() else listOf(data.description),
                                 data = buildList {
@@ -458,10 +459,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         if (tagNames != null) add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, GuiValueTone.PRIMARY))
                                 },
                                 actions = buildList {
-                                        if (warpHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, warpHint, payload))
-                                        if (previewHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, previewHint, payload))
-                                        if (memberRequestHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_LEFT, memberRequestHint, payload))
-                                        if (favoriteHint.isNotBlank()) add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_RIGHT, favoriteHint, payload))
+                                        if (warpHint.isNotBlank()) add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, warpHint, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                                        if (previewHint.isNotBlank()) add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, previewHint, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                                        if (memberRequestHint.isNotBlank()) add(menuGestureAction(ACTION_WORLD, MenuGesture.SHIFT_LEFT, memberRequestHint, payload, safety = MenuActionSafety.CONFIRM_ENTRY))
+                                        if (favoriteHint.isNotBlank()) add(menuGestureAction(ACTION_WORLD, MenuGesture.SHIFT_RIGHT, favoriteHint, payload, safety = MenuActionSafety.CONFIRM_ENTRY))
                                 },
                         ),
                 )
@@ -477,14 +478,14 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 return CCSystem.getAPI().getGuiElementService().menuEntry(player, GuiMenuEntrySpec(
                         slot = slot,
                         material = plugin.menuConfigManager.getIconMaterial("discovery", "sort", Material.HOPPER),
-                        name = GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.sort.display")),
+                        name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.sort.display")),
                         role = GuiElementRole.ACTION,
                         description = listOf(sortDesc),
                         data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.sort.label"), options.first { it.first == currentSort }.second, GuiValueTone.PRIMARY)),
                         options = options.map { GuiMenuEntryOption(it.second, it.first == currentSort) },
                         actions = buildList {
-                                add(GuiMenuEntryAction(ACTION_SORT, MenuAcceptedClicks.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle")))
-                                if (canEditSpotlight) add(GuiMenuEntryAction(ACTION_SORT, MenuAcceptedClicks.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight")))
+                                add(menuGestureAction(ACTION_SORT, MenuGesture.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("discovery-sort")))
+                                if (canEditSpotlight) add(menuGestureAction(ACTION_SORT, MenuGesture.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE))
                         },
                 ))
         }
@@ -501,7 +502,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 return cycleEntry(
                         player, slot,
                         plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG),
-                        GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.tag_filter.name")),
+                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.tag_filter.name")),
                         lang.getMessage(player, "gui.discovery.tag_filter.label"),
                         selectedOption.second,
                         options.map { GuiMenuEntryOption(it.second, it.first == selectedOption.first) },
@@ -514,7 +515,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val display = lang.getMessage(player, "gui.discovery.special_filter.type.${filter.name.lowercase()}")
                 return cycleEntry(
                         player, slot, Material.COMPASS,
-                        GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.special_filter.name")),
+                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.special_filter.name")),
                         lang.getMessage(player, "gui.discovery.special_filter.label"),
                         display,
                         DiscoverySpecialFilter.values().map { option ->
@@ -542,7 +543,17 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         slot, material, name, GuiElementRole.ACTION,
                         data = listOf(GuiMenuEntryData(label, currentValue, GuiValueTone.PRIMARY)),
                         options = options,
-                        actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT_RIGHT, plugin.languageManager.getMessage(player, "gui.common.action.cycle"))),
+                        actions = listOf(menuGestureAction(
+                            actionId,
+                            MenuGesture.PLAIN_LEFT_RIGHT,
+                            plugin.languageManager.getMessage(player, "gui.common.action.cycle"),
+                            safety = MenuActionSafety.REVERSIBLE,
+                            reversibleContract = when (actionId) {
+                                ACTION_TAG -> MwmMenuActionSemantics.contract("discovery-tag")
+                                ACTION_SPECIAL_FILTER -> MwmMenuActionSemantics.contract("discovery-special")
+                                else -> error("Unknown discovery reversible action: $actionId")
+                            },
+                        )),
                 ),
         )
 
@@ -565,11 +576,11 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 return CCSystem.getAPI().getGuiElementService().menuEntry(player, GuiMenuEntrySpec(
                         slot = slot,
                         material = Material.GLASS_PANE,
-                        name = GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.spotlight_empty.name")),
+                        name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.spotlight_empty.name")),
                         role = if (player.hasPermission("myworldmanager.admin")) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                         description = listOf(lang.getMessage(player, "gui.discovery.spotlight_empty.description")),
                         actions = if (player.hasPermission("myworldmanager.admin")) {
-                                listOf(GuiMenuEntryAction(ACTION_SPOTLIGHT_EMPTY, MenuAcceptedClicks.LEFT_RIGHT, lang.getMessage(player, "gui.discovery.spotlight_empty.action.register")))
+                                listOf(menuGestureAction(ACTION_SPOTLIGHT_EMPTY, MenuGesture.ANY, lang.getMessage(player, "gui.discovery.spotlight_empty.action.register"), safety = MenuActionSafety.CONFIRM_ENTRY))
                         } else emptyList(),
                 ))
         }
@@ -590,7 +601,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 slot,
                                 GuiItemSpec(
                                         Material.BOOK,
-                                        GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.stats.name")),
+                                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.stats.name")),
                                         GuiLoreSpec.Blocks(
                                                 listOf(
                                                         GuiLoreBlock(
@@ -618,14 +629,15 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = plugin.menuConfigManager.getIconMaterial("discovery", iconId, Material.ARROW),
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        menuGestureAction(
                                                 ACTION_PAGE,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.LEFT_RIGHT,
                                                 plugin.languageManager.getMessage(player, key),
                                                 mapOf(PAGE to targetPage.toString()),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),
@@ -633,21 +645,10 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         }
 
         private fun backEntry(player: Player, slot: Int): MenuElement =
-                CCSystem.getAPI().getGuiElementService().menuEntry(
+                CCSystem.getAPI().getGuiElementService().backEntry(
                         player,
-                        GuiMenuEntrySpec(
-                                slot = slot,
-                                material = plugin.menuConfigManager.getIconMaterial("discovery", "back", Material.REDSTONE),
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                                role = GuiElementRole.BACK,
-                                actions = listOf(
-                                        GuiMenuEntryAction(
-                                                ACTION_BACK,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
-                                                plugin.languageManager.getMessage(player, "gui.common.return"),
-                                        ),
-                                ),
-                        ),
+                        slot,
+                        plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                 )
 
         companion object {

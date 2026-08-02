@@ -2,8 +2,9 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -14,7 +15,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -131,21 +133,10 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         }.toMutableList()
 
         if (GuiHelper.canGoBack(player)) {
-            elements += CCSystem.getAPI().getGuiElementService().menuEntry(
+            elements += CCSystem.getAPI().getGuiElementService().backEntry(
                 player,
-                GuiMenuEntrySpec(
-                    slot = (totalRows - 1) * 9 + 4,
-                    material = Material.REDSTONE,
-                    name = GuiNameSpec.Component(lang.getComponent(player, "gui.common.back")),
-                    role = GuiElementRole.BACK,
-                    actions = listOf(
-                        GuiMenuEntryAction(
-                            ACTION_BACK,
-                            MenuAcceptedClicks.LEFT_RIGHT,
-                            lang.getMessage(player, "gui.common.back"),
-                        ),
-                    ),
-                ),
+                (totalRows - 1) * 9 + 4,
+                Material.REDSTONE,
             )
         }
 
@@ -173,12 +164,11 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     private fun cycleTourNavigation(context: MenuActionContext): MenuActionResult {
-        val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
         val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
         stats.tourNavigationMode = GuiCycle.select(
             stats.tourNavigationMode,
             TourNavigationMode.entries,
-            direction,
+            GuiCycleDirection.NEXT,
         )
         plugin.playerStatsRepository.save(stats)
         plugin.tourManager.refreshNavigation(context.player)
@@ -207,7 +197,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Text(
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                     plugin.languageManager.getMessage(player, displayKey),
                     GuiNameStyle.DEFAULT
                 ),
@@ -225,15 +215,28 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 warnings = emptyList(),
                 dangers = emptyList(),
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         actionId,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, actionKey),
+                        safety = settingActionSafety(actionId),
+                        reversibleContract = when (actionId) {
+                            ACTION_NOTIFICATION -> MwmMenuActionSemantics.contract("user-notification")
+                            ACTION_CRITICAL_VISIBILITY -> MwmMenuActionSemantics.contract("user-critical")
+                            else -> null
+                        },
                     ),
                 ),
                 glint = glint,
             ),
         )
+    }
+
+    private fun settingActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_NOTIFICATION,
+        ACTION_CRITICAL_VISIBILITY -> MenuActionSafety.REVERSIBLE
+        ACTION_LANGUAGE -> MenuActionSafety.NAVIGATION_ONLY
+        else -> error("Unknown user setting action safety: $actionId")
     }
 
     private fun tourNavigationEntry(player: Player, currentMode: TourNavigationMode, slot: Int): MenuElement {
@@ -249,7 +252,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.COMPASS,
-                name = GuiNameSpec.Text(
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                     lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
                     GuiNameStyle.DEFAULT
                 ),
@@ -261,10 +264,12 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 warnings = emptyList(),
                 dangers = emptyList(),
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_TOUR_NAVIGATION,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.user_settings.cycle_action.toggle"),
+                        safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmMenuActionSemantics.contract("user-tour"),
                     ),
                 ),
                 glint = null

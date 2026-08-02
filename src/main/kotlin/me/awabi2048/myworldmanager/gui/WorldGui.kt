@@ -8,7 +8,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -20,7 +20,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
@@ -555,21 +556,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                 )
 
         private fun createBackEntry(player: Player, slot: Int): MenuElement =
-                CCSystem.getAPI().getGuiElementService().menuEntry(
+                CCSystem.getAPI().getGuiElementService().backEntry(
                         player,
-                        GuiMenuEntrySpec(
-                                slot = slot,
-                                material = Material.REDSTONE,
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
-                                role = GuiElementRole.BACK,
-                                actions = listOf(
-                                        GuiMenuEntryAction(
-                                                ACTION_BACK,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
-                                                plugin.languageManager.getMessage(player, "gui.common.back"),
-                                        ),
-                                ),
-                        ),
+                        slot,
+                        plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                 )
 
         private fun back(context: MenuActionContext): MenuActionResult {
@@ -603,7 +593,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 slot,
                                 GuiItemSpec(
                                         Material.PAPER,
-                                        GuiNameSpec.Component(lang.getComponent(player, "gui.admin.info.display")),
+                                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.info.display")),
                                         GuiLoreSpec.Blocks(listOf(GuiLoreBlock(lore))),
                                         GuiElementRole.CONTENT,
                                         1,
@@ -768,7 +758,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = data.icon,
-                                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                                name = me.awabi2048.myworldmanager.util.targetIdentityName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                                 role = GuiElementRole.ACTION,
                                 data = buildList {
                                         add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.uuid"), worldDirectory))
@@ -783,10 +773,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_size_line"), worldSizeValue.value, toneFor(worldSizeValue.color)))
                                 },
                                 actions = buildList {
-                                        if (actionWarp.isNotBlank()) add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_LEFT, actionWarp, payload))
-                                        add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.PLAIN_RIGHT, actionSettings, payload))
-                                        add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.SHIFT_RIGHT, actionArchive, payload))
-                                        if (uuidCopyHint.isNotBlank()) add(GuiMenuEntryAction(actionId, MenuAcceptedClicks.MIDDLE, uuidCopyHint, payload))
+                                        if (actionWarp.isNotBlank()) add(menuGestureAction(actionId, MenuGesture.PLAIN_LEFT, actionWarp, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                                        add(menuGestureAction(actionId, MenuGesture.PLAIN_RIGHT, actionSettings, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                                        add(menuGestureAction(actionId, MenuGesture.SHIFT_RIGHT, actionArchive, payload, safety = MenuActionSafety.CONFIRM_ENTRY))
+                                        if (uuidCopyHint.isNotBlank()) add(menuGestureAction(actionId, MenuGesture.MIDDLE, uuidCopyHint, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                                 },
                                 glint = glint,
                         ),
@@ -1046,17 +1036,18 @@ class WorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.ARROW,
-                                name = GuiNameSpec.Text(
+                                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                                         lang.getMessage(player, if (isNext) "gui.common.next_page" else "gui.common.prev_page"),
                                         com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                                 ),
                                 role = GuiElementRole.NAVIGATION,
                                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.common.page_info_label"), "$currentPage/$totalPages", GuiValueTone.SUCCESS)),
-                                actions = listOf(GuiMenuEntryAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_PAGE,
-                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev"),
                                         mapOf(PAGE to targetPage.toString()),
+                                        safety = MenuActionSafety.NAVIGATION_ONLY,
                                 )),
                         ),
                 )
@@ -1147,7 +1138,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.CHEST,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.archive.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.archive.display")),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.archive.label"),
@@ -1157,10 +1148,12 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 options = options.map { (filter, name) ->
                                         GuiMenuEntryOption(name, filter == session.archiveFilter)
                                 },
-                                actions = listOf(GuiMenuEntryAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_ARCHIVE_FILTER,
-                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
+                                        safety = MenuActionSafety.REVERSIBLE,
+                                        reversibleContract = MwmMenuActionSemantics.contract("admin-archive-filter"),
                                 )),
                         ),
                 )
@@ -1176,7 +1169,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.ENDER_EYE,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.publish.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.publish.display")),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.filter.publish.label"),
@@ -1186,10 +1179,12 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 options = options.map { (filter, name) ->
                                         GuiMenuEntryOption(name, filter == session.publishFilter)
                                 },
-                                actions = listOf(GuiMenuEntryAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_PUBLISH_FILTER,
-                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
+                                        safety = MenuActionSafety.REVERSIBLE,
+                                        reversibleContract = MwmMenuActionSemantics.contract("admin-publish-filter"),
                                 )),
                         ),
                 )
@@ -1199,16 +1194,19 @@ class WorldGui(private val plugin: MyWorldManager) {
         private fun createPlayerFilterButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
                 val actions = buildList {
-                        add(GuiMenuEntryAction(
+                        add(menuGestureAction(
                                 ACTION_PLAYER_FILTER,
-                                MenuAcceptedClicks.LEFT,
+                                MenuGesture.LEFT,
                                 lang.getMessage(player, "gui.admin.filter.player.click_left"),
+                                safety = MenuActionSafety.REVERSIBLE,
+                                reversibleContract = MwmMenuActionSemantics.contract("admin-player-filter-left"),
                         ))
                         if (session.playerFilterType != PlayerFilterType.NONE) {
-                                add(GuiMenuEntryAction(
+                                add(menuGestureAction(
                                         ACTION_PLAYER_FILTER,
-                                        MenuAcceptedClicks.RIGHT,
+                                        MenuGesture.RIGHT,
                                         lang.getMessage(player, "gui.admin.filter.player.click_right"),
+                                        safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                 ))
                         }
                 }
@@ -1216,7 +1214,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.PLAYER_HEAD,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.filter.player.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.player.display")),
                                 GuiElementRole.ACTION,
                                 data = buildList {
                                         add(GuiMenuEntryData(
@@ -1246,11 +1244,7 @@ class WorldGui(private val plugin: MyWorldManager) {
         private fun createSortButton(player: Player, session: AdminGuiSession, slot: Int): MenuElement {
                 val lang = plugin.languageManager
 
-                var sortTypes = AdminSortType.values()
-                if (!me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
-                        sortTypes =
-                                sortTypes.filter { it != AdminSortType.MSPT_DESC }.toTypedArray()
-                }
+                val sortTypes = plugin.adminGuiSessionManager.availableSortTypes()
 
                 val options = sortTypes.map { sortType ->
                         sortType to lang.getMessage(player, sortType.displayKey)
@@ -1259,7 +1253,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.HOPPER,
-                                GuiNameSpec.Component(lang.getComponent(player, "gui.admin.sort.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.sort.display")),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
                                         lang.getMessage(player, "gui.admin.sort.label"),
@@ -1269,10 +1263,12 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 options = options.map { (type, name) ->
                                         GuiMenuEntryOption(name, type == session.sortBy)
                                 },
-                                actions = listOf(GuiMenuEntryAction(
+                                actions = listOf(menuGestureAction(
                                         ACTION_SORT,
-                                        MenuAcceptedClicks.LEFT_RIGHT,
+                                        MenuGesture.LEFT_RIGHT,
                                         lang.getMessage(player, "gui.common.action.cycle"),
+                                        safety = MenuActionSafety.REVERSIBLE,
+                                        reversibleContract = MwmMenuActionSemantics.contract("admin-sort"),
                                 )),
                         ),
                 )

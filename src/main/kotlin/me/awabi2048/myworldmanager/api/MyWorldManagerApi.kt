@@ -325,6 +325,22 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
+    fun getPlayerWorldDisplayOrder(playerUuid: UUID): List<UUID> =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).playerStatsRepository
+            .findByUuid(playerUuid).worldDisplayOrder.toList()
+
+    @JvmStatic
+    fun restorePlayerWorldDisplayOrder(playerUuid: UUID, worldUuid: UUID, order: List<UUID>): Boolean {
+        val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        if (plugin.worldConfigRepository.findByUuid(worldUuid) == null) return false
+        val stats = plugin.playerStatsRepository.findByUuid(playerUuid)
+        stats.worldDisplayOrder.clear()
+        stats.worldDisplayOrder.addAll(order)
+        plugin.playerStatsRepository.save(stats)
+        return true
+    }
+
+    @JvmStatic
     fun prepareStandardWorldCreationRoute(
         player: Player,
         billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD,
@@ -484,6 +500,7 @@ object MyWorldManagerApi {
     fun getWorldCreationGuards(): List<WorldCreationGuard> = worldCreationGuards.toList()
 
     @JvmStatic
+    /** 登録済みの純粋な作成可否Guardだけを照会します。GUI描画・Runtime inspectからも呼ばれます。 */
     fun checkWorldCreation(request: WorldCreationRequest): WorldCreationDecision {
         return worldCreationGuards
             .asReversed()

@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -12,7 +12,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -312,11 +313,11 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         description: List<String> = emptyList(),
         data: List<GuiMenuEntryData> = emptyList(),
         warnings: List<String> = emptyList(),
-        actions: List<GuiMenuEntryAction> = emptyList(),
+        actions: List<GuiMenuActionIntent> = emptyList(),
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
         player,
         GuiMenuEntrySpec(
-            slot, material, GuiNameSpec.Text(name, GuiNameStyle.DEFAULT), role,
+            slot, material, me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT), role,
             description = description,
             data = data,
             warnings = warnings,
@@ -335,8 +336,82 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         role: GuiElementRole = GuiElementRole.ACTION,
     ): MenuElement = menuEntry(
         player, slot, material, name, role, description = description,
-        actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, actionText)),
+        actions = listOf(menuGestureAction(
+            actionId, MenuGesture.ANY, actionText,
+            safety = wizardActionSafety(actionId),
+            reversibleContract = when (actionId) {
+                ACTION_CANCEL -> MwmMenuActionSemantics.contract("template-cancel")
+                ACTION_ORIGIN -> MwmMenuActionSemantics.contract("template-origin")
+                else -> null
+            },
+        )),
     )
+
+    data class WizardLocationSnapshot(
+        val worldUuid: UUID,
+        val worldName: String,
+        val x: Double,
+        val y: Double,
+        val z: Double,
+        val yaw: Float,
+        val pitch: Float,
+    )
+
+    data class WizardSessionSnapshot(
+        val sourceWorldName: String,
+        val sourceWorldKey: String,
+        val id: String,
+        val name: String,
+        val description: List<String>,
+        val icon: Material,
+        val origin: WizardLocationSnapshot?,
+        val inputState: InputState,
+    )
+
+    fun snapshot(playerId: UUID): WizardSessionSnapshot? = sessions[playerId]?.let { session ->
+        WizardSessionSnapshot(
+            session.sourceWorldName,
+            session.sourceWorldKey,
+            session.id,
+            session.name,
+            session.description.toList(),
+            session.icon,
+            session.originLocation?.let { location ->
+                WizardLocationSnapshot(
+                    requireNotNull(location.world).uid,
+                    requireNotNull(location.world).name,
+                    location.x, location.y, location.z, location.yaw, location.pitch,
+                )
+            },
+            session.inputState,
+        )
+    }
+
+    fun restore(playerId: UUID, snapshot: WizardSessionSnapshot?): Boolean {
+        if (snapshot == null) sessions.remove(playerId)
+        else {
+            val origin = snapshot.origin?.let { saved ->
+                val world = Bukkit.getWorld(saved.worldUuid) ?: Bukkit.getWorld(saved.worldName) ?: return false
+                org.bukkit.Location(world, saved.x, saved.y, saved.z, saved.yaw, saved.pitch)
+            }
+            sessions[playerId] = WizardSession(
+                snapshot.sourceWorldName, snapshot.sourceWorldKey, snapshot.id, snapshot.name,
+                snapshot.description.toList(), snapshot.icon, origin, snapshot.inputState,
+            )
+        }
+        return true
+    }
+
+    private fun wizardActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_NAME,
+        ACTION_DESCRIPTION -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        ACTION_ICON -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        ACTION_ORIGIN,
+        ACTION_CANCEL -> MenuActionSafety.REVERSIBLE
+        ACTION_SAVE -> MenuActionSafety.IRREVERSIBLE
+        ACTION_VALIDATE -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        else -> error("Unknown template wizard action safety: $actionId")
+    }
 
     fun getSession(uuid: UUID) = sessions[uuid]
     fun removeSession(uuid: UUID) = sessions.remove(uuid)

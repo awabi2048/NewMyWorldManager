@@ -78,6 +78,19 @@ class SettingsSessionManager {
         sessions.remove(player.uniqueId)
     }
 
+    fun snapshot(playerId: UUID): SettingsSessionSnapshot? = sessions[playerId]?.immutableSnapshot()
+
+    fun restoreIfCurrent(
+        playerId: UUID,
+        expectedAfter: SettingsSessionSnapshot,
+        before: SettingsSessionSnapshot,
+    ): Boolean {
+        if (expectedAfter.playerUuid != playerId || before.playerUuid != playerId) return false
+        if (sessions[playerId]?.immutableSnapshot() != expectedAfter) return false
+        sessions[playerId] = before.restore()
+        return true
+    }
+
     fun endSession(playerId: UUID) {
         sessions.remove(playerId)
     }

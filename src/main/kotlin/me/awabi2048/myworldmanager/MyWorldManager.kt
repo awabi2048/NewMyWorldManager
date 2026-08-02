@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager
 
 import com.awabi2048.ccsystem.CCSystem
+import com.awabi2048.ccsystem.api.CCSystemAPI
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.internal.MemberManagerAdapter
 import me.awabi2048.myworldmanager.api.internal.BedrockFormServiceAdapter
@@ -34,6 +35,7 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.scheduler.BukkitTask
 import com.awabi2048.ccsystem.api.config.ConfigClassification
 import com.awabi2048.ccsystem.api.config.ManagedConfigSpec
 import com.awabi2048.ccsystem.api.gui.MenuTargetPolicy
@@ -47,6 +49,9 @@ class MyWorldManager : JavaPlugin() {
 
     lateinit var worldConfigRepository: WorldConfigRepository
     lateinit var worldService: WorldService
+    lateinit var worldPublishService: WorldPublishService
+    lateinit var worldSettingsStateService: WorldSettingsStateService
+    lateinit var favoriteStateService: FavoriteStateService
     lateinit var worldEnvironmentService: WorldEnvironmentService
     lateinit var worldGui: WorldGui
     lateinit var creationSessionManager: CreationSessionManager
@@ -56,6 +61,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var playerLocationRestoreListener: PlayerLocationRestoreListener
     private var worldPointApiService: MyWorldManagerApi.WorldPointService? = null
     private var worldWorkPermissionSyncService: MyWorldManagerApi.WorldWorkPermissionSyncService? = null
+    private var reversiblePlanCleanupTask: BukkitTask? = null
     lateinit var spotlightRepository: SpotlightRepository
     lateinit var pendingInteractionRepository: PendingInteractionRepository
     lateinit var worldDirectoryResolver: WorldDirectoryResolver
@@ -112,6 +118,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var inviteCommand: me.awabi2048.myworldmanager.command.InviteCommand
     lateinit var likeSignManager: me.awabi2048.myworldmanager.service.LikeSignManager
     lateinit var tourManager: me.awabi2048.myworldmanager.service.TourManager
+    lateinit var userSettingsService: UserSettingsService
     lateinit var tourSessionManager: TourSessionManager
     lateinit var playerPlatformResolver: PlayerPlatformResolver
     lateinit var playerVisibilityService: PlayerVisibilityService
@@ -136,7 +143,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var worldPermissionPolicyService: WorldPermissionPolicyService
 
     override fun onEnable() {
-        ensureCCSystemAvailable()
+        if (!ensureCCSystemAvailable()) return
 
         // Serializationの登録
         ConfigurationSerialization.registerClass(WorldData::class.java)
@@ -196,6 +203,9 @@ class MyWorldManager : JavaPlugin() {
         pendingInteractionRepository = PendingInteractionRepository(this)
         // サービスの初期化
         worldService = WorldService(this, worldConfigRepository, playerStatsRepository)
+        worldPublishService = WorldPublishService(this)
+        worldSettingsStateService = WorldSettingsStateService(this)
+        favoriteStateService = FavoriteStateService(this)
         worldEnvironmentService = WorldEnvironmentService(this)
         portalManager = PortalManager(this)
         portalManager.startTasks()
@@ -203,6 +213,7 @@ class MyWorldManager : JavaPlugin() {
         worldUnloadService.start()
         likeSignManager = LikeSignManager(this)
         tourManager = TourManager(this)
+        userSettingsService = UserSettingsService(playerStatsRepository, tourManager)
 
         loadWorldsFromPreviousShutdown()
         worldMigrationService.reportPending()
@@ -241,6 +252,12 @@ class MyWorldManager : JavaPlugin() {
         tourGui = TourGui(this)
 
         creationSessionManager = CreationSessionManager(this)
+        reversiblePlanCleanupTask = server.scheduler.runTaskTimer(this, Runnable {
+            val now = java.time.Instant.now()
+            worldPublishService.purgeExpiredReversiblePlans(now)
+            creationSessionManager.purgeExpiredReversiblePlans(now)
+        }, REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS, REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS)
+        MwmReversibleStateProviders(this).register(CCSystem.getAPI().getMenuReversibleStateProviderRegistry())
         inviteSessionManager = InviteSessionManager()
         macroManager = MacroManager(this)
         worldPermissionPolicyService = WorldPermissionPolicyService(
@@ -470,6 +487,8 @@ class MyWorldManager : JavaPlugin() {
     }
 
     override fun onDisable() {
+        reversiblePlanCleanupTask?.cancel()
+        reversiblePlanCleanupTask = null
         if (::playerLocationRestoreListener.isInitialized) {
             server.onlinePlayers.forEach(playerLocationRestoreListener::saveCurrentLocation)
         }
@@ -492,6 +511,7 @@ class MyWorldManager : JavaPlugin() {
         runCatching { CCSystem.getAPI().getMenuConfirmationService().clearOwner("mwm") }
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("mwm") }
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("myworldmanager") }
+        runCatching { CCSystem.getAPI().getMenuReversibleStateProviderRegistry().unregisterOwner("myworldmanager") }
         runCatching { CCSystem.getAPI().getMenuSoundService().unregisterProvider(MwmMenuSoundProvider.PROVIDER_SOURCE_ID) }
         if (::worldUnloadService.isInitialized) {
             worldUnloadService.stop()
@@ -516,7 +536,11 @@ class MyWorldManager : JavaPlugin() {
             CCSystem.getAPI().getMenuRuntimeService().clear(player)
         }
         if (::settingsSessionManager.isInitialized) settingsSessionManager.endSession(playerUuid)
-        if (::creationSessionManager.isInitialized) creationSessionManager.endSession(playerUuid)
+        if (::worldPublishService.isInitialized) worldPublishService.removeReversiblePlans(playerUuid)
+        if (::creationSessionManager.isInitialized) {
+            creationSessionManager.removeReversiblePlans(playerUuid)
+            creationSessionManager.endSession(playerUuid)
+        }
         if (::inviteSessionManager.isInitialized) inviteSessionManager.endSession(playerUuid)
         if (::discoverySessionManager.isInitialized) discoverySessionManager.clearSession(playerUuid)
         if (::meetSessionManager.isInitialized) meetSessionManager.clearSession(playerUuid)
@@ -532,6 +556,7 @@ class MyWorldManager : JavaPlugin() {
     }
 
     private fun clearAllTransientMenuState() {
+        if (::worldPublishService.isInitialized) worldPublishService.clearReversiblePlans()
         if (::settingsSessionManager.isInitialized) settingsSessionManager.clearAll()
         if (::creationSessionManager.isInitialized) {
             creationSessionManager.clearAll()
@@ -546,6 +571,11 @@ class MyWorldManager : JavaPlugin() {
         if (::tourSessionManager.isInitialized) tourSessionManager.clearAll()
         me.awabi2048.myworldmanager.gui.TourDialogManager.clearAll()
         if (::templateWizardGui.isInitialized) templateWizardGui.clearAll()
+    }
+
+    private companion object {
+        const val REVERSIBLE_PLAN_CLEANUP_INTERVAL_TICKS = 20L * 60L
+        const val REQUIRED_GUI_RUNTIME_CONTRACT_VERSION = CCSystemAPI.GUI_RUNTIME_CONTRACT_VERSION
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -655,12 +685,38 @@ class MyWorldManager : JavaPlugin() {
         }
     }
 
-    private fun ensureCCSystemAvailable() {
+    private fun ensureCCSystemAvailable(): Boolean {
         val ccSystemPlugin = server.pluginManager.getPlugin("CC-System")
         if (ccSystemPlugin == null || !ccSystemPlugin.isEnabled) {
-            throw IllegalStateException("CC-System が有効化されていないため MyWorldManager を起動できません")
+            logger.severe("CC-System が有効化されていないため MyWorldManager を起動できません")
+            server.pluginManager.disablePlugin(this)
+            return false
         }
-        CCSystem.getAPI()
+        val actualVersion = try {
+            CCSystem.getAPI().guiRuntimeContractVersion
+        } catch (failure: LinkageError) {
+            return disableForGuiRuntimeContractFailure(failure)
+        } catch (failure: RuntimeException) {
+            return disableForGuiRuntimeContractFailure(failure)
+        }
+        if (actualVersion != REQUIRED_GUI_RUNTIME_CONTRACT_VERSION) {
+            logger.severe(
+                "CC-System GUI runtime契約版が一致しません: " +
+                    "expected=$REQUIRED_GUI_RUNTIME_CONTRACT_VERSION, actual=$actualVersion",
+            )
+            server.pluginManager.disablePlugin(this)
+            return false
+        }
+        return true
+    }
+
+    private fun disableForGuiRuntimeContractFailure(failure: Throwable): Boolean {
+        logger.severe(
+            "CC-System GUI runtime契約の取得に失敗したため MyWorldManager を無効化します: " +
+                "${failure.javaClass.name}: ${failure.message}",
+        )
+        server.pluginManager.disablePlugin(this)
+        return false
     }
 
     /**

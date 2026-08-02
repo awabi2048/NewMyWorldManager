@@ -4,7 +4,7 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.CustomModelData
 import org.bukkit.Material
@@ -83,8 +83,8 @@ object WorldGateItemUtil {
         return meta.persistentDataContainer.get(TARGET_WORLD_NAME_KEY, PersistentDataType.STRING)
     }
 
-    private fun worldGateLore(lang: LanguageManager, player: Player?, destination: String?) =
-        CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+    private fun worldGateLore(lang: LanguageManager, player: Player?, destination: String?): List<net.kyori.adventure.text.Component> {
+        val blocks = buildList {
             if (destination != null) {
                 add(GuiLoreBlock(listOf(GuiLoreLine.Data(
                     lang.getMessage(player, "gui.world_gate_item.destination"),
@@ -92,13 +92,19 @@ object WorldGateItemUtil {
                     "§f§n"
                 ))))
             }
-            add(GuiLoreBlock(buildList {
-                add(GuiLoreLine.Interaction(
-                    player,
-                    MenuAcceptedClicks.SHIFT_RIGHT,
-                    lang.getMessage(player, if (destination == null) "gui.world_gate_item.action.link" else "gui.world_gate_item.action.relink")
-                ))
-                add(GuiLoreLine.Interaction(player, MenuAcceptedClicks.RIGHT, lang.getMessage(player, "gui.world_gate_item.action.select_area")))
-            }))
-        }))
+        }
+        return CCSystem.getAPI().getLoreService().render(
+            CCSystem.getAPI().getLoreService().compose(
+                if (blocks.isEmpty()) GuiLoreSpec.None else GuiLoreSpec.Blocks(blocks),
+                listOf(
+                    GuiLoreLine.Interaction(
+                        player,
+                        MenuGesture.SHIFT_RIGHT,
+                        lang.getMessage(player, if (destination == null) "gui.world_gate_item.action.link" else "gui.world_gate_item.action.relink")
+                    ),
+                    GuiLoreLine.Interaction(player, MenuGesture.RIGHT, lang.getMessage(player, "gui.world_gate_item.action.select_area"))
+                )
+            )
+        )
+}
 }

@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
@@ -31,7 +35,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         val infoItem = GuiSpecFactory.spec(
             Material.PAPER,
             lang.getComponent(player, "gui.member_request_owner_confirm.title"),
-            GuiLoreSpec.Rich(
+            me.awabi2048.myworldmanager.util.semanticLore(
                 lang.getMessageList(
                     player,
                     "gui.member_request_owner_confirm.lore",
@@ -41,7 +45,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
                             lang.getMessage(player, "general.unknown"),
                         ),
                     ),
-                ).map(GuiLoreLine::Text),
+                ).map(::descriptionLine),
                 GuiLoreFrame.BOTH,
             ),
         )

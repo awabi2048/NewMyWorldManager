@@ -5,7 +5,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -41,12 +42,13 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
+import com.awabi2048.ccsystem.api.gui.menuUnavailable
 
 class PlayerWorldGui(private val plugin: MyWorldManager) {
 
@@ -201,14 +203,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         elements += capability?.let {
                                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                         player,
-                                        GuiMenuCapabilitySpec(
+                                        GuiMenuCapabilityInvocationSpec(
                                                 slot = layout.itemSlots[index],
-                                                capability = it,
-                                                actionId = ACTION_WORLD,
-                                                actionPayload = mapOf(
-                                                        WORLD_UUID to world.uuid.toString(),
-                                                        CAPABILITY_ID to it.capabilityId,
-                                                ),
+                                                capability = it.requireExplicitActionSafety(),
+                                                attributes = attributes,
                                         ),
                                 )
                         } ?: createWorldEntry(player, world, targetUuid, layout.itemSlots[index])
@@ -216,23 +214,23 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val createCount = worlds.count { it.owner == targetUuid }
                 val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
                 if (isOwnMenu) {
+                        val creationAttributes = playerWorldCapabilityAttributes(capabilitySubject)
                         val capabilityView = capabilityService
                                 .definitions(PlayerWorldCapabilityContract.CREATION_PLACEMENT)
                                 .firstNotNullOfOrNull { definition ->
                                         capabilityService.resolve(
                                                 definition.capabilityId,
                                                 player,
-                                                attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                                                attributes = creationAttributes,
                                         )
                                 }
                         if (capabilityView != null) {
                                 elements += CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                         player,
-                                        GuiMenuCapabilitySpec(
+                                        GuiMenuCapabilityInvocationSpec(
                                                 slot = layout.actionSlot - 2,
-                                                capability = capabilityView,
-                                                actionId = ACTION_CREATE,
-                                                actionPayload = mapOf(CAPABILITY_ID to capabilityView.capabilityId),
+                                                capability = capabilityView.requireExplicitActionSafety(),
+                                                attributes = creationAttributes,
                                         ),
                                 )
                         } else {
@@ -249,22 +247,23 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 }
                         }
                 }
+                val summaryAttributes = playerWorldCapabilityAttributes(capabilitySubject)
                 val summaryCapability = capabilityService
                         .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
                         .firstNotNullOfOrNull { definition ->
                                 capabilityService.resolve(
                                         definition.capabilityId,
                                         player,
-                                        attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                                        attributes = summaryAttributes,
                                 )
                         }
                 elements += if (summaryCapability != null) {
                         CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                 player,
-                                GuiMenuCapabilitySpec(
+                                GuiMenuCapabilityInvocationSpec(
                                         slot = layout.actionSlot,
-                                        capability = summaryCapability,
-                                        actionId = ACTION_WORLD,
+                                        capability = summaryCapability.requireExplicitActionSafety(),
+                                        attributes = summaryAttributes,
                                 ),
                         )
                 } else {
@@ -312,16 +311,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun create(context: MenuActionContext): MenuActionResult {
                 if (targetUuid(context.route) != context.player.uniqueId) return MenuActionResult.Ignored
-                context.payload[CAPABILITY_ID]?.let { capabilityId ->
-                        return CCSystem.getAPI().getMenuCapabilityService().execute(
-                                capabilityId,
-                                context.player,
-                                context.click,
-                                attributes = playerWorldCapabilityAttributes(
-                                        playerWorldCapabilitySubject(context.player, context.route),
-                                ),
-                        )
-                }
                 if (!WorldCreationChecks.checkSelfCreatePermission(context.player)) {
                         return MenuActionResult.Rejected()
                 }
@@ -360,17 +349,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         ?: return MenuActionResult.Rejected()
                 val worldData = plugin.worldConfigRepository.findByUuid(uuid)
                         ?: return MenuActionResult.Rejected()
-                context.payload[CAPABILITY_ID]?.let { capabilityId ->
-                        return CCSystem.getAPI().getMenuCapabilityService().execute(
-                                capabilityId,
-                                context.player,
-                                context.click,
-                                attributes = playerWorldCapabilityAttributes(
-                                        playerWorldCapabilitySubject(context.player, context.route),
-                                        worldData,
-                                ),
-                        )
-                }
                 val ownMenu = targetUuid(context.route) == context.player.uniqueId
                 return when {
                         ownMenu && context.click.isShiftClick && context.click.isLeftClick ->
@@ -541,30 +519,34 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val canOpenSettings = canOpenWorldSettings(player, world)
                 val actions = buildList {
                         if (ownMenu) {
-                                add(GuiMenuEntryAction(
+                                add(menuGestureAction(
                                         ACTION_WORLD,
-                                        MenuAcceptedClicks.SHIFT_LEFT,
+                                        MenuGesture.SHIFT_LEFT,
                                         lang.getMessage(player, "gui.player_world.world_item.move_to_top"),
                                         payload,
+                                        safety = MenuActionSafety.REVERSIBLE,
+                                        reversibleContract = MwmMenuActionSemantics.contract("player-world-priority"),
                                 ))
                         }
                         when {
-                                isArchived -> add(GuiMenuEntryAction(
+                                isArchived -> add(menuGestureAction(
                                         ACTION_WORLD,
-                                        MenuAcceptedClicks.PLAIN_LEFT,
+                                        MenuGesture.PLAIN_LEFT,
                                         lang.getMessage(player, "gui.unarchive_confirm.action"),
                                         payload,
+                                        safety = MenuActionSafety.CONFIRM_ENTRY,
                                 ))
-                                isCurrentWorld && canOpenSettings -> add(GuiMenuEntryAction(
+                                isCurrentWorld && canOpenSettings -> add(menuGestureAction(
                                         ACTION_WORLD,
-                                        MenuAcceptedClicks.PLAIN_LEFT_RIGHT,
+                                        MenuGesture.PLAIN_LEFT_RIGHT,
                                         settingsAction,
                                         payload,
+                                        safety = MenuActionSafety.NAVIGATION_ONLY,
                                 ))
                                 !isCurrentWorld -> {
-                                        add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, warpAction, payload))
+                                        add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, warpAction, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                                         if (canOpenSettings) {
-                                                add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, settingsAction, payload))
+                                                add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, settingsAction, payload, safety = MenuActionSafety.NAVIGATION_ONLY))
                                         }
                                 }
                         }
@@ -574,7 +556,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = world.icon,
-                                name = GuiNameSpec.Component(
+                                name = GuiNameSpec.TargetIdentity(
                                         lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to world.name)),
                                 ),
                                 role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
@@ -623,13 +605,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.WRITABLE_BOOK,
-                                name = GuiNameSpec.Text(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
+                                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
                                 role = GuiElementRole.ACTION,
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        menuGestureAction(
                                                 ACTION_SETTINGS,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.user_settings.button.action"),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),
@@ -643,14 +626,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.NETHER_STAR,
-                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.player_world.creation_button.display")),
+                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.player_world.creation_button.display")),
                                 role = GuiElementRole.ACTION,
                                 description = lang.getMessageList(player, "gui.player_world.creation_button.description"),
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        menuGestureAction(
                                                 ACTION_CREATE,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.player_world.creation_button.action"),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),
@@ -661,25 +645,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 player: Player,
                 slot: Int,
                 reason: CreationBlockReason,
-        ): MenuElement = CCSystem.getAPI().getGuiElementService().menuDisplay(
-                GuiMenuDisplaySpec(
-                        slot,
-                        GuiItemSpec(
-                                Material.BARRIER,
-                                GuiNameSpec.Component(plugin.languageManager.getComponent(player, reason.displayKey)),
-                                GuiLoreSpec.Blocks(
-                                        listOf(
-                                                GuiLoreBlock(
-                                                        plugin.languageManager.getMessageList(player, reason.loreKey)
-                                                                .map(GuiLoreLine::Text),
-                                                ),
-                                        ),
-                                ),
-                                GuiElementRole.CONTENT,
-                                1,
+        ): MenuElement {
+                val unavailableReason = plugin.languageManager.getComponent(player, reason.displayKey)
+                return CCSystem.getAPI().getGuiElementService().menuUnavailable(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = slot,
+                                material = Material.BARRIER,
+                                name = GuiNameSpec.FixedLabel(unavailableReason),
+                                role = GuiElementRole.CONTENT,
+                                warnings = plugin.languageManager.getMessageList(player, reason.loreKey),
                         ),
-                ),
-        )
+                        unavailableReason,
+                )
+        }
 
         private fun creationBlockReason(
                 player: Player,
@@ -767,7 +746,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 slot,
                                 GuiItemSpec(
                                         Material.PLAYER_HEAD,
-                                        GuiNameSpec.Component(
+                                        GuiNameSpec.FixedLabel(
                                                 lang.getComponent(
                                                         player,
                                                         "gui.player_world.stats_button.display",
@@ -799,14 +778,15 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = plugin.menuConfigManager.getIconMaterial("player_world", iconId, Material.ARROW),
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                                 role = GuiElementRole.NAVIGATION,
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        menuGestureAction(
                                                 ACTION_PAGE,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 plugin.languageManager.getMessage(player, key),
                                                 mapOf(PAGE to targetPage.toString()),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                         ),
@@ -814,21 +794,10 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun backEntry(player: Player, slot: Int): MenuElement =
-                CCSystem.getAPI().getGuiElementService().menuEntry(
+                CCSystem.getAPI().getGuiElementService().backEntry(
                         player,
-                        GuiMenuEntrySpec(
-                                slot = slot,
-                                material = plugin.menuConfigManager.getIconMaterial("player_world", "back", Material.REDSTONE),
-                                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                                role = GuiElementRole.BACK,
-                                actions = listOf(
-                                        GuiMenuEntryAction(
-                                                ACTION_BACK,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
-                                                plugin.languageManager.getMessage(player, "gui.common.return"),
-                                        ),
-                                ),
-                        ),
+                        slot,
+                        plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                 )
 
         private fun createPendingEntry(player: Player, slot: Int): MenuElement {
@@ -847,7 +816,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.WRITABLE_BOOK,
-                                name = GuiNameSpec.Component(lang.getComponent(player, "gui.player_world.pending_button.display")),
+                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.player_world.pending_button.display")),
                                 role = GuiElementRole.ACTION,
                                 description = lang.getMessageList(player, "gui.player_world.pending_button.description"),
                                 data = listOf(
@@ -863,10 +832,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         ),
                                 ),
                                 actions = listOf(
-                                        GuiMenuEntryAction(
+                                        menuGestureAction(
                                                 ACTION_PENDING,
-                                                MenuAcceptedClicks.LEFT_RIGHT,
+                                                MenuGesture.ANY,
                                                 lang.getMessage(player, "gui.player_world.pending_button.action"),
+                                                safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
                                 glint = pendingCount > 0,
@@ -906,7 +876,6 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 private const val TARGET_NAME = "targetName"
                 private const val SHOW_BACK = "showBack"
                 private const val WORLD_UUID = "worldUuid"
-                private const val CAPABILITY_ID = "capabilityId"
                 private const val ACTION_PAGE = "page"
                 private const val ACTION_BACK = "back"
                 private const val ACTION_CREATE = "create"

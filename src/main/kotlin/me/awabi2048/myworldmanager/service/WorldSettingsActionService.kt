@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.service
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -24,21 +24,19 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         val options = when (action) {
             WorldSettingsAction.SET_SPAWN -> if (plugin.playerPlatformResolver.isBedrock(player)) {
                 listOf(
-                    WorldSettingsActionOption(MenuAcceptedClicks.LEFT_RIGHT),
+                    WorldSettingsActionOption(MenuGesture.LEFT_RIGHT),
                 )
             } else {
                 listOf(
-                    WorldSettingsActionOption(MenuAcceptedClicks.LEFT),
-                    WorldSettingsActionOption(MenuAcceptedClicks.RIGHT),
+                    WorldSettingsActionOption(MenuGesture.LEFT),
+                    WorldSettingsActionOption(MenuGesture.RIGHT),
                 )
             }
             WorldSettingsAction.EDIT_ANNOUNCEMENT -> listOf(
-                WorldSettingsActionOption(MenuAcceptedClicks.LEFT),
-                WorldSettingsActionOption(MenuAcceptedClicks.RIGHT),
+                WorldSettingsActionOption(MenuGesture.LEFT),
+                WorldSettingsActionOption(MenuGesture.RIGHT),
             )
-            else -> listOf(
-                WorldSettingsActionOption(MenuAcceptedClicks.LEFT_RIGHT),
-            )
+            else -> listOf(WorldSettingsActionOption(MenuGesture.ANY))
         }
         return WorldSettingsActionContract(action, options, isActionable(player, worldData, action))
     }
@@ -54,9 +52,17 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
             WorldSettingsAction.EDIT_INFO -> editInfo(request.player, worldData)
             WorldSettingsAction.SELECT_ICON -> plugin.worldSettingsIconSelectionService.start(request.player, worldData)
             WorldSettingsAction.SET_SPAWN -> selectSpawnType(request.player, worldData, request.click)
-            WorldSettingsAction.MANAGE_MEMBERS -> MenuActionResult.Success(
-                MenuUpdate.Navigate(plugin.worldSettingsGui.memberManagementRoute(worldData.uuid)),
-            )
+            WorldSettingsAction.MANAGE_MEMBERS -> {
+                plugin.settingsSessionManager.updateSessionAction(
+                    request.player,
+                    worldData.uuid,
+                    SettingsAction.MANAGE_MEMBERS,
+                    isGui = true,
+                )
+                MenuActionResult.Success(
+                    MenuUpdate.Navigate(plugin.worldSettingsGui.memberManagementRoute(worldData.uuid)),
+                )
+            }
             WorldSettingsAction.EDIT_ANNOUNCEMENT -> editAnnouncement(request.player, worldData, request.click)
             WorldSettingsAction.MANAGE_TOUR -> MenuActionResult.Success(
                 MenuUpdate.Navigate(plugin.tourGui.editRoute(worldData.uuid)),

@@ -31,6 +31,13 @@ data class WorldCreationDecision(
     }
 }
 
+/**
+ * ワールド作成可否を判定する拡張ポイントです。
+ *
+ * この判定は通常実行だけでなく、GUIの描画およびRuntime inspect中にも呼び出されます。
+ * [evaluate] は状態変更、メッセージ送信、スケジューラ登録、ワールド操作その他の外部操作を
+ * 一切行わない純粋な照会として実装してください。
+ */
 interface WorldCreationGuard {
     fun getId(): String
 

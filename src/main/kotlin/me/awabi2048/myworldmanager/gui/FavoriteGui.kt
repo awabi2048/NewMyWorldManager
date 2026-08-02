@@ -9,7 +9,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -20,7 +20,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -111,7 +112,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                     22,
                     GuiItemSpec(
                         Material.QUARTZ,
-                        GuiNameSpec.Component(lang.getComponent(player, key).decoration(TextDecoration.ITALIC, false)),
+                        GuiNameSpec.FixedLabel(lang.getComponent(player, key).decoration(TextDecoration.ITALIC, false)),
                         GuiLoreSpec.None,
                         GuiElementRole.CONTENT,
                         1,
@@ -233,11 +234,11 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         } else {
             buildList {
                 if (canWarp) {
-                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.favorite.world_item.warp"), payload))
-                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.favorite.world_item.preview"), payload))
+                    add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.favorite.world_item.warp"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
+                    add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.favorite.world_item.preview"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                 }
                 if (canUnfavorite) {
-                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.SHIFT_RIGHT, lang.getMessage(player, "gui.favorite.world_item.unfavorite"), payload))
+                    add(menuGestureAction(ACTION_WORLD, MenuGesture.SHIFT_RIGHT, lang.getMessage(player, "gui.favorite.world_item.unfavorite"), payload, safety = MenuActionSafety.CONFIRM_ENTRY))
                 }
             }
         }
@@ -246,7 +247,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = data.icon,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))),
+                name = GuiNameSpec.TargetIdentity(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))),
                 role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
                 description = listOfNotNull(data.description.takeIf(String::isNotBlank)),
                 data = buildList {
@@ -272,7 +273,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Component(lang.getComponent(
+                name = GuiNameSpec.FixedLabel(lang.getComponent(
                 player,
                 "gui.favorite.player_icon.name",
                 mapOf(
@@ -301,15 +302,17 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG),
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.discovery.tag_filter.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.tag_filter.name")),
                 role = GuiElementRole.ACTION,
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.tag_filter.label"), selected.second, GuiValueTone.PRIMARY)),
                 options = options.map { (id, displayName) -> GuiMenuEntryOption(displayName, id == selected.first) },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_TAG,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.common.action.cycle"),
+                        safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmMenuActionSemantics.contract("favorite-tag"),
                     ),
                 ),
             ),
@@ -324,14 +327,15 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("favorite", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -339,21 +343,10 @@ class FavoriteGui(private val plugin: MyWorldManager) {
     }
 
     private fun backEntry(player: Player, slot: Int): MenuElement =
-        CCSystem.getAPI().getGuiElementService().menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = plugin.menuConfigManager.getIconMaterial("favorite", "back", Material.REDSTONE),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(player, "gui.common.return"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun route(page: Int, returnWorld: UUID?, returnToFavoriteMenu: Boolean): MenuRoute =

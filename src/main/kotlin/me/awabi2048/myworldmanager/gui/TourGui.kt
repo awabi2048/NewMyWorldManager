@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -7,7 +11,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -19,7 +23,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -358,15 +363,10 @@ class TourGui(private val plugin: MyWorldManager) {
             elements += createTourEntry(layout.itemSlots[index], player, worldData, tour, true, ACTION_EDIT)
         }
         val footerStart = layout.size - 9
-        elements += actionEntry(
-            footerStart + 4,
+        elements += CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            Material.REDSTONE,
-            lang.getMessage(player, "gui.tour.menu.back"),
-            emptyList(),
-            lang.getMessage(player, "gui.tour.menu.back"),
-            ACTION_BACK,
-            GuiElementRole.BACK,
+            footerStart + 4,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
         if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
             elements += actionEntry(
@@ -385,7 +385,7 @@ class TourGui(private val plugin: MyWorldManager) {
             footerStart + 6,
             Material.REDSTONE_TORCH,
             lang.getMessage(player, "gui.tour.menu.info.display"),
-            infoLines.map(GuiLoreLine::Text),
+            infoLines.map(::descriptionLine),
             frame = GuiLoreFrame.BOTH,
         )
         if (safePage > 0) {
@@ -437,26 +437,21 @@ class TourGui(private val plugin: MyWorldManager) {
             )
         }
         val bottom = rows * 9 - 9
-        elements += actionEntry(
-            bottom,
+        elements += CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            Material.REDSTONE,
-            lang.getMessage(player, "gui.tour.menu.back"),
-            emptyList(),
-            lang.getMessage(player, "gui.tour.menu.back"),
-            ACTION_SINGLE_BACK,
-            GuiElementRole.BACK,
+            bottom,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
         elements += CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
                 slot = bottom + 2,
                 material = Material.NAME_TAG,
-                name = GuiNameSpec.Text(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
                 actions = listOf(
-                    GuiMenuEntryAction(ACTION_EDIT_TEXT, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text")),
-                    GuiMenuEntryAction(ACTION_EDIT_TEXT, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon")),
+                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE),
+                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("tour-icon")),
                 ),
             ),
         )
@@ -816,8 +811,8 @@ class TourGui(private val plugin: MyWorldManager) {
             slot,
             GuiItemSpec(
                 material,
-                GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
-                if (lore.isEmpty()) GuiLoreSpec.None else GuiLoreSpec.Rich(lore, frame),
+                me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT),
+                if (lore.isEmpty()) GuiLoreSpec.None else me.awabi2048.myworldmanager.util.semanticLore(lore, frame),
                 role,
                 1,
             ),
@@ -850,14 +845,15 @@ class TourGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("tour", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf("page" to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -868,19 +864,21 @@ class TourGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val owner = Bukkit.getOfflinePlayer(worldData.owner)
         val ownerName = owner.name ?: lang.getMessage(player, "general.unknown")
-        val lore = GuiLoreSpec.Blocks(listOf(
-            GuiLoreBlock(buildList {
-                add(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.world_name"), worldData.name, "§a"))
-                if (worldData.description.isNotBlank()) add(GuiLoreLine.UserText(worldData.description))
-            }),
-            GuiLoreBlock(listOf(GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b")))
-        ))
+        val lore = GuiLoreSpec.Blocks(buildList {
+            if (worldData.description.isNotBlank()) {
+                add(GuiLoreBlock(listOf(GuiLoreLine.UserText(worldData.description))))
+            }
+            add(GuiLoreBlock(listOf(
+                GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.world_name"), worldData.name, "§a"),
+                GuiLoreLine.Data(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, "§b"),
+            )))
+        })
         return CCSystem.getAPI().getGuiElementService().menuDisplay(
             GuiMenuDisplaySpec(
                 slot,
                 GuiItemSpec(
                     worldData.icon,
-                    GuiNameSpec.Component(lang.getComponent(player, "gui.favorite.current_world.name")),
+                    GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.current_world.name")),
                     lore,
                     GuiElementRole.CONTENT,
                     1,
@@ -923,7 +921,7 @@ class TourGui(private val plugin: MyWorldManager) {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Text(name, GuiNameStyle.DEFAULT),
+            name = me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT),
             role = role,
             description = information.mapNotNull {
                 when (it) {
@@ -939,16 +937,47 @@ class TourGui(private val plugin: MyWorldManager) {
                     else -> null
                 }
             },
-            actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, action, payload)),
+            actions = listOf(menuGestureAction(
+                actionId, MenuGesture.LEFT_RIGHT, action, payload,
+                safety = tourActionSafety(actionId),
+                reversibleContract = when (actionId) {
+                    ACTION_DISCARD_CONFIRM -> MwmMenuActionSemantics.contract("tour-discard")
+                    ACTION_REMOVE_WAYPOINT -> MwmMenuActionSemantics.contract("tour-remove-waypoint")
+                    else -> null
+                },
+            )),
         ),
     )
+
+    private fun tourActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_START,
+        ACTION_STOP_CONFIRM -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        ACTION_START_CANCEL,
+        ACTION_STOP_CANCEL,
+        ACTION_PAGE,
+        ACTION_EDIT,
+        ACTION_DISCARD_CANCEL,
+        ACTION_BIND_CANCEL,
+        ACTION_DELETE_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
+        ACTION_STOP,
+        ACTION_SELECT,
+        ACTION_DELETE -> MenuActionSafety.CONFIRM_ENTRY
+        ACTION_CREATE,
+        ACTION_ADD_WAYPOINT -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        ACTION_SAVE,
+        ACTION_BIND_SIGN,
+        ACTION_DELETE_CONFIRM -> MenuActionSafety.IRREVERSIBLE
+        ACTION_REMOVE_WAYPOINT,
+        ACTION_DISCARD_CONFIRM -> MenuActionSafety.REVERSIBLE
+        else -> error("Unknown tour action safety: $actionId")
+    }
 
     private fun toneFor(colorCode: String): GuiValueTone =
         GuiValueTone.entries.firstOrNull { it.colorCode == colorCode } ?: GuiValueTone.DEFAULT
 
     private fun framedLore(lines: List<GuiLoreLine>): GuiLoreSpec {
         if (lines.isEmpty()) return GuiLoreSpec.None
-        return GuiLoreSpec.Rich(lines, GuiLoreFrame.BOTH)
+        return me.awabi2048.myworldmanager.util.semanticLore(lines, GuiLoreFrame.BOTH)
     }
 
     fun openBindSignToTourMenu(player: Player, worldData: WorldData) {

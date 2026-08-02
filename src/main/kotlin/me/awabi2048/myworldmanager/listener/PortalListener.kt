@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.listener
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -7,20 +11,22 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.PortalGui
+import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -379,7 +385,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 "current" to currentPoints,
                 "remaining" to remainingPoints,
             ),
-        ).map(GuiLoreLine::Text)
+        ).map(::descriptionLine)
         val guiElements = CCSystem.getAPI().getGuiElementService()
         return InventoryMenuView(
             size = layout.size,
@@ -392,15 +398,15 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                         layout.previewSlot,
                         GuiItemSpec(
                             Material.BOOK,
-                            GuiNameSpec.Component(lang.getComponent(player, "messages.world_gate_confirm_title")),
+                            GuiNameSpec.FixedLabel(lang.getComponent(player, "messages.world_gate_confirm_title")),
                             GuiLoreSpec.Blocks(listOf(GuiLoreBlock(infoLines))),
                             GuiElementRole.CONTENT,
                             1,
                         ),
                     ),
                 ),
-                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
-                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
+                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", "gui.common.confirm_action", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
+                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", "gui.common.cancel_action", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
             ),
         )
     }
@@ -410,6 +416,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         slot: Int,
         material: Material,
         nameKey: String,
+        actionKey: String,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -417,13 +424,18 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, nameKey)),
+            name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, nameKey)),
             role = role,
             actions = listOf(
-                GuiMenuEntryAction(
+                menuGestureAction(
                     actionId,
-                    MenuAcceptedClicks.LEFT_RIGHT,
-                    plugin.languageManager.getMessage(player, nameKey),
+                    MenuGesture.ANY,
+                    plugin.languageManager.getMessage(player, actionKey),
+                    safety = when (actionId) {
+                        ACTION_CONFIRM_GATE -> MenuActionSafety.IRREVERSIBLE
+                        ACTION_CANCEL_GATE -> MenuActionSafety.NAVIGATION_ONLY
+                        else -> error("Unknown world gate confirmation action safety: $actionId")
+                    },
                 ),
             ),
         ),

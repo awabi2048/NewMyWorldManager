@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -8,7 +12,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
@@ -17,7 +21,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -316,12 +321,12 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 slot = slot,
                 item = GuiItemSpec(
                     material = Material.BARRIER,
-                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name")),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
                                 plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore")
-                                    .map(GuiLoreLine::Text),
+                                    .map(::descriptionLine),
                             ),
                         ),
                     ),
@@ -337,7 +342,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 slot = 4,
                 item = GuiItemSpec(
                     material = Material.BOOK,
-                    name = GuiNameSpec.Text(
+                    name = me.awabi2048.myworldmanager.util.fixedLabelName(
                         plugin.languageManager.getMessage(player, "gui.pending_list.info.name"),
                         GuiNameStyle.DEFAULT,
                     ),
@@ -373,14 +378,15 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("pending_list", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         actionId = ACTION_PAGE,
-                        acceptedClicks = MenuAcceptedClicks.LEFT_RIGHT,
+                        gesture = MenuGesture.ANY,
                         label = plugin.languageManager.getMessage(player, key),
                         payload = mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -388,21 +394,10 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     }
 
     private fun backEntry(player: Player, slot: Int): MenuElement =
-        guiElements.menuEntry(
+        guiElements.backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = plugin.menuConfigManager.getIconMaterial("pending_list", "back", Material.REDSTONE),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(player, "gui.common.return"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun typeLabel(player: Player, type: PendingDecisionManager.PendingType): String {

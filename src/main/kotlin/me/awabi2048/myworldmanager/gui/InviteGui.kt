@@ -7,7 +7,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -17,7 +17,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -119,7 +120,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                 slot = 4,
                 item = GuiItemSpec(
                     material = currentWorldData.icon,
-                    name = GuiNameSpec.Component(
+                    name = GuiNameSpec.TargetIdentity(
                         lang.getComponent(
                             player,
                             "gui.common.world_item_name",
@@ -191,7 +192,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Component(
+                name = GuiNameSpec.TargetIdentity(
                     LegacyComponentSerializer.legacySection().deserialize("$colorCode${target.name}")
                         .decoration(TextDecoration.ITALIC, false),
                 ),
@@ -204,14 +205,15 @@ class InviteGui(private val plugin: MyWorldManager) {
                     ),
                 ),
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_INVITE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(viewer, "gui.invite.target_head.click_invite"),
                         mapOf(
                             TARGET_UUID to target.uniqueId.toString(),
                             TARGET_NAME to target.name,
                         ),
+                        safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                     ),
                 ),
                 playerHeadOwner = target.uniqueId,
@@ -227,14 +229,15 @@ class InviteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("meet", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -242,21 +245,10 @@ class InviteGui(private val plugin: MyWorldManager) {
     }
 
     private fun backEntry(player: Player, slot: Int): MenuElement =
-        CCSystem.getAPI().getGuiElementService().menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = plugin.menuConfigManager.getIconMaterial("meet", "back", Material.REDSTONE),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(player, "gui.common.return"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun MenuRoute.uuid(key: String): UUID? =

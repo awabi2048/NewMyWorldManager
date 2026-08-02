@@ -8,7 +8,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -19,7 +19,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -208,7 +209,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.END_PORTAL_FRAME,
-                name = GuiNameSpec.Text(
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(
                     lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destination)),
                     com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                 ),
@@ -219,8 +220,8 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                     GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"), "${portal.x}, ${portal.y}, ${portal.z}"),
                 ),
                 actions = listOf(
-                    GuiMenuEntryAction(ACTION_PORTAL, MenuAcceptedClicks.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload),
-                    GuiMenuEntryAction(ACTION_PORTAL, MenuAcceptedClicks.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload),
+                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT),
+                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload, safety = MenuActionSafety.IRREVERSIBLE),
                 ),
             ),
         )
@@ -233,14 +234,15 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.ARROW,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -248,21 +250,10 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
     }
 
     private fun backEntry(player: Player, slot: Int): MenuElement =
-        CCSystem.getAPI().getGuiElementService().menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = Material.REDSTONE,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(player, "gui.common.back"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun createInfoEntry(player: Player, totalCount: Int, current: Int, total: Int): MenuElement =
@@ -271,7 +262,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 slot = 49,
                 item = GuiItemSpec(
                     material = Material.PAPER,
-                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.admin.info.display")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.admin.info.display")),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
@@ -296,7 +287,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.HOPPER,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.admin_portals.sort.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin_portals.sort.display")),
                 role = GuiElementRole.ACTION,
                 data = listOf(
                     GuiMenuEntryData(
@@ -307,10 +298,12 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 ),
                 options = options.map { (type, name) -> GuiMenuEntryOption(name, type == session.portalSortBy) },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_SORT,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.common.action.cycle"),
+                        safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmMenuActionSemantics.contract("admin-portal-sort"),
                     ),
                 ),
             ),

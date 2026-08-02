@@ -2,7 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -12,7 +12,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -192,7 +193,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.FEATHER,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.gravity.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.gravity.display")),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "gui.environment.gravity.requirement")),
                 data = buildList {
@@ -202,10 +203,11 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_GRAVITY,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.environment.gravity.action"),
+                        safety = MenuActionSafety.CONFIRM_ENTRY,
                     ),
                 ),
             ),
@@ -222,7 +224,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.WHITE_WOOL,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.weather.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.weather.display")),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "gui.environment.weather.desc")),
                 data = buildList {
@@ -232,15 +234,18 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_WEATHER,
-                        MenuAcceptedClicks.LEFT,
+                        MenuGesture.LEFT,
                         lang.getMessage(player, "gui.environment.weather.action.cycle"),
+                        safety = MenuActionSafety.REVERSIBLE,
+                        reversibleContract = MwmMenuActionSemantics.contract("environment-weather"),
                     ),
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_WEATHER,
-                        MenuAcceptedClicks.RIGHT,
+                        MenuGesture.RIGHT,
                         lang.getMessage(player, "gui.environment.weather.action.confirm"),
+                        safety = MenuActionSafety.CONFIRM_ENTRY,
                     ),
                 ),
             ),
@@ -256,7 +261,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.GRASS_BLOCK,
-                name = GuiNameSpec.Component(lang.getComponent(player, "gui.environment.biome.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.biome.display")),
                 role = GuiElementRole.ACTION,
                 description = listOf(
                     lang.getMessage(player, "gui.environment.biome.desc"),
@@ -269,10 +274,11 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
                     }
                 },
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_BIOME,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         lang.getMessage(player, "gui.environment.biome.action"),
+                        safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                     ),
                 ),
             ),
@@ -283,21 +289,10 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
 
     private fun createBackEntry(player: Player, slot: Int): MenuElement =
-        menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = Material.REDSTONE,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.back")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(player, "gui.common.back"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun worldData(route: MenuRoute): WorldData {

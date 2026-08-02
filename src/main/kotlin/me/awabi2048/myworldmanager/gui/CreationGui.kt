@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -7,9 +11,9 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -19,12 +23,14 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.menuUnavailable
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.CreationConfirmationCapabilityContract
@@ -51,6 +57,21 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.util.UUID
 
+internal data class CreationTypeAvailability(val enabled: Boolean, val reasonKey: String? = null)
+
+internal fun resolveCreationTypeAvailability(
+    creationType: WorldCreationType,
+    usableTemplateExists: Boolean,
+    canAfford: Boolean,
+): CreationTypeAvailability = when {
+    !canAfford -> CreationTypeAvailability(false, "messages.creation_insufficient_points")
+    creationType == WorldCreationType.TEMPLATE && !usableTemplateExists ->
+        CreationTypeAvailability(false, "error.preview_template_not_found")
+    else -> CreationTypeAvailability(true)
+}
+
+internal fun templateCreationTypeUpdate(route: MenuRoute): MenuUpdate = MenuUpdate.Navigate(route)
+
 class CreationGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
@@ -74,7 +95,6 @@ class CreationGui(private val plugin: MyWorldManager) {
                 renderer = { context -> renderConfirmation(context.player) },
                 actions = mapOf(
                     ACTION_CONFIRM_INTERACTION to MenuActionHandler(::confirmationAction),
-                    ACTION_CONFIRM_CAPABILITY to MenuActionHandler(::useConfirmationCapability),
                 ),
                 onClose = MenuCloseHandler(::closed),
             ),
@@ -128,18 +148,22 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     internal fun templateSelectionRoute(): MenuRoute = MenuRoute(OWNER, TEMPLATE_LIST_ROUTE)
 
+    internal fun templateCreationTypeUpdate(): MenuUpdate = templateCreationTypeUpdate(templateSelectionRoute())
+
     private fun renderTypeSelection(player: Player): InventoryMenuView {
         val lang = plugin.languageManager
         val layout = me.awabi2048.myworldmanager.util.GuiHelper.threeChoiceLayout()
+        val session = plugin.creationSessionManager.getSession(player.uniqueId)
+        val usableTemplateExists = plugin.templateRepository.findAll().any(plugin.templateRepository::isUsable)
         return InventoryMenuView(
             size = layout.size,
             title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
                 lang.getMessage(player, "gui.creation.title_type"),
             ),
             elements = listOf(
-                createCreationTypeEntry(player, layout.leftSlot, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE),
-                createCreationTypeEntry(player, layout.centerSlot, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED),
-                createCreationTypeEntry(player, layout.rightSlot, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM),
+                createCreationTypeEntry(player, layout.leftSlot, plugin.menuConfigManager.getIconMaterial("creation", "template", Material.MAP), lang.getMessage("gui.creation.type.template.name"), "gui.creation.type.template.lore", WorldCreationType.TEMPLATE, creationTypeAvailability(player, session, WorldCreationType.TEMPLATE, usableTemplateExists)),
+                createCreationTypeEntry(player, layout.centerSlot, plugin.menuConfigManager.getIconMaterial("creation", "seed", Material.NAME_TAG), lang.getMessage("gui.creation.type.seed.name"), "gui.creation.type.seed.lore", WorldCreationType.SEED, creationTypeAvailability(player, session, WorldCreationType.SEED, usableTemplateExists)),
+                createCreationTypeEntry(player, layout.rightSlot, plugin.menuConfigManager.getIconMaterial("creation", "random", Material.ENDER_EYE), lang.getMessage("gui.creation.type.random.name"), "gui.creation.type.random.lore", WorldCreationType.RANDOM, creationTypeAvailability(player, session, WorldCreationType.RANDOM, usableTemplateExists)),
                 backEntry(player, layout.backSlot, ACTION_BACK),
             ),
         )
@@ -151,31 +175,22 @@ class CreationGui(private val plugin: MyWorldManager) {
         val creationType = context.payload["type"]?.let {
             runCatching { WorldCreationType.valueOf(it) }.getOrNull()
         } ?: return MenuActionResult.Rejected()
-        val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
-        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
-        if (
-            session.billingMode == me.awabi2048.myworldmanager.api.service.WorldPointBillingMode.STANDARD &&
-            MyWorldManagerApi.isWorldPointEconomyEnabled() &&
-            stats.worldPoint < cost
-        ) {
-            context.player.sendMessage(
-                plugin.languageManager.getMessage(context.player, "messages.creation_insufficient_points"),
-            )
+        val availability = creationTypeAvailability(
+            context.player,
+            session,
+            creationType,
+            plugin.templateRepository.findAll().any(plugin.templateRepository::isUsable),
+        )
+        if (!availability.enabled) {
+            context.player.sendMessage(plugin.languageManager.getMessage(context.player, availability.reasonKey!!))
             return MenuActionResult.Rejected()
         }
 
         session.creationType = creationType
         return when (creationType) {
             WorldCreationType.TEMPLATE -> {
-                if (plugin.templateRepository.findAll().none(plugin.templateRepository::isUsable)) {
-                    context.player.sendMessage(
-                        plugin.languageManager.getMessage(context.player, "error.preview_template_not_found"),
-                    )
-                    MenuActionResult.Rejected()
-                } else {
-                    session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                    MenuActionResult.Success(MenuUpdate.Navigate(templateSelectionRoute()))
-                }
+                session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                MenuActionResult.Success(templateCreationTypeUpdate())
             }
             WorldCreationType.SEED -> {
                 session.phase = WorldCreationPhase.SEED_INPUT
@@ -285,11 +300,13 @@ class CreationGui(private val plugin: MyWorldManager) {
         name: String,
         baseLoreKey: String,
         creationType: WorldCreationType,
+        availability: CreationTypeAvailability,
     ): MenuElement {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val data = mutableListOf<GuiMenuEntryData>()
         val warnings = mutableListOf<String>()
+        availability.reasonKey?.let { warnings += lang.getMessage(player, it).removePrefix("ﾂｧc") }
         if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
             val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
             data += GuiMenuEntryData(
@@ -332,26 +349,49 @@ class CreationGui(private val plugin: MyWorldManager) {
             ).removePrefix("§c")
         }
 
-        return CCSystem.getAPI().getGuiElementService().menuEntry(
-            player,
-            GuiMenuEntrySpec(
+        val spec = GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
-                role = GuiElementRole.ACTION,
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                role = if (availability.enabled) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                 description = lang.getMessageList(player, baseLoreKey),
                 data = data,
                 warnings = warnings,
-                actions = listOf(
-                    GuiMenuEntryAction(
+                actions = if (availability.enabled) listOf(
+                    menuGestureAction(
                         ACTION_SELECT_TYPE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         name,
                         mapOf("type" to creationType.name),
+                        safety = creationTypeSafety(creationType),
                     ),
-                ),
-            ),
+                ) else emptyList(),
         )
+        return if (availability.enabled) {
+            CCSystem.getAPI().getGuiElementService().menuEntry(player, spec)
+        } else {
+            val reason = requireNotNull(availability.reasonKey) {
+                "Disabled creation type must declare a reason"
+            }
+            CCSystem.getAPI().getGuiElementService().menuUnavailable(
+                player,
+                spec,
+                lang.getComponent(player, reason),
+            )
+        }
+    }
+
+    private fun creationTypeAvailability(
+        player: Player,
+        session: WorldCreationSession?,
+        creationType: WorldCreationType,
+        usableTemplateExists: Boolean,
+    ): CreationTypeAvailability {
+        val cost = WorldRuntimePolicies.creationCost(plugin.config, creationType)
+        val canAfford = session?.billingMode != me.awabi2048.myworldmanager.api.service.WorldPointBillingMode.STANDARD ||
+            !MyWorldManagerApi.isWorldPointEconomyEnabled() ||
+            plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint >= cost
+        return resolveCreationTypeAvailability(creationType, usableTemplateExists, canAfford)
     }
 
     fun openTemplateSelection(player: Player) {
@@ -383,7 +423,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiMenuEntrySpec(
                     slot = layout.itemSlots[index],
                     material = template.icon,
-                    name = GuiNameSpec.Text(template.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                    name = me.awabi2048.myworldmanager.util.targetIdentityName(template.name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                     role = GuiElementRole.ACTION,
                     description = template.description,
                     data = listOf(GuiMenuEntryData(
@@ -392,11 +432,12 @@ class CreationGui(private val plugin: MyWorldManager) {
                         if (issue == null) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
                     )),
                     warnings = issue?.let { listOf(templateValidationMessage(player, it)) }.orEmpty(),
-                    actions = listOf(GuiMenuEntryAction(
+                    actions = listOf(menuGestureAction(
                         ACTION_SELECT_TEMPLATE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         lang.getMessage(player, "gui.creation.template_item.action.details"),
                         mapOf("template" to template.id),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     )),
                 ),
             )
@@ -441,7 +482,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         val origin = template.originLocation
         val cost = WorldRuntimePolicies.creationCost(plugin.config, WorldCreationType.TEMPLATE)
         val detailLines = buildList {
-            addAll(template.description.map(GuiLoreLine::Text))
+            addAll(template.description.map(::descriptionLine))
             add(GuiLoreLine.Spacer)
             add(GuiLoreLine.Data(
                 lang.getMessage(player, "gui.creation.template_detail.spawn_label"),
@@ -473,7 +514,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             layout.leftSlot,
             template.icon,
             template.name,
-            GuiLoreSpec.Rich(detailLines, GuiLoreFrame.BOTH),
+            me.awabi2048.myworldmanager.util.semanticLore(detailLines, GuiLoreFrame.BOTH),
         )
         if (issue == null) {
             elements += actionEntry(
@@ -521,7 +562,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     definition.capabilityId,
                     player,
                     attributes = capabilityAttributes,
-                )?.let { definition.capabilityId to it }
+                )?.requireExplicitActionSafety()
             }
         val cleanedName = cleanWorldName(session.worldName ?: lang.getMessage(player, "general.unknown"))
         val generationLine: GuiLoreLine = when (session.creationType) {
@@ -547,7 +588,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             )
         }
 
-        val infoLore = GuiLoreSpec.Rich(
+        val infoLore = me.awabi2048.myworldmanager.util.semanticLore(
                 buildList {
                     add(GuiLoreLine.Data(
                         lang.getMessage(player, "gui.creation.confirm.world_name_label"),
@@ -644,7 +685,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                 GuiMenuEntrySpec(
                     slot = spawnSlot,
                     material = Material.COMPASS,
-                    name = GuiNameSpec.Text(
+                    name = me.awabi2048.myworldmanager.util.fixedLabelName(
                         lang.getMessage(player, "gui.creation.confirm.spawn_location.display"),
                         com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                     ),
@@ -661,17 +702,18 @@ class CreationGui(private val plugin: MyWorldManager) {
                         ),
                     ),
                     actions = listOf(
-                        GuiMenuEntryAction(
+                        menuGestureAction(
                             ACTION_CONFIRM_INTERACTION,
-                            MenuAcceptedClicks.LEFT_RIGHT,
+                            MenuGesture.ANY,
                             lang.getMessage(player, "gui.creation.confirm.spawn_location.action"),
                             mapOf(CONFIRMATION_ACTION to CreationConfirmationAction.SPAWN_LOCATION.name),
+                            safety = confirmationActionSafety(CreationConfirmationAction.SPAWN_LOCATION),
                         ),
                     ),
                 ),
             )
-            confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(player, capabilityId, resolved)
+            confirmationCapability?.let { resolved ->
+                elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
             elements += interactionEntry(
@@ -694,8 +736,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                 CreationConfirmationAction.BACK,
                 lang.getMessage(player, "gui.creation.confirm.change_name"),
             )
-            confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(player, capabilityId, resolved)
+            confirmationCapability?.let { resolved ->
+                elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
             elements += interactionEntry(
                 player,
@@ -708,8 +750,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                 lang.getMessage(player, "gui.creation.confirm.change_template"),
             )
         } else {
-            confirmationCapability?.let { (capabilityId, resolved) ->
-                elements += confirmationCapabilityElement(player, capabilityId, resolved)
+            confirmationCapability?.let { resolved ->
+                elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
         }
         return InventoryMenuView(
@@ -723,16 +765,15 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun confirmationCapabilityElement(
         player: Player,
-        capabilityId: String,
         resolved: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability,
+        attributes: Map<String, Any>,
     ): MenuElement {
         return CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
             player,
-            GuiMenuCapabilitySpec(
+            GuiMenuCapabilityInvocationSpec(
                 slot = CONFIRM_CAPABILITY_SLOT,
-                capability = resolved,
-                actionId = ACTION_CONFIRM_CAPABILITY,
-                actionPayload = mapOf(CONFIRM_CAPABILITY_ARGUMENT to capabilityId),
+                capability = resolved.requireExplicitActionSafety(),
+                attributes = attributes,
             ),
         )
     }
@@ -748,21 +789,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         )
     }
 
-    private fun useConfirmationCapability(context: MenuActionContext): MenuActionResult {
-        val capabilityId = context.payload[CONFIRM_CAPABILITY_ARGUMENT]
-            ?: return MenuActionResult.Ignored
-        val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
-            ?: return MenuActionResult.Rejected()
-        return CCSystem.getAPI().getMenuCapabilityService().execute(
-            capabilityId,
-            context.player,
-            context.click,
-            attributes = mapOf(
-                CreationConfirmationCapabilityContract.DRAFT_ATTRIBUTE to SessionCreationDraft(session),
-            ),
-        )
-    }
-
     private fun displayEntry(
         slot: Int,
         material: Material,
@@ -773,7 +799,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             slot,
             GuiItemSpec(
                 material,
-                GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                 lore,
                 GuiElementRole.CONTENT,
                 1,
@@ -782,21 +808,10 @@ class CreationGui(private val plugin: MyWorldManager) {
     )
 
     private fun backEntry(player: Player, slot: Int, actionId: String): MenuElement =
-        CCSystem.getAPI().getGuiElementService().menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = plugin.menuConfigManager.getIconMaterial("creation", "back", Material.REDSTONE),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        actionId,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(player, "gui.common.return"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
@@ -807,14 +822,15 @@ class CreationGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("creation_template", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_TEMPLATE_LIST_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -850,7 +866,8 @@ class CreationGui(private val plugin: MyWorldManager) {
         actionText: String,
     ): MenuElement {
         val lines = when (lore) {
-            is GuiLoreSpec.Rich -> lore.lines
+            is GuiLoreSpec.FramedBlocks -> lore.blocks.flatMap { it.lines }
+            is GuiLoreSpec.Blocks -> lore.blocks.flatMap { it.lines }
             else -> emptyList()
         }
         return CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -858,7 +875,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                 role = role,
                 description = lines.mapNotNull {
                     when (it) {
@@ -881,11 +898,17 @@ class CreationGui(private val plugin: MyWorldManager) {
                 },
                 warnings = lines.filterIsInstance<GuiLoreLine.Warning>().map(GuiLoreLine.Warning::content),
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_CONFIRM_INTERACTION,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.ANY,
                         actionText,
                         mapOf(CONFIRMATION_ACTION to action.name),
+                            safety = confirmationActionSafety(action),
+                            reversibleContract = when (action) {
+                                CreationConfirmationAction.CANCEL -> MwmMenuActionSemantics.contract("creation-cancel")
+                                CreationConfirmationAction.DIMENSION -> MwmMenuActionSemantics.contract("creation-dimension")
+                                else -> null
+                            },
                     ),
                 ),
             ),
@@ -915,7 +938,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             World.Environment.NETHER to "\u00A7c",
             World.Environment.THE_END to "\u00A75"
         )
-        return GuiLoreSpec.Rich(buildList {
+        return me.awabi2048.myworldmanager.util.semanticLore(buildList {
             add(GuiLoreLine.Data(
                 lang.getMessage(player, "gui.creation.confirm.dimension.current_label"),
                 seedEnvironmentDisplay(player, current),
@@ -967,11 +990,33 @@ class CreationGui(private val plugin: MyWorldManager) {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Text(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
+            name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
             role = GuiElementRole.ACTION,
-            actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, actionText)),
+            actions = listOf(menuGestureAction(actionId, MenuGesture.ANY, actionText, safety = templateActionSafety(actionId))),
         ),
     )
+
+    private fun creationTypeSafety(type: WorldCreationType): MenuActionSafety = when (type) {
+        WorldCreationType.TEMPLATE -> MenuActionSafety.NAVIGATION_ONLY
+        WorldCreationType.SEED,
+        WorldCreationType.RANDOM -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+    }
+
+    private fun confirmationActionSafety(action: CreationConfirmationAction): MenuActionSafety = when (action) {
+        CreationConfirmationAction.BACK,
+        CreationConfirmationAction.SPAWN_LOCATION -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        CreationConfirmationAction.DIMENSION,
+        CreationConfirmationAction.CANCEL -> MenuActionSafety.REVERSIBLE
+        CreationConfirmationAction.TEMPLATE_PREVIEW -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        CreationConfirmationAction.TEMPLATE_CHANGE -> MenuActionSafety.NAVIGATION_ONLY
+        CreationConfirmationAction.CONFIRM -> MenuActionSafety.IRREVERSIBLE
+    }
+
+    private fun templateActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_USE_TEMPLATE -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+        ACTION_PREVIEW_TEMPLATE -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+        else -> error("Unknown creation template action safety: $actionId")
+    }
 
     private class SessionCreationDraft(
         private val session: WorldCreationSession,
@@ -1007,8 +1052,6 @@ class CreationGui(private val plugin: MyWorldManager) {
         private const val ACTION_TEMPLATE_DETAIL_BACK = "template_detail_back"
         private const val ACTION_CONFIRM_INTERACTION = "confirm_interaction"
         private const val CONFIRMATION_ACTION = "confirmation_action"
-        private const val ACTION_CONFIRM_CAPABILITY = "confirm_capability"
-        private const val CONFIRM_CAPABILITY_ARGUMENT = "capability_id"
         private const val CONFIRM_CAPABILITY_SLOT = 40
         private const val PAGE = "page"
     }

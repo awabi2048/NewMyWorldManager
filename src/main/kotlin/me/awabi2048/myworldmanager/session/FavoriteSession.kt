@@ -16,6 +16,13 @@ class FavoriteSessionManager {
         return sessions.getOrPut(playerUuid) { FavoriteSession(playerUuid) }
     }
 
+    fun snapshot(playerUuid: UUID): FavoriteSession = getSession(playerUuid).copy()
+
+    fun restore(playerUuid: UUID, snapshot: FavoriteSession) {
+        require(snapshot.playerUuid == playerUuid) { "favorite session player mismatch" }
+        sessions[playerUuid] = snapshot.copy()
+    }
+
     fun clearSession(playerUuid: UUID) {
         sessions.remove(playerUuid)
     }

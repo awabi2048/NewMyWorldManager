@@ -88,7 +88,7 @@ object GuiHelper {
         val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
         return GuiItemSpec(
             worldData.icon,
-            GuiNameSpec.Component(
+            GuiNameSpec.TargetIdentity(
                 lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))
                     .decoration(TextDecoration.ITALIC, false),
             ),

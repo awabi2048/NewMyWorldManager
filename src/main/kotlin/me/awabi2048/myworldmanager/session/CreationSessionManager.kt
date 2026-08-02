@@ -3,14 +3,19 @@ package me.awabi2048.myworldmanager.session
 import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.BoundedReversiblePlanRegistry
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.util.UUID
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 class CreationSessionManager(private val plugin: MyWorldManager) {
     private val sessions = ConcurrentHashMap<UUID, WorldCreationSession>()
+    private val reversibleStartPlans = BoundedReversiblePlanRegistry<UUID, WorldCreationStartPlan>(
+        idOf = WorldCreationStartPlan::id,
+    )
     private var timeoutTask: BukkitTask? = null
 
     init {
@@ -31,8 +36,44 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
         sessions.remove(playerId)
     }
 
+    /** Bedrock作成開始の実更新と同じ経路で、capture済みafter snapshotを確定します。 */
+    fun startBedrockSession(playerId: UUID): WorldCreationSession {
+        val session = startSession(playerId)
+        session.isDialogMode = false
+        reversibleStartPlans.detachKey(playerId)?.complete(session.immutableSnapshot())
+        return session
+    }
+
+    fun captureBedrockStart(playerId: UUID): WorldCreationStartPlan {
+        val plan = WorldCreationStartPlan(snapshot(playerId), playerId)
+        reversibleStartPlans.register(playerId, plan)
+        return plan
+    }
+
+    internal fun consumeBedrockStartPlan(id: UUID): WorldCreationStartPlan? {
+        return reversibleStartPlans.consume(id)
+    }
+
+    fun snapshot(playerId: UUID): WorldCreationSessionSnapshot? = sessions[playerId]?.immutableSnapshot()
+
+    fun restore(playerId: UUID, snapshot: WorldCreationSessionSnapshot?) {
+        require(snapshot == null || snapshot.playerId == playerId) { "creation session player mismatch" }
+        if (snapshot == null) sessions.remove(playerId) else sessions[playerId] = snapshot.restore()
+    }
+
     fun clearAll() {
         sessions.clear()
+        clearReversiblePlans()
+    }
+
+    fun clearReversiblePlans() = reversibleStartPlans.clear()
+
+    fun purgeExpiredReversiblePlans(now: Instant = Instant.now()) {
+        reversibleStartPlans.purgeExpired(now)
+    }
+
+    fun removeReversiblePlans(playerId: UUID) {
+        reversibleStartPlans.removeWhere { it.playerId == playerId }
     }
 
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
@@ -80,5 +121,19 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     fun stopTimeoutChecker() {
         timeoutTask?.cancel()
         timeoutTask = null
+    }
+}
+
+class WorldCreationStartPlan internal constructor(
+    val before: WorldCreationSessionSnapshot?,
+    val playerId: UUID? = before?.playerId,
+    val id: UUID = UUID.randomUUID(),
+) {
+    var expectedAfter: WorldCreationSessionSnapshot? = null
+        private set
+
+    internal fun complete(after: WorldCreationSessionSnapshot) {
+        check(expectedAfter == null) { "creation start plan is already complete" }
+        expectedAfter = after
     }
 }

@@ -1,8 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
 import com.awabi2048.ccsystem.CCSystem
-
 import com.awabi2048.ccsystem.api.gui.GuiCycle
+import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -48,7 +48,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                     org.bukkit.World.Environment.NETHER,
                     org.bukkit.World.Environment.THE_END
                 ),
-                GuiCycle.direction(click) ?: return MenuActionResult.Ignored
+                GuiCycleDirection.NEXT
             )
             return MenuActionResult.Success(MenuUpdate.Refresh)
         }

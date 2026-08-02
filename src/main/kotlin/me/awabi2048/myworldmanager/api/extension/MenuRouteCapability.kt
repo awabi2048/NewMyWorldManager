@@ -5,6 +5,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionSoundPolicy
 import java.util.UUID
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.entity.Player
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import org.bukkit.event.inventory.ClickType
 
 /**
@@ -65,11 +66,11 @@ data class WorldSettingsActionContract(
     val sounds: MenuActionSoundPolicy = MenuActionSoundPolicy(),
 ) {
     val acceptedClicks: Set<ClickType>
-        get() = options.flatMapTo(linkedSetOf()) { it.acceptedClicks }
+        get() = options.flatMapTo(linkedSetOf()) { it.gesture.clicks }
 }
 
 data class WorldSettingsActionOption(
-    val acceptedClicks: Set<ClickType>,
+    val gesture: MenuGesture,
 )
 
 data class PendingInteractionSummary(

@@ -22,7 +22,7 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
             plugin,
             player,
             worldData,
-            GuiLoreSpec.Rich(
+            me.awabi2048.myworldmanager.util.semanticLore(
                 lang.getMessageList(
                     player,
                     "gui.favorite.remove_confirm.lore",

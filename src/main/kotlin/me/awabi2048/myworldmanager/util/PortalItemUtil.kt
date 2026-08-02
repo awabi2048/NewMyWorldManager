@@ -4,7 +4,7 @@ import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -75,8 +75,8 @@ object PortalItemUtil {
         return meta.persistentDataContainer.get(TARGET_WORLD_NAME_KEY, PersistentDataType.STRING)
     }
 
-    private fun portalLore(lang: LanguageManager, player: org.bukkit.entity.Player?, destination: String?) =
-        CCSystem.getAPI().getLoreService().render(GuiLoreSpec.Blocks(buildList {
+    private fun portalLore(lang: LanguageManager, player: org.bukkit.entity.Player?, destination: String?): List<net.kyori.adventure.text.Component> {
+        val blocks = buildList {
             if (destination != null) {
                 add(GuiLoreBlock(listOf(GuiLoreLine.Data(
                     lang.getMessage(player, "gui.portal_item.destination"),
@@ -84,13 +84,19 @@ object PortalItemUtil {
                     "§f§n"
                 ))))
             }
-            add(GuiLoreBlock(buildList {
-                add(GuiLoreLine.Interaction(
-                    player,
-                    MenuAcceptedClicks.RIGHT,
-                    lang.getMessage(player, if (destination == null) "gui.portal_item.action.link" else "gui.portal_item.action.place")
-                ))
-                add(GuiLoreLine.Interaction(player, MenuAcceptedClicks.SHIFT_RIGHT, lang.getMessage(player, "gui.portal_item.action.unlink")))
-            }))
-        }))
+        }
+        return CCSystem.getAPI().getLoreService().render(
+            CCSystem.getAPI().getLoreService().compose(
+                if (blocks.isEmpty()) GuiLoreSpec.None else GuiLoreSpec.Blocks(blocks),
+                listOf(
+                    GuiLoreLine.Interaction(
+                        player,
+                        MenuGesture.RIGHT,
+                        lang.getMessage(player, if (destination == null) "gui.portal_item.action.link" else "gui.portal_item.action.place")
+                    ),
+                    GuiLoreLine.Interaction(player, MenuGesture.SHIFT_RIGHT, lang.getMessage(player, "gui.portal_item.action.unlink"))
+                )
+            )
+        )
+}
 }

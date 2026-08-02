@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import me.awabi2048.myworldmanager.util.descriptionLine
+import me.awabi2048.myworldmanager.util.warningLine
+import me.awabi2048.myworldmanager.util.dangerLine
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -7,15 +11,16 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -62,7 +67,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
                 slot = 13,
                 item = GuiItemSpec(
                     material = Material.PAPER,
-                    name = GuiNameSpec.Component(lang.getComponent(player, "gui.world_seed_confirm.title")),
+                    name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.world_seed_confirm.title")),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
@@ -79,7 +84,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
                                         "§a",
                                     ),
                                 ) + lang.getMessageList(player, "gui.world_seed_confirm.description")
-                                    .map(GuiLoreLine::Text),
+                                    .map(::descriptionLine),
                             ),
                         ),
                     ),
@@ -119,13 +124,18 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+            name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
             role = role,
             actions = listOf(
-                GuiMenuEntryAction(
+                menuGestureAction(
                     actionId,
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     plugin.languageManager.getMessage(player, key),
+                    safety = when (actionId) {
+                        ACTION_CONFIRM -> MenuActionSafety.IRREVERSIBLE
+                        ACTION_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
+                        else -> error("Unknown world seed confirmation action safety: $actionId")
+                    },
                 ),
             ),
         ),

@@ -3,7 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -13,7 +13,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -106,6 +107,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                         GuiValueTone.PRIMARY,
                     )),
                     actionId = ACTION_CYCLE_COLOR,
+                    gesture = MenuGesture.LEFT_RIGHT,
                 ),
                 menuEntry(
                     player,
@@ -121,16 +123,19 @@ class PortalGui(private val plugin: MyWorldManager) {
 
     private fun toggleText(context: MenuActionContext): MenuActionResult {
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
-        portal.showText = !portal.showText
-        plugin.portalRepository.saveAll()
+        if (plugin.portalManager.updateAppearance(portal.id, !portal.showText, portal.particleColor) !=
+            me.awabi2048.myworldmanager.service.PortalManager.AppearanceUpdateResult.UPDATED
+        ) return MenuActionResult.Rejected()
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun cycleColor(context: MenuActionContext): MenuActionResult {
         val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
-        portal.particleColor = GuiCycle.select(portal.particleColor, colors, direction)
-        plugin.portalRepository.saveAll()
+        val color = GuiCycle.select(portal.particleColor, colors, direction)
+        if (plugin.portalManager.updateAppearance(portal.id, portal.showText, color) !=
+            me.awabi2048.myworldmanager.service.PortalManager.AppearanceUpdateResult.UPDATED
+        ) return MenuActionResult.Rejected()
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
@@ -205,6 +210,7 @@ class PortalGui(private val plugin: MyWorldManager) {
         data: List<GuiMenuEntryData> = emptyList(),
         dangers: List<String> = emptyList(),
         actionId: String,
+        gesture: MenuGesture = MenuGesture.ANY,
     ): MenuElement {
         val lang = plugin.languageManager
         return CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -212,20 +218,33 @@ class PortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.Component(lang.getComponent(player, "$key.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "$key.name")),
                 role = GuiElementRole.ACTION,
                 description = description,
                 data = data,
                 dangers = dangers,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         actionId,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        gesture,
                         lang.getMessage(player, "$key.action"),
+                        safety = portalActionSafety(actionId),
+                        reversibleContract = when (actionId) {
+                            ACTION_TOGGLE_TEXT -> MwmMenuActionSemantics.contract("portal-text")
+                            ACTION_CYCLE_COLOR -> MwmMenuActionSemantics.contract("portal-color")
+                            else -> null
+                        },
                     ),
                 ),
             ),
         )
+    }
+
+    private fun portalActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        ACTION_TOGGLE_TEXT,
+        ACTION_CYCLE_COLOR -> MenuActionSafety.REVERSIBLE
+        ACTION_REMOVE -> MenuActionSafety.IRREVERSIBLE
+        else -> error("Unknown portal action safety: $actionId")
     }
 
     private fun portal(route: MenuRoute): PortalData =

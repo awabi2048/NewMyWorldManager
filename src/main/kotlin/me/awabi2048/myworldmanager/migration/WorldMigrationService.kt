@@ -5,18 +5,20 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.util.GuiHelper
@@ -327,7 +329,7 @@ class WorldMigrationService(
                         layout.previewSlot,
                         GuiItemSpec(
                             Material.COMPASS,
-                            GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
+                            GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.migration.confirm.summary")),
                             GuiLoreSpec.None,
                             GuiElementRole.CONTENT,
                             1,
@@ -404,13 +406,18 @@ class WorldMigrationService(
         GuiMenuEntrySpec(
             slot = slot,
             material = material,
-            name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+            name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
             role = role,
             actions = listOf(
-                GuiMenuEntryAction(
+                menuGestureAction(
                     actionId,
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     plugin.languageManager.getMessage(player, key),
+                    safety = when (actionId) {
+                        ACTION_EXECUTE -> MenuActionSafety.IRREVERSIBLE
+                        ACTION_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
+                        else -> error("Unknown migration action safety: $actionId")
+                    },
                 ),
             ),
         ),

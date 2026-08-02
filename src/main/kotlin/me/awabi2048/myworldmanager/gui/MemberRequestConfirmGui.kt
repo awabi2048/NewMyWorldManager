@@ -22,7 +22,7 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
             plugin,
             player,
             worldData,
-            GuiLoreSpec.Rich(
+            me.awabi2048.myworldmanager.util.semanticLore(
                 lang.getMessageList(
                     player,
                     "gui.member_request_confirm.lore",

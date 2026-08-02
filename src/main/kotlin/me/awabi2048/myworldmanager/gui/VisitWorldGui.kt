@@ -7,7 +7,7 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -17,7 +17,8 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -33,7 +34,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.time.LocalDate
 import java.util.Locale
 import java.util.UUID
 
@@ -149,14 +149,17 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
         }
         if (!context.click.isRightClick || isMember) return MenuActionResult.Ignored
 
-        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        if (stats.favoriteWorlds.containsKey(uuid)) {
-            stats.favoriteWorlds.remove(uuid)
-            worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
+        return when (plugin.favoriteStateService.toggle(player, worldData)) {
+            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Removed -> {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
-        } else {
+                MenuActionResult.Success(MenuUpdate.Refresh)
+            }
+            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Added -> {
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
+                MenuActionResult.Success(MenuUpdate.Refresh)
+            }
+            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.LimitReached -> {
             val maxFavoriteCount = plugin.config.getInt("favorite.max_count", 1000)
-            if (stats.favoriteWorlds.size >= maxFavoriteCount) {
                 player.sendMessage(
                     plugin.languageManager.getMessage(
                         player,
@@ -164,15 +167,9 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
                         mapOf("limit" to maxFavoriteCount),
                     ),
                 )
-                return MenuActionResult.Rejected()
+                MenuActionResult.Rejected()
             }
-            stats.favoriteWorlds[uuid] = LocalDate.now().toString()
-            worldData.favorite++
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
         }
-        plugin.playerStatsRepository.save(stats)
-        plugin.worldConfigRepository.save(worldData)
-        return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun searchWorlds(player: Player, normalizedQuery: String): List<WorldData> {
@@ -222,7 +219,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
                 slot = slot,
                 item = GuiItemSpec(
                     material = Material.BOOK,
-                    name = GuiNameSpec.Component(
+                    name = GuiNameSpec.FixedLabel(
                         lang.getComponent(player, "gui.visitworld.info.name").decoration(TextDecoration.ITALIC, false),
                     ),
                     lore = GuiLoreSpec.Blocks(listOf(GuiLoreBlock(lore))),
@@ -241,14 +238,15 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("visit", iconId, Material.ARROW),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, key)),
+                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
                 role = GuiElementRole.NAVIGATION,
                 actions = listOf(
-                    GuiMenuEntryAction(
+                    menuGestureAction(
                         ACTION_PAGE,
-                        MenuAcceptedClicks.LEFT_RIGHT,
+                        MenuGesture.LEFT_RIGHT,
                         plugin.languageManager.getMessage(player, key),
                         mapOf(PAGE to targetPage.toString()),
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
             ),
@@ -256,21 +254,10 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
     }
 
     private fun backEntry(player: Player, slot: Int): MenuElement =
-        CCSystem.getAPI().getGuiElementService().menuEntry(
+        CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = plugin.menuConfigManager.getIconMaterial("visit", "back", Material.REDSTONE),
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.return")),
-                role = GuiElementRole.BACK,
-                actions = listOf(
-                    GuiMenuEntryAction(
-                        ACTION_BACK,
-                        MenuAcceptedClicks.LEFT_RIGHT,
-                        plugin.languageManager.getMessage(player, "gui.common.return"),
-                    ),
-                ),
-            ),
+            slot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
 
     private fun createWorldEntry(viewer: Player, world: WorldData, slot: Int): MenuElement {
@@ -307,7 +294,7 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = world.icon,
-                name = GuiNameSpec.Component(
+                name = GuiNameSpec.TargetIdentity(
                     lang.getComponent(viewer, "gui.common.world_item_name", mapOf("world" to world.name)),
                 ),
                 role = GuiElementRole.ACTION,
@@ -323,9 +310,9 @@ class VisitWorldGui(private val plugin: MyWorldManager) {
                     tagNames?.let { add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
                 },
                 actions = buildList {
-                    add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                    add(menuGestureAction(ACTION_WORLD, MenuGesture.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
                     if (favoriteAction.isNotBlank()) {
-                        add(GuiMenuEntryAction(ACTION_WORLD, MenuAcceptedClicks.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString())))
+                        add(menuGestureAction(ACTION_WORLD, MenuGesture.RIGHT, favoriteAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("visit-world-favorite")))
                     }
                 },
             ),

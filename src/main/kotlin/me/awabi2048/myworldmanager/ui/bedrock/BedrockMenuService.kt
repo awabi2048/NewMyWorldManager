@@ -6,8 +6,8 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilitySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuEntryAction
+import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
+import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -20,15 +20,19 @@ import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
-import com.awabi2048.ccsystem.api.gui.MenuAcceptedClicks
+import com.awabi2048.ccsystem.api.gui.MenuActionSafety
+import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.WorldPublishCycleSource
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
+import me.awabi2048.myworldmanager.gui.menuGestureAction
+import me.awabi2048.myworldmanager.gui.requireExplicitActionSafety
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
@@ -120,7 +124,9 @@ class BedrockMenuService(
             actionId: String,
             payload: Map<String, String> = emptyMap(),
             role: GuiElementRole = GuiElementRole.ACTION,
-            acceptedClicks: Set<org.bukkit.event.inventory.ClickType> = MenuAcceptedClicks.LEFT_RIGHT,
+            gesture: MenuGesture = MenuGesture.ANY,
+            safety: MenuActionSafety,
+            reversibleContract: com.awabi2048.ccsystem.api.gui.MenuReversibleContract? = null,
         ) {
             items.remove(slot)
             elements[slot] = CCSystem.getAPI().getGuiElementService().menuStructuredEntry(
@@ -129,11 +135,13 @@ class BedrockMenuService(
                     slot = slot,
                     item = item.copy(role = role),
                     actions = listOf(
-                        GuiMenuEntryAction(
+                        menuGestureAction(
                             actionId = actionId,
-                            acceptedClicks = acceptedClicks,
+                            gesture = gesture,
                             label = itemName(item),
                             payload = payload,
+                            safety = safety,
+                            reversibleContract = reversibleContract,
                         ),
                     ),
                 ),
@@ -154,6 +162,9 @@ class BedrockMenuService(
         private fun itemName(item: GuiItemSpec): String = when (val name = item.name) {
             is GuiNameSpec.Text -> name.text
             is GuiNameSpec.Component -> "操作"
+            is GuiNameSpec.FixedLabel -> "操作"
+            is GuiNameSpec.TargetIdentity -> "操作"
+            is GuiNameSpec.Opaque -> "操作"
             GuiNameSpec.Empty -> error("Action item name must not be empty")
         }
     }
@@ -438,14 +449,10 @@ class BedrockMenuService(
                 inventory.setEntry(
                     CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                         player,
-                        GuiMenuCapabilitySpec(
+                        GuiMenuCapabilityInvocationSpec(
                             slot = slot,
-                            capability = capability,
-                            actionId = "capability_world",
-                            actionPayload = mapOf(
-                                "world" to worldData.uuid.toString(),
-                                "capability" to capability.capabilityId,
-                            ),
+                            capability = capability.requireExplicitActionSafety(),
+                            attributes = attributes,
                         ),
                     ),
                 )
@@ -458,6 +465,7 @@ class BedrockMenuService(
                 createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.prev"), "open_prev_page"),
                 "open_prev_page",
                 role = GuiElementRole.NAVIGATION,
+                safety = MenuActionSafety.NAVIGATION_ONLY,
             )
         }
         if (start + pageWorlds.size < worlds.size) {
@@ -466,28 +474,29 @@ class BedrockMenuService(
                 createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.next"), "open_next_page"),
                 "open_next_page",
                 role = GuiElementRole.NAVIGATION,
+                safety = MenuActionSafety.NAVIGATION_ONLY,
             )
         }
 
         val creationBlockReason = creationBlockReason(player, currentCreateCount, maxSlot, bypassLimits)
+        val creationAttributes = playerWorldCapabilityAttributes(capabilitySubject)
         val creationCapability = capabilityService
             .definitions(PlayerWorldCapabilityContract.CREATION_PLACEMENT)
             .firstNotNullOfOrNull { definition ->
                 capabilityService.resolve(
                     definition.capabilityId,
                     player,
-                    attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                    attributes = creationAttributes,
                 )
             }
         if (creationCapability != null) {
             inventory.setEntry(
                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
-                    player,
-                    GuiMenuCapabilitySpec(
-                        slot = footerStart + 2,
-                        capability = creationCapability,
-                        actionId = "capability_create",
-                        actionPayload = mapOf("capability" to creationCapability.capabilityId),
+                        player,
+                        GuiMenuCapabilityInvocationSpec(
+                            slot = footerStart + 2,
+                            capability = creationCapability.requireExplicitActionSafety(),
+                            attributes = creationAttributes,
                     ),
                 ),
             )
@@ -496,23 +505,24 @@ class BedrockMenuService(
         } else {
             inventory.setItem(footerStart + 2, createCreationUnavailableButtonItem(player, creationBlockReason))
         }
+        val summaryAttributes = playerWorldCapabilityAttributes(capabilitySubject)
         val summaryCapability = capabilityService
             .definitions(PlayerWorldCapabilityContract.SUMMARY_PLACEMENT)
             .firstNotNullOfOrNull { definition ->
                 capabilityService.resolve(
                     definition.capabilityId,
                     player,
-                    attributes = playerWorldCapabilityAttributes(capabilitySubject),
+                    attributes = summaryAttributes,
                 )
             }
         if (summaryCapability != null) {
             inventory.setEntry(
                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
-                    player,
-                    GuiMenuCapabilitySpec(
-                        slot = footerStart + 4,
-                        capability = summaryCapability,
-                        actionId = "open_pending_interactions",
+                        player,
+                        GuiMenuCapabilityInvocationSpec(
+                            slot = footerStart + 4,
+                            capability = summaryCapability.requireExplicitActionSafety(),
+                            attributes = summaryAttributes,
                     ),
                 ),
             )
@@ -526,10 +536,11 @@ class BedrockMenuService(
                 material = Material.WRITABLE_BOOK,
                 name = GuiNameSpec.Text(tr(player, "gui.user_settings.button.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
-                actions = listOf(GuiMenuEntryAction(
+                actions = listOf(menuGestureAction(
                     "open_settings",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     tr(player, "gui.user_settings.button.action"),
+                    safety = MenuActionSafety.NAVIGATION_ONLY,
                 )),
             ),
         ))
@@ -540,6 +551,7 @@ class BedrockMenuService(
                 createActionItem(Material.BARRIER, tr(player, "gui.bedrock.player_world.button.return"), "return_command"),
                 "return_command",
                 role = GuiElementRole.CANCEL,
+                safety = MenuActionSafety.NAVIGATION_ONLY,
             )
         }
 
@@ -557,6 +569,8 @@ class BedrockMenuService(
         returnPage: Int,
         showBackButton: Boolean
     ): InventoryMenuView {
+        // Runtime inspectと実メニューの両方で、policy横取り時の可逆契約を先に検証します。
+        plugin.worldPublishService.requireReversibleCycleContract(worldData)
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
             tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)),
         )
@@ -571,6 +585,7 @@ class BedrockMenuService(
             10,
             createActionItem(Material.ENDER_PEARL, tr(player, "gui.bedrock.world_action.button.warp"), "warp_world", worldData.uuid),
             "warp_world",
+            safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
         )
 
         if (canManagePublish(player, worldData)) {
@@ -587,6 +602,8 @@ class BedrockMenuService(
                     worldData.uuid
                 ),
                 "cycle_publish",
+                safety = MenuActionSafety.REVERSIBLE,
+                reversibleContract = me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-publish"),
             )
         }
 
@@ -601,6 +618,7 @@ class BedrockMenuService(
                 12,
                 createActionItem(Material.CHEST, label, "toggle_archive", worldData.uuid),
                 "toggle_archive",
+                safety = MenuActionSafety.IRREVERSIBLE,
             )
         }
 
@@ -614,6 +632,7 @@ class BedrockMenuService(
                     worldData.uuid
                 ),
                 "open_advanced_settings",
+                safety = MenuActionSafety.NAVIGATION_ONLY,
             )
         }
 
@@ -621,6 +640,7 @@ class BedrockMenuService(
             15,
             createActionItem(Material.WRITABLE_BOOK, tr(player, "gui.bedrock.world_action.button.settings"), "open_settings"),
             "open_settings",
+            safety = MenuActionSafety.NAVIGATION_ONLY,
         )
 
         inventory.setActionItem(
@@ -628,6 +648,7 @@ class BedrockMenuService(
             createActionItem(Material.ARROW, tr(player, "gui.bedrock.world_action.button.back_to_worlds"), "back_to_worlds"),
             "back_to_worlds",
             role = GuiElementRole.NAVIGATION,
+            safety = MenuActionSafety.NAVIGATION_ONLY,
         )
 
         if (GuiHelper.canGoBack(player)) {
@@ -636,6 +657,7 @@ class BedrockMenuService(
                 createActionItem(Material.BARRIER, tr(player, "gui.bedrock.world_action.button.return"), "return_command"),
                 "return_command",
                 role = GuiElementRole.CANCEL,
+                safety = MenuActionSafety.NAVIGATION_ONLY,
             )
         } else {
             inventory.setActionItem(
@@ -643,6 +665,7 @@ class BedrockMenuService(
                 createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.world_action.button.close"), "close_menu"),
                 "close_menu",
                 role = GuiElementRole.CANCEL,
+                safety = MenuActionSafety.NAVIGATION_ONLY,
             )
         }
 
@@ -732,6 +755,7 @@ class BedrockMenuService(
                 createActionItem(Material.REDSTONE, tr(player, "gui.common.return"), "return_command"),
                 "return_command",
                 role = GuiElementRole.CANCEL,
+                safety = MenuActionSafety.NAVIGATION_ONLY,
             )
         }
 
@@ -766,33 +790,6 @@ class BedrockMenuService(
         val showBackButton = context.route.payload["back"]?.toBooleanStrictOrNull() ?: false
         return when (context.route.id) {
             PLAYER_WORLD_ROUTE -> when (context.actionId) {
-                "capability_world" -> {
-                    val capabilityId = context.payload["capability"]
-                        ?: return MenuActionResult.Ignored
-                    val worldUuid = context.payload["world"]
-                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                        ?: return MenuActionResult.Rejected()
-                    val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
-                        ?: return MenuActionResult.Rejected()
-                    val subject = playerWorldCapabilitySubject(player, page, showBackButton)
-                    CCSystem.getAPI().getMenuCapabilityService().execute(
-                        capabilityId,
-                        player,
-                        context.click,
-                        attributes = playerWorldCapabilityAttributes(subject, worldData),
-                    )
-                }
-                "capability_create" -> {
-                    val capabilityId = context.payload["capability"]
-                        ?: return MenuActionResult.Ignored
-                    val subject = playerWorldCapabilitySubject(player, page, showBackButton)
-                    CCSystem.getAPI().getMenuCapabilityService().execute(
-                        capabilityId,
-                        player,
-                        context.click,
-                        attributes = playerWorldCapabilityAttributes(subject),
-                    )
-                }
                 "warp_world" -> {
                     val worldUuid = context.payload["world"]
                         ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
@@ -810,8 +807,7 @@ class BedrockMenuService(
                     if (!WorldCreationChecks.checkSelfCreatePermission(player)) {
                         return MenuActionResult.Rejected()
                     }
-                    val session = plugin.creationSessionManager.startSession(player.uniqueId)
-                    session.isDialogMode = false
+                    plugin.creationSessionManager.startBedrockSession(player.uniqueId)
                     MenuActionResult.Success(
                         MenuUpdate.Navigate(plugin.creationGui.typeSelectionRoute()),
                     )
@@ -989,16 +985,9 @@ class BedrockMenuService(
     }
 
     private fun cyclePublishLevel(player: Player, worldData: WorldData) {
-        if (MyWorldManagerApi.getWorldPublishPolicy().cyclePublishLevel(player, worldData)) {
+        if (plugin.worldPublishService.cycle(player, worldData) == WorldPublishCycleSource.POLICY) {
             return
         }
-        val levels = PublishLevel.values()
-        val currentIndex = levels.indexOf(worldData.publishLevel).let { if (it < 0) 0 else it }
-        worldData.publishLevel = levels[(currentIndex + 1) % levels.size]
-        if (worldData.publishLevel == PublishLevel.PUBLIC) {
-            worldData.publicAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-        }
-        plugin.worldConfigRepository.save(worldData)
         player.sendMessage(
             tr(
                 player,
@@ -1167,11 +1156,12 @@ class BedrockMenuService(
                     if (expiresAtValue != null) add(GuiMenuEntryData(tr(player, "gui.player_world.world_item.expires_at"), expiresAtValue))
                 },
                 warnings = if (worldData.isArchived) listOf(tr(player, "gui.player_world.world_item.expired")) else emptyList(),
-                actions = listOf(GuiMenuEntryAction(
+                actions = listOf(menuGestureAction(
                     "warp_world",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     warpAction,
                     mapOf("world" to worldData.uuid.toString()),
+                    safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                 )),
                 glint = worldData.isArchived || daysRemaining < 0,
             ),
@@ -1187,10 +1177,12 @@ class BedrockMenuService(
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display")),
                 role = GuiElementRole.ACTION,
                 description = plugin.languageManager.getMessageList(player, "gui.player_world.creation_button.description"),
-                actions = listOf(GuiMenuEntryAction(
+                actions = listOf(menuGestureAction(
                     "start_creation",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     tr(player, "gui.player_world.creation_button.action"),
+                    safety = MenuActionSafety.REVERSIBLE,
+                    reversibleContract = me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-create"),
                 )),
             ),
         )
@@ -1270,10 +1262,11 @@ class BedrockMenuService(
                         add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO))
                     }
                 },
-                actions = if (pendingCount > 0) listOf(GuiMenuEntryAction(
+                actions = if (pendingCount > 0) listOf(menuGestureAction(
                     "open_pending_interactions",
-                    MenuAcceptedClicks.LEFT_RIGHT,
+                    MenuGesture.ANY,
                     tr(player, "gui.player_world.pending_button.action"),
+                    safety = MenuActionSafety.NAVIGATION_ONLY,
                 )) else emptyList(),
                 glint = pendingCount > 0,
                 playerHeadOwner = player.uniqueId,
@@ -1322,10 +1315,27 @@ class BedrockMenuService(
                     listOf(GuiMenuEntryData(tr(player, "$prefix.current_label"), it, toneFor(currentValueColor)))
                 }.orEmpty(),
                 options = options,
-                actions = listOf(GuiMenuEntryAction(actionId, MenuAcceptedClicks.LEFT_RIGHT, tr(player, actionKey))),
+                actions = listOf(menuGestureAction(
+                    actionId,
+                    MenuGesture.ANY,
+                    tr(player, actionKey),
+                    safety = settingActionSafety(actionId),
+                    reversibleContract = when (actionId) {
+                        "toggle_notification" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-notification")
+                        "toggle_critical" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-critical")
+                        "cycle_tour_navigation" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-tour")
+                        else -> null
+                    },
+                )),
                 glint = glint,
             ),
         )
+    }
+
+    private fun settingActionSafety(actionId: String): MenuActionSafety = when (actionId) {
+        "toggle_notification", "toggle_critical", "cycle_tour_navigation" -> MenuActionSafety.REVERSIBLE
+        "cycle_language" -> MenuActionSafety.NAVIGATION_ONLY
+        else -> error("Bedrock setting action must declare a dedicated safety mapping: $actionId")
     }
 
     private fun nextTourNavigationMode(mode: TourNavigationMode): TourNavigationMode {
@@ -1429,8 +1439,6 @@ class BedrockMenuService(
         const val WORLD_ACTION_ROUTE = "bedrock_world_action"
         const val SETTINGS_ROUTE = "bedrock_user_settings"
         val RUNTIME_ACTION_IDS = setOf(
-            "capability_world",
-            "capability_create",
             "warp_world",
             "open_prev_page",
             "open_next_page",

@@ -124,6 +124,16 @@ class MenuNavigationContractTest {
     }
 
     @Test
+    fun `member invite force action uses the shared shift left right click contract`() {
+        val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
+
+        assertTrue("MenuGesture.SHIFT_LEFT_RIGHT" in source)
+        assertFalse(
+            "setOf(\n                                                        org.bukkit.event.inventory.ClickType.SHIFT_LEFT,\n                                                        org.bukkit.event.inventory.ClickType.SHIFT_RIGHT,\n                                                )" in source,
+        )
+    }
+
+    @Test
     fun `inventory to dialog transitions preserve runtime history and avoid synthetic open sounds`() {
         val listener = Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
@@ -171,6 +181,65 @@ class MenuNavigationContractTest {
         val wizard = guiRoot.resolve("TemplateWizardGui.kt").readText()
         assertTrue("onClose =" in wizard)
         assertTrue("currentRoute(context.player)" in wizard)
+    }
+
+    @Test
+    fun `member capability route keeps slot in api context and all deep-route identifiers`() {
+        val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
+        assertTrue("context.slot" in source)
+        assertFalse("context.payload[\"slot\"]?.toIntOrNull()" in source)
+        assertTrue("ROUTE_WORLD_UUID to worldUuid.toString()" in source)
+        assertTrue("ROUTE_TARGET_UUID to uuid.toString()" in source)
+        assertFalse("ROUTE_CAPABILITY_ID" in source)
+        assertTrue("memberManagementEntryInteraction(" in source)
+        assertTrue("RUNTIME_MEMBER_MANAGEMENT_ROUTE" in source)
+    }
+
+    @Test
+    fun `world settings renderers do not alter a session or open an external surface`() {
+        val source = guiRoot.resolve("WorldSettingsGui.kt").readText()
+        val sideEffects = listOf(
+            "updateSessionAction(",
+            "sendMessage(",
+            "runtime.navigate(",
+            "runtime.replace(",
+            "runtime.open(",
+            "worldConfigRepository.save(",
+        )
+
+        listOf(
+            "renderWorldSettings",
+            "renderArchiveConfirmation",
+            "renderUnarchiveConfirmation",
+            "renderExpansionMethodSelection",
+            "renderExpansionStepBackConfirmation",
+            "renderExpansionConfirmation",
+            "renderMemberManagement",
+            "renderMemberPendingInviteCancelConfirmation",
+            "renderMemberRemoveConfirmation",
+            "renderMemberTransferConfirmation",
+            "renderVisitorManagement",
+            "renderVisitorKickConfirmation",
+            "renderCriticalSettings",
+            "renderResetExpansionConfirmation",
+            "renderResetExpansionSpawnUnsafeConfirmation",
+            "renderPortalManagement",
+            "renderRuntimeRoute",
+        ).forEach { function ->
+            val body = functionBody(source, function)
+            sideEffects.forEach { sideEffect ->
+                assertFalse(
+                    sideEffect in body,
+                    "$function must remain read-only during runtime inspection: $sideEffect",
+                )
+            }
+        }
+
+        assertTrue("updateSessionAction(" in functionBody(source, "openMemberManagement"))
+        val actionService = Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/service/WorldSettingsActionService.kt",
+        ).readText()
+        assertTrue("SettingsAction.MANAGE_MEMBERS" in functionBody(actionService, "execute"))
     }
 
     private fun functionBody(source: String, name: String): String {

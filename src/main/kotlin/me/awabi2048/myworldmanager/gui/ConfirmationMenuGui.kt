@@ -106,21 +106,21 @@ class ConfirmationMenuGui(
     ) {
         val centerItem = GuiItemSpec(
             Material.PAPER,
-            GuiNameSpec.Component(title),
+            GuiNameSpec.Opaque(title),
             body,
             GuiElementRole.CONTENT,
             1,
         )
         val confirmItem = GuiItemSpec(
             Material.LIME_CONCRETE,
-            GuiNameSpec.Text(confirmLabel, GuiNameStyle.DEFAULT),
+            me.awabi2048.myworldmanager.util.fixedLabelName(confirmLabel, GuiNameStyle.DEFAULT),
             GuiLoreSpec.None,
             GuiElementRole.CONFIRM,
             1,
         )
         val cancelItem = GuiItemSpec(
             Material.RED_CONCRETE,
-            GuiNameSpec.Text(cancelLabel, GuiNameStyle.DEFAULT),
+            me.awabi2048.myworldmanager.util.fixedLabelName(cancelLabel, GuiNameStyle.DEFAULT),
             GuiLoreSpec.None,
             GuiElementRole.CANCEL,
             1,
