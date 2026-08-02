@@ -32,6 +32,7 @@ import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
+import com.awabi2048.ccsystem.api.gui.withCapabilityComposition
 import com.awabi2048.ccsystem.api.gui.copyWithPresentationSemantics
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
@@ -2081,15 +2082,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject,
                                 )
                                 val service = CCSystem.getAPI().getMenuCapabilityService()
-                                val capabilityView = service
-                                        .definitions(MemberManagementCapabilityContract.PLACEMENT)
-                                        .firstNotNullOfOrNull { definition ->
-                                                service.resolve(
+                                val capabilityView = resolveMemberManagementHostAugmentation(
+                                        service.definitions(MemberManagementCapabilityContract.PLACEMENT),
+                                ) { definition ->
+                                        service.resolve(
                                                         definition.capabilityId,
                                                         player,
                                                         attributes = capabilityAttributes,
-                                                )
-                                        }?.requireExplicitActionSafety()
+                                        )?.requireExplicitActionSafety()
+                                }
                                 inventory.setElement(
                                         createMemberEntrySpec(
                                                 player, slot, entry.playerUuid,
@@ -2511,12 +2512,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         displayName = stats.lastName ?: lang.getMessage(viewer, "general.unknown")
                 }
 
-                val embeddedBlocks = capabilityView?.presentation?.embeddedLoreBlocks.orEmpty()
                 val payload = mapOf(
                         ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER.name,
                         ROUTE_TARGET_UUID to uuid.toString(),
                 )
                 val actions = mutableListOf<GuiMenuActionIntent>()
+                val presentationActionLines = mutableListOf<GuiLoreLine.Interaction>()
                 val hostActions = mutableListOf<MenuInteraction.Action>()
                 fun addHostAction(
                         gesture: MenuGesture,
@@ -2534,6 +2535,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 safety = safety,
                                 reversibleContract = reversibleContract,
                         )
+                        presentationActionLines += GuiLoreLine.Interaction(viewer, gesture.clicks, label)
                         hostActions += MenuInteraction.Action(
                                 actionId = ACTION_RUNTIME_DISPATCH,
                                 acceptedClicks = gesture.clicks,
@@ -2544,14 +2546,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
                 capabilityView?.actions?.forEach { action ->
+                        val gesture = MenuGesture.fromClicks(action.trigger.clicks)
                         actions += menuGestureAction(
                                 ACTION_RUNTIME_DISPATCH,
-                                MenuGesture.fromClicks(action.trigger.clicks),
+                                gesture,
                                 action.text,
                                 payload,
                                 safety = action.safety,
                                 reversibleContract = action.reversibleContract,
                         )
+                        presentationActionLines += GuiLoreLine.Interaction(viewer, gesture.clicks, action.text)
                 }
                 if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
                         val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
@@ -2594,31 +2598,38 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiValueTone.DEFAULT.colorCode,
                         ))
                 }
+                val hostBlocks = listOf(GuiLoreBlock(targetInfoLines))
+                val hostItem = GuiItemSpec(
+                        material = Material.PLAYER_HEAD,
+                        name = GuiNameSpec.TargetIdentity(Component.text("$color$displayName").decoration(TextDecoration.ITALIC, false)),
+                        lore = GuiLoreSpec.Blocks(hostBlocks),
+                        role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                        amount = 1,
+                )
+                val composition = composeMemberManagementHost(
+                        capabilityView,
+                        hostItem,
+                        hostBlocks,
+                        presentationActionLines,
+                )
                 val spec = GuiMenuEntrySpec(
                         slot = slot,
                         material = Material.PLAYER_HEAD,
                         name = GuiNameSpec.TargetIdentity(Component.text("$color$displayName").decoration(TextDecoration.ITALIC, false)),
                         role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
-                        description = if (capabilityView == null) {
-                                targetInfoLines.mapNotNull { (it as? GuiLoreLine.Text)?.text }
-                        } else emptyList(),
-                        data = if (capabilityView == null) {
-                                targetInfoLines.filterIsInstance<GuiLoreLine.Data>()
-                                        .map { GuiMenuEntryData(it.label, it.value, toneFor(it.valueColor)) }
-                        } else emptyList(),
-                        semanticLoreBlocks = if (capabilityView == null) emptyList()
-                                else listOf(GuiLoreBlock(targetInfoLines)) + embeddedBlocks,
+                        semanticLoreBlocks = composition.semanticLoreBlocks,
                         actions = actions,
-                        glint = capabilityView?.presentation?.glint,
                         playerHeadOwner = uuid,
                 )
-                return CCSystem.getAPI().getGuiElementService().menuEntry(viewer, spec).copyWithPresentationSemantics(
+                val element = CCSystem.getAPI().getGuiElementService().menuEntry(viewer, spec).copyWithPresentationSemantics(
                         interaction = memberManagementEntryInteraction(
                                 capabilityView,
                                 capabilityAttributes,
                                 hostActions,
                         ),
                 )
+                return if (capabilityView == null) element
+                else element.withCapabilityComposition(capabilityView, composition.snapshot)
         }
 
         private fun formatPendingInviteDateTimeForPlayer(player: Player, timestamp: Long): String {
