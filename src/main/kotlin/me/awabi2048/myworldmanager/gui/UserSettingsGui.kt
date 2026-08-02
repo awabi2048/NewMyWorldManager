@@ -2,9 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
-import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
-import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -40,7 +38,6 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 renderer = { context -> render(context.player) },
                 actions = mapOf(
                     ACTION_NOTIFICATION to MenuActionHandler(::toggleNotification),
-                    ACTION_LANGUAGE to MenuActionHandler { MenuActionResult.Success(MenuUpdate.Refresh) },
                     ACTION_CRITICAL_VISIBILITY to MenuActionHandler(::toggleCriticalVisibility),
                     ACTION_TOUR_NAVIGATION to MenuActionHandler(::cycleTourNavigation),
                     ACTION_BACK to MenuActionHandler(::back),
@@ -103,8 +100,8 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             "language",
             languageName,
             GuiValueTone.DEFAULT,
-            ACTION_LANGUAGE,
-            "gui.user_settings.cycle_action.next"
+            null,
+            null,
         ) }
 
         val criticalStatus = if (stats.criticalSettingsEnabled) {
@@ -164,11 +161,12 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     private fun cycleTourNavigation(context: MenuActionContext): MenuActionResult {
+        val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
         val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
         stats.tourNavigationMode = GuiCycle.select(
             stats.tourNavigationMode,
             TourNavigationMode.entries,
-            GuiCycleDirection.NEXT,
+            direction,
         )
         plugin.playerStatsRepository.save(stats)
         plugin.tourManager.refreshNavigation(context.player)
@@ -187,8 +185,8 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         setting: String,
         currentValue: String,
         currentValueTone: GuiValueTone,
-        actionId: String,
-        actionKey: String,
+        actionId: String?,
+        actionKey: String?,
         glint: Boolean? = null,
     ): MenuElement {
         val prefix = "gui.user_settings.$setting.blocks"
@@ -214,7 +212,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 options = emptyList(),
                 warnings = emptyList(),
                 dangers = emptyList(),
-                actions = listOf(
+                actions = if (actionId != null && actionKey != null) listOf(
                     menuGestureAction(
                         actionId,
                         MenuGesture.ANY,
@@ -226,7 +224,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                             else -> null
                         },
                     ),
-                ),
+                ) else emptyList(),
                 glint = glint,
             ),
         )
@@ -235,7 +233,6 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     private fun settingActionSafety(actionId: String): MenuActionSafety = when (actionId) {
         ACTION_NOTIFICATION,
         ACTION_CRITICAL_VISIBILITY -> MenuActionSafety.REVERSIBLE
-        ACTION_LANGUAGE -> MenuActionSafety.NAVIGATION_ONLY
         else -> error("Unknown user setting action safety: $actionId")
     }
 
@@ -266,7 +263,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 actions = listOf(
                     menuGestureAction(
                         ACTION_TOUR_NAVIGATION,
-                        MenuGesture.ANY,
+                        MenuGesture.PLAIN_LEFT_RIGHT,
                         lang.getMessage(player, "gui.user_settings.cycle_action.toggle"),
                         safety = MenuActionSafety.REVERSIBLE,
                         reversibleContract = MwmMenuActionSemantics.contract("user-tour"),
@@ -281,7 +278,6 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         private const val OWNER = "myworldmanager"
         private const val ROUTE_ID = "user_settings"
         private const val ACTION_NOTIFICATION = "notification"
-        private const val ACTION_LANGUAGE = "language"
         private const val ACTION_CRITICAL_VISIBILITY = "critical_visibility"
         private const val ACTION_TOUR_NAVIGATION = "tour_navigation"
         private const val ACTION_BACK = "back"

@@ -76,6 +76,19 @@ class GuiSemanticProducerContractTest {
     }
 
     @Test
+    fun `個人設定の循環項目は左右方向を処理し言語表示は操作を持たない`() {
+        val source = Files.readString(sourceRoot().resolve("gui/UserSettingsGui.kt"))
+        val tourCycle = source.substringAfter("private fun cycleTourNavigation")
+            .substringBefore("private fun back")
+        assertTrue(tourCycle.contains("GuiCycle.direction(context.click)"))
+        assertTrue(source.contains("MenuGesture.PLAIN_LEFT_RIGHT"))
+        val languageEntry = source.substringAfter("\"gui.user_settings.language.display\"")
+            .substringBefore("val criticalStatus")
+        assertTrue(languageEntry.contains("null,\n            null,"))
+        assertFalse(source.contains("ACTION_LANGUAGE to MenuActionHandler"))
+    }
+
+    @Test
     fun `member slot presentation is a covered dynamic target with one custom action`() {
         val settings = Files.readString(sourceRoot().resolve("gui/WorldSettingsGui.kt"))
         val memberProducer = settings.substringAfter("private fun createMemberEntrySpec")
