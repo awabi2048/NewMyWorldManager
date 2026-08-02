@@ -1072,6 +1072,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
+                // TODO: Chanpon表示ポリシー適用時のタグ非表示を2026-07-31時点の正仕様と照合し、必要な表示条件を復元する。
                 // タグ設定
                 if (hasManagePermission) {
                         val tagsList = if (worldData.tags.isEmpty()) {
@@ -1325,6 +1326,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val isSpecialExpansion = currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL
                 val warpContract = plugin.worldSettingsActionService
                         .contract(player, worldData, WorldSettingsAction.WARP)
+                // TODO: main画面の所有はMWMに保ち、旧正仕様の中央ヘッダー要約を受け取るsummary contribution契約を検討する。
                 inventory.setMenuEntry(
                         player,
                         GuiMenuEntrySpec(
@@ -1538,6 +1540,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 slots: List<Int>,
                 arguments: Map<String, String>,
         ) {
+                // TODO: availability・presentation・handlerを同じdecisionから生成できる一般契約を、このMWM合成境界へ導入する。
                 val service = CCSystem.getAPI().getMenuCapabilityService()
                 val validSlots = slots.asSequence().filter { it in 0 until inventory.size }
                 service.definitions(placement)
