@@ -377,6 +377,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.create.description"))),
                 lang.getMessage(player, "gui.tour.menu.create.action"),
                 ACTION_CREATE,
+                gesture = MenuGesture.ANY,
             )
         }
         elements += createCurrentWorldEntry(player, worldData, 4)
@@ -916,6 +917,7 @@ class TourGui(private val plugin: MyWorldManager) {
         actionId: String,
         role: GuiElementRole = GuiElementRole.ACTION,
         payload: Map<String, String> = emptyMap(),
+        gesture: MenuGesture = MenuGesture.LEFT_RIGHT,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
         player,
         GuiMenuEntrySpec(
@@ -938,7 +940,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 }
             },
             actions = listOf(menuGestureAction(
-                actionId, MenuGesture.LEFT_RIGHT, action, payload,
+                actionId, gesture, action, payload,
                 safety = tourActionSafety(actionId),
                 reversibleContract = when (actionId) {
                     ACTION_DISCARD_CONFIRM -> MwmMenuActionSemantics.contract("tour-discard")
