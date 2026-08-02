@@ -70,8 +70,7 @@ class CreationDialogManager {
                     cancel = MenuDialogButton(
                         lang.getComponent(player, "gui.creation.confirm.action_back"),
                         MenuDialogHandler { target, _ ->
-                            backFromName(target, session, plugin)
-                            MenuActionResult.Success(MenuUpdate.None)
+                            backFromName(target, session)
                         },
                     ),
                 ),
@@ -113,10 +112,10 @@ class CreationDialogManager {
                     ),
                     cancel = MenuDialogButton(
                         lang.getComponent(player, "gui.creation.confirm.action_back"),
-                        MenuDialogHandler { target, _ ->
+                        MenuDialogHandler { _, _ ->
                             session.phase = WorldCreationPhase.TYPE_SELECT
-                            plugin.creationGui.openTypeSelection(target)
-                            MenuActionResult.Success(MenuUpdate.None)
+                            // 入力画面を開く前の種類選択画面へ戻るだけなので、履歴を増やさず復帰する。
+                            MenuActionResult.Success(MenuUpdate.Resume)
                         },
                     ),
                 ),
@@ -181,10 +180,10 @@ class CreationDialogManager {
                     ),
                     cancel = MenuDialogButton(
                         lang.getComponent(player, "gui.creation.confirm.spawn_location.input.back"),
-                        MenuDialogHandler { target, _ ->
+                        MenuDialogHandler { _, _ ->
                             session.phase = WorldCreationPhase.CONFIRM
-                            plugin.creationGui.openConfirmation(target, session)
-                            MenuActionResult.Success(MenuUpdate.None)
+                            // 確認画面はダイアログ表示前の現在Routeであり、通常遷移ではなく復帰する。
+                            MenuActionResult.Success(MenuUpdate.Resume)
                         },
                     ),
                 ),
@@ -379,29 +378,27 @@ class CreationDialogManager {
         private fun backFromName(
             player: Player,
             session: WorldCreationSession,
-            plugin: MyWorldManager,
-        ) {
-            when (session.creationType) {
-                WorldCreationType.TEMPLATE -> {
-                    if (session.isDialogMode) {
-                        // JEの一覧から直接名前入力へ進んだ場合は、戻る操作も一覧へ戻します。
-                        session.phase = WorldCreationPhase.TEMPLATE_SELECT
-                        plugin.creationGui.openTemplateSelection(player)
-                    } else {
-                        session.phase = WorldCreationPhase.TEMPLATE_DETAIL
-                        plugin.creationGui.openTemplateDetail(player, session)
-                    }
+        ): MenuActionResult = when (session.creationType) {
+            WorldCreationType.TEMPLATE -> {
+                // JEは一覧、BEは詳細画面がダイアログ表示前のRouteなので、どちらも履歴を増やさず復帰する。
+                session.phase = if (session.isDialogMode) {
+                    WorldCreationPhase.TEMPLATE_SELECT
+                } else {
+                    WorldCreationPhase.TEMPLATE_DETAIL
                 }
-                WorldCreationType.SEED -> {
-                    session.phase = WorldCreationPhase.SEED_INPUT
-                    showSeedInputDialog(player, session)
-                }
-                WorldCreationType.RANDOM, null -> {
-                    session.phase = WorldCreationPhase.TYPE_SELECT
-                    plugin.creationGui.openTypeSelection(player)
-                }
+                MenuActionResult.Success(MenuUpdate.Resume)
             }
-        }
+            WorldCreationType.SEED -> {
+                session.phase = WorldCreationPhase.SEED_INPUT
+                showSeedInputDialog(player, session)
+                // シード入力は別のダイアログへ戻るため、外部入力状態を継続する。
+                MenuActionResult.Success(MenuUpdate.None)
+            }
+            WorldCreationType.RANDOM, null -> {
+                session.phase = WorldCreationPhase.TYPE_SELECT
+                MenuActionResult.Success(MenuUpdate.Resume)
+            }
+            }
 
         private fun applySeed(
             player: Player,
