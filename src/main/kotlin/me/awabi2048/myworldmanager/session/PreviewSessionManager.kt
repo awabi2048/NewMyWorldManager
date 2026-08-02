@@ -154,13 +154,28 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         viewLocation.yaw = initialYaw
         session.previewLocation = viewLocation
 
+        // 即座にスペクテイターへ切り替えてからテレポートします。テレポートイベント中に
+        // ワールド状態ポリシーが動いても、プレビュー中のプレイヤーを通常モードへ戻さないためです。
+        viewLocation.chunk.load()
+        player.gameMode = GameMode.SPECTATOR
+        if (!player.teleport(viewLocation)) {
+            // テレポートがキャンセルされた場合は、作成済みセッションと外部メニュー停止状態を残さず復元します。
+            sessions.remove(player.uniqueId)
+            player.gameMode = session.originalGameMode
+            player.teleport(session.originalLocation)
+            if (runtimeSuspended) {
+                CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
+            }
+            player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
+            return false
+        }
+
+        // テレポート先のイベントや連携プラグインがモードを変更しても、プレビュー開始時点で
+        // 必ずスペクテイターへ戻します。
+        player.gameMode = GameMode.SPECTATOR
+
         // メッセージ送信
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to templateName)))
-
-        // 即座にテレポートとスペクテイター設定
-        viewLocation.chunk.load()
-        player.teleport(viewLocation)
-        player.gameMode = GameMode.SPECTATOR
 
         // 回転アニメーションの開始 (遅延なし)
         startRotationTask(player, durationSeconds)
@@ -205,7 +220,13 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 val newYaw = (initialYaw + ticksElapsed * yawPerTick) % 360f
                 val loc = viewLocation.clone()
                 loc.yaw = newYaw
-                
+
+                // プレビュー中に他プラグインがゲームモードを変更しても、回転処理の各tickで
+                // 一時表示状態を再保証します。
+                if (player.gameMode != GameMode.SPECTATOR) {
+                    player.gameMode = GameMode.SPECTATOR
+                }
+
                 // プレイヤーを直接テレポートさせて位置と視点を固定
                 player.teleport(loc)
                 currentSession.currentYaw = newYaw
@@ -237,8 +258,11 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         // 回転タスクをキャンセル
         session.rotationTask?.cancel()
 
-        // スペクテイターターゲットを解除
-        player.spectatorTarget = null
+        // CraftPlayer.setSpectatorTargetはスペクテイター中以外では例外になるため、
+        // 外部要因でモードが変わったセッション終了時はターゲット解除を行いません。
+        if (player.gameMode == GameMode.SPECTATOR) {
+            player.spectatorTarget = null
+        }
 
         // 元の位置・ゲームモードに復元
         player.gameMode = session.originalGameMode

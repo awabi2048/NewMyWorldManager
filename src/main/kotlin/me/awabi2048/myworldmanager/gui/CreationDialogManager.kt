@@ -383,8 +383,14 @@ class CreationDialogManager {
         ) {
             when (session.creationType) {
                 WorldCreationType.TEMPLATE -> {
-                    session.phase = WorldCreationPhase.TEMPLATE_DETAIL
-                    plugin.creationGui.openTemplateDetail(player, session)
+                    if (session.isDialogMode) {
+                        // JEの一覧から直接名前入力へ進んだ場合は、戻る操作も一覧へ戻します。
+                        session.phase = WorldCreationPhase.TEMPLATE_SELECT
+                        plugin.creationGui.openTemplateSelection(player)
+                    } else {
+                        session.phase = WorldCreationPhase.TEMPLATE_DETAIL
+                        plugin.creationGui.openTemplateDetail(player, session)
+                    }
                 }
                 WorldCreationType.SEED -> {
                     session.phase = WorldCreationPhase.SEED_INPUT

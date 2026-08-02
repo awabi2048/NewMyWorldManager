@@ -226,6 +226,15 @@ class CreationGui(private val plugin: MyWorldManager) {
             ?.takeIf(plugin.templateRepository::isUsable)
             ?: return MenuActionResult.Rejected()
         session.templateId = template.id
+
+        // JEは一覧アイコンから直接名前入力へ進みます。BEは既存の詳細画面を経由するため、
+        // プラットフォームごとの操作差をセッションのダイアログモードで明示的に分岐します。
+        if (session.isDialogMode) {
+            session.phase = WorldCreationPhase.NAME_INPUT
+            plugin.creationGuiListener.openNameInputByPlatform(context.player, session)
+            return MenuActionResult.Success(MenuUpdate.None)
+        }
+
         session.phase = WorldCreationPhase.TEMPLATE_DETAIL
         return MenuActionResult.Success(MenuUpdate.Navigate(MenuRoute(OWNER, TEMPLATE_DETAIL_ROUTE)))
     }
@@ -266,11 +275,13 @@ class CreationGui(private val plugin: MyWorldManager) {
     private fun previewTemplate(context: MenuActionContext): MenuActionResult {
         val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
-        val templateId = session.templateId ?: return MenuActionResult.Rejected()
+        val templateId = context.payload["template"] ?: session.templateId ?: return MenuActionResult.Rejected()
+        session.templateId = templateId
         plugin.previewSessionManager.startPreview(
             context.player,
             PreviewSessionManager.PreviewTarget.Template(templateId),
-            PreviewSource.TEMPLATE_DETAIL,
+            // JEの一覧から直接起動した場合は、プレビュー終了後も一覧へ戻します。
+            if (session.isDialogMode) PreviewSource.TEMPLATE_SELECTION else PreviewSource.TEMPLATE_DETAIL,
         )
         return MenuActionResult.Success(MenuUpdate.None)
     }
@@ -408,6 +419,8 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun renderTemplateSelection(player: Player, route: MenuRoute): InventoryMenuView {
         val lang = plugin.languageManager
+        val creationSession = plugin.creationSessionManager.getSession(player.uniqueId)
+        val isDialogMode = creationSession?.isDialogMode == true
         val templates = plugin.templateRepository.findAll()
             .filter(plugin.templateRepository::isUsable)
         val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
@@ -432,13 +445,34 @@ class CreationGui(private val plugin: MyWorldManager) {
                         if (issue == null) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
                     )),
                     warnings = issue?.let { listOf(templateValidationMessage(player, it)) }.orEmpty(),
-                    actions = listOf(menuGestureAction(
-                        ACTION_SELECT_TEMPLATE,
-                        MenuGesture.LEFT_RIGHT,
-                        lang.getMessage(player, "gui.creation.template_item.action.details"),
-                        mapOf("template" to template.id),
-                        safety = MenuActionSafety.NAVIGATION_ONLY,
-                    )),
+                    actions = if (isDialogMode) {
+                        // JEは旧来のアイコン操作を維持し、左クリックを決定、右クリックをプレビューに割り当てます。
+                        listOf(
+                            menuGestureAction(
+                                ACTION_SELECT_TEMPLATE,
+                                MenuGesture.LEFT,
+                                lang.getMessage(player, "gui.creation.template_detail.use_action"),
+                                mapOf("template" to template.id),
+                                safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
+                            ),
+                            menuGestureAction(
+                                ACTION_PREVIEW_TEMPLATE,
+                                MenuGesture.RIGHT,
+                                lang.getMessage(player, "gui.creation.template_detail.preview_action"),
+                                mapOf("template" to template.id),
+                                safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
+                            ),
+                        )
+                    } else {
+                        // BEの現行導線は変更せず、一覧から詳細画面へ進めます。
+                        listOf(menuGestureAction(
+                            ACTION_SELECT_TEMPLATE,
+                            MenuGesture.LEFT_RIGHT,
+                            lang.getMessage(player, "gui.creation.template_item.action.details"),
+                            mapOf("template" to template.id),
+                            safety = MenuActionSafety.NAVIGATION_ONLY,
+                        ))
+                    },
                 ),
             )
         }
