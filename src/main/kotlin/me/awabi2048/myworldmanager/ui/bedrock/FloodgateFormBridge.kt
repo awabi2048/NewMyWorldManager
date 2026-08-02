@@ -7,14 +7,14 @@ import com.awabi2048.ccsystem.api.gui.MenuFormButton
 import com.awabi2048.ccsystem.api.gui.MenuFormHandler
 import com.awabi2048.ccsystem.api.gui.MenuFormInput
 import com.awabi2048.ccsystem.api.gui.MenuSimpleFormRequest
-import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.entity.Player
 
 /**
  * 既存呼び出しをCC-SystemのForm APIへ接続する移行用ファサード。
  * Floodgate/Cumulusの描画、応答受付、効果音処理はCC-Systemが所有する。
+ * Formの利用不能や終了時の復帰処理は各呼び出し元が行い、GUIと重複するチャット通知は送信しない。
  */
-class FloodgateFormBridge(private val plugin: MyWorldManager) {
+class FloodgateFormBridge {
     data class SimpleFormButton(val label: String, val imagePath: String? = null)
     data class CustomFormInput(
         val label: String,
@@ -25,10 +25,6 @@ class FloodgateFormBridge(private val plugin: MyWorldManager) {
     private val forms get() = CCSystem.getAPI().getMenuFormService()
 
     fun isAvailable(player: Player): Boolean = forms.isAvailable(player)
-
-    fun notifyFallbackCancelled(player: Player) {
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
-    }
 
     fun sendSimpleForm(
         player: Player,

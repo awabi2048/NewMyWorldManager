@@ -182,7 +182,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             return
         }
 
@@ -222,7 +221,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
         if (!opened) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
         }
     }
 
@@ -243,7 +241,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
             session.phase = WorldCreationPhase.CONFIRM
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             plugin.creationGui.openConfirmation(player, session)
             return
         }
@@ -310,7 +307,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
         if (!opened) {
             session.phase = WorldCreationPhase.CONFIRM
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             plugin.creationGui.openConfirmation(player, session)
         }
     }
@@ -332,7 +328,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
         }
         if (!plugin.floodgateFormBridge.isAvailable(player)) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             return
         }
 
@@ -383,7 +378,6 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
         if (!opened) {
             plugin.creationSessionManager.endSession(player.uniqueId)
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
         }
     }
 

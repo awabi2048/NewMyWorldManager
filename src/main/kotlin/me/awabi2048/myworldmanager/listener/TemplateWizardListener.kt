@@ -28,7 +28,6 @@ class TemplateWizardListener {
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 return
             }
@@ -56,7 +55,6 @@ class TemplateWizardListener {
                     }
                 )
             if (!opened) {
-                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
             return
@@ -84,7 +82,6 @@ class TemplateWizardListener {
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 return
             }
@@ -112,7 +109,6 @@ class TemplateWizardListener {
                     }
                 )
             if (!opened) {
-                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
             return

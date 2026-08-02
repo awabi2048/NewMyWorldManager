@@ -950,7 +950,6 @@ class WorldSettingsListener : Listener {
                         return MenuActionResult.Success(MenuUpdate.None)
                 }
                 if (plugin.playerPlatformResolver.isBedrock(player)) {
-                        plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                         reopenMemberManagementLatest(player, worldData.uuid)
                         return MenuActionResult.Success(MenuUpdate.None)
                 }

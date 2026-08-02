@@ -292,7 +292,7 @@ class MyWorldManager : JavaPlugin() {
 
         playerPlatformResolver = PlayerPlatformResolver(this)
         playerVisibilityService = PlayerVisibilityService(this)
-        floodgateFormBridge = FloodgateFormBridge(this)
+        floodgateFormBridge = FloodgateFormBridge()
         bedrockFormApiService = BedrockFormServiceAdapter(playerPlatformResolver, floodgateFormBridge)
             .also(MyWorldManagerApi::registerBedrockFormService)
         bedrockUiRoutingService =

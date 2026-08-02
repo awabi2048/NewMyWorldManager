@@ -349,7 +349,7 @@ object MyWorldManagerApi {
         val session = plugin.creationSessionManager.startSession(player.uniqueId)
         session.isDialogMode = true
         session.billingMode = billingMode
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.wizard_start"))
+        // 作成開始の状態は直後に表示するGUIで確認できるため、チャット通知を重ねない。
         return plugin.creationGui.typeSelectionRoute()
     }
 

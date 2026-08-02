@@ -21,7 +21,6 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
     fun editInfo(player: Player, worldData: WorldData): MenuActionResult {
         if (openBedrockInfo(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
         if (plugin.playerPlatformResolver.isBedrock(player)) {
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             return MenuActionResult.Success(MenuUpdate.Refresh)
         }
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.RENAME_WORLD)
@@ -32,7 +31,6 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
     fun editAnnouncement(player: Player, worldData: WorldData, rightClick: Boolean): MenuActionResult {
         if (openBedrockAnnouncementActionForm(player, worldData)) return MenuActionResult.Success(MenuUpdate.None)
         if (plugin.playerPlatformResolver.isBedrock(player)) {
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
             return MenuActionResult.Success(MenuUpdate.Refresh)
         }
         if (rightClick) {
@@ -88,7 +86,6 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
                     return@sendSimpleForm
                 }
                 if (!openBedrockAnnouncementEditForm(player, latest)) {
-                    player.sendMessage(lang.getMessage(player, "messages.operation_cancelled"))
                     CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                 }
             },

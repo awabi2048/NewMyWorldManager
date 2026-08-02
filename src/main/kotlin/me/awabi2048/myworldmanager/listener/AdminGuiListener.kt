@@ -30,7 +30,6 @@ class AdminGuiListener {
 
         if (plugin.playerPlatformResolver.isBedrock(player)) {
             if (!plugin.floodgateFormBridge.isAvailable(player)) {
-                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
                 CCSystem.getAPI().getMenuRuntimeService().reopenCurrent(player)
                 return
@@ -60,7 +59,6 @@ class AdminGuiListener {
                     }
                 )
             if (!opened) {
-                plugin.floodgateFormBridge.notifyFallbackCancelled(player)
                 plugin.settingsSessionManager.endSession(player)
                 CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
@@ -92,9 +90,6 @@ class AdminGuiListener {
                     Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
                     MenuDialogHandler { target, _ ->
                         plugin.settingsSessionManager.endSession(target)
-                        target.sendMessage(
-                            plugin.languageManager.getMessage(target, "messages.operation_cancelled"),
-                        )
                         MenuActionResult.Success(MenuUpdate.Resume)
                     },
                 ),

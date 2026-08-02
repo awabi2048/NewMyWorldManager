@@ -296,9 +296,6 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
     private fun cancel(context: MenuActionContext): MenuActionResult {
         sessions.remove(context.player.uniqueId)
-        context.player.sendMessage(
-            plugin.languageManager.getMessage(context.player, "messages.operation_cancelled"),
-        )
         return MenuActionResult.Success(MenuUpdate.Back)
     }
 

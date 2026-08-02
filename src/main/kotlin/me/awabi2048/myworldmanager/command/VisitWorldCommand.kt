@@ -50,13 +50,10 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
             return
         }
 
-        if (!plugin.floodgateFormBridge.isAvailable(player)) {
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-            return
-        }
+        if (!plugin.floodgateFormBridge.isAvailable(player)) return
 
         val lang = plugin.languageManager
-        val opened = plugin.floodgateFormBridge.sendCustomInputForm(
+        plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
             title = lang.getMessage(player, "gui.visitworld.input.title"),
             label = lang.getMessage(player, "gui.visitworld.input.label"),
@@ -66,19 +63,8 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     processQueryInput(player, value, showBackButton)
                 })
-            },
-            onClosed = {
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (player.isOnline) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.operation_cancelled"))
-                    }
-                })
             }
         )
-
-        if (!opened) {
-            plugin.floodgateFormBridge.notifyFallbackCancelled(player)
-        }
     }
 
     private fun showVisitWorldInputDialog(player: Player, showBackButton: Boolean) {
@@ -107,7 +93,6 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
                 cancel = MenuDialogButton(
                     Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
                     MenuDialogHandler { actor, _ ->
-                        actor.sendMessage(lang.getMessage(actor, "messages.operation_cancelled"))
                         MenuActionResult.Success(MenuUpdate.Close)
                     },
                 ),
