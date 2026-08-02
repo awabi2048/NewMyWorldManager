@@ -49,7 +49,6 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsRestriction
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsStateContext
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
-import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsCapabilityPlacements
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PortalData
@@ -2073,13 +2072,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                 )
                         } else {
-                                val subject = MemberManagementCapabilitySubject(
-                                                player,
-                                                worldData,
-                                                entry.playerUuid,
-                                )
-                                val capabilityAttributes: Map<String, Any> = mapOf(
-                                        MemberManagementCapabilityContract.SUBJECT_ATTRIBUTE to subject,
+                                val capabilityArguments = mapOf(
+                                        MemberManagementCapabilityContract.WORLD_UUID_ARGUMENT to worldData.uuid.toString(),
+                                        MemberManagementCapabilityContract.TARGET_PLAYER_UUID_ARGUMENT to entry.playerUuid.toString(),
                                 )
                                 val service = CCSystem.getAPI().getMenuCapabilityService()
                                 val capabilityView = resolveMemberManagementHostAugmentation(
@@ -2088,14 +2083,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         service.resolve(
                                                         definition.capabilityId,
                                                         player,
-                                                        attributes = capabilityAttributes,
+                                                        arguments = capabilityArguments,
                                         )?.requireExplicitActionSafety()
                                 }
                                 inventory.setElement(
                                         createMemberEntrySpec(
                                                 player, slot, entry.playerUuid,
                                                 entry.role ?: lang.getMessage(player, "role.member"),
-                                                canManageRoles, capabilityView, capabilityAttributes,
+                                                canManageRoles, capabilityView, capabilityArguments,
                                         ),
                                 )
                         }
@@ -2498,7 +2493,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 role: String,
                 isOwner: Boolean,
                 capabilityView: com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability? = null,
-                capabilityAttributes: Map<String, Any> = emptyMap(),
+                capabilityArguments: Map<String, String> = emptyMap(),
         ): MenuElement {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
@@ -2515,6 +2510,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val payload = mapOf(
                         ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER.name,
                         ROUTE_TARGET_UUID to uuid.toString(),
+                        MemberManagementCapabilityContract.WORLD_UUID_ARGUMENT to requireNotNull(
+                                capabilityArguments[MemberManagementCapabilityContract.WORLD_UUID_ARGUMENT],
+                        ),
+                        MemberManagementCapabilityContract.TARGET_PLAYER_UUID_ARGUMENT to uuid.toString(),
                 )
                 val actions = mutableListOf<GuiMenuActionIntent>()
                 val presentationActionLines = mutableListOf<GuiLoreLine.Interaction>()
@@ -2611,6 +2610,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         hostItem,
                         hostBlocks,
                         presentationActionLines,
+                        capabilityArguments,
                 )
                 val spec = GuiMenuEntrySpec(
                         slot = slot,
@@ -2624,8 +2624,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val element = CCSystem.getAPI().getGuiElementService().menuEntry(viewer, spec).copyWithPresentationSemantics(
                         interaction = memberManagementEntryInteraction(
                                 capabilityView,
-                                capabilityAttributes,
                                 hostActions,
+                                capabilityArguments,
                         ),
                 )
                 return if (capabilityView == null) element

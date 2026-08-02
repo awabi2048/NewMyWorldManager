@@ -33,6 +33,7 @@ internal fun resolveMemberManagementHostAugmentation(
 internal data class MemberManagementHostComposition(
     val semanticLoreBlocks: List<GuiLoreBlock>,
     val snapshot: MenuCapabilityCompositionSnapshot?,
+    val capabilityArguments: Map<String, String>,
 )
 
 internal fun composeMemberManagementHost(
@@ -40,9 +41,10 @@ internal fun composeMemberManagementHost(
     hostItem: GuiItemSpec,
     hostBlocks: List<GuiLoreBlock>,
     actionLines: List<GuiLoreLine.Interaction>,
+    capabilityArguments: Map<String, String> = emptyMap(),
 ): MemberManagementHostComposition {
     if (capability == null) {
-        return MemberManagementHostComposition(hostBlocks, null)
+        return MemberManagementHostComposition(hostBlocks, null, capabilityArguments.toMap())
     }
     val composition = MenuCapabilityComposer.composeHostAugmentation(
         capability = capability,
@@ -54,5 +56,6 @@ internal fun composeMemberManagementHost(
     return MemberManagementHostComposition(
         semanticLoreBlocks = if (actionLines.isEmpty()) completedBlocks else completedBlocks.dropLast(1),
         snapshot = composition.snapshot,
+        capabilityArguments = capabilityArguments.toMap(),
     )
 }

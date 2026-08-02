@@ -11,7 +11,6 @@ import com.awabi2048.ccsystem.api.gui.ResolvedMenuCapability
  */
 internal fun memberManagementEntryInteraction(
     capability: ResolvedMenuCapability?,
-    capabilityAttributes: Map<String, Any>,
     hostActions: List<MenuInteraction.Action>,
     capabilityArguments: Map<String, String> = emptyMap(),
 ): MenuInteraction {
@@ -25,7 +24,7 @@ internal fun memberManagementEntryInteraction(
                         MenuInteraction.Capability(
                             capabilityId = resolved.capabilityId,
                             arguments = capabilityArguments,
-                            attributes = capabilityAttributes,
+                            attributes = emptyMap(),
                             acceptedClicks = resolved.acceptedClicks,
                             safety = resolved.safety,
                             safetyByClick = resolved.safetyByClick,

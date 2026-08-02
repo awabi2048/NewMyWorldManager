@@ -27,6 +27,8 @@ import com.awabi2048.ccsystem.api.gui.MenuRuntimeInspectionInteractionSnapshot
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeInteractionKind
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeSlotKind
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeSlotSnapshot
+import com.awabi2048.ccsystem.core.gui.MenuCapabilityServiceImpl
+import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
 import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.util.UUID
@@ -40,20 +42,76 @@ import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.io.path.readText
 
 class MemberManagementClickBranchesTest {
     @Test
+    fun `inspection roundtrip preserves serializable target arguments and resolves capability again`() {
+        val worldUuid = UUID.randomUUID()
+        val targetUuid = UUID.randomUUID()
+        val arguments = mapOf(
+            MemberManagementCapabilityContract.WORLD_UUID_ARGUMENT to worldUuid.toString(),
+            MemberManagementCapabilityContract.TARGET_PLAYER_UUID_ARGUMENT to targetUuid.toString(),
+        )
+        val service = MenuCapabilityServiceImpl()
+        service.register(
+            MenuCapabilityDefinition(
+                owner = "test",
+                id = "member-tools",
+                placement = MemberManagementCapabilityContract.PLACEMENT,
+                availability = MenuCapabilityAvailability {
+                    MemberManagementCapabilityContract.resolveTarget(it.arguments) != null
+                },
+                presentationProvider = MenuCapabilityPresentationProvider {
+                    com.awabi2048.ccsystem.api.gui.MenuCapabilityPresentation.hostAugmentation(
+                        listOf(com.awabi2048.ccsystem.api.gui.GuiLoreBlock(listOf(com.awabi2048.ccsystem.api.gui.GuiLoreLine.Text("tools")))),
+                    )
+                },
+                actions = listOf(
+                    MenuCapabilityAction(
+                        "edit",
+                        MenuCapabilityTrigger.LEFT_RIGHT,
+                        MenuCapabilityActionTextProvider { "edit" },
+                        handler = MenuCapabilityActionHandler { MenuActionResult.Ignored },
+                        safety = MenuActionSafety.NAVIGATION_ONLY,
+                    ),
+                ),
+            ),
+        )
+        val resolved = service.resolve("test:member-tools", player(), arguments = arguments)
+        assertNotNull(resolved)
+        val interaction = memberManagementEntryInteraction(resolved, emptyList(), arguments)
+        val encoded = interactionSnapshot(interaction)
+        val decodedArguments = encoded.arguments
+
+        assertEquals(arguments, decodedArguments)
+        assertTrue(encoded.attributes.isEmpty())
+        assertNotNull(service.resolve("test:member-tools", player(), arguments = decodedArguments))
+        assertFalse(service.resolve(
+            "test:member-tools",
+            player(),
+            arguments = arguments - MemberManagementCapabilityContract.WORLD_UUID_ARGUMENT,
+        )?.availabilityResult is com.awabi2048.ccsystem.api.gui.MenuAvailabilityResult.Available)
+        assertFalse(service.resolve(
+            "test:member-tools",
+            player(),
+            arguments = arguments + (MemberManagementCapabilityContract.TARGET_PLAYER_UUID_ARGUMENT to "wrong"),
+        )?.availabilityResult is com.awabi2048.ccsystem.api.gui.MenuAvailabilityResult.Available)
+    }
+
+    @Test
     fun `completed member definition keeps capability and host interactions by click`() {
-        val subject = Any()
-        val attributes = mapOf<String, Any>("member-subject" to subject)
+        val capabilityArguments = mapOf(
+            "world_uuid" to UUID.randomUUID().toString(),
+            "target_player_uuid" to UUID.randomUUID().toString(),
+        )
         val payload = mapOf("operation" to "MEMBER", "target_uuid" to "member-1")
         val capability = capability("mwm-chanpon:member-tools")
         val interaction = memberManagementEntryInteraction(
             capability,
-            attributes,
             listOf(
                 MenuInteraction.Action(
                     actionId = "dispatch",
@@ -70,6 +128,7 @@ class MemberManagementClickBranchesTest {
                     safetyByClick = mapOf(ClickType.SHIFT_RIGHT to MenuActionSafety.CONFIRM_ENTRY),
                 ),
             ),
+            capabilityArguments,
         )
         val completedDefinition = InventoryMenuDefinition(
             owner = "myworldmanager",
@@ -86,8 +145,8 @@ class MemberManagementClickBranchesTest {
 
         assertEquals(capability.capabilityId, left.capabilityId)
         assertEquals(capability.capabilityId, right.capabilityId)
-        assertEquals(emptyMap<String, String>(), left.arguments)
-        assertSame(subject, left.attributes["member-subject"])
+        assertEquals(capabilityArguments, left.arguments)
+        assertTrue(left.attributes.isEmpty())
         assertEquals(setOf(ClickType.LEFT, ClickType.RIGHT), left.acceptedClicks)
         assertEquals(MenuActionSafety.NAVIGATION_ONLY, left.safety)
         assertEquals(MenuActionSafety.NAVIGATION_ONLY, left.safetyByClick[ClickType.LEFT])
@@ -130,9 +189,8 @@ class MemberManagementClickBranchesTest {
         assertEquals(setOf(ClickType.LEFT, ClickType.RIGHT), capabilityBranch.acceptedClicks)
         assertEquals(MenuRuntimeInteractionKind.CAPABILITY, capabilityBranch.kind)
         assertEquals(capability.capabilityId, capabilityBranch.capabilityId)
-        assertEquals(emptyMap<String, String>(), capabilityBranch.arguments)
-        assertNotSame(subject, capabilityBranch.attributes["member-subject"])
-        assertNotNull(capabilityBranch.attributes["member-subject"])
+        assertEquals(capabilityArguments, capabilityBranch.arguments)
+        assertTrue(capabilityBranch.attributes.isEmpty())
         assertEquals(MenuActionSafety.NAVIGATION_ONLY, capabilityBranch.safetyByClick[ClickType.LEFT])
         assertEquals(MenuActionSafety.NAVIGATION_ONLY, capabilityBranch.safetyByClick[ClickType.RIGHT])
         val transferBranch = inspection.branches[1].interaction
