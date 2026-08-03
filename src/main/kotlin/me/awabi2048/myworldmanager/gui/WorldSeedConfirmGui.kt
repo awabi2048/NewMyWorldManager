@@ -23,6 +23,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.listener.WorldSeedListener
@@ -43,6 +44,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
                     ACTION_CONFIRM to MenuActionHandler(::confirm),
                     ACTION_CANCEL to MenuActionHandler { MenuActionResult.Success(MenuUpdate.Close) },
                 ),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
         )
     }

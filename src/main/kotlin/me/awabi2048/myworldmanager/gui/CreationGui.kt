@@ -29,6 +29,7 @@ import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import com.awabi2048.ccsystem.api.gui.menuUnavailable
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -97,6 +98,7 @@ class CreationGui(private val plugin: MyWorldManager) {
                     ACTION_CONFIRM_INTERACTION to MenuActionHandler(::confirmationAction),
                 ),
                 onClose = MenuCloseHandler(::closed),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
         )
         runtime.register(

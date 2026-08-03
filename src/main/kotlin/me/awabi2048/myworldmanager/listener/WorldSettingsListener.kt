@@ -778,7 +778,7 @@ class WorldSettingsListener : Listener {
 
         private fun handleExpansionResetConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
                 return when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.CANCEL -> cancelMultiStageConfirmation(player)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 val world = resolveWorld(worldData)
                                 if (world != null && !plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(world.spawnLocation)) {
@@ -801,7 +801,7 @@ class WorldSettingsListener : Listener {
 
         private fun handleExpansionResetSpawnUnsafeConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
                 return when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.CANCEL -> cancelMultiStageConfirmation(player)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 executeExpansionReset(player, worldData, closeInventory = true)
                                 MenuActionResult.Success(MenuUpdate.Close)
@@ -812,7 +812,7 @@ class WorldSettingsListener : Listener {
 
         private fun handleDeleteWorldConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
                 return when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.CANCEL -> cancelMultiStageConfirmation(player)
                         WorldSettingsRuntimeOperation.DELETE_WORLD -> MenuActionResult.Success(
                                 MenuUpdate.Navigate(
                                         plugin.worldSettingsGui.runtimeRoute(
@@ -827,7 +827,7 @@ class WorldSettingsListener : Listener {
 
         private fun handleDeleteWorldFinalConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
                 return when (operation) {
-                        WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.CANCEL -> cancelMultiStageConfirmation(player)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 if (!canOwnerExecuteDelete(worldData)) {
                                         sendDeleteUnavailableMessage(player)
@@ -850,6 +850,16 @@ class WorldSettingsListener : Listener {
                         }
                         else -> MenuActionResult.Ignored
                 }
+        }
+
+        /**
+         * 多段階確認のキャンセルは履歴を一段戻す操作ではなく、確認フロー全体の終了です。
+         * 途中画面を履歴へ残さず、設定セッションと方向プレビューも同時に解放します。
+         */
+        private fun cancelMultiStageConfirmation(player: Player): MenuActionResult {
+                stopBorderDirectionPreview(player)
+                plugin.settingsSessionManager.endSession(player)
+                return MenuActionResult.Success(MenuUpdate.Close)
         }
 
         private fun handleArchiveConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {

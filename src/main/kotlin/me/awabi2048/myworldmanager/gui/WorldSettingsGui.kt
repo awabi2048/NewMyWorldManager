@@ -35,6 +35,8 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.withCapabilityComposition
 import com.awabi2048.ccsystem.api.gui.copyWithPresentationSemantics
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
+import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
@@ -77,6 +79,22 @@ private enum class WorldSettingsDisplayMode {
         READ_ONLY_COMPACT,
 }
 
+private val WORLD_SETTINGS_CONFIRMATION_SCREENS = setOf(
+        WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM,
+        WorldSettingsRuntimeScreen.MEMBER_REMOVE_CONFIRM,
+        WorldSettingsRuntimeScreen.MEMBER_TRANSFER_CONFIRM,
+        WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM,
+        WorldSettingsRuntimeScreen.EXPANSION_CONFIRM,
+        WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM,
+        WorldSettingsRuntimeScreen.RESET_EXPANSION_CONFIRM,
+        WorldSettingsRuntimeScreen.RESET_EXPANSION_SPAWN_UNSAFE_CONFIRM,
+        WorldSettingsRuntimeScreen.DELETE_WORLD_CONFIRM,
+        WorldSettingsRuntimeScreen.DELETE_WORLD_FINAL_CONFIRM,
+        WorldSettingsRuntimeScreen.ARCHIVE_CONFIRM,
+        WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM,
+        WorldSettingsRuntimeScreen.ARCHIVE_FROM_CRITICAL_CONFIRM,
+)
+
 class WorldSettingsGui(private val plugin: MyWorldManager) {
         private val borderResetSpawnService = BorderResetSpawnService()
         private val runtime = CCSystem.getAPI().getMenuRuntimeService()
@@ -114,6 +132,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 context.player,
                                                 context.reason,
                                         )
+                                },
+                                openSoundResolver = { route ->
+                                        if (runtimeScreen(route) in WORLD_SETTINGS_CONFIRMATION_SCREENS) {
+                                                MenuSoundPresets.CONFIRMATION_OPEN
+                                        } else {
+                                                MenuSoundPolicy.Default
+                                        }
                                 },
                         ),
                 )

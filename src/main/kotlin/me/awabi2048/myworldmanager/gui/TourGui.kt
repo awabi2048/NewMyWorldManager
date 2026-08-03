@@ -27,6 +27,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
@@ -62,6 +63,7 @@ class TourGui(private val plugin: MyWorldManager) {
                         MenuActionResult.Success(MenuUpdate.Back)
                     },
                 ),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
         )
         runtime.register(
@@ -75,6 +77,7 @@ class TourGui(private val plugin: MyWorldManager) {
                         MenuActionResult.Success(MenuUpdate.Back)
                     },
                 ),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
         )
         runtime.register(
@@ -115,6 +118,7 @@ class TourGui(private val plugin: MyWorldManager) {
                     ACTION_DISCARD_CONFIRM to MenuActionHandler(::confirmDiscard),
                     ACTION_DISCARD_CANCEL to MenuActionHandler(::cancelDiscard),
                 ),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
         )
         runtime.register(
@@ -141,6 +145,7 @@ class TourGui(private val plugin: MyWorldManager) {
                     ACTION_DELETE_CONFIRM to MenuActionHandler(::confirmDelete),
                     ACTION_DELETE_CANCEL to MenuActionHandler(::cancelDelete),
                 ),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
         )
         runtime.register(

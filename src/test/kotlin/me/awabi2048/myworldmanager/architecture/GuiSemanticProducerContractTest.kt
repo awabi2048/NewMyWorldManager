@@ -24,7 +24,7 @@ class GuiSemanticProducerContractTest {
     @Test
     fun `inventory producers use v3 semantic lore and names`() {
         val sources = inventorySources()
-        val combined = sources.joinToString("\n") { Files.readString(it) }
+        val combined = sources.joinToString("\n", transform = ::readSource)
 
         assertFalse(combined.contains("GuiLoreSpec.Rich"))
         assertFalse(Regex("GuiNameSpec\\.(Text|Component)").containsMatchIn(combined))
@@ -52,7 +52,7 @@ class GuiSemanticProducerContractTest {
 
     @Test
     fun `known disabled creation entry carries a runtime reason`() {
-        val source = Files.readString(sourceRoot().resolve("gui/PlayerWorldGui.kt"))
+        val source = readSource(sourceRoot().resolve("gui/PlayerWorldGui.kt"))
         assertTrue(source.contains("menuUnavailable("))
         assertTrue(source.contains("unavailableReason"))
         assertTrue(source.contains("warnings = plugin.languageManager.getMessageList(player, reason.loreKey)"))
@@ -60,12 +60,12 @@ class GuiSemanticProducerContractTest {
 
     @Test
     fun `creation type unavailability and tour current world preserve typed semantics`() {
-        val creation = Files.readString(sourceRoot().resolve("gui/CreationGui.kt"))
+        val creation = readSource(sourceRoot().resolve("gui/CreationGui.kt"))
         assertTrue(creation.contains("getGuiElementService().menuUnavailable("))
         assertTrue(creation.contains("lang.getComponent(player, reason)"))
         assertTrue(creation.contains("warnings = warnings"))
 
-        val tour = Files.readString(sourceRoot().resolve("gui/TourGui.kt"))
+        val tour = readSource(sourceRoot().resolve("gui/TourGui.kt"))
         val currentWorld = tour.substringAfter("private fun createCurrentWorldEntry")
             .substringBefore("private fun createTourEntry")
         assertTrue(currentWorld.indexOf("GuiLoreLine.UserText") < currentWorld.indexOf("GuiLoreLine.Data"))
@@ -77,7 +77,7 @@ class GuiSemanticProducerContractTest {
 
     @Test
     fun `個人設定の循環項目は左右方向を処理し言語表示は操作を持たない`() {
-        val source = Files.readString(sourceRoot().resolve("gui/UserSettingsGui.kt"))
+        val source = readSource(sourceRoot().resolve("gui/UserSettingsGui.kt"))
         val tourCycle = source.substringAfter("private fun cycleTourNavigation")
             .substringBefore("private fun back")
         assertTrue(tourCycle.contains("GuiCycle.direction(context.click)"))
@@ -90,7 +90,7 @@ class GuiSemanticProducerContractTest {
 
     @Test
     fun `member slot presentation is a covered dynamic target with one custom action`() {
-        val settings = Files.readString(sourceRoot().resolve("gui/WorldSettingsGui.kt"))
+        val settings = readSource(sourceRoot().resolve("gui/WorldSettingsGui.kt"))
         val memberProducer = settings.substringAfter("private fun createMemberEntrySpec")
             .substringBefore("private fun formatPendingInviteDateTimeForPlayer")
         assertTrue(memberProducer.contains("name = GuiNameSpec.TargetIdentity("))
@@ -114,14 +114,14 @@ class GuiSemanticProducerContractTest {
 
     @Test
     fun `dynamic player and world lists avoid opaque names outside generic boundaries`() {
-        val settings = Files.readString(sourceRoot().resolve("gui/WorldSettingsGui.kt"))
+        val settings = readSource(sourceRoot().resolve("gui/WorldSettingsGui.kt"))
         assertFalse(settings.contains("GuiNameSpec.Opaque"))
 
-        val combined = inventorySources().joinToString("\n") { Files.readString(it) }
+        val combined = inventorySources().joinToString("\n", transform = ::readSource)
         assertTrue(combined.contains("GuiNameSpec.TargetIdentity"))
         assertTrue(combined.contains("GuiNameSpec.FixedLabel"))
         assertTrue(combined.contains("GuiNameSpec.Opaque"))
-        assertTrue(Files.readString(sourceRoot().resolve("util/GuiSpecFactory.kt")).contains("opaqueName("))
+        assertTrue(readSource(sourceRoot().resolve("util/GuiSpecFactory.kt")).contains("opaqueName("))
     }
 
     private fun inventorySources(): List<Path> = Files.walk(sourceRoot()).use { paths ->
@@ -132,6 +132,8 @@ class GuiSemanticProducerContractTest {
     }
 
     private fun sourceRoot(): Path = Path.of("src/main/kotlin/me/awabi2048/myworldmanager")
+
+    private fun readSource(path: Path): String = Files.readString(path).replace("\r\n", "\n")
 
     private fun semantics(
         name: GuiNameSpec,

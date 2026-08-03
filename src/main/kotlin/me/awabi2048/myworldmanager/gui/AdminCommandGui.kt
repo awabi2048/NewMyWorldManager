@@ -26,6 +26,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
+import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.extension.AdminMenuCapabilityPlacements
@@ -94,6 +95,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     ACTION_CONFIRM to MenuActionHandler(::confirm),
                     ACTION_CANCEL to MenuActionHandler(::cancel),
                 ),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
         )
     }
