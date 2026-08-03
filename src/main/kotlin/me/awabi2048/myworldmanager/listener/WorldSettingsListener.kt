@@ -853,8 +853,8 @@ class WorldSettingsListener : Listener {
         }
 
         /**
-         * 多段階確認のキャンセルは履歴を一段戻す操作ではなく、確認フロー全体の終了です。
-         * 途中画面を履歴へ残さず、設定セッションと方向プレビューも同時に解放します。
+         * 多段階確認のキャンセルは、確認画面だけを履歴から取り除いて開始前の設定メニューへ戻します。
+         * 設定セッションと方向プレビューはここで解放し、親メニューより前の履歴はRuntimeに残します。
          */
         private fun cancelMultiStageConfirmation(player: Player): MenuActionResult {
                 stopBorderDirectionPreview(player)
@@ -3371,8 +3371,8 @@ player.sendMessage(
                                         plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                                         MenuActionResult.Success(MenuUpdate.Close)
                                 },
-                                // 2段階目の安全性確認で戻ると、1段階目の確認が再表示されます。
-                                // この経路は確認フロー全体を破棄して終了させます。
+                                // 2段階目の安全性確認でキャンセルした場合は、1段階目を再表示せず、
+                                // 確認開始前の設定メニューへ戻します。履歴の切り戻しはRuntimeが行います。
                                 onCancel = { MenuActionResult.Success(MenuUpdate.Cancel) }
                         )
                         return

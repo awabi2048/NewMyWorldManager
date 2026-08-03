@@ -98,7 +98,7 @@ class MenuNavigationContractTest {
     }
 
     @Test
-    fun `confirmation views use the independent confirmation category and whole-flow cancel`() {
+    fun `confirmation views use the independent confirmation category and central cancellation`() {
         listOf(
             "AdminCommandGui.kt",
             "TourGui.kt",
