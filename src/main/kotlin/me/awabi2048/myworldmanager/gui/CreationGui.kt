@@ -108,6 +108,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                 renderer = { context -> renderTemplateSelection(context.player, context.route) },
                 actions = mapOf(
                     ACTION_SELECT_TEMPLATE to MenuActionHandler(::selectTemplate),
+                    // Java版の一覧では右クリックプレビューを直接表示するため、
+                    // 詳細画面だけでなく一覧ルート自身も操作を受け付けます。
+                    ACTION_PREVIEW_TEMPLATE to MenuActionHandler(::previewTemplate),
                     ACTION_TEMPLATE_LIST_PAGE to MenuActionHandler(::templateListPage),
                     ACTION_TEMPLATE_LIST_BACK to MenuActionHandler(::templateListBack),
                 ),

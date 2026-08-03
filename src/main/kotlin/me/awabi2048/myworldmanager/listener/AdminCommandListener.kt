@@ -12,28 +12,38 @@ import org.bukkit.entity.Player
 
 class AdminCommandListener {
 
-    fun executeCurrentConfirmation(player: Player, plugin: MyWorldManager) {
-        val action = plugin.settingsSessionManager.getSession(player)?.action ?: return
+    fun executeConfirmation(
+        player: Player,
+        plugin: MyWorldManager,
+        action: SettingsAction,
+        targetWorldUuid: UUID?,
+        targetWorldName: String?,
+    ) {
+        // 確認画面を開いた時点のルート情報を使用し、現在のセッションや
+        // プレイヤーの移動先によって実行対象が変わらないようにします。
         when (action) {
             SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> performUpdateData(player, plugin)
             SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> performRepairTemplates(player, plugin)
             SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> performArchiveAll(player, plugin)
             SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM ->
-                performConvert(player, plugin, WorldService.ConversionMode.NORMAL)
+                performConvert(player, plugin, WorldService.ConversionMode.NORMAL, targetWorldUuid)
             SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM ->
-                performConvert(player, plugin, WorldService.ConversionMode.ADMIN)
-            SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin)
-            SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin)
-            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> performArchiveWorld(player, plugin)
-            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> performUnarchiveWorld(player, plugin)
+                performConvert(player, plugin, WorldService.ConversionMode.ADMIN, targetWorldUuid)
+            SettingsAction.ADMIN_EXPORT_CONFIRM -> performExport(player, plugin, requireNotNull(targetWorldName))
+            SettingsAction.ADMIN_UNLINK_CONFIRM -> performUnlink(player, plugin, requireNotNull(targetWorldName))
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> performArchiveWorld(player, plugin, requireNotNull(targetWorldUuid))
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> performUnarchiveWorld(player, plugin, requireNotNull(targetWorldUuid))
             else -> return
         }
-        plugin.settingsSessionManager.endSession(player)
+        // 管理メニューが作成した待機セッションだけを後始末します。
+        // 別画面が同じプレイヤーのセッションを更新済みなら、その状態は保持します。
+        if (plugin.settingsSessionManager.getSession(player)?.action == SettingsAction.ADMIN_MENU) {
+            plugin.settingsSessionManager.endSession(player)
+        }
     }
 
-    private fun performUnlink(player: Player, plugin: MyWorldManager) {
-        val currentWorld = player.world
-        val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
+    private fun performUnlink(player: Player, plugin: MyWorldManager, targetWorldName: String) {
+        val worldData = plugin.worldConfigRepository.findByWorldName(targetWorldName)
         val uuid = worldData?.uuid
 
         if (uuid == null) {
@@ -147,9 +157,14 @@ class AdminCommandListener {
     private fun performConvert(
             player: Player,
             plugin: MyWorldManager,
-            mode: WorldService.ConversionMode
+            mode: WorldService.ConversionMode,
+            targetWorldUuid: UUID?,
     ) {
-        val currentWorld = player.world
+        val currentWorld = targetWorldUuid?.let(Bukkit::getWorld)
+        if (currentWorld == null) {
+            player.sendMessage("§cワールドの変換に失敗しました。")
+            return
+        }
         val worldName = currentWorld.name
         val alreadyRegistered = plugin.worldConfigRepository.findByWorldName(worldName) != null
 
@@ -184,10 +199,8 @@ class AdminCommandListener {
         }
     }
 
-    private fun performExport(player: Player, plugin: MyWorldManager) {
-        val currentWorld = player.world
-        // 現在のワールドがMyWorldかチェック
-        val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
+    private fun performExport(player: Player, plugin: MyWorldManager, targetWorldName: String) {
+        val worldData = plugin.worldConfigRepository.findByWorldName(targetWorldName)
         val uuid = worldData?.uuid
 
         if (uuid == null) {
@@ -222,9 +235,7 @@ class AdminCommandListener {
         }
     }
 
-    private fun performArchiveWorld(player: Player, plugin: MyWorldManager) {
-        val session = plugin.settingsSessionManager.getSession(player) ?: return
-        val uuid = session.worldUuid
+    private fun performArchiveWorld(player: Player, plugin: MyWorldManager, uuid: UUID) {
         val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
@@ -259,9 +270,7 @@ class AdminCommandListener {
         }
     }
 
-    private fun performUnarchiveWorld(player: Player, plugin: MyWorldManager) {
-        val session = plugin.settingsSessionManager.getSession(player) ?: return
-        val uuid = session.worldUuid
+    private fun performUnarchiveWorld(player: Player, plugin: MyWorldManager, uuid: UUID) {
         val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
