@@ -7,6 +7,7 @@ import me.awabi2048.myworldmanager.util.dangerLine
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -816,6 +817,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         ),
                                         sounds = plugin.worldSettingsActionService
                                                 .contract(player, worldData, WorldSettingsAction.SET_SPAWN).sounds,
+                                        // Bedrockは単一操作、Java版は左右で別操作のため共通仕様で条件判定します。
+                                        interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                                 ),
                         )
                 }
@@ -2184,6 +2187,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         ))
                                 },
+                                // 強制招待操作が無い場合だけ、通常操作を単一操作として案内します。
+                                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                         ),
                 )
 

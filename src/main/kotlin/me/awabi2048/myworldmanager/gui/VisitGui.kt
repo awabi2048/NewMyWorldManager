@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -263,6 +264,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
+                                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                         ),
                 )
         }

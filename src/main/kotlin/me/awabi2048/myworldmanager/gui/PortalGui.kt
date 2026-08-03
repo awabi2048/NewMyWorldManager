@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -108,6 +109,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                     )),
                     actionId = ACTION_CYCLE_COLOR,
                     gesture = MenuGesture.LEFT_RIGHT,
+                    interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                 ),
                 menuEntry(
                     player,
@@ -211,6 +213,7 @@ class PortalGui(private val plugin: MyWorldManager) {
         dangers: List<String> = emptyList(),
         actionId: String,
         gesture: MenuGesture = MenuGesture.ANY,
+        interactionGuidance: GuiInteractionGuidance = GuiInteractionGuidance.DEFAULT,
     ): MenuElement {
         val lang = plugin.languageManager
         return CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -236,6 +239,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                         },
                     ),
                 ),
+                interactionGuidance = interactionGuidance,
             ),
         )
     }

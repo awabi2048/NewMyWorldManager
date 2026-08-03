@@ -18,6 +18,7 @@ import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionHandler
@@ -867,6 +868,7 @@ class TourGui(private val plugin: MyWorldManager) {
                         safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
+                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
             ),
         )
     }
@@ -958,6 +960,7 @@ class TourGui(private val plugin: MyWorldManager) {
                     else -> null
                 },
             )),
+            interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
         ),
     )
 

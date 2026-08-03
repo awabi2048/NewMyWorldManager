@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryOption
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -269,6 +270,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                         reversibleContract = MwmMenuActionSemantics.contract("user-tour"),
                     ),
                 ),
+                interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                 glint = null
             ),
         )

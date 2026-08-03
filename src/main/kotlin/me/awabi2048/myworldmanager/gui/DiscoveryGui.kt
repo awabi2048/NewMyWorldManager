@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -487,6 +488,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 add(menuGestureAction(ACTION_SORT, MenuGesture.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("discovery-sort")))
                                 if (canEditSpotlight) add(menuGestureAction(ACTION_SORT, MenuGesture.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE))
                         },
+                        interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                 ))
         }
 
@@ -554,6 +556,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 else -> error("Unknown discovery reversible action: $actionId")
                             },
                         )),
+                        interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                 ),
         )
 
@@ -640,6 +643,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
+                                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                         ),
                 )
         }

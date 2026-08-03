@@ -13,6 +13,7 @@ import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuCapabilityInvocationSpec
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
@@ -478,6 +479,8 @@ class CreationGui(private val plugin: MyWorldManager) {
                             safety = MenuActionSafety.NAVIGATION_ONLY,
                         ))
                     },
+                    // Bedrockの一覧項目だけが単一の左右クリック操作になるため、案内を一般化します。
+                    interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                 ),
             )
         }
@@ -1032,6 +1035,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             name = me.awabi2048.myworldmanager.util.fixedLabelName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
             role = GuiElementRole.ACTION,
             actions = listOf(menuGestureAction(actionId, MenuGesture.ANY, actionText, safety = templateActionSafety(actionId))),
+            interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
         ),
     )
 

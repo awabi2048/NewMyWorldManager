@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -1049,6 +1050,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         mapOf(PAGE to targetPage.toString()),
                                         safety = MenuActionSafety.NAVIGATION_ONLY,
                                 )),
+                                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                         ),
                 )
         }
@@ -1155,6 +1157,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         safety = MenuActionSafety.REVERSIBLE,
                                         reversibleContract = MwmMenuActionSemantics.contract("admin-archive-filter"),
                                 )),
+                                interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                         ),
                 )
         }
@@ -1186,6 +1189,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         safety = MenuActionSafety.REVERSIBLE,
                                         reversibleContract = MwmMenuActionSemantics.contract("admin-publish-filter"),
                                 )),
+                                interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                         ),
                 )
         }
@@ -1270,6 +1274,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         safety = MenuActionSafety.REVERSIBLE,
                                         reversibleContract = MwmMenuActionSemantics.contract("admin-sort"),
                                 )),
+                                interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                         ),
                 )
         }

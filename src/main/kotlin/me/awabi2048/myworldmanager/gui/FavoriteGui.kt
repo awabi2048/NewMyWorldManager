@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
@@ -315,6 +316,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         reversibleContract = MwmMenuActionSemantics.contract("favorite-tag"),
                     ),
                 ),
+                interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
             ),
         )
     }
@@ -338,6 +340,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                         safety = MenuActionSafety.NAVIGATION_ONLY,
                     ),
                 ),
+                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
             ),
         )
     }

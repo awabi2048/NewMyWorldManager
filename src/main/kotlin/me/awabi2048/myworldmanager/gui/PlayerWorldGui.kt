@@ -36,6 +36,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -560,6 +561,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to world.name)),
                                 ),
                                 role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
+                                // Shift操作が同時に存在する場合は共通層が複数操作として扱い、単一時だけ案内を一般化します。
+                                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                                 description = listOfNotNull(world.description.takeIf(String::isNotBlank)),
                                 data = buildList {
                                         add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.owner"), ownerName))
