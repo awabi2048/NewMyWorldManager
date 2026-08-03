@@ -758,39 +758,11 @@ class CreationGui(private val plugin: MyWorldManager) {
                 elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
         } else if (session.creationType == WorldCreationType.TEMPLATE) {
-            elements += interactionEntry(
-                player,
-                if (confirmationCapability == null) 39 else 38,
-                Material.ENDER_EYE,
-                lang.getMessage(player, "gui.creation.template_detail.preview"),
-                GuiLoreSpec.None,
-                GuiElementRole.ACTION,
-                CreationConfirmationAction.TEMPLATE_PREVIEW,
-                lang.getMessage(player, "gui.creation.template_detail.preview_action"),
-            )
-            elements += interactionEntry(
-                player,
-                39,
-                Material.NAME_TAG,
-                lang.getMessage(player, "gui.creation.confirm.change_name"),
-                GuiLoreSpec.None,
-                GuiElementRole.NAVIGATION,
-                CreationConfirmationAction.BACK,
-                lang.getMessage(player, "gui.creation.confirm.change_name"),
-            )
+            // テンプレート作成確認では、フッター3・4・6の補助アイコンを表示しない。
+            // Chanponが提供するフッター5の本番設定項目だけは、既存の拡張導線として維持する。
             confirmationCapability?.let { resolved ->
                 elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
             }
-            elements += interactionEntry(
-                player,
-                41,
-                Material.MAP,
-                lang.getMessage(player, "gui.creation.confirm.change_template"),
-                GuiLoreSpec.None,
-                GuiElementRole.NAVIGATION,
-                CreationConfirmationAction.TEMPLATE_CHANGE,
-                lang.getMessage(player, "gui.creation.confirm.change_template"),
-            )
         } else {
             confirmationCapability?.let { resolved ->
                 elements += confirmationCapabilityElement(player, resolved, capabilityAttributes)
