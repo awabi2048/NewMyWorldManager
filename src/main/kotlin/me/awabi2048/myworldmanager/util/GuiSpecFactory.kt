@@ -9,7 +9,10 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
+
+private val legacyFormattingCode = Regex("(?i)[\\u00A7&][0-9A-FK-ORX]")
 
 fun semanticLore(lines: List<GuiLoreLine>, frame: GuiLoreFrame): GuiLoreSpec =
     GuiLoreSpec.FramedBlocks(listOf(GuiLoreBlock(lines)), frame)
@@ -22,6 +25,19 @@ fun fixedLabelName(value: Component): GuiNameSpec = GuiNameSpec.FixedLabel(value
 
 fun fixedLabelName(text: String, style: GuiNameStyle): GuiNameSpec = GuiNameSpec.FixedLabel(
     com.awabi2048.ccsystem.CCSystem.getAPI().getGuiElementService().name(text, style),
+)
+
+/**
+ * 確認ボタン用の固定Nameです。Lore用の言語キーを流用しても、元キーのLegacy装飾を
+ * ボタンへ持ち込まず、確認ボタン本来の固定ラベル表示を維持します。
+ */
+fun confirmationButtonName(text: String): GuiNameSpec = fixedLabelName(
+    legacyFormattingCode.replace(text, ""),
+    GuiNameStyle.DEFAULT,
+)
+
+fun confirmationButtonName(value: Component): GuiNameSpec = confirmationButtonName(
+    PlainTextComponentSerializer.plainText().serialize(value),
 )
 
 fun targetIdentityName(value: Component): GuiNameSpec = GuiNameSpec.TargetIdentity(value)
@@ -45,7 +61,11 @@ object GuiSpecFactory {
         role: GuiElementRole = GuiElementRole.CONTENT,
     ): GuiItemSpec = GuiItemSpec(
         material,
-        opaqueName(name, GuiNameStyle.DEFAULT),
+        if (role == GuiElementRole.CONFIRM || role == GuiElementRole.CANCEL) {
+            confirmationButtonName(name)
+        } else {
+            opaqueName(name, GuiNameStyle.DEFAULT)
+        },
         lore,
         role,
         1,
@@ -58,7 +78,11 @@ object GuiSpecFactory {
         role: GuiElementRole = GuiElementRole.CONTENT,
     ): GuiItemSpec = GuiItemSpec(
         material,
-        GuiNameSpec.Opaque(name),
+        if (role == GuiElementRole.CONFIRM || role == GuiElementRole.CANCEL) {
+            confirmationButtonName(name)
+        } else {
+            GuiNameSpec.Opaque(name)
+        },
         lore,
         role,
         1,

@@ -25,6 +25,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.listener.WorldSeedListener
 import org.bukkit.Material
@@ -103,6 +104,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
                 button(player, 11, Material.LIME_CONCRETE, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_CONFIRM),
                 button(player, 15, Material.RED_CONCRETE, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_CANCEL),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 

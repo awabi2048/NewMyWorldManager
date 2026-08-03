@@ -859,7 +859,7 @@ class WorldSettingsListener : Listener {
         private fun cancelMultiStageConfirmation(player: Player): MenuActionResult {
                 stopBorderDirectionPreview(player)
                 plugin.settingsSessionManager.endSession(player)
-                return MenuActionResult.Success(MenuUpdate.Close)
+                return MenuActionResult.Success(MenuUpdate.Cancel)
         }
 
         private fun handleArchiveConfirmationRuntime(player: Player, operation: WorldSettingsRuntimeOperation?, worldData: WorldData): MenuActionResult {
@@ -3371,7 +3371,9 @@ player.sendMessage(
                                         plugin.soundManager.playActionSound(player, "environment", "gravity_change")
                                         MenuActionResult.Success(MenuUpdate.Close)
                                 },
-                                onCancel = { MenuActionResult.Success(MenuUpdate.Back) }
+                                // 2段階目の安全性確認で戻ると、1段階目の確認が再表示されます。
+                                // この経路は確認フロー全体を破棄して終了させます。
+                                onCancel = { MenuActionResult.Success(MenuUpdate.Cancel) }
                         )
                         return
                 }

@@ -39,6 +39,7 @@ import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
 import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import java.time.Instant
 import java.time.ZoneId
@@ -2954,7 +2955,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): GuiItemSpec =
                 GuiItemSpec(
                         material = material,
-                        name = me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT),
+                        name = if (tag == ItemTag.TYPE_GUI_CONFIRM || tag == ItemTag.TYPE_GUI_CANCEL) {
+                                me.awabi2048.myworldmanager.util.confirmationButtonName(name)
+                        } else {
+                                me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT)
+                        },
                         lore = lore,
                         role = GuiElementRole.CONTENT,
                         amount = 1,
@@ -3009,7 +3014,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         ): GuiItemSpec =
                 GuiItemSpec(
                         material = material,
-                        name = me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT),
+                        name = if (tag == ItemTag.TYPE_GUI_CONFIRM || tag == ItemTag.TYPE_GUI_CANCEL) {
+                                me.awabi2048.myworldmanager.util.confirmationButtonName(name)
+                        } else {
+                                me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT)
+                        },
                         lore = lore,
                         role = GuiElementRole.CONTENT,
                         amount = 1,
@@ -3664,7 +3673,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
                         ?: error("ワールド設定Runtimeの対象ワールドが見つかりません: $worldUuid")
 
-                return when (screen) {
+                val view = when (screen) {
                                 WorldSettingsRuntimeScreen.WORLD_SETTINGS,
                                 WorldSettingsRuntimeScreen.ICON_SELECTION ->
                                         renderWorldSettings(player, worldData)
@@ -3734,13 +3743,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         renderArchiveConfirmation(player, worldData)
                                 WorldSettingsRuntimeScreen.UNARCHIVE_CONFIRM ->
                                         renderUnarchiveConfirmation(player, worldData)
-                                WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT ->
+                        WorldSettingsRuntimeScreen.PORTAL_MANAGEMENT ->
                                         renderPortalManagement(
                                                 player,
                                                 worldData,
                                                 runtimePage(route) ?: 0,
                                         )
-                        }
+                }
+                return if (screen in WORLD_SETTINGS_CONFIRMATION_SCREENS) {
+                        view.withCategory(MenuViewCategory.CONFIRMATION)
+                } else {
+                        view
+                }
         }
 
         private fun runtimeScreen(route: MenuRoute): WorldSettingsRuntimeScreen? =

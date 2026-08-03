@@ -5,13 +5,13 @@ import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
-import com.awabi2048.ccsystem.api.gui.GuiNameStyle
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuConfirmationDraft
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPolicy
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.util.confirmationButtonName
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -113,14 +113,14 @@ class ConfirmationMenuGui(
         )
         val confirmItem = GuiItemSpec(
             Material.LIME_CONCRETE,
-            me.awabi2048.myworldmanager.util.fixedLabelName(confirmLabel, GuiNameStyle.DEFAULT),
+            confirmationButtonName(confirmLabel),
             GuiLoreSpec.None,
             GuiElementRole.CONFIRM,
             1,
         )
         val cancelItem = GuiItemSpec(
             Material.RED_CONCRETE,
-            me.awabi2048.myworldmanager.util.fixedLabelName(cancelLabel, GuiNameStyle.DEFAULT),
+            confirmationButtonName(cancelLabel),
             GuiLoreSpec.None,
             GuiElementRole.CANCEL,
             1,

@@ -18,6 +18,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -341,6 +342,7 @@ class WorldMigrationService(
                 actionEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.migration.confirm.execute", GuiElementRole.CONFIRM, ACTION_EXECUTE),
                 actionEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.migration.confirm.cancel", GuiElementRole.CANCEL, ACTION_CANCEL),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 

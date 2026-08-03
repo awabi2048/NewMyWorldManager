@@ -28,6 +28,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.extension.AdminMenuCapabilityPlacements
 import me.awabi2048.myworldmanager.service.WorldService
@@ -603,6 +604,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     ACTION_CANCEL,
                 ),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 

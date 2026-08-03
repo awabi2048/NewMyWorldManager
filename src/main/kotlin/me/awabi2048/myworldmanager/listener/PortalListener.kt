@@ -24,6 +24,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.gui.PortalGui
@@ -410,6 +411,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", "gui.common.confirm_action", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
                 confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", "gui.common.cancel_action", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 

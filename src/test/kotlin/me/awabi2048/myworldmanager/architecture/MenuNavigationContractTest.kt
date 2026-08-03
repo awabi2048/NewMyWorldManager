@@ -98,6 +98,38 @@ class MenuNavigationContractTest {
     }
 
     @Test
+    fun `confirmation views use the independent confirmation category and whole-flow cancel`() {
+        listOf(
+            "AdminCommandGui.kt",
+            "TourGui.kt",
+            "WorldSeedConfirmGui.kt",
+            "WorldSettingsGui.kt",
+            "PortalListener.kt",
+            "WorldMigrationService.kt",
+        ).forEach { fileName ->
+            val source = when {
+                fileName.endsWith("Listener.kt") -> Path.of(
+                    "src/main/kotlin/me/awabi2048/myworldmanager/listener/$fileName",
+                ).readText()
+                fileName == "WorldMigrationService.kt" -> Path.of(
+                    "src/main/kotlin/me/awabi2048/myworldmanager/migration/$fileName",
+                ).readText()
+                else -> guiRoot.resolve(fileName).readText()
+            }
+            assertTrue(
+                "MenuViewCategory.CONFIRMATION" in source,
+                "$fileName must declare the confirmation view category",
+            )
+        }
+
+        val listener = Path.of(
+            "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",
+        ).readText()
+        assertTrue("MenuUpdate.Cancel" in functionBody(listener, "cancelMultiStageConfirmation"))
+        assertTrue("MenuUpdate.Cancel" in listener)
+    }
+
+    @Test
     fun `world settings child menus do not manually push before runtime navigation`() {
         val listener = Path.of(
             "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt",

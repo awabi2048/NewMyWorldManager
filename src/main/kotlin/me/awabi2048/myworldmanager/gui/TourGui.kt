@@ -30,6 +30,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
 import com.awabi2048.ccsystem.api.gui.MenuRuntimeActions
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
@@ -236,6 +237,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 GuiElementRole.CONFIRM),
                 simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_START_CANCEL),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 
@@ -265,6 +267,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 ),
                 simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_STOP_CANCEL),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 
@@ -528,6 +531,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 simpleActionEntry(player, layout.confirmSlot, Material.LIME_WOOL, "gui.tour.menu.delete_confirm.confirm", GuiElementRole.CONFIRM, ACTION_DELETE_CONFIRM),
                 simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.tour.menu.delete_confirm.cancel", GuiElementRole.CANCEL, ACTION_DELETE_CANCEL),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 
@@ -689,6 +693,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 simpleActionEntry(player, layout.confirmSlot, Material.LIME_WOOL, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_DISCARD_CONFIRM),
                 simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_DISCARD_CANCEL),
             ),
+            category = MenuViewCategory.CONFIRMATION,
         )
     }
 
