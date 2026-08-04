@@ -9,7 +9,6 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.Color
-import org.bukkit.FluidCollisionMode
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Tag
@@ -28,6 +27,7 @@ import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.scheduler.BukkitTask
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import me.awabi2048.myworldmanager.util.PlayerBlockTargetResolver
 
 class TourListener(private val plugin: MyWorldManager) : Listener {
     private val waypointPreviewTasks = ConcurrentHashMap<UUID, BukkitTask>()
@@ -43,7 +43,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             // PlayerInteractEventのclickedBlockは、草や雪などの通過可能ブロックを
             // 最初の衝突対象として返すことがあります。位置設定ではそれらを貫通し、
             // ワールドスポーン設定と同じく、実際に足場となる候補ブロックを選びます。
-            val targetBlock = targetWaypointBlock(player) ?: event.clickedBlock ?: return
+            val targetBlock = PlayerBlockTargetResolver.find(player) ?: event.clickedBlock ?: return
             val spawnLocation = targetBlock.location.clone().add(0.5, 1.0, 0.5)
             if (!plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(spawnLocation)) {
                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_invalid_location"))
@@ -146,7 +146,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
                 stopWaypointPreview(player)
                 return@Runnable
             }
-            val targetBlock = targetWaypointBlock(player) ?: return@Runnable
+            val targetBlock = PlayerBlockTargetResolver.find(player) ?: return@Runnable
             val spawnLocation = targetBlock.location.clone().add(0.5, 1.0, 0.5)
             val placeable = plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(spawnLocation)
             val frameDust = Particle.DustOptions(
@@ -170,17 +170,6 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         session.editingWaypointUuid = waypointUuid
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
         startWaypointPreview(player)
-    }
-
-    private fun targetWaypointBlock(player: Player): org.bukkit.block.Block? {
-        val ray = player.world.rayTraceBlocks(
-            player.eyeLocation,
-            player.eyeLocation.direction,
-            6.0,
-            FluidCollisionMode.NEVER,
-            true,
-        )
-        return ray?.hitBlock
     }
 
     private fun stopWaypointPreview(player: Player) {

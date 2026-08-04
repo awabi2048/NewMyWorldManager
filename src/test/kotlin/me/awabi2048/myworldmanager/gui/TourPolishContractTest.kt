@@ -45,13 +45,19 @@ class TourPolishContractTest {
     }
 
     @Test
-    fun `waypoint picking ignores passable blocks and tour stop clears actionbar`() {
+    fun `position picking shares passable block handling and tour stop clears actionbar`() {
         val listener = listenerRoot.resolve("TourListener.kt").readText()
+        val worldSettingsListener = listenerRoot.resolve("WorldSettingsListener.kt").readText()
+        val spawnPreview = serviceRoot.resolve("WorldSettingsSpawnPreviewService.kt").readText()
+        val targetResolver = Path.of("src/main/kotlin/me/awabi2048/myworldmanager/util/PlayerBlockTargetResolver.kt").readText()
         val manager = serviceRoot.resolve("TourManager.kt").readText()
 
-        assertTrue("rayTraceBlocks" in listener)
-        assertTrue("FluidCollisionMode.NEVER" in listener)
-        assertTrue("true," in listener)
+        assertTrue("rayTraceBlocks" in targetResolver)
+        assertTrue("FluidCollisionMode.NEVER" in targetResolver)
+        assertTrue("PlayerBlockTargetResolver.find(player)" in listener)
+        assertTrue("PlayerBlockTargetResolver.find(player)" in spawnPreview)
+        assertTrue("PlayerBlockTargetResolver.find(player)" in worldSettingsListener)
+        assertTrue("true," in targetResolver)
         assertTrue("clearNavigationActionbar" in manager)
         assertTrue("player.sendActionBar(Component.empty())" in manager)
     }

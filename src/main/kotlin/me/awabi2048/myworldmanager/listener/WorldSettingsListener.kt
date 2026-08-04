@@ -45,6 +45,7 @@ import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.LanguageManager
 import me.awabi2048.myworldmanager.util.PermissionManager
+import me.awabi2048.myworldmanager.util.PlayerBlockTargetResolver
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
 import me.awabi2048.myworldmanager.util.WorldNameValidation
@@ -2150,7 +2151,10 @@ player.sendMessage(
                         val clickedBlock = event.clickedBlock ?: return
 
                         event.isCancelled = true
-                        val loc = clickedBlock.location.clone().add(0.5, 1.0, 0.5)
+                        // プレビューと確定で同じ基準を使い、草・雪などの通過可能ブロックを
+                        // 透過して、その奥のブロックをスポーン位置の基準にします。
+                        val targetBlock = PlayerBlockTargetResolver.find(player) ?: clickedBlock
+                        val loc = targetBlock.location.clone().add(0.5, 1.0, 0.5)
 
                         val normalizedYaw = plugin.worldSettingsSpawnPreviewService.normalizeToCardinalYaw(player.location.yaw)
 

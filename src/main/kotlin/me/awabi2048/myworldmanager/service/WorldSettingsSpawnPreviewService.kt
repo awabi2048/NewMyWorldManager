@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.session.SettingsAction
+import me.awabi2048.myworldmanager.util.PlayerBlockTargetResolver
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Location
@@ -28,7 +29,7 @@ internal class WorldSettingsSpawnPreviewService(private val plugin: MyWorldManag
                 stop(player)
                 return@Runnable
             }
-            val targetBlock = player.getTargetBlockExact(6) ?: return@Runnable
+            val targetBlock = PlayerBlockTargetResolver.find(player) ?: return@Runnable
             val spawnLoc = targetBlock.location.clone().add(0.5, 1.0, 0.5)
             val yaw = normalizeToCardinalYaw(player.location.yaw)
             spawnSpawnPreview(player, spawnLoc, yaw, isSpawnAreaPlaceable(spawnLoc))
