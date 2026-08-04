@@ -15,7 +15,7 @@ class MenuReversibleClassificationTest {
     @Test
     fun `classification declares a provider for every reversible semantic action`() {
         val rows = classificationRows()
-        assertEquals(38, rows.size)
+        assertEquals(37, rows.size)
         assertEquals(rows.size, rows.map { it[0] }.toSet().size)
         rows.forEach { row ->
             val classification = row[3]

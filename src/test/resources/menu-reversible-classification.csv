@@ -22,7 +22,6 @@ portal-color,PortalGui.kt,cycle_color,REVERSIBLE,myworldmanager:portal-state,por
 template-icon,TemplateWizardGui.kt,icon,INPUT_OR_EXTERNAL_SURFACE,,cursor item is operation input
 template-origin,TemplateWizardGui.kt,origin,REVERSIBLE,myworldmanager:draft,template origin draft mutation
 template-cancel,TemplateWizardGui.kt,cancel,REVERSIBLE,myworldmanager:draft,template draft removal
-tour-icon,TourGui.kt,edit_text_right,REVERSIBLE,myworldmanager:draft,tour icon-pick draft mutation
 tour-discard,TourGui.kt,discard_confirm,REVERSIBLE,myworldmanager:draft,tour draft removal
 user-notification,UserSettingsGui.kt,notification,REVERSIBLE,myworldmanager:user-settings,user notification mutation
 user-critical,UserSettingsGui.kt,critical_visibility,REVERSIBLE,myworldmanager:user-settings,user visibility mutation

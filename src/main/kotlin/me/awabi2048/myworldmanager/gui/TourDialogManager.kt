@@ -82,7 +82,11 @@ class TourDialogManager {
             createTour.clear()
         }
 
-        private fun showCreateTourDialog(player: Player, plugin: MyWorldManager) {
+        private fun showCreateTourDialog(
+            player: Player,
+            plugin: MyWorldManager,
+            errorMessage: Component? = null,
+        ) {
             val lang = plugin.languageManager
             CCSystem.getAPI().getMenuDialogService().show(
                 player,
@@ -93,9 +97,10 @@ class TourDialogManager {
                         lang.getMessage(player, "gui.tour.create_dialog.title"),
                         NamedTextColor.GOLD,
                     ),
-                    body = listOf(
-                        Component.text(lang.getMessage(player, "gui.tour.create_dialog.description")),
-                    ),
+                    body = buildList {
+                        errorMessage?.let(::add)
+                        add(Component.text(lang.getMessage(player, "gui.tour.create_dialog.description")))
+                    },
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "name",
@@ -113,14 +118,22 @@ class TourDialogManager {
                         MenuDialogHandler { target, response ->
                             val session = createTour.remove(target.uniqueId)
                                 ?: return@MenuDialogHandler MenuActionResult.Rejected()
-                            val name = response.textValue("name").ifBlank {
+                            val name = response.textValue("name").trim()
+                            if (name.isBlank()) {
                                 createTour[target.uniqueId] = session
-                                return@MenuDialogHandler MenuActionResult.Rejected()
+                                // Paper Dialogは確認後に閉じるため、検証エラーを本文へ付けた
+                                // 同じDialogを再表示し、入力中の作成セッションを維持します。
+                                showCreateTourDialog(
+                                    target,
+                                    plugin,
+                                    lang.getComponent(target, "gui.tour.create_dialog.name_required"),
+                                )
+                                return@MenuDialogHandler MenuActionResult.Ignored
                             }
                             val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
                                 ?: return@MenuDialogHandler MenuActionResult.Rejected()
                             plugin.tourManager.createTour(
-                                name.trim().take(15),
+                                name.take(15),
                                 response.textValue("description").trim().take(30),
                                 target.uniqueId,
                                 worldData,

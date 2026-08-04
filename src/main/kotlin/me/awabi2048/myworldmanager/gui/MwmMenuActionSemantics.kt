@@ -44,7 +44,6 @@ object MwmMenuActionSemantics {
         Entry("template-icon", "TemplateWizardGui.kt", "icon", MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE, reason = "cursor item is operation input"),
         Entry("template-origin", "TemplateWizardGui.kt", "origin", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.DRAFT_PROVIDER, "template_origin", "template origin draft mutation"),
         Entry("template-cancel", "TemplateWizardGui.kt", "cancel", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.DRAFT_PROVIDER, "template_cancel", "template draft removal"),
-        Entry("tour-icon", "TourGui.kt", "edit_text_right", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.DRAFT_PROVIDER, "tour_icon_pick", "tour icon-pick draft mutation"),
         Entry("tour-discard", "TourGui.kt", "discard_confirm", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.DRAFT_PROVIDER, "tour_discard", "tour draft removal"),
         Entry("user-notification", "UserSettingsGui.kt", "notification", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.USER_SETTINGS_PROVIDER, "notification", "user notification mutation"),
         Entry("user-critical", "UserSettingsGui.kt", "critical_visibility", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.USER_SETTINGS_PROVIDER, "critical_visibility", "user visibility mutation"),

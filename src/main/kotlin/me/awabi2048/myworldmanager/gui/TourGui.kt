@@ -11,6 +11,7 @@ import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
 import com.awabi2048.ccsystem.api.gui.GuiNameStyle
+import com.awabi2048.ccsystem.api.gui.GuiStructuredMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiValueTone
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
@@ -90,6 +91,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 actions = mapOf(
                     ACTION_SINGLE_BACK to MenuActionHandler(::singleBack),
                     ACTION_EDIT_TEXT to MenuActionHandler(::editText),
+                    ACTION_EDIT_ICON to MenuActionHandler(::editIcon),
                     ACTION_DELETE to MenuActionHandler(::openDelete),
                     ACTION_ADD_WAYPOINT to MenuActionHandler(::addWaypoint),
                     ACTION_OPEN_WAYPOINT to MenuActionHandler(::openWaypoint),
@@ -405,7 +407,11 @@ class TourGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
         val canCreate = worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)
-        val listItemCount = tours.size + if (canCreate) 1 else 0
+        val activeInWorld = plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid
+        // フッター3枠目は、進行中だけスキップ操作を優先します。進行していないときは
+        // 旧画面と同じ位置へ新規作成を戻し、作成操作を本文へ重複配置しません。
+        val createInContent = canCreate && activeInWorld
+        val listItemCount = tours.size + if (createInContent) 1 else 0
         val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
             listItemCount,
             route.payload["page"]?.toIntOrNull() ?: 0,
@@ -416,7 +422,7 @@ class TourGui(private val plugin: MyWorldManager) {
         tours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
             elements += createTourEntry(layout.itemSlots[index], player, worldData, tour, true, ACTION_EDIT)
         }
-        if (canCreate && page.startIndex <= tours.size && tours.size < page.startIndex + page.itemCount) {
+        if (createInContent && tours.size in page.startIndex until (page.startIndex + page.itemCount)) {
             elements += actionEntry(
                 layout.itemSlots[tours.size - page.startIndex],
                 player,
@@ -429,7 +435,6 @@ class TourGui(private val plugin: MyWorldManager) {
             )
         }
         val footerStart = layout.size - 9
-        val activeInWorld = plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid
         if (activeInWorld) {
             elements += actionEntry(
                 footerStart + 1,
@@ -450,6 +455,18 @@ class TourGui(private val plugin: MyWorldManager) {
                 lang.getMessage(player, "gui.tour.menu.skip.action"),
                 ACTION_SKIP,
             )
+        } else if (canCreate) {
+            // 旧実装の新規作成位置（フッター3スロット目）を復元します。
+            elements += actionEntry(
+                footerStart + 2,
+                player,
+                Material.NETHER_STAR,
+                lang.getMessage(player, "gui.tour.menu.create.display"),
+                listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.tour.menu.create.description"))),
+                lang.getMessage(player, "gui.tour.menu.create.action"),
+                ACTION_CREATE,
+                gesture = MenuGesture.ANY,
+            )
         }
         if (GuiHelper.canGoBack(player)) {
             elements += CCSystem.getAPI().getGuiElementService().backEntry(
@@ -459,12 +476,11 @@ class TourGui(private val plugin: MyWorldManager) {
             )
         }
         elements += createCurrentWorldEntry(player, worldData, 4)
-        elements += actionEntry(
+        elements += nameOnlyActionEntry(
             footerStart + 6,
             player,
             Material.FILLED_MAP,
             lang.getMessage(player, "gui.tour.menu.visitor_switch.display"),
-            emptyList(),
             lang.getMessage(player, "gui.tour.menu.visitor_switch.action"),
             ACTION_OPEN_VISITOR,
         )
@@ -500,6 +516,8 @@ class TourGui(private val plugin: MyWorldManager) {
         )
         val elements = mutableListOf<MenuElement>()
         val reorderUuid = session.reorderingWaypointUuid
+        // 編集対象を常にヘッダー中央へ表示し、本文とフッターの役割を混在させないようにします。
+        elements += createCurrentTourEntry(player, tour, 4)
         tour.waypoints.take(28).forEachIndexed { index, waypoint ->
             val isSelectedForReorder = waypoint.uuid == reorderUuid
             val actionId = when {
@@ -547,10 +565,24 @@ class TourGui(private val plugin: MyWorldManager) {
                 name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
                 actions = listOf(
-                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.tour.menu.edit_text.action.text"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE),
-                    menuGestureAction(ACTION_EDIT_TEXT, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.tour.menu.edit_text.action.icon"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("tour-icon")),
+                    menuGestureAction(
+                        ACTION_EDIT_TEXT,
+                        MenuGesture.LEFT_RIGHT,
+                        lang.getMessage(player, "gui.tour.menu.edit_text.action.text"),
+                        safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
+                    ),
                 ),
             ),
+        )
+        elements += actionEntry(
+            layout.actionSlot - 3,
+            player,
+            Material.ANVIL,
+            lang.getMessage(player, "gui.tour.menu.icon.display"),
+            emptyList(),
+            lang.getMessage(player, "gui.tour.menu.icon.action"),
+            ACTION_EDIT_ICON,
+            gesture = MenuGesture.LEFT_RIGHT,
         )
         elements += actionEntry(
             layout.actionSlot + 2,
@@ -714,7 +746,9 @@ class TourGui(private val plugin: MyWorldManager) {
     private fun openVisitorFromEdit(context: MenuActionContext): MenuActionResult {
         val worldData = world(context.route) ?: return MenuActionResult.Rejected()
         return MenuActionResult.Success(
-            MenuUpdate.Navigate(
+            // 訪問者表示と編集用表示は同じツアー画面の表示状態です。切り替えで
+            // 履歴を増やすと戻る操作が同じ画面を何度も経由するため、現在の履歴を置換します。
+            MenuUpdate.Replace(
                 MenuRoute(
                     OWNER,
                     VISITOR_ROUTE,
@@ -1048,11 +1082,6 @@ class TourGui(private val plugin: MyWorldManager) {
         val worldData = world(context.route) ?: return MenuActionResult.Rejected()
         val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
-        if (context.click.isRightClick) {
-            session.awaitingIconPick = true
-            context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.icon_prompt"))
-            return MenuActionResult.Success(MenuUpdate.Refresh)
-        }
         TourDialogManager.startTourTextEdit(
             context.player,
             plugin,
@@ -1062,6 +1091,14 @@ class TourGui(private val plugin: MyWorldManager) {
             session.draft.description,
         )
         return MenuActionResult.Success(MenuUpdate.None)
+    }
+
+    private fun editIcon(context: MenuActionContext): MenuActionResult {
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        session.awaitingIconPick = true
+        context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.icon_prompt"))
+        return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun openDelete(context: MenuActionContext): MenuActionResult {
@@ -1325,6 +1362,26 @@ class TourGui(private val plugin: MyWorldManager) {
         )
     }
 
+    private fun createCurrentTourEntry(player: Player, tour: TourData, slot: Int): MenuElement {
+        val lore = if (tour.description.isBlank()) {
+            GuiLoreSpec.None
+        } else {
+            GuiLoreSpec.Blocks(listOf(GuiLoreBlock(listOf(GuiLoreLine.UserText(tour.description)))))
+        }
+        return CCSystem.getAPI().getGuiElementService().menuDisplay(
+            GuiMenuDisplaySpec(
+                slot,
+                GuiItemSpec(
+                    tour.icon,
+                    GuiNameSpec.FixedLabel(Component.text(tour.name)),
+                    lore,
+                    GuiElementRole.CONTENT,
+                    1,
+                ),
+            ),
+        )
+    }
+
     private fun createTourEntry(slot: Int, player: Player, worldData: WorldData, tour: TourData, editing: Boolean, actionId: String): MenuElement {
         val lang = plugin.languageManager
         val current = plugin.tourSessionManager.get(player.uniqueId)?.let { it.tourUuid == tour.uuid && it.worldUuid == worldData.uuid } == true
@@ -1388,6 +1445,40 @@ class TourGui(private val plugin: MyWorldManager) {
         ),
     )
 
+    /** 画面切り替えのように、操作説明をLoreへ追加せずNameだけを表示する操作です。 */
+    private fun nameOnlyActionEntry(
+        slot: Int,
+        player: Player,
+        material: Material,
+        name: String,
+        action: String,
+        actionId: String,
+        role: GuiElementRole = GuiElementRole.ACTION,
+        payload: Map<String, String> = emptyMap(),
+        gesture: MenuGesture = MenuGesture.LEFT_RIGHT,
+    ): MenuElement = CCSystem.getAPI().getGuiElementService().menuStructuredEntry(
+        player,
+        GuiStructuredMenuEntrySpec(
+            slot = slot,
+            item = GuiItemSpec(
+                material = material,
+                name = me.awabi2048.myworldmanager.util.fixedLabelName(name, GuiNameStyle.DEFAULT),
+                lore = GuiLoreSpec.NameOnly,
+                role = role,
+                amount = 1,
+            ),
+            actions = listOf(
+                menuGestureAction(
+                    actionId,
+                    gesture,
+                    action,
+                    payload,
+                    safety = tourActionSafety(actionId),
+                ),
+            ),
+        ),
+    )
+
     private fun tourActionSafety(actionId: String): MenuActionSafety = when (actionId) {
         ACTION_START,
         ACTION_STOP_CONFIRM -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
@@ -1410,6 +1501,7 @@ class TourGui(private val plugin: MyWorldManager) {
         ACTION_ADD_WAYPOINT,
         ACTION_REORDER_BEFORE,
         ACTION_REORDER_END,
+        ACTION_EDIT_ICON,
         ACTION_WAYPOINT_NAME,
         ACTION_WAYPOINT_DESCRIPTION,
         ACTION_WAYPOINT_ICON,
@@ -1500,6 +1592,7 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val ACTION_OPEN_VISITOR = "open_visitor"
         private const val ACTION_SINGLE_BACK = "single_back"
         private const val ACTION_EDIT_TEXT = "edit_text"
+        private const val ACTION_EDIT_ICON = "edit_icon"
         private const val ACTION_DELETE = "delete"
         private const val ACTION_ADD_WAYPOINT = "add_waypoint"
         private const val ACTION_OPEN_WAYPOINT = "open_waypoint"

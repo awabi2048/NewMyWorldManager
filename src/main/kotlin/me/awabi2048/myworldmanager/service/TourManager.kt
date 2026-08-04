@@ -95,7 +95,12 @@ class TourManager(private val plugin: MyWorldManager) {
         particleTasks.values.forEach { it.cancel() }
         particleTasks.clear()
         arrowMotionStates.clear()
-        bossBars.forEach { (uuid, bar) -> Bukkit.getPlayer(uuid)?.hideBossBar(bar) }
+        bossBars.forEach { (uuid, bar) ->
+            Bukkit.getPlayer(uuid)?.let { player ->
+                clearNavigationActionbar(player)
+                player.hideBossBar(bar)
+            }
+        }
         bossBars.clear()
         startSignNoticeStates.clear()
     }
@@ -409,6 +414,9 @@ class TourManager(private val plugin: MyWorldManager) {
         arrowTasks.remove(player.uniqueId)?.cancel()
         particleTasks.remove(player.uniqueId)?.cancel()
         arrowMotionStates.remove(player.uniqueId)
+        // ActionBarは送信後もしばらくクライアント側に残るため、ツアー終了時に
+        // 空のActionBarを明示送信して、その場で表示を消します。
+        clearNavigationActionbar(player)
         if (session != null) {
             val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid)
             val tour = worldData?.let { getTour(it, session.tourUuid) }
@@ -483,6 +491,8 @@ class TourManager(private val plugin: MyWorldManager) {
             bossBars.remove(player.uniqueId)?.let { player.hideBossBar(it) }
             arrowTasks.remove(player.uniqueId)?.cancel()
             particleTasks.remove(player.uniqueId)?.cancel()
+            arrowMotionStates.remove(player.uniqueId)
+            clearNavigationActionbar(player)
             return
         }
         val bossBar = bossBars.computeIfAbsent(player.uniqueId) {
@@ -509,7 +519,10 @@ class TourManager(private val plugin: MyWorldManager) {
             val session = plugin.tourSessionManager.get(player.uniqueId) ?: return@Runnable
             if (session.worldUuid != worldData.uuid || session.tourUuid != tour.uuid) return@Runnable
             val mode = plugin.playerStatsRepository.findByUuid(player.uniqueId).tourNavigationMode
-            if (mode == TourNavigationMode.NONE) return@Runnable
+            if (mode == TourNavigationMode.NONE) {
+                clearNavigationActionbar(player)
+                return@Runnable
+            }
             val currentWorldData = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@Runnable
             val currentTour = getTour(currentWorldData, tour.uuid) ?: return@Runnable
             val bossBar = bossBars.computeIfAbsent(player.uniqueId) {
@@ -594,6 +607,10 @@ class TourManager(private val plugin: MyWorldManager) {
             )
         }
         player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(actionbar))
+    }
+
+    private fun clearNavigationActionbar(player: Player) {
+        player.sendActionBar(Component.empty())
     }
 
     private fun sendWaypointArrivalMessage(
