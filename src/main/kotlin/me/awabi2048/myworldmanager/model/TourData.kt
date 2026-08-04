@@ -33,6 +33,8 @@ data class TourData(
                 "block_x" to it.blockX,
                 "block_y" to it.blockY,
                 "block_z" to it.blockZ,
+                "description" to it.description.toList(),
+                "icon" to it.icon.name,
                 "created_at" to it.createdAt
             )
         },
@@ -65,6 +67,13 @@ data class TourData(
                         val x = (map["block_x"] as? Number)?.toInt() ?: return@mapNotNull null
                         val y = (map["block_y"] as? Number)?.toInt() ?: return@mapNotNull null
                         val z = (map["block_z"] as? Number)?.toInt() ?: return@mapNotNull null
+                        val description = (map["description"] as? List<*>)
+                            ?.mapNotNull { line -> line as? String }
+                            ?.toMutableList()
+                            ?: mutableListOf()
+                        val icon = (map["icon"] as? String)
+                            ?.let { raw -> runCatching { Material.valueOf(raw) }.getOrNull() }
+                            ?: Material.OAK_BOAT
                         val createdAt = map["created_at"] as? String
                             ?: LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                         TourWaypointData(
@@ -73,7 +82,9 @@ data class TourData(
                             blockX = x,
                             blockY = y,
                             blockZ = z,
-                            createdAt = createdAt
+                            createdAt = createdAt,
+                            description = description,
+                            icon = icon,
                         )
                     }
                     ?.toMutableList()

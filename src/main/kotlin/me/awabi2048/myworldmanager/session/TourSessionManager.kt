@@ -16,9 +16,12 @@ data class TourEditSession(
     val playerUuid: UUID,
     val worldUuid: UUID,
     var draft: TourData,
-    val originalTourUuid: UUID?,
+    var originalTourUuid: UUID?,
     var awaitingIconPick: Boolean = false,
-    var awaitingWaypointPick: Boolean = false
+    var awaitingWaypointPick: Boolean = false,
+    var awaitingWaypointIconPick: UUID? = null,
+    var editingWaypointUuid: UUID? = null,
+    var reorderingWaypointUuid: UUID? = null,
 ) {
     val isNew: Boolean get() = originalTourUuid == null
 }
@@ -73,10 +76,13 @@ class TourSessionManager {
                     blockX = it.blockX,
                     blockY = it.blockY,
                     blockZ = it.blockZ,
-                    createdAt = it.createdAt
+                    createdAt = it.createdAt,
+                    description = it.description.toMutableList(),
+                    icon = it.icon,
                 )
             }.toMutableList(),
-            startedPlayerUuids = source.startedPlayerUuids.toMutableSet()
+            startedPlayerUuids = source.startedPlayerUuids.toMutableSet(),
+            activePlayerProgress = source.activePlayerProgress.toMutableMap(),
         )
         val session = TourEditSession(playerUuid, worldUuid, copy, source.uuid)
         editSessions[playerUuid] = session
@@ -100,7 +106,16 @@ class TourSessionManager {
     }
 }
 
-data class TourWaypointSnapshot(val uuid: UUID, val name: String, val x: Int, val y: Int, val z: Int, val createdAt: String)
+data class TourWaypointSnapshot(
+    val uuid: UUID,
+    val name: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val createdAt: String,
+    val description: List<String>,
+    val icon: Material,
+)
 data class TourDraftSnapshot(
     val uuid: UUID, val name: String, val description: String, val icon: Material, val createdBy: UUID?,
     val startSignUuid: UUID?, val waypoints: List<TourWaypointSnapshot>, val completedCount: Int,
@@ -109,15 +124,32 @@ data class TourDraftSnapshot(
 data class TourEditSessionSnapshot(
     val playerUuid: UUID, val worldUuid: UUID, val draft: TourDraftSnapshot, val originalTourUuid: UUID?,
     val awaitingIconPick: Boolean, val awaitingWaypointPick: Boolean,
+    val awaitingWaypointIconPick: UUID?, val editingWaypointUuid: UUID?, val reorderingWaypointUuid: UUID?,
 ) {
     fun restore(): TourEditSession = TourEditSession(
         playerUuid, worldUuid,
         TourData(
             draft.uuid, draft.name, draft.description, draft.icon, draft.createdBy, draft.startSignUuid,
-            draft.waypoints.map { TourWaypointData(it.uuid, it.name, it.x, it.y, it.z, it.createdAt) }.toMutableList(),
+            draft.waypoints.map {
+                TourWaypointData(
+                    it.uuid,
+                    it.name,
+                    it.x,
+                    it.y,
+                    it.z,
+                    it.createdAt,
+                    it.description.toMutableList(),
+                    it.icon,
+                )
+            }.toMutableList(),
             draft.completedCount, draft.startedPlayers.toMutableSet(), draft.activeProgress.toMutableMap(), draft.createdAt,
         ),
-        originalTourUuid, awaitingIconPick, awaitingWaypointPick,
+        originalTourUuid,
+        awaitingIconPick,
+        awaitingWaypointPick,
+        awaitingWaypointIconPick,
+        editingWaypointUuid,
+        reorderingWaypointUuid,
     )
 }
 
@@ -125,8 +157,24 @@ private fun TourEditSession.immutableSnapshot(): TourEditSessionSnapshot = TourE
     playerUuid, worldUuid,
     TourDraftSnapshot(
         draft.uuid, draft.name, draft.description, draft.icon, draft.createdBy, draft.startSignUuid,
-        draft.waypoints.map { TourWaypointSnapshot(it.uuid, it.name, it.blockX, it.blockY, it.blockZ, it.createdAt) },
+        draft.waypoints.map {
+            TourWaypointSnapshot(
+                it.uuid,
+                it.name,
+                it.blockX,
+                it.blockY,
+                it.blockZ,
+                it.createdAt,
+                it.description.toList(),
+                it.icon,
+            )
+        },
         draft.completedCount, draft.startedPlayerUuids.toSet(), draft.activePlayerProgress.toMap(), draft.createdAt,
     ),
-    originalTourUuid, awaitingIconPick, awaitingWaypointPick,
+    originalTourUuid,
+    awaitingIconPick,
+    awaitingWaypointPick,
+    awaitingWaypointIconPick,
+    editingWaypointUuid,
+    reorderingWaypointUuid,
 )

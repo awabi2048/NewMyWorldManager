@@ -40,10 +40,24 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         if (editSession != null && editSession.awaitingWaypointPick && event.action == Action.RIGHT_CLICK_BLOCK && event.hand == EquipmentSlot.HAND) {
             event.isCancelled = true
             val targetBlock = event.clickedBlock ?: return
+            val spawnLocation = targetBlock.location.clone().add(0.5, 1.0, 0.5)
+            if (!plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(spawnLocation)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_invalid_location"))
+                return
+            }
             stopWaypointPreview(player)
             editSession.awaitingWaypointPick = false
+            val editingWaypointUuid = editSession.editingWaypointUuid
+            editSession.editingWaypointUuid = null
             plugin.soundManager.playGlobalClickSound(player)
-            plugin.tourManager.addWaypoint(editSession, targetBlock.location)
+            if (editingWaypointUuid == null) {
+                plugin.tourManager.addWaypoint(editSession, targetBlock.location)
+            } else {
+                plugin.tourManager.updateWaypointLocation(editSession, editingWaypointUuid, targetBlock.location)
+            }
+            plugin.worldConfigRepository.findByUuid(editSession.worldUuid)?.let { worldData ->
+                plugin.tourManager.saveEditSession(player, worldData, closeSession = false)
+            }
             CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             return
         }
@@ -129,7 +143,12 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
                 return@Runnable
             }
             val targetBlock = player.getTargetBlockExact(6) ?: return@Runnable
-            val frameDust = Particle.DustOptions(Color.fromRGB(64, 255, 120), 0.5f)
+            val spawnLocation = targetBlock.location.clone().add(0.5, 1.0, 0.5)
+            val placeable = plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(spawnLocation)
+            val frameDust = Particle.DustOptions(
+                if (placeable) Color.fromRGB(64, 255, 120) else Color.fromRGB(255, 80, 80),
+                0.5f,
+            )
             val x = targetBlock.x
             val y = targetBlock.y + 1
             val z = targetBlock.z
@@ -137,13 +156,14 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         }, 0L, 2L)
     }
 
-    fun beginWaypointPick(player: Player) {
+    fun beginWaypointPick(player: Player, waypointUuid: UUID? = null) {
         val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
-        if (session.draft.waypoints.size >= 28) {
+        if (waypointUuid == null && session.draft.waypoints.size >= 28) {
             player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.waypoint_limit"))
             return
         }
         session.awaitingWaypointPick = true
+        session.editingWaypointUuid = waypointUuid
         player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
         startWaypointPreview(player)
     }
@@ -206,6 +226,8 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         if (editSession != null) {
             editSession.awaitingIconPick = false
             editSession.awaitingWaypointPick = false
+            editSession.awaitingWaypointIconPick = null
+            editSession.editingWaypointUuid = null
             stopWaypointPreview(event.player)
         }
         if (plugin.tourSessionManager.get(event.player.uniqueId) != null) {

@@ -647,6 +647,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val hasManagePermission =
                         (isOwner || isModerator) &&
                                 presentationMode == WorldSettingsDisplayMode.DEFAULT
+                val canManageTour =
+                        (isOwner || isModerator || isMember) &&
+                                presentationMode == WorldSettingsDisplayMode.DEFAULT
                 val isBedrock = plugin.playerPlatformResolver.isBedrock(player)
 
                 val isMemberLayout = isMember && !hasManagePermission
@@ -688,7 +691,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                if (hasManagePermission && !isMemberLayout) {
+                if (canManageTour) {
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(

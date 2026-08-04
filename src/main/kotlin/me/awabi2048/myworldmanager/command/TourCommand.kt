@@ -19,11 +19,15 @@ class TourCommand(private val plugin: MyWorldManager) : CommandExecutor {
             player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.not_managed_world"))
             return true
         }
-        if (!plugin.tourManager.hasValidTour(worldData)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.none_available"))
-            return true
+        if (plugin.tourManager.isWorldMember(worldData, player.uniqueId)) {
+            plugin.tourGui.openEditMenu(player, worldData)
+        } else {
+            if (!plugin.tourManager.hasValidTour(worldData)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.none_available"))
+                return true
+            }
+            plugin.tourGui.openVisitorMenu(player, worldData)
         }
-        plugin.tourGui.openVisitorMenu(player, worldData)
         return true
     }
 }

@@ -85,14 +85,19 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         val admin = player.hasPermission("myworldmanager.admin")
         val owner = player.uniqueId == worldData.owner
         val moderator = player.uniqueId in worldData.moderators
+        val member = owner || moderator || player.uniqueId in worldData.members
         val permitted = when (action) {
             WorldSettingsAction.MANAGE_MEMBERS,
             WorldSettingsAction.MANAGE_PORTALS -> owner || admin
+            WorldSettingsAction.MANAGE_TOUR -> member || admin
             else -> owner || moderator || admin
         }
         if (!permitted) return false
         return when (action) {
             WorldSettingsAction.SET_SPAWN -> player.world.name == (worldData.customWorldName ?: "my_world.${worldData.uuid}")
+            // ワールドツアーの編集・閲覧導線は、対象ワールド内にいる場合だけ有効にします。
+            WorldSettingsAction.MANAGE_TOUR ->
+                plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid
             WorldSettingsAction.MANAGE_PORTALS -> plugin.portalRepository.findAll().any { it.worldKey == worldData.worldKey }
             else -> true
         }

@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
 import me.awabi2048.myworldmanager.model.TourNavigationMode
@@ -27,6 +28,7 @@ import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.Vector
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.atan2
@@ -105,7 +107,8 @@ class TourManager(private val plugin: MyWorldManager) {
     }
 
     fun canManage(worldData: WorldData, playerUuid: UUID): Boolean {
-        return worldData.owner == playerUuid || worldData.moderators.contains(playerUuid)
+        // ツアーはワールドの共同制作物として扱うため、通常メンバーも編集権限を持ちます。
+        return isWorldMember(worldData, playerUuid)
     }
 
     fun getTourLimit(player: Player, worldData: WorldData): Int {
@@ -139,7 +142,13 @@ class TourManager(private val plugin: MyWorldManager) {
         return plugin.tourSessionManager.openExistingEdit(player.uniqueId, worldData.uuid, tour)
     }
 
-    fun saveEditSession(player: Player, worldData: WorldData): TourData? {
+    /**
+     * 編集セッションの現在値をワールドデータへ反映します。
+     *
+     * GUIの各編集操作から呼び出してもセッションを維持できるよう、既定では編集セッションを
+     * 残します。最後に画面を離れるときだけ [closeSession] を true にして破棄します。
+     */
+    fun saveEditSession(player: Player, worldData: WorldData, closeSession: Boolean = true): TourData? {
         val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return null
         val draft = session.draft
         val target = session.originalTourUuid?.let { getTour(worldData, it) }
@@ -148,8 +157,11 @@ class TourManager(private val plugin: MyWorldManager) {
             if (draft.createdBy == null) {
                 draft.createdBy = player.uniqueId
             }
-            worldData.tours.add(draft)
-            draft
+            val saved = copyTour(draft)
+            worldData.tours.add(saved)
+            // 新規セッションも初回保存後は既存編集と同じ経路で更新できるようにします。
+            session.originalTourUuid = saved.uuid
+            saved
         } else {
             target.name = draft.name
             target.description = draft.description
@@ -158,14 +170,7 @@ class TourManager(private val plugin: MyWorldManager) {
             target.waypoints.clear()
             target.waypoints.addAll(
                 draft.waypoints.map {
-                    TourWaypointData(
-                        uuid = it.uuid,
-                        name = it.name,
-                        blockX = it.blockX,
-                        blockY = it.blockY,
-                        blockZ = it.blockZ,
-                        createdAt = it.createdAt
-                    )
+                    copyWaypoint(it)
                 }
             )
             target.completedCount = draft.completedCount
@@ -178,12 +183,31 @@ class TourManager(private val plugin: MyWorldManager) {
         }
         worldData.tours.sortBy { it.createdAt }
         plugin.worldConfigRepository.save(worldData)
-        plugin.tourSessionManager.clearEdit(player.uniqueId)
         if (editedExisting) {
             cancelActiveTourSessions(worldData.uuid, result.uuid, "messages.tour.cancelled_edited")
         }
+        if (closeSession) {
+            plugin.tourSessionManager.clearEdit(player.uniqueId)
+        }
         return result
     }
+
+    private fun copyTour(source: TourData): TourData = source.copy(
+        waypoints = source.waypoints.map(::copyWaypoint).toMutableList(),
+        startedPlayerUuids = source.startedPlayerUuids.toMutableSet(),
+        activePlayerProgress = source.activePlayerProgress.toMutableMap(),
+    )
+
+    private fun copyWaypoint(source: TourWaypointData): TourWaypointData = TourWaypointData(
+        uuid = source.uuid,
+        name = source.name,
+        blockX = source.blockX,
+        blockY = source.blockY,
+        blockZ = source.blockZ,
+        createdAt = source.createdAt,
+        description = source.description.toMutableList(),
+        icon = source.icon,
+    )
 
     fun deleteTour(worldData: WorldData, tourUuid: UUID) {
         worldData.tours.removeIf { it.uuid == tourUuid }
@@ -411,6 +435,7 @@ class TourManager(private val plugin: MyWorldManager) {
         session.nextIndex++
         tour.activePlayerProgress[player.uniqueId] = session.nextIndex
         player.playSound(player.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.55f, 1.55f)
+        sendWaypointArrivalMessage(player, tour, waypoint, session.nextIndex)
         if (session.nextIndex >= tour.waypoints.size) {
             tour.completedCount++
             plugin.worldConfigRepository.save(worldData)
@@ -421,6 +446,31 @@ class TourManager(private val plugin: MyWorldManager) {
         }
         plugin.worldConfigRepository.save(worldData)
         showNextNavigation(player, worldData, tour, session.nextIndex, sendMessage = false)
+    }
+
+    /**
+     * 現在の経由地を通知なしで通過済みにします。スキップは到達演出を発生させず、
+     * 最後の経由地であればそのまま完了状態に移行します。
+     */
+    fun skipCurrentWaypoint(player: Player, worldData: WorldData): Boolean {
+        val session = plugin.tourSessionManager.get(player.uniqueId) ?: return false
+        if (session.worldUuid != worldData.uuid) return false
+        val tour = getTour(worldData, session.tourUuid) ?: return false
+        if (session.nextIndex !in tour.waypoints.indices) return false
+        if (player.world.uid != Bukkit.getWorld(plugin.worldService.getWorldFolderName(worldData))?.uid) return false
+
+        session.nextIndex++
+        tour.activePlayerProgress[player.uniqueId] = session.nextIndex
+        if (session.nextIndex >= tour.waypoints.size) {
+            tour.completedCount++
+            plugin.worldConfigRepository.save(worldData)
+            stopTour(player, silent = true)
+            return true
+        }
+
+        plugin.worldConfigRepository.save(worldData)
+        showNextNavigation(player, worldData, tour, session.nextIndex, sendMessage = false)
+        return true
     }
 
     private fun showNextNavigation(player: Player, worldData: WorldData, tour: TourData, index: Int, sendMessage: Boolean) {
@@ -488,18 +538,21 @@ class TourManager(private val plugin: MyWorldManager) {
         }, 0L, ARROW_INTERVAL_TICKS)
         arrowTasks[player.uniqueId] = arrowTask
 
-        val particleTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
-            if (!player.isOnline) {
-                stopTour(player, silent = true)
-                return@Runnable
-            }
-            val session = plugin.tourSessionManager.get(player.uniqueId) ?: return@Runnable
-            if (session.worldUuid != worldData.uuid || session.tourUuid != tour.uuid) return@Runnable
-            val currentWorldData = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@Runnable
-            val currentTour = getTour(currentWorldData, tour.uuid) ?: return@Runnable
-            spawnWaypointParticles(player, currentTour, session.nextIndex)
-        }, 0L, PARTICLE_INTERVAL_TICKS)
-        particleTasks[player.uniqueId] = particleTask
+        // BOSSBAR_ONLY は目的地パーティクルを表示しない設定なので、タスク自体を作成しません。
+        if (plugin.playerStatsRepository.findByUuid(player.uniqueId).tourNavigationMode == TourNavigationMode.ALL) {
+            val particleTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+                if (!player.isOnline) {
+                    stopTour(player, silent = true)
+                    return@Runnable
+                }
+                val session = plugin.tourSessionManager.get(player.uniqueId) ?: return@Runnable
+                if (session.worldUuid != worldData.uuid || session.tourUuid != tour.uuid) return@Runnable
+                val currentWorldData = plugin.worldConfigRepository.findByUuid(worldData.uuid) ?: return@Runnable
+                val currentTour = getTour(currentWorldData, tour.uuid) ?: return@Runnable
+                spawnWaypointParticles(player, currentTour, session.nextIndex)
+            }, 0L, PARTICLE_INTERVAL_TICKS)
+            particleTasks[player.uniqueId] = particleTask
+        }
     }
 
     private fun updateNavigationDisplay(player: Player, worldData: WorldData, tour: TourData, nextIndex: Int, bossBar: BossBar) {
@@ -511,12 +564,68 @@ class TourManager(private val plugin: MyWorldManager) {
         val rounded = formatDistance(distance)
         val progress = if (tour.waypoints.isEmpty()) 0f else nextIndex.toFloat() / tour.waypoints.size.toFloat()
         val arrow = relativeArrow(player, target)
-        bossBar.name(LegacyComponentSerializer.legacySection().deserialize("§7【§a${waypoint.name}§7】 §b$arrow §7($rounded ブロック )"))
-        bossBar.progress(progress.coerceIn(0f, 1f))
-        player.sendActionBar(
+        val creator = Bukkit.getOfflinePlayer(tour.createdBy ?: worldData.owner).name
+            ?: plugin.languageManager.getMessage(player, "general.unknown")
+        bossBar.name(
             LegacyComponentSerializer.legacySection().deserialize(
-                "§7ワールドツアー§b【${tour.name}】 §7(次の経由地まで $rounded ブロック )"
+                plugin.languageManager.getMessage(
+                    player,
+                    "messages.tour.navigation_bossbar",
+                    mapOf("tour" to tour.name, "creator" to creator),
+                )
             )
+        )
+        bossBar.progress(progress.coerceIn(0f, 1f))
+        val passedWaypoint = tour.waypoints
+            .take(nextIndex)
+            .asReversed()
+            .firstOrNull { player.location.distance(waypointCenter(world, it)) <= 10.0 }
+        val actionbar = if (passedWaypoint != null) {
+            plugin.languageManager.getMessage(
+                player,
+                "messages.tour.navigation_passed_waypoint",
+                mapOf("waypoint" to passedWaypoint.name),
+            )
+        } else {
+            plugin.languageManager.getMessage(
+                player,
+                "messages.tour.navigation_next_waypoint",
+                mapOf("distance" to rounded, "arrow" to arrow),
+            )
+        }
+        player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(actionbar))
+    }
+
+    private fun sendWaypointArrivalMessage(
+        player: Player,
+        tour: TourData,
+        waypoint: TourWaypointData,
+        current: Int,
+    ) {
+        val arrival = plugin.languageManager.getMessage(
+            player,
+            "messages.tour.waypoint_arrival",
+            mapOf(
+                "waypoint" to waypoint.name,
+                "current" to current,
+                "out_of" to tour.waypoints.size,
+            ),
+        )
+        if (waypoint.description.isEmpty()) {
+            player.sendMessage(arrival)
+            return
+        }
+
+        val separator = CCSystem.getAPI().getLoreService().separator()
+        player.sendMessage(
+            buildList {
+                add(separator)
+                add(arrival)
+                add("")
+                // 空行も説明文の一行として保持し、登録された行数と表示内容を一致させます。
+                addAll(waypoint.description)
+                add(separator)
+            }.joinToString("\n")
         )
     }
 
@@ -697,7 +806,7 @@ class TourManager(private val plugin: MyWorldManager) {
 
     private fun formatDistance(distance: Double): String {
         return if (distance < 10) {
-            String.format("%.1f", distance)
+            String.format(Locale.ROOT, "%.1f", distance)
         } else {
             distance.toInt().toString()
         }
@@ -715,6 +824,59 @@ class TourManager(private val plugin: MyWorldManager) {
         )
         session.draft.waypoints.add(waypoint)
         return waypoint
+    }
+
+    fun findDraftWaypoint(session: TourEditSession, waypointUuid: UUID): TourWaypointData? =
+        session.draft.waypoints.find { it.uuid == waypointUuid }
+
+    fun updateWaypointName(session: TourEditSession, waypointUuid: UUID, name: String): Boolean {
+        val waypoint = findDraftWaypoint(session, waypointUuid) ?: return false
+        waypoint.name = name.take(MAX_TITLE_LENGTH)
+        return true
+    }
+
+    fun updateWaypointDescription(session: TourEditSession, waypointUuid: UUID, lines: List<String>): Boolean {
+        val waypoint = findDraftWaypoint(session, waypointUuid) ?: return false
+        waypoint.description = lines.take(3).map { it.take(MAX_DESCRIPTION_LENGTH) }.toMutableList()
+        return true
+    }
+
+    fun updateWaypointIcon(session: TourEditSession, waypointUuid: UUID, icon: Material): Boolean {
+        val waypoint = findDraftWaypoint(session, waypointUuid) ?: return false
+        waypoint.icon = icon
+        return true
+    }
+
+    /**
+     * 位置設定セッションが返すクリック先のブロックを、既存の追加処理と同じ足元基準で保存します。
+     */
+    fun updateWaypointLocation(session: TourEditSession, waypointUuid: UUID, location: Location): Boolean {
+        val waypoint = findDraftWaypoint(session, waypointUuid) ?: return false
+        waypoint.blockX = location.blockX
+        waypoint.blockY = location.blockY + 1
+        waypoint.blockZ = location.blockZ
+        return true
+    }
+
+    fun deleteWaypoint(session: TourEditSession, waypointUuid: UUID): Boolean =
+        session.draft.waypoints.removeIf { it.uuid == waypointUuid }
+
+    fun moveWaypointBefore(session: TourEditSession, selectedUuid: UUID, targetUuid: UUID): Boolean {
+        val selected = session.draft.waypoints.indexOfFirst { it.uuid == selectedUuid }
+        val target = session.draft.waypoints.indexOfFirst { it.uuid == targetUuid }
+        if (selected < 0 || target < 0 || selected == target) return false
+        val waypoint = session.draft.waypoints.removeAt(selected)
+        val adjustedTarget = if (selected < target) target - 1 else target
+        session.draft.waypoints.add(adjustedTarget, waypoint)
+        return true
+    }
+
+    fun moveWaypointToEnd(session: TourEditSession, selectedUuid: UUID): Boolean {
+        val selected = session.draft.waypoints.indexOfFirst { it.uuid == selectedUuid }
+        if (selected < 0 || selected == session.draft.waypoints.lastIndex) return false
+        val waypoint = session.draft.waypoints.removeAt(selected)
+        session.draft.waypoints.add(waypoint)
+        return true
     }
 
     fun createTour(name: String, description: String, createdBy: UUID, worldData: WorldData): TourData {

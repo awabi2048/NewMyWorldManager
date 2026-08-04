@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.model
 
+import org.bukkit.Material
 import java.util.UUID
 
 data class TourWaypointData(
@@ -8,5 +9,7 @@ data class TourWaypointData(
     var blockX: Int,
     var blockY: Int,
     var blockZ: Int,
-    val createdAt: String
+    val createdAt: String,
+    var description: MutableList<String> = mutableListOf(),
+    var icon: Material = Material.OAK_BOAT,
 )

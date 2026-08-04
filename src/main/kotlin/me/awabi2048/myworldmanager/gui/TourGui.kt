@@ -1,9 +1,5 @@
 package me.awabi2048.myworldmanager.gui
 
-import me.awabi2048.myworldmanager.util.descriptionLine
-import me.awabi2048.myworldmanager.util.warningLine
-import me.awabi2048.myworldmanager.util.dangerLine
-
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
@@ -11,7 +7,6 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
 import com.awabi2048.ccsystem.api.gui.GuiMenuDisplaySpec
-import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntryData
 import com.awabi2048.ccsystem.api.gui.GuiMenuEntrySpec
 import com.awabi2048.ccsystem.api.gui.GuiNameSpec
@@ -35,19 +30,12 @@ import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import com.awabi2048.ccsystem.api.gui.PlayerInventoryInteraction
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
-import me.awabi2048.myworldmanager.model.TourWaypointData
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
-import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
-import org.bukkit.block.BlockFace
-import org.bukkit.inventory.EquipmentSlot
 import java.util.UUID
 
 class TourGui(private val plugin: MyWorldManager) {
@@ -102,10 +90,12 @@ class TourGui(private val plugin: MyWorldManager) {
                 actions = mapOf(
                     ACTION_SINGLE_BACK to MenuActionHandler(::singleBack),
                     ACTION_EDIT_TEXT to MenuActionHandler(::editText),
-                    ACTION_SAVE to MenuActionHandler(::saveTour),
                     ACTION_DELETE to MenuActionHandler(::openDelete),
                     ACTION_ADD_WAYPOINT to MenuActionHandler(::addWaypoint),
-                    ACTION_REMOVE_WAYPOINT to MenuActionHandler(::removeWaypoint),
+                    ACTION_OPEN_WAYPOINT to MenuActionHandler(::openWaypoint),
+                    ACTION_REORDER_CANCEL to MenuActionHandler(::cancelWaypointReorder),
+                    ACTION_REORDER_BEFORE to MenuActionHandler(::insertWaypointBefore),
+                    ACTION_REORDER_END to MenuActionHandler(::insertWaypointAtEnd),
                     MenuRuntimeActions.PLAYER_INVENTORY_CLICK to
                         MenuActionHandler(::selectEditIcon),
                 ),
@@ -126,6 +116,36 @@ class TourGui(private val plugin: MyWorldManager) {
         runtime.register(
             InventoryMenuDefinition(
                 owner = OWNER,
+                id = WAYPOINT_EDIT_ROUTE,
+                renderer = { context -> renderWaypointEditMenu(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_WAYPOINT_NAME to MenuActionHandler(::editWaypointName),
+                    ACTION_WAYPOINT_DESCRIPTION to MenuActionHandler(::editWaypointDescription),
+                    ACTION_WAYPOINT_ICON to MenuActionHandler(::editWaypointIcon),
+                    ACTION_WAYPOINT_POSITION to MenuActionHandler(::editWaypointPosition),
+                    ACTION_WAYPOINT_DELETE to MenuActionHandler(::openWaypointDelete),
+                    ACTION_WAYPOINT_REORDER to MenuActionHandler(::startWaypointReorder),
+                    MenuRuntimeActions.PLAYER_INVENTORY_CLICK to MenuActionHandler(::selectEditIcon),
+                ),
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
+                id = WAYPOINT_DELETE_CONFIRM_ROUTE,
+                renderer = { context -> renderWaypointDeleteConfirm(context.player, context.route) },
+                actions = mapOf(
+                    ACTION_WAYPOINT_DELETE_CONFIRM to MenuActionHandler(::confirmWaypointDelete),
+                    ACTION_WAYPOINT_DELETE_CANCEL to MenuActionHandler {
+                        MenuActionResult.Success(MenuUpdate.Back)
+                    },
+                ),
+                openSound = MenuSoundPresets.CONFIRMATION_OPEN,
+            ),
+        )
+        runtime.register(
+            InventoryMenuDefinition(
+                owner = OWNER,
                 id = EDIT_ROUTE,
                 renderer = { context -> renderEditMenu(context.player, context.route) },
                 actions = mapOf(
@@ -135,6 +155,9 @@ class TourGui(private val plugin: MyWorldManager) {
                     },
                     ACTION_CREATE to MenuActionHandler(::createTour),
                     ACTION_EDIT to MenuActionHandler(::editTour),
+                    ACTION_OPEN_VISITOR to MenuActionHandler(::openVisitorFromEdit),
+                    ACTION_STOP to MenuActionHandler(::stopTour),
+                    ACTION_SKIP to MenuActionHandler(::skipTourWaypoint),
                 ),
             ),
         )
@@ -159,6 +182,7 @@ class TourGui(private val plugin: MyWorldManager) {
                     ACTION_PAGE to MenuActionHandler(::changeTourPage),
                     ACTION_SELECT to MenuActionHandler(::selectTour),
                     ACTION_STOP to MenuActionHandler(::stopTour),
+                    ACTION_SKIP to MenuActionHandler(::skipTourWaypoint),
                 ),
             ),
         )
@@ -295,7 +319,18 @@ class TourGui(private val plugin: MyWorldManager) {
         val footerStart = layout.size - 9
         if (showWorldIcon) {
             elements += createCurrentWorldEntry(player, worldData, 4)
-            if (plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid) {
+            val activeInWorld = plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid
+            if (activeInWorld) {
+                elements += actionEntry(
+                    footerStart + 2,
+                    player,
+                    Material.LIGHT_BLUE_STAINED_GLASS_PANE,
+                    plugin.languageManager.getMessage(player, "gui.tour.menu.skip.display"),
+                    emptyList(),
+                    plugin.languageManager.getMessage(player, "gui.tour.menu.skip.action"),
+                    ACTION_SKIP,
+                    GuiElementRole.ACTION,
+                )
                 elements += actionEntry(
                     footerStart + 6,
                     player,
@@ -305,6 +340,13 @@ class TourGui(private val plugin: MyWorldManager) {
                     plugin.languageManager.getMessage(player, "gui.tour.menu.stop.action"),
                     ACTION_STOP,
                     GuiElementRole.CANCEL,
+                )
+            }
+            if (GuiHelper.canGoBack(player)) {
+                elements += CCSystem.getAPI().getGuiElementService().backEntry(
+                    player,
+                    footerStart + 4,
+                    plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                 )
             }
         }
@@ -338,7 +380,8 @@ class TourGui(private val plugin: MyWorldManager) {
         )
 
     private fun stopTour(context: MenuActionContext): MenuActionResult {
-        if (plugin.tourSessionManager.get(context.player.uniqueId) == null) {
+        val worldUuid = context.route.payload["world"]?.let(UUID::fromString)
+        if (plugin.tourSessionManager.get(context.player.uniqueId)?.worldUuid != worldUuid) {
             return MenuActionResult.Rejected()
         }
         return MenuActionResult.Success(
@@ -361,8 +404,10 @@ class TourGui(private val plugin: MyWorldManager) {
         val worldData = world(route) ?: error("ツアー対象ワールドがありません")
         val lang = plugin.languageManager
         val tours = worldData.tours.sortedBy { it.createdAt }
+        val canCreate = worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)
+        val listItemCount = tours.size + if (canCreate) 1 else 0
         val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
-            tours.size,
+            listItemCount,
             route.payload["page"]?.toIntOrNull() ?: 0,
         )
         val layout = page.layout
@@ -371,15 +416,9 @@ class TourGui(private val plugin: MyWorldManager) {
         tours.drop(page.startIndex).take(page.itemCount).forEachIndexed { index, tour ->
             elements += createTourEntry(layout.itemSlots[index], player, worldData, tour, true, ACTION_EDIT)
         }
-        val footerStart = layout.size - 9
-        elements += CCSystem.getAPI().getGuiElementService().backEntry(
-            player,
-            footerStart + 4,
-            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
-        )
-        if (worldData.tours.size < plugin.tourManager.getTourLimit(player, worldData)) {
+        if (canCreate && page.startIndex <= tours.size && tours.size < page.startIndex + page.itemCount) {
             elements += actionEntry(
-                footerStart + 2,
+                layout.itemSlots[tours.size - page.startIndex],
                 player,
                 Material.NETHER_STAR,
                 lang.getMessage(player, "gui.tour.menu.create.display"),
@@ -389,14 +428,45 @@ class TourGui(private val plugin: MyWorldManager) {
                 gesture = MenuGesture.ANY,
             )
         }
+        val footerStart = layout.size - 9
+        val activeInWorld = plugin.tourSessionManager.get(player.uniqueId)?.worldUuid == worldData.uuid
+        if (activeInWorld) {
+            elements += actionEntry(
+                footerStart + 1,
+                player,
+                Material.BARRIER,
+                lang.getMessage(player, "gui.tour.menu.stop.display"),
+                emptyList(),
+                lang.getMessage(player, "gui.tour.menu.stop.action"),
+                ACTION_STOP,
+                GuiElementRole.CANCEL,
+            )
+            elements += actionEntry(
+                footerStart + 2,
+                player,
+                Material.LIGHT_BLUE_STAINED_GLASS_PANE,
+                lang.getMessage(player, "gui.tour.menu.skip.display"),
+                emptyList(),
+                lang.getMessage(player, "gui.tour.menu.skip.action"),
+                ACTION_SKIP,
+            )
+        }
+        if (GuiHelper.canGoBack(player)) {
+            elements += CCSystem.getAPI().getGuiElementService().backEntry(
+                player,
+                footerStart + 4,
+                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
+            )
+        }
         elements += createCurrentWorldEntry(player, worldData, 4)
-        val infoLines = lang.getMessageList(player, "gui.tour.menu.info.lore")
-        elements += displayEntry(
+        elements += actionEntry(
             footerStart + 6,
-            Material.REDSTONE_TORCH,
-            lang.getMessage(player, "gui.tour.menu.info.display"),
-            infoLines.map(::descriptionLine),
-            frame = GuiLoreFrame.BOTH,
+            player,
+            Material.FILLED_MAP,
+            lang.getMessage(player, "gui.tour.menu.visitor_switch.display"),
+            emptyList(),
+            lang.getMessage(player, "gui.tour.menu.visitor_switch.action"),
+            ACTION_OPEN_VISITOR,
         )
         if (safePage > 0) {
             elements += navigationEntry(player, layout.previousPageSlot, false, safePage - 1)
@@ -424,38 +494,55 @@ class TourGui(private val plugin: MyWorldManager) {
             ?: error("ツアー編集セッションがありません")
         val tour = session.draft
         val lang = plugin.languageManager
-        val waypointRows = ((tour.waypoints.size + 1 + 6) / 7).coerceAtLeast(1).coerceAtMost(4)
-        val rows = (waypointRows + 2).coerceAtMost(6)
+        val hasAddSlot = tour.waypoints.size < 28
+        val layout = CCSystem.getAPI().getGuiLayoutService().sevenColumnList(
+            (tour.waypoints.size + if (hasAddSlot) 1 else 0).coerceAtMost(28),
+        )
         val elements = mutableListOf<MenuElement>()
-        val slots = mutableListOf<Int>()
-        repeat(waypointRows) { row -> slots.addAll((1..7).map { (row + 1) * 9 + it }) }
+        val reorderUuid = session.reorderingWaypointUuid
         tour.waypoints.take(28).forEachIndexed { index, waypoint ->
+            val isSelectedForReorder = waypoint.uuid == reorderUuid
+            val actionId = when {
+                isSelectedForReorder -> ACTION_REORDER_CANCEL
+                reorderUuid != null -> ACTION_REORDER_BEFORE
+                else -> ACTION_OPEN_WAYPOINT
+            }
+            val action = when {
+                isSelectedForReorder -> lang.getMessage(player, "gui.tour.menu.waypoint.reorder_cancel_action")
+                reorderUuid != null -> lang.getMessage(player, "gui.tour.menu.waypoint.reorder_insert_action")
+                else -> lang.getMessage(player, "gui.tour.menu.waypoint.open_action")
+            }
             elements += actionEntry(
-                slots[index], player, Material.OAK_BOAT, waypoint.name,
-                listOf(GuiLoreLine.Metadata("XYZ", "${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}")),
-                lang.getMessage(player, "gui.tour.menu.remove_waypoint_action"), ACTION_REMOVE_WAYPOINT,
+                layout.itemSlots[index], player, waypoint.icon, waypoint.name,
+                buildList {
+                    add(GuiLoreLine.Metadata("XYZ", "${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}"))
+                    waypoint.description.forEach { add(GuiLoreLine.UserText(it)) }
+                },
+                action,
+                actionId,
                 payload = mapOf("waypoint" to waypoint.uuid.toString()),
             )
         }
-        if (tour.waypoints.size < 28) {
+        if (hasAddSlot) {
             elements += actionEntry(
-                slots[tour.waypoints.size],
-                player, Material.YELLOW_STAINED_GLASS_PANE,
+                layout.itemSlots[tour.waypoints.size],
+                player,
+                if (reorderUuid == null) Material.YELLOW_STAINED_GLASS_PANE else Material.LIGHT_BLUE_STAINED_GLASS_PANE,
                 lang.getMessage(player, "gui.tour.menu.add_waypoint_button"), emptyList(),
-                lang.getMessage(player, "gui.tour.menu.add_sign_action"),
-                ACTION_ADD_WAYPOINT,
+                if (reorderUuid == null) lang.getMessage(player, "gui.tour.menu.add_sign_action")
+                else lang.getMessage(player, "gui.tour.menu.waypoint.reorder_end_action"),
+                if (reorderUuid == null) ACTION_ADD_WAYPOINT else ACTION_REORDER_END,
             )
         }
-        val bottom = rows * 9 - 9
         elements += CCSystem.getAPI().getGuiElementService().backEntry(
             player,
-            bottom,
+            layout.actionSlot,
             plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
         )
         elements += CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
-                slot = bottom + 2,
+                slot = layout.actionSlot - 2,
                 material = Material.NAME_TAG,
                 name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.tour.menu.edit_text.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
@@ -466,19 +553,13 @@ class TourGui(private val plugin: MyWorldManager) {
             ),
         )
         elements += actionEntry(
-            bottom + 4,
-            player, Material.LIME_WOOL, lang.getMessage(player, "gui.tour.menu.save.display"),
-            emptyList(), lang.getMessage(player, "gui.tour.menu.save.action"),
-            ACTION_SAVE,
-        )
-        elements += actionEntry(
-            bottom + 6,
+            layout.actionSlot + 2,
             player, Material.LAVA_BUCKET, lang.getMessage(player, "gui.tour.menu.delete.display"),
             emptyList(), lang.getMessage(player, "gui.tour.menu.delete.action"),
             ACTION_DELETE,
         )
         return InventoryMenuView(
-            size = rows * 9,
+            size = layout.size,
             title = GuiHelper.inventoryTitle(
                 Component.text(lang.getMessage(player, "gui.tour.menu.single_edit_title", mapOf("tour" to tour.name))),
             ),
@@ -502,12 +583,364 @@ class TourGui(private val plugin: MyWorldManager) {
     private fun selectEditIcon(context: MenuActionContext): MenuActionResult {
         val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
             ?: return MenuActionResult.Ignored
-        if (!session.awaitingIconPick || context.item.type.isAir) {
+        if (context.item.type.isAir) {
             return MenuActionResult.Ignored
         }
-        session.draft.icon = context.item.type
-        session.awaitingIconPick = false
+        if (context.item.type == Material.BLACK_STAINED_GLASS_PANE ||
+            context.item.type == Material.GRAY_STAINED_GLASS_PANE
+        ) {
+            context.player.playSound(context.player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BIT, 1.0f, 0.5f)
+            context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.icon_forbidden"))
+            return MenuActionResult.Rejected()
+        }
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val waypointUuid = session.awaitingWaypointIconPick
+        if (waypointUuid != null) {
+            if (!plugin.tourManager.updateWaypointIcon(session, waypointUuid, context.item.type)) {
+                return MenuActionResult.Rejected()
+            }
+            session.awaitingWaypointIconPick = null
+        } else if (session.awaitingIconPick) {
+            session.draft.icon = context.item.type
+            session.awaitingIconPick = false
+        } else {
+            return MenuActionResult.Ignored
+        }
+        plugin.tourManager.saveEditSession(context.player, worldData, closeSession = false)
         return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun renderWaypointEditMenu(player: Player, route: MenuRoute): InventoryMenuView {
+        val worldData = world(route) ?: error("ツアー対象ワールドがありません")
+        val session = plugin.tourSessionManager.getEdit(player.uniqueId)
+            ?: error("ツアー編集セッションがありません")
+        val waypointUuid = route.payload["waypoint"]?.let(UUID::fromString)
+            ?: error("経由地点が指定されていません")
+        val waypoint = plugin.tourManager.findDraftWaypoint(session, waypointUuid)
+            ?: error("経由地点がありません")
+        val lang = plugin.languageManager
+        val layout = CCSystem.getAPI().getGuiLayoutService().free45()
+        val middleRowStart = 18
+        val elements = mutableListOf<MenuElement>()
+        elements += actionEntry(
+            middleRowStart + 1,
+            player,
+            Material.NAME_TAG,
+            lang.getMessage(player, "gui.tour.menu.waypoint.name"),
+            listOf(GuiLoreLine.Metadata("現在値", waypoint.name)),
+            lang.getMessage(player, "gui.tour.menu.waypoint.name_action"),
+            ACTION_WAYPOINT_NAME,
+        )
+        elements += actionEntry(
+            middleRowStart + 2,
+            player,
+            Material.WRITABLE_BOOK,
+            lang.getMessage(player, "gui.tour.menu.waypoint.description"),
+            waypoint.description.map { GuiLoreLine.UserText(it) },
+            lang.getMessage(player, "gui.tour.menu.waypoint.description_action"),
+            ACTION_WAYPOINT_DESCRIPTION,
+        )
+        elements += actionEntry(
+            middleRowStart + 3,
+            player,
+            waypoint.icon,
+            lang.getMessage(player, "gui.tour.menu.waypoint.icon"),
+            emptyList(),
+            lang.getMessage(player, "gui.tour.menu.waypoint.icon_action"),
+            ACTION_WAYPOINT_ICON,
+        )
+        elements += actionEntry(
+            middleRowStart + 4,
+            player,
+            Material.COMPASS,
+            lang.getMessage(player, "gui.tour.menu.waypoint.position"),
+            listOf(GuiLoreLine.Metadata("XYZ", "${waypoint.blockX}, ${waypoint.blockY}, ${waypoint.blockZ}")),
+            lang.getMessage(player, "gui.tour.menu.waypoint.position_action"),
+            ACTION_WAYPOINT_POSITION,
+        )
+        elements += actionEntry(
+            middleRowStart + 6,
+            player,
+            Material.LAVA_BUCKET,
+            lang.getMessage(player, "gui.tour.menu.waypoint.delete"),
+            emptyList(),
+            lang.getMessage(player, "gui.tour.menu.waypoint.delete_action"),
+            ACTION_WAYPOINT_DELETE,
+            GuiElementRole.ACTION,
+        )
+        elements += actionEntry(
+            middleRowStart + 7,
+            player,
+            Material.HOPPER,
+            lang.getMessage(player, "gui.tour.menu.waypoint.reorder"),
+            emptyList(),
+            lang.getMessage(player, "gui.tour.menu.waypoint.reorder_action"),
+            ACTION_WAYPOINT_REORDER,
+        )
+        elements += CCSystem.getAPI().getGuiElementService().backEntry(
+            player,
+            layout.backSlot,
+            plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
+        )
+        return InventoryMenuView(
+            size = layout.size,
+            title = GuiHelper.inventoryTitle(
+                Component.text(
+                    lang.getMessage(
+                        player,
+                        "gui.tour.menu.waypoint_edit_title",
+                        mapOf("waypoint" to waypoint.name),
+                    ),
+                ),
+            ),
+            elements = elements,
+            playerInventoryInteraction =
+                if (session.awaitingWaypointIconPick == waypoint.uuid) {
+                    PlayerInventoryInteraction.SELECTION
+                } else {
+                    PlayerInventoryInteraction.INTERACTIVE
+                },
+        )
+    }
+
+    private fun skipTourWaypoint(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        if (!plugin.tourManager.skipCurrentWaypoint(context.player, worldData)) {
+            return MenuActionResult.Rejected()
+        }
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun openVisitorFromEdit(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(
+                MenuRoute(
+                    OWNER,
+                    VISITOR_ROUTE,
+                    mapOf("world" to worldData.uuid.toString(), "page" to "0"),
+                ),
+            ),
+        )
+    }
+
+    private fun openWaypoint(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        if (plugin.tourManager.findDraftWaypoint(session, waypointUuid) == null) {
+            return MenuActionResult.Rejected()
+        }
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(
+                waypointRoute(
+                    WAYPOINT_EDIT_ROUTE,
+                    worldData.uuid,
+                    session.draft.uuid,
+                    waypointUuid,
+                    context.route.payload["is_new"].toBoolean(),
+                ),
+            ),
+        )
+    }
+
+    private fun editWaypointName(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.route.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        val waypoint = plugin.tourManager.findDraftWaypoint(session, waypointUuid)
+            ?: return MenuActionResult.Rejected()
+        TourDialogManager.startWaypointNameEdit(
+            context.player,
+            plugin,
+            worldData.uuid,
+            session.draft.uuid,
+            waypoint.uuid,
+            waypoint.name,
+        )
+        return MenuActionResult.Success(MenuUpdate.None)
+    }
+
+    private fun editWaypointDescription(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.route.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        val waypoint = plugin.tourManager.findDraftWaypoint(session, waypointUuid)
+            ?: return MenuActionResult.Rejected()
+        TourDialogManager.startWaypointDescriptionEdit(
+            context.player,
+            plugin,
+            worldData.uuid,
+            session.draft.uuid,
+            waypoint.uuid,
+            waypoint.description,
+        )
+        return MenuActionResult.Success(MenuUpdate.None)
+    }
+
+    private fun editWaypointIcon(context: MenuActionContext): MenuActionResult {
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.route.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        if (plugin.tourManager.findDraftWaypoint(session, waypointUuid) == null) {
+            return MenuActionResult.Rejected()
+        }
+        session.awaitingWaypointIconPick = waypointUuid
+        context.player.sendMessage(plugin.languageManager.getMessage(context.player, "messages.icon_prompt"))
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun editWaypointPosition(context: MenuActionContext): MenuActionResult {
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.route.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        if (plugin.tourManager.findDraftWaypoint(session, waypointUuid) == null) {
+            return MenuActionResult.Rejected()
+        }
+        plugin.tourListener.beginWaypointPick(context.player, waypointUuid)
+        runtime.suspendForExternal(context.player)
+        return MenuActionResult.Success(MenuUpdate.None)
+    }
+
+    private fun openWaypointDelete(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.route.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(
+                waypointRoute(
+                    WAYPOINT_DELETE_CONFIRM_ROUTE,
+                    worldData.uuid,
+                    session.draft.uuid,
+                    waypointUuid,
+                    context.route.payload["is_new"].toBoolean(),
+                ),
+            ),
+        )
+    }
+
+    private fun startWaypointReorder(context: MenuActionContext): MenuActionResult {
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.route.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        if (plugin.tourManager.findDraftWaypoint(session, waypointUuid) == null) {
+            return MenuActionResult.Rejected()
+        }
+        session.reorderingWaypointUuid = waypointUuid
+        return MenuActionResult.Success(MenuUpdate.Back)
+    }
+
+    private fun cancelWaypointReorder(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        session.reorderingWaypointUuid = null
+        return MenuActionResult.Success(
+            MenuUpdate.Navigate(
+                waypointRoute(
+                    WAYPOINT_EDIT_ROUTE,
+                    worldData.uuid,
+                    session.draft.uuid,
+                    context.payload["waypoint"]?.let(UUID::fromString) ?: return MenuActionResult.Rejected(),
+                    context.route.payload["is_new"].toBoolean(),
+                ),
+            ),
+        )
+    }
+
+    private fun insertWaypointBefore(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val selectedUuid = session.reorderingWaypointUuid ?: return MenuActionResult.Rejected()
+        val targetUuid = context.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        if (!plugin.tourManager.moveWaypointBefore(session, selectedUuid, targetUuid)) {
+            return MenuActionResult.Rejected()
+        }
+        session.reorderingWaypointUuid = null
+        plugin.tourManager.saveEditSession(context.player, worldData, closeSession = false)
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun insertWaypointAtEnd(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val selectedUuid = session.reorderingWaypointUuid ?: return MenuActionResult.Rejected()
+        plugin.tourManager.moveWaypointToEnd(session, selectedUuid)
+        session.reorderingWaypointUuid = null
+        plugin.tourManager.saveEditSession(context.player, worldData, closeSession = false)
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun renderWaypointDeleteConfirm(player: Player, route: MenuRoute): InventoryMenuView {
+        val lang = plugin.languageManager
+        val layout = GuiHelper.confirmationLayout()
+        return InventoryMenuView(
+            size = layout.size,
+            title = GuiHelper.inventoryTitle(
+                Component.text(lang.getMessage(player, "gui.tour.menu.waypoint_delete_confirm.title")),
+            ),
+            elements = listOf(
+                displayEntry(
+                    layout.previewSlot,
+                    Material.LAVA_BUCKET,
+                    lang.getMessage(player, "gui.tour.menu.waypoint_delete_confirm.title"),
+                    listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.tour.menu.waypoint_delete_confirm.body"))),
+                ),
+                simpleActionEntry(
+                    player,
+                    layout.confirmSlot,
+                    Material.LIME_WOOL,
+                    "gui.tour.menu.waypoint_delete_confirm.confirm",
+                    GuiElementRole.CONFIRM,
+                    ACTION_WAYPOINT_DELETE_CONFIRM,
+                ),
+                simpleActionEntry(
+                    player,
+                    layout.cancelSlot,
+                    Material.RED_WOOL,
+                    "gui.tour.menu.waypoint_delete_confirm.cancel",
+                    GuiElementRole.CANCEL,
+                    ACTION_WAYPOINT_DELETE_CANCEL,
+                ),
+            ),
+            category = MenuViewCategory.CONFIRMATION,
+        )
+    }
+
+    private fun confirmWaypointDelete(context: MenuActionContext): MenuActionResult {
+        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
+        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
+            ?: return MenuActionResult.Rejected()
+        val waypointUuid = context.route.payload["waypoint"]?.let(UUID::fromString)
+            ?: return MenuActionResult.Rejected()
+        if (!plugin.tourManager.deleteWaypoint(session, waypointUuid)) {
+            return MenuActionResult.Rejected()
+        }
+        plugin.tourManager.saveEditSession(context.player, worldData, closeSession = false)
+        return MenuActionResult.Success(
+            MenuUpdate.Replace(
+                tourRoute(
+                    SINGLE_EDIT_ROUTE,
+                    worldData.uuid,
+                    session.draft.uuid,
+                    context.route.payload["is_new"].toBoolean(),
+                ),
+            ),
+        )
     }
 
     private fun renderDeleteConfirm(player: Player, route: MenuRoute): InventoryMenuView {
@@ -600,14 +1033,13 @@ class TourGui(private val plugin: MyWorldManager) {
         val worldData = world(context.route) ?: return MenuActionResult.Rejected()
         val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
             ?: return MenuActionResult.Rejected()
-        if (context.route.payload["is_new"].toBoolean()) {
+        if (context.route.payload["is_new"].toBoolean() && session.isNew) {
             return MenuActionResult.Success(
                 MenuUpdate.Replace(
                     tourRoute(DISCARD_CONFIRM_ROUTE, worldData.uuid, session.draft.uuid, true),
                 ),
             )
         }
-        if (!canSaveTour(context.player, session.draft)) return MenuActionResult.Rejected()
         plugin.tourManager.saveEditSession(context.player, worldData)
         return MenuActionResult.Success(MenuUpdate.Back)
     }
@@ -632,15 +1064,6 @@ class TourGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.None)
     }
 
-    private fun saveTour(context: MenuActionContext): MenuActionResult {
-        val worldData = world(context.route) ?: return MenuActionResult.Rejected()
-        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
-            ?: return MenuActionResult.Rejected()
-        if (!canSaveTour(context.player, session.draft)) return MenuActionResult.Rejected()
-        plugin.tourManager.saveEditSession(context.player, worldData)
-        return MenuActionResult.Success(MenuUpdate.Back)
-    }
-
     private fun openDelete(context: MenuActionContext): MenuActionResult {
         val worldData = world(context.route) ?: return MenuActionResult.Rejected()
         val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
@@ -661,15 +1084,6 @@ class TourGui(private val plugin: MyWorldManager) {
         plugin.tourListener.beginWaypointPick(context.player)
         runtime.suspendForExternal(context.player)
         return MenuActionResult.Success(MenuUpdate.None)
-    }
-
-    private fun removeWaypoint(context: MenuActionContext): MenuActionResult {
-        val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
-            ?: return MenuActionResult.Rejected()
-        val waypointUuid = context.payload["waypoint"]?.let(UUID::fromString)
-            ?: return MenuActionResult.Rejected()
-        session.draft.waypoints.removeIf { it.uuid == waypointUuid }
-        return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun renderDiscardConfirm(player: Player, route: MenuRoute): InventoryMenuView {
@@ -753,12 +1167,6 @@ class TourGui(private val plugin: MyWorldManager) {
         return MenuActionResult.Success(MenuUpdate.Close)
     }
 
-    private fun canSaveTour(player: Player, tour: TourData): Boolean {
-        if (tour.waypoints.size >= 2) return true
-        player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.not_enough_signs"))
-        return false
-    }
-
     private fun confirmDelete(context: MenuActionContext): MenuActionResult {
         val worldData = world(context.route) ?: return MenuActionResult.Rejected()
         val session = plugin.tourSessionManager.getEdit(context.player.uniqueId)
@@ -808,6 +1216,23 @@ class TourGui(private val plugin: MyWorldManager) {
             put("world", worldUuid.toString())
             put("tour", tourUuid.toString())
             if (isNew != null) put("is_new", isNew.toString())
+        },
+    )
+
+    private fun waypointRoute(
+        id: String,
+        worldUuid: UUID,
+        tourUuid: UUID,
+        waypointUuid: UUID,
+        isNew: Boolean = false,
+    ): MenuRoute = MenuRoute(
+        OWNER,
+        id,
+        buildMap {
+            put("world", worldUuid.toString())
+            put("tour", tourUuid.toString())
+            put("waypoint", waypointUuid.toString())
+            put("is_new", isNew.toString())
         },
     )
 
@@ -951,12 +1376,11 @@ class TourGui(private val plugin: MyWorldManager) {
                     else -> null
                 }
             },
-            actions = listOf(menuGestureAction(
+                actions = listOf(menuGestureAction(
                 actionId, gesture, action, payload,
                 safety = tourActionSafety(actionId),
                 reversibleContract = when (actionId) {
                     ACTION_DISCARD_CONFIRM -> MwmMenuActionSemantics.contract("tour-discard")
-                    ACTION_REMOVE_WAYPOINT -> MwmMenuActionSemantics.contract("tour-remove-waypoint")
                     else -> null
                 },
             )),
@@ -971,19 +1395,31 @@ class TourGui(private val plugin: MyWorldManager) {
         ACTION_STOP_CANCEL,
         ACTION_PAGE,
         ACTION_EDIT,
+        ACTION_OPEN_WAYPOINT,
+        ACTION_OPEN_VISITOR,
+        ACTION_REORDER_CANCEL,
         ACTION_DISCARD_CANCEL,
         ACTION_BIND_CANCEL,
-        ACTION_DELETE_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
+        ACTION_DELETE_CANCEL,
+        ACTION_WAYPOINT_DELETE_CANCEL -> MenuActionSafety.NAVIGATION_ONLY
         ACTION_STOP,
         ACTION_SELECT,
-        ACTION_DELETE -> MenuActionSafety.CONFIRM_ENTRY
+        ACTION_DELETE,
+        ACTION_WAYPOINT_DELETE -> MenuActionSafety.CONFIRM_ENTRY
         ACTION_CREATE,
-        ACTION_ADD_WAYPOINT -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
-        ACTION_SAVE,
+        ACTION_ADD_WAYPOINT,
+        ACTION_REORDER_BEFORE,
+        ACTION_REORDER_END,
+        ACTION_WAYPOINT_NAME,
+        ACTION_WAYPOINT_DESCRIPTION,
+        ACTION_WAYPOINT_ICON,
+        ACTION_WAYPOINT_POSITION,
+        ACTION_WAYPOINT_REORDER -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
         ACTION_BIND_SIGN,
-        ACTION_DELETE_CONFIRM -> MenuActionSafety.IRREVERSIBLE
-        ACTION_REMOVE_WAYPOINT,
-        ACTION_DISCARD_CONFIRM -> MenuActionSafety.REVERSIBLE
+        ACTION_DELETE_CONFIRM,
+        ACTION_WAYPOINT_DELETE_CONFIRM -> MenuActionSafety.IRREVERSIBLE
+        ACTION_DISCARD_CONFIRM,
+        ACTION_SKIP -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
         else -> error("Unknown tour action safety: $actionId")
     }
 
@@ -1044,6 +1480,8 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val STOP_CONFIRM_ROUTE = "tour_stop_confirmation"
         private const val DELETE_CONFIRM_ROUTE = "tour_delete_confirmation"
         private const val VISITOR_ROUTE = "tour_visitor"
+        private const val WAYPOINT_EDIT_ROUTE = "tour_waypoint_edit"
+        private const val WAYPOINT_DELETE_CONFIRM_ROUTE = "tour_waypoint_delete_confirmation"
         private const val START_SELECTION_ROUTE = "tour_start_selection"
         private const val EDIT_ROUTE = "tour_edit"
         private const val SINGLE_EDIT_ROUTE = "tour_single_edit"
@@ -1059,12 +1497,24 @@ class TourGui(private val plugin: MyWorldManager) {
         private const val ACTION_BACK = "back"
         private const val ACTION_CREATE = "create"
         private const val ACTION_EDIT = "edit"
+        private const val ACTION_OPEN_VISITOR = "open_visitor"
         private const val ACTION_SINGLE_BACK = "single_back"
         private const val ACTION_EDIT_TEXT = "edit_text"
-        private const val ACTION_SAVE = "save"
         private const val ACTION_DELETE = "delete"
         private const val ACTION_ADD_WAYPOINT = "add_waypoint"
-        private const val ACTION_REMOVE_WAYPOINT = "remove_waypoint"
+        private const val ACTION_OPEN_WAYPOINT = "open_waypoint"
+        private const val ACTION_REORDER_CANCEL = "reorder_cancel"
+        private const val ACTION_REORDER_BEFORE = "reorder_before"
+        private const val ACTION_REORDER_END = "reorder_end"
+        private const val ACTION_SKIP = "skip"
+        private const val ACTION_WAYPOINT_NAME = "waypoint_name"
+        private const val ACTION_WAYPOINT_DESCRIPTION = "waypoint_description"
+        private const val ACTION_WAYPOINT_ICON = "waypoint_icon"
+        private const val ACTION_WAYPOINT_POSITION = "waypoint_position"
+        private const val ACTION_WAYPOINT_DELETE = "waypoint_delete"
+        private const val ACTION_WAYPOINT_REORDER = "waypoint_reorder"
+        private const val ACTION_WAYPOINT_DELETE_CONFIRM = "waypoint_delete_confirm"
+        private const val ACTION_WAYPOINT_DELETE_CANCEL = "waypoint_delete_cancel"
         private const val ACTION_DISCARD_CONFIRM = "discard_confirm"
         private const val ACTION_DISCARD_CANCEL = "discard_cancel"
         private const val ACTION_BIND_SIGN = "bind_sign"
