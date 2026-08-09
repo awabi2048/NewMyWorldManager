@@ -7,13 +7,16 @@ import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import org.bukkit.Sound
 import org.bukkit.entity.Player
-import org.bukkit.inventory.EquipmentSlot
 
 class WorldSeedListener {
 
     companion object {
         fun expandWorldSlot(plugin: MyWorldManager, player: Player): Boolean {
-            if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) return false
+            if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                // 確認画面を開いた後に設定が変わる経路も、確定処理側で防御します。
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_disabled"))
+                return false
+            }
             val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
             val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 

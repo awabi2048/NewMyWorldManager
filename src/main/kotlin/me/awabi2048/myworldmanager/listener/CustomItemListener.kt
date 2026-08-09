@@ -172,6 +172,8 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
              if (event.action == Action.RIGHT_CLICK_AIR || event.action == Action.RIGHT_CLICK_BLOCK) {
                   event.isCancelled = true
                   if (!me.awabi2048.myworldmanager.api.MyWorldManagerApi.isWorldSlotSystemEnabled()) {
+                      // 定義・配布は維持しますが、スロット機能が無効な環境では使用だけを拒否します。
+                      player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_disabled"))
                       return
                   }
 

@@ -70,6 +70,7 @@ permissions:
       myworldmanager.admin.world_list: true
       myworldmanager.force_add_member: true
       myworldmanager.command.mwm.create: true
+      myworldmanager.admin.bypass_world_limits: true
   myworldmanager.admin.world_list:
     description: Allows access to admin world list menu (/mwm list)
     default: false
@@ -136,6 +137,12 @@ permissions:
   myworldmanager.command.mwm:
     description: Allows full access to /mwm
     default: false
+    children:
+      myworldmanager.command.mwm.create: true
+      myworldmanager.command.mwm.reload: true
+      myworldmanager.command.mwm.stats: true
+      myworldmanager.command.mwm.list: true
+      myworldmanager.command.mwm.migration: true
   myworldmanager.command.mwm.create:
     description: Allows use of /mwm create
     default: false
@@ -147,6 +154,9 @@ permissions:
     default: false
   myworldmanager.command.mwm.list:
     description: Allows use of /mwm list
+    default: false
+  myworldmanager.command.mwm.migration:
+    description: Allows use of /mwm migration
     default: false
   myworldmanager.command.mwm_internal:
     description: Allows MyWorldManager internal command visibility

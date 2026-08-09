@@ -54,7 +54,7 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
                     challenge.arguments,
                 )
             ) return true
-            player.sendMessage("§cこのコマンドを実行する権限がありません。（メンバー以上が必要）")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldmenu_members_only"))
             return true
         }
 

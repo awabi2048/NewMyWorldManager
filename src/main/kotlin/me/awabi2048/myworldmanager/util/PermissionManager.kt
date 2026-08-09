@@ -26,18 +26,18 @@ object PermissionManager {
     const val COMMAND_MWM_RELOAD = "myworldmanager.command.mwm.reload"
     const val COMMAND_MWM_STATS = "myworldmanager.command.mwm.stats"
     const val COMMAND_MWM_LIST = "myworldmanager.command.mwm.list"
+    const val COMMAND_MWM_MIGRATION = "myworldmanager.command.mwm.migration"
     const val COMMAND_MWM_INTERNAL = "myworldmanager.command.mwm_internal"
-    const val TEST = "craftercrossing.test"
 
     /**
      * 指定された権限、または上位の権限を持っているかチェックします。
-     * craftercrossing.test は常に admin と同等に扱われます。
+     * 管理者権限の継承は plugin.yml の権限ツリーに委ね、コード上で別権限へ昇格させません。
      */
     fun checkPermission(sender: CommandSender, permission: String): Boolean {
         if (sender !is Player) return true // コンソールは常に全権限
 
-        // テスト権限または管理者権限を持っている場合、すべての mwm 権限をパス
-        if (sender.hasPermission(TEST) || sender.hasPermission(ADMIN)) {
+        // 管理者権限を持っている場合、MWM の権限ツリーに接続された権限をパスします。
+        if (sender.hasPermission(ADMIN)) {
             return true
         }
 

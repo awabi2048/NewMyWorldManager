@@ -17,10 +17,6 @@ interface CommandPolicy {
         args: List<String>
     ): Boolean = true
 
-    fun canSuggestMwmGiveItem(
-        sender: CommandSender,
-        itemId: String
-    ): Boolean = true
 }
 
 interface CreateCommandHandler {

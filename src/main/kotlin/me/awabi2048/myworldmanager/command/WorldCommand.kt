@@ -362,9 +362,10 @@ class WorldCommand(
         val hasCreatePermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
         val hasReloadPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
         val hasStatsPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
+        val hasMigrationPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_MIGRATION)
         val hasWorldListPermission =
                 hasGlobalPermission || PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
-        if (!hasGlobalPermission && !hasCreatePermission && !hasReloadPermission && !hasStatsPermission && !hasWorldListPermission) return emptyList()
+        if (!hasGlobalPermission && !hasCreatePermission && !hasReloadPermission && !hasStatsPermission && !hasMigrationPermission && !hasWorldListPermission) return emptyList()
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
 
         when (args.size) {
@@ -384,7 +385,7 @@ class WorldCommand(
                 if (hasWorldListPermission && canSuggestSubCommand(sender, "list", args.toList())) {
                     list.add("list")
                 }
-                if (hasGlobalPermission && canSuggestSubCommand(sender, "migration", args.toList())) {
+                if (hasMigrationPermission && canSuggestSubCommand(sender, "migration", args.toList())) {
                     list.add("migration")
                 }
             }
@@ -433,7 +434,7 @@ class WorldCommand(
 
     private fun hasSubcommandPermission(sender: CommandSender, subCommand: String?): Boolean {
         return when (subCommand) {
-            "migration" -> PermissionManager.checkPermission(sender, PermissionManager.ADMIN)
+            "migration" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_MIGRATION)
             "create" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
             "reload" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
             "stats" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
