@@ -5,6 +5,7 @@ import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.math.Vector3
+import com.sk89q.worldedit.math.transform.AffineTransform
 import com.sk89q.worldedit.math.transform.Transform
 import com.sk89q.worldedit.regions.Region
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -12,6 +13,8 @@ import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
 import org.bukkit.Bukkit
 import org.bukkit.Color
+import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -21,6 +24,8 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.cos
+import kotlin.math.sin
 
 class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener {
     private enum class ClipboardMode {
@@ -56,7 +61,14 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         var sameIdPasteConsumed: Boolean = false
     )
 
+    private data class PendingMove(
+        val worldKey: String,
+        val offset: BlockVector3,
+        val portals: List<RelativePortal>
+    )
+
     private val pendingClipboards = java.util.concurrent.ConcurrentHashMap<UUID, PendingClipboard>()
+    private val pendingMoves = java.util.concurrent.ConcurrentHashMap<UUID, PendingMove>()
     private val createdAtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -75,6 +87,15 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         Bukkit.getScheduler().runTask(plugin, Runnable {
             pastePendingPortals(player.uniqueId, player.world.key.toString())
         })
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onWorldEditMoveCommand(event: PlayerCommandPreprocessEvent) {
+        val command = WorldEditMoveCommandParser.parse(event.message) ?: return
+        val offset = resolveMoveOffset(command, event.player) ?: return
+        if (offset.x() == 0 && offset.y() == 0 && offset.z() == 0) return
+
+        captureMove(event.player, offset)
     }
 
     private fun captureClipboard(player: org.bukkit.entity.Player, mode: ClipboardMode) {
@@ -160,6 +181,96 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         plugin.portalManager.refreshWorldDisplayLifecycle(targetWorldKey)
     }
 
+    private fun captureMove(player: org.bukkit.entity.Player, offset: BlockVector3) {
+        val actor = BukkitAdapter.adapt(player)
+        val session = WorldEdit.getInstance().sessionManager.get(actor)
+        val selection = try {
+            session.getSelection()
+        } catch (_: IncompleteRegionException) {
+            pendingMoves.remove(player.uniqueId)
+            return
+        }
+
+        val sourceWorldKey = player.world.key.toString()
+        val portals = plugin.portalRepository.findAll()
+            // WorldGate は範囲データと課金を持つ別機能のため、//move 同期の対象から除外する。
+            .filter { it.worldKey == sourceWorldKey && !it.isGate() && isFullyContained(selection, it) }
+            // 原点をゼロにすることで、RelativePortal の座標を移動元の絶対座標として再利用する。
+            .map { toRelativePortal(it, BlockVector3.at(0, 0, 0)) }
+
+        if (portals.isEmpty()) {
+            pendingMoves.remove(player.uniqueId)
+            return
+        }
+
+        pendingMoves[player.uniqueId] = PendingMove(sourceWorldKey, offset, portals)
+
+        // PlayerCommandPreprocessEvent はコマンド実行前に発生するため、実ブロックの
+        // 移動が完了した次の tick で結果を検証し、成功したものだけメタデータを更新する。
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            applyPendingMove(player.uniqueId)
+        })
+    }
+
+    private fun applyPendingMove(playerUuid: UUID) {
+        val pending = pendingMoves.remove(playerUuid) ?: return
+        val world = NamespacedKey.fromString(pending.worldKey)?.let(Bukkit::getWorld) ?: return
+        var changed = false
+
+        for (relativePortal in pending.portals) {
+            val sourceBlock = world.getBlockAt(relativePortal.relativeX, relativePortal.relativeY, relativePortal.relativeZ)
+            val targetX = relativePortal.relativeX + pending.offset.x()
+            val targetY = relativePortal.relativeY + pending.offset.y()
+            val targetZ = relativePortal.relativeZ + pending.offset.z()
+            val targetBlock = world.getBlockAt(targetX, targetY, targetZ)
+            val sourceStillPortal = sourceBlock.type == Material.END_PORTAL_FRAME
+            val targetIsPortal = targetBlock.type == Material.END_PORTAL_FRAME
+
+            if (targetIsPortal) {
+                val existing = plugin.portalRepository.findByContainingLocation(targetBlock.location)
+                if (existing?.isGate() == true) {
+                    // ゲートの登録を壊さず、ゲート内へのポータル登録だけを見送る。
+                    plugin.logger.warning(
+                        "[Portal] //move の移動先が WorldGate の範囲内にあるため、ポータル同期を見送りました: " +
+                            "world=${pending.worldKey}, x=$targetX, y=$targetY, z=$targetZ"
+                    )
+                    continue
+                }
+
+                if (existing != null && existing.id != relativePortal.sourceId) {
+                    plugin.portalManager.removePortalVisuals(existing.id)
+                    plugin.portalRepository.removePortal(existing.id)
+                }
+
+                // 移動元のフレームが消えていれば同じ UUID を移し、leave pattern などで
+                // 移動元にもフレームが残っていればコピー相当として新しい UUIDを発行する。
+                val preserveId = !sourceStillPortal
+                if (preserveId) {
+                    plugin.portalManager.removePortalVisuals(relativePortal.sourceId)
+                    plugin.portalRepository.removePortal(relativePortal.sourceId)
+                }
+                plugin.portalRepository.addPortal(
+                    relativePortal.toTranslatedPortal(
+                        worldKey = pending.worldKey,
+                        offset = pending.offset,
+                        preserveId = preserveId
+                    )
+                )
+                changed = true
+            } else if (!sourceStillPortal) {
+                // 移動元も移動先もポータルフレームでない場合は、ポータル自体が
+                // 消去された結果として扱い、残ったメタデータを掃除する。
+                plugin.portalManager.removePortalVisuals(relativePortal.sourceId)
+                plugin.portalRepository.removePortal(relativePortal.sourceId)
+                changed = true
+            }
+        }
+
+        if (changed) {
+            plugin.portalManager.refreshWorldDisplayLifecycle(pending.worldKey)
+        }
+    }
+
     private fun toRelativePortal(portal: PortalData, origin: BlockVector3): RelativePortal {
         return RelativePortal(
             sourceId = portal.id,
@@ -213,6 +324,27 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         )
     }
 
+    private fun RelativePortal.toTranslatedPortal(
+        worldKey: String,
+        offset: BlockVector3,
+        preserveId: Boolean
+    ): PortalData {
+        return PortalData(
+            id = if (preserveId) sourceId else UUID.randomUUID(),
+            worldKey = worldKey,
+            x = relativeX + offset.x(),
+            y = relativeY + offset.y(),
+            z = relativeZ + offset.z(),
+            worldUuid = worldUuid,
+            targetWorldKey = targetWorldKey,
+            showText = showText,
+            particleColor = particleColor,
+            ownerUuid = ownerUuid,
+            createdAt = if (preserveId) createdAt else LocalDateTime.now().format(createdAtFormatter),
+            type = PortalType.fromKey(typeKey)
+        )
+    }
+
     private fun RelativePortal.transformArea(transform: Transform): Pair<BlockVector3, BlockVector3>? {
         val minX = relativeMinX ?: return null
         val minY = relativeMinY ?: return null
@@ -253,6 +385,63 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
             .toBlockPoint()
     }
 
+    private fun resolveMoveOffset(
+        command: WorldEditMoveCommand,
+        player: org.bukkit.entity.Player
+    ): BlockVector3? {
+        val offset = parseExplicitMoveVector(command.offsetToken, player)
+            ?: runCatching {
+                // WorldEdit 自身の方向解決を使用し、forward/me/left などの相対方向と
+                // north-east 等の斜め方向を、プレイヤーの向きに合わせて解決する。
+                WorldEdit.getInstance()
+                    .getDiagonalDirection(BukkitAdapter.adapt(player), command.offsetToken)
+            }.getOrNull()
+            ?: return null
+
+        return offset.multiply(command.multiplier)
+    }
+
+    private fun parseExplicitMoveVector(
+        token: String,
+        player: org.bukkit.entity.Player
+    ): BlockVector3? {
+        val isLocalVector = token.startsWith('^')
+        val raw = if (isLocalVector) token.drop(1) else token
+        val components = raw.split(',')
+            .map { it.removePrefix("^").toIntOrNull() }
+        if (components.size != 3 || components.any { it == null }) return null
+
+        val vector = BlockVector3.at(
+            components[0]!!,
+            components[1]!!,
+            components[2]!!
+        )
+        if (!isLocalVector) return vector
+
+        // ^x,^y,^z は WorldEdit のローカル座標です。WorldEdit の OffsetConverter と
+        // 同じ基底ベクトルで変換し、コマンド側と移動先の座標を一致させます。
+        val location = BukkitAdapter.adapt(player.location)
+        val yaw = Math.toRadians(location.yaw.toDouble() + 90.0)
+        val pitch = Math.toRadians(-location.pitch.toDouble() + 90.0)
+        val cosYaw = cos(yaw)
+        val sinYaw = sin(yaw)
+        val cosPitch = cos(pitch)
+        val sinPitch = sin(pitch)
+        val forward = location.direction
+        val up = Vector3.at(
+            cosYaw * cosPitch,
+            sinPitch,
+            sinYaw * cosPitch
+        )
+        val right = forward.cross(up).multiply(-1.0)
+        val transform = AffineTransform(
+            forward.x(), up.x(), right.x(), 0.0,
+            forward.y(), up.y(), right.y(), 0.0,
+            forward.z(), up.z(), right.z(), 0.0
+        )
+        return transform.apply(vector.toVector3()).round().toBlockPoint()
+    }
+
     private fun isFullyContained(region: Region, portal: PortalData): Boolean {
         return if (portal.isGate()) {
             val min = BlockVector3.at(portal.getMinX(), portal.getMinY(), portal.getMinZ())
@@ -274,6 +463,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
         pendingClipboards.remove(event.player.uniqueId)
+        pendingMoves.remove(event.player.uniqueId)
     }
 
     private fun isPasteCommand(message: String): Boolean {
