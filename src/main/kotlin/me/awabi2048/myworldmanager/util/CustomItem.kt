@@ -92,11 +92,11 @@ enum class CustomItem(val id: String) {
             meta.lore(actionLore(lang, player, "custom_item.world_seed"))
 
             meta.setMaxStackSize(1)
-            meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
+            // ワールドの種は独自リソースパックに依存せず、バニラの種モデルを表示します。
+            meta.setItemModel(NamespacedKey.minecraft("beetroot_seeds"))
             item.itemMeta = meta
 
             item.unsetData(DataComponentTypes.CONSUMABLE)
-            item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("world_seed").build())
 
             ItemTag.tagItem(item, ItemTag.TYPE_WORLD_SEED)
             return item
