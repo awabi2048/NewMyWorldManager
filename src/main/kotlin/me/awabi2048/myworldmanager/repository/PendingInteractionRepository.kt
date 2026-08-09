@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PendingInteraction
 import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.service.PendingActionCodeAllocator
+import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.UUID
@@ -38,6 +39,8 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
                 val worldUuid = UUID.fromString(config.getString("$path.world_uuid") ?: return@runCatching)
                 val actorUuid = UUID.fromString(config.getString("$path.actor_uuid") ?: return@runCatching)
                 val createdAt = config.getLong("$path.created_at")
+                // 旧レコードは作成時状態を復元できないため、既存招待を新機能の対象にしない安全側へ倒します。
+                val targetOnlineAtCreation = readTargetOnlineAtCreation(config, path)
                 val targetCodes = usedCodes.getOrPut(targetUuid) { mutableSetOf() }
                 val storedCode = config.getString("$path.action_code")
                 val actionCode = storedCode
@@ -57,7 +60,8 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
                     worldUuid = worldUuid,
                     actorUuid = actorUuid,
                     createdAt = createdAt,
-                    actionCode = actionCode
+                    actionCode = actionCode,
+                    targetOnlineAtCreation = targetOnlineAtCreation,
                 )
             }.onFailure {
                 plugin.logger.warning("[PendingInteraction] 無効なレコードをスキップしました: $idStr")
@@ -76,7 +80,8 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
         worldUuid: UUID,
         actorUuid: UUID,
         actionCode: String,
-        createdAt: Long = System.currentTimeMillis()
+        createdAt: Long = System.currentTimeMillis(),
+        targetOnlineAtCreation: Boolean = true,
     ): PendingInteraction {
         require(PendingActionCodeAllocator.CODE_PATTERN.matches(actionCode)) {
             "actionCode must be a four-digit decimal string"
@@ -91,7 +96,8 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
             worldUuid = worldUuid,
             actorUuid = actorUuid,
             createdAt = createdAt,
-            actionCode = actionCode
+            actionCode = actionCode,
+            targetOnlineAtCreation = targetOnlineAtCreation,
         )
         cache[interaction.id] = interaction
         save()
@@ -163,6 +169,7 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
             config.set("$path.actor_uuid", interaction.actorUuid.toString())
             config.set("$path.created_at", interaction.createdAt)
             config.set("$path.action_code", interaction.actionCode)
+            writeTargetOnlineAtCreation(config, path, interaction.targetOnlineAtCreation)
         }
 
         runCatching {
@@ -171,4 +178,19 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
             plugin.logger.warning("[PendingInteraction] 保存に失敗しました: ${e.message}")
         }
     }
+}
+
+private const val TARGET_ONLINE_AT_CREATION_KEY = "target_online_at_creation"
+
+/** 新フィールドがない旧データを、既存招待の再通知対象にしない値へ補完します。 */
+internal fun readTargetOnlineAtCreation(config: ConfigurationSection, path: String): Boolean =
+    config.getBoolean("$path.$TARGET_ONLINE_AT_CREATION_KEY", true)
+
+/** オンライン状態の保存形式をRepository本体と単体テストで共有します。 */
+internal fun writeTargetOnlineAtCreation(
+    config: ConfigurationSection,
+    path: String,
+    value: Boolean,
+) {
+    config.set("$path.$TARGET_ONLINE_AT_CREATION_KEY", value)
 }

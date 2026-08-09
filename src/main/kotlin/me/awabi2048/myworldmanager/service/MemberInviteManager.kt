@@ -3,6 +3,9 @@ package me.awabi2048.myworldmanager.service
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
+import me.awabi2048.myworldmanager.api.extension.PendingOfflineMemberInvite
+import me.awabi2048.myworldmanager.model.PendingInteraction
+import me.awabi2048.myworldmanager.model.PendingInteractionType
 import org.bukkit.Bukkit
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
 import org.bukkit.Sound
@@ -25,7 +28,14 @@ class MemberInviteManager(
     private val languageManager = plugin.languageManager
 
     fun addInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): MemberInviteInfo {
-        val result = plugin.pendingDecisionManager.enqueueMemberInvite(targetUuid, worldUuid, senderUuid)
+        // 招待作成時点の状態を記録し、ログイン時にオフライン招待だけを外部へ照会可能にします。
+        val targetOnlineAtCreation = Bukkit.getPlayer(targetUuid)?.isOnline == true
+        val result = plugin.pendingDecisionManager.enqueueMemberInvite(
+            targetUuid = targetUuid,
+            worldUuid = worldUuid,
+            senderUuid = senderUuid,
+            targetOnlineAtCreation = targetOnlineAtCreation,
+        )
         val interaction = plugin.pendingInteractionRepository.findById(result.id)
             ?: error("Created member invite is missing: ${result.id}")
         return MemberInviteInfo(
@@ -36,6 +46,16 @@ class MemberInviteManager(
             actionCode = interaction.actionCode
         )
     }
+
+    /**
+     * 外部アドオン向けに、対象がオフライン中に作成された未処理メンバー招待だけを返します。
+     * PendingInteractionRepository自体は公開せず、公開APIからこのサービスを経由して照会します。
+     */
+    fun getPendingOfflineMemberInvites(targetUuid: UUID): List<PendingOfflineMemberInvite> =
+        pendingOfflineMemberInvites(
+            interactions = plugin.pendingInteractionRepository.findByTarget(targetUuid),
+            targetUuid = targetUuid,
+        )
 
     fun getInvite(targetUuid: UUID, decisionId: UUID? = null): MemberInviteInfo? {
         val interaction = plugin.pendingInteractionRepository.findByTarget(targetUuid)
@@ -126,3 +146,24 @@ class MemberInviteManager(
         ))
     }
 }
+
+/** 公開APIへ渡す前に、対象・種別・作成時状態を一箇所で厳密に絞り込みます。 */
+internal fun pendingOfflineMemberInvites(
+    interactions: Iterable<PendingInteraction>,
+    targetUuid: UUID,
+): List<PendingOfflineMemberInvite> =
+    interactions
+        .asSequence()
+        .filter {
+            it.targetUuid == targetUuid &&
+                it.type == PendingInteractionType.MEMBER_INVITE &&
+                !it.targetOnlineAtCreation
+        }
+        .map { interaction ->
+            PendingOfflineMemberInvite(
+                id = interaction.id,
+                worldUuid = interaction.worldUuid,
+                createdAt = interaction.createdAt,
+            )
+        }
+        .toList()

@@ -33,6 +33,7 @@ import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldEnvironmentService
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ApiWorldTagService
+import me.awabi2048.myworldmanager.api.extension.PendingOfflineMemberInvite
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.api.service.WorldOperationLocks
@@ -228,6 +229,16 @@ object MyWorldManagerApi {
             manager.getLatestPendingCreatedAt(playerUuid),
         )
     }
+
+    /**
+     * MWM-Chanpon等のアドオンがログイン時通知を判定するための公開照会APIです。
+     * 内部Repositoryは公開せず、MWMのメンバー招待サービスが対象を絞り込みます。
+     */
+    @JvmStatic
+    fun getPendingOfflineMemberInvites(targetUuid: UUID): List<PendingOfflineMemberInvite> =
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .memberInviteManager
+            .getPendingOfflineMemberInvites(targetUuid)
 
     @JvmStatic
     fun executeWorldSettingsAction(

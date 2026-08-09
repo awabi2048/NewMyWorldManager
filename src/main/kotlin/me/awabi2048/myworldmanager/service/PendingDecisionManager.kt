@@ -120,7 +120,12 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     }
 
     @Synchronized
-    fun enqueueMemberInvite(targetUuid: UUID, worldUuid: UUID, senderUuid: UUID): EnqueueResult {
+    fun enqueueMemberInvite(
+        targetUuid: UUID,
+        worldUuid: UUID,
+        senderUuid: UUID,
+        targetOnlineAtCreation: Boolean = true,
+    ): EnqueueResult {
         val actionCode = allocateActionCode(targetUuid)
             ?: error("Pending action code space exhausted for $targetUuid")
         val interaction = plugin.pendingInteractionRepository.add(
@@ -128,7 +133,8 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             targetUuid = targetUuid,
             worldUuid = worldUuid,
             actorUuid = senderUuid,
-            actionCode = actionCode
+            actionCode = actionCode,
+            targetOnlineAtCreation = targetOnlineAtCreation,
         )
         return EnqueueResult(interaction.id, actionCode, getPendingCount(targetUuid))
     }
