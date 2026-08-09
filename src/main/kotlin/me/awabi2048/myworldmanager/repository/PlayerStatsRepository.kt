@@ -12,6 +12,7 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 
 class PlayerStatsRepository(private val plugin: MyWorldManager) {
     private val statsFolder = File(plugin.dataFolder, "playerdata")
@@ -77,14 +78,22 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         val file = File(statsFolder, "$uuid.yml")
         if (!file.exists()) return null
 
-        val config = YamlConfiguration.loadConfiguration(file)
+        val config = try {
+            YamlConfiguration.loadConfiguration(file)
+        } catch (failure: RuntimeException) {
+            // プレイヤー単位の破損ファイルでワールドメニュー全体を落とさず、既定値へ戻します。
+            plugin.logger.log(Level.WARNING, "Could not load player stats; using defaults: $file", failure)
+            return null
+        }
         
         val loadedRegisteredWarp = config.getStringList("registered_warp")
             .mapNotNull { try { UUID.fromString(it) } catch (e: Exception) { null } }
         
         val favoriteWorldsSection = config.getConfigurationSection("favorite_worlds")
         val loadedFavoriteWorlds = favoriteWorldsSection?.let { section ->
-            section.getKeys(false).associate { UUID.fromString(it) to section.getString(it)!! }.toMutableMap()
+            section.getKeys(false).mapNotNull { key ->
+                runCatching { UUID.fromString(key) to (section.getString(key) ?: "") }.getOrNull()
+            }.toMap().toMutableMap()
         } ?: mutableMapOf()
 
         val visitedWorldsSection = config.getConfigurationSection("visited_worlds")
