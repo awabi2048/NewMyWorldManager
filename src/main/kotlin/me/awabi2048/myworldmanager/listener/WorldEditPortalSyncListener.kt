@@ -64,12 +64,21 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
     private data class PendingMove(
         val worldKey: String,
         val offset: BlockVector3,
-        val portals: List<RelativePortal>
+        val portals: List<RelativePortal>,
+        var completedChecks: Int = 0
     )
 
     private val pendingClipboards = java.util.concurrent.ConcurrentHashMap<UUID, PendingClipboard>()
     private val pendingMoves = java.util.concurrent.ConcurrentHashMap<UUID, PendingMove>()
     private val createdAtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+    private companion object {
+        // FAWE は大規模な編集を非同期キューで処理するため、次の tick に一度だけ
+        // 確認すると、移動先のブロックがまだ配置されていない場合があります。
+        private const val MOVE_SYNC_RETRY_INTERVAL_TICKS = 1L
+        private const val MOVE_SYNC_MAX_ATTEMPTS = 40
+        private const val MOVE_SYNC_REQUIRED_COMPLETED_CHECKS = 2
+    }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onWorldEditClipboardCommand(event: PlayerCommandPreprocessEvent) {
@@ -203,18 +212,65 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
             return
         }
 
-        pendingMoves[player.uniqueId] = PendingMove(sourceWorldKey, offset, portals)
+        val pending = PendingMove(sourceWorldKey, offset, portals)
+        pendingMoves[player.uniqueId] = pending
 
         // PlayerCommandPreprocessEvent はコマンド実行前に発生するため、実ブロックの
-        // 移動が完了した次の tick で結果を検証し、成功したものだけメタデータを更新する。
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            applyPendingMove(player.uniqueId)
-        })
+        // 移動が完了するまで次の tick 以降で再確認し、成功したものだけメタデータを更新する。
+        schedulePendingMoveApply(player.uniqueId, pending, attempt = 0)
     }
 
-    private fun applyPendingMove(playerUuid: UUID) {
-        val pending = pendingMoves.remove(playerUuid) ?: return
-        val world = NamespacedKey.fromString(pending.worldKey)?.let(Bukkit::getWorld) ?: return
+    private fun schedulePendingMoveApply(playerUuid: UUID, pending: PendingMove, attempt: Int) {
+        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            applyPendingMove(playerUuid, pending, attempt)
+        }, MOVE_SYNC_RETRY_INTERVAL_TICKS)
+    }
+
+    private fun applyPendingMove(playerUuid: UUID, pending: PendingMove, attempt: Int) {
+        // 新しい //move が同じプレイヤーから発行された場合、古い再試行タスクが
+        // 新しい操作へ干渉しないよう、保留オブジェクトの同一性を確認する。
+        if (pendingMoves[playerUuid] !== pending) return
+
+        val world = NamespacedKey.fromString(pending.worldKey)?.let(Bukkit::getWorld)
+            ?: run {
+                pendingMoves.remove(playerUuid, pending)
+                return
+            }
+
+        // 移動先だけが先に配置された途中状態で確定すると、移動元のUUIDを早く解放して
+        // 重複登録を招くため、移動元のフレーム消去も完了条件に含める。
+        val moveNotReady = pending.portals.any { relativePortal ->
+            val sourceBlock = world.getBlockAt(relativePortal.relativeX, relativePortal.relativeY, relativePortal.relativeZ)
+            val targetX = relativePortal.relativeX + pending.offset.x()
+            val targetY = relativePortal.relativeY + pending.offset.y()
+            val targetZ = relativePortal.relativeZ + pending.offset.z()
+            val targetBlock = world.getBlockAt(targetX, targetY, targetZ)
+            sourceBlock.type == Material.END_PORTAL_FRAME || targetBlock.type != Material.END_PORTAL_FRAME
+        }
+
+        if (moveNotReady) {
+            pending.completedChecks = 0
+        } else {
+            pending.completedChecks++
+        }
+
+        if (pending.completedChecks < MOVE_SYNC_REQUIRED_COMPLETED_CHECKS) {
+            if (attempt < MOVE_SYNC_MAX_ATTEMPTS) {
+                schedulePendingMoveApply(playerUuid, pending, attempt + 1)
+                return
+            }
+
+            // タイムアウト時はFAWEの処理が終わっていない可能性があるため、リポジトリを
+            // 変更せず保留だけ解除する。途中状態で削除・再登録するとデータを失うためである。
+            pendingMoves.remove(playerUuid, pending)
+            plugin.logger.warning(
+                "[Portal] //move の完了状態を確認できないまま同期期限に達しました: " +
+                    "world=${pending.worldKey}, attempt=$attempt"
+            )
+            return
+        }
+
+        pendingMoves.remove(playerUuid, pending)
         var changed = false
 
         for (relativePortal in pending.portals) {
