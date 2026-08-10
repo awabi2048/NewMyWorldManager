@@ -545,6 +545,7 @@ class BedrockMenuService(
                 material = Material.WRITABLE_BOOK,
                 name = GuiNameSpec.Text(tr(player, "gui.user_settings.button.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
+                description = plugin.languageManager.getMessageList(player, "gui.user_settings.button.description"),
                 actions = listOf(menuGestureAction(
                     "open_settings",
                     MenuGesture.ANY,
@@ -553,6 +554,7 @@ class BedrockMenuService(
                 )),
             ),
         ))
+        inventory.setEntry(createPendingEntry(player, footerStart + 7))
 
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
@@ -1257,22 +1259,13 @@ class BedrockMenuService(
     ): MenuElement {
         val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-        val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
-        val latest = if (pendingCount > 0) {
-            plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
-                ?.let {
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                        .withZone(ZoneId.systemDefault())
-                        .format(Instant.ofEpochMilli(it))
-                } ?: tr(player, "gui.player_world.pending_button.none")
-        } else null
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.stats_button.display", mapOf("player" to playerName))),
-                role = if (pendingCount > 0) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                role = GuiElementRole.CONTENT,
                 description = if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
                     listOf(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
                 } else emptyList(),
@@ -1285,19 +1278,45 @@ class BedrockMenuService(
                             GuiValueTone.SUCCESS,
                         ))
                     } else add(GuiMenuEntryData(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, GuiValueTone.SUCCESS))
-                    if (pendingCount > 0) {
-                        add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.count_label"), pendingCount, GuiValueTone.PRIMARY))
-                        add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO))
-                    }
                 },
-                actions = if (pendingCount > 0) listOf(menuGestureAction(
+                playerHeadOwner = player.uniqueId,
+            ),
+        )
+    }
+
+    /** Java版と同じ情報を、旧来のフッター8枠目へ独立して表示します。 */
+    private fun createPendingEntry(player: Player, slot: Int): MenuElement {
+        val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
+        val latest = plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
+            ?.let {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(Instant.ofEpochMilli(it))
+            }
+            ?: tr(player, "gui.player_world.pending_button.none")
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.WRITABLE_BOOK,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.pending_button.display")),
+                role = GuiElementRole.ACTION,
+                description = plugin.languageManager.getMessageList(player, "gui.player_world.pending_button.description"),
+                data = listOf(
+                    GuiMenuEntryData(
+                        tr(player, "gui.player_world.pending_button.count_label"),
+                        pendingCount,
+                        if (pendingCount > 0) GuiValueTone.PRIMARY else GuiValueTone.MUTED,
+                    ),
+                    GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO),
+                ),
+                actions = listOf(menuGestureAction(
                     "open_pending_interactions",
                     MenuGesture.ANY,
                     tr(player, "gui.player_world.pending_button.action"),
                     safety = MenuActionSafety.NAVIGATION_ONLY,
-                )) else emptyList(),
+                )),
                 glint = pendingCount > 0,
-                playerHeadOwner = player.uniqueId,
             ),
         )
     }

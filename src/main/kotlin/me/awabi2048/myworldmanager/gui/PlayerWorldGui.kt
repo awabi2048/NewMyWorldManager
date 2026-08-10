@@ -282,8 +282,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 elements += plugin.currentWorldMenuElementFactory.create(player, layout.actionSlot)
                 if (isOwnMenu) {
                         elements += createUserSettingsEntry(player, layout.actionSlot + 2)
-                        // 次ページはフッター+7を使うため、保留通知は右端へ分離します。
-                        elements += createPendingEntry(player, layout.size - 1)
+                        elements += createPendingEntry(player, layout.size - 2)
                 }
                 if (pageLayout.page > 0) {
                         elements += navigationEntry(player, layout.previousPageSlot, false, pageLayout.page - 1)
@@ -292,7 +291,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         elements += backEntry(player, layout.backSlot)
                 }
                 if (pageLayout.page < pageLayout.totalPages - 1) {
-                        elements += navigationEntry(player, layout.nextPageSlot, true, pageLayout.page + 1)
+                        // 旧来の個人設定・保留通知位置を維持するため、次ページだけを右端へ分離します。
+                        elements += navigationEntry(player, layout.size - 1, true, pageLayout.page + 1)
                 }
                 return InventoryMenuView(
                         layout.size,
@@ -621,6 +621,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 material = Material.WRITABLE_BOOK,
                                 name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
                                 role = GuiElementRole.ACTION,
+                                description = lang.getMessageList(player, "gui.user_settings.button.description"),
                                 actions = listOf(
                                         menuGestureAction(
                                                 ACTION_SETTINGS,

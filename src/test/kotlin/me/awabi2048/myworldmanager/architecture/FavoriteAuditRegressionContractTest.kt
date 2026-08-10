@@ -16,6 +16,8 @@ class FavoriteAuditRegressionContractTest {
         assertTrue("slot = PlayerWorldCapabilityContract.HEADER_CENTER_SLOT" in source)
         assertTrue("createStatsEntry(\n                    player,\n                    PlayerWorldCapabilityContract.HEADER_CENTER_SLOT" in source)
         assertTrue("plugin.currentWorldMenuElementFactory.create(player, footerStart + 4)" in source)
+        assertTrue("createPendingEntry(player, footerStart + 7)" in source)
+        assertTrue("description = plugin.languageManager.getMessageList(player, \"gui.user_settings.button.description\")" in source)
         assertFalse("createStatsEntry(player, footerStart + 4" in source)
     }
 
@@ -42,7 +44,8 @@ class FavoriteAuditRegressionContractTest {
     @Test
     fun `Java版myworldの保留通知は次ページと競合しない`() {
         val source = sourceRoot.resolve("gui/PlayerWorldGui.kt").readText()
-        assertTrue("createPendingEntry(player, layout.size - 1)" in source)
-        assertFalse("createPendingEntry(player, layout.size - 2)" in source)
+        assertTrue("createPendingEntry(player, layout.size - 2)" in source)
+        assertTrue("navigationEntry(player, layout.size - 1, true" in source)
+        assertTrue("gui.user_settings.button.description" in source)
     }
 }
