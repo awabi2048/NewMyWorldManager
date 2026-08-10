@@ -76,6 +76,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var memberRequestManager: MemberRequestManager
     lateinit var pendingDecisionManager: PendingDecisionManager
     lateinit var pendingNotificationService: PendingNotificationService
+    lateinit var favoriteGroupInviteService: FavoriteGroupInviteService
     lateinit var discoverySessionManager: DiscoverySessionManager
     lateinit var meetSessionManager: MeetSessionManager
     lateinit var favoriteSessionManager: FavoriteSessionManager
@@ -106,6 +107,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var memberRequestOwnerConfirmGui: MemberRequestOwnerConfirmGui
     lateinit var worldSeedConfirmGui: WorldSeedConfirmGui
     lateinit var confirmationMenuGui: ConfirmationMenuGui
+    lateinit var currentWorldMenuElementFactory: CurrentWorldMenuElementFactory
     lateinit var languageManager: LanguageManager
     lateinit var worldTagManager: WorldTagManager
     lateinit var previewSessionManager: PreviewSessionManager
@@ -224,6 +226,7 @@ class MyWorldManager : JavaPlugin() {
         msptMonitorTask.start()
 
         // GUIの初期化
+        currentWorldMenuElementFactory = CurrentWorldMenuElementFactory(this)
         worldGui = WorldGui(this)
         creationGui = CreationGui(this)
         discoveryGui = DiscoveryGui(this)
@@ -273,6 +276,7 @@ class MyWorldManager : JavaPlugin() {
         memberRequestManager = MemberRequestManager(this)
         pendingDecisionManager = PendingDecisionManager(this)
         pendingNotificationService = PendingNotificationService(this)
+        favoriteGroupInviteService = FavoriteGroupInviteService(this)
 
         // 設定機能の初期化
         settingsSessionManager = SettingsSessionManager()
@@ -564,6 +568,7 @@ class MyWorldManager : JavaPlugin() {
         if (::discoverySessionManager.isInitialized) discoverySessionManager.clearAll()
         if (::meetSessionManager.isInitialized) meetSessionManager.clearAll()
         if (::favoriteSessionManager.isInitialized) favoriteSessionManager.clearAll()
+        if (::favoriteGroupInviteService.isInitialized) favoriteGroupInviteService.clear()
         if (::playerWorldSessionManager.isInitialized) playerWorldSessionManager.clearAll()
         if (::adminGuiSessionManager.isInitialized) adminGuiSessionManager.clearAll()
         if (::tourSessionManager.isInitialized) tourSessionManager.clearAll()

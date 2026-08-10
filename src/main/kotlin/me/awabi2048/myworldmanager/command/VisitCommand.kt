@@ -116,7 +116,8 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         }
 
         if (target.uniqueId == player.uniqueId) {
-            player.sendMessage("§c自分自身のワールド一覧を表示することはできません。/myworld を使用してください。")
+            // 権限判定を含むコマンド入口そのものへ委譲し、/myworld と完全に同じ結果へ揃えます。
+            Bukkit.dispatchCommand(player, "myworld")
             return
         }
 

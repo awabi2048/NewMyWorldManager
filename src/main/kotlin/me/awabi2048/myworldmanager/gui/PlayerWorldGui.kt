@@ -262,14 +262,24 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                 player,
                                 GuiMenuCapabilityInvocationSpec(
-                                        slot = layout.actionSlot,
+                                        slot = PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
                                         capability = summaryCapability.requireExplicitActionSafety(),
                                         attributes = summaryAttributes,
                                 ),
                         )
                 } else {
-                        createStatsEntry(player, layout.actionSlot, targetUuid, targetName, createCount, maxSlot, stats)
+                        createStatsEntry(
+                                player,
+                                PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
+                                targetUuid,
+                                targetName,
+                                createCount,
+                                maxSlot,
+                                stats,
+                        )
                 }
+                // フッター中央は閲覧対象ではなく、操作しているプレイヤーの現在地を常に示します。
+                elements += plugin.currentWorldMenuElementFactory.create(player, layout.actionSlot)
                 if (isOwnMenu) {
                         elements += createUserSettingsEntry(player, layout.actionSlot + 2)
                         elements += createPendingEntry(player, layout.size - 2)
@@ -281,7 +291,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         elements += backEntry(player, layout.backSlot)
                 }
                 if (pageLayout.page < pageLayout.totalPages - 1) {
-                        elements += navigationEntry(player, layout.nextPageSlot, true, pageLayout.page + 1)
+                        // 旧来の個人設定・保留通知位置を維持するため、次ページだけを右端へ分離します。
+                        elements += navigationEntry(player, layout.size - 1, true, pageLayout.page + 1)
                 }
                 return InventoryMenuView(
                         layout.size,
@@ -610,6 +621,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 material = Material.WRITABLE_BOOK,
                                 name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
                                 role = GuiElementRole.ACTION,
+                                description = lang.getMessageList(player, "gui.user_settings.button.description"),
                                 actions = listOf(
                                         menuGestureAction(
                                                 ACTION_SETTINGS,

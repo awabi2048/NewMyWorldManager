@@ -6,7 +6,7 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldFavoritedEvent
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import java.time.LocalDate
+import me.awabi2048.myworldmanager.util.FavoriteRegistrationTimestamp
 import java.util.UUID
 
 /** お気に入り数とプレイヤー記録を一つの永続操作として更新・復元します。 */
@@ -18,6 +18,11 @@ class FavoriteStateService(private val plugin: MyWorldManager) {
     }
 
     enum class RestoreResult { RESTORED, TARGET_MISSING, CONCURRENT_CHANGE }
+
+    companion object {
+        /** 登録時刻は操作実行時に確定するため、追加操作の復元では「登録済み」を期待状態にします。 */
+        const val EXPECTED_REGISTERED_TIMESTAMP = "<registered>"
+    }
 
     fun toggle(
         player: Player,
@@ -32,7 +37,7 @@ class FavoriteStateService(private val plugin: MyWorldManager) {
         } else {
             val maxFavoriteCount = plugin.config.getInt("favorite.max_count", 1000)
             if (stats.favoriteWorlds.size >= maxFavoriteCount) return ToggleResult.LimitReached
-            stats.favoriteWorlds[worldData.uuid] = LocalDate.now().toString()
+            stats.favoriteWorlds[worldData.uuid] = FavoriteRegistrationTimestamp.now()
             worldData.favorite++
             ToggleResult.Added
         }
@@ -62,7 +67,13 @@ class FavoriteStateService(private val plugin: MyWorldManager) {
     ): RestoreResult {
         val world = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return RestoreResult.TARGET_MISSING
         val stats = plugin.playerStatsRepository.findByUuid(playerId)
-        if (stats.favoriteWorlds[worldUuid] != expectedDate || world.favorite != expectedCount) {
+        val currentDate = stats.favoriteWorlds[worldUuid]
+        val dateMatches = if (expectedDate == EXPECTED_REGISTERED_TIMESTAMP) {
+            currentDate != null
+        } else {
+            currentDate == expectedDate
+        }
+        if (!dateMatches || world.favorite != expectedCount) {
             return RestoreResult.CONCURRENT_CHANGE
         }
         if (beforeDate == null) stats.favoriteWorlds.remove(worldUuid)

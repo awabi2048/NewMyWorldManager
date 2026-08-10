@@ -13,6 +13,7 @@ import java.nio.file.StandardOpenOption
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
+import me.awabi2048.myworldmanager.util.FavoriteRegistrationTimestamp
 
 class PlayerStatsRepository(private val plugin: MyWorldManager) {
     private val statsFolder = File(plugin.dataFolder, "playerdata")
@@ -90,11 +91,19 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             .mapNotNull { try { UUID.fromString(it) } catch (e: Exception) { null } }
         
         val favoriteWorldsSection = config.getConfigurationSection("favorite_worlds")
+        var favoriteTimestampMigrated = false
         val loadedFavoriteWorlds = favoriteWorldsSection?.let { section ->
-            section.getKeys(false).mapNotNull { key ->
-                runCatching { UUID.fromString(key) to (section.getString(key) ?: "") }.getOrNull()
-            }.toMap().toMutableMap()
-        } ?: mutableMapOf()
+            linkedMapOf<UUID, String>().also { result ->
+                section.getKeys(false).forEach { key ->
+                    runCatching {
+                    val stored = section.getString(key) ?: ""
+                    val normalized = FavoriteRegistrationTimestamp.normalize(stored)
+                    if (normalized != stored) favoriteTimestampMigrated = true
+                    UUID.fromString(key) to normalized
+                    }.getOrNull()?.let { (uuid, timestamp) -> result[uuid] = timestamp }
+                }
+            }
+        } ?: linkedMapOf()
 
         val visitedWorldsSection = config.getConfigurationSection("visited_worlds")
         val loadedVisitedWorlds = visitedWorldsSection?.let { section ->
@@ -117,9 +126,9 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             plugin.worldConfigRepository.findByUuid(uuid) != null
         }.toMutableList()
         
-        val existingFavoriteWorlds = loadedFavoriteWorlds.filterKeys { uuid ->
+        val existingFavoriteWorlds = loadedFavoriteWorlds.filterTo(linkedMapOf()) { (uuid, _) ->
             plugin.worldConfigRepository.findByUuid(uuid) != null
-        }.toMutableMap()
+        }
 
         val existingVisitedWorlds = loadedVisitedWorlds.filterKeys { uuid ->
             plugin.worldConfigRepository.findByUuid(uuid) != null
@@ -142,6 +151,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             language = "ja_jp",
             visitorNotificationEnabled = config.getBoolean("visitor_notification_enabled", true),
             criticalSettingsEnabled = config.getBoolean("critical_settings_enabled", true),
+            favoriteGroupInvitesEnabled = config.getBoolean("favorite_group_invites_enabled", true),
             meetStatus = if (config.contains("meet_status")) {
                 config.getString("meet_status", "JOIN_ME")!!
             } else {
@@ -157,6 +167,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         // 変更があった場合は保存する
         if (loadedRegisteredWarp.size != existingRegisteredWarp.size || 
             loadedFavoriteWorlds.size != existingFavoriteWorlds.size ||
+            favoriteTimestampMigrated ||
             loadedVisitedWorlds.size != existingVisitedWorlds.size ||
             loadedWorldDisplayOrder.size != existingWorldDisplayOrder.size) {
             plugin.logger.info("[PlayerStats] ${uuid} の存在しないワールドのUUIDをクリーンアップしました。")
@@ -193,6 +204,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         config.set("language", null)
         config.set("visitor_notification_enabled", stats.visitorNotificationEnabled)
         config.set("critical_settings_enabled", stats.criticalSettingsEnabled)
+        config.set("favorite_group_invites_enabled", stats.favoriteGroupInvitesEnabled)
         config.set("meet_status", stats.meetStatus)
         config.set("beta_features_enabled", null)
         config.set("tour_navigation_mode", stats.tourNavigationMode.name)

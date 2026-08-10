@@ -84,20 +84,18 @@ class MenuEntryRouter(
     fun openFavoriteList(
         player: Player,
         page: Int = 0,
-        worldData: WorldData? = null,
-        returnToFavoriteMenu: Boolean = false,
         showBackButton: Boolean = false
     ) {
         if (!showBackButton) resetTopLevelMenuState(player)
         if (platformResolver.isBedrock(player)) {
-            bedrockMenuService.openFavoriteList(player, page, worldData, returnToFavoriteMenu, showBackButton)
+            bedrockMenuService.openFavoriteList(player, page, showBackButton)
             return
         }
 
-        plugin.favoriteGui.open(player, page, worldData, returnToFavoriteMenu, showBackButton)
+        plugin.favoriteGui.open(player, page, showBackButton)
     }
 
-    fun openFavoriteMenu(player: Player, worldData: WorldData?) {
+    fun openFavoriteMenu(player: Player, worldData: WorldData) {
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openFavoriteMenu(player, worldData)
             return
@@ -110,14 +108,15 @@ class MenuEntryRouter(
         player: Player,
         owner: OfflinePlayer,
         page: Int = 0,
-        worldData: WorldData? = null
+        worldData: WorldData? = null,
+        guestAccessibleOnly: Boolean = false,
     ) {
         if (platformResolver.isBedrock(player)) {
-            bedrockMenuService.openVisitMenu(player, owner, page, worldData)
+            bedrockMenuService.openVisitMenu(player, owner, page, worldData, guestAccessibleOnly)
             return
         }
 
-        plugin.visitGui.open(player, owner, page, worldData)
+        plugin.visitGui.open(player, owner, page, worldData, guestAccessibleOnly)
     }
 
     fun openMeet(player: Player, showBackButton: Boolean? = null) {

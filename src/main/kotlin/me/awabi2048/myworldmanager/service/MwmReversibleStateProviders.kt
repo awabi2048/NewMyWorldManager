@@ -8,7 +8,6 @@ import me.awabi2048.myworldmanager.api.extension.WorldPublishReversibleRestoreRe
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.session.WorldCreationSessionSnapshot
 import java.util.UUID
-import java.time.LocalDate
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import me.awabi2048.myworldmanager.session.*
@@ -433,7 +432,9 @@ private class PlayerStateProvider(private val plugin: MyWorldManager) : MenuReve
                     ?: return MenuReversibleProviderCaptureResult.Rejected("target world no longer exists: $worldUuid")
                 val beforeDate = stats.favoriteWorlds[worldUuid]
                 PlayerStateSnapshot.Favorite(
-                    worldUuid, beforeDate, if (beforeDate == null) LocalDate.now().toString() else null,
+                    worldUuid,
+                    beforeDate,
+                    if (beforeDate == null) FavoriteStateService.EXPECTED_REGISTERED_TIMESTAMP else null,
                     world.favorite, if (beforeDate == null) world.favorite + 1 else (world.favorite - 1).coerceAtLeast(0),
                 )
             }
@@ -571,11 +572,12 @@ private class UserSettingsProvider(private val plugin: MyWorldManager) : MenuRev
         val value = when (operation) {
             "notification" -> service.notification(context.player.uniqueId).toString()
             "critical_visibility" -> service.criticalVisibility(context.player.uniqueId).toString()
+            "favorite_group_invites" -> service.favoriteGroupInvites(context.player.uniqueId).toString()
             "tour_navigation" -> service.tourNavigation(context.player.uniqueId).name
             else -> return MenuReversibleProviderCaptureResult.Rejected("unsupported user settings operation: $operation")
         }
         val expectedAfter = when (operation) {
-            "notification", "critical_visibility" -> (!value.toBooleanStrict()).toString()
+            "notification", "critical_visibility", "favorite_group_invites" -> (!value.toBooleanStrict()).toString()
             "tour_navigation" -> {
                 val values = TourNavigationMode.entries
                 values[(values.indexOf(TourNavigationMode.valueOf(value)) + 1) % values.size].name
@@ -592,6 +594,7 @@ private class UserSettingsProvider(private val plugin: MyWorldManager) : MenuRev
             val current = when (state.operation) {
                 "notification" -> plugin.userSettingsService.notification(context.player.uniqueId).toString()
                 "critical_visibility" -> plugin.userSettingsService.criticalVisibility(context.player.uniqueId).toString()
+                "favorite_group_invites" -> plugin.userSettingsService.favoriteGroupInvites(context.player.uniqueId).toString()
                 "tour_navigation" -> plugin.userSettingsService.tourNavigation(context.player.uniqueId).name
                 else -> return MenuReversibleProviderRestoreResult.Rejected("unsupported user settings operation: ${state.operation}")
             }
@@ -603,6 +606,7 @@ private class UserSettingsProvider(private val plugin: MyWorldManager) : MenuRev
             when (state.operation) {
                 "notification" -> plugin.userSettingsService.setNotification(context.player.uniqueId, state.before.toBooleanStrict())
                 "critical_visibility" -> plugin.userSettingsService.setCriticalVisibility(context.player.uniqueId, state.before.toBooleanStrict())
+                "favorite_group_invites" -> plugin.userSettingsService.setFavoriteGroupInvites(context.player.uniqueId, state.before.toBooleanStrict())
                 "tour_navigation" -> plugin.userSettingsService.setTourNavigation(context.player, TourNavigationMode.valueOf(state.before))
                 else -> return MenuReversibleProviderRestoreResult.Rejected("unsupported user settings operation: ${state.operation}")
             }

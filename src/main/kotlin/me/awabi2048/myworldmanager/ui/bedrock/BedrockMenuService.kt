@@ -207,14 +207,12 @@ class BedrockMenuService(
     fun openFavoriteList(
         player: Player,
         page: Int = 0,
-        worldData: WorldData? = null,
-        returnToFavoriteMenu: Boolean = false,
         showBackButton: Boolean = false
     ) {
-        plugin.favoriteGui.open(player, page, worldData, returnToFavoriteMenu, showBackButton)
+        plugin.favoriteGui.open(player, page, showBackButton)
     }
 
-    fun openFavoriteMenu(player: Player, worldData: WorldData?) {
+    fun openFavoriteMenu(player: Player, worldData: WorldData) {
         plugin.favoriteMenuGui.open(player, worldData)
     }
 
@@ -222,9 +220,10 @@ class BedrockMenuService(
         player: Player,
         owner: org.bukkit.OfflinePlayer,
         page: Int = 0,
-        worldData: WorldData? = null
+        worldData: WorldData? = null,
+        guestAccessibleOnly: Boolean = false,
     ) {
-        plugin.visitGui.open(player, owner, page, worldData)
+        plugin.visitGui.open(player, owner, page, worldData, guestAccessibleOnly)
     }
 
     fun openMeet(player: Player, showBackButton: Boolean? = null) {
@@ -520,15 +519,25 @@ class BedrockMenuService(
                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                         player,
                         GuiMenuCapabilityInvocationSpec(
-                            slot = footerStart + 4,
+                            slot = PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
                             capability = summaryCapability.requireExplicitActionSafety(),
                             attributes = summaryAttributes,
                     ),
                 ),
             )
         } else {
-            inventory.setEntry(createStatsEntry(player, footerStart + 4, currentCreateCount, maxSlot, stats.worldPoint))
+            inventory.setEntry(
+                createStatsEntry(
+                    player,
+                    PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
+                    currentCreateCount,
+                    maxSlot,
+                    stats.worldPoint,
+                ),
+            )
         }
+        // Java版と同じ生成元を使い、フッター中央は常に操作プレイヤーの現在地を示します。
+        inventory.setEntry(plugin.currentWorldMenuElementFactory.create(player, footerStart + 4))
         inventory.setEntry(CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -536,6 +545,7 @@ class BedrockMenuService(
                 material = Material.WRITABLE_BOOK,
                 name = GuiNameSpec.Text(tr(player, "gui.user_settings.button.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
+                description = plugin.languageManager.getMessageList(player, "gui.user_settings.button.description"),
                 actions = listOf(menuGestureAction(
                     "open_settings",
                     MenuGesture.ANY,
@@ -544,6 +554,7 @@ class BedrockMenuService(
                 )),
             ),
         ))
+        inventory.setEntry(createPendingEntry(player, footerStart + 7))
 
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
@@ -749,6 +760,20 @@ class BedrockMenuService(
                 }
             ),
         )
+        inventory.setEntry(
+            createSettingActionEntry(
+                player,
+                14,
+                Material.GOAT_HORN,
+                "gui.user_settings.favorite_group_invites.display",
+                "favorite_group_invites",
+                statusText(player, stats.favoriteGroupInvitesEnabled),
+                if (stats.favoriteGroupInvitesEnabled) "§a" else "§c",
+                "toggle_favorite_group_invites",
+                "gui.user_settings.cycle_action.toggle",
+                glint = stats.favoriteGroupInvitesEnabled,
+            ),
+        )
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
                 22,
@@ -885,6 +910,11 @@ class BedrockMenuService(
                     "cycle_language" -> MenuActionResult.Success(MenuUpdate.Refresh)
                     "toggle_critical" -> {
                         stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
+                        plugin.playerStatsRepository.save(stats)
+                        MenuActionResult.Success(MenuUpdate.Refresh)
+                    }
+                    "toggle_favorite_group_invites" -> {
+                        stats.favoriteGroupInvitesEnabled = !stats.favoriteGroupInvitesEnabled
                         plugin.playerStatsRepository.save(stats)
                         MenuActionResult.Success(MenuUpdate.Refresh)
                     }
@@ -1229,22 +1259,13 @@ class BedrockMenuService(
     ): MenuElement {
         val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
-        val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
-        val latest = if (pendingCount > 0) {
-            plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
-                ?.let {
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                        .withZone(ZoneId.systemDefault())
-                        .format(Instant.ofEpochMilli(it))
-                } ?: tr(player, "gui.player_world.pending_button.none")
-        } else null
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.stats_button.display", mapOf("player" to playerName))),
-                role = if (pendingCount > 0) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                role = GuiElementRole.CONTENT,
                 description = if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
                     listOf(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
                 } else emptyList(),
@@ -1257,19 +1278,45 @@ class BedrockMenuService(
                             GuiValueTone.SUCCESS,
                         ))
                     } else add(GuiMenuEntryData(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, GuiValueTone.SUCCESS))
-                    if (pendingCount > 0) {
-                        add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.count_label"), pendingCount, GuiValueTone.PRIMARY))
-                        add(GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO))
-                    }
                 },
-                actions = if (pendingCount > 0) listOf(menuGestureAction(
+                playerHeadOwner = player.uniqueId,
+            ),
+        )
+    }
+
+    /** Java版と同じ情報を、旧来のフッター8枠目へ独立して表示します。 */
+    private fun createPendingEntry(player: Player, slot: Int): MenuElement {
+        val pendingCount = plugin.pendingDecisionManager.getPendingCount(player.uniqueId)
+        val latest = plugin.pendingDecisionManager.getLatestPendingCreatedAt(player.uniqueId)
+            ?.let {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(Instant.ofEpochMilli(it))
+            }
+            ?: tr(player, "gui.player_world.pending_button.none")
+        return CCSystem.getAPI().getGuiElementService().menuEntry(
+            player,
+            GuiMenuEntrySpec(
+                slot = slot,
+                material = Material.WRITABLE_BOOK,
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.pending_button.display")),
+                role = GuiElementRole.ACTION,
+                description = plugin.languageManager.getMessageList(player, "gui.player_world.pending_button.description"),
+                data = listOf(
+                    GuiMenuEntryData(
+                        tr(player, "gui.player_world.pending_button.count_label"),
+                        pendingCount,
+                        if (pendingCount > 0) GuiValueTone.PRIMARY else GuiValueTone.MUTED,
+                    ),
+                    GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO),
+                ),
+                actions = listOf(menuGestureAction(
                     "open_pending_interactions",
                     MenuGesture.ANY,
                     tr(player, "gui.player_world.pending_button.action"),
                     safety = MenuActionSafety.NAVIGATION_ONLY,
-                )) else emptyList(),
+                )),
                 glint = pendingCount > 0,
-                playerHeadOwner = player.uniqueId,
             ),
         )
     }
@@ -1323,6 +1370,7 @@ class BedrockMenuService(
                     reversibleContract = when (actionId) {
                         "toggle_notification" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-notification")
                         "toggle_critical" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-critical")
+                        "toggle_favorite_group_invites" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-favorite-group-invites")
                         "cycle_tour_navigation" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-tour")
                         else -> null
                     },
@@ -1333,7 +1381,7 @@ class BedrockMenuService(
     }
 
     private fun settingActionSafety(actionId: String): MenuActionSafety = when (actionId) {
-        "toggle_notification", "toggle_critical", "cycle_tour_navigation" -> MenuActionSafety.REVERSIBLE
+        "toggle_notification", "toggle_critical", "toggle_favorite_group_invites", "cycle_tour_navigation" -> MenuActionSafety.REVERSIBLE
         "cycle_language" -> MenuActionSafety.NAVIGATION_ONLY
         else -> error("Bedrock setting action must declare a dedicated safety mapping: $actionId")
     }
@@ -1454,6 +1502,7 @@ class BedrockMenuService(
             "toggle_notification",
             "cycle_language",
             "toggle_critical",
+            "toggle_favorite_group_invites",
             "cycle_tour_navigation",
         )
     }
