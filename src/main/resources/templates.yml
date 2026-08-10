@@ -1,6 +1,7 @@
 # Default Templates Configuration
 #basic:
 #  path: world
+#  dimension: OVERWORLD
 #  name: 基本ワールド
 #  description: 
 #    - "§7ワールドテンプレート"

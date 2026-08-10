@@ -19,6 +19,7 @@ import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.model.ManagedDimension
 import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
@@ -32,7 +33,6 @@ import me.awabi2048.myworldmanager.util.WorldWarpId
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
-import org.bukkit.WorldCreator
 import org.bukkit.WorldType
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.EntityType
@@ -129,8 +129,11 @@ class WorldService(
         // ひとまずはメインスレッドで実行する。
 
         try {
-            val creator = WorldCreator(NamespacedKey.minecraft(worldFolderName))
-            creator.environment(environment)
+            val dimension = ManagedDimension.fromBukkit(environment)
+            val creator = plugin.managedWorldCreatorFactory.create(
+                NamespacedKey.minecraft(worldFolderName),
+                dimension
+            )
             creator.type(worldType)
 
             val resolvedSeed = resolveSeed(seed)
@@ -158,8 +161,9 @@ class WorldService(
                 creatingWorlds.remove(player.uniqueId.toString())
                 return false
             }
+            plugin.managedWorldCreatorFactory.requireMatchingDimension(world, dimension)
 
-            val effectiveInitialSpawn = if (environment == org.bukkit.World.Environment.THE_END) {
+            val effectiveInitialSpawn = if (dimension == ManagedDimension.END) {
                 prepareGeneratedEndWorld(world)
                 initialSpawn ?: findRandomSafeEndSpawn(world)
             } else {
@@ -171,7 +175,10 @@ class WorldService(
             ) {
                 throw IllegalStateException("Insufficient world points at creation commit")
             }
-            finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, chargedCost, "None", effectiveInitialSpawn, seed != null)
+            finalizeWorldCreation(
+                player, uuid, worldName, worldFolderName, world, dimension,
+                chargedCost, "None", effectiveInitialSpawn, seed != null
+            )
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
@@ -233,13 +240,20 @@ class WorldService(
                 future.complete(false)
                 return future
             }
-            val creator = WorldCreator(NamespacedKey.minecraft(folderName))
-                .environment(request.environment)
+            val dimension = ManagedDimension.fromBukkit(request.environment)
+            val creator = plugin.managedWorldCreatorFactory.create(
+                NamespacedKey.minecraft(folderName),
+                dimension
+            )
                 .type(request.worldType)
                 .generateStructures(request.generateStructures)
             request.generator?.let(creator::generator)
             val world = plugin.server.createWorld(creator)
                 ?: error("Bukkit returned null while creating managed world")
+            plugin.managedWorldCreatorFactory.requireMatchingDimension(world, dimension)
+            if (dimension == ManagedDimension.END) {
+                prepareGeneratedEndWorld(world)
+            }
             request.initializeWorld(world)
             if (MyWorldManagerApi.isWorldPointEconomyEnabled() &&
                 playerStatsRepository.findByUuid(player.uniqueId).worldPoint < chargedCost
@@ -255,6 +269,7 @@ class WorldService(
                 request.worldName,
                 folderName,
                 world,
+                dimension,
                 chargedCost,
                 request.sourceId,
                 spawn
@@ -373,11 +388,14 @@ class WorldService(
             worldName: String,
             worldFolderName: String,
             world: org.bukkit.World,
+            dimension: ManagedDimension,
             cost: Int,
             templateId: String,
             initialSpawn: WorldSpawnCoordinates? = null,
             seedSpecified: Boolean = false
     ) {
+        // 要求値と実際のBukkit環境が一致しないワールドは、永続データへコミットしません。
+        plugin.managedWorldCreatorFactory.requireMatchingDimension(world, dimension)
         val now = java.time.LocalDateTime.now()
         val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val expireDate =
@@ -405,6 +423,7 @@ class WorldService(
         val worldData =
                 WorldData(
                         uuid = uuid,
+                        dimension = dimension,
                         name = worldName,
                         description = "My World",
                         icon = org.bukkit.Material.GRASS_BLOCK,
@@ -635,7 +654,10 @@ class WorldService(
                 // ワールドの読み込みはメインスレッドで行う
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     try {
-                        val creator = WorldCreator(NamespacedKey.minecraft(worldFolderName))
+                        val creator = plugin.managedWorldCreatorFactory.create(
+                            NamespacedKey.minecraft(worldFolderName),
+                            template.dimension
+                        )
                         val world = plugin.server.createWorld(creator)
 
                         if (world == null) {
@@ -656,7 +678,14 @@ class WorldService(
                             future.complete(false)
                             return@Runnable
                         }
-                        finalizeWorldCreation(player, uuid, worldName, worldFolderName, world, chargedCost, template.id, initialSpawn)
+                        plugin.managedWorldCreatorFactory.requireMatchingDimension(world, template.dimension)
+                        if (template.dimension == ManagedDimension.END) {
+                            prepareGeneratedEndWorld(world)
+                        }
+                        finalizeWorldCreation(
+                            player, uuid, worldName, worldFolderName, world, template.dimension,
+                            chargedCost, template.id, initialSpawn
+                        )
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
@@ -735,7 +764,16 @@ class WorldService(
     }
 
     private fun loadWorldKeyUnlocked(key: NamespacedKey, worldData: WorldData?): WorldLoadResult {
+        val dimension = worldData?.dimension ?: plugin.templateRepository.findByWorldKey(key)?.dimension
         Bukkit.getWorld(key)?.let { loaded ->
+            if (dimension != null) {
+                try {
+                    plugin.managedWorldCreatorFactory.requireMatchingDimension(loaded, dimension)
+                } catch (error: IllegalStateException) {
+                    plugin.logger.log(Level.SEVERE, "Loaded world has a mismatched dimension: key=$key", error)
+                    return WorldLoadResult.failure(WorldLoadFailure.BUKKIT_LOAD_FAILED)
+                }
+            }
             if (worldData != null) {
                 plugin.worldEnvironmentService.applyAll(loaded, worldData)
             } else {
@@ -759,10 +797,16 @@ class WorldService(
             return WorldLoadResult.failure(WorldLoadFailure.BUKKIT_LOAD_FAILED)
         }
 
+        if (dimension == null) {
+            plugin.logger.severe("World load rejected because no persisted dimension is available: key=$key")
+            return WorldLoadResult.failure(WorldLoadFailure.BUKKIT_LOAD_FAILED)
+        }
+
         return try {
-            val world = plugin.server.createWorld(WorldCreator(key))
+            val world = plugin.server.createWorld(plugin.managedWorldCreatorFactory.create(key, dimension))
                 ?: return WorldLoadResult.failure(WorldLoadFailure.BUKKIT_LOAD_FAILED)
-            if (worldData?.seedSpecified == true && world.environment == org.bukkit.World.Environment.THE_END) {
+            plugin.managedWorldCreatorFactory.requireMatchingDimension(world, dimension)
+            if (worldData != null && dimension == ManagedDimension.END) {
                 prepareGeneratedEndWorld(world)
             }
             if (worldData != null) {

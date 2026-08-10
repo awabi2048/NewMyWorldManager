@@ -260,12 +260,15 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         }
         plugin.templateRepository.saveTemplate(
             TemplateData(
-                session.id,
-                session.sourceWorldName,
-                session.name,
-                session.description,
-                session.icon,
-                origin.clone(),
+                id = session.id,
+                dimension = me.awabi2048.myworldmanager.model.ManagedDimension.fromBukkit(
+                    requireNotNull(origin.world).environment
+                ),
+                path = session.sourceWorldName,
+                name = session.name,
+                description = session.description,
+                icon = session.icon,
+                originLocation = origin.clone(),
             ),
         )
         player.sendMessage(

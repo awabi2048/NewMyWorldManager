@@ -27,7 +27,6 @@ import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
-import org.bukkit.WorldCreator
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
@@ -288,8 +287,12 @@ class WorldMigrationService(
             var committed = false
             try {
                 val world = plugin.server.createWorld(
-                    WorldCreator(NamespacedKey.minecraft(state.folderName))
+                    plugin.managedWorldCreatorFactory.create(
+                        NamespacedKey.minecraft(state.folderName),
+                        worldData.dimension
+                    )
                 ) ?: error("world_load_failed")
+                plugin.managedWorldCreatorFactory.requireMatchingDimension(world, worldData.dimension)
                 plugin.worldEnvironmentService.applyAll(world, worldData)
                 committed = true
             } finally {

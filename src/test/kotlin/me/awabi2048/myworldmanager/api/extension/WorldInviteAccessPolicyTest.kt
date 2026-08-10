@@ -48,6 +48,7 @@ class WorldInviteAccessPolicyTest {
 
     private fun world(level: PublishLevel) = WorldData(
         uuid = UUID.randomUUID(),
+        dimension = me.awabi2048.myworldmanager.model.ManagedDimension.OVERWORLD,
         name = "test",
         description = "",
         icon = Material.GRASS_BLOCK,

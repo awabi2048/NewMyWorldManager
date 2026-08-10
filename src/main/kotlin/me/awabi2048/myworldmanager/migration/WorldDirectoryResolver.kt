@@ -10,6 +10,9 @@ import org.bukkit.NamespacedKey
 class WorldDirectoryResolver(
     private val directoryService: WorldDirectoryService
 ) {
+    /** 新規ワールドを作る際にPaperが使用する正規ディレクトリです。 */
+    fun creationDirectory(key: NamespacedKey): Path = directoryService.creationDirectory(key)
+
     fun inspect(folderName: String): WorldDirectoryResolution? {
         if (!isValidFolderName(folderName)) return null
         return inspect(NamespacedKey.minecraft(folderName))

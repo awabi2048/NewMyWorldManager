@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.model.ManagedDimension
 import me.awabi2048.myworldmanager.util.BiomeResolver
 import org.bukkit.GameMode
 import org.bukkit.entity.EnderCrystal
@@ -92,8 +93,8 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
     private fun isBlockedEndBossEntity(entity: org.bukkit.entity.Entity): Boolean {
         if (entity !is EnderDragon && entity !is EnderCrystal) return false
         val world = entity.world
-        if (world.environment != org.bukkit.World.Environment.THE_END) return false
-        return plugin.worldConfigRepository.findByWorldName(world.name) != null
+        val worldData = plugin.worldConfigRepository.findByWorldName(world.name) ?: return false
+        return worldData.dimension == ManagedDimension.END
     }
 
     @EventHandler

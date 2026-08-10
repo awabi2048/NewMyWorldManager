@@ -11,6 +11,7 @@ import java.util.UUID
  */
 data class WorldData(
     val uuid: UUID,
+    val dimension: ManagedDimension,
     var name: String,
     var description: String,
     var icon: Material,
@@ -63,6 +64,7 @@ data class WorldData(
     override fun serialize(): Map<String, Any?> {
         return mutableMapOf(
             "uuid" to uuid.toString(),
+            "dimension" to dimension.name,
             "name" to name,
             "description" to description,
             "icon" to icon.name,
@@ -139,6 +141,10 @@ data class WorldData(
             val customWorldName = args["custom_world_name"] as? String
             return WorldData(
                 uuid = uuid,
+                dimension = ManagedDimension.parse(
+                    args["dimension"] as? String
+                        ?: throw IllegalArgumentException("dimensionがありません: $uuid")
+                ),
                 name = args["name"] as String,
                 description = args["description"] as String,
                 icon = Material.valueOf(args["icon"] as String),

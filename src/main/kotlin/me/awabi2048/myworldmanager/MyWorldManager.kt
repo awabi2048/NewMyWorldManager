@@ -49,6 +49,7 @@ class MyWorldManager : JavaPlugin() {
 
     lateinit var worldConfigRepository: WorldConfigRepository
     lateinit var worldService: WorldService
+    lateinit var managedWorldCreatorFactory: me.awabi2048.myworldmanager.service.ManagedWorldCreatorFactory
     lateinit var worldPublishService: WorldPublishService
     lateinit var worldSettingsStateService: WorldSettingsStateService
     lateinit var favoriteStateService: FavoriteStateService
@@ -177,6 +178,9 @@ class MyWorldManager : JavaPlugin() {
 
         worldDirectoryResolver = WorldDirectoryResolver(
                 com.awabi2048.ccsystem.CCSystem.getAPI().getWorldDirectoryService()
+        )
+        managedWorldCreatorFactory = me.awabi2048.myworldmanager.service.ManagedWorldCreatorFactory(
+            me.awabi2048.myworldmanager.service.PaperEndDragonPolicyAdapter(worldDirectoryResolver)
         )
 
         // リポジトリの初期化

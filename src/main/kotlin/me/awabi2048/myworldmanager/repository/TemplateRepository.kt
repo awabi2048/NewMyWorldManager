@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.repository
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TemplateData
+import me.awabi2048.myworldmanager.model.ManagedDimension
 import org.bukkit.Material
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
@@ -32,6 +33,10 @@ class TemplateRepository(private val plugin: MyWorldManager) {
         config.getKeys(false).forEach { key ->
             val section = config.getConfigurationSection(key) ?: return@forEach
             val path = section.getString("path") ?: ""
+            val dimension = ManagedDimension.parse(
+                section.getString("dimension")
+                    ?: throw IllegalArgumentException("Template '$key' has no dimension")
+            )
             val name = section.getString("name") ?: key
             val description = if (section.isList("description")) {
                 section.getStringList("description")
@@ -70,6 +75,7 @@ class TemplateRepository(private val plugin: MyWorldManager) {
 
             templates[key] = TemplateData(
                 id = key,
+                dimension = dimension,
                 path = path,
                 name = name,
                 description = description,
@@ -84,6 +90,10 @@ class TemplateRepository(private val plugin: MyWorldManager) {
     fun findAll(): List<TemplateData> = templates.values.toList()
 
     fun findById(id: String): TemplateData? = templates[id]
+
+    fun findByWorldKey(key: org.bukkit.NamespacedKey): TemplateData? = templates.values.firstOrNull { template ->
+        org.bukkit.NamespacedKey.fromString(template.path) == key
+    }
 
     fun validationIssue(template: TemplateData): ValidationIssue? {
         val templateDir = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
@@ -103,6 +113,7 @@ class TemplateRepository(private val plugin: MyWorldManager) {
         val config = YamlConfiguration.loadConfiguration(configFile)
         val section = config.createSection(template.id)
         section.set("path", template.path)
+        section.set("dimension", template.dimension.name)
         section.set("name", template.name)
         section.set("description", template.description)
         section.set("icon", template.icon.name)

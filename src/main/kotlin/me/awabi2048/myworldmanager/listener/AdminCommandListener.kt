@@ -147,12 +147,18 @@ class AdminCommandListener {
                 }
 
                 // この管理操作だけは、診断でMISSINGと確定したテンプレートを明示的に新規生成します。
+                val template = plugin.templateRepository.findById(key)
+                if (template == null) {
+                    player.sendMessage("§c  -> $key の次元情報を取得できませんでした。")
+                    return@forEach
+                }
                 val world = if (resolution.state == WorldDirectoryState.MISSING) {
-                    Bukkit.createWorld(org.bukkit.WorldCreator(worldKey))
+                    Bukkit.createWorld(plugin.managedWorldCreatorFactory.create(worldKey, template.dimension))
                 } else {
                     Bukkit.getWorld(worldKey)
                 }
                 if (world != null) {
+                    plugin.managedWorldCreatorFactory.requireMatchingDimension(world, template.dimension)
                     player.sendMessage("§a  -> $key の生成に成功しました。")
                 } else {
                     player.sendMessage("§c  -> $key の生成に失敗しました。")

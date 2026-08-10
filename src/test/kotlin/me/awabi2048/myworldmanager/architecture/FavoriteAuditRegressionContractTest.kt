@@ -14,7 +14,10 @@ class FavoriteAuditRegressionContractTest {
     fun `BE版myworldも統計をヘッダー中央に置き現在地を共通Factoryから描画する`() {
         val source = sourceRoot.resolve("ui/bedrock/BedrockMenuService.kt").readText()
         assertTrue("slot = PlayerWorldCapabilityContract.HEADER_CENTER_SLOT" in source)
-        assertTrue("createStatsEntry(\n                    player,\n                    PlayerWorldCapabilityContract.HEADER_CENTER_SLOT" in source)
+        assertTrue(
+            Regex("createStatsEntry\\(\\s*player,\\s*PlayerWorldCapabilityContract\\.HEADER_CENTER_SLOT")
+                .containsMatchIn(source)
+        )
         assertTrue("plugin.currentWorldMenuElementFactory.create(player, footerStart + 4)" in source)
         assertTrue("createPendingEntry(player, footerStart + 7)" in source)
         assertTrue("description = plugin.languageManager.getMessageList(player, \"gui.user_settings.button.description\")" in source)

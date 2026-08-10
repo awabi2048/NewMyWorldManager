@@ -8,6 +8,7 @@ import org.bukkit.Location
  */
 data class TemplateData(
     val id: String,
+    val dimension: ManagedDimension,
     val path: String,
     val name: String,
     val description: List<String>,

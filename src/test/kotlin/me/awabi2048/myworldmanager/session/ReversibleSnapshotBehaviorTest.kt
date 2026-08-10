@@ -195,6 +195,7 @@ class ReversibleSnapshotBehaviorTest {
 
     private fun world(): WorldData = WorldData(
         uuid = UUID.randomUUID(),
+        dimension = me.awabi2048.myworldmanager.model.ManagedDimension.OVERWORLD,
         name = "test",
         description = "",
         icon = Material.STONE,
