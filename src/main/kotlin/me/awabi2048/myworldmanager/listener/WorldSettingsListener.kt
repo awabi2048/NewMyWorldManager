@@ -2277,8 +2277,12 @@ player.sendMessage(
         }
 
         private fun teleportToBorderCenterSurface(player: Player, worldData: WorldData): Boolean {
-                val worldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                var world = Bukkit.getWorld(worldName)
+                val worldKey = org.bukkit.NamespacedKey.fromString(worldData.worldKey)
+                if (worldKey == null) {
+                        player.sendMessage(WorldLoadFailure.INVALID_KEY.message(plugin, player))
+                        return false
+                }
+                var world = Bukkit.getWorld(worldKey)
                 val needsLoad = world == null
                 if (world == null) {
                         val loadResult = plugin.worldService.loadWorldDetailed(worldData.uuid)
@@ -2287,7 +2291,8 @@ player.sendMessage(
                                 player.sendMessage(failure.message(plugin, player))
                                 return false
                         }
-                        world = Bukkit.getWorld(worldName) ?: return false
+                        // 名前空間を失った再検索を避け、診断とロードに成功した同じWorldを使用します。
+                        world = loadResult.world ?: return false
                 }
                 val targetWorld = world
 

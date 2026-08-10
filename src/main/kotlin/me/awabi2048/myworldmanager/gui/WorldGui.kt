@@ -364,8 +364,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                 Bukkit.getScheduler().runTask(
                         plugin,
                         Runnable {
-                                val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                                if (!worldData.isArchived && Bukkit.getWorld(folderName) == null) {
+                                val worldKey = org.bukkit.NamespacedKey.fromString(worldData.worldKey)
+                                if (!worldData.isArchived && (worldKey == null || Bukkit.getWorld(worldKey) == null)) {
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(player, "messages.world_loading"),
                                         )

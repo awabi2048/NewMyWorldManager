@@ -17,6 +17,9 @@ class WorldLoadPathContractTest {
     private val adminCommandSource = Path.of(
         "src/main/kotlin/me/awabi2048/myworldmanager/listener/AdminCommandListener.kt"
     ).readText()
+    private val worldSettingsSource = Path.of(
+        "src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt"
+    ).readText()
 
     @Test
     fun `ポータルは共通ロード診断を通す`() {
@@ -53,5 +56,31 @@ class WorldLoadPathContractTest {
         assertTrue(repair >= 0)
         assertTrue(missingCheck > repair)
         assertTrue(creator > missingCheck)
+    }
+
+    @Test
+    fun `設定画面のロード後処理はNamespacedKeyとロード結果を維持する`() {
+        val function = functionBody(worldSettingsSource, "teleportToBorderCenterSurface")
+
+        assertTrue("NamespacedKey.fromString(worldData.worldKey)" in function)
+        assertTrue("world = loadResult.world" in function)
+        assertFalse("Bukkit.getWorld(worldName)" in function)
+    }
+
+    private fun functionBody(source: String, name: String): String {
+        val start = source.indexOf("fun $name")
+        require(start >= 0) { "$name が見つかりません" }
+        val bodyStart = source.indexOf('{', start)
+        var depth = 0
+        for (index in bodyStart until source.length) {
+            when (source[index]) {
+                '{' -> depth++
+                '}' -> {
+                    depth--
+                    if (depth == 0) return source.substring(bodyStart, index + 1)
+                }
+            }
+        }
+        error("$name の本体が閉じられていません")
     }
 }
