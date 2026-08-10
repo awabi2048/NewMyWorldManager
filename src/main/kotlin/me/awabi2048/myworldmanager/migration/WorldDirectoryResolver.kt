@@ -4,6 +4,7 @@ import com.awabi2048.ccsystem.api.world.WorldDirectoryService
 import com.awabi2048.ccsystem.api.world.WorldDirectoryState as CommonWorldDirectoryState
 import java.nio.file.Path
 import java.util.UUID
+import org.bukkit.NamespacedKey
 
 /** Paperの物理配置はCC-Systemへ委譲し、MWM固有の旧MyWorld判定だけを担当する。 */
 class WorldDirectoryResolver(
@@ -11,14 +12,22 @@ class WorldDirectoryResolver(
 ) {
     fun inspect(folderName: String): WorldDirectoryResolution? {
         if (!isValidFolderName(folderName)) return null
-        val key = org.bukkit.NamespacedKey.minecraft(folderName)
-        val common = directoryService.inspect(key, folderName)
+        return inspect(NamespacedKey.minecraft(folderName))
+    }
+
+    /**
+     * 実際にWorldCreatorへ渡すキーと同じキーで物理配置を診断します。
+     * 旧ルート直下形式はminecraft名前空間でのみ成立するため、他名前空間へ名前を推測しません。
+     */
+    fun inspect(key: NamespacedKey): WorldDirectoryResolution {
+        val legacyName = key.key.takeIf { key.namespace == NamespacedKey.MINECRAFT }
+        val common = directoryService.inspect(key, legacyName)
         val state = when (common.state) {
             CommonWorldDirectoryState.CURRENT -> WorldDirectoryState.CURRENT
             CommonWorldDirectoryState.LEGACY -> WorldDirectoryState.LEGACY
             CommonWorldDirectoryState.MISSING -> WorldDirectoryState.MISSING
             CommonWorldDirectoryState.CONFLICT -> WorldDirectoryState.CONFLICT
-            CommonWorldDirectoryState.UNSAFE -> return null
+            CommonWorldDirectoryState.UNSAFE -> WorldDirectoryState.UNSAFE
         }
         return WorldDirectoryResolution(
             state,
@@ -73,7 +82,8 @@ enum class WorldDirectoryState {
     CURRENT,
     LEGACY,
     MISSING,
-    CONFLICT
+    CONFLICT,
+    UNSAFE
 }
 
 data class WorldDirectoryResolution(
@@ -87,7 +97,8 @@ data class WorldDirectoryResolution(
             WorldDirectoryState.CURRENT -> currentPath
             WorldDirectoryState.LEGACY -> legacyPath
             WorldDirectoryState.MISSING,
-            WorldDirectoryState.CONFLICT -> null
+            WorldDirectoryState.CONFLICT,
+            WorldDirectoryState.UNSAFE -> null
         }
 }
 

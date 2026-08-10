@@ -15,14 +15,12 @@ import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.Particle
 import org.bukkit.World
-import org.bukkit.WorldCreator
 import org.bukkit.entity.Display
 import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.logging.Level
 
 class PortalManager(private val plugin: MyWorldManager) {
     data class GateRefundResult(val points: Int, val percent: Int, val ownerUuid: UUID)
@@ -414,19 +412,30 @@ class PortalManager(private val plugin: MyWorldManager) {
         locationProvider: (World) -> Location,
         afterTeleported: (() -> Unit)? = null
     ): Boolean {
-        val loadedWorld = loadWorldByKey(targetWorldKey) ?: return false
-        val (targetWorld, loadedNow) = loadedWorld
+        val loadResult = plugin.worldService.loadWorldByKey(normalizeWorldKey(targetWorldKey))
+        if (!loadResult.isSuccess) {
+            val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
+            player.sendMessage(failure.message(plugin, player))
+            return false
+        }
+        val targetWorld = requireNotNull(loadResult.world)
         val waitTicks = plugin.config.getLong("warp.load_wait_ticks", 10L).coerceAtLeast(0L)
 
         val doTeleport = Runnable {
             if (!player.isOnline) {
                 return@Runnable
             }
-            player.teleport(locationProvider(targetWorld))
+            if (Bukkit.getWorld(targetWorld.key) == null || !player.teleport(locationProvider(targetWorld))) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_teleport_failed"))
+                plugin.logger.warning(
+                    "Portal teleport did not complete: player=${player.uniqueId} world=$targetWorldKey"
+                )
+                return@Runnable
+            }
             afterTeleported?.invoke()
         }
 
-        if (loadedNow) {
+        if (loadResult.loadedNow) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
             Bukkit.getScheduler().runTaskLater(plugin, doTeleport, waitTicks)
         } else {
@@ -434,28 +443,6 @@ class PortalManager(private val plugin: MyWorldManager) {
         }
 
         return true
-    }
-
-    private fun loadWorldByKey(worldKey: String): Pair<World, Boolean>? {
-        val key = NamespacedKey.fromString(normalizeWorldKey(worldKey)) ?: return null
-        val loaded = Bukkit.getWorld(key)
-        if (loaded != null) {
-            return loaded to false
-        }
-
-        val worldDirectory = plugin.worldService.resolveWorldDirectory(key.key)
-        if (!worldDirectory.exists() || !worldDirectory.isDirectory) {
-            return null
-        }
-
-        return try {
-            val created = plugin.server.createWorld(WorldCreator(key)) ?: return null
-            plugin.worldEnvironmentService.applyAll(created)
-            created to true
-        } catch (e: Exception) {
-            plugin.logger.log(Level.SEVERE, "Failed to load world by key: $worldKey", e)
-            null
-        }
     }
 
     private fun isPlayerInAnyPortal(player: Player): Boolean {
@@ -649,19 +636,19 @@ class PortalManager(private val plugin: MyWorldManager) {
                 return
             }
 
-            val folderName = plugin.worldService.getWorldFolderName(destData)
-            if (Bukkit.getWorld(folderName) == null) {
-                player.sendMessage(lang.getMessage(player, "messages.world_loading"))
-            }
-
             // ワープ実行
             plugin.worldService.teleportToWorld(
                 player,
                 portal.worldUuid!!,
-                reason = MwmWarpReason.PORTAL
+                reason = MwmWarpReason.PORTAL,
+                afterTeleported = {
+                    // ロード拒否やteleport失敗時に成功扱いしないため、完了後だけ状態と案内を更新します。
+                    warpCooldowns[player.uniqueId] = System.currentTimeMillis()
+                    player.sendMessage(
+                        lang.getMessage(player, "messages.portal_warped", mapOf("destination" to destData.name))
+                    )
+                }
             )
-            warpCooldowns[player.uniqueId] = System.currentTimeMillis()
-            player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to destData.name)))
 
                 // メンバー以外のみ統計加算 -> AccessControlListenerへ統合
                 /*
@@ -676,15 +663,17 @@ class PortalManager(private val plugin: MyWorldManager) {
         } else if (portal.targetWorldKey != null) {
             // 外部ワールドへのワープ
             val targetWorldKey = portal.targetWorldKey!!
-            if (!teleportPlayerToWorldSpawn(player, targetWorldKey)) {
-                player.sendMessage(lang.getMessage(player, "general.world_not_found"))
-                return
-            }
-            warpCooldowns[player.uniqueId] = System.currentTimeMillis()
-
             val displayName = plugin.config.getString("portal_targets.${portal.targetRuntimeName}")
                 ?: portal.targetRuntimeName!!
-            player.sendMessage(lang.getMessage(player, "messages.portal_warped", mapOf("destination" to displayName)))
+            if (!teleportPlayerToWorldSpawn(player, targetWorldKey) {
+                    warpCooldowns[player.uniqueId] = System.currentTimeMillis()
+                    player.sendMessage(
+                        lang.getMessage(player, "messages.portal_warped", mapOf("destination" to displayName))
+                    )
+                }
+            ) {
+                return
+            }
          }
      }
 

@@ -7,6 +7,8 @@ import me.awabi2048.myworldmanager.service.WorldService
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.session.WorldCreationType
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.migration.WorldDirectoryState
+import me.awabi2048.myworldmanager.service.WorldLoadFailure
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
@@ -126,8 +128,30 @@ class AdminCommandListener {
             val path = config.getString("$key.path")
             if (path != null) {
                 player.sendMessage("§7- $key を生成中... ($path)")
-                val creator = org.bukkit.WorldCreator(path)
-                val world = Bukkit.createWorld(creator)
+                val worldKey = org.bukkit.NamespacedKey.fromString(path)
+                if (worldKey == null) {
+                    player.sendMessage(WorldLoadFailure.INVALID_KEY.message(plugin, player))
+                    return@forEach
+                }
+                val resolution = plugin.worldDirectoryResolver.inspect(worldKey)
+                val rejected = when (resolution.state) {
+                    WorldDirectoryState.LEGACY -> WorldLoadFailure.MIGRATION_REQUIRED
+                    WorldDirectoryState.CONFLICT -> WorldLoadFailure.DIRECTORY_CONFLICT
+                    WorldDirectoryState.UNSAFE -> WorldLoadFailure.DIRECTORY_UNSAFE
+                    WorldDirectoryState.CURRENT -> null
+                    WorldDirectoryState.MISSING -> null
+                }
+                if (rejected != null) {
+                    player.sendMessage(rejected.message(plugin, player))
+                    return@forEach
+                }
+
+                // この管理操作だけは、診断でMISSINGと確定したテンプレートを明示的に新規生成します。
+                val world = if (resolution.state == WorldDirectoryState.MISSING) {
+                    Bukkit.createWorld(org.bukkit.WorldCreator(worldKey))
+                } else {
+                    Bukkit.getWorld(worldKey)
+                }
                 if (world != null) {
                     player.sendMessage("§a  -> $key の生成に成功しました。")
                 } else {

@@ -32,6 +32,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
+import me.awabi2048.myworldmanager.service.WorldLoadFailure
 import me.awabi2048.myworldmanager.session.*
 import me.awabi2048.myworldmanager.util.GuiHelper
 import net.kyori.adventure.text.Component
@@ -368,10 +369,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(player, "messages.world_loading"),
                                         )
-                                        if (!plugin.worldService.loadWorld(worldData.uuid)) {
-                                                player.sendMessage(
-                                                        plugin.languageManager.getMessage(player, "error.load_failed"),
-                                                )
+                                        val loadResult = plugin.worldService.loadWorldDetailed(worldData.uuid)
+                                        if (!loadResult.isSuccess) {
+                                                val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
+                                                player.sendMessage(failure.message(plugin, player))
                                                 return@Runnable
                                         }
                                 }

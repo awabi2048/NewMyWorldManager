@@ -38,6 +38,7 @@ import me.awabi2048.myworldmanager.model.PendingInteractionType
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.BorderResetSpawnService
+import me.awabi2048.myworldmanager.service.WorldLoadFailure
 import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.session.SettingsClosePolicy
@@ -179,9 +180,7 @@ class WorldSettingsListener : Listener {
                                 }
                                 if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) return MenuActionResult.Ignored
                                 if (!plugin.playerPlatformResolver.isBedrock(player) && click.isRightClick) {
-                                        if (!teleportToBorderCenterSurface(player, worldData)) {
-                                                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_load_failed"))
-                                        }
+                                        teleportToBorderCenterSurface(player, worldData)
                                         return MenuActionResult.Success(MenuUpdate.None)
                                 }
                                 val maxLevel = plugin.config.getConfigurationSection("expansion.costs")?.getKeys(false)?.size ?: 3
@@ -2282,7 +2281,10 @@ player.sendMessage(
                 var world = Bukkit.getWorld(worldName)
                 val needsLoad = world == null
                 if (world == null) {
-                        if (!plugin.worldService.loadWorld(worldData.uuid)) {
+                        val loadResult = plugin.worldService.loadWorldDetailed(worldData.uuid)
+                        if (!loadResult.isSuccess) {
+                                val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
+                                player.sendMessage(failure.message(plugin, player))
                                 return false
                         }
                         world = Bukkit.getWorld(worldName) ?: return false

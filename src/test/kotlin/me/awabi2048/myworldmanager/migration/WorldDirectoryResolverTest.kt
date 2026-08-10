@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.bukkit.NamespacedKey
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -81,6 +82,20 @@ class WorldDirectoryResolverTest {
         assertEquals(WorldDirectoryState.MISSING, result?.state)
         assertNull(result?.existingPath)
         assertTrue(resolver(root).findLegacyWorlds().isEmpty())
+    }
+
+    @Test
+    fun `preserves namespace and does not infer legacy root for custom namespace`() = withTempRoot { root ->
+        val key = NamespacedKey("custom", "shared_world")
+        val current = root.resolve("world/dimensions/custom/shared_world")
+        Files.createDirectories(current)
+        Files.createDirectories(root.resolve("shared_world"))
+
+        val result = resolver(root).inspect(key)
+
+        assertEquals(WorldDirectoryState.CURRENT, result.state)
+        assertEquals(current, result.currentPath)
+        assertNull(result.legacyPath)
     }
 
     private fun withTempRoot(block: (Path) -> Unit) {

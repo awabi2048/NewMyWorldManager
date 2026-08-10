@@ -38,12 +38,15 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 
 class WorldService(
         private val plugin: MyWorldManager,
         private val repository: WorldConfigRepository,
         private val playerStatsRepository: PlayerStatsRepository
 ) {
+    /** UUIDを持たない外部ワールドでも、同じキーのロードを同時実行しないための短期ロックです。 */
+    private val keyedWorldLoads = ConcurrentHashMap.newKeySet<NamespacedKey>()
 
     private val creatingWorlds = mutableSetOf<String>()
     private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
@@ -684,8 +687,16 @@ class WorldService(
      * @return 読み込み成功ならtrue
      */
     fun loadWorld(worldUuid: UUID): Boolean {
+        return loadWorldDetailed(worldUuid).isSuccess
+    }
+
+    /**
+     * 管理対象ワールドを状態診断付きでロードします。
+     * 呼び出し元が移行待ちと実際のロード障害を区別できるよう、Booleanへ変換する前の結果を返します。
+     */
+    fun loadWorldDetailed(worldUuid: UUID): WorldLoadResult {
         val lease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.LOAD)
-            ?: return false
+            ?: return WorldLoadResult.failure(WorldLoadFailure.OPERATION_LOCKED)
         return try {
             loadWorldUnlocked(worldUuid)
         } finally {
@@ -693,44 +704,78 @@ class WorldService(
         }
     }
 
-    private fun loadWorldUnlocked(worldUuid: UUID): Boolean {
-        val worldData = repository.findByUuid(worldUuid) ?: return false
-        val folderName = getWorldFolderName(worldData)
-
-        when (plugin.worldDirectoryResolver.inspect(folderName)?.state) {
-            WorldDirectoryState.CURRENT -> Unit
-            WorldDirectoryState.LEGACY -> if (plugin.worldMigrationService.isPending(worldUuid)) {
-                plugin.logger.warning("World load requires administrator approval: $folderName")
-                return false
-            }
-            WorldDirectoryState.CONFLICT -> {
-                plugin.logger.severe("World load rejected because both legacy and current directories exist: $folderName")
-                return false
-            }
-            WorldDirectoryState.MISSING, null -> {
-                plugin.logger.warning("World load rejected because the directory is missing or unsafe: $folderName")
-                return false
+    /**
+     * UUIDを持たない外部ポータルも、管理対象ワールドと同じディレクトリ診断を通してロードします。
+     */
+    fun loadWorldByKey(worldKey: String): WorldLoadResult {
+        val key = NamespacedKey.fromString(worldKey)
+            ?: return WorldLoadResult.failure(WorldLoadFailure.INVALID_KEY)
+        val worldData = repository.findByWorldKey(key.toString())
+        return if (worldData != null) {
+            loadWorldDetailed(worldData.uuid)
+        } else {
+            if (!keyedWorldLoads.add(key)) {
+                WorldLoadResult.failure(WorldLoadFailure.OPERATION_LOCKED)
+            } else {
+                try {
+                    loadWorldKeyUnlocked(key, null)
+                } finally {
+                    keyedWorldLoads.remove(key)
+                }
             }
         }
+    }
 
-        if (Bukkit.getWorld(folderName) != null) {
-            plugin.worldEnvironmentService.applyAll(Bukkit.getWorld(folderName)!!, worldData)
-            return true // すでにロードされている
+    private fun loadWorldUnlocked(worldUuid: UUID): WorldLoadResult {
+        val worldData = repository.findByUuid(worldUuid)
+            ?: return WorldLoadResult.failure(WorldLoadFailure.DIRECTORY_MISSING)
+        val key = NamespacedKey.fromString(worldData.worldKey)
+            ?: return WorldLoadResult.failure(WorldLoadFailure.INVALID_KEY)
+        return loadWorldKeyUnlocked(key, worldData)
+    }
+
+    private fun loadWorldKeyUnlocked(key: NamespacedKey, worldData: WorldData?): WorldLoadResult {
+        Bukkit.getWorld(key)?.let { loaded ->
+            if (worldData != null) {
+                plugin.worldEnvironmentService.applyAll(loaded, worldData)
+            } else {
+                plugin.worldEnvironmentService.applyAll(loaded)
+            }
+            return WorldLoadResult.success(loaded, false)
+        }
+
+        val resolution = plugin.worldDirectoryResolver.inspect(key)
+        val directoryFailure = WorldLoadDirectoryPolicy.rejectionFor(resolution.state)
+        if (directoryFailure != null) {
+            plugin.logger.warning(
+                "World load rejected before Bukkit load: key=$key state=${resolution.state} " +
+                    "reason=$directoryFailure"
+            )
+            return WorldLoadResult.failure(directoryFailure)
+        }
+
+        if (!Bukkit.isPrimaryThread()) {
+            plugin.logger.severe("World load rejected outside the primary server thread: key=$key")
+            return WorldLoadResult.failure(WorldLoadFailure.BUKKIT_LOAD_FAILED)
         }
 
         return try {
-            val creator = WorldCreator(NamespacedKey.minecraft(folderName))
-            val world = plugin.server.createWorld(creator) ?: return false
-            if (worldData.seedSpecified && world.environment == org.bukkit.World.Environment.THE_END) {
+            val world = plugin.server.createWorld(WorldCreator(key))
+                ?: return WorldLoadResult.failure(WorldLoadFailure.BUKKIT_LOAD_FAILED)
+            if (worldData?.seedSpecified == true && world.environment == org.bukkit.World.Environment.THE_END) {
                 prepareGeneratedEndWorld(world)
             }
-            plugin.worldEnvironmentService.applyAll(world, worldData)
-            repository.save(worldData)
+            if (worldData != null) {
+                plugin.worldEnvironmentService.applyAll(world, worldData)
+                repository.save(worldData)
+            } else {
+                plugin.worldEnvironmentService.applyAll(world)
+            }
 
-            true
+            WorldLoadResult.success(world, true)
         } catch (e: Exception) {
-            plugin.logger.log(Level.SEVERE, "Failed to load world: $folderName", e)
-            false
+            plugin.logger.log(Level.SEVERE, "Failed to load world after directory diagnosis: $key", e)
+            WorldLoadResult.failure(WorldLoadFailure.BUKKIT_LOAD_FAILED)
         }
     }
 
@@ -914,21 +959,27 @@ class WorldService(
             return
         }
         val worldData = repository.findByUuid(worldUuid) ?: return
-        val folderName = getWorldFolderName(worldData)
-        val needsLoad = Bukkit.getWorld(folderName) == null
+        val worldKey = NamespacedKey.fromString(worldData.worldKey) ?: run {
+            player.sendMessage(WorldLoadFailure.INVALID_KEY.message(plugin, player))
+            return
+        }
+        val needsLoad = Bukkit.getWorld(worldKey) == null
+        var world = Bukkit.getWorld(worldKey)
 
         if (needsLoad) {
             if (closeInventoryOnLoad) {
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
             }
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
-            if (!loadWorld(worldUuid)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_load_failed"))
+            val loadResult = loadWorldDetailed(worldUuid)
+            if (!loadResult.isSuccess) {
+                val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
+                player.sendMessage(failure.message(plugin, player))
                 return
             }
+            world = loadResult.world
         }
 
-        val world = Bukkit.getWorld(folderName)
         if (world == null) {
             player.sendMessage(plugin.languageManager.getMessage(player, "error.world_load_failed"))
             return
@@ -966,7 +1017,14 @@ class WorldService(
                 return@Runnable
             }
 
-            player.teleport(targetLoc)
+            // ロード待機中にアンロードされた場合やBukkitが移動を拒否した場合は、成功後処理を実行しません。
+            if (Bukkit.getWorld(world.key) == null || !player.teleport(targetLoc)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_teleport_failed"))
+                plugin.logger.warning(
+                    "World teleport did not complete: player=${player.uniqueId} world=$worldUuid reason=$reason"
+                )
+                return@Runnable
+            }
 
             plugin.soundManager.playTeleportSound(player)
 
@@ -1225,7 +1283,8 @@ class WorldService(
                         WorldDirectoryState.CURRENT,
                         WorldDirectoryState.LEGACY -> resolution.existingPath?.toFile()
                         WorldDirectoryState.MISSING -> null
-                        WorldDirectoryState.CONFLICT -> {
+                        WorldDirectoryState.CONFLICT,
+                        WorldDirectoryState.UNSAFE -> {
                             future.complete(false)
                             return@whenComplete
                         }
