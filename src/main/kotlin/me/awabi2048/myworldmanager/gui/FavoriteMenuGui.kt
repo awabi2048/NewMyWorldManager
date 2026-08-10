@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
+import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -240,6 +241,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
                 plugin.languageManager.getMessage(player, nameKey),
                 safety = safety,
             )) else emptyList(),
+            interactionGuidance = GuiInteractionGuidance.HIDDEN,
         ),
     )
 

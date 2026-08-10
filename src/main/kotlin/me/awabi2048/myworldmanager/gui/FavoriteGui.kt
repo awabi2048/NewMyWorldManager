@@ -117,14 +117,14 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 ),
             )
         }
-        if (currentPage > 0) {
-            elements += navigationEntry(player, layout.previousPageSlot, false, currentPage - 1)
-        }
         elements += createPlayerHeadEntry(player, worlds.size, FavoriteMenuLayout.HEADER_CENTER_SLOT)
-        if (currentPage < pageLayout.totalPages - 1) {
-            elements += navigationEntry(player, layout.nextPageSlot, true, currentPage + 1)
-        }
         val footer = FavoriteMenuLayout.footer(layout.size)
+        if (currentPage > 0) {
+            elements += navigationEntry(player, footer.previousPage, false, currentPage - 1)
+        }
+        if (currentPage < pageLayout.totalPages - 1) {
+            elements += navigationEntry(player, footer.nextPage, true, currentPage + 1)
+        }
         val currentWorld = plugin.worldConfigRepository.findByWorldName(player.world.name)
         currentWorld?.let {
             elements += createOtherWorldsEntry(player, footer.otherWorlds)

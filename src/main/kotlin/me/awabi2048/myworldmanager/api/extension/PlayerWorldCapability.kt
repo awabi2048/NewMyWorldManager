@@ -15,6 +15,8 @@ data class PlayerWorldCapabilitySubject(
 )
 
 object PlayerWorldCapabilityContract {
+    /** 標準画面とルート差し替え実装が共有するヘッダー中央スロットです。 */
+    const val HEADER_CENTER_SLOT = 4
     const val WORLD_ITEM_PLACEMENT = "myworldmanager.player-world.world-item"
     const val SUMMARY_PLACEMENT = "myworldmanager.player-world.summary"
     const val CREATION_PLACEMENT = "myworldmanager.player-world.creation"

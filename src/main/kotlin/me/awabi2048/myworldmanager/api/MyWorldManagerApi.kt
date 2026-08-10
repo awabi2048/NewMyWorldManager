@@ -202,6 +202,14 @@ object MyWorldManagerApi {
         JavaPlugin.getPlugin(MyWorldManager::class.java).playerWorldGui
             .getPlayerWorlds(playerUuid)
 
+    /** ルート差し替え側でも標準画面と同じ現在ワールド表示を再利用します。 */
+    @JvmStatic
+    fun createCurrentWorldMenuElement(
+        player: Player,
+        slot: Int,
+    ): com.awabi2048.ccsystem.api.gui.MenuElement =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).currentWorldMenuElementFactory.create(player, slot)
+
     @JvmStatic
     fun prepareUserSettingsRoute(
         player: Player,

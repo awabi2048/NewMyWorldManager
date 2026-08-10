@@ -33,7 +33,6 @@ import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.gui.requireExplicitActionSafety
-import me.awabi2048.myworldmanager.gui.FavoriteMenuLayout
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
@@ -520,7 +519,7 @@ class BedrockMenuService(
                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                         player,
                         GuiMenuCapabilityInvocationSpec(
-                            slot = FavoriteMenuLayout.HEADER_CENTER_SLOT,
+                            slot = PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
                             capability = summaryCapability.requireExplicitActionSafety(),
                             attributes = summaryAttributes,
                     ),
@@ -530,7 +529,7 @@ class BedrockMenuService(
             inventory.setEntry(
                 createStatsEntry(
                     player,
-                    FavoriteMenuLayout.HEADER_CENTER_SLOT,
+                    PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
                     currentCreateCount,
                     maxSlot,
                     stats.worldPoint,

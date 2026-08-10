@@ -13,8 +13,8 @@ class FavoriteAuditRegressionContractTest {
     @Test
     fun `BE版myworldも統計をヘッダー中央に置き現在地を共通Factoryから描画する`() {
         val source = sourceRoot.resolve("ui/bedrock/BedrockMenuService.kt").readText()
-        assertTrue("slot = FavoriteMenuLayout.HEADER_CENTER_SLOT" in source)
-        assertTrue("createStatsEntry(\n                    player,\n                    FavoriteMenuLayout.HEADER_CENTER_SLOT" in source)
+        assertTrue("slot = PlayerWorldCapabilityContract.HEADER_CENTER_SLOT" in source)
+        assertTrue("createStatsEntry(\n                    player,\n                    PlayerWorldCapabilityContract.HEADER_CENTER_SLOT" in source)
         assertTrue("plugin.currentWorldMenuElementFactory.create(player, footerStart + 4)" in source)
         assertFalse("createStatsEntry(player, footerStart + 4" in source)
     }
@@ -31,5 +31,18 @@ class FavoriteAuditRegressionContractTest {
         val source = sourceRoot.resolve("gui/VisitGui.kt").readText()
         assertTrue(".canShowInGuestAccessibleWorldList(player, world)" in source)
         assertFalse(".canShowInVisitWorldList(player, world)" in source)
+    }
+
+    @Test
+    fun `お気に入り詳細のNameのみ操作は案内Loreを非表示にする`() {
+        val source = sourceRoot.resolve("gui/FavoriteMenuGui.kt").readText()
+        assertTrue("interactionGuidance = GuiInteractionGuidance.HIDDEN" in source)
+    }
+
+    @Test
+    fun `Java版myworldの保留通知は次ページと競合しない`() {
+        val source = sourceRoot.resolve("gui/PlayerWorldGui.kt").readText()
+        assertTrue("createPendingEntry(player, layout.size - 1)" in source)
+        assertFalse("createPendingEntry(player, layout.size - 2)" in source)
     }
 }

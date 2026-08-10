@@ -262,7 +262,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                 player,
                                 GuiMenuCapabilityInvocationSpec(
-                                        slot = FavoriteMenuLayout.HEADER_CENTER_SLOT,
+                                        slot = PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
                                         capability = summaryCapability.requireExplicitActionSafety(),
                                         attributes = summaryAttributes,
                                 ),
@@ -270,7 +270,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 } else {
                         createStatsEntry(
                                 player,
-                                FavoriteMenuLayout.HEADER_CENTER_SLOT,
+                                PlayerWorldCapabilityContract.HEADER_CENTER_SLOT,
                                 targetUuid,
                                 targetName,
                                 createCount,
@@ -282,7 +282,8 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 elements += plugin.currentWorldMenuElementFactory.create(player, layout.actionSlot)
                 if (isOwnMenu) {
                         elements += createUserSettingsEntry(player, layout.actionSlot + 2)
-                        elements += createPendingEntry(player, layout.size - 2)
+                        // 次ページはフッター+7を使うため、保留通知は右端へ分離します。
+                        elements += createPendingEntry(player, layout.size - 1)
                 }
                 if (pageLayout.page > 0) {
                         elements += navigationEntry(player, layout.previousPageSlot, false, pageLayout.page - 1)
