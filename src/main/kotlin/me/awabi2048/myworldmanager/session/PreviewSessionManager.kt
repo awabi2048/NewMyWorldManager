@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.session
 import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.service.WorldLoadFailure
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Location
@@ -75,16 +76,15 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                     return false
                 }
 
-                // テンプレートワールドのロード確認
-                if (Bukkit.getWorld(template.path) == null) {
-                    val creator = org.bukkit.WorldCreator(template.path)
-                    Bukkit.createWorld(creator) ?: run {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
-                        return false
-                    }
+                // プレビューも通常ワープと同じ診断を通し、旧形式を暗黙にロードしません。
+                val loadResult = plugin.worldService.loadWorldByKey(template.path)
+                if (!loadResult.isSuccess) {
+                    val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
+                    player.sendMessage(failure.message(plugin, player))
+                    return false
                 }
 
-                world = Bukkit.getWorld(template.path) ?: return false
+                world = requireNotNull(loadResult.world)
                 folderName = template.path
                 templateName = template.name
                 originLoc = template.originLocation!!.clone()
@@ -105,15 +105,24 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 }
 
                 // ワールドがロードされていない場合はロード
-                folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                if (Bukkit.getWorld(folderName) == null) {
-                    if (!plugin.worldService.loadWorld(worldData.uuid)) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
+                val worldKey = org.bukkit.NamespacedKey.fromString(worldData.worldKey)
+                if (worldKey == null) {
+                    player.sendMessage(WorldLoadFailure.INVALID_KEY.message(plugin, player))
+                    return false
+                }
+                folderName = worldKey.toString()
+                val loadedWorld = Bukkit.getWorld(worldKey)
+                if (loadedWorld == null) {
+                    val loadResult = plugin.worldService.loadWorldDetailed(worldData.uuid)
+                    if (!loadResult.isSuccess) {
+                        val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
+                        player.sendMessage(failure.message(plugin, player))
                         return false
                     }
+                    world = requireNotNull(loadResult.world)
+                } else {
+                    world = loadedWorld
                 }
-
-                world = Bukkit.getWorld(folderName) ?: return false
                 templateName = worldData.name
                 originLoc = worldData.spawnPosGuest?.clone() ?: world.spawnLocation.clone()
             }
