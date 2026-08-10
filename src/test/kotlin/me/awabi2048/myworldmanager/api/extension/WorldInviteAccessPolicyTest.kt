@@ -28,6 +28,24 @@ class WorldInviteAccessPolicyTest {
         assertFalse(DefaultWorldAccessPolicy.canAcceptWorldInvite(player, world(PublishLevel.PUBLIC).copy(isArchived = true)))
     }
 
+    @Test
+    fun `第三者向け一覧は表示条件と直接ワープ条件の両方を要求する`() {
+        val world = world(PublishLevel.PUBLIC)
+        val blocked = object : WorldAccessPolicy {
+            override fun getId(): String = "blocked"
+            override fun canShowInVisitWorldList(viewer: Player, worldData: WorldData): Boolean = true
+            override fun canDirectWorldWarp(player: Player, worldData: WorldData, isMember: Boolean): Boolean = false
+        }
+        assertFalse(blocked.canShowInGuestAccessibleWorldList(player, world))
+
+        val accessible = object : WorldAccessPolicy {
+            override fun getId(): String = "accessible"
+            override fun canShowInVisitWorldList(viewer: Player, worldData: WorldData): Boolean = true
+            override fun canDirectWorldWarp(player: Player, worldData: WorldData, isMember: Boolean): Boolean = !isMember
+        }
+        assertTrue(accessible.canShowInGuestAccessibleWorldList(player, world))
+    }
+
     private fun world(level: PublishLevel) = WorldData(
         uuid = UUID.randomUUID(),
         name = "test",

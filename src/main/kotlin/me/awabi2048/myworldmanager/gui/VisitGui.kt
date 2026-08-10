@@ -81,7 +81,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 if (guestAccessibleOnly) {
                                         // 自分の「他のワールド」を見る場合も、第三者が一覧へ到達できる公開条件で絞ります。
                                         return@filter MyWorldManagerApi.getWorldAccessPolicy()
-                                                .canShowInVisitWorldList(player, world)
+                                                .canShowInGuestAccessibleWorldList(player, world)
                                 }
 
                                 val isMember =

@@ -17,6 +17,11 @@ interface WorldAccessPolicy {
         worldData.publishLevel == PublishLevel.PUBLIC &&
             !worldData.isArchived
 
+    /** 非メンバーの第三者が、表示後に実際へ直接入場できるワールドだけを一覧へ載せます。 */
+    fun canShowInGuestAccessibleWorldList(viewer: Player, worldData: WorldData): Boolean =
+        canShowInVisitWorldList(viewer, worldData) &&
+            canDirectWorldWarp(viewer, worldData, isMember = false)
+
     fun canUseVisitEntry(viewer: Player, worldData: WorldData, isMember: Boolean): Boolean =
         worldData.publishLevel == PublishLevel.PUBLIC || isMember
 

@@ -33,6 +33,7 @@ import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.gui.requireExplicitActionSafety
+import me.awabi2048.myworldmanager.gui.FavoriteMenuLayout
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.TourNavigationMode
 import me.awabi2048.myworldmanager.model.WorldData
@@ -519,15 +520,25 @@ class BedrockMenuService(
                 CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                         player,
                         GuiMenuCapabilityInvocationSpec(
-                            slot = footerStart + 4,
+                            slot = FavoriteMenuLayout.HEADER_CENTER_SLOT,
                             capability = summaryCapability.requireExplicitActionSafety(),
                             attributes = summaryAttributes,
                     ),
                 ),
             )
         } else {
-            inventory.setEntry(createStatsEntry(player, footerStart + 4, currentCreateCount, maxSlot, stats.worldPoint))
+            inventory.setEntry(
+                createStatsEntry(
+                    player,
+                    FavoriteMenuLayout.HEADER_CENTER_SLOT,
+                    currentCreateCount,
+                    maxSlot,
+                    stats.worldPoint,
+                ),
+            )
         }
+        // Java版と同じ生成元を使い、フッター中央は常に操作プレイヤーの現在地を示します。
+        inventory.setEntry(plugin.currentWorldMenuElementFactory.create(player, footerStart + 4))
         inventory.setEntry(CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(

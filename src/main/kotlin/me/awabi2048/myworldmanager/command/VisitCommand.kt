@@ -116,8 +116,8 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         }
 
         if (target.uniqueId == player.uniqueId) {
-            // 自分を指定した場合も /myworld と同じ公開ルートへ委譲し、入口による挙動差を作りません。
-            plugin.menuEntryRouter.openPlayerWorld(player)
+            // 権限判定を含むコマンド入口そのものへ委譲し、/myworld と完全に同じ結果へ揃えます。
+            Bukkit.dispatchCommand(player, "myworld")
             return
         }
 
