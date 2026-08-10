@@ -329,6 +329,42 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         return resolveById(target, latest.id, accept)
     }
 
+    /**
+     * 一括招待の送信時に記録したIDだけを取り消します。
+     * 招待者・招待先も照合するため、同じ対象へ後から送られた別の招待を巻き込みません。
+     */
+    @Synchronized
+    fun cancelWorldInviteBatch(
+        actorUuid: UUID,
+        worldUuid: UUID,
+        decisionsByTarget: Map<UUID, UUID>,
+    ): Int = decisionsByTarget.count { (targetUuid, decisionId) ->
+        val queue = transientByTarget[targetUuid] ?: return@count false
+        synchronized(queue) {
+            cleanupExpiredLocked(targetUuid, queue)
+            val iterator = queue.iterator()
+            while (iterator.hasNext()) {
+                val decision = iterator.next()
+                if (
+                    decision is WorldInviteDecision &&
+                    worldInviteCancellationMatches(
+                        actualDecisionId = decision.id,
+                        actualActorUuid = decision.actorUuid,
+                        actualWorldUuid = decision.worldUuid,
+                        expectedDecisionId = decisionId,
+                        expectedActorUuid = actorUuid,
+                        expectedWorldUuid = worldUuid,
+                    )
+                ) {
+                    iterator.remove()
+                    if (queue.isEmpty()) transientByTarget.remove(targetUuid)
+                    return@synchronized true
+                }
+            }
+            false
+        }
+    }
+
     fun getPendingCount(targetUuid: UUID): Int {
         return getPersistentPendingCount(targetUuid) + getTransientPendingCount(targetUuid)
     }
@@ -379,6 +415,15 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         when (decision) {
             is WorldInviteDecision -> {
                 if (accept) {
+                    val worldData = plugin.worldConfigRepository.findByUuid(decision.worldUuid)
+                    if (
+                        worldData == null ||
+                        !me.awabi2048.myworldmanager.api.MyWorldManagerApi.getWorldAccessPolicy()
+                            .canAcceptWorldInvite(target, worldData)
+                    ) {
+                        target.sendMessage(plugin.languageManager.getMessage(target, "messages.worldwarp_access_denied"))
+                        return
+                    }
                     plugin.worldService.teleportToWorld(target, decision.worldUuid) {
                         target.sendMessage(plugin.languageManager.getMessage(target, "messages.warp_invite_success"))
                     }
@@ -620,3 +665,16 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         }
     }
 }
+
+/** 一括取消は3つの識別子すべてが一致する招待だけを対象にします。 */
+internal fun worldInviteCancellationMatches(
+    actualDecisionId: UUID,
+    actualActorUuid: UUID,
+    actualWorldUuid: UUID,
+    expectedDecisionId: UUID,
+    expectedActorUuid: UUID,
+    expectedWorldUuid: UUID,
+): Boolean =
+    actualDecisionId == expectedDecisionId &&
+        actualActorUuid == expectedActorUuid &&
+        actualWorldUuid == expectedWorldUuid

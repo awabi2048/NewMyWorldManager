@@ -40,6 +40,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 actions = mapOf(
                     ACTION_NOTIFICATION to MenuActionHandler(::toggleNotification),
                     ACTION_CRITICAL_VISIBILITY to MenuActionHandler(::toggleCriticalVisibility),
+                    ACTION_FAVORITE_GROUP_INVITES to MenuActionHandler(::toggleFavoriteGroupInvites),
                     ACTION_TOUR_NAVIGATION to MenuActionHandler(::cycleTourNavigation),
                     ACTION_BACK to MenuActionHandler(::back),
                 ),
@@ -123,6 +124,23 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         ) }
 
         entries.add { slot -> tourNavigationEntry(player, stats.tourNavigationMode, slot) }
+        val groupInviteStatus = if (stats.favoriteGroupInvitesEnabled) {
+            lang.getMessage(player, "messages.status_on")
+        } else {
+            lang.getMessage(player, "messages.status_off")
+        }
+        entries.add { slot -> settingEntry(
+            player,
+            slot,
+            Material.GOAT_HORN,
+            "gui.user_settings.favorite_group_invites.display",
+            "favorite_group_invites",
+            groupInviteStatus,
+            if (stats.favoriteGroupInvitesEnabled) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
+            ACTION_FAVORITE_GROUP_INVITES,
+            "gui.user_settings.cycle_action.toggle",
+            glint = stats.favoriteGroupInvitesEnabled,
+        ) }
         val totalRows = 5
         val centerRowStart = 2 * 9
         val firstSlot = centerRowStart + ((9 - entries.size) / 2)
@@ -157,6 +175,13 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     private fun toggleCriticalVisibility(context: MenuActionContext): MenuActionResult {
         val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
         stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
+        plugin.playerStatsRepository.save(stats)
+        return MenuActionResult.Success(MenuUpdate.Refresh)
+    }
+
+    private fun toggleFavoriteGroupInvites(context: MenuActionContext): MenuActionResult {
+        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+        stats.favoriteGroupInvitesEnabled = !stats.favoriteGroupInvitesEnabled
         plugin.playerStatsRepository.save(stats)
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
@@ -222,6 +247,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                         reversibleContract = when (actionId) {
                             ACTION_NOTIFICATION -> MwmMenuActionSemantics.contract("user-notification")
                             ACTION_CRITICAL_VISIBILITY -> MwmMenuActionSemantics.contract("user-critical")
+                            ACTION_FAVORITE_GROUP_INVITES -> MwmMenuActionSemantics.contract("user-favorite-group-invites")
                             else -> null
                         },
                     ),
@@ -234,6 +260,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     private fun settingActionSafety(actionId: String): MenuActionSafety = when (actionId) {
         ACTION_NOTIFICATION,
         ACTION_CRITICAL_VISIBILITY -> MenuActionSafety.REVERSIBLE
+        ACTION_FAVORITE_GROUP_INVITES -> MenuActionSafety.REVERSIBLE
         else -> error("Unknown user setting action safety: $actionId")
     }
 
@@ -282,6 +309,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         private const val ACTION_NOTIFICATION = "notification"
         private const val ACTION_CRITICAL_VISIBILITY = "critical_visibility"
         private const val ACTION_TOUR_NAVIGATION = "tour_navigation"
+        private const val ACTION_FAVORITE_GROUP_INVITES = "favorite_group_invites"
         private const val ACTION_BACK = "back"
     }
 }

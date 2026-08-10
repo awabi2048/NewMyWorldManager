@@ -262,14 +262,24 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         CCSystem.getAPI().getGuiElementService().menuCapabilityEntry(
                                 player,
                                 GuiMenuCapabilityInvocationSpec(
-                                        slot = layout.actionSlot,
+                                        slot = FavoriteMenuLayout.HEADER_CENTER_SLOT,
                                         capability = summaryCapability.requireExplicitActionSafety(),
                                         attributes = summaryAttributes,
                                 ),
                         )
                 } else {
-                        createStatsEntry(player, layout.actionSlot, targetUuid, targetName, createCount, maxSlot, stats)
+                        createStatsEntry(
+                                player,
+                                FavoriteMenuLayout.HEADER_CENTER_SLOT,
+                                targetUuid,
+                                targetName,
+                                createCount,
+                                maxSlot,
+                                stats,
+                        )
                 }
+                // フッター中央は閲覧対象ではなく、操作しているプレイヤーの現在地を常に示します。
+                elements += plugin.currentWorldMenuElementFactory.create(player, layout.actionSlot)
                 if (isOwnMenu) {
                         elements += createUserSettingsEntry(player, layout.actionSlot + 2)
                         elements += createPendingEntry(player, layout.size - 2)

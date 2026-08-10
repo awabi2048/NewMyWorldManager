@@ -8,12 +8,13 @@ discovery-tag,DiscoveryGui.kt,tag,REVERSIBLE,myworldmanager:menu-session,discove
 discovery-special,DiscoveryGui.kt,special_filter,REVERSIBLE,myworldmanager:menu-session,discovery session filter mutation
 environment-weather,EnvironmentGui.kt,weather,REVERSIBLE,myworldmanager:settings-session,temporary weather mutation
 favorite-tag,FavoriteGui.kt,tag,REVERSIBLE,myworldmanager:menu-session,favorite session tag mutation
-favorite-toggle,FavoriteMenuGui.kt,toggle,REVERSIBLE,myworldmanager:player-state,favorite repository mutation
+favorite-toggle,FavoriteGui.kt,toggle_current,REVERSIBLE,myworldmanager:player-state,favorite repository mutation
 gate-cancel,PortalListener.kt,cancel_gate,NAVIGATION_ONLY,,message and close only
 bedrock-publish,BedrockMenuService.kt,cycle_publish,REVERSIBLE,myworldmanager:world-state,world publish metadata mutation
 bedrock-create,BedrockMenuService.kt,start_creation,REVERSIBLE,myworldmanager:creation-session,creation draft replacement
 bedrock-notification,BedrockMenuService.kt,toggle_notification,REVERSIBLE,myworldmanager:user-settings,user notification mutation
 bedrock-critical,BedrockMenuService.kt,toggle_critical,REVERSIBLE,myworldmanager:user-settings,user visibility mutation
+bedrock-favorite-group-invites,BedrockMenuService.kt,toggle_favorite_group_invites,REVERSIBLE,myworldmanager:user-settings,favorite group invite reception mutation
 bedrock-tour,BedrockMenuService.kt,cycle_tour_navigation,REVERSIBLE,myworldmanager:user-settings,user navigation mode mutation
 meet-status,MeetGui.kt,status,REVERSIBLE,myworldmanager:player-state,meet status and page mutation
 player-world-priority,PlayerWorldGui.kt,world,REVERSIBLE,myworldmanager:world-display-order,display order mutation
@@ -25,6 +26,7 @@ template-cancel,TemplateWizardGui.kt,cancel,REVERSIBLE,myworldmanager:draft,temp
 tour-discard,TourGui.kt,discard_confirm,REVERSIBLE,myworldmanager:draft,tour draft removal
 user-notification,UserSettingsGui.kt,notification,REVERSIBLE,myworldmanager:user-settings,user notification mutation
 user-critical,UserSettingsGui.kt,critical_visibility,REVERSIBLE,myworldmanager:user-settings,user visibility mutation
+user-favorite-group-invites,UserSettingsGui.kt,favorite_group_invites,REVERSIBLE,myworldmanager:user-settings,favorite group invite reception mutation
 user-tour,UserSettingsGui.kt,tour_navigation,REVERSIBLE,myworldmanager:user-settings,user navigation mode mutation
 visit-favorite,VisitGui.kt,world_right,REVERSIBLE,myworldmanager:player-state,favorite repository mutation
 visit-world-favorite,VisitWorldGui.kt,world_right,REVERSIBLE,myworldmanager:player-state,favorite repository mutation

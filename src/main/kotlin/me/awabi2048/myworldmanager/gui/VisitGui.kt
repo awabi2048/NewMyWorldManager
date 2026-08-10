@@ -55,9 +55,10 @@ class VisitGui(private val plugin: MyWorldManager) {
                 player: Player,
                 targetPlayer: OfflinePlayer,
                 page: Int = 0,
-                returnToWorld: WorldData? = null
+                returnToWorld: WorldData? = null,
+                guestAccessibleOnly: Boolean = false,
         ) {
-                val targetRoute = route(targetPlayer.uniqueId, page, returnToWorld?.uuid)
+                val targetRoute = route(targetPlayer.uniqueId, page, returnToWorld?.uuid, guestAccessibleOnly)
                 if (returnToWorld != null) {
                         runtime.navigate(player, targetRoute)
                 } else {
@@ -68,12 +69,20 @@ class VisitGui(private val plugin: MyWorldManager) {
         private fun render(player: Player, route: MenuRoute): InventoryMenuView {
                 val targetPlayerUuid = route.uuid(TARGET_PLAYER_UUID) ?: player.uniqueId
                 val targetPlayer = Bukkit.getOfflinePlayer(targetPlayerUuid)
+                val returnWorldUuid = route.uuid(RETURN_WORLD_UUID)
+                val guestAccessibleOnly = route.payload[GUEST_ACCESSIBLE_ONLY].toBoolean()
                 val requestedPage = route.payload[PAGE]?.toIntOrNull() ?: 0
                 val allWorlds = plugin.worldConfigRepository.findAll()
                 val targetWorlds =
                         allWorlds.filter { world ->
-                                if (world.owner != targetPlayerUuid || world.isArchived)
+                                if (world.owner != targetPlayerUuid || world.isArchived || world.uuid == returnWorldUuid)
                                         return@filter false
+
+                                if (guestAccessibleOnly) {
+                                        // 自分の「他のワールド」を見る場合も、第三者が一覧へ到達できる公開条件で絞ります。
+                                        return@filter MyWorldManagerApi.getWorldAccessPolicy()
+                                                .canShowInVisitWorldList(player, world)
+                                }
 
                                 val isMember =
                                         world.owner == player.uniqueId ||
@@ -120,7 +129,14 @@ class VisitGui(private val plugin: MyWorldManager) {
                 val targetPlayerUuid = context.route.uuid(TARGET_PLAYER_UUID)
                         ?: return MenuActionResult.Rejected()
                 return MenuActionResult.Success(
-                        MenuUpdate.Replace(route(targetPlayerUuid, target, context.route.uuid(RETURN_WORLD_UUID))),
+                        MenuUpdate.Replace(
+                                route(
+                                        targetPlayerUuid,
+                                        target,
+                                        context.route.uuid(RETURN_WORLD_UUID),
+                                        context.route.payload[GUEST_ACCESSIBLE_ONLY].toBoolean(),
+                                ),
+                        ),
                 )
         }
 
@@ -269,14 +285,20 @@ class VisitGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        private fun route(targetPlayerUuid: UUID, page: Int, returnWorldUuid: UUID?) =
+        private fun route(
+                targetPlayerUuid: UUID,
+                page: Int,
+                returnWorldUuid: UUID?,
+                guestAccessibleOnly: Boolean,
+        ) =
                 MenuRoute(
                         OWNER,
                         ROUTE_ID,
                         buildMap {
                                 put(TARGET_PLAYER_UUID, targetPlayerUuid.toString())
                                 put(PAGE, page.toString())
-                                returnWorldUuid?.let { put(RETURN_WORLD_UUID, it.toString()) }
+                            returnWorldUuid?.let { put(RETURN_WORLD_UUID, it.toString()) }
+                            put(GUEST_ACCESSIBLE_ONLY, guestAccessibleOnly.toString())
                         },
                 )
 
@@ -290,6 +312,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                 private const val RETURN_WORLD_UUID = "return_world_uuid"
                 private const val WORLD_UUID = "world_uuid"
                 private const val PAGE = "page"
+                private const val GUEST_ACCESSIBLE_ONLY = "guest_accessible_only"
                 private const val ACTION_BACK = "back"
                 private const val ACTION_PAGE = "page"
                 private const val ACTION_WORLD = "world"

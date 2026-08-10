@@ -11,6 +11,7 @@ class UserSettingsService(
 ) {
     fun notification(playerId: UUID): Boolean = repository.findByUuid(playerId).visitorNotificationEnabled
     fun criticalVisibility(playerId: UUID): Boolean = repository.findByUuid(playerId).criticalSettingsEnabled
+    fun favoriteGroupInvites(playerId: UUID): Boolean = repository.findByUuid(playerId).favoriteGroupInvitesEnabled
     fun tourNavigation(playerId: UUID): TourNavigationMode = repository.findByUuid(playerId).tourNavigationMode
 
     fun setNotification(playerId: UUID, enabled: Boolean) {
@@ -19,6 +20,10 @@ class UserSettingsService(
 
     fun setCriticalVisibility(playerId: UUID, enabled: Boolean) {
         repository.findByUuid(playerId).also { it.criticalSettingsEnabled = enabled; repository.save(it) }
+    }
+
+    fun setFavoriteGroupInvites(playerId: UUID, enabled: Boolean) {
+        repository.findByUuid(playerId).also { it.favoriteGroupInvitesEnabled = enabled; repository.save(it) }
     }
 
     fun setTourNavigation(player: Player, mode: TourNavigationMode) {

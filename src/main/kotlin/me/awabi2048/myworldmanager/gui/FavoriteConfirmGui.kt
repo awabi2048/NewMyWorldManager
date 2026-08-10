@@ -53,18 +53,18 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
                     player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
                     plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
                 }
-                MenuActionResult.Success(MenuUpdate.Back)
+                // 詳細画面へ戻すと解除済み対象が残るため、現在地の文脈を維持して一覧を再表示します。
+                openList(player)
+                MenuActionResult.Success(MenuUpdate.None)
             },
             confirmSound = MenuSoundPolicy.Silent,
         )
     }
 
     private fun openList(player: Player) {
-        val session = plugin.favoriteSessionManager.getSession(player.uniqueId)
         plugin.menuEntryRouter.openFavoriteList(
             player,
             0,
-            returnToFavoriteMenu = session.returnToFavoriteMenu,
         )
     }
 }

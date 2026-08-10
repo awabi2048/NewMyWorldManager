@@ -116,7 +116,8 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         }
 
         if (target.uniqueId == player.uniqueId) {
-            player.sendMessage("§c自分自身のワールド一覧を表示することはできません。/myworld を使用してください。")
+            // 自分を指定した場合も /myworld と同じ公開ルートへ委譲し、入口による挙動差を作りません。
+            plugin.menuEntryRouter.openPlayerWorld(player)
             return
         }
 

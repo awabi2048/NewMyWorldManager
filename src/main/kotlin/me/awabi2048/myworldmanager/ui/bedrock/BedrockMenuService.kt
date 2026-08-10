@@ -207,14 +207,12 @@ class BedrockMenuService(
     fun openFavoriteList(
         player: Player,
         page: Int = 0,
-        worldData: WorldData? = null,
-        returnToFavoriteMenu: Boolean = false,
         showBackButton: Boolean = false
     ) {
-        plugin.favoriteGui.open(player, page, worldData, returnToFavoriteMenu, showBackButton)
+        plugin.favoriteGui.open(player, page, showBackButton)
     }
 
-    fun openFavoriteMenu(player: Player, worldData: WorldData?) {
+    fun openFavoriteMenu(player: Player, worldData: WorldData) {
         plugin.favoriteMenuGui.open(player, worldData)
     }
 
@@ -222,9 +220,10 @@ class BedrockMenuService(
         player: Player,
         owner: org.bukkit.OfflinePlayer,
         page: Int = 0,
-        worldData: WorldData? = null
+        worldData: WorldData? = null,
+        guestAccessibleOnly: Boolean = false,
     ) {
-        plugin.visitGui.open(player, owner, page, worldData)
+        plugin.visitGui.open(player, owner, page, worldData, guestAccessibleOnly)
     }
 
     fun openMeet(player: Player, showBackButton: Boolean? = null) {
@@ -749,6 +748,20 @@ class BedrockMenuService(
                 }
             ),
         )
+        inventory.setEntry(
+            createSettingActionEntry(
+                player,
+                14,
+                Material.GOAT_HORN,
+                "gui.user_settings.favorite_group_invites.display",
+                "favorite_group_invites",
+                statusText(player, stats.favoriteGroupInvitesEnabled),
+                if (stats.favoriteGroupInvitesEnabled) "§a" else "§c",
+                "toggle_favorite_group_invites",
+                "gui.user_settings.cycle_action.toggle",
+                glint = stats.favoriteGroupInvitesEnabled,
+            ),
+        )
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
                 22,
@@ -885,6 +898,11 @@ class BedrockMenuService(
                     "cycle_language" -> MenuActionResult.Success(MenuUpdate.Refresh)
                     "toggle_critical" -> {
                         stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
+                        plugin.playerStatsRepository.save(stats)
+                        MenuActionResult.Success(MenuUpdate.Refresh)
+                    }
+                    "toggle_favorite_group_invites" -> {
+                        stats.favoriteGroupInvitesEnabled = !stats.favoriteGroupInvitesEnabled
                         plugin.playerStatsRepository.save(stats)
                         MenuActionResult.Success(MenuUpdate.Refresh)
                     }
@@ -1323,6 +1341,7 @@ class BedrockMenuService(
                     reversibleContract = when (actionId) {
                         "toggle_notification" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-notification")
                         "toggle_critical" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-critical")
+                        "toggle_favorite_group_invites" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-favorite-group-invites")
                         "cycle_tour_navigation" -> me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-tour")
                         else -> null
                     },
@@ -1333,7 +1352,7 @@ class BedrockMenuService(
     }
 
     private fun settingActionSafety(actionId: String): MenuActionSafety = when (actionId) {
-        "toggle_notification", "toggle_critical", "cycle_tour_navigation" -> MenuActionSafety.REVERSIBLE
+        "toggle_notification", "toggle_critical", "toggle_favorite_group_invites", "cycle_tour_navigation" -> MenuActionSafety.REVERSIBLE
         "cycle_language" -> MenuActionSafety.NAVIGATION_ONLY
         else -> error("Bedrock setting action must declare a dedicated safety mapping: $actionId")
     }
@@ -1454,6 +1473,7 @@ class BedrockMenuService(
             "toggle_notification",
             "cycle_language",
             "toggle_critical",
+            "toggle_favorite_group_invites",
             "cycle_tour_navigation",
         )
     }
