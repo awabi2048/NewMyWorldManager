@@ -123,19 +123,19 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
 
         // 存在しないワールドのUUIDを除去する（自動クリーンアップ）
         val existingRegisteredWarp = loadedRegisteredWarp.filter { uuid ->
-            plugin.worldConfigRepository.findByUuid(uuid) != null
+            plugin.worldConfigRepository.findByUuid(uuid) != null || plugin.worldConfigRepository.isQuarantined(uuid)
         }.toMutableList()
         
         val existingFavoriteWorlds = loadedFavoriteWorlds.filterTo(linkedMapOf()) { (uuid, _) ->
-            plugin.worldConfigRepository.findByUuid(uuid) != null
+            plugin.worldConfigRepository.findByUuid(uuid) != null || plugin.worldConfigRepository.isQuarantined(uuid)
         }
 
         val existingVisitedWorlds = loadedVisitedWorlds.filterKeys { uuid ->
-            plugin.worldConfigRepository.findByUuid(uuid) != null
+            plugin.worldConfigRepository.findByUuid(uuid) != null || plugin.worldConfigRepository.isQuarantined(uuid)
         }.toMutableMap()
 
         val existingWorldDisplayOrder = loadedWorldDisplayOrder.filter { uuid ->
-            plugin.worldConfigRepository.findByUuid(uuid) != null
+            plugin.worldConfigRepository.findByUuid(uuid) != null || plugin.worldConfigRepository.isQuarantined(uuid)
         }.toMutableList()
 
         val stats = PlayerStats(

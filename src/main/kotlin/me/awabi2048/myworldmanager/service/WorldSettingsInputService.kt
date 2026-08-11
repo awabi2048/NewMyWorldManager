@@ -160,7 +160,7 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         var updated = false
         if (name.isNotBlank()) when (val result = plugin.worldValidator.validateName(name)) {
             is WorldNameValidation.Failure -> player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
-            else -> if (plugin.worldConfigRepository.findByOwnerAndDisplayName(worldData.owner, name, worldData.uuid) != null) player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate")) else if (worldData.name != name) { worldData.name = name; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_change")) }
+            else -> if (plugin.worldConfigRepository.hasDisplayNameConflict(worldData.owner, name, worldData.uuid)) player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate")) else if (worldData.name != name) { worldData.name = name; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_change")) }
         }
         if (worldData.description != description) { worldData.description = description; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_desc_change")) }
         if (updated) plugin.worldConfigRepository.save(worldData)

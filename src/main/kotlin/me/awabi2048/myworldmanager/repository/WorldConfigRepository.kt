@@ -1,10 +1,12 @@
 package me.awabi2048.myworldmanager.repository
 
+import me.awabi2048.myworldmanager.model.ManagedDimension
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.time.Instant
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.AtomicMoveNotSupportedException
@@ -19,6 +21,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
     private val worldsFolder = File(plugin.dataFolder, "my_worlds")
     private val cache = mutableMapOf<UUID, WorldData>()
     private val nameCache = mutableMapOf<String, WorldData>()
+    private val quarantined = mutableMapOf<String, QuarantinedWorldData>()
 
     init {
         if (!worldsFolder.exists()) {
@@ -34,21 +37,29 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
     fun loadAll() {
         cache.clear()
         nameCache.clear()
+        quarantined.clear()
         val files = worldsFolder.listFiles { f -> f.extension == "yml" } ?: return
 
         for (file in files) {
             try {
                 val uuid = UUID.fromString(file.nameWithoutExtension)
-                migrateMissingWorldKey(file, uuid)
                 val worldData = loadWorldData(file)
                 if (worldData != null) {
+                    check(worldData.uuid == uuid) {
+                        "world data UUID does not match file name: ${file.name}"
+                    }
+                    check(org.bukkit.NamespacedKey.fromString(worldData.worldKey) != null) {
+                        "invalid world_key: ${worldData.worldKey}"
+                    }
                     cache[uuid] = worldData
                     nameCache[toWorldFolderName(worldData)] = worldData
                 } else {
+                    registerQuarantine(file, uuid, "world_data is missing")
                     // 旧互換用、またはデシリアライズ失敗時のフォールバック
                     plugin.logger.warning("ファイル ${file.name} のワールドデータのデシリアライズに失敗しました。")
                 }
             } catch (e: Exception) {
+                registerQuarantine(file, file.nameWithoutExtension.toUuidOrNull(), e.message ?: e.javaClass.simpleName)
                 plugin.logger.warning("ファイル ${file.name} のワールドデータの読み込みに失敗しました: ${e.message}")
             }
         }
@@ -59,6 +70,9 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      */
     @Synchronized
     fun save(worldData: WorldData) {
+        check(!isQuarantined(worldData.uuid)) {
+            "Cannot save quarantined world data: ${worldData.uuid}"
+        }
         val file = File(worldsFolder, "${worldData.uuid}.yml")
         val temporary = File(worldsFolder, "${worldData.uuid}.yml.tmp")
         val config = YamlConfiguration()
@@ -126,6 +140,25 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         return cache.values.toList()
     }
 
+    /** 隔離データを未登録と混同しないための状態参照です。 */
+    @Synchronized
+    fun quarantinedWorlds(): List<QuarantinedWorldData> = quarantined.values.sortedBy { it.fileName }
+
+    @Synchronized
+    fun isQuarantined(uuid: UUID): Boolean = quarantined.values.any { it.uuid == uuid }
+
+    /** 隔離済みデータを含めて、表示名の予約状況を確認します。 */
+    @Synchronized
+    fun hasDisplayNameConflict(ownerUuid: UUID, worldName: String, excludingUuid: UUID? = null): Boolean {
+        if (findByOwnerAndDisplayName(ownerUuid, worldName, excludingUuid) != null) return true
+        val normalized = normalizeDisplayName(worldName)
+        return quarantined.values.any {
+            it.uuid != excludingUuid &&
+                it.owner == ownerUuid &&
+                it.worldName?.let(::normalizeDisplayName) == normalized
+        }
+    }
+
     /**
      * 所有者UUIDを指定してワールドデータを取得する
      */
@@ -157,6 +190,9 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      */
     @Synchronized
     fun delete(uuid: UUID) {
+        check(!isQuarantined(uuid)) {
+            "Cannot delete quarantined world data: $uuid"
+        }
         cache[uuid]?.let { data ->
             nameCache.remove(toWorldFolderName(data))
         }
@@ -189,6 +225,104 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         return name.trim().lowercase(Locale.ROOT)
     }
 
+    /**
+     * /mwm migration からだけ呼び出される生YAML移行です。
+     * dimensionを確定できない場合はファイルを変更せず、管理者入力を要求します。
+     */
+    @Synchronized
+    internal fun migrateWorldData(
+        uuid: UUID,
+        dimension: ManagedDimension? = null,
+        forceDimension: Boolean = false,
+    ): MetadataMigrationResult {
+        val quarantinedData = quarantined.values.firstOrNull { it.uuid == uuid }
+        val file = quarantinedData?.let { File(worldsFolder, it.fileName) }
+            ?: File(worldsFolder, "$uuid.yml")
+        if (!file.isFile) {
+            return MetadataMigrationResult(MetadataMigrationStatus.FAILED, "world data file not found: $uuid")
+        }
+
+        val original = runCatching {
+            Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)
+        }.getOrElse {
+            return MetadataMigrationResult(MetadataMigrationStatus.FAILED, "cannot read $file: ${it.message}")
+        }
+
+        if (forceDimension && quarantinedData == null) {
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "world data is not quarantined: $uuid"
+            )
+        }
+        val currentHash = MigrationFileFingerprint.sha256(file)
+        if (quarantinedData?.contentHash != null && quarantinedData.contentHash != currentHash) {
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "world data changed after quarantine: $uuid"
+            )
+        }
+
+        // 次元はワールド生成方式を決めるため、推測値で部分移行しません。
+        val rawDimension = WorldDataYamlMigration.readField(original, "dimension")
+        if (dimension == null && (rawDimension == null || WorldDataYamlMigration.normalizeDimension(rawDimension) == null)) {
+            return MetadataMigrationResult(MetadataMigrationStatus.NEEDS_INPUT, "dimension is required: $uuid")
+        }
+
+        val migrationDimension = if (
+            !forceDimension && rawDimension != null && WorldDataYamlMigration.normalizeDimension(rawDimension) != null
+        ) {
+            null
+        } else {
+            dimension
+        }
+        val migrated = WorldDataYamlMigration.migrate(original, uuid, migrationDimension?.name)
+        if (migrated == null) {
+            val current = runCatching { loadWorldData(file)?.takeIf(::isCurrentWorldData) }.getOrNull()
+            return if (current != null) {
+                MetadataMigrationResult(MetadataMigrationStatus.ALREADY_CURRENT, "already current: $uuid")
+            } else {
+                MetadataMigrationResult(MetadataMigrationStatus.FAILED, "no supported migration applies: $uuid")
+            }
+        }
+
+        val canonicalFile = File(worldsFolder, "$uuid.yml")
+        if (file.absoluteFile != canonicalFile.absoluteFile && canonicalFile.exists()) {
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "canonical world data file already exists: ${canonicalFile.name}"
+            )
+        }
+        val backup = File(file.parentFile, "${file.name}.pre-migration-${System.currentTimeMillis()}.bak")
+        val temporary = File(worldsFolder, "${file.name}.migration.tmp")
+        try {
+            Files.copy(file.toPath(), backup.toPath())
+            Files.write(
+                temporary.toPath(),
+                (migrated.joinToString(System.lineSeparator()) + System.lineSeparator())
+                    .toByteArray(StandardCharsets.UTF_8)
+            )
+            atomicReplace(temporary, file)
+            check(loadWorldData(file)?.let(::isCurrentWorldData) == true) {
+                "migrated world data could not be deserialized: $uuid"
+            }
+            if (file.absoluteFile != canonicalFile.absoluteFile) {
+                try {
+                    Files.move(file.toPath(), canonicalFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+                } catch (_: AtomicMoveNotSupportedException) {
+                    Files.move(file.toPath(), canonicalFile.toPath())
+                }
+            }
+            return MetadataMigrationResult(MetadataMigrationStatus.MIGRATED, "migrated: $uuid")
+        } catch (e: Exception) {
+            temporary.delete()
+            runCatching { Files.copy(backup.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING) }
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "migration failed for $uuid: ${e.message ?: e.javaClass.simpleName}"
+            )
+        }
+    }
+
     private fun loadWorldData(file: File): WorldData? {
         val config = YamlConfiguration.loadConfiguration(file)
         // Bukkitの自動デシリアライズ機能を使用
@@ -197,40 +331,25 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         return worldData
     }
 
-    /**
-     * Paper 26移行前の保存データへ、通常のデシリアライズより前に永続識別子を追加する。
-     * deserialize側へ旧形式の読み替えを残さず、移行したファイルだけを通常経路へ渡す。
-     */
-    private fun migrateMissingWorldKey(file: File, uuid: UUID) {
-        val lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)
-        val migrated = WorldKeyYamlMigration.migrate(lines, uuid) ?: return
-
-        val backup = File(file.parentFile, "${file.name}.pre-world-key-migration.bak")
-        if (!backup.exists()) {
-            Files.copy(file.toPath(), backup.toPath())
-        }
-        val temporary = File(file.parentFile, "${file.name}.world-key-migration.tmp")
-        Files.write(
-            temporary.toPath(),
-            (migrated.joinToString(System.lineSeparator()) + System.lineSeparator())
-                .toByteArray(StandardCharsets.UTF_8)
+    private fun registerQuarantine(file: File, uuid: UUID?, reason: String) {
+        val lines = runCatching { Files.readAllLines(file.toPath(), StandardCharsets.UTF_8) }.getOrDefault(emptyList())
+        val contentUuid = WorldDataYamlMigration.readField(lines, "uuid")?.toUuidOrNull()
+        quarantined[file.name] = QuarantinedWorldData(
+            uuid = uuid ?: contentUuid,
+            fileName = file.name,
+            reason = reason,
+            detectedAt = Instant.now(),
+            worldName = WorldDataYamlMigration.readField(lines, "name"),
+            owner = WorldDataYamlMigration.readField(lines, "owner")?.toUuidOrNull(),
+            worldKey = WorldDataYamlMigration.readField(lines, "world_key"),
+            customWorldName = WorldDataYamlMigration.readField(lines, "custom_world_name"),
+            contentHash = MigrationFileFingerprint.sha256(file),
         )
-        try {
-            Files.move(
-                temporary.toPath(),
-                file.toPath(),
-                StandardCopyOption.REPLACE_EXISTING,
-                StandardCopyOption.ATOMIC_MOVE
-            )
-        } catch (_: AtomicMoveNotSupportedException) {
-            Files.move(
-                temporary.toPath(),
-                file.toPath(),
-                StandardCopyOption.REPLACE_EXISTING
-            )
-        }
-        plugin.logger.info("旧ワールドデータをworld_key形式へ移行しました: ${file.name}")
+        plugin.logger.warning("ファイル ${file.name} のワールドデータを隔離しました: $reason")
     }
+
+    private fun isCurrentWorldData(worldData: WorldData): Boolean =
+        org.bukkit.NamespacedKey.fromString(worldData.worldKey) != null
 
     private fun restoreCacheFromDisk(uuid: UUID) {
         nameCache.entries.removeIf { (_, data) -> data.uuid == uuid }
@@ -256,4 +375,6 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
             plugin.logger.warning("world data cache rollback failed for $uuid: ${e.message}")
         }
     }
+
+    private fun String.toUuidOrNull(): UUID? = runCatching { UUID.fromString(this) }.getOrNull()
 }

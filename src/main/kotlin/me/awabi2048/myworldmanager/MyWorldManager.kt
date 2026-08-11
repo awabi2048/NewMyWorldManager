@@ -160,6 +160,9 @@ class MyWorldManager : JavaPlugin() {
             dataFolder.mkdirs()
         }
         registerManagedConfigs()
+        // config.ymlはCC-Systemの自動移行対象から外し、旧値を管理者の確認なしに書き換えません。
+        // ここでは存在しない場合だけ既定ファイルを作成し、既存内容はそのまま読み込みます。
+        saveDefaultConfig()
         reloadConfig()
         // langフォルダが存在しなければ作成し、デフォルトの言語ファイルをコピー
         val langFolder = java.io.File(dataFolder, "lang")
@@ -224,7 +227,6 @@ class MyWorldManager : JavaPlugin() {
 
         loadWorldsFromPreviousShutdown()
         worldMigrationService.reportPending()
-        worldMigrationService.resumeAfterStartup()
 
         // MSPT監視タスクの開始
         msptMonitorTask = me.awabi2048.myworldmanager.task.MsptMonitorTask(this)
@@ -474,7 +476,6 @@ class MyWorldManager : JavaPlugin() {
 
     private fun registerManagedConfigs() {
         val classifications = mapOf(
-            "config.yml" to ConfigClassification.MANAGED_CONFIG,
             "templates.yml" to ConfigClassification.BUNDLED_DEFINITION,
             "macro.yml" to ConfigClassification.MANAGED_CONFIG,
             "spotlight.yml" to ConfigClassification.MANAGED_CONFIG
@@ -485,20 +486,9 @@ class MyWorldManager : JavaPlugin() {
                 sourcePlugin = this,
                 resourcePath = resourcePath,
                 targetPath = File(dataFolder, resourcePath).toPath(),
-                currentVersion = if (resourcePath == "config.yml") 2 else 1,
+                currentVersion = 1,
                 classification = classification,
-                migrations = if (resourcePath == "config.yml") {
-                    mapOf(
-                        1 to com.awabi2048.ccsystem.api.config.ConfigMigration { config ->
-                            // 旧既定値だけを移行し、管理者が明示した別グループは上書きしません。
-                            if (config.getString("permissions.world_work_group") == "builder") {
-                                config.set("permissions.world_work_group", "basic_tool")
-                            }
-                        },
-                    )
-                } else {
-                    emptyMap()
-                },
+                migrations = emptyMap(),
                 validator = com.awabi2048.ccsystem.api.config.ConfigValidator {},
                 reloadAction = null
             )

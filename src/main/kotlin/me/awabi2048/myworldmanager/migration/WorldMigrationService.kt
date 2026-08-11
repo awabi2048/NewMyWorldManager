@@ -23,6 +23,11 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.WorldOperation
+import me.awabi2048.myworldmanager.model.ManagedDimension
+import me.awabi2048.myworldmanager.repository.MetadataMigrationResult
+import me.awabi2048.myworldmanager.repository.MetadataMigrationStatus
+import me.awabi2048.myworldmanager.repository.QuarantinedTemplateData
+import me.awabi2048.myworldmanager.repository.QuarantinedWorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -36,6 +41,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Instant
 import java.util.UUID
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 
@@ -100,12 +106,12 @@ class WorldMigrationService(
             it.lastError = "server_stopped_during_migration"
             it.updatedAt = Instant.now()
         }
-        persistState()
     }
 
     fun pendingWorlds(): List<LegacyWorldDirectory> = resolver.findLegacyWorlds()
 
-    fun isPending(uuid: UUID): Boolean = resolver.findLegacyWorld(uuid) != null
+    fun isPending(uuid: UUID): Boolean =
+        resolver.findLegacyWorld(uuid) != null || plugin.worldConfigRepository.isQuarantined(uuid)
 
     fun reportPending(sender: CommandSender? = null): List<LegacyWorldDirectory> {
         val pending = pendingWorlds()
@@ -114,6 +120,23 @@ class WorldMigrationService(
                 sender,
                 "messages.migration.pending",
                 mapOf("world" to candidate.folderName, "uuid" to candidate.uuid)
+            )
+        }
+        plugin.worldConfigRepository.quarantinedWorlds().forEach { data ->
+            send(
+                sender,
+                "messages.migration.pending",
+                mapOf(
+                    "world" to "metadata:${data.fileName}",
+                    "uuid" to (data.uuid?.toString() ?: "-"),
+                )
+            )
+        }
+        plugin.templateRepository.quarantinedTemplates().forEach { data ->
+            send(
+                sender,
+                "messages.migration.pending",
+                mapOf("world" to "template:${data.id}", "uuid" to "-")
             )
         }
         resolver.findConflictingWorlds().forEach {
@@ -138,6 +161,48 @@ class WorldMigrationService(
         execute(sender)
     }
 
+    /**
+     * 次元を自動推測できないメタデータだけを、管理者が明示した値で移行します。
+     * confirmを要求することで、コマンド入力自体を実行意図の境界にします。
+     */
+    fun requestSetDimension(
+        sender: CommandSender,
+        targetKind: String,
+        identifier: String,
+        rawDimension: String,
+        confirmed: Boolean,
+    ) {
+        if (running) {
+            send(sender, "messages.migration.already_running")
+            return
+        }
+        if (!confirmed) {
+            send(sender, "messages.migration.dimension_confirmation")
+            return
+        }
+        val dimension = runCatching {
+            ManagedDimension.parse(rawDimension.uppercase(Locale.ROOT))
+        }.getOrElse {
+            send(sender, "messages.migration.dimension_usage")
+            return
+        }
+        val result = when (targetKind.lowercase(Locale.ROOT)) {
+            "world" -> runCatching {
+                val uuid = UUID.fromString(identifier)
+                plugin.worldConfigRepository.migrateWorldData(uuid, dimension, forceDimension = true)
+            }.getOrElse {
+                MetadataMigrationResult(MetadataMigrationStatus.FAILED, "invalid world UUID: $identifier")
+            }
+            "template" -> plugin.templateRepository.migrateTemplate(identifier, dimension, forceDimension = true)
+            else -> {
+                send(sender, "messages.migration.dimension_usage")
+                return
+            }
+        }
+        reloadMetadataRepositories()
+        sendMetadataResult(sender, targetKind, identifier, result)
+    }
+
     fun status(sender: CommandSender) {
         val snapshot = snapshot()
         val completed = snapshot.worlds.count { it.status == MigrationWorldStatus.COMPLETED }
@@ -145,13 +210,16 @@ class WorldMigrationService(
             it.status == MigrationWorldStatus.WAITING || it.status == MigrationWorldStatus.RETRY
         }
         val retries = snapshot.worlds.count { it.status == MigrationWorldStatus.RETRY }
-        val failed = snapshot.worlds.count { it.status == MigrationWorldStatus.FAILED }
+        val quarantinedWorlds = plugin.worldConfigRepository.quarantinedWorlds()
+        val quarantinedTemplates = plugin.templateRepository.quarantinedTemplates()
+        val failed = snapshot.worlds.count { it.status == MigrationWorldStatus.FAILED } +
+            quarantinedWorlds.size + quarantinedTemplates.size
         send(
             sender,
             "messages.migration.status_summary",
             mapOf(
                 "state" to if (snapshot.running) "RUNNING" else "IDLE",
-                "total" to snapshot.worlds.size,
+                "total" to snapshot.worlds.size + quarantinedWorlds.size + quarantinedTemplates.size,
                 "completed" to completed,
                 "waiting" to waiting,
                 "retries" to retries,
@@ -172,27 +240,36 @@ class WorldMigrationService(
                 )
             )
         }
+        quarantinedWorlds.forEach { data ->
+            sendQuarantinedWorld(sender, data)
+        }
+        quarantinedTemplates.forEach { data ->
+            sendQuarantinedTemplate(sender, data)
+        }
     }
 
     fun snapshot(): MigrationStatusSnapshot =
         MigrationStatusSnapshot(running, states.values.map(MigrationWorldState::copy), currentWorld)
 
-    fun resumeAfterStartup() {
-        if (running) return
-        if (states.values.none {
-                it.status == MigrationWorldStatus.WAITING || it.status == MigrationWorldStatus.RETRY
-            }
-        ) {
+    private fun execute(sender: CommandSender) {
+        val metadataCount = plugin.worldConfigRepository.quarantinedWorlds().size +
+            plugin.templateRepository.quarantinedTemplates().size
+        if (metadataCount > 0) {
+            migrateMetadata()
+        }
+        val candidates = resolver.findLegacyWorlds()
+        if (candidates.isEmpty() && metadataCount == 0) {
+            send(sender, "messages.migration.none_pending")
             return
         }
-        running = true
-        scheduleNext()
-    }
-
-    private fun execute(sender: CommandSender) {
-        val candidates = resolver.findLegacyWorlds()
         if (candidates.isEmpty()) {
-            send(sender, "messages.migration.none_pending")
+            send(sender, "messages.migration.started", mapOf("count" to metadataCount))
+            send(sender, "messages.migration.completed")
+            if (plugin.worldConfigRepository.quarantinedWorlds().isNotEmpty() ||
+                plugin.templateRepository.quarantinedTemplates().isNotEmpty()
+            ) {
+                send(sender, "messages.migration.metadata_remaining")
+            }
             return
         }
         candidates.forEach { candidate ->
@@ -213,8 +290,95 @@ class WorldMigrationService(
         }
         persistState()
         running = true
-        send(sender, "messages.migration.started", mapOf("count" to candidates.size))
+        send(sender, "messages.migration.started", mapOf("count" to candidates.size + metadataCount))
         scheduleNext()
+    }
+
+    private fun migrateMetadata() {
+        plugin.worldConfigRepository.quarantinedWorlds().forEach { data ->
+            val uuid = data.uuid ?: return@forEach
+            val result = plugin.worldConfigRepository.migrateWorldData(uuid, inferDimension(data))
+            logMetadataResult("world:$uuid", result)
+        }
+        plugin.templateRepository.quarantinedTemplates().forEach { data ->
+            if (data.id == "<file>") return@forEach
+            val result = plugin.templateRepository.migrateTemplate(data.id, inferDimension(data))
+            logMetadataResult("template:${data.id}", result)
+        }
+        reloadMetadataRepositories()
+    }
+
+    private fun reloadMetadataRepositories() {
+        plugin.worldConfigRepository.loadAll()
+        plugin.templateRepository.loadTemplates()
+    }
+
+    private fun inferDimension(data: QuarantinedWorldData): ManagedDimension? {
+        val loaded = data.worldKey
+            ?.let(NamespacedKey::fromString)
+            ?.let { Bukkit.getWorld(it) }
+            ?: data.customWorldName?.let { Bukkit.getWorld(it) }
+        return loaded?.let { runCatching { ManagedDimension.fromBukkit(it.environment) }.getOrNull() }
+    }
+
+    private fun inferDimension(data: QuarantinedTemplateData): ManagedDimension? {
+        val loaded = data.path
+            ?.let(NamespacedKey::fromString)
+            ?.let { Bukkit.getWorld(it) }
+            ?: data.path?.let { Bukkit.getWorld(it) }
+        return loaded?.let { runCatching { ManagedDimension.fromBukkit(it.environment) }.getOrNull() }
+    }
+
+    private fun logMetadataResult(target: String, result: MetadataMigrationResult) {
+        val level = if (result.status == MetadataMigrationStatus.FAILED) Level.WARNING else Level.INFO
+        plugin.logger.log(level, "Metadata migration [$target] ${result.status}: ${result.message}")
+    }
+
+    private fun sendMetadataResult(
+        sender: CommandSender,
+        targetKind: String,
+        identifier: String,
+        result: MetadataMigrationResult,
+    ) {
+        val key = when (result.status) {
+            MetadataMigrationStatus.MIGRATED,
+            MetadataMigrationStatus.ALREADY_CURRENT -> "messages.migration.metadata_updated"
+            MetadataMigrationStatus.NEEDS_INPUT -> "messages.migration.metadata_pending"
+            MetadataMigrationStatus.FAILED -> "messages.migration.metadata_failed"
+        }
+        send(
+            sender,
+            key,
+            mapOf("target" to "$targetKind:$identifier", "reason" to result.message),
+        )
+    }
+
+    private fun sendQuarantinedWorld(sender: CommandSender, data: QuarantinedWorldData) {
+        send(
+            sender,
+            "messages.migration.status_world",
+            mapOf(
+                "world" to "metadata:${data.fileName}",
+                "status" to "QUARANTINED",
+                "attempts" to 0,
+                "error" to data.reason,
+                "updated" to data.detectedAt,
+            )
+        )
+    }
+
+    private fun sendQuarantinedTemplate(sender: CommandSender, data: QuarantinedTemplateData) {
+        send(
+            sender,
+            "messages.migration.status_world",
+            mapOf(
+                "world" to "template:${data.id}",
+                "status" to "QUARANTINED",
+                "attempts" to 0,
+                "error" to data.reason,
+                "updated" to data.detectedAt,
+            )
+        )
     }
 
     private fun scheduleNext() {

@@ -96,7 +96,7 @@ class WorldService(
                 return false
             }
         }
-        if (repository.findByOwnerAndDisplayName(player.uniqueId, worldName) != null) {
+        if (repository.hasDisplayNameConflict(player.uniqueId, worldName)) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
             return false
         }
@@ -220,7 +220,7 @@ class WorldService(
                 return future
             }
         }
-        if (repository.findByOwnerAndDisplayName(request.ownerUuid, request.worldName) != null) {
+        if (repository.hasDisplayNameConflict(request.ownerUuid, request.worldName)) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
             future.complete(false)
             return future
@@ -564,7 +564,7 @@ class WorldService(
                 return future
             }
         }
-        if (repository.findByOwnerAndDisplayName(ownerUuid, worldName) != null) {
+        if (repository.hasDisplayNameConflict(ownerUuid, worldName)) {
             player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
             future.complete(false)
             return future

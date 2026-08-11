@@ -35,7 +35,8 @@ class SpotlightRepository(private val plugin: MyWorldManager) {
 
         // 存在しないワールドのUUIDを除去する（自動クリーンアップ）
         val existingUuids = loadedUuids.filter { uuid ->
-            plugin.worldConfigRepository.findByUuid(uuid) != null
+            plugin.worldConfigRepository.findByUuid(uuid) != null ||
+                plugin.worldConfigRepository.isQuarantined(uuid)
         }
 
         spotlightUuids = existingUuids.toMutableList()

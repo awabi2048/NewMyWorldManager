@@ -1794,7 +1794,7 @@ class WorldSettingsListener : Listener {
                 val result = plugin.worldValidator.validateName(newName)
                 if (result is WorldNameValidation.Failure) {
                         player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
-                } else if (plugin.worldConfigRepository.findByOwnerAndDisplayName(worldData.owner, newName, worldData.uuid) != null) {
+                } else if (plugin.worldConfigRepository.hasDisplayNameConflict(worldData.owner, newName, worldData.uuid)) {
                         player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
                 } else {
                         worldData.name = newName

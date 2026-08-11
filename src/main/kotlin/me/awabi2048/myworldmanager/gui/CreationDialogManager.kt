@@ -357,7 +357,7 @@ class CreationDialogManager {
                 return MenuActionResult.Rejected()
             }
             val cleanName = cleanWorldName(rawName)
-            if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, cleanName) != null) {
+            if (plugin.worldConfigRepository.hasDisplayNameConflict(player.uniqueId, cleanName)) {
                 val message = plugin.languageManager.getComponent(player, "messages.world_name_duplicate")
                 org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
                     showNameInputDialog(player, session, message)
@@ -471,7 +471,7 @@ class CreationDialogManager {
             val cost = session.creationType?.let { WorldRuntimePolicies.creationCost(plugin.config, it) } ?: 0
 
             val name = session.worldName ?: "New World"
-            if (plugin.worldConfigRepository.findByOwnerAndDisplayName(player.uniqueId, name) != null) {
+            if (plugin.worldConfigRepository.hasDisplayNameConflict(player.uniqueId, name)) {
                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
                 return
             }

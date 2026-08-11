@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.api.internal
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
+import me.awabi2048.myworldmanager.api.service.ApiWorldDataState
 import me.awabi2048.myworldmanager.model.WorldData
 import java.util.UUID
 
@@ -42,4 +43,18 @@ internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiW
     override fun delete(uuid: UUID) {
         plugin.worldConfigRepository.delete(uuid)
     }
+
+    override fun stateOf(uuid: UUID): ApiWorldDataState = when {
+        plugin.worldConfigRepository.findByUuid(uuid) != null -> ApiWorldDataState.AVAILABLE
+        plugin.worldConfigRepository.isQuarantined(uuid) -> ApiWorldDataState.QUARANTINED
+        else -> ApiWorldDataState.NOT_FOUND
+    }
+
+    override fun quarantinedCount(): Int = plugin.worldConfigRepository.quarantinedWorlds().size
+
+    override fun hasDisplayNameConflict(
+        ownerUuid: UUID,
+        worldName: String,
+        excludingUuid: UUID?,
+    ): Boolean = plugin.worldConfigRepository.hasDisplayNameConflict(ownerUuid, worldName, excludingUuid)
 }
