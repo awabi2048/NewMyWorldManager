@@ -68,9 +68,21 @@ class WorldListMenuService(private val plugin: MyWorldManager) : ApiWorldListMen
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
             ?: return MenuActionResult.Rejected()
         val isMember = isMember(player, worldData)
+        if (action != DiscoveryWorldAction.VISIT &&
+            !MyWorldManagerApi.getWorldAccessPolicy().canShowInDiscovery(player, worldData)
+        ) {
+            // 一覧描画後に公開状態やChanponの完成状態が変化した場合は、古い項目から操作させません。
+            return MenuActionResult.Rejected()
+        }
         return when (action) {
-            DiscoveryWorldAction.VISIT -> visit(player, worldData, isMember)
-            DiscoveryWorldAction.PREVIEW -> preview(player, worldData)
+            DiscoveryWorldAction.VISIT -> {
+                if (isCurrentWorld(player, worldData)) MenuActionResult.Ignored
+                else visit(player, worldData, isMember)
+            }
+            DiscoveryWorldAction.PREVIEW -> {
+                if (isCurrentWorld(player, worldData)) MenuActionResult.Ignored
+                else preview(player, worldData)
+            }
             DiscoveryWorldAction.REQUEST_MEMBERSHIP -> requestMembership(player, worldData, isMember)
             DiscoveryWorldAction.TOGGLE_FAVORITE -> toggleFavorite(
                 player,
@@ -223,6 +235,9 @@ class WorldListMenuService(private val plugin: MyWorldManager) : ApiWorldListMen
         val current = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return null
         return current.takeIf { it.uuid == expectedUuid }
     }
+
+    private fun isCurrentWorld(player: Player, worldData: WorldData): Boolean =
+        plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid
 
     private fun isMember(player: Player, worldData: WorldData): Boolean =
         player.uniqueId == worldData.owner ||
