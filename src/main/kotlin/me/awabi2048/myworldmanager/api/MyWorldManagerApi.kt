@@ -28,8 +28,13 @@ import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiBedrockFormService
-import me.awabi2048.myworldmanager.api.service.ApiTemplateRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
+import me.awabi2048.myworldmanager.api.extension.ApiWorldListMenuService
+import me.awabi2048.myworldmanager.api.extension.DiscoveryRouteCapability
+import me.awabi2048.myworldmanager.api.extension.DiscoveryRouteRequest
+import me.awabi2048.myworldmanager.api.extension.FavoriteListRouteCapability
+import me.awabi2048.myworldmanager.api.extension.FavoriteListRouteRequest
+import me.awabi2048.myworldmanager.api.service.ApiTemplateRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldEnvironmentService
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
 import me.awabi2048.myworldmanager.api.service.ApiWorldTagService
@@ -97,6 +102,10 @@ object MyWorldManagerApi {
         CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.WorldSettingsRouteCapability>()
     private val playerWorldRouteCapabilities =
         CopyOnWriteArrayList<me.awabi2048.myworldmanager.api.extension.PlayerWorldRouteCapability>()
+    private val discoveryRouteCapabilities =
+        CopyOnWriteArrayList<DiscoveryRouteCapability>()
+    private val favoriteListRouteCapabilities =
+        CopyOnWriteArrayList<FavoriteListRouteCapability>()
     private val worldDeleteGuards = CopyOnWriteArrayList<WorldDeleteGuard>()
     private val worldAccessPolicies = CopyOnWriteArrayList<WorldAccessPolicy>()
     private val commandPolicies = CopyOnWriteArrayList<CommandPolicy>()
@@ -158,6 +167,50 @@ object MyWorldManagerApi {
     }
 
     @JvmStatic
+    fun registerDiscoveryRouteCapability(capability: DiscoveryRouteCapability) {
+        discoveryRouteCapabilities.remove(capability)
+        discoveryRouteCapabilities.add(capability)
+    }
+
+    @JvmStatic
+    fun unregisterDiscoveryRouteCapability(capability: DiscoveryRouteCapability) {
+        discoveryRouteCapabilities.remove(capability)
+    }
+
+    /**
+     * 差し替えRouteだけを解決します。nullの場合は呼び出し側が標準/Bedrock経路へ戻ります。
+     */
+    @JvmStatic
+    fun resolveDiscoveryRouteOverride(
+        player: Player,
+        request: DiscoveryRouteRequest,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute? =
+        discoveryRouteCapabilities.asReversed().firstNotNullOfOrNull { capability ->
+            capability.prepare(player, request)
+        }
+
+    @JvmStatic
+    fun registerFavoriteListRouteCapability(capability: FavoriteListRouteCapability) {
+        favoriteListRouteCapabilities.remove(capability)
+        favoriteListRouteCapabilities.add(capability)
+    }
+
+    @JvmStatic
+    fun unregisterFavoriteListRouteCapability(capability: FavoriteListRouteCapability) {
+        favoriteListRouteCapabilities.remove(capability)
+    }
+
+    /** 差し替えRouteがなければnullを返し、標準/Bedrock経路の選択を呼び出し側へ委ねます。 */
+    @JvmStatic
+    fun resolveFavoriteListRouteOverride(
+        player: Player,
+        request: FavoriteListRouteRequest,
+    ): com.awabi2048.ccsystem.api.gui.MenuRoute? =
+        favoriteListRouteCapabilities.asReversed().firstNotNullOfOrNull { capability ->
+            capability.prepare(player, request)
+        }
+
+    @JvmStatic
     fun prepareWorldSettingsRoute(
         player: Player,
         worldUuid: UUID,
@@ -201,6 +254,11 @@ object MyWorldManagerApi {
     fun getPlayerWorlds(playerUuid: UUID): List<WorldData> =
         JavaPlugin.getPlugin(MyWorldManager::class.java).playerWorldGui
             .getPlayerWorlds(playerUuid)
+
+    /** Discovery/Favorite差し替え画面が利用する、MWM所有の一覧Query/Action境界です。 */
+    @JvmStatic
+    fun getWorldListMenuService(): ApiWorldListMenuService =
+        JavaPlugin.getPlugin(MyWorldManager::class.java).worldListMenuService
 
     /** ルート差し替え側でも標準画面と同じ現在ワールド表示を再利用します。 */
     @JvmStatic

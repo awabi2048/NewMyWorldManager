@@ -36,6 +36,37 @@ fun interface PlayerWorldRouteCapability {
 }
 
 /**
+ * Discovery の表示実装をアドオンへ差し替えるためのRoute境界です。
+ *
+ * 標準MWM画面を直接変更せず、アドオンがRouteを返した場合だけその画面へ遷移します。
+ * nullを返した場合はMWM標準画面へフォールバックします。
+ */
+data class DiscoveryRouteRequest(
+    val page: Int = 0,
+    val showBackButton: Boolean = false,
+)
+
+fun interface DiscoveryRouteCapability {
+    fun prepare(
+        player: Player,
+        request: DiscoveryRouteRequest,
+    ): MenuRoute?
+}
+
+/** Favorite一覧の表示実装をアドオンへ差し替えるためのRoute境界です。 */
+data class FavoriteListRouteRequest(
+    val page: Int = 0,
+    val showBackButton: Boolean = false,
+)
+
+fun interface FavoriteListRouteCapability {
+    fun prepare(
+        player: Player,
+        request: FavoriteListRouteRequest,
+    ): MenuRoute?
+}
+
+/**
  * 独立したPresenterから呼び出せる、MWM所有のワールド設定ユースケースです。
  */
 enum class WorldSettingsAction {

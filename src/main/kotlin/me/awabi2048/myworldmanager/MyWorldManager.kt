@@ -53,6 +53,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var worldPublishService: WorldPublishService
     lateinit var worldSettingsStateService: WorldSettingsStateService
     lateinit var favoriteStateService: FavoriteStateService
+    lateinit var worldListMenuService: me.awabi2048.myworldmanager.service.WorldListMenuService
     lateinit var worldEnvironmentService: WorldEnvironmentService
     lateinit var worldGui: WorldGui
     lateinit var creationSessionManager: CreationSessionManager
@@ -308,6 +309,8 @@ class MyWorldManager : JavaPlugin() {
         bedrockMenuService =
                 BedrockMenuService(this, bedrockUiRoutingService, floodgateFormBridge)
         menuEntryRouter = MenuEntryRouter(this, playerPlatformResolver, bedrockMenuService)
+        // Discovery/Favoriteの差し替え画面も、標準操作をこのFacade経由で再利用します。
+        worldListMenuService = me.awabi2048.myworldmanager.service.WorldListMenuService(this)
         val worldMenuCommand = WorldMenuCommand(this)
         CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld")
         CCSystem.getAPI().getMenuCommandService().register(

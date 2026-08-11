@@ -2,6 +2,9 @@ package me.awabi2048.myworldmanager.ui
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.DiscoveryRouteRequest
+import me.awabi2048.myworldmanager.api.extension.FavoriteListRouteRequest
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.service.MemberRequestInfo
 import me.awabi2048.myworldmanager.ui.bedrock.BedrockMenuService
@@ -73,6 +76,13 @@ class MenuEntryRouter(
 
     fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
         if (!showBackButton) resetTopLevelMenuState(player)
+        MyWorldManagerApi.resolveDiscoveryRouteOverride(
+            player,
+            DiscoveryRouteRequest(page, showBackButton),
+        )?.let { route ->
+            CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
+            return
+        }
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openDiscovery(player, page, showBackButton)
             return
@@ -87,6 +97,13 @@ class MenuEntryRouter(
         showBackButton: Boolean = false
     ) {
         if (!showBackButton) resetTopLevelMenuState(player)
+        MyWorldManagerApi.resolveFavoriteListRouteOverride(
+            player,
+            FavoriteListRouteRequest(page, showBackButton),
+        )?.let { route ->
+            CCSystem.getAPI().getMenuRuntimeService().navigate(player, route)
+            return
+        }
         if (platformResolver.isBedrock(player)) {
             bedrockMenuService.openFavoriteList(player, page, showBackButton)
             return
