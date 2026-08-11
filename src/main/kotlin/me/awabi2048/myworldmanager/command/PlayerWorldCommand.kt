@@ -85,7 +85,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             return true
         }
 
-        if (args.size == 1 && sender.hasPermission("myworldmanager.admin")) {
+        if (args.size == 1 && PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MYWORLD_OTHER)) {
             val target = PlayerNameUtil.resolveOfflinePlayer(plugin, args[0])
             if (target == null) {
                 sender.sendMessage(plugin.languageManager.getMessage(sender, "general.player_not_found"))
@@ -166,7 +166,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
                     if (plugin.playerPlatformResolver.isBedrock(sender)) {
                         addAll(listOf("transfer", "remove_member"))
                     }
-                    if (sender.hasPermission("myworldmanager.admin")) {
+                    if (PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MYWORLD_OTHER)) {
                         addAll(Bukkit.getOfflinePlayers().mapNotNull { it.name }.take(50))
                     }
                 }.distinct().filter { it.startsWith(args[0], ignoreCase = true) }

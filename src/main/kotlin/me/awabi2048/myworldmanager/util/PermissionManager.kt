@@ -16,6 +16,11 @@ object PermissionManager {
     const val COMMAND_INVITE = "myworldmanager.command.invite"
     const val COMMAND_MEET = "myworldmanager.command.meet"
     const val COMMAND_MYWORLD = "myworldmanager.command.myworld"
+    /**
+     * 他プレイヤーの MyWorld を代理閲覧する権限です。
+     * 通常の /myworld と分離し、plugin.yml では管理者権限の子としてのみ付与します。
+     */
+    const val COMMAND_MYWORLD_OTHER = "myworldmanager.command.myworld.other"
     const val COMMAND_SETTINGS = "myworldmanager.command.settings"
     const val COMMAND_TOUR = "myworldmanager.command.tour"
     const val COMMAND_VISIT = "myworldmanager.command.visit"

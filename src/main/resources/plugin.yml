@@ -71,6 +71,7 @@ permissions:
       myworldmanager.force_add_member: true
       myworldmanager.command.mwm.create: true
       myworldmanager.admin.bypass_world_limits: true
+      myworldmanager.command.myworld.other: true
   myworldmanager.admin.world_list:
     description: Allows access to admin world list menu (/mwm list)
     default: false
@@ -84,7 +85,7 @@ permissions:
     default: false
   myworldmanager.citizen:
     description: Allows access to basic player commands
-    default: true
+    default: false
     children:
       myworldmanager.command.discovery: true
       myworldmanager.command.favorite: true
@@ -118,6 +119,9 @@ permissions:
     default: false
   myworldmanager.command.myworld:
     description: Allows use of /myworld
+    default: false
+  myworldmanager.command.myworld.other:
+    description: Allows viewing another player's MyWorld through /myworld <player>
     default: false
   myworldmanager.command.settings:
     description: Allows use of /settings
