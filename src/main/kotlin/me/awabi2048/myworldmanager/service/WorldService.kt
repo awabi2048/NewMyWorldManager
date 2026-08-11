@@ -972,6 +972,9 @@ class WorldService(
 
     private fun generateUniqueWorldUuid(): UUID {
         val usedWarpIds = repository.findAll().mapTo(mutableSetOf()) { WorldWarpId.of(it.uuid) }
+        // 隔離中のUUIDも予約済みとして扱い、移行前データへ新規ワールドを重ねません。
+        repository.quarantinedWorlds().mapNotNull { it.uuid }
+            .forEach { usedWarpIds += WorldWarpId.of(it) }
         repeat(100) {
             val uuid = UUID.randomUUID()
             val folderName = "my_world.$uuid"
