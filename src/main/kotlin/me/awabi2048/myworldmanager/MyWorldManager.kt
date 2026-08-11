@@ -271,7 +271,7 @@ class MyWorldManager : JavaPlugin() {
         worldPermissionPolicyService = WorldPermissionPolicyService(
                 server.servicesManager.getRegistration(LuckPerms::class.java)?.provider,
                 server.pluginManager.isPluginEnabled("WorldGuard"),
-                config.getString("permissions.world_work_group", "builder").orEmpty().trim(),
+                config.getString("permissions.world_work_group", "basic_tool").orEmpty().trim(),
                 logger,
                 dataFolder
         )
@@ -368,11 +368,14 @@ class MyWorldManager : JavaPlugin() {
                 WorldPermissionPolicyListener(worldConfigRepository, worldPermissionPolicyService),
                 this
         )
-        // サーバー起動時点ですでにロード済みのMyWorldにも、一度だけ初期ポリシーを適用する。
+        // LuckPermsの旧グループを未ロードワールドからも除去できるよう、永続権限は全MyWorldへ同期する。
+        // WorldGuardとゲームルールの初期化は、従来どおりロード済みワールドだけに限定する。
         server.scheduler.runTask(this, Runnable {
-            worldConfigRepository.findAll()
+            val worlds = worldConfigRepository.findAll()
+            worlds.forEach(worldPermissionPolicyService::syncPersistentParticipantPermissions)
+            worlds
                     .filter { Bukkit.getWorld(WorldPermissionPolicyService.worldName(it)) != null }
-                    .forEach(worldPermissionPolicyService::initializeWorld)
+                    .forEach(worldPermissionPolicyService::initializeDefaultsOnce)
         })
         server.pluginManager.registerEvents(AccessControlListener(this), this)
         server.pluginManager.registerEvents(BorderExpansionChangeListener(this), this)
@@ -482,9 +485,20 @@ class MyWorldManager : JavaPlugin() {
                 sourcePlugin = this,
                 resourcePath = resourcePath,
                 targetPath = File(dataFolder, resourcePath).toPath(),
-                currentVersion = 1,
+                currentVersion = if (resourcePath == "config.yml") 2 else 1,
                 classification = classification,
-                migrations = emptyMap(),
+                migrations = if (resourcePath == "config.yml") {
+                    mapOf(
+                        1 to com.awabi2048.ccsystem.api.config.ConfigMigration { config ->
+                            // 旧既定値だけを移行し、管理者が明示した別グループは上書きしません。
+                            if (config.getString("permissions.world_work_group") == "builder") {
+                                config.set("permissions.world_work_group", "basic_tool")
+                            }
+                        },
+                    )
+                } else {
+                    emptyMap()
+                },
                 validator = com.awabi2048.ccsystem.api.config.ConfigValidator {},
                 reloadAction = null
             )

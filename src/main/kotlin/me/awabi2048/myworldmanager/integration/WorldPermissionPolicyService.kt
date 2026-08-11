@@ -66,6 +66,14 @@ class WorldPermissionPolicyService(
 
     fun syncParticipants(worldData: WorldData) {
         syncWorldGuardDomains(worldData)
+        syncPersistentParticipantPermissions(worldData)
+    }
+
+    /**
+     * ワールドが未ロードでもLuckPermsのワールドコンテキストを移行できるよう、
+     * 永続権限だけを同期します。設定変更時の旧グループ除去はロード待ちにしません。
+     */
+    fun syncPersistentParticipantPermissions(worldData: WorldData) {
         syncParticipantPermissions(worldData, worldData.owner, OWNER_PERMISSIONS)
         (worldData.members + worldData.moderators)
             .distinct()

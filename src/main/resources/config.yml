@@ -44,7 +44,7 @@ deletion:
 
 # LuckPerms group granted to MyWorld participants only in their world context. Empty disables it.
 permissions:
-  world_work_group: "builder"
+  world_work_group: "basic_tool"
 
 default_expiration:
   initial_days: 90
@@ -190,4 +190,4 @@ bedrock:
 warp:
   load_wait_ticks: 10
 
-config_version: 1
+config_version: 2

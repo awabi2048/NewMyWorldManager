@@ -59,19 +59,12 @@ class CurrentWorldMenuElementFactory(private val plugin: MyWorldManager) {
     }
 
     private fun createUnmanaged(player: Player, slot: Int): MenuElement {
-        val lang = plugin.languageManager
-        return CCSystem.getAPI().getGuiElementService().menuEntry(
-            player,
-            GuiMenuEntrySpec(
-                slot = slot,
-                material = Material.COMPASS,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.current_world.name")),
-                role = GuiElementRole.CONTENT,
-                data = listOf(
-                    GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.world_name"), player.world.name, GuiValueTone.SUCCESS),
-                ),
-                warnings = listOf(lang.getMessage(player, "gui.favorite.current_world.unmanaged")),
-            ),
+        // 管理対象外のワールドは「現在のマイワールド」ではないため、
+        // コンパスの情報項目を置かず、標準フッターの背景だけを維持します。
+        // これにより、/myworld・Favorite・Bedrock一覧で同じ表示契約になります。
+        return CCSystem.getAPI().getGuiElementService().backgroundEntry(
+            slot,
+            Material.BLACK_STAINED_GLASS_PANE,
         )
     }
 }

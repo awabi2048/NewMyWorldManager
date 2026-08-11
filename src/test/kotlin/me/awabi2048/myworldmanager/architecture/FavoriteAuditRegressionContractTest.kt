@@ -25,6 +25,14 @@ class FavoriteAuditRegressionContractTest {
     }
 
     @Test
+    fun `管理対象外の現在地はアイコンではなくフッター背景として描画する`() {
+        val source = sourceRoot.resolve("gui/CurrentWorldMenuElementFactory.kt").readText()
+        assertTrue("backgroundEntry(" in source)
+        assertTrue("Material.BLACK_STAINED_GLASS_PANE" in source)
+        assertFalse("material = Material.COMPASS" in source)
+    }
+
+    @Test
     fun `visitで自分を指定した場合はmyworldコマンド入口へ委譲する`() {
         val source = sourceRoot.resolve("command/VisitCommand.kt").readText()
         assertTrue("Bukkit.dispatchCommand(player, \"myworld\")" in source)
