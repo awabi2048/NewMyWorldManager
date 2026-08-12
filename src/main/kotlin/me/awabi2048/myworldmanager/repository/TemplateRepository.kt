@@ -6,11 +6,16 @@ import me.awabi2048.myworldmanager.model.TemplateData
 import org.bukkit.Material
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
+import java.nio.channels.FileChannel
 import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.nio.file.StandardCopyOption
 import java.time.Instant
 
 class TemplateRepository(private val plugin: MyWorldManager) {
+    companion object {
+        const val CURRENT_SCHEMA_VERSION = 1
+    }
     enum class ValidationIssue {
         MISSING_DIRECTORY,
         MISSING_ORIGIN
@@ -30,15 +35,13 @@ class TemplateRepository(private val plugin: MyWorldManager) {
      * ファイルの修正は行わず、問題のあるセクションを移行対象として隔離します。
      */
     fun loadTemplates() {
-        if (!configFile.exists()) {
-            plugin.saveResource("templates.yml", false)
-        }
+        if (!configFile.exists()) plugin.saveResource("templates.yml", false)
 
         templates.clear()
         missingTemplates.clear()
         quarantined.clear()
         val config = try {
-            YamlConfiguration.loadConfiguration(configFile)
+            loadStrict()
         } catch (e: Exception) {
             quarantined["<file>"] = QuarantinedTemplateData(
                 id = "<file>",
@@ -50,10 +53,26 @@ class TemplateRepository(private val plugin: MyWorldManager) {
             return
         }
 
+        val configSchemaVersion = (config.get("config_version") as? Number)?.toInt()
+        if (configSchemaVersion != CURRENT_SCHEMA_VERSION) {
+            quarantined["<file>"] = QuarantinedTemplateData(
+                id = "<file>",
+                reason = "templates.yml has unsupported config_version: ${configSchemaVersion ?: "missing"}",
+                detectedAt = Instant.now(),
+                contentHash = MigrationFileFingerprint.sha256(configFile),
+            )
+        }
         config.getKeys(false).forEach { key ->
             val section = config.getConfigurationSection(key) ?: return@forEach
             try {
                 val path = section.getString("path") ?: ""
+                check(configSchemaVersion == CURRENT_SCHEMA_VERSION) {
+                    "templates.yml has unsupported config_version: ${configSchemaVersion ?: "missing"}"
+                }
+                val sectionSchemaVersion = (section.get("schema_version") as? Number)?.toInt()
+                check(sectionSchemaVersion == CURRENT_SCHEMA_VERSION) {
+                    "Template '$key' has unsupported schema_version: ${sectionSchemaVersion ?: "missing"}"
+                }
                 val dimension = ManagedDimension.parse(
                     section.getString("dimension")
                         ?: throw IllegalArgumentException("Template '$key' has no dimension")
@@ -102,7 +121,7 @@ class TemplateRepository(private val plugin: MyWorldManager) {
                     reason = e.message ?: e.javaClass.simpleName,
                     detectedAt = Instant.now(),
                     path = section.getString("path"),
-                    contentHash = MigrationFileFingerprint.sha256(configFile),
+                    contentHash = MigrationFileFingerprint.sha256Section(config, key),
                 )
                 plugin.logger.warning("テンプレート $key を隔離しました: ${e.message}")
             }
@@ -116,6 +135,10 @@ class TemplateRepository(private val plugin: MyWorldManager) {
     fun isQuarantined(id: String): Boolean = quarantined.containsKey(id)
 
     fun findById(id: String): TemplateData? = templates[id]
+
+    fun schemaVersion(): Int? = runCatching { loadStrict().get("config_version") as? Number }
+        .getOrNull()
+        ?.toInt()
 
     fun findByWorldKey(key: org.bukkit.NamespacedKey): TemplateData? = templates.values.firstOrNull { template ->
         org.bukkit.NamespacedKey.fromString(template.path) == key
@@ -141,10 +164,74 @@ class TemplateRepository(private val plugin: MyWorldManager) {
         dimension: ManagedDimension? = null,
         forceDimension: Boolean = false,
     ): MetadataMigrationResult {
-        val config = YamlConfiguration.loadConfiguration(configFile)
+        val config = runCatching { loadStrict() }.getOrElse { error ->
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "cannot read templates.yml: ${error.message ?: error.javaClass.simpleName}",
+            )
+        }
+        val fileSchemaVersion = (config.get("config_version") as? Number)?.toInt()
+        if (id == "<file>") {
+            if (fileSchemaVersion != null && fileSchemaVersion > CURRENT_SCHEMA_VERSION) {
+                return MetadataMigrationResult(
+                    MetadataMigrationStatus.FAILED,
+                    "templates.yml schema is newer than this plugin: $fileSchemaVersion",
+                )
+            }
+            val quarantinedData = quarantined[id]
+            val currentHash = MigrationFileFingerprint.sha256(configFile)
+            if (quarantinedData?.contentHash != null && quarantinedData.contentHash != currentHash) {
+                return MetadataMigrationResult(
+                    MetadataMigrationStatus.FAILED,
+                    "templates.yml changed after quarantine",
+                )
+            }
+            if (fileSchemaVersion == CURRENT_SCHEMA_VERSION) {
+                return MetadataMigrationResult(MetadataMigrationStatus.ALREADY_CURRENT, "already current: templates.yml")
+            }
+            val backup = File(configFile.parentFile, "${configFile.name}.pre-migration-${System.currentTimeMillis()}.bak")
+            val temporary = File(configFile.parentFile, "${configFile.name}.migration.tmp")
+            return try {
+                Files.copy(configFile.toPath(), backup.toPath())
+                config.set("config_version", CURRENT_SCHEMA_VERSION)
+                config.getKeys(false).forEach { key ->
+                    val section = config.getConfigurationSection(key) ?: return@forEach
+                    val normalized = WorldDataYamlMigration.normalizeDimension(section.getString("dimension"))
+                    if (normalized != null) {
+                        section.set("dimension", normalized)
+                        section.set("schema_version", CURRENT_SCHEMA_VERSION)
+                    }
+                }
+                config.save(temporary)
+                moveAtomically(temporary, configFile)
+                loadTemplates()
+                MetadataMigrationResult(MetadataMigrationStatus.MIGRATED, "migrated: templates.yml")
+            } catch (e: Exception) {
+                temporary.delete()
+                runCatching { Files.copy(backup.toPath(), configFile.toPath(), StandardCopyOption.REPLACE_EXISTING) }
+                loadTemplates()
+                MetadataMigrationResult(
+                    MetadataMigrationStatus.FAILED,
+                    "template file migration failed: ${e.message ?: e.javaClass.simpleName}",
+                )
+            }
+        }
+        if (fileSchemaVersion != null && fileSchemaVersion > CURRENT_SCHEMA_VERSION) {
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "template schema is newer than this plugin: $id",
+            )
+        }
         val section = config.getConfigurationSection(id)
             ?: return MetadataMigrationResult(MetadataMigrationStatus.FAILED, "template not found: $id")
         val currentRaw = section.getString("dimension")
+        val currentSchema = (section.get("schema_version") as? Number)?.toInt()
+        if (currentSchema != null && currentSchema > CURRENT_SCHEMA_VERSION) {
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "template schema is newer than this plugin: $id",
+            )
+        }
         val quarantinedData = quarantined[id]
         if (forceDimension && quarantinedData == null) {
             return MetadataMigrationResult(
@@ -152,7 +239,7 @@ class TemplateRepository(private val plugin: MyWorldManager) {
                 "template is not quarantined: $id"
             )
         }
-        val currentHash = MigrationFileFingerprint.sha256(configFile)
+        val currentHash = MigrationFileFingerprint.sha256Section(config, id)
         if (quarantinedData?.contentHash != null && quarantinedData.contentHash != currentHash) {
             return MetadataMigrationResult(
                 MetadataMigrationStatus.FAILED,
@@ -171,11 +258,16 @@ class TemplateRepository(private val plugin: MyWorldManager) {
                 "dimension is required: $id",
             )
         }
-        if (currentRaw == targetDimension.name) {
+        if (fileSchemaVersion == CURRENT_SCHEMA_VERSION &&
+            currentSchema == CURRENT_SCHEMA_VERSION &&
+            currentRaw == targetDimension.name
+        ) {
             return MetadataMigrationResult(MetadataMigrationStatus.ALREADY_CURRENT, "already current: $id")
         }
 
         section.set("dimension", targetDimension.name)
+        section.set("schema_version", CURRENT_SCHEMA_VERSION)
+        config.set("config_version", CURRENT_SCHEMA_VERSION)
         val backup = File(configFile.parentFile, "${configFile.name}.pre-migration-${System.currentTimeMillis()}.bak")
         val temporary = File(configFile.parentFile, "${configFile.name}.migration.tmp")
         try {
@@ -197,13 +289,16 @@ class TemplateRepository(private val plugin: MyWorldManager) {
     }
 
     fun saveTemplate(template: TemplateData) {
+        check(!isQuarantined("<file>")) {
+            "Cannot save templates while templates.yml is quarantined"
+        }
         check(!isQuarantined(template.id)) {
             "Cannot save quarantined template: ${template.id}"
         }
-        templates[template.id] = template
-        val config = YamlConfiguration.loadConfiguration(configFile)
+        val config = loadStrict()
         val section = config.createSection(template.id)
         section.set("path", template.path)
+        section.set("schema_version", CURRENT_SCHEMA_VERSION)
         section.set("dimension", template.dimension.name)
         section.set("name", template.name)
         section.set("description", template.description)
@@ -213,7 +308,21 @@ class TemplateRepository(private val plugin: MyWorldManager) {
         }
         section.set("preview_time", template.previewTime)
         section.set("preview_weather", template.previewWeather)
-        config.save(configFile)
+        config.set("config_version", CURRENT_SCHEMA_VERSION)
+        val temporary = File(configFile.parentFile, "${configFile.name}.save.tmp")
+        try {
+            config.save(temporary)
+            FileChannel.open(temporary.toPath(), StandardOpenOption.WRITE).use { it.force(true) }
+            val verified = YamlConfiguration().also { it.load(temporary) }
+            check((verified.get("config_version") as? Number)?.toInt() == CURRENT_SCHEMA_VERSION)
+            check((verified.get("${template.id}.schema_version") as? Number)?.toInt() == CURRENT_SCHEMA_VERSION)
+            moveAtomically(temporary, configFile)
+            loadTemplates()
+            check(!isQuarantined(template.id)) { "saved template remains quarantined: ${template.id}" }
+        } catch (error: Exception) {
+            temporary.delete()
+            throw IllegalStateException("Could not save template ${template.id}", error)
+        }
     }
 
     private fun moveAtomically(source: File, target: File) {
@@ -228,4 +337,6 @@ class TemplateRepository(private val plugin: MyWorldManager) {
             Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
     }
+
+    private fun loadStrict(): YamlConfiguration = YamlConfiguration().also { it.load(configFile) }
 }

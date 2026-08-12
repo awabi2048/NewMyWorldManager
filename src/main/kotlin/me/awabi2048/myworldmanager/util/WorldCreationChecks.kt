@@ -21,8 +21,8 @@ object WorldCreationChecks {
         }
         val decision = WorldCreationLimitPolicy.evaluate(
             actor = actor,
-            totalCount = plugin.worldConfigRepository.findAll().size,
-            ownerCount = plugin.worldConfigRepository.findAll().count { it.owner == targetOwner },
+            totalCount = plugin.worldConfigRepository.totalCountIncludingQuarantine(),
+            ownerCount = plugin.worldConfigRepository.ownerCountIncludingQuarantine(targetOwner),
             totalLimit = plugin.config.getInt("creation.max_total_world_count", 50),
             ownerLimit = ownerLimit
         )
@@ -37,7 +37,7 @@ object WorldCreationChecks {
                 mapOf("max" to plugin.config.getInt("creation.max_total_world_count", 50))
             } else {
                 val max = ownerLimit
-                mapOf("current" to plugin.worldConfigRepository.findAll().count { it.owner == targetOwner }, "max" to max)
+                mapOf("current" to plugin.worldConfigRepository.ownerCountIncludingQuarantine(targetOwner), "max" to max)
             }
             actor.sendMessage(plugin.languageManager.getMessage(actor as? Player, key, placeholders))
         }

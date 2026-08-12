@@ -62,6 +62,20 @@ class WorldDirectoryResolver(
         }.sortedBy { it.folderName }
     }
 
+    /**
+     * UUIDを安全に特定できない、または通常の移行対象一覧へ分類できないディレクトリです。
+     * 全ワールド操作ではこれを無視すると、未解決データを残したまま削除・アーカイブを
+     * 進めるため、対象UUIDを持たない保留として別途報告します。
+     */
+    fun findUnresolvedWorldDirectories(): List<String> =
+        directoryService.listLegacyByNamePrefix(PREFIX)
+            .map { it.fileName.toString() }
+            .filter { folderName ->
+                parseWorldUuid(folderName) == null ||
+                    inspect(folderName)?.state == WorldDirectoryState.UNSAFE
+            }
+            .sorted()
+
     private fun isValidFolderName(folderName: String): Boolean {
         if (folderName.isBlank() || folderName == "." || folderName == "..") return false
         if (folderName.contains('/') || folderName.contains('\\')) return false

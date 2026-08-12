@@ -4,6 +4,7 @@ import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
 import me.awabi2048.myworldmanager.api.service.ApiWorldDataState
 import me.awabi2048.myworldmanager.model.WorldData
+import java.io.File
 import java.util.UUID
 
 internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiWorldRepository {
@@ -44,17 +45,27 @@ internal class WorldRepositoryAdapter(private val plugin: MyWorldManager) : ApiW
         plugin.worldConfigRepository.delete(uuid)
     }
 
+    override fun readCurrentDataFile(file: File, expectedUuid: UUID): WorldData =
+        plugin.worldConfigRepository.readCurrentDataFile(file, expectedUuid)
+
     override fun stateOf(uuid: UUID): ApiWorldDataState = when {
         plugin.worldConfigRepository.findByUuid(uuid) != null -> ApiWorldDataState.AVAILABLE
         plugin.worldConfigRepository.isQuarantined(uuid) -> ApiWorldDataState.QUARANTINED
         else -> ApiWorldDataState.NOT_FOUND
     }
 
-    override fun quarantinedCount(): Int = plugin.worldConfigRepository.quarantinedWorlds().size
+    override fun quarantinedCount(): Int =
+        plugin.worldConfigRepository.totalCountIncludingQuarantine() - plugin.worldConfigRepository.findAll().size
 
     override fun hasDisplayNameConflict(
         ownerUuid: UUID,
         worldName: String,
         excludingUuid: UUID?,
     ): Boolean = plugin.worldConfigRepository.hasDisplayNameConflict(ownerUuid, worldName, excludingUuid)
+
+    override fun totalCountIncludingQuarantine(): Int =
+        plugin.worldConfigRepository.totalCountIncludingQuarantine()
+
+    override fun ownerCountIncludingQuarantine(ownerUuid: UUID): Int =
+        plugin.worldConfigRepository.ownerCountIncludingQuarantine(ownerUuid)
 }

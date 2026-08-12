@@ -77,8 +77,41 @@ class PortalManager(private val plugin: MyWorldManager) {
         )
     }
 
-    fun refundPointsForRemovedGate(portal: PortalData): GateRefundResult? {
-        if (!portal.isGate()) return null
+    /**
+     * ポータル削除とゲート返金を一つの境界で処理します。
+     * 先に返金してから repository の移行ゲートを通すと、移行保留時に返金だけが残るため、
+     * 必ず書き込み可否を確認してポータルを永続削除した後に返金します。返金に失敗した場合は
+     * 削除前のポータルを復元し、削除と返金の片方だけが成功した状態を避けます。
+     */
+    fun removePortalAndRefund(portal: PortalData): GateRefundResult? {
+        plugin.portalRepository.ensureWritableForOperation()
+        if (!portal.isGate()) {
+            plugin.portalRepository.removePortal(portal.id)
+            return null
+        }
+
+        val refund = calculateGateRefund(portal)
+        if (refund.points > 0) {
+            plugin.playerStatsRepository.ensureWritableForOperation(portal.ownerUuid)
+        }
+        plugin.portalRepository.removePortal(portal.id)
+        return try {
+            applyGateRefund(portal, refund)
+            refund
+        } catch (error: Exception) {
+            runCatching { plugin.portalRepository.addPortal(portal) }
+                .onFailure { restoreError ->
+                    plugin.logger.log(
+                        java.util.logging.Level.SEVERE,
+                        "Could not restore portal after failed gate refund: ${portal.id}",
+                        restoreError,
+                    )
+                }
+            throw error
+        }
+    }
+
+    private fun calculateGateRefund(portal: PortalData): GateRefundResult {
         if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) {
             return GateRefundResult(0, 0, portal.ownerUuid)
         }
@@ -91,13 +124,14 @@ class PortalManager(private val plugin: MyWorldManager) {
         val refund = kotlin.math.floor(cost * rate).toInt().coerceAtLeast(0)
         val percent = kotlin.math.floor(rate * 100.0).toInt().coerceIn(0, 100)
 
-        if (refund > 0) {
-            val ownerStats = plugin.playerStatsRepository.findByUuid(portal.ownerUuid)
-            ownerStats.worldPoint += refund
-            plugin.playerStatsRepository.save(ownerStats)
-        }
-
         return GateRefundResult(refund, percent, portal.ownerUuid)
+    }
+
+    private fun applyGateRefund(portal: PortalData, refund: GateRefundResult) {
+        if (refund.points <= 0) return
+        val ownerStats = plugin.playerStatsRepository.findByUuid(portal.ownerUuid)
+        ownerStats.worldPoint += refund.points
+        plugin.playerStatsRepository.save(ownerStats)
     }
 
     fun startTasks() {
@@ -150,6 +184,12 @@ class PortalManager(private val plugin: MyWorldManager) {
      * 旧バージョンで保存されたTextDisplay UUIDをクリア
      */
     private fun clearLegacyTextDisplayUuids() {
+        if (plugin.portalRepository.migrationParticipant.status().state !=
+            me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantState.CURRENT
+        ) {
+            plugin.logger.warning("Portal visual cleanup is paused until /mwm migration completes.")
+            return
+        }
         val portals = plugin.portalRepository.findAll()
         var changed = false
         for (portal in portals) {
@@ -248,8 +288,15 @@ class PortalManager(private val plugin: MyWorldManager) {
             if (!portal.isGate()) {
                 val block = world.getBlockAt(portal.x, portal.y, portal.z)
                 if (block.type != org.bukkit.Material.END_PORTAL_FRAME) {
-                    removePortalVisuals(portal.id)
-                    plugin.portalRepository.removePortal(portal.id)
+                    runCatching {
+                        plugin.portalRepository.removePortal(portal.id)
+                    }.onSuccess {
+                        removePortalVisuals(portal.id)
+                    }.onFailure { error ->
+                        plugin.logger.fine(
+                            "Portal cleanup is paused for ${portal.id}: ${error.message ?: error.javaClass.simpleName}",
+                        )
+                    }
                     continue
                 }
             }

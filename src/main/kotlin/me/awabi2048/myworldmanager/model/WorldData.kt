@@ -63,6 +63,7 @@ data class WorldData(
 
     override fun serialize(): Map<String, Any?> {
         return mutableMapOf(
+            "schema_version" to CURRENT_SCHEMA_VERSION,
             "uuid" to uuid.toString(),
             "dimension" to dimension.name,
             "name" to name,
@@ -108,11 +109,16 @@ data class WorldData(
     }
 
     companion object {
+        const val CURRENT_SCHEMA_VERSION = 1
         const val EXPANSION_LEVEL_SPECIAL = -1
         const val DEFAULT_GRAVITY = 0.08
 
         @JvmStatic
         fun deserialize(args: Map<String, Any>): WorldData {
+            val schemaVersion = (args["schema_version"] as? Number)?.toInt()
+            require(schemaVersion == CURRENT_SCHEMA_VERSION) {
+                "Unsupported WorldData schema_version: ${schemaVersion ?: "missing"}"
+            }
             val createdAtRaw = args["created_at"]
             val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             val createdAtVal = if (createdAtRaw is String) {

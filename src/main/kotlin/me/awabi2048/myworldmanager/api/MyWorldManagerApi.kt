@@ -28,6 +28,9 @@ import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiBedrockFormService
+import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipant
+import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantResult
+import me.awabi2048.myworldmanager.api.service.ApiMigrationPreflight
 import me.awabi2048.myworldmanager.api.service.ApiWorldRepository
 import me.awabi2048.myworldmanager.api.extension.ApiWorldListMenuService
 import me.awabi2048.myworldmanager.api.extension.DiscoveryRouteCapability
@@ -118,6 +121,93 @@ object MyWorldManagerApi {
     private val worldWorkPermissionPolicies = CopyOnWriteArrayList<WorldWorkPermissionPolicy>()
     private var worldWorkPermissionSyncService: WorldWorkPermissionSyncService? = null
     private var bedrockFormService: ApiBedrockFormService? = null
+    private val migrationParticipants = CopyOnWriteArrayList<ApiMigrationParticipant>()
+    /**
+     * 移行の書き込み処理はステータス公開用の participant と分離して保持します。
+     * この map は MWM 内部からしか実行できないため、外部プラグインが participant を取得して
+     * 任意のタイミングで移行書き込みを開始する経路を作りません。
+     */
+    private val migrationExecutors = java.util.concurrent.ConcurrentHashMap<String, () -> ApiMigrationParticipantResult>()
+
+    @JvmStatic
+    fun registerMigrationParticipant(participant: ApiMigrationParticipant) {
+        registerMigrationParticipant(participant, null)
+    }
+
+    @JvmStatic
+    fun registerMigrationParticipant(
+        participant: ApiMigrationParticipant,
+        migrationExecutor: (() -> ApiMigrationParticipantResult)?,
+    ) {
+        migrationParticipants.removeIf { it.getId() == participant.getId() }
+        migrationExecutors.remove(participant.getId())
+        migrationParticipants.add(participant)
+        migrationExecutor?.let { migrationExecutors[participant.getId()] = it }
+    }
+
+    @JvmStatic
+    fun unregisterMigrationParticipant(participant: ApiMigrationParticipant) {
+        migrationParticipants.removeIf { it === participant || it.getId() == participant.getId() }
+        migrationExecutors.remove(participant.getId())
+    }
+
+    @JvmStatic
+    fun getMigrationParticipants(): List<ApiMigrationParticipant> = migrationParticipants.toList()
+
+    /**
+     * /mwm migration からだけ呼び出す、登録済み移行処理の内部実行口です。
+     * 外部 API には公開せず、実行元を WorldMigrationService に限定します。
+     */
+    @kotlin.jvm.JvmSynthetic
+    internal fun executeMigrationParticipant(id: String): ApiMigrationParticipantResult? =
+        migrationExecutors[id]?.invoke()
+
+    /** /mwm migration の全体状態を、破壊的な全体操作の事前検査から利用します。 */
+    @JvmStatic
+    fun isMigrationPending(): Boolean =
+        runCatching {
+            JavaPlugin.getPlugin(MyWorldManager::class.java).worldMigrationService.hasPendingWork()
+        }.getOrDefault(true)
+
+    /** 対象ワールドに限定した移行保留状態です。別ワールドの隔離状態は含めません。 */
+    @JvmStatic
+    fun isWorldMigrationPending(worldUuid: UUID): Boolean =
+        runCatching {
+            !evaluateMigration(listOf(worldUuid), includeGlobal = false).allowed
+        }.getOrDefault(true)
+
+    /** 集約データ・コアメタデータを含む全体操作用の状態です。対象単位の別ワールドは除外します。 */
+    @JvmStatic
+    fun isGlobalMigrationPending(): Boolean =
+        runCatching {
+            !evaluateMigration(emptyList(), includeGlobal = true).allowed
+        }.getOrDefault(true)
+
+    /**
+     * 破壊的操作・復元・全体同期が開始する前に、影響対象をまとめて評価します。
+     * MWM外のプラグインは個別のbooleanではなく、ブロック理由もこの結果から表示できます。
+     */
+    @JvmStatic
+    fun evaluateMigration(
+        worldUuids: Collection<UUID> = emptyList(),
+        includeGlobal: Boolean = true,
+        includeUnresolved: Boolean = false,
+    ): ApiMigrationPreflight =
+        runCatching {
+            JavaPlugin.getPlugin(MyWorldManager::class.java)
+                .worldMigrationService
+                .evaluatePreflight(worldUuids, includeGlobal, includeUnresolved)
+        }.getOrElse { error ->
+            ApiMigrationPreflight(
+                listOf(
+                    me.awabi2048.myworldmanager.api.service.ApiMigrationBlock(
+                        participantId = "myworldmanager",
+                        state = me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantState.FAILED,
+                        message = "migration state is unavailable: ${error.message ?: error.javaClass.simpleName}",
+                    )
+                )
+            )
+        }
 
     @JvmStatic
     fun registerWorldSettingsStatePolicy(policy: WorldSettingsStatePolicy) {

@@ -164,9 +164,14 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
     }
 
     private fun remove(player: Player, portal: PortalData): MenuActionResult {
-        val refund = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
+        val refund = runCatching {
+            plugin.portalManager.removePortalAndRefund(portal)
+        }.getOrElse { error ->
+            plugin.logger.warning("Admin portal removal was rejected for ${portal.id}: ${error.message}")
+            player.sendMessage(plugin.languageManager.getMessage(player, "messages.migration.required"))
+            return MenuActionResult.Rejected()
+        }
         plugin.portalManager.removePortalVisuals(portal.id)
-        plugin.portalRepository.removePortal(portal.id)
         if (!portal.isGate()) {
             portal.loadedWorld()?.getBlockAt(portal.x, portal.y, portal.z)
                 ?.takeIf { it.type == Material.END_PORTAL_FRAME }

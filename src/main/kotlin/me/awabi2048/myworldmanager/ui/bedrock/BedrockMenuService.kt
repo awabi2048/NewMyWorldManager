@@ -401,7 +401,7 @@ class BedrockMenuService(
         val rowCount = (neededDataRows + 2).coerceIn(3, 6)
         val footerStart = (rowCount - 1) * 9
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-        val currentCreateCount = worlds.count { it.owner == player.uniqueId }
+        val currentCreateCount = plugin.worldConfigRepository.ownerCountIncludingQuarantine(player.uniqueId)
         val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 

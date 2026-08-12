@@ -22,6 +22,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
     private val cache = mutableMapOf<UUID, WorldData>()
     private val nameCache = mutableMapOf<String, WorldData>()
     private val quarantined = mutableMapOf<String, QuarantinedWorldData>()
+    private var worldWriteGate: ((UUID) -> Boolean)? = null
 
     init {
         if (!worldsFolder.exists()) {
@@ -45,11 +46,8 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
                 val uuid = UUID.fromString(file.nameWithoutExtension)
                 val worldData = loadWorldData(file)
                 if (worldData != null) {
-                    check(worldData.uuid == uuid) {
-                        "world data UUID does not match file name: ${file.name}"
-                    }
-                    check(org.bukkit.NamespacedKey.fromString(worldData.worldKey) != null) {
-                        "invalid world_key: ${worldData.worldKey}"
+                    check(isCurrentWorldData(file, uuid, worldData)) {
+                        "world data is not in the current schema: ${file.name}"
                     }
                     cache[uuid] = worldData
                     nameCache[toWorldFolderName(worldData)] = worldData
@@ -70,9 +68,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      */
     @Synchronized
     fun save(worldData: WorldData) {
-        check(!isQuarantined(worldData.uuid)) {
-            "Cannot save quarantined world data: ${worldData.uuid}"
-        }
+        ensureWritable(worldData.uuid)
         val file = File(worldsFolder, "${worldData.uuid}.yml")
         val temporary = File(worldsFolder, "${worldData.uuid}.yml.tmp")
         val config = YamlConfiguration()
@@ -84,7 +80,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
             config.save(temporary)
             FileChannel.open(temporary.toPath(), StandardOpenOption.WRITE).use { it.force(true) }
             val verified = loadWorldData(temporary)
-            check(verified?.uuid == worldData.uuid) {
+            check(verified?.let { isCurrentWorldData(temporary, worldData.uuid, it) } == true) {
                 "Temporary world data verification failed for ${worldData.uuid}"
             }
             atomicReplace(temporary, file)
@@ -105,6 +101,22 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
 
         cache[worldData.uuid] = worldData
         nameCache[toWorldFolderName(worldData)] = worldData
+    }
+
+    /**
+     * バックアップ等の外部ファイルをキャッシュへ取り込まずに検証します。
+     * 旧形式、UUID 不一致、dimension 欠落、world_key 不正はすべて例外として返し、
+     * 呼び出し側が対象ワールドの交換前に処理を中断できるようにします。
+     */
+    @Synchronized
+    fun readCurrentDataFile(file: File, expectedUuid: UUID): WorldData {
+        check(file.isFile && file.canRead()) { "world metadata file is missing or unreadable: ${file.name}" }
+        val worldData = loadWorldData(file)
+            ?: error("world_data is missing: ${file.name}")
+        check(isCurrentWorldData(file, expectedUuid, worldData)) {
+            "world metadata is not in the current schema or does not match $expectedUuid: ${file.name}"
+        }
+        return worldData
     }
 
     private fun atomicReplace(temporary: File, target: File) {
@@ -146,6 +158,34 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
 
     @Synchronized
     fun isQuarantined(uuid: UUID): Boolean = quarantined.values.any { it.uuid == uuid }
+
+    /** 隔離されたファイルも、復旧後の上限超過を防ぐ予約枠として総数へ含めます。 */
+    @Synchronized
+    fun totalCountIncludingQuarantine(): Int {
+        val knownWorldIds = cache.keys
+        val quarantinedKnownIds = quarantined.values
+            .mapNotNull { it.uuid }
+            .filterNot(knownWorldIds::contains)
+            .toSet()
+        val unknownQuarantineFiles = quarantined.values.count { it.uuid == null }
+        return cache.size + quarantinedKnownIds.size + unknownQuarantineFiles
+    }
+
+    /** 所有者を判別できる隔離データを、所有数上限の予約枠へ含めます。 */
+    @Synchronized
+    fun ownerCountIncludingQuarantine(ownerUuid: UUID): Int {
+        val cachedWorldIds = cache.keys
+        val cachedOwnerIds = cache.values
+            .filter { it.owner == ownerUuid }
+            .mapTo(mutableSetOf()) { it.uuid }
+        val quarantinedKnownIds = quarantined.values
+            .filter { it.owner == ownerUuid && it.uuid != null && it.uuid !in cachedWorldIds }
+            .mapNotNull { it.uuid }
+            .filterNot(cachedOwnerIds::contains)
+            .toSet()
+        val unknownOwnerFiles = quarantined.values.count { it.owner == ownerUuid && it.uuid == null }
+        return cachedOwnerIds.size + quarantinedKnownIds.size + unknownOwnerFiles
+    }
 
     /** 隔離済みデータを含めて、表示名の予約状況を確認します。 */
     @Synchronized
@@ -190,9 +230,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
      */
     @Synchronized
     fun delete(uuid: UUID) {
-        check(!isQuarantined(uuid)) {
-            "Cannot delete quarantined world data: $uuid"
-        }
+        ensureWritable(uuid)
         cache[uuid]?.let { data ->
             nameCache.remove(toWorldFolderName(data))
         }
@@ -221,6 +259,26 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
             ?: throw IllegalStateException("Invalid world_key for ${worldData.uuid}: ${worldData.worldKey}")
     }
 
+    /**
+     * 通常のワールドメタデータ更新を、物理ディレクトリ移行の状態と同じ境界へ揃えます。
+     * 個別サービスが直接 save() を呼んでも、移行中のワールドだけは旧形式と現形式が混在しません。
+     * /mwm migration 自身は専用の内部移行メソッドを使うため、このゲートを迂回できます。
+     */
+    fun setWorldWriteGate(gate: (UUID) -> Boolean) {
+        worldWriteGate = gate
+    }
+
+    private fun ensureWritable(uuid: UUID) {
+        check(!isQuarantined(uuid)) {
+            "Cannot modify quarantined world data: $uuid"
+        }
+        worldWriteGate?.let { gate ->
+            check(gate(uuid)) {
+                "World data requires /mwm migration before it can be modified: $uuid"
+            }
+        }
+    }
+
     private fun normalizeDisplayName(name: String): String {
         return name.trim().lowercase(Locale.ROOT)
     }
@@ -235,7 +293,14 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         dimension: ManagedDimension? = null,
         forceDimension: Boolean = false,
     ): MetadataMigrationResult {
-        val quarantinedData = quarantined.values.firstOrNull { it.uuid == uuid }
+        val candidates = quarantined.values.filter { it.uuid == uuid }
+        if (candidates.size > 1) {
+            return MetadataMigrationResult(
+                MetadataMigrationStatus.FAILED,
+                "multiple quarantined world data files exist for $uuid: ${candidates.joinToString { it.fileName }}",
+            )
+        }
+        val quarantinedData = candidates.singleOrNull()
         val file = quarantinedData?.let { File(worldsFolder, it.fileName) }
             ?: File(worldsFolder, "$uuid.yml")
         if (!file.isFile) {
@@ -275,9 +340,34 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         } else {
             dimension
         }
+        val canonicalFile = File(worldsFolder, "$uuid.yml")
         val migrated = WorldDataYamlMigration.migrate(original, uuid, migrationDimension?.name)
         if (migrated == null) {
-            val current = runCatching { loadWorldData(file)?.takeIf(::isCurrentWorldData) }.getOrNull()
+            val current = runCatching {
+                loadWorldData(file)?.takeIf { isCurrentWorldData(file, uuid, it) }
+            }.getOrNull()
+            if (current != null && file.absoluteFile != canonicalFile.absoluteFile) {
+                if (canonicalFile.exists()) {
+                    return MetadataMigrationResult(
+                        MetadataMigrationStatus.FAILED,
+                        "canonical world data file already exists: ${canonicalFile.name}",
+                    )
+                }
+                return try {
+                    Files.move(file.toPath(), canonicalFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+                    MetadataMigrationResult(MetadataMigrationStatus.MIGRATED, "normalized file name: $uuid")
+                } catch (_: AtomicMoveNotSupportedException) {
+                    runCatching {
+                        Files.move(file.toPath(), canonicalFile.toPath())
+                        MetadataMigrationResult(MetadataMigrationStatus.MIGRATED, "normalized file name: $uuid")
+                    }.getOrElse {
+                        MetadataMigrationResult(
+                            MetadataMigrationStatus.FAILED,
+                            "could not normalize world data file name: ${it.message}",
+                        )
+                    }
+                }
+            }
             return if (current != null) {
                 MetadataMigrationResult(MetadataMigrationStatus.ALREADY_CURRENT, "already current: $uuid")
             } else {
@@ -285,7 +375,6 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
             }
         }
 
-        val canonicalFile = File(worldsFolder, "$uuid.yml")
         if (file.absoluteFile != canonicalFile.absoluteFile && canonicalFile.exists()) {
             return MetadataMigrationResult(
                 MetadataMigrationStatus.FAILED,
@@ -302,7 +391,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
                     .toByteArray(StandardCharsets.UTF_8)
             )
             atomicReplace(temporary, file)
-            check(loadWorldData(file)?.let(::isCurrentWorldData) == true) {
+            check(loadWorldData(file)?.let { isCurrentWorldData(file, uuid, it) } == true) {
                 "migrated world data could not be deserialized: $uuid"
             }
             if (file.absoluteFile != canonicalFile.absoluteFile) {
@@ -348,8 +437,19 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         plugin.logger.warning("ファイル ${file.name} のワールドデータを隔離しました: $reason")
     }
 
-    private fun isCurrentWorldData(worldData: WorldData): Boolean =
-        org.bukkit.NamespacedKey.fromString(worldData.worldKey) != null
+    private fun isCurrentWorldData(file: File, expectedUuid: UUID, worldData: WorldData): Boolean {
+        val lines = runCatching {
+            Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)
+        }.getOrNull() ?: return false
+        val schemaVersion = WorldDataYamlMigration.readField(lines, "schema_version")?.toIntOrNull()
+        val serializedUuid = WorldDataYamlMigration.readField(lines, "uuid")?.toUuidOrNull()
+        val serializedDimension = WorldDataYamlMigration.readField(lines, "dimension")
+        return schemaVersion == WorldDataYamlMigration.CURRENT_SCHEMA_VERSION &&
+            serializedUuid == expectedUuid &&
+            worldData.uuid == expectedUuid &&
+            org.bukkit.NamespacedKey.fromString(worldData.worldKey) != null &&
+            serializedDimension == worldData.dimension.name
+    }
 
     private fun restoreCacheFromDisk(uuid: UUID) {
         nameCache.entries.removeIf { (_, data) -> data.uuid == uuid }
@@ -363,7 +463,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
 
         try {
             val worldData = loadWorldData(file)
-            if (worldData != null) {
+            if (worldData != null && isCurrentWorldData(file, uuid, worldData)) {
                 cache[uuid] = worldData
                 nameCache[toWorldFolderName(worldData)] = worldData
             } else {

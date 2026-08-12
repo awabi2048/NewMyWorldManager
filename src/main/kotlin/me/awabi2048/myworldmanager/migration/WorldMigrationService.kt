@@ -22,6 +22,13 @@ import com.awabi2048.ccsystem.api.gui.MenuViewCategory
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.gui.menuGestureAction
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantResult
+import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantResultState
+import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantState
+import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantStatus
+import me.awabi2048.myworldmanager.api.service.ApiMigrationTargetKind
+import me.awabi2048.myworldmanager.api.service.ApiMigrationBlock
+import me.awabi2048.myworldmanager.api.service.ApiMigrationPreflight
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.model.ManagedDimension
 import me.awabi2048.myworldmanager.repository.MetadataMigrationResult
@@ -53,10 +60,18 @@ enum class MigrationWorldStatus {
     FAILED
 }
 
+enum class MigrationWorldPhase {
+    QUEUED,
+    MOVE_STARTED,
+    MOVED,
+    VERIFIED,
+}
+
 data class MigrationWorldState(
     val uuid: UUID,
     var folderName: String,
     var status: MigrationWorldStatus,
+    var phase: MigrationWorldPhase = MigrationWorldPhase.QUEUED,
     var attempts: Int = 0,
     var lastError: String? = null,
     var updatedAt: Instant = Instant.now()
@@ -79,7 +94,11 @@ class WorldMigrationService(
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
     private val stateFile = File(plugin.dataFolder, "data/world-migration-state.yml")
     private val states = ConcurrentHashMap<UUID, MigrationWorldState>()
+    @Volatile private var stateFileUnreadableReason: String? = null
+    @Volatile private var stateRecoveredFromBackup = false
     @Volatile private var running = false
+    /** メタデータ移行はワールドディレクトリ移行と異なり、状態ファイルへ個別状態を持たせないため別途保持します。 */
+    @Volatile private var metadataMigrationRunning = false
     @Volatile private var currentWorld: UUID? = null
 
     init {
@@ -101,17 +120,223 @@ class WorldMigrationService(
             ),
         )
         loadState()
+        if (stateRecoveredFromBackup) {
+            // 破損したprimaryを、検証済みbackupから復元した状態で置き換えます。
+            // 次回起動時に同じbackupへ依存し続けないため、状態の確定後に再保存します。
+            runCatching { persistState() }
+                .onFailure { plugin.logger.warning("Could not rewrite recovered world migration state: ${it.message}") }
+            stateRecoveredFromBackup = false
+        }
+        var interrupted = false
         states.values.filter { it.status == MigrationWorldStatus.RUNNING }.forEach {
             it.status = MigrationWorldStatus.RETRY
+            it.phase = MigrationWorldPhase.MOVED
+            it.attempts = 0
             it.lastError = "server_stopped_during_migration"
             it.updatedAt = Instant.now()
+            interrupted = true
+        }
+        if (interrupted) {
+            running = false
+            currentWorld = null
+            persistState()
         }
     }
 
-    fun pendingWorlds(): List<LegacyWorldDirectory> = resolver.findLegacyWorlds()
+    fun pendingWorlds(): List<LegacyWorldDirectory> = pendingDirectoryTargets()
 
     fun isPending(uuid: UUID): Boolean =
-        resolver.findLegacyWorld(uuid) != null || plugin.worldConfigRepository.isQuarantined(uuid)
+        !evaluatePreflight(listOf(uuid), includeGlobal = false).allowed
+
+    /**
+     * 操作対象を一括評価します。対象単位の問題は指定UUIDにだけ返し、
+     * グローバル問題は includeGlobal=true の場合だけ返します。
+     */
+    fun evaluatePreflight(
+        worldUuids: Collection<UUID>,
+        includeGlobal: Boolean,
+        includeUnresolved: Boolean = false,
+    ): ApiMigrationPreflight {
+        val blocks = mutableListOf<ApiMigrationBlock>()
+        if (running || metadataMigrationRunning) {
+            blocks += ApiMigrationBlock(
+                participantId = "mwm-migration-state",
+                state = ApiMigrationParticipantState.PENDING,
+                message = "world migration is already running",
+            )
+        }
+        if (includeGlobal) {
+            if (stateFileUnreadableReason != null) {
+                blocks += ApiMigrationBlock(
+                    participantId = "mwm-migration-state",
+                    state = ApiMigrationParticipantState.FAILED,
+                    message = stateFileUnreadableReason ?: "migration state is unreadable",
+                )
+            }
+            if (plugin.templateRepository.quarantinedTemplates().isNotEmpty()) {
+                blocks += ApiMigrationBlock(
+                    participantId = "myworld-templates",
+                    state = ApiMigrationParticipantState.PENDING,
+                    message = "template data requires /mwm migration",
+                )
+            }
+            MyWorldManagerApi.getMigrationParticipants()
+                .filter { it.targetKind() == null }
+                .forEach { participant ->
+                    val status = runCatching { participant.status() }.getOrElse { error ->
+                        ApiMigrationParticipantStatus(
+                            participant.getId(),
+                            ApiMigrationParticipantState.FAILED,
+                            "status failed: ${error.message ?: error.javaClass.simpleName}",
+                        )
+                    }
+                    if (status.state != ApiMigrationParticipantState.CURRENT) {
+                        blocks += ApiMigrationBlock(
+                            participantId = status.id,
+                            state = status.state,
+                            message = status.message ?: "participant requires /mwm migration",
+                        )
+                    }
+                }
+            if (includeUnresolved) {
+                MyWorldManagerApi.getMigrationParticipants()
+                    .filter { it.targetKind() != null }
+                    .forEach { participant ->
+                        val status = runCatching { participant.status() }.getOrElse { error ->
+                            ApiMigrationParticipantStatus(
+                                participant.getId(),
+                                ApiMigrationParticipantState.FAILED,
+                                "status failed: ${error.message ?: error.javaClass.simpleName}",
+                            )
+                        }
+                        if (status.state != ApiMigrationParticipantState.CURRENT) {
+                            blocks += ApiMigrationBlock(
+                                participantId = status.id,
+                                state = status.state,
+                                message = status.message
+                                    ?: "target-scoped data requires /mwm migration",
+                            )
+                        }
+                    }
+                val selected = worldUuids.toSet()
+                plugin.worldConfigRepository.quarantinedWorlds()
+                    .filter { it.uuid == null || it.uuid !in selected }
+                    .forEach { data ->
+                        blocks += ApiMigrationBlock(
+                            participantId = "mwm-world-metadata",
+                            state = ApiMigrationParticipantState.FAILED,
+                            targetUuid = data.uuid,
+                            message = "unresolved world metadata requires manual repair: ${data.fileName}",
+                        )
+                    }
+                pendingDirectoryTargets()
+                    .filter { it.uuid !in selected }
+                    .forEach { candidate ->
+                        blocks += ApiMigrationBlock(
+                            participantId = "mwm-world-directory",
+                            state = ApiMigrationParticipantState.PENDING,
+                            targetUuid = candidate.uuid,
+                            message = "unselected world directory requires /mwm migration: ${candidate.folderName}",
+                        )
+                    }
+                resolver.findConflictingWorlds().forEach { candidate ->
+                    if (candidate.uuid !in selected) {
+                        blocks += ApiMigrationBlock(
+                            participantId = "mwm-world-directory",
+                            state = ApiMigrationParticipantState.FAILED,
+                            targetUuid = candidate.uuid,
+                            message = "conflicting world directories require manual repair: ${candidate.folderName}",
+                        )
+                    }
+                }
+                resolver.findUnresolvedWorldDirectories().forEach { folderName ->
+                    blocks += ApiMigrationBlock(
+                        participantId = "mwm-world-directory",
+                        state = ApiMigrationParticipantState.FAILED,
+                        message = "unresolved world directory requires manual repair: $folderName",
+                    )
+                }
+            }
+        }
+
+        worldUuids.distinct().forEach { uuid ->
+            states[uuid]
+                ?.takeIf { it.status != MigrationWorldStatus.COMPLETED }
+                ?.let { state ->
+                    blocks += ApiMigrationBlock(
+                        participantId = "mwm-world-directory",
+                        state = if (state.status == MigrationWorldStatus.FAILED) {
+                            ApiMigrationParticipantState.FAILED
+                        } else {
+                            ApiMigrationParticipantState.PENDING
+                        },
+                        targetUuid = uuid,
+                        message = state.lastError
+                            ?: "world migration is incomplete: ${state.folderName} (${state.status})",
+                    )
+                }
+            pendingDirectoryTargets()
+                .firstOrNull { it.uuid == uuid }
+                ?.let { candidate ->
+                    blocks += ApiMigrationBlock(
+                        participantId = "mwm-world-directory",
+                        state = ApiMigrationParticipantState.PENDING,
+                        targetUuid = uuid,
+                        message = "world directory requires /mwm migration: ${candidate.folderName}",
+                    )
+                }
+            if (plugin.worldConfigRepository.isQuarantined(uuid)) {
+                blocks += ApiMigrationBlock(
+                    participantId = "mwm-world-metadata",
+                    state = ApiMigrationParticipantState.FAILED,
+                    targetUuid = uuid,
+                    message = "world metadata is quarantined: $uuid",
+                )
+            }
+            MyWorldManagerApi.getMigrationParticipants()
+                .filter { it.targetKind() == ApiMigrationTargetKind.WORLD }
+                .forEach { participant ->
+                    val status = runCatching { participant.statusFor(uuid) }.getOrElse { error ->
+                        ApiMigrationParticipantStatus(
+                            participant.getId(),
+                            ApiMigrationParticipantState.FAILED,
+                            "status failed: ${error.message ?: error.javaClass.simpleName}",
+                        )
+                    } ?: ApiMigrationParticipantStatus(
+                        participant.getId(),
+                        ApiMigrationParticipantState.FAILED,
+                        "target-scoped participant did not return a status for $uuid",
+                    )
+                    if (status.state != ApiMigrationParticipantState.CURRENT) {
+                        blocks += ApiMigrationBlock(
+                            participantId = status.id,
+                            state = status.state,
+                            targetUuid = uuid,
+                            message = status.message ?: "world data requires /mwm migration: $uuid",
+                        )
+                    }
+                }
+        }
+        return ApiMigrationPreflight(blocks.distinctBy { Triple(it.participantId, it.targetUuid, it.message) })
+    }
+
+    /**
+     * 全参加者・全データセットを含む状態です。
+     * バックアップ全体や年次アーカイブのように対象を限定できない操作は、
+     * 一部だけの成功で状態を分断しないため、この判定を事前条件にします。
+     */
+    fun hasPendingWork(): Boolean =
+        stateFileUnreadableReason != null ||
+            pendingDirectoryTargets().isNotEmpty() ||
+            hasMetadataRemaining() ||
+            states.values.any { it.status != MigrationWorldStatus.COMPLETED }
+
+    /**
+     * 集約ファイルとコアメタデータの保留状態です。
+     * プレイヤー単位・ワールド単位の別対象の保留はここでは全体停止理由にしません。
+     */
+    fun hasGlobalPendingWork(): Boolean =
+        !evaluatePreflight(emptyList(), includeGlobal = true).allowed
 
     fun reportPending(sender: CommandSender? = null): List<LegacyWorldDirectory> {
         val pending = pendingWorlds()
@@ -139,6 +364,19 @@ class WorldMigrationService(
                 mapOf("world" to "template:${data.id}", "uuid" to "-")
             )
         }
+        MyWorldManagerApi.getMigrationParticipants()
+            .filter { it.status().state != ApiMigrationParticipantState.CURRENT }
+            .forEach { participant ->
+                val status = participant.status()
+                send(
+                    sender,
+                    "messages.migration.pending",
+                    mapOf(
+                        "world" to "participant:${participant.getId()}",
+                        "uuid" to (status.message ?: status.state.name),
+                    ),
+                )
+            }
         resolver.findConflictingWorlds().forEach {
             send(sender, "messages.migration.conflict", mapOf("world" to it.folderName))
         }
@@ -146,8 +384,13 @@ class WorldMigrationService(
     }
 
     fun requestExecute(sender: CommandSender, confirmed: Boolean = false) {
-        if (running) {
+        if (running || metadataMigrationRunning) {
             send(sender, "messages.migration.already_running")
+            return
+        }
+        stateFileUnreadableReason?.let { reason ->
+            plugin.logger.warning("World migration is blocked because its state file is unreadable: $reason")
+            send(sender, "messages.migration.incomplete")
             return
         }
         if (sender is Player && !confirmed) {
@@ -172,7 +415,7 @@ class WorldMigrationService(
         rawDimension: String,
         confirmed: Boolean,
     ) {
-        if (running) {
+        if (running || metadataMigrationRunning) {
             send(sender, "messages.migration.already_running")
             return
         }
@@ -186,18 +429,29 @@ class WorldMigrationService(
             send(sender, "messages.migration.dimension_usage")
             return
         }
-        val result = when (targetKind.lowercase(Locale.ROOT)) {
-            "world" -> runCatching {
-                val uuid = UUID.fromString(identifier)
-                plugin.worldConfigRepository.migrateWorldData(uuid, dimension, forceDimension = true)
-            }.getOrElse {
-                MetadataMigrationResult(MetadataMigrationStatus.FAILED, "invalid world UUID: $identifier")
+        metadataMigrationRunning = true
+        val result = try {
+            when (targetKind.lowercase(Locale.ROOT)) {
+                "world" -> runCatching {
+                    val uuid = UUID.fromString(identifier)
+                    val lease = MyWorldManagerApi.tryAcquireWorldOperation(uuid, WorldOperation.MIGRATE)
+                        ?: error("world_operation_locked")
+                    try {
+                        plugin.worldConfigRepository.migrateWorldData(uuid, dimension, forceDimension = true)
+                    } finally {
+                        lease.close()
+                    }
+                }.getOrElse {
+                    MetadataMigrationResult(MetadataMigrationStatus.FAILED, "invalid world UUID: $identifier")
+                }
+                "template" -> plugin.templateRepository.migrateTemplate(identifier, dimension, forceDimension = true)
+                else -> {
+                    send(sender, "messages.migration.dimension_usage")
+                    return
+                }
             }
-            "template" -> plugin.templateRepository.migrateTemplate(identifier, dimension, forceDimension = true)
-            else -> {
-                send(sender, "messages.migration.dimension_usage")
-                return
-            }
+        } finally {
+            metadataMigrationRunning = false
         }
         reloadMetadataRepositories()
         sendMetadataResult(sender, targetKind, identifier, result)
@@ -212,14 +466,19 @@ class WorldMigrationService(
         val retries = snapshot.worlds.count { it.status == MigrationWorldStatus.RETRY }
         val quarantinedWorlds = plugin.worldConfigRepository.quarantinedWorlds()
         val quarantinedTemplates = plugin.templateRepository.quarantinedTemplates()
+        val participantStatuses = MyWorldManagerApi.getMigrationParticipants().map { it.status() }
         val failed = snapshot.worlds.count { it.status == MigrationWorldStatus.FAILED } +
-            quarantinedWorlds.size + quarantinedTemplates.size
+            quarantinedWorlds.size + quarantinedTemplates.size +
+            participantStatuses.count { it.state != ApiMigrationParticipantState.CURRENT } +
+            stateFileUnreadableReason.countIfPresent()
         send(
             sender,
             "messages.migration.status_summary",
             mapOf(
                 "state" to if (snapshot.running) "RUNNING" else "IDLE",
-                "total" to snapshot.worlds.size + quarantinedWorlds.size + quarantinedTemplates.size,
+                "total" to snapshot.worlds.size + quarantinedWorlds.size + quarantinedTemplates.size +
+                    participantStatuses.count { it.state != ApiMigrationParticipantState.CURRENT } +
+                    stateFileUnreadableReason.countIfPresent(),
                 "completed" to completed,
                 "waiting" to waiting,
                 "retries" to retries,
@@ -246,47 +505,85 @@ class WorldMigrationService(
         quarantinedTemplates.forEach { data ->
             sendQuarantinedTemplate(sender, data)
         }
+        MyWorldManagerApi.getMigrationParticipants()
+            .filter { it.status().state != ApiMigrationParticipantState.CURRENT }
+            .forEach { participant ->
+                val participantStatus = participant.status()
+                send(
+                    sender,
+                    "messages.migration.status_world",
+                    mapOf(
+                        "world" to "participant:${participant.getId()}",
+                        "status" to "QUARANTINED",
+                        "attempts" to 0,
+                        "error" to (participantStatus.message ?: participantStatus.state.name),
+                        "updated" to Instant.now(),
+                    ),
+                )
+            }
+        stateFileUnreadableReason?.let { reason ->
+            send(
+                sender,
+                "messages.migration.status_world",
+                mapOf(
+                    "world" to "migration-state",
+                    "status" to "FAILED",
+                    "attempts" to 0,
+                    "error" to reason,
+                    "updated" to Instant.now(),
+                ),
+            )
+        }
     }
 
     fun snapshot(): MigrationStatusSnapshot =
-        MigrationStatusSnapshot(running, states.values.map(MigrationWorldState::copy), currentWorld)
+        MigrationStatusSnapshot(running || metadataMigrationRunning, states.values.map(MigrationWorldState::copy), currentWorld)
 
     private fun execute(sender: CommandSender) {
-        val metadataCount = plugin.worldConfigRepository.quarantinedWorlds().size +
-            plugin.templateRepository.quarantinedTemplates().size
-        if (metadataCount > 0) {
-            migrateMetadata()
+        if (stateFileUnreadableReason != null) {
+            send(sender, "messages.migration.incomplete")
+            return
         }
-        val candidates = resolver.findLegacyWorlds()
+        val metadataCount = metadataTargetCount()
+        val metadataResults = if (metadataCount > 0) {
+            metadataMigrationRunning = true
+            try {
+                migrateMetadata()
+            } finally {
+                metadataMigrationRunning = false
+            }
+        } else {
+            emptyList()
+        }
+        val candidates = pendingDirectoryTargets()
         if (candidates.isEmpty() && metadataCount == 0) {
-            send(sender, "messages.migration.none_pending")
+            send(sender, if (hasMigrationFailure()) "messages.migration.incomplete" else "messages.migration.none_pending")
             return
         }
         if (candidates.isEmpty()) {
             send(sender, "messages.migration.started", mapOf("count" to metadataCount))
-            send(sender, "messages.migration.completed")
-            if (plugin.worldConfigRepository.quarantinedWorlds().isNotEmpty() ||
-                plugin.templateRepository.quarantinedTemplates().isNotEmpty()
-            ) {
-                send(sender, "messages.migration.metadata_remaining")
+            if (hasMigrationFailure() || metadataResults.any { it.state == ApiMigrationParticipantResultState.FAILED }) {
+                send(sender, "messages.migration.incomplete")
+            } else {
+                send(sender, "messages.migration.completed")
             }
             return
         }
         candidates.forEach { candidate ->
             val existing = states[candidate.uuid]
-            if (existing?.status != MigrationWorldStatus.COMPLETED) {
-                states[candidate.uuid] = existing?.apply {
-                    folderName = candidate.folderName
-                    if (status == MigrationWorldStatus.FAILED && attempts < MAX_ATTEMPTS) {
-                        status = MigrationWorldStatus.RETRY
-                    }
-                    updatedAt = Instant.now()
-                } ?: MigrationWorldState(
-                    candidate.uuid,
-                    candidate.folderName,
-                    MigrationWorldStatus.WAITING
-                )
-            }
+            states[candidate.uuid] = existing?.apply {
+                folderName = candidate.folderName
+                if (status == MigrationWorldStatus.COMPLETED || status == MigrationWorldStatus.FAILED) {
+                    status = MigrationWorldStatus.RETRY
+                    phase = MigrationWorldPhase.QUEUED
+                    attempts = 0
+                }
+                updatedAt = Instant.now()
+            } ?: MigrationWorldState(
+                candidate.uuid,
+                candidate.folderName,
+                MigrationWorldStatus.WAITING
+            )
         }
         persistState()
         running = true
@@ -294,16 +591,94 @@ class WorldMigrationService(
         scheduleNext()
     }
 
-    private fun migrateMetadata() {
-        plugin.worldConfigRepository.quarantinedWorlds().forEach { data ->
-            val uuid = data.uuid ?: return@forEach
-            val result = plugin.worldConfigRepository.migrateWorldData(uuid, inferDimension(data))
-            logMetadataResult("world:$uuid", result)
-        }
-        plugin.templateRepository.quarantinedTemplates().forEach { data ->
-            if (data.id == "<file>") return@forEach
+    private fun metadataTargetCount(): Int =
+        plugin.worldConfigRepository.quarantinedWorlds().size +
+            plugin.templateRepository.quarantinedTemplates().size +
+            MyWorldManagerApi.getMigrationParticipants().count { it.status().state != ApiMigrationParticipantState.CURRENT }
+
+    /**
+     * 旧ディレクトリだけでなく、移動直後に停止したため現行ディレクトリだけが残った対象も再開対象にします。
+     * 状態ファイルに記録されたフォルダー名と実ディレクトリを突き合わせ、完了前の対象を再検証します。
+     */
+    private fun pendingDirectoryTargets(): List<LegacyWorldDirectory> {
+        val legacy = resolver.findLegacyWorlds()
+        val known = legacy.mapTo(mutableSetOf()) { it.uuid }
+        val recovered = states.values
+            .filter { it.status != MigrationWorldStatus.COMPLETED && it.uuid !in known }
+            .mapNotNull { state ->
+                val resolution = resolver.inspect(state.folderName) ?: return@mapNotNull null
+                if (resolution.state == WorldDirectoryState.CURRENT && resolution.currentPath != null) {
+                    LegacyWorldDirectory(state.uuid, state.folderName, resolution.currentPath)
+                } else {
+                    null
+                }
+            }
+        return (legacy + recovered).distinctBy { it.uuid }.sortedBy { it.folderName }
+    }
+
+    private fun hasMetadataRemaining(): Boolean =
+        plugin.worldConfigRepository.quarantinedWorlds().isNotEmpty() ||
+            plugin.templateRepository.quarantinedTemplates().isNotEmpty() ||
+            MyWorldManagerApi.getMigrationParticipants().any {
+                it.status().state != ApiMigrationParticipantState.CURRENT
+            }
+
+    private fun hasMigrationFailure(): Boolean =
+        states.values.any { it.status == MigrationWorldStatus.FAILED } ||
+            hasMetadataRemaining() ||
+            stateFileUnreadableReason != null
+
+    private fun migrateMetadata() = buildList {
+        plugin.worldConfigRepository.quarantinedWorlds()
+            .groupBy { it.uuid }
+            .forEach { (uuid, candidates) ->
+                if (uuid == null) {
+                    plugin.logger.warning(
+                        "Metadata migration [world-file:${candidates.joinToString { it.fileName }}] FAILED: " +
+                            "world UUID is missing; manual repair is required",
+                    )
+                    return@forEach
+                }
+                if (candidates.size > 1) {
+                    plugin.logger.warning(
+                        "Metadata migration [world:$uuid] FAILED: multiple quarantined files " +
+                            candidates.joinToString { it.fileName },
+                    )
+                    return@forEach
+                }
+                val data = candidates.single()
+                val result = plugin.worldConfigRepository.migrateWorldData(uuid, inferDimension(data))
+                logMetadataResult("world:$uuid", result)
+            }
+        val templateTargets = plugin.templateRepository.quarantinedTemplates()
+        templateTargets.firstOrNull { it.id == "<file>" }?.let { data ->
             val result = plugin.templateRepository.migrateTemplate(data.id, inferDimension(data))
             logMetadataResult("template:${data.id}", result)
+            reloadMetadataRepositories()
+        }
+        if (plugin.templateRepository.quarantinedTemplates().none { it.id == "<file>" }) {
+            plugin.templateRepository.quarantinedTemplates().forEach { data ->
+                val result = plugin.templateRepository.migrateTemplate(data.id, inferDimension(data))
+                logMetadataResult("template:${data.id}", result)
+            }
+        }
+        MyWorldManagerApi.getMigrationParticipants().forEach { participant ->
+            val status = participant.status()
+            if (status.state == ApiMigrationParticipantState.CURRENT) return@forEach
+            val result = runCatching {
+                MyWorldManagerApi.executeMigrationParticipant(participant.getId())
+                    ?: ApiMigrationParticipantResult(
+                        ApiMigrationParticipantResultState.FAILED,
+                        "no migration executor is registered for ${participant.getId()}",
+                    )
+            }.getOrElse { error ->
+                ApiMigrationParticipantResult(
+                    ApiMigrationParticipantResultState.FAILED,
+                    "migration executor failed for ${participant.getId()}: ${error.message ?: error.javaClass.simpleName}",
+                )
+            }
+            add(result)
+            logMetadataResult("participant:${participant.getId()}", result)
         }
         reloadMetadataRepositories()
     }
@@ -332,6 +707,14 @@ class WorldMigrationService(
     private fun logMetadataResult(target: String, result: MetadataMigrationResult) {
         val level = if (result.status == MetadataMigrationStatus.FAILED) Level.WARNING else Level.INFO
         plugin.logger.log(level, "Metadata migration [$target] ${result.status}: ${result.message}")
+    }
+
+    private fun logMetadataResult(
+        target: String,
+        result: me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantResult,
+    ) {
+        val level = if (result.state == ApiMigrationParticipantResultState.FAILED) Level.WARNING else Level.INFO
+        plugin.logger.log(level, "Metadata migration [$target] ${result.state}: ${result.message}")
     }
 
     private fun sendMetadataResult(
@@ -394,9 +777,12 @@ class WorldMigrationService(
             running = false
             currentWorld = null
             persistState()
-            plugin.server.consoleSender.sendMessage(
-                plugin.languageManager.getMessage("messages.migration.completed")
-            )
+            val completionKey = if (hasMigrationFailure()) {
+                "messages.migration.incomplete"
+            } else {
+                "messages.migration.completed"
+            }
+            plugin.server.consoleSender.sendMessage(plugin.languageManager.getMessage(completionKey))
             return
         }
 
@@ -441,30 +827,46 @@ class WorldMigrationService(
                 ?: error("world_data_missing")
             val resolution = resolver.inspect(state.folderName)
                 ?: error("unsafe_world_directory")
-            if (resolution.state != WorldDirectoryState.LEGACY) {
+            val movedByThisAttempt = resolution.state == WorldDirectoryState.LEGACY
+            val source = resolution.legacyPath
+            val target = resolution.currentPath ?: error("current_directory_missing")
+            if (movedByThisAttempt) {
+                state.phase = MigrationWorldPhase.MOVE_STARTED
+                state.updatedAt = Instant.now()
+                persistState()
+                target.parent?.let(Files::createDirectories)
+                moveDirectory(source ?: error("legacy_directory_missing"), target)
+                state.phase = MigrationWorldPhase.MOVED
+                state.updatedAt = Instant.now()
+                persistState()
+            } else if (resolution.state != WorldDirectoryState.CURRENT) {
                 error("unexpected_directory_state:${resolution.state}")
             }
-            val source = resolution.legacyPath ?: error("legacy_directory_missing")
-            val target = resolution.currentPath ?: error("current_directory_missing")
-            target.parent?.let(Files::createDirectories)
-            moveDirectory(source, target)
+            val existingWorld = Bukkit.getWorld(NamespacedKey.minecraft(state.folderName))
             var committed = false
             try {
-                val world = plugin.server.createWorld(
-                    plugin.managedWorldCreatorFactory.create(
-                        NamespacedKey.minecraft(state.folderName),
-                        worldData.dimension
+                val world = existingWorld
+                    ?: plugin.server.createWorld(
+                        plugin.managedWorldCreatorFactory.create(
+                            NamespacedKey.minecraft(state.folderName),
+                            worldData.dimension
+                        )
                     )
-                ) ?: error("world_load_failed")
+                    ?: error("world_load_failed")
                 plugin.managedWorldCreatorFactory.requireMatchingDimension(world, worldData.dimension)
                 plugin.worldEnvironmentService.applyAll(world, worldData)
                 committed = true
+                state.phase = MigrationWorldPhase.VERIFIED
+                state.updatedAt = Instant.now()
+                persistState()
             } finally {
                 if (!committed) {
-                    Bukkit.getWorld(NamespacedKey.minecraft(state.folderName))?.let {
-                        plugin.server.unloadWorld(it, false)
+                    if (existingWorld == null) {
+                        Bukkit.getWorld(NamespacedKey.minecraft(state.folderName))?.let {
+                            plugin.server.unloadWorld(it, false)
+                        }
                     }
-                    if (Files.exists(target) && !Files.exists(source)) {
+                    if (movedByThisAttempt && source != null && Files.exists(target) && !Files.exists(source)) {
                         moveDirectory(target, source)
                     }
                 }
@@ -515,26 +917,106 @@ class WorldMigrationService(
 
     @Synchronized
     private fun loadState() {
-        if (!stateFile.exists()) return
-        val yaml = YamlConfiguration.loadConfiguration(stateFile)
-        val section = yaml.getConfigurationSection("worlds") ?: return
+        stateFileUnreadableReason = null
+        stateRecoveredFromBackup = false
+        val backup = File(stateFile.parentFile, "${stateFile.name}.bak")
+        val primaryResult = if (stateFile.exists()) {
+            runCatching { readStateStrict(stateFile) }
+        } else {
+            Result.failure(IllegalStateException("primary state file is missing"))
+        }
+        val yaml = primaryResult.getOrNull() ?: run {
+            if (!backup.exists()) {
+                if (stateFile.exists()) {
+                    val error = primaryResult.exceptionOrNull()
+                    stateFileUnreadableReason = "state file: ${error?.message ?: error?.javaClass?.simpleName}"
+                    plugin.logger.severe(
+                        "World migration is blocked because its state file is unreadable: $stateFileUnreadableReason",
+                    )
+                }
+                return
+            }
+            runCatching { readStateStrict(backup) }
+                .onSuccess {
+                    stateRecoveredFromBackup = true
+                    plugin.logger.warning(
+                        "World migration state file was invalid; using the verified backup: ${backup.name}",
+                    )
+                }
+                .getOrElse { backupError ->
+                    val primaryError = primaryResult.exceptionOrNull()
+                    stateFileUnreadableReason =
+                        "state file: ${primaryError?.message ?: primaryError?.javaClass?.simpleName}; " +
+                            "backup: ${backupError.message ?: backupError.javaClass.simpleName}"
+                    plugin.logger.severe(
+                        "World migration is blocked because both state files are unreadable: $stateFileUnreadableReason",
+                    )
+                    return
+                }
+        }
+        val parsedStates = parseStates(yaml)
+        states.clear()
+        states.putAll(parsedStates)
+    }
+
+    /** YAMLとして読めるだけでは復旧に使わず、状態レコード全体を検証してから採用します。 */
+    private fun readStateStrict(file: File): YamlConfiguration {
+        require(file.isFile) { "state file is not a regular file: ${file.name}" }
+        return YamlConfiguration().also { it.load(file) }.also { parseStates(it) }
+    }
+
+    private fun parseStates(yaml: YamlConfiguration): Map<UUID, MigrationWorldState> {
+        require(yaml.contains("running")) { "running is missing" }
+        yaml.get("running")?.let { require(it is Boolean) { "running must be boolean" } }
+        yaml.get("current_world")?.let { raw ->
+            require(raw is String && runCatching { UUID.fromString(raw) }.isSuccess) {
+                "current_world must be a UUID string"
+            }
+        }
+        val rawWorlds = yaml.get("worlds")
+        if (rawWorlds == null) return emptyMap()
+        val section = yaml.getConfigurationSection("worlds")
+            ?: error("worlds must be a section")
+        val parsed = linkedMapOf<UUID, MigrationWorldState>()
         section.getKeys(false).forEach { raw ->
-            val uuid = runCatching { UUID.fromString(raw) }.getOrNull() ?: return@forEach
+            val uuid = runCatching { UUID.fromString(raw) }
+                .getOrElse { error("worlds.$raw is not a UUID") }
             val base = "worlds.$raw"
+            val folderName = yaml.getString("$base.folder_name")
+                ?.takeIf { it.isNotBlank() && it != "." && it != ".." && !it.contains('/') && !it.contains('\\') }
+                ?: error("$base.folder_name is missing or unsafe")
             val status = runCatching {
                 MigrationWorldStatus.valueOf(yaml.getString("$base.status").orEmpty())
-            }.getOrNull() ?: return@forEach
-            states[uuid] = MigrationWorldState(
+            }.getOrElse { error("$base.status is invalid") }
+            // 旧版の状態ファイルにはphaseがないため、未移動のキューとして安全に復元します。
+            val phase = yaml.getString("$base.phase")?.let { rawPhase ->
+                runCatching { MigrationWorldPhase.valueOf(rawPhase) }
+                    .getOrElse { error("$base.phase is invalid") }
+            } ?: MigrationWorldPhase.QUEUED
+            val attemptsRaw = yaml.get("$base.attempts")
+            val attempts = if (attemptsRaw == null) {
+                0
+            } else {
+                require(attemptsRaw is Number && attemptsRaw.toDouble() >= 0.0 && attemptsRaw.toDouble() % 1.0 == 0.0) {
+                    "$base.attempts must be a non-negative integer"
+                }
+                attemptsRaw.toInt()
+            }
+            val updatedAt = yaml.getString("$base.updated_at")?.let { rawUpdatedAt ->
+                runCatching { Instant.parse(rawUpdatedAt) }
+                    .getOrElse { error("$base.updated_at is invalid") }
+            } ?: Instant.EPOCH
+            parsed[uuid] = MigrationWorldState(
                 uuid = uuid,
-                folderName = yaml.getString("$base.folder_name") ?: "my_world.$uuid",
+                folderName = folderName,
                 status = status,
-                attempts = yaml.getInt("$base.attempts", 0),
+                phase = phase,
+                attempts = attempts,
                 lastError = yaml.getString("$base.last_error"),
-                updatedAt = runCatching {
-                    Instant.parse(yaml.getString("$base.updated_at"))
-                }.getOrDefault(Instant.EPOCH)
+                updatedAt = updatedAt,
             )
         }
+        return parsed
     }
 
     @Synchronized
@@ -546,14 +1028,15 @@ class WorldMigrationService(
             val base = "worlds.${it.uuid}"
             yaml.set("$base.folder_name", it.folderName)
             yaml.set("$base.status", it.status.name)
+            yaml.set("$base.phase", it.phase.name)
             yaml.set("$base.attempts", it.attempts)
             yaml.set("$base.last_error", it.lastError)
             yaml.set("$base.updated_at", it.updatedAt.toString())
         }
         stateFile.parentFile.mkdirs()
         val temporary = File(stateFile.parentFile, "${stateFile.name}.tmp")
-        yaml.save(temporary)
         try {
+            yaml.save(temporary)
             Files.move(
                 temporary.toPath(),
                 stateFile.toPath(),
@@ -562,6 +1045,15 @@ class WorldMigrationService(
             )
         } catch (_: AtomicMoveNotSupportedException) {
             Files.move(temporary.toPath(), stateFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        } finally {
+            Files.deleteIfExists(temporary.toPath())
+        }
+        // 現行ファイルを原子的に確定した後で検証済みバックアップを更新します。
+        val backup = File(stateFile.parentFile, "${stateFile.name}.bak")
+        runCatching {
+            Files.copy(stateFile.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }.onFailure {
+            plugin.logger.warning("Could not refresh migration state backup: ${it.message}")
         }
     }
 
@@ -612,3 +1104,5 @@ class WorldMigrationService(
         private const val YIELD_THRESHOLD_MILLIS = 1_000L
     }
 }
+
+private fun String?.countIfPresent(): Int = if (this == null) 0 else 1

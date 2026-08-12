@@ -36,8 +36,6 @@ import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
-import com.awabi2048.ccsystem.api.config.ConfigClassification
-import com.awabi2048.ccsystem.api.config.ManagedConfigSpec
 import com.awabi2048.ccsystem.api.gui.MenuTargetPolicy
 import com.awabi2048.ccsystem.api.gui.PublicMenuDefinition
 import net.luckperms.api.LuckPerms
@@ -159,7 +157,6 @@ class MyWorldManager : JavaPlugin() {
         if (!dataFolder.exists()) {
             dataFolder.mkdirs()
         }
-        registerManagedConfigs()
         // config.ymlはCC-Systemの自動移行対象から外し、旧値を管理者の確認なしに書き換えません。
         // ここでは存在しない場合だけ既定ファイルを作成し、既存内容はそのまま読み込みます。
         saveDefaultConfig()
@@ -196,6 +193,9 @@ class MyWorldManager : JavaPlugin() {
                 this,
                 worldDirectoryResolver
         )
+        worldConfigRepository.setWorldWriteGate { uuid ->
+            !worldMigrationService.isPending(uuid)
+        }
         // ワールド・テンプレートディレクトリの存在チェック
         directoryManager.checkDirectories()
 
@@ -474,32 +474,6 @@ class MyWorldManager : JavaPlugin() {
         }
     }
 
-    private fun registerManagedConfigs() {
-        val classifications = mapOf(
-            "templates.yml" to ConfigClassification.BUNDLED_DEFINITION,
-            "macro.yml" to ConfigClassification.MANAGED_CONFIG,
-            "spotlight.yml" to ConfigClassification.MANAGED_CONFIG
-        )
-        val specs = classifications.map { (resourcePath, classification) ->
-            ManagedConfigSpec(
-                owner = "myworld",
-                sourcePlugin = this,
-                resourcePath = resourcePath,
-                targetPath = File(dataFolder, resourcePath).toPath(),
-                currentVersion = 1,
-                classification = classification,
-                migrations = emptyMap(),
-                validator = com.awabi2048.ccsystem.api.config.ConfigValidator {},
-                reloadAction = null
-            )
-        }
-        com.awabi2048.ccsystem.CCSystem.getAPI().getConfigSchemaService().register("myworld", specs)
-        val result = com.awabi2048.ccsystem.CCSystem.getAPI().getConfigSchemaService().prepare("myworld")
-        check(result.successful) {
-            "MyWorldManager Config preparation failed: ${result.statuses.filter { it.message != null }}"
-        }
-    }
-
     override fun onDisable() {
         reversiblePlanCleanupTask?.cancel()
         reversiblePlanCleanupTask = null
@@ -510,6 +484,18 @@ class MyWorldManager : JavaPlugin() {
         clearAllTransientMenuState()
         worldPointApiService?.let { MyWorldManagerApi.unregisterWorldPointService(it) }
         worldPointApiService = null
+        if (::pendingInteractionRepository.isInitialized) {
+            MyWorldManagerApi.unregisterMigrationParticipant(pendingInteractionRepository.migrationParticipant)
+        }
+        if (::playerStatsRepository.isInitialized) {
+            MyWorldManagerApi.unregisterMigrationParticipant(playerStatsRepository.migrationParticipant)
+        }
+        if (::portalRepository.isInitialized) {
+            MyWorldManagerApi.unregisterMigrationParticipant(portalRepository.migrationParticipant)
+        }
+        if (::spotlightRepository.isInitialized) {
+            MyWorldManagerApi.unregisterMigrationParticipant(spotlightRepository.migrationParticipant)
+        }
         bedrockFormApiService?.let(MyWorldManagerApi::unregisterBedrockFormService)
         bedrockFormApiService = null
         worldWorkPermissionSyncService?.let(MyWorldManagerApi::unregisterWorldWorkPermissionSyncService)
@@ -520,7 +506,6 @@ class MyWorldManager : JavaPlugin() {
         }
         runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
         runCatching { CCSystem.getAPI().getItemGrantService().unregister("myworld") }
-        runCatching { CCSystem.getAPI().getConfigSchemaService().unregister("myworld") }
         runCatching { CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld") }
         runCatching { CCSystem.getAPI().getMenuConfirmationService().clearOwner("mwm") }
         runCatching { CCSystem.getAPI().getMenuRuntimeService().unregisterOwner("mwm") }

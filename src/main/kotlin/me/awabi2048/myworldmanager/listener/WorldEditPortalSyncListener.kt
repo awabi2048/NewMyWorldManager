@@ -150,9 +150,11 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
             return
         }
 
+        plugin.portalRepository.ensureWritableForOperation()
+
         for (portal in pending.portals) {
-            plugin.portalManager.removePortalVisuals(portal.sourceId)
             plugin.portalRepository.removePortal(portal.sourceId)
+            plugin.portalManager.removePortalVisuals(portal.sourceId)
         }
         pending.sourceRemoved = true
     }
@@ -171,6 +173,14 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         val pasteOrigin = runCatching { session.getPlacementPosition(actor) }
             .getOrElse { BukkitAdapter.asBlockVector(player.location) }
         val preserveFirstCutIds = pending.mode == ClipboardMode.CUT && !pending.sameIdPasteConsumed
+
+        // 貼り付け中に既存ポータルを先に削除すると、移行拒否時に一部だけ消えるため、
+        // 追加・削除のどちらよりも前に永続書き込み可否を確定させます。
+        runCatching { plugin.portalRepository.ensureWritableForOperation() }
+            .onFailure {
+                player.sendMessage(plugin.languageManager.getMessage(player, "messages.migration.required"))
+                return
+            }
 
         for (relativePortal in pending.portals) {
             val portal = relativePortal.toPortalData(
@@ -294,16 +304,16 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
                 }
 
                 if (existing != null && existing.id != relativePortal.sourceId) {
-                    plugin.portalManager.removePortalVisuals(existing.id)
                     plugin.portalRepository.removePortal(existing.id)
+                    plugin.portalManager.removePortalVisuals(existing.id)
                 }
 
                 // 移動元のフレームが消えていれば同じ UUID を移し、leave pattern などで
                 // 移動元にもフレームが残っていればコピー相当として新しい UUIDを発行する。
                 val preserveId = !sourceStillPortal
                 if (preserveId) {
-                    plugin.portalManager.removePortalVisuals(relativePortal.sourceId)
                     plugin.portalRepository.removePortal(relativePortal.sourceId)
+                    plugin.portalManager.removePortalVisuals(relativePortal.sourceId)
                 }
                 plugin.portalRepository.addPortal(
                     relativePortal.toTranslatedPortal(
@@ -316,8 +326,8 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
             } else if (!sourceStillPortal) {
                 // 移動元も移動先もポータルフレームでない場合は、ポータル自体が
                 // 消去された結果として扱い、残ったメタデータを掃除する。
-                plugin.portalManager.removePortalVisuals(relativePortal.sourceId)
                 plugin.portalRepository.removePortal(relativePortal.sourceId)
+                plugin.portalManager.removePortalVisuals(relativePortal.sourceId)
                 changed = true
             }
         }

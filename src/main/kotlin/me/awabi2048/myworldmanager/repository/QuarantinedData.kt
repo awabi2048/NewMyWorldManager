@@ -4,6 +4,7 @@ import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.UUID
+import org.bukkit.configuration.file.YamlConfiguration
 
 /**
  * 型付きモデルへ変換できず、通常操作から隔離されたワールドデータです。
@@ -36,9 +37,22 @@ data class QuarantinedTemplateData(
  */
 object MigrationFileFingerprint {
     fun sha256(file: File): String? = runCatching {
-        val digest = MessageDigest.getInstance("SHA-256")
-        digest.digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+        sha256Bytes(file.readBytes())
     }.getOrNull()
+
+    fun sha256Section(config: YamlConfiguration, id: String): String? = runCatching {
+        val section = config.getConfigurationSection(id) ?: return null
+        val canonical = section.getValues(true)
+            .toSortedMap()
+            .entries
+            .joinToString("\n") { (key, value) -> "$key=$value" }
+        sha256Bytes(canonical.toByteArray(Charsets.UTF_8))
+    }.getOrNull()
+
+    private fun sha256Bytes(bytes: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        return digest.digest(bytes).joinToString("") { "%02x".format(it) }
+    }
 }
 
 enum class MetadataMigrationStatus {

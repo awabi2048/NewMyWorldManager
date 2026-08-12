@@ -280,7 +280,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+      @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onAnyRightClickForPortalMenu(event: PlayerInteractEvent) {
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
 
@@ -770,6 +770,23 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         }
     }
 
+     /**
+      * 永続削除より前に移行ゲートを通します。LOWEST でキャンセルしておくことで、
+      * 後続処理が同じブロック破壊を扱う場合もメタデータだけが先に消えません。
+      */
+     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+     fun guardPortalBlockBreakDuringMigration(event: org.bukkit.event.block.BlockBreakEvent) {
+         val block = event.block
+         if (block.type != Material.END_PORTAL_FRAME) return
+         val portal = plugin.portalRepository.findByLocation(block.location) ?: return
+         if (portal.isGate()) return
+         runCatching { plugin.portalRepository.ensureWritableForOperation() }
+             .onFailure {
+                 event.isCancelled = true
+                 event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.migration.required"))
+             }
+     }
+
      @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockBreak(event: org.bukkit.event.block.BlockBreakEvent) {
          val block = event.block
@@ -779,10 +796,11 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
               // 撤去処理（正確な順序で実行）
               // 1. ビジュアル要素を削除（TextDisplay など）
-              plugin.portalManager.removePortalVisuals(portal.id)
 
              // 2. ポータルデータをリポジトリから削除
+             // 永続削除を先に確定し、移行拒否時に表示だけが消える状態を避ける
              plugin.portalRepository.removePortal(portal.id)
+             plugin.portalManager.removePortalVisuals(portal.id)
 
              // 3. プレイヤーにメッセージを送信
              event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_broken"))

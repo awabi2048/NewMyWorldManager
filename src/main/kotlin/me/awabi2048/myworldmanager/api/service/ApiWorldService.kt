@@ -111,5 +111,8 @@ interface ApiWorldService {
 
     fun deleteWorld(worldUuid: UUID): CompletableFuture<Boolean>
 
-    fun deleteWorldForMaintenance(worldUuid: UUID): CompletableFuture<Boolean>
+    fun deleteWorldForMaintenance(
+        worldUuid: UUID,
+        lease: WorldOperationLease? = null,
+    ): CompletableFuture<Boolean>
 }

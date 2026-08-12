@@ -212,7 +212,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 )
                         } ?: createWorldEntry(player, world, targetUuid, layout.itemSlots[index])
                 }
-                val createCount = worlds.count { it.owner == targetUuid }
+                val createCount = plugin.worldConfigRepository.ownerCountIncludingQuarantine(targetUuid)
                 val maxSlot = WorldRuntimePolicies.maxCreateCountDefault(plugin.config) + stats.unlockedWorldSlot
                 if (isOwnMenu) {
                         val creationAttributes = playerWorldCapabilityAttributes(capabilitySubject)

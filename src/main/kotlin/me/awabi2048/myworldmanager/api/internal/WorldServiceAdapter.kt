@@ -244,8 +244,11 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         return plugin.worldService.deleteWorld(worldUuid)
     }
 
-    override fun deleteWorldForMaintenance(worldUuid: UUID): CompletableFuture<Boolean> {
-        return plugin.worldService.deleteWorldForMaintenance(worldUuid)
+    override fun deleteWorldForMaintenance(
+        worldUuid: UUID,
+        lease: WorldOperationLease?,
+    ): CompletableFuture<Boolean> {
+        return plugin.worldService.deleteWorldForMaintenance(worldUuid, lease)
     }
 
     private fun toSnapshot(portal: PortalData): ApiPortalSnapshot {

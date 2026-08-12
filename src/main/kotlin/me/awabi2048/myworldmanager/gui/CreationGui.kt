@@ -352,7 +352,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         }
         val defaultMax = WorldRuntimePolicies.maxCreateCountDefault(plugin.config)
         val maxCounts = defaultMax + stats.unlockedWorldSlot
-        val currentCounts = plugin.worldConfigRepository.findAll().count { it.owner == player.uniqueId }
+        val currentCounts = plugin.worldConfigRepository.ownerCountIncludingQuarantine(player.uniqueId)
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         if (MyWorldManagerApi.isWorldSlotSystemEnabled() &&

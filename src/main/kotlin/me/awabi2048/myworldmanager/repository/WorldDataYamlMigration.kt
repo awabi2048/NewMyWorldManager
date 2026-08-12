@@ -9,6 +9,8 @@ import java.util.UUID
  * このクラスはファイルへ書き込まず、書き込みは /mwm migration の実行経路だけが担当します。
  */
 object WorldDataYamlMigration {
+    const val CURRENT_SCHEMA_VERSION = 1
+
     fun readField(lines: List<String>, field: String): String? {
         val bounds = worldDataBounds(lines) ?: return null
         val indent = childIndent(lines, bounds)
@@ -46,8 +48,28 @@ object WorldDataYamlMigration {
         val currentDimension = readField(lines, "dimension")
         val normalizedDimension = normalizeDimension(currentDimension)
         if (dimension == null && normalizedDimension == null) return null
+        val rawSchemaVersion = readField(lines, "schema_version")
+        val schemaVersion = rawSchemaVersion?.toIntOrNull()
+        if (rawSchemaVersion != null && schemaVersion == null) return null
+        if (schemaVersion != null && schemaVersion > CURRENT_SCHEMA_VERSION) return null
         val migrated = lines.toMutableList()
         var changed = false
+
+        if (schemaVersion != CURRENT_SCHEMA_VERSION) {
+            val currentBounds = worldDataBounds(migrated) ?: return null
+            val existingIndex = (currentBounds.first + 1 until currentBounds.second)
+                .firstOrNull { migrated[it].trimStart().startsWith("schema_version:") }
+            if (existingIndex != null) {
+                val indent = migrated[existingIndex].takeWhile(Char::isWhitespace)
+                migrated[existingIndex] = "${indent}schema_version: $CURRENT_SCHEMA_VERSION"
+            } else {
+                migrated.add(
+                    currentBounds.first + 1,
+                    "${childIndent(migrated, currentBounds)}schema_version: $CURRENT_SCHEMA_VERSION",
+                )
+            }
+            changed = true
+        }
 
         if (readField(migrated, "world_key") == null) {
             val customWorldName = readField(migrated, "custom_world_name") ?: "my_world.$uuid"

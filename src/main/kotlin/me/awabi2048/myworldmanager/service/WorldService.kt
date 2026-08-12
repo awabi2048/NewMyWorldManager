@@ -20,6 +20,7 @@ import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.model.ManagedDimension
+import me.awabi2048.myworldmanager.migration.WorldDirectoryResolver
 import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import me.awabi2048.myworldmanager.repository.PlayerStatsRepository
 import me.awabi2048.myworldmanager.repository.WorldConfigRepository
@@ -724,6 +725,9 @@ class WorldService(
      * 呼び出し元が移行待ちと実際のロード障害を区別できるよう、Booleanへ変換する前の結果を返します。
      */
     fun loadWorldDetailed(worldUuid: UUID): WorldLoadResult {
+        if (plugin.worldMigrationService.isPending(worldUuid)) {
+            return WorldLoadResult.failure(WorldLoadFailure.MIGRATION_REQUIRED)
+        }
         val lease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.LOAD)
             ?: return WorldLoadResult.failure(WorldLoadFailure.OPERATION_LOCKED)
         return try {
@@ -764,7 +768,23 @@ class WorldService(
     }
 
     private fun loadWorldKeyUnlocked(key: NamespacedKey, worldData: WorldData?): WorldLoadResult {
+        // 隔離されたメタデータは repository.findByWorldKey が null になるため、
+        // UUID形式の管理ワールドキーを先に確認し、キー経由ロードの迂回を防ぎます。
+        WorldDirectoryResolver.parseWorldUuid(key.key)?.let { worldUuid ->
+            if (plugin.worldMigrationService.isPending(worldUuid)) {
+                return WorldLoadResult.failure(WorldLoadFailure.MIGRATION_REQUIRED)
+            }
+        }
         val dimension = worldData?.dimension ?: plugin.templateRepository.findByWorldKey(key)?.dimension
+        val resolution = plugin.worldDirectoryResolver.inspect(key)
+        val directoryFailure = WorldLoadDirectoryPolicy.rejectionFor(resolution.state)
+        if (directoryFailure != null) {
+            plugin.logger.warning(
+                "World load rejected before Bukkit load: key=$key state=${resolution.state} " +
+                    "reason=$directoryFailure"
+            )
+            return WorldLoadResult.failure(directoryFailure)
+        }
         Bukkit.getWorld(key)?.let { loaded ->
             if (dimension != null) {
                 try {
@@ -780,16 +800,6 @@ class WorldService(
                 plugin.worldEnvironmentService.applyAll(loaded)
             }
             return WorldLoadResult.success(loaded, false)
-        }
-
-        val resolution = plugin.worldDirectoryResolver.inspect(key)
-        val directoryFailure = WorldLoadDirectoryPolicy.rejectionFor(resolution.state)
-        if (directoryFailure != null) {
-            plugin.logger.warning(
-                "World load rejected before Bukkit load: key=$key state=${resolution.state} " +
-                    "reason=$directoryFailure"
-            )
-            return WorldLoadResult.failure(directoryFailure)
         }
 
         if (!Bukkit.isPrimaryThread()) {
@@ -939,6 +949,12 @@ class WorldService(
     }
 
     fun getWorldDirectory(worldData: WorldData): File {
+        // アーカイブ済みでも、メタデータや依存データが移行待ちなら通常の
+        // バックアップ・復元・同期経路から物理ディレクトリを公開しません。
+        // 移行処理だけが、専用の内部経路で対象を扱います。
+        check(!plugin.worldMigrationService.isPending(worldData.uuid)) {
+            "World directory is unavailable until migration completes: ${worldData.uuid}"
+        }
         val folderName = getWorldFolderName(worldData)
         if (worldData.isArchived) {
             return File(File(plugin.dataFolder.parentFile.parentFile, "archived_worlds"), folderName)
@@ -998,6 +1014,13 @@ class WorldService(
             closeInventoryOnLoad: Boolean = true,
             afterTeleported: (() -> Unit)? = null
     ) {
+        if (plugin.worldMigrationService.isPending(worldUuid)) {
+            plugin.logger.info("World warp rejected because migration is pending: $worldUuid")
+            player.sendMessage(
+                plugin.languageManager.getMessage(player, "messages.migration.required")
+            )
+            return
+        }
         if (MyWorldManagerApi.getActiveWorldOperation(worldUuid) != null) {
             plugin.logger.info(
                 "World warp rejected while operation ${MyWorldManagerApi.getActiveWorldOperation(worldUuid)} is active: $worldUuid"
@@ -1173,6 +1196,11 @@ class WorldService(
     /** ワールドをアーカイブから戻す */
     fun unarchiveWorld(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        if (plugin.worldMigrationService.isPending(worldUuid)) {
+            plugin.logger.info("World restore rejected because migration is pending: $worldUuid")
+            future.complete(false)
+            return future
+        }
         val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.RESTORE)
         if (operationLease == null) {
             future.complete(false)
@@ -1270,6 +1298,11 @@ class WorldService(
     /** ワールドを完全に削除する */
     fun deleteWorld(worldUuid: UUID, caller: CommandSender? = null): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        if (plugin.worldMigrationService.isPending(worldUuid)) {
+            plugin.logger.info("World deletion rejected because migration is pending: $worldUuid")
+            future.complete(false)
+            return future
+        }
         val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.DELETE)
         if (operationLease == null) {
             future.complete(false)
@@ -1412,14 +1445,40 @@ class WorldService(
         return future
     }
 
-    fun deleteWorldForMaintenance(worldUuid: UUID): java.util.concurrent.CompletableFuture<Boolean> {
+    fun deleteWorldForMaintenance(
+        worldUuid: UUID,
+        lease: WorldOperationLease? = null,
+    ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
-        val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.DELETE)
-        if (operationLease == null) {
+        if (plugin.worldMigrationService.isPending(worldUuid)) {
+            plugin.logger.info("Maintenance deletion rejected because migration is pending: $worldUuid")
             future.complete(false)
             return future
         }
-        future.whenComplete { _, _ -> operationLease.close() }
+        val operationLease = if (lease != null) {
+            // Maintenance deletion may share the archive lease held by Chanpon,
+            // or use its own DELETE lease.  Reject unrelated leases so a caller
+            // cannot accidentally authorize destructive deletion with a BACKUP,
+            // LOAD, or another non-destructive operation lease.
+            if (
+                lease.worldUuid != worldUuid ||
+                lease.operation !in setOf(WorldOperation.ARCHIVE, WorldOperation.DELETE) ||
+                !MyWorldManagerApi.isWorldOperationLeaseActive(lease)
+            ) {
+                future.complete(false)
+                return future
+            }
+            lease
+        } else {
+            MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.DELETE)
+                ?: run {
+                    future.complete(false)
+                    return future
+                }
+        }
+        if (operationLease !== lease) {
+            future.whenComplete { _, _ -> operationLease.close() }
+        }
         unloadWorldAfterEvacuation(worldUuid, false).whenComplete { unloaded, unloadError ->
             if (unloadError != null) {
                 plugin.logger.log(Level.SEVERE, "Failed to unload world before deletion: $worldUuid", unloadError)
@@ -1530,6 +1589,11 @@ class WorldService(
             isAutomaticTransition: Boolean = false
     ): java.util.concurrent.CompletableFuture<Boolean> {
         val future = java.util.concurrent.CompletableFuture<Boolean>()
+        if (plugin.worldMigrationService.isPending(worldUuid)) {
+            plugin.logger.info("World archive rejected because migration is pending: $worldUuid")
+            future.complete(false)
+            return future
+        }
         val operationLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.ARCHIVE)
         if (operationLease == null) {
             future.complete(false)
@@ -1632,6 +1696,10 @@ class WorldService(
         val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
         for (worldData in worlds) {
+            if (plugin.worldMigrationService.isPending(worldData.uuid)) {
+                plugin.logger.warning("Skipping daily maintenance for migration-pending world: ${worldData.uuid}")
+                continue
+            }
             // 訪問者統計の更新
             val visitors = worldData.recentVisitors
             // サイズ調整（足りない場合は0で埋める、多すぎる場合は切り詰める）

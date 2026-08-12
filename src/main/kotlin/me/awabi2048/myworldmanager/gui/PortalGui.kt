@@ -145,10 +145,14 @@ class PortalGui(private val plugin: MyWorldManager) {
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
         val player = context.player
         val lang = plugin.languageManager
-        val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
-
+        val refundResult = runCatching {
+            plugin.portalManager.removePortalAndRefund(portal)
+        }.getOrElse { error ->
+            plugin.logger.warning("Portal removal was rejected for ${portal.id}: ${error.message}")
+            player.sendMessage(lang.getMessage(player, "messages.migration.required"))
+            return MenuActionResult.Rejected()
+        }
         plugin.portalManager.removePortalVisuals(portal.id)
-        plugin.portalRepository.removePortal(portal.id)
         if (!portal.isGate()) {
             portal.loadedWorld()?.getBlockAt(portal.x, portal.y, portal.z)
                 ?.takeIf { it.type == Material.END_PORTAL_FRAME }

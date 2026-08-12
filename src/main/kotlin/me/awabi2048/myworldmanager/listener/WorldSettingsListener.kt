@@ -517,13 +517,18 @@ class WorldSettingsListener : Listener {
                 lang: LanguageManager,
         ) {
                 val portal = plugin.portalRepository.findAll().find { it.id == portalId } ?: return
-                val refundResult = if (portal.isGate()) plugin.portalManager.refundPointsForRemovedGate(portal) else null
+                val refundResult = runCatching {
+                        plugin.portalManager.removePortalAndRefund(portal)
+                }.getOrElse { error ->
+                        plugin.logger.warning("Managed portal removal was rejected for ${portal.id}: ${error.message}")
+                        player.sendMessage(lang.getMessage(player, "messages.migration.required"))
+                        return
+                }
                 if (!portal.isGate()) {
                         val block = portal.loadedWorld()?.getBlockAt(portal.x, portal.y, portal.z)
                         if (block != null && block.type == Material.END_PORTAL_FRAME) block.type = Material.AIR
                 }
                 plugin.portalManager.removePortalVisuals(portal.id)
-                plugin.portalRepository.removePortal(portal.id)
                 val returnItem = if (portal.isGate()) {
                         me.awabi2048.myworldmanager.util.WorldGateItemUtil.createBaseWorldGateItem(lang, player)
                 } else {
@@ -1149,7 +1154,7 @@ class WorldSettingsListener : Listener {
                                 WorldRuntimePolicies.maxCreateCountDefault(plugin.config) +
                                         stats.unlockedWorldSlot
                         val currentCounts =
-                                plugin.worldConfigRepository.findAll().count { it.owner == memberId }
+                                plugin.worldConfigRepository.ownerCountIncludingQuarantine(memberId)
                         val standardLimitReached =
                                 MyWorldManagerApi.isWorldSlotSystemEnabled() &&
                                         currentCounts >= maxCounts
