@@ -48,7 +48,6 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Instant
 import java.util.UUID
-import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 
@@ -112,9 +111,7 @@ class WorldMigrationService(
                         requestExecute(context.player, confirmed = true)
                         MenuActionResult.Success(MenuUpdate.Close)
                     },
-                    ACTION_CANCEL to MenuActionHandler {
-                        MenuActionResult.Success(MenuUpdate.Close)
-                    },
+                    ACTION_CANCEL to MenuActionHandler { MenuActionResult.Success(MenuUpdate.Close) },
                 ),
                 openSound = MenuSoundPresets.CONFIRMATION_OPEN,
             ),
@@ -383,7 +380,7 @@ class WorldMigrationService(
         return pending
     }
 
-    fun requestExecute(sender: CommandSender, confirmed: Boolean = false) {
+    internal fun requestExecute(sender: CommandSender, force: Boolean = false, confirmed: Boolean = false) {
         if (running || metadataMigrationRunning) {
             send(sender, "messages.migration.already_running")
             return
@@ -393,68 +390,20 @@ class WorldMigrationService(
             send(sender, "messages.migration.incomplete")
             return
         }
+        // 強制移行は確認状態をGUIへ持ち越さず、完全なコマンドの再入力だけを実行意図とします。
+        if (force && !confirmed) {
+            send(sender, "messages.migration.force_console_confirm")
+            return
+        }
         if (sender is Player && !confirmed) {
             openConfirmation(sender)
             return
         }
         if (!confirmed) {
-            send(sender, "messages.migration.console_confirm")
+            send(sender, if (force) "messages.migration.force_console_confirm" else "messages.migration.console_confirm")
             return
         }
-        execute(sender)
-    }
-
-    /**
-     * 次元を自動推測できないメタデータだけを、管理者が明示した値で移行します。
-     * confirmを要求することで、コマンド入力自体を実行意図の境界にします。
-     */
-    fun requestSetDimension(
-        sender: CommandSender,
-        targetKind: String,
-        identifier: String,
-        rawDimension: String,
-        confirmed: Boolean,
-    ) {
-        if (running || metadataMigrationRunning) {
-            send(sender, "messages.migration.already_running")
-            return
-        }
-        if (!confirmed) {
-            send(sender, "messages.migration.dimension_confirmation")
-            return
-        }
-        val dimension = runCatching {
-            ManagedDimension.parse(rawDimension.uppercase(Locale.ROOT))
-        }.getOrElse {
-            send(sender, "messages.migration.dimension_usage")
-            return
-        }
-        metadataMigrationRunning = true
-        val result = try {
-            when (targetKind.lowercase(Locale.ROOT)) {
-                "world" -> runCatching {
-                    val uuid = UUID.fromString(identifier)
-                    val lease = MyWorldManagerApi.tryAcquireWorldOperation(uuid, WorldOperation.MIGRATE)
-                        ?: error("world_operation_locked")
-                    try {
-                        plugin.worldConfigRepository.migrateWorldData(uuid, dimension, forceDimension = true)
-                    } finally {
-                        lease.close()
-                    }
-                }.getOrElse {
-                    MetadataMigrationResult(MetadataMigrationStatus.FAILED, "invalid world UUID: $identifier")
-                }
-                "template" -> plugin.templateRepository.migrateTemplate(identifier, dimension, forceDimension = true)
-                else -> {
-                    send(sender, "messages.migration.dimension_usage")
-                    return
-                }
-            }
-        } finally {
-            metadataMigrationRunning = false
-        }
-        reloadMetadataRepositories()
-        sendMetadataResult(sender, targetKind, identifier, result)
+        execute(sender, force)
     }
 
     fun status(sender: CommandSender) {
@@ -539,7 +488,7 @@ class WorldMigrationService(
     fun snapshot(): MigrationStatusSnapshot =
         MigrationStatusSnapshot(running || metadataMigrationRunning, states.values.map(MigrationWorldState::copy), currentWorld)
 
-    private fun execute(sender: CommandSender) {
+    private fun execute(sender: CommandSender, force: Boolean) {
         if (stateFileUnreadableReason != null) {
             send(sender, "messages.migration.incomplete")
             return
@@ -548,7 +497,7 @@ class WorldMigrationService(
         val metadataResults = if (metadataCount > 0) {
             metadataMigrationRunning = true
             try {
-                migrateMetadata()
+                migrateMetadata(sender, force)
             } finally {
                 metadataMigrationRunning = false
             }
@@ -628,7 +577,7 @@ class WorldMigrationService(
             hasMetadataRemaining() ||
             stateFileUnreadableReason != null
 
-    private fun migrateMetadata() = buildList {
+    private fun migrateMetadata(sender: CommandSender, force: Boolean) = buildList {
         plugin.worldConfigRepository.quarantinedWorlds()
             .groupBy { it.uuid }
             .forEach { (uuid, candidates) ->
@@ -647,19 +596,46 @@ class WorldMigrationService(
                     return@forEach
                 }
                 val data = candidates.single()
-                val result = plugin.worldConfigRepository.migrateWorldData(uuid, inferDimension(data))
-                logMetadataResult("world:$uuid", result)
-            }
+                val inferred = inferDimension(data)
+                val dimension = inferred ?: ManagedDimension.OVERWORLD.takeIf { force }
+                val lease = MyWorldManagerApi.tryAcquireWorldOperation(uuid, WorldOperation.MIGRATE)
+                if (lease == null) {
+                    logMetadataResult(
+                        "world:$uuid",
+                        MetadataMigrationResult(MetadataMigrationStatus.FAILED, "world_operation_locked"),
+                    )
+                    return@forEach
+                }
+                try {
+                    val result = plugin.worldConfigRepository.migrateWorldData(uuid, dimension)
+                    logMetadataResult("world:$uuid", result)
+                    if (force && inferred == null && result.status == MetadataMigrationStatus.MIGRATED) {
+                        send(sender, "messages.migration.force_default_applied", mapOf("target" to "world:$uuid"))
+                    }
+                } finally {
+                    lease.close()
+                }
+        }
         val templateTargets = plugin.templateRepository.quarantinedTemplates()
         templateTargets.firstOrNull { it.id == "<file>" }?.let { data ->
-            val result = plugin.templateRepository.migrateTemplate(data.id, inferDimension(data))
+            val inferred = inferDimension(data)
+            val dimension = inferred ?: ManagedDimension.OVERWORLD.takeIf { force }
+            val result = plugin.templateRepository.migrateTemplate(data.id, dimension)
             logMetadataResult("template:${data.id}", result)
+            if (force && inferred == null && result.status == MetadataMigrationStatus.MIGRATED) {
+                send(sender, "messages.migration.force_default_applied", mapOf("target" to "templates.yml"))
+            }
             reloadMetadataRepositories()
         }
         if (plugin.templateRepository.quarantinedTemplates().none { it.id == "<file>" }) {
             plugin.templateRepository.quarantinedTemplates().forEach { data ->
-                val result = plugin.templateRepository.migrateTemplate(data.id, inferDimension(data))
+                val inferred = inferDimension(data)
+                val dimension = inferred ?: ManagedDimension.OVERWORLD.takeIf { force }
+                val result = plugin.templateRepository.migrateTemplate(data.id, dimension)
                 logMetadataResult("template:${data.id}", result)
+                if (force && inferred == null && result.status == MetadataMigrationStatus.MIGRATED) {
+                    send(sender, "messages.migration.force_default_applied", mapOf("target" to "template:${data.id}"))
+                }
             }
         }
         MyWorldManagerApi.getMigrationParticipants().forEach { participant ->
@@ -693,7 +669,16 @@ class WorldMigrationService(
             ?.let(NamespacedKey::fromString)
             ?.let { Bukkit.getWorld(it) }
             ?: data.customWorldName?.let { Bukkit.getWorld(it) }
-        return loaded?.let { runCatching { ManagedDimension.fromBukkit(it.environment) }.getOrNull() }
+        loaded?.let { world ->
+            runCatching { ManagedDimension.fromBukkit(world.environment) }.getOrNull()?.let { return it }
+        }
+
+        // 旧データの生成元テンプレートが現行定義に残っていれば、その明示dimensionを根拠にできます。
+        val templateId = data.sourceWorld
+            ?.takeIf { it.startsWith("template:", ignoreCase = true) }
+            ?.substringAfter(':')
+            ?.takeIf { it.isNotBlank() && !it.equals("none", ignoreCase = true) }
+        return templateId?.let(plugin.templateRepository::findById)?.dimension
     }
 
     private fun inferDimension(data: QuarantinedTemplateData): ManagedDimension? {
@@ -726,7 +711,7 @@ class WorldMigrationService(
         val key = when (result.status) {
             MetadataMigrationStatus.MIGRATED,
             MetadataMigrationStatus.ALREADY_CURRENT -> "messages.migration.metadata_updated"
-            MetadataMigrationStatus.NEEDS_INPUT -> "messages.migration.metadata_pending"
+            MetadataMigrationStatus.UNRESOLVED -> "messages.migration.metadata_pending"
             MetadataMigrationStatus.FAILED -> "messages.migration.metadata_failed"
         }
         send(

@@ -96,4 +96,16 @@ class WorldDataYamlMigrationTest {
 
         assertNull(violation);
     }
+
+    @Test
+    void unresolvedDimensionDoesNotProduceMigrationWithoutForceDefault() {
+        List<String> original = List.of(
+            "world_data:",
+            "  uuid: " + UUID_VALUE,
+            "  world_key: minecraft:my_world." + UUID_VALUE
+        );
+
+        assertNull(WorldDataYamlMigration.INSTANCE.migrate(original, UUID_VALUE, null));
+        assertEquals(original, List.copyOf(original));
+    }
 }

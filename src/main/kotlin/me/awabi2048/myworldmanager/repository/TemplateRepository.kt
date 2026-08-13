@@ -162,7 +162,6 @@ class TemplateRepository(private val plugin: MyWorldManager) {
     internal fun migrateTemplate(
         id: String,
         dimension: ManagedDimension? = null,
-        forceDimension: Boolean = false,
     ): MetadataMigrationResult {
         val config = runCatching { loadStrict() }.getOrElse { error ->
             return MetadataMigrationResult(
@@ -189,16 +188,27 @@ class TemplateRepository(private val plugin: MyWorldManager) {
             if (fileSchemaVersion == CURRENT_SCHEMA_VERSION) {
                 return MetadataMigrationResult(MetadataMigrationStatus.ALREADY_CURRENT, "already current: templates.yml")
             }
+            val templateSections = config.getKeys(false)
+                .mapNotNull { key -> config.getConfigurationSection(key)?.let { key to it } }
+            val unresolved = templateSections.filter { (_, section) ->
+                WorldDataYamlMigration.normalizeDimension(section.getString("dimension")) == null && dimension == null
+            }
+            if (unresolved.isNotEmpty()) {
+                return MetadataMigrationResult(
+                    MetadataMigrationStatus.UNRESOLVED,
+                    "template dimensions cannot be resolved safely: ${unresolved.joinToString { it.first }}",
+                )
+            }
             val backup = File(configFile.parentFile, "${configFile.name}.pre-migration-${System.currentTimeMillis()}.bak")
             val temporary = File(configFile.parentFile, "${configFile.name}.migration.tmp")
             return try {
                 Files.copy(configFile.toPath(), backup.toPath())
                 config.set("config_version", CURRENT_SCHEMA_VERSION)
-                config.getKeys(false).forEach { key ->
-                    val section = config.getConfigurationSection(key) ?: return@forEach
+                templateSections.forEach { (_, section) ->
                     val normalized = WorldDataYamlMigration.normalizeDimension(section.getString("dimension"))
-                    if (normalized != null) {
-                        section.set("dimension", normalized)
+                    val targetDimension = normalized ?: dimension?.name
+                    if (targetDimension != null) {
+                        section.set("dimension", targetDimension)
                         section.set("schema_version", CURRENT_SCHEMA_VERSION)
                     }
                 }
@@ -233,12 +243,6 @@ class TemplateRepository(private val plugin: MyWorldManager) {
             )
         }
         val quarantinedData = quarantined[id]
-        if (forceDimension && quarantinedData == null) {
-            return MetadataMigrationResult(
-                MetadataMigrationStatus.FAILED,
-                "template is not quarantined: $id"
-            )
-        }
         val currentHash = MigrationFileFingerprint.sha256Section(config, id)
         if (quarantinedData?.contentHash != null && quarantinedData.contentHash != currentHash) {
             return MetadataMigrationResult(
@@ -248,14 +252,14 @@ class TemplateRepository(private val plugin: MyWorldManager) {
         }
         val normalizedDimension = WorldDataYamlMigration.normalizeDimension(currentRaw)
         if (dimension == null && normalizedDimension == null) {
-            return MetadataMigrationResult(MetadataMigrationStatus.NEEDS_INPUT, "dimension is required: $id")
+            return MetadataMigrationResult(MetadataMigrationStatus.UNRESOLVED, "dimension cannot be resolved safely: $id")
         }
-        val targetDimension = if (!forceDimension && normalizedDimension != null) {
+        val targetDimension = if (normalizedDimension != null) {
             ManagedDimension.parse(normalizedDimension)
         } else {
             dimension ?: return MetadataMigrationResult(
-                MetadataMigrationStatus.NEEDS_INPUT,
-                "dimension is required: $id",
+                MetadataMigrationStatus.UNRESOLVED,
+                "dimension cannot be resolved safely: $id",
             )
         }
         if (fileSchemaVersion == CURRENT_SCHEMA_VERSION &&

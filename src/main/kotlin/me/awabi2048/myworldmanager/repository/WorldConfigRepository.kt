@@ -291,13 +291,12 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
 
     /**
      * /mwm migration からだけ呼び出される生YAML移行です。
-     * dimensionを確定できない場合はファイルを変更せず、管理者入力を要求します。
+     * dimensionを確定できない場合はファイルを変更せず、UNRESOLVEDとして隔離を維持します。
      */
     @Synchronized
     internal fun migrateWorldData(
         uuid: UUID,
         dimension: ManagedDimension? = null,
-        forceDimension: Boolean = false,
     ): MetadataMigrationResult {
         val candidates = quarantined.values.filter { it.uuid == uuid }
         if (candidates.size > 1) {
@@ -319,12 +318,6 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
             return MetadataMigrationResult(MetadataMigrationStatus.FAILED, "cannot read $file: ${it.message}")
         }
 
-        if (forceDimension && quarantinedData == null) {
-            return MetadataMigrationResult(
-                MetadataMigrationStatus.FAILED,
-                "world data is not quarantined: $uuid"
-            )
-        }
         val currentHash = MigrationFileFingerprint.sha256(file)
         if (quarantinedData?.contentHash != null && quarantinedData.contentHash != currentHash) {
             return MetadataMigrationResult(
@@ -336,15 +329,12 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         // 次元はワールド生成方式を決めるため、推測値で部分移行しません。
         val rawDimension = WorldDataYamlMigration.readField(original, "dimension")
         if (dimension == null && (rawDimension == null || WorldDataYamlMigration.normalizeDimension(rawDimension) == null)) {
-            return MetadataMigrationResult(MetadataMigrationStatus.NEEDS_INPUT, "dimension is required: $uuid")
+            return MetadataMigrationResult(MetadataMigrationStatus.UNRESOLVED, "dimension cannot be resolved safely: $uuid")
         }
 
-        val migrationDimension = if (
-            !forceDimension && rawDimension != null && WorldDataYamlMigration.normalizeDimension(rawDimension) != null
-        ) {
-            null
-        } else {
-            dimension
+        // 保存済みの有効な値を優先し、呼び出し側の値は欠落時の解決結果としてだけ使用します。
+        val migrationDimension = dimension.takeIf {
+            rawDimension == null || WorldDataYamlMigration.normalizeDimension(rawDimension) == null
         }
         val canonicalFile = File(worldsFolder, "$uuid.yml")
         val migrated = WorldDataYamlMigration.migrate(original, uuid, migrationDimension?.name)
@@ -438,6 +428,7 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
             owner = WorldDataYamlMigration.readField(lines, "owner")?.toUuidOrNull(),
             worldKey = WorldDataYamlMigration.readField(lines, "world_key"),
             customWorldName = WorldDataYamlMigration.readField(lines, "custom_world_name"),
+            sourceWorld = WorldDataYamlMigration.readField(lines, "source_world"),
             contentHash = MigrationFileFingerprint.sha256(file),
         )
         plugin.logger.warning("ファイル ${file.name} のワールドデータを隔離しました: $reason")

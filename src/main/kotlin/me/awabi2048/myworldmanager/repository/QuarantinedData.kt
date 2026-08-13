@@ -19,6 +19,7 @@ data class QuarantinedWorldData(
     val owner: UUID? = null,
     val worldKey: String? = null,
     val customWorldName: String? = null,
+    val sourceWorld: String? = null,
     val contentHash: String? = null,
 )
 
@@ -58,7 +59,7 @@ object MigrationFileFingerprint {
 enum class MetadataMigrationStatus {
     MIGRATED,
     ALREADY_CURRENT,
-    NEEDS_INPUT,
+    UNRESOLVED,
     FAILED,
 }
 

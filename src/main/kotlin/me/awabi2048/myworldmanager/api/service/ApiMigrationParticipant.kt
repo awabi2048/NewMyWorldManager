@@ -64,6 +64,9 @@ data class ApiMigrationPreflight(
 enum class ApiMigrationParticipantResultState {
     MIGRATED,
     ALREADY_CURRENT,
+    UNRESOLVED,
+    /** 26.812系参加者とのバイナリ互換用。新規実装はUNRESOLVEDを返します。 */
+    @Deprecated("Use UNRESOLVED")
     NEEDS_INPUT,
     FAILED,
 }

@@ -77,24 +77,19 @@ class WorldCommand(
             "migration" -> {
                 val action = args.getOrNull(1)?.lowercase()
                 when (action) {
-                    "execute" -> plugin.worldMigrationService.requestExecute(
-                        sender,
-                        confirmed = args.getOrNull(2).equals("confirm", ignoreCase = true)
-                    )
-                    "status" -> plugin.worldMigrationService.status(sender)
-                    "set-dimension" -> {
-                        if (args.size < 6) {
-                            sender.sendMessage(plugin.languageManager.getMessage("messages.migration.dimension_usage"))
+                    "execute" -> {
+                        val options = MigrationExecuteOptions.parse(args.drop(2))
+                        if (options == null) {
+                            sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
                         } else {
-                            plugin.worldMigrationService.requestSetDimension(
-                                sender = sender,
-                                targetKind = args[2],
-                                identifier = args[3],
-                                rawDimension = args[4],
-                                confirmed = args[5].equals("confirm", ignoreCase = true),
+                            plugin.worldMigrationService.requestExecute(
+                                sender,
+                                force = options.force,
+                                confirmed = options.confirmed,
                             )
                         }
                     }
+                    "status" -> plugin.worldMigrationService.status(sender)
                     else -> sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
                 }
                 return true
@@ -412,7 +407,7 @@ class WorldCommand(
                 if (createCompletion != null) {
                     list.addAll(createCompletion)
                 } else if (sub == "migration" && hasGlobalPermission) {
-                    list.addAll(listOf("execute", "status", "set-dimension"))
+                    list.addAll(listOf("execute", "status"))
                 } else if (((sub == "stats" && hasStatsPermission) ||
                     (sub == "create" && hasCreatePermission)) &&
                     canSuggestSubCommand(sender, sub, args.toList())
@@ -422,8 +417,8 @@ class WorldCommand(
             }
             3 -> {
                 val sub = args[0].lowercase()
-                if (sub == "migration" && args[1].equals("set-dimension", ignoreCase = true) && hasGlobalPermission) {
-                    list.addAll(listOf("world", "template"))
+                if (sub == "migration" && args[1].equals("execute", ignoreCase = true) && hasGlobalPermission) {
+                    list.addAll(listOf("--force", "confirm"))
                 } else if (sub == "stats" &&
                     hasStatsPermission &&
                     canSuggestSubCommand(sender, sub, args.toList())
@@ -433,39 +428,17 @@ class WorldCommand(
             }
             4 -> {
                 if (args[0].lowercase() == "migration" &&
-                    args[1].equals("set-dimension", ignoreCase = true) &&
+                    args[1].equals("execute", ignoreCase = true) &&
                     hasGlobalPermission
                 ) {
-                    if (args[2].equals("world", ignoreCase = true)) {
-                        list.addAll(plugin.worldConfigRepository.quarantinedWorlds().mapNotNull { it.uuid?.toString() })
-                    } else if (args[2].equals("template", ignoreCase = true)) {
-                        list.addAll(
-                            plugin.templateRepository.quarantinedTemplates()
-                                .map { it.id }
-                                .filter { it != "<file>" }
-                        )
-                    }
+                    list.addAll(listOf("--force", "confirm").filterNot { option ->
+                        args.drop(2).any { it.equals(option, ignoreCase = true) }
+                    })
                 } else if (args[0].lowercase() == "stats" &&
                     hasStatsPermission &&
                     canSuggestSubCommand(sender, "stats", args.toList())
                 ) {
                     list.addAll(listOf("get", "set", "add", "remove"))
-                }
-            }
-            5 -> {
-                if (args[0].equals("migration", ignoreCase = true) &&
-                    args[1].equals("set-dimension", ignoreCase = true) &&
-                    hasGlobalPermission
-                ) {
-                    list.addAll(listOf("OVERWORLD", "NETHER", "END"))
-                }
-            }
-            6 -> {
-                if (args[0].equals("migration", ignoreCase = true) &&
-                    args[1].equals("set-dimension", ignoreCase = true) &&
-                    hasGlobalPermission
-                ) {
-                    list.add("confirm")
                 }
             }
         }
