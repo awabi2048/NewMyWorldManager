@@ -161,13 +161,6 @@ class MyWorldManager : JavaPlugin() {
         // ここでは存在しない場合だけ既定ファイルを作成し、既存内容はそのまま読み込みます。
         saveDefaultConfig()
         reloadConfig()
-        // langフォルダが存在しなければ作成し、デフォルトの言語ファイルをコピー
-        val langFolder = java.io.File(dataFolder, "lang")
-        if (!langFolder.exists()) {
-            langFolder.mkdirs()
-        }
-        saveSplitLanguageResources()
-
         // templates.ymlがなければコピー
         saveResourceIfNotExists("templates.yml")
 
@@ -504,7 +497,6 @@ class MyWorldManager : JavaPlugin() {
         if (::worldEnvironmentService.isInitialized) {
             MyWorldManagerApi.unregisterWorldEnvironmentService(worldEnvironmentService)
         }
-        runCatching { CCSystem.getAPI().unregisterI18nSource(name) }
         runCatching { CCSystem.getAPI().getItemGrantService().unregister("myworld") }
         runCatching { CCSystem.getAPI().getMenuCommandService().unregisterOwner("myworld") }
         runCatching { CCSystem.getAPI().getMenuConfirmationService().clearOwner("mwm") }
@@ -717,24 +709,4 @@ class MyWorldManager : JavaPlugin() {
         return false
     }
 
-    private fun saveSplitLanguageResources() {
-        val codeSource = runCatching {
-            File(javaClass.protectionDomain.codeSource.location.toURI())
-        }.getOrNull() ?: return
-        if (!codeSource.isFile) {
-            return
-        }
-
-        JarFile(codeSource).use { jar ->
-            jar.entries().asSequence()
-                .filter { !it.isDirectory && it.name.startsWith("lang/") && it.name.endsWith(".yml") }
-                .forEach { entry ->
-                    val file = File(dataFolder, entry.name)
-                    if (!file.exists()) {
-                        file.parentFile?.mkdirs()
-                        saveResource(entry.name, false)
-                    }
-                }
-        }
-    }
 }

@@ -3,7 +3,7 @@ package me.awabi2048.myworldmanager.util
 import org.bukkit.plugin.java.JavaPlugin
 
 /**
- * ワールド名の検証結果。メッセージ本文は cc-system の言語ファイル側で管理するため、
+ * ワールド名の検証結果。メッセージ本文はCC-Systemの埋込ローカライズカタログで管理するため、
  * ここでは判定結果と対応する言語キー・プレースホルダーのみを保持する。
  */
 sealed class WorldNameValidation {

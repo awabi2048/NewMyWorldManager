@@ -1,9 +1,7 @@
 package me.awabi2048.myworldmanager;
 
 import org.junit.jupiter.api.Test;
-import org.yaml.snakeyaml.LoaderOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.SafeConstructor;
+import com.awabi2048.ccsystem.api.localization.LocalizationCatalogContract;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +19,6 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.fail;
 
 class LanguageCallPlaceholderContractTest {
-    private static final Path LANGUAGE_ROOT = Path.of("../cc-system/src/main/resources/lang/ja_jp");
     private static final Path SOURCE_ROOT = Path.of("src/main/kotlin");
     private static final Pattern CALL_START = Pattern.compile(
         "\\.(getMessage(?:List)?(?:Strict)?|getComponent(?:List)?)\\s*\\("
@@ -33,17 +30,16 @@ class LanguageCallPlaceholderContractTest {
 
     @Test
     void literalLanguageCallsSupplyExactlyThePlaceholdersRequiredByResources() throws Exception {
-        Map<String, Object> messages = loadLanguageValues();
         List<String> errors = new ArrayList<>();
         int checked = 0;
 
         try (Stream<Path> files = Files.walk(SOURCE_ROOT)) {
             for (Path file : files.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".kt")).toList()) {
                 String source = Files.readString(file);
-                checked += validateCalls(file, source, CALL_START, messages, errors);
+                checked += validateCalls(file, source, CALL_START, errors);
                 // WorldMigrationServiceのsendラッパーだけを言語呼び出しとして追加検査します。
                 if (file.getFileName().toString().equals("WorldMigrationService.kt")) {
-                    checked += validateCalls(file, source, MIGRATION_SEND_START, messages, errors);
+                    checked += validateCalls(file, source, MIGRATION_SEND_START, errors);
                 }
             }
         }
@@ -55,7 +51,7 @@ class LanguageCallPlaceholderContractTest {
         }
     }
 
-    private static int validateCalls(Path file, String source, Pattern callPattern, Map<String, Object> messages, List<String> errors) {
+    private static int validateCalls(Path file, String source, Pattern callPattern, List<String> errors) {
         int checked = 0;
         Matcher calls = callPattern.matcher(source);
         while (calls.find()) {
@@ -72,18 +68,12 @@ class LanguageCallPlaceholderContractTest {
                     String key = literal(arguments.get(keyIndex));
                     // Kotlinの文字列テンプレートは列挙可能なリテラルキーではないため別の契約テストで扱います。
                     if (key.contains("$")) continue;
-                    Object value = messages.get(key);
-                    if (value == null) {
+                    Set<String> required = LocalizationCatalogContract.INSTANCE.placeholders(key);
+                    if (required == null) {
                         // 欠落キーを無視すると、そのキーほどプレースホルダー契約から漏れてしまいます。
                         errors.add(file + ": missing language key=" + key);
                         continue;
                     }
-                    if (!(value instanceof String) && !(value instanceof List<?>)) {
-                        errors.add(file + ": language value must be String or List: " + key + " actual=" + value.getClass().getSimpleName());
-                        continue;
-                    }
-
-                    Set<String> required = placeholders(value);
                     String placeholderArgument = keyIndex + 1 < arguments.size()
                         ? arguments.get(keyIndex + 1).trim()
                         : "emptyMap()";
@@ -105,28 +95,6 @@ class LanguageCallPlaceholderContractTest {
         return checked;
     }
 
-    private static Map<String, Object> loadLanguageValues() throws Exception {
-        Map<String, Object> values = new LinkedHashMap<>();
-        LoaderOptions options = new LoaderOptions();
-        options.setAllowDuplicateKeys(false);
-        Yaml yaml = new Yaml(new SafeConstructor(options));
-        try (Stream<Path> files = Files.walk(LANGUAGE_ROOT)) {
-            for (Path file : files.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".yml")).toList()) {
-                Object loaded = yaml.load(Files.readString(file));
-                if (loaded instanceof Map<?, ?> map) flatten(values, "", map);
-            }
-        }
-        return values;
-    }
-
-    private static void flatten(Map<String, Object> output, String prefix, Map<?, ?> map) {
-        map.forEach((rawKey, value) -> {
-            String key = prefix.isEmpty() ? String.valueOf(rawKey) : prefix + "." + rawKey;
-            if (value instanceof Map<?, ?> nested) flatten(output, key, nested);
-            else output.put(key, value);
-        });
-    }
-
     private static int literalLanguageKeyIndex(List<String> arguments) {
         for (int i = 0; i < arguments.size(); i++) {
             String value = literal(arguments.get(i));
@@ -138,18 +106,6 @@ class LanguageCallPlaceholderContractTest {
     private static String literal(String argument) {
         Matcher matcher = STRING_LITERAL.matcher(argument);
         return matcher.matches() ? matcher.group(1) : null;
-    }
-
-    private static Set<String> placeholders(Object value) {
-        Set<String> result = new TreeSet<>();
-        if (value instanceof String text) collectPlaceholders(result, text);
-        else if (value instanceof List<?> list) list.forEach(line -> collectPlaceholders(result, String.valueOf(line)));
-        return result;
-    }
-
-    private static void collectPlaceholders(Set<String> output, String text) {
-        Matcher matcher = PLACEHOLDER.matcher(text);
-        while (matcher.find()) output.add(matcher.group(1) != null ? matcher.group(1) : matcher.group(2));
     }
 
     private static Set<String> mapKeys(String expression) {
