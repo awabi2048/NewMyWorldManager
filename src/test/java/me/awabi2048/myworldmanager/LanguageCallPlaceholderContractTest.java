@@ -26,8 +26,9 @@ class LanguageCallPlaceholderContractTest {
     private static final Pattern CALL_START = Pattern.compile(
         "\\.(getMessage(?:List)?(?:Strict)?|getComponent(?:List)?)\\s*\\("
     );
+    private static final Pattern MIGRATION_SEND_START = Pattern.compile("\\bsend\\s*\\(");
     private static final Pattern STRING_LITERAL = Pattern.compile("^\\s*\"([^\"]+)\"\\s*$", Pattern.DOTALL);
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z0-9_]+)}");
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z0-9_]+)}|%([A-Za-z0-9_]+)%");
     private static final Pattern MAP_KEY = Pattern.compile("\"([^\"]+)\"\\s+to\\b");
 
     @Test
@@ -39,8 +40,25 @@ class LanguageCallPlaceholderContractTest {
         try (Stream<Path> files = Files.walk(SOURCE_ROOT)) {
             for (Path file : files.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".kt")).toList()) {
                 String source = Files.readString(file);
-                Matcher calls = CALL_START.matcher(source);
-                while (calls.find()) {
+                checked += validateCalls(file, source, CALL_START, messages, errors);
+                // WorldMigrationServiceのsendラッパーだけを言語呼び出しとして追加検査します。
+                if (file.getFileName().toString().equals("WorldMigrationService.kt")) {
+                    checked += validateCalls(file, source, MIGRATION_SEND_START, messages, errors);
+                }
+            }
+        }
+
+        if (checked == 0) errors.add("静的に検証できる言語呼び出しがありません");
+        if (!errors.isEmpty()) {
+            fail("[language call placeholder contract] checked=" + checked + " errors=" + errors.size()
+                + "\n" + String.join("\n", errors));
+        }
+    }
+
+    private static int validateCalls(Path file, String source, Pattern callPattern, Map<String, Object> messages, List<String> errors) {
+        int checked = 0;
+        Matcher calls = callPattern.matcher(source);
+        while (calls.find()) {
                     int open = source.indexOf('(', calls.start());
                     int close = matchingParenthesis(source, open);
                     if (close < 0) {
@@ -52,8 +70,18 @@ class LanguageCallPlaceholderContractTest {
                     if (keyIndex < 0) continue;
 
                     String key = literal(arguments.get(keyIndex));
+                    // Kotlinの文字列テンプレートは列挙可能なリテラルキーではないため別の契約テストで扱います。
+                    if (key.contains("$")) continue;
                     Object value = messages.get(key);
-                    if (!(value instanceof String) && !(value instanceof List<?>)) continue;
+                    if (value == null) {
+                        // 欠落キーを無視すると、そのキーほどプレースホルダー契約から漏れてしまいます。
+                        errors.add(file + ": missing language key=" + key);
+                        continue;
+                    }
+                    if (!(value instanceof String) && !(value instanceof List<?>)) {
+                        errors.add(file + ": language value must be String or List: " + key + " actual=" + value.getClass().getSimpleName());
+                        continue;
+                    }
 
                     Set<String> required = placeholders(value);
                     String placeholderArgument = keyIndex + 1 < arguments.size()
@@ -73,15 +101,8 @@ class LanguageCallPlaceholderContractTest {
                         missing.removeAll(supplied);
                         errors.add(file + ": " + key + " missing=" + missing + " supplied=" + supplied);
                     }
-                }
-            }
         }
-
-        if (checked == 0) errors.add("静的に検証できる言語呼び出しがありません");
-        if (!errors.isEmpty()) {
-            fail("[language call placeholder contract] checked=" + checked + " errors=" + errors.size()
-                + "\n" + String.join("\n", errors));
-        }
+        return checked;
     }
 
     private static Map<String, Object> loadLanguageValues() throws Exception {
@@ -128,7 +149,7 @@ class LanguageCallPlaceholderContractTest {
 
     private static void collectPlaceholders(Set<String> output, String text) {
         Matcher matcher = PLACEHOLDER.matcher(text);
-        while (matcher.find()) output.add(matcher.group(1));
+        while (matcher.find()) output.add(matcher.group(1) != null ? matcher.group(1) : matcher.group(2));
     }
 
     private static Set<String> mapKeys(String expression) {

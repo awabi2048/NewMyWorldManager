@@ -31,10 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 class LanguageResourceValidationTest {
     private static final String BASE_LOCALE = "ja_jp";
     private static final String LANG_ROOT_PROPERTY = "cc.system.lang.root";
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z0-9_]+}");
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z0-9_]+}|%[A-Za-z0-9_]+%");
     private static final Pattern KEY_CALL = Pattern.compile(
         "(?:languageManager|lang)\\.(?:getMessage(?:List)?(?:Strict)?|getComponent(?:List)?|hasKey)\\("
             + "[^\"]*?\"([a-z0-9_]+(?:\\.[a-z0-9_]+)+)\""
+    );
+    private static final Pattern MIGRATION_SEND_CALL = Pattern.compile(
+        "\\bsend\\([^\"]*?\"([a-z0-9_]+(?:\\.[a-z0-9_]+)+)\""
     );
 
     @Test
@@ -97,6 +100,13 @@ class LanguageResourceValidationTest {
                 Matcher matcher = KEY_CALL.matcher(Files.readString(file));
                 while (matcher.find()) {
                     keys.add(matcher.group(1));
+                }
+                // WorldMigrationServiceのsendラッパーは、内部でLanguageManagerへ委譲する専用経路です。
+                if (file.getFileName().toString().equals("WorldMigrationService.kt")) {
+                    Matcher wrappedMatcher = MIGRATION_SEND_CALL.matcher(Files.readString(file));
+                    while (wrappedMatcher.find()) {
+                        keys.add(wrappedMatcher.group(1));
+                    }
                 }
             }
         }
@@ -253,6 +263,18 @@ class LanguageResourceValidationTest {
                     compareNode(errors, locale, fileName, childPath, entry.getValue(), actualMap.get(entry.getKey()));
                 }
             }
+        } else if (expected instanceof List<?> expectedList && actual instanceof List<?> actualList) {
+            // 翻訳では改行位置と行数が変わり得るため、リスト要素は文字列型と全体の置換契約を検証します。
+            for (int index = 0; index < actualList.size(); index++) {
+                if (!(actualList.get(index) instanceof String)) {
+                    errors.add(format("list element type mismatch", locale, fileName, path + "[" + index + "]", "expected=String actual=" + nodeType(actualList.get(index))));
+                }
+            }
+            Set<String> expectedPlaceholders = placeholders(expectedList);
+            Set<String> actualPlaceholders = placeholders(actualList);
+            if (!expectedPlaceholders.equals(actualPlaceholders)) {
+                errors.add(format("placeholder mismatch", locale, fileName, displayPath(path), "expected=" + expectedPlaceholders + " actual=" + actualPlaceholders));
+            }
         } else if (expected instanceof String expectedString && actual instanceof String actualString) {
             Set<String> expectedPlaceholders = placeholders(expectedString);
             Set<String> actualPlaceholders = placeholders(actualString);
@@ -311,8 +333,11 @@ class LanguageResourceValidationTest {
     private static String nodeType(Object value) {
         if (value instanceof Map<?, ?>) return "Map";
         if (value instanceof List<?>) return "List";
+        if (value instanceof String) return "String";
+        if (value instanceof Number) return "Number";
+        if (value instanceof Boolean) return "Boolean";
         if (value == null) return "Null";
-        return "Scalar";
+        return value.getClass().getSimpleName();
     }
 
     private static Set<String> placeholders(String value) {
@@ -321,6 +346,12 @@ class LanguageResourceValidationTest {
         while (matcher.find()) {
             placeholders.add(matcher.group());
         }
+        return placeholders;
+    }
+
+    private static Set<String> placeholders(List<?> values) {
+        Set<String> placeholders = new LinkedHashSet<>();
+        values.forEach(value -> placeholders.addAll(placeholders(String.valueOf(value))));
         return placeholders;
     }
 
