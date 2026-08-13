@@ -11,6 +11,42 @@ import java.util.UUID
 object WorldDataYamlMigration {
     const val CURRENT_SCHEMA_VERSION = 1
 
+    /**
+     * Bukkit の ConfigurationSerialization は不正な保存データを読むと、呼び出し側で捕捉しても
+     * ERROR とスタックトレースを出力します。通常ロードでは先に生YAMLを検査し、移行待ちの
+     * データをデシリアライザへ渡さず隔離することで、想定内の旧形式を起動障害と区別します。
+     */
+    fun currentSchemaViolation(lines: List<String>, expectedUuid: UUID): String? {
+        if (worldDataBounds(lines) == null) return "world_data is missing"
+
+        val rawDimension = readField(lines, "dimension")
+            ?: return "dimension is missing"
+        val normalizedDimension = normalizeDimension(rawDimension)
+            ?: return "dimension is invalid: $rawDimension"
+        if (rawDimension.uppercase(Locale.ROOT) != normalizedDimension) {
+            return "dimension is not canonical: $rawDimension"
+        }
+
+        val rawSchemaVersion = readField(lines, "schema_version")
+            ?: return "schema_version is missing"
+        val schemaVersion = rawSchemaVersion.toIntOrNull()
+            ?: return "schema_version is invalid: $rawSchemaVersion"
+        if (schemaVersion != CURRENT_SCHEMA_VERSION) {
+            return "unsupported schema_version: $schemaVersion"
+        }
+
+        val serializedUuid = readField(lines, "uuid")
+            ?.runCatching { UUID.fromString(this) }
+            ?.getOrNull()
+            ?: return "uuid is missing or invalid"
+        if (serializedUuid != expectedUuid) return "uuid does not match file name"
+
+        val worldKey = readField(lines, "world_key")
+            ?: return "world_key is missing"
+        if (!worldKey.contains(':')) return "world_key is invalid: $worldKey"
+        return null
+    }
+
     fun readField(lines: List<String>, field: String): String? {
         val bounds = worldDataBounds(lines) ?: return null
         val indent = childIndent(lines, bounds)

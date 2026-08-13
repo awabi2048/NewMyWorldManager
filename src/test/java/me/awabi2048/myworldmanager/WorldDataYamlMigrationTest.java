@@ -65,4 +65,35 @@ class WorldDataYamlMigrationTest {
 
         assertTrue(migrated.contains("  dimension: NETHER"));
     }
+
+    @Test
+    void rejectsMissingDimensionBeforeBukkitDeserialization() {
+        String violation = WorldDataYamlMigration.INSTANCE.currentSchemaViolation(
+            List.of(
+                "world_data:",
+                "  schema_version: 1",
+                "  uuid: " + UUID_VALUE,
+                "  world_key: minecraft:my_world." + UUID_VALUE
+            ),
+            UUID_VALUE
+        );
+
+        assertEquals("dimension is missing", violation);
+    }
+
+    @Test
+    void acceptsCanonicalCurrentSchemaBeforeBukkitDeserialization() {
+        String violation = WorldDataYamlMigration.INSTANCE.currentSchemaViolation(
+            List.of(
+                "world_data:",
+                "  schema_version: 1",
+                "  uuid: " + UUID_VALUE,
+                "  dimension: OVERWORLD",
+                "  world_key: minecraft:my_world." + UUID_VALUE
+            ),
+            UUID_VALUE
+        );
+
+        assertNull(violation);
+    }
 }

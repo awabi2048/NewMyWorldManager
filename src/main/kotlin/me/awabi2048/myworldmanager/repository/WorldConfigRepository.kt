@@ -44,6 +44,12 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
         for (file in files) {
             try {
                 val uuid = UUID.fromString(file.nameWithoutExtension)
+                val lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)
+                val schemaViolation = WorldDataYamlMigration.currentSchemaViolation(lines, uuid)
+                if (schemaViolation != null) {
+                    registerQuarantine(file, uuid, schemaViolation)
+                    continue
+                }
                 val worldData = loadWorldData(file)
                 if (worldData != null) {
                     check(isCurrentWorldData(file, uuid, worldData)) {
